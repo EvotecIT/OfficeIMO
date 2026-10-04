@@ -1,0 +1,308 @@
+{
+  "schema": "officeimo.html.master-owner-convergence",
+  "recordedAtUtc": "2026-10-04T08:20:38.039929+00:00",
+  "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
+  "masterInputCommit": "2f88a03b487e6dbc2d1fdd1e5d3efa5d9fa718cc",
+  "h10InputCommit": "28a9f587556d40651faf2143a609aafc7c33be4a",
+  "mergeCommit": "fa13bc5c96bd5a3a1f9b8099191875db3f0f9636",
+  "ownerFixCommit": "5c15d7f995383e23c3c7e48c3cebc080fad625d7",
+  "scope": "Combined static/Core/PDF/native owners. This checkpoint is not full static delivery, browser parity, H10 appearance or platform acceptance.",
+  "merge": {
+    "incomingCommits": 281,
+    "conflictedPaths": 24,
+    "preserved": "Current master owners and established static math, SVG, canvas, responsive-resource and native adapter contracts; no shared history rewrite."
+  },
+  "fixes": [
+    {
+      "owner": "Core raster",
+      "contract": "Charge output and separable floating scratch before high-quality image minification through the shared budget, including affine/blended paths. Raster safety failure retains structural SVG findings.",
+      "regression": "831 working pixels rejected;832 accepted for256 decoded+64 output+512 scratch."
+    },
+    {
+      "owner": "Core math/font selection",
+      "contract": "Carry the explicit numeric collection face through scoped measurement, bounds, constants, glyph variants and assemblies.",
+      "regression": "Independent500-vs400 two-face font fixture protects selection and metric scaling."
+    },
+    {
+      "owner": "PDF logical canvas and HTML outlined text",
+      "contract": "Declared logical rectangle preserves adjacent punctuation and authored spacing without changing paint. Nominal single-Tj anchors strip font positioning/tracking; sibling searchable OCR uses the same helper. Private reader hint retains bounded geometry across inherited Form state; legacy point anchors still promote visible geometry. Conservative replacement-edit rejection is preserved.",
+      "regressions": "Five real Poppler fixtures, tracked embedded font width50, Formula/translated translucent linked paint, OCR sibling and conservative editing."
+    }
+  ],
+  "validation": {
+    "drawingNet8": {
+      "artifact": "drawing8-closure.trx",
+      "passed": 3405,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "drawingNet10": {
+      "artifact": "drawing10-closure.trx",
+      "passed": 3405,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "htmlNet8": {
+      "artifact": "html-final-net8.trx",
+      "passed": 4266,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "htmlNet10": {
+      "artifact": "html-final-net10.trx",
+      "passed": 4266,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "pdfNet8": {
+      "artifact": "pdf-final-net8.trx",
+      "passed": 8761,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "pdfNet10": {
+      "artifact": "pdf-final-net10.trx",
+      "passed": 8761,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "toolNet10": {
+      "artifact": "tool10.trx",
+      "passed": 277,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "boundedFocused": {
+      "artifact": "logical-geometry-remediated3.trx",
+      "passed": 51,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "normalBuilds": "Core/Html/Pdf netstandard2.0 plus clean API, Tool and profile producer builds; zero warnings/errors; no DeterministicSourcePaths workaround.",
+    "packages": {
+      "count": 19,
+      "targets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "consumers": [
+        "document-only net8/net10",
+        "complete static job net8/net10"
+      ],
+      "command": "Build/Test-HtmlPackages.ps1 -ArtifactsPath <new absolute task directory>",
+      "runtimeGraphExcluded": true,
+      "net472ExecutionOnMac": false,
+      "manifest": "Ignore/MasterConvergenceQualification/packages-966539fd4/package-manifest.json"
+    },
+    "profileResults": [
+      {
+        "file": "PdfA3B.pdf",
+        "sha256": "f5a0ea1838d605160911d632df984a9bfea3dd5909cc08676f3bea9345884972",
+        "profile": "PDF/A-3b validation profile",
+        "compliant": true,
+        "details": {
+          "passedRules": "146",
+          "failedRules": "0",
+          "passedChecks": "1543",
+          "failedChecks": "0"
+        },
+        "exitCode": 0
+      },
+      {
+        "file": "PdfUa1WithPdfA3B.pdf",
+        "sha256": "9404059384bdbec88a61c8d093b5688cae8c77249556b53ca418fd495b8d8d34",
+        "profile": "PDF/UA-1 validation profile",
+        "compliant": true,
+        "details": {
+          "passedRules": "106",
+          "failedRules": "0",
+          "passedChecks": "526",
+          "failedChecks": "0"
+        },
+        "exitCode": 0
+      },
+      {
+        "file": "PdfUa1WithPdfA3B.pdf",
+        "sha256": "9404059384bdbec88a61c8d093b5688cae8c77249556b53ca418fd495b8d8d34",
+        "profile": "PDF/A-3b validation profile",
+        "compliant": true,
+        "details": {
+          "passedRules": "146",
+          "failedRules": "0",
+          "passedChecks": "1557",
+          "failedChecks": "0"
+        },
+        "exitCode": 0
+      }
+    ],
+    "publicVisiblePaintFixture": {
+      "pixels": [
+        612,
+        792
+      ],
+      "nonWhitePixels": 1854,
+      "paintBounds": [
+        10,
+        28,
+        105,
+        80
+      ],
+      "pixelIdentical": true,
+      "pointPngSha256": "8085da850ea5479de93407d5f2f4c747d00121e6466218a202ca0f33f7f488b5",
+      "boundedPngSha256": "8085da850ea5479de93407d5f2f4c747d00121e6466218a202ca0f33f7f488b5",
+      "logical-geometry-review-before": [
+        {
+          "specification": "ISO 14289-1:2014",
+          "clause": "7.1",
+          "testNumber": "2",
+          "status": "failed",
+          "failedChecks": "3",
+          "tags": "artifact"
+        },
+        {
+          "specification": "ISO 14289-1:2014",
+          "clause": "7.1",
+          "testNumber": "1",
+          "status": "failed",
+          "failedChecks": "3",
+          "tags": "artifact"
+        }
+      ],
+      "logical-geometry-remediated3": [],
+      "logical-geometry-review-beforeValidationSummary": {
+        "profile": "PDF/UA-1 validation profile",
+        "isCompliant": "false",
+        "details": {
+          "passedRules": "100",
+          "failedRules": "6",
+          "passedChecks": "118",
+          "failedChecks": "18"
+        }
+      },
+      "logical-geometry-remediated3ValidationSummary": {
+        "profile": "PDF/UA-1 validation profile",
+        "isCompliant": "false",
+        "details": {
+          "passedRules": "102",
+          "failedRules": "4",
+          "passedChecks": "111",
+          "failedChecks": "12"
+        }
+      },
+      "artifactNestingFailedChecksBefore": 6,
+      "artifactNestingFailedChecksAfter": 0,
+      "scope": "Focused before/after rule proof; the general fixture remains noncompliant for four metadata/language rules."
+    },
+    "h4": "All eight selected held-out cases included in both4266-test HTML suites; current full artifact replay remains separate.",
+    "normalComparisonBuild": {
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
+      "graph": "Existing opt-in comparison project, including Runtime/Conformance contracts but not the provider Worker; no SourceRoot override or local-source bridge.",
+      "historicalFailure": "Current normal comparison build passes; this does not establish the historical SourceRoot root cause or Worker/provider package readiness."
+    }
+  },
+  "localReview": [
+    {
+      "task": "static_convergence_font_raster_review",
+      "scope": "Integrated fonts/math/raster budgets",
+      "fullReadOnlyPass": 1,
+      "targetedConfirmation": 1,
+      "state": "candidate-reviewed",
+      "remainingFindings": 0
+    },
+    {
+      "task": "static_convergence_pdf_resource_review",
+      "scope": "Original converged PDF/resources/Tool/Markdown owners",
+      "fullReadOnlyPass": 1,
+      "targetedConfirmation": 0,
+      "state": "candidate-reviewed",
+      "remainingFindings": 0
+    },
+    {
+      "task": "bounded_actualtext_geometry_review",
+      "scope": "New public bounded logical spans, writer/reader/HTML owner and sibling OCR path",
+      "fullReadOnlyPass": 1,
+      "targetedConfirmation": 1,
+      "reviewFingerprint": "429d04f720b216151ae54390d7c51e3305e4118dcad0db0e1c8cde083c1a56c8",
+      "finalCosmeticDifference": "One redundant EOF blank line removed; no behavior change.",
+      "findings": "Two candidate-introduced P2s\u2014nested Artifact inside semantic owner and embedded tracking changing promised width\u2014reproduced and fixed; pre-existing OCR sibling width path swept.",
+      "state": "candidate-reviewed",
+      "remainingFindings": 0
+    }
+  ],
+  "routeReplay": {
+    "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
+    "contractsDeclaredBeforeReplay": true,
+    "routes": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "imagesAndLinkTargetsAndRectanglesEqualToControl": true,
+        "sourcePunctuationJoinsRecovered": 8,
+        "allOtherTokensPreserved": true,
+        "rawTextMatchesPredeclaredDiagnostic": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "imagesAndLinkTargetsAndRectanglesEqualToControl": true,
+        "sourcePunctuationJoinsRecovered": 8,
+        "allOtherTokensPreserved": true,
+        "rawTextMatchesPredeclaredDiagnostic": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "imagesAndLinkTargetsAndRectanglesEqualToControl": true,
+        "sourcePunctuationJoinsRecovered": 8,
+        "allOtherTokensPreserved": true,
+        "rawTextMatchesPredeclaredDiagnostic": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "imagesAndLinkTargetsAndRectanglesEqualToControl": true,
+        "baselineByteIdentical": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "imagesAndLinkTargetsAndRectanglesEqualToControl": true,
+        "baselineByteIdentical": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "imagesAndLinkTargetsAndRectanglesEqualToControl": true,
+        "baselineByteIdentical": true
+      }
+    ],
+    "scope": "Selected paired API/Tool, resource/link and raw text contracts. All-page paint equality is verified separately; this is not full H10 or platform acceptance."
+  },
+  "paint": {
+    "all55NASAOutputPagesPixelIdenticalToPreBoundsConvergedControlAt72Dpi": true,
+    "control": "5c15d7f995383e23c3c7e48c3cebc080fad625d7",
+    "priorH10Baseline": "f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+    "priorBaselineChangedPages": 53,
+    "priorBaselineIdenticalPages": 2,
+    "priorBaselineObservation": "All53 changed-page pairs inspected on14contact sheets. Selected font/emphasis/outline paint and generated shadow alpha differ after the master-owner merge; page flow, content, photographs and link geometry are retained. This is a classification, not numerical browser parity or closure of named H10 appearance gaps.",
+    "decodedImageChanges": "Only two generated black-gradient shadow assets per NASA intent differ from prior H10 baseline; photos retained. All decoded assets and links match the pre-bounds converged control."
+  },
+  "cleanup": {
+    "removedTestOutputBytes": 432054815,
+    "finalEvidenceRoot": "Ignore/MasterConvergenceQualification",
+    "retained": "Final source-addressed route PDFs, native baseline inputs in H10, profile PDFs/XML, changed-page contact sheets, exact test reports and failure/review receipts; superseded build output removed through guarded helper."
+  },
+  "remaining": [
+    "Current eighteen-case/H4 all-artifact qualification; classify current-master font/paint deltas against frozen independent criteria.",
+    "Current-source normal static and H10 operation budgets; same-host/domain hosted controls and Windows/Linux/macOS acceptance. Prior hosted timing failures remain visible; no ceiling change.",
+    "Isolated current-master standalone raster/PDF fix candidates and ordinary current-head PR gates, when extracted.",
+    "Named unfamiliar-page resources/appearance, all eleven historical intents, wider held-out corpus, native editable widths/pagination/appearance and manual accessibility.",
+    "Qualified convergence into long-lived branches and scoped worktree cleanup. Full HTML/runtime PR, master merge and release remain unauthorized."
+  ],
+  "longLivedAdoption": "Not performed; feature/html-engine and feature/html-unknown-page-qualification remain at40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40 until acceptance gates are satisfied."
+}
