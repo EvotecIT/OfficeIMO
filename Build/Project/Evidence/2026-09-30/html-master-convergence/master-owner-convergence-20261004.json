@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.html.master-owner-convergence",
-  "recordedAtUtc": "2026-10-04T08:34:43.666466+00:00",
+  "recordedAtUtc": "2026-10-04T08:38:04.755849+00:00",
   "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
   "masterInputCommit": "2f88a03b487e6dbc2d1fdd1e5d3efa5d9fa718cc",
   "h10InputCommit": "28a9f587556d40651faf2143a609aafc7c33be4a",
@@ -305,15 +305,27 @@
       ]
     },
     "platformProbe": {
-      "state": "Prepared, not yet executed",
+      "state": "Queued at dispatch; no result claimed",
       "suite": "html-static-pdf-probe",
       "scope": "Existing opt-in three-platform workflow now selects eight bounded raster/font-face cases and eight bounded PDF logical-carrier cases alongside existing point/font probes, on net8/net10. Full suites, packages and timings are excluded from this probe.",
-      "workflowValidation": "Ruby Psych YAML parse and all six PowerShell scripts parse. An initial optional Python YAML import was unavailable; that setup attempt is not validation."
+      "workflowValidation": "Ruby Psych YAML parse and all six PowerShell scripts parse. An initial optional Python YAML import was unavailable; that setup attempt is not validation.",
+      "sourceCommit": "8206c358fbdbfbb482a3b34962e2e66665d936c6",
+      "runId": 37189396257,
+      "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37189396257",
+      "dispatchedAtUtc": "2026-10-04T08:35:04Z"
     },
     "timingAccess": {
       "currentCombinedSourceMeasured": false,
       "localHost": "Unrelated simulator builds observed; no contended timing run attempted.",
       "alternateHost": "EvoMini dedicated persisted SSH key is absent on this machine. Strict access helper stopped before connection; no authentication or host-key policy changed."
+    },
+    "normalBudgetRunnerBuild": {
+      "sourceCommit": "8206c358fbdbfbb482a3b34962e2e66665d936c6",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "measured": false,
+      "log": "Ignore/MasterConvergenceQualification/static-budget-build-8206c358f.log"
     }
   },
   "localReview": [
@@ -409,7 +421,12 @@
     "retained": "Final route/static/H4 PDFs and images, profile PDFs/XML, changed-page contact sheets, exact test and failure/review receipts, nineteen NUPKG files and local-feed origin receipts; private package expansion and probe bin/obj removed through guarded helper.",
     "removedCheckpointOutputBytes": 590089031,
     "removedCheckpointTargets": 13,
-    "checkpointAllTargetsAbsent": true
+    "checkpointAllTargetsAbsent": true,
+    "removedCompletedPackageOwnerBuildBytes": 1260539624,
+    "removedCompletedPackageOwnerBuildTargets": 38,
+    "completedPackageOwnerTargetsAbsent": true,
+    "retainedEvidenceApproxMiB": 309,
+    "retainedWorkerBinaries": "Normal static-budget and comparison workers retained for active qualification; four-target owner build outputs removed. These worker copies do not establish any later-head build."
   },
   "remaining": [
     "Current-source normal static and H10 operation budgets, and three-platform focused bounded-owner probe. All local static/H4 artifacts are now replayed; wider unfamiliar-page acceptance remains separate.",
