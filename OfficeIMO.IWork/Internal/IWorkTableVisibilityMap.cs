@@ -40,7 +40,9 @@ internal static class IWorkTableVisibilityMap {
                 if (inverse[(int)indexes[position]] != (ulong)position) return Invalid(inverseField);
             }
         }
-        var positions = new Dictionary<(ulong Lower, ulong Upper), int>();
+        // UUID words come from the source. Ordered keys prevent adversarial
+        // tuple-hash collisions from making declaration mapping quadratic.
+        var positions = new SortedDictionary<(ulong Lower, ulong Upper), int>();
         int ordinal = 0;
         foreach (IWorkWireValue value in map.EnumerateValues(uuidField)) {
             source.CancellationToken.ThrowIfCancellationRequested();
@@ -54,7 +56,7 @@ internal static class IWorkTableVisibilityMap {
             positions.Add(key, (int)indexes[ordinal] + 1);
             ordinal++;
         }
-        var seen = new HashSet<(ulong Lower, ulong Upper)>();
+        var seen = new SortedSet<(ulong Lower, ulong Upper)>();
         var recovered = new List<int>();
         foreach (var state in states) {
             source.CancellationToken.ThrowIfCancellationRequested();

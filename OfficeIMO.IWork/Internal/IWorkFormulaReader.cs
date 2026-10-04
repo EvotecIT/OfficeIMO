@@ -255,10 +255,20 @@ internal static partial class IWorkFormulaReader {
                         whitespace = string.Empty;
                         complete = false;
                     }
+                    string? referenceAddress = operand.ReferenceAddress;
+                    if (referenceAddress != null) {
+                        if (whitespace.Length > maximumCharacters - referenceAddress.Length) {
+                            // Bound the retained reference as well as its rendered text.
+                            // Drop its binding rather than carrying a truncated address.
+                            referenceAddress = null;
+                            complete = false;
+                        } else referenceAddress = type == 32
+                            ? referenceAddress + whitespace : whitespace + referenceAddress;
+                    }
                     stack.Add(new Operand(Bound(type == 32 ? operand.Text + whitespace : whitespace + operand.Text,
-                        maximumCharacters, ref complete), operand.Precedence, operand.ReferenceIdentifier, operand.ReferenceQualifier,
-                        operand.ReferenceAddress == null ? null : type == 32
-                            ? operand.ReferenceAddress + whitespace : whitespace + operand.ReferenceAddress));
+                        maximumCharacters, ref complete), operand.Precedence,
+                        referenceAddress == null ? null : operand.ReferenceIdentifier,
+                        referenceAddress == null ? null : operand.ReferenceQualifier, referenceAddress));
                     break;
                 }
                 case 34:
