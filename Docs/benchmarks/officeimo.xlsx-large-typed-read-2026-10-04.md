@@ -149,6 +149,147 @@ and 0.95 on the two groups. These observations do not establish a portable
 speedup or a consistent throughput regression; unfavorable observations remain
 in the packet. All runs use Normal priority and retain outliers.
 
+## Coordinate buffering: allocation and throughput tradeoff
+
+The initial coordinate-buffering checkpoint, `6a533b308`, reads ordinary row and
+cell references into a reusable character buffer. It keeps long-reference and
+diagnostic text intact and applies the same parsing helper across XML-backed
+reader APIs. The baseline is `4c73bdcf3`; the
+[initial provenance](excel-large-typed-read-2026-10-04/coordinate-initial-provenance.json)
+pins both product assemblies and the identical benchmark harness.
+
+| Operation | Rows | Before allocation | Initial candidate allocation |
+| --- | ---: | ---: | ---: |
+| Decimal DataReader, two numeric columns | 25,000 | 6.83 MiB | 1.81 MiB |
+| Double DataReader, two numeric columns | 25,000 | 6.45 MiB | 1.43 MiB |
+| Decimal range, two numeric columns | 25,000 | 4.64 MiB | 2.13 MiB |
+| Double range, two numeric columns | 25,000 | 4.25 MiB | 1.74 MiB |
+| Decimal DataTable, two numeric columns | 25,000 | 9.29 MiB | 6.78 MiB |
+| Double DataTable, two numeric columns | 25,000 | 8.91 MiB | 6.40 MiB |
+| Materialized typed objects | 2,500 | 3.02 MiB | 2.33 MiB |
+| Materialized DataTable | 2,500 | 2.52 MiB | 1.84 MiB |
+| Complete typed scan | 250,000 | 145.02 MiB | 52.16 MiB |
+| Complete typed scan | 1,000,000 | 585.62 MiB | 207.94 MiB |
+| Open and read first row | 250,000 | 58.35 MiB | 11.92 MiB |
+| Open and read first row | 1,000,000 | 235.73 MiB | 46.87 MiB |
+
+All [38 native cases](excel-large-typed-read-2026-10-04/coordinate-initial-native.json)
+complete. Ordinary and prefixed shared-string controls have effectively unchanged
+allocation. The 65K corpus again varies with pool state: the baseline reports
+2.57 MiB in this run versus about 90 KiB in earlier longer-warmup observations.
+That difference is not credited to coordinate buffering.
+
+The allocation improvement does **not** qualify the initial helper as a
+throughput improvement. The
+[15-scenario rotated comparison](excel-large-typed-read-2026-10-04/coordinate-initial-rotated.json)
+retains 1,440 samples, including slower materialized and numeric reads. A separate
+[large-sheet rotation](excel-large-typed-read-2026-10-04/coordinate-initial-large-rotated.json)
+retains 192 samples. On the two processor groups, candidate/baseline mean ratios
+are 1.08/1.08 for million-row first-row opening and 1.07/1.09 for 250K first-row
+opening. Complete scans have ratios of 1.04/1.07 at one million rows and
+1.02/1.16 at 250K rows. These repeated slower observations require throughput
+remediation; they are not discarded as host noise.
+
+The full Windows .NET 10 non-performance suite passes 5,246 cases with five
+skips. All nine coordinate-specific contract cases pass after adding three
+diagnostic cases. They cover UTF-16, prefixed XML, entity-escaped and long
+references, missing and empty references, and diagnostics after reading cell
+content. An independent read-only review reports no actionable correctness or
+API findings. Other runtime qualification applies to a stable revised candidate,
+not to this initial timing experiment.
+
+## Typed values and revised XML traversal
+
+Candidate `b854ad35b` retains numeric and date serials in the current-row
+cache until an object result is requested. Typed decimal and date getters avoid
+boxing, and a later object getter still returns the configured canonical type.
+The candidate also shares immutable XML schema names and avoids repeating
+worksheet-structure checks for every validated cell. It includes the coordinate
+buffering above; the comparison baseline remains `4c73bdcf3`, so the figures
+measure their combined effect rather than attributing all savings to typed getters.
+
+The added `TypedDataReader` lane reads the same two numeric fields through
+`GetInt32` and `GetDecimal`. The existing `DataReader` lane uses `GetValue` and
+remains an object-materialization control. Setup verifies complete values and
+canonical object types for both double and decimal options. Small 2,500-row
+cases exercise buffered readers; 25,000-row UTF-16 cases exercise streaming XML.
+
+| Operation | Rows | Baseline allocation | Revised candidate allocation |
+| --- | ---: | ---: | ---: |
+| Typed numeric DataReader, decimal | 2,500 | 1.09 MiB | 0.55 MiB |
+| Typed numeric DataReader, double | 2,500 | 1.05 MiB | 0.52 MiB |
+| Typed numeric DataReader, decimal | 25,000 | 6.83 MiB | 0.28 MiB |
+| Typed numeric DataReader, double | 25,000 | 5.31 MiB | 0.28 MiB |
+| Object numeric DataReader, decimal | 25,000 | 6.83 MiB | 1.81 MiB |
+| Object numeric DataReader, double | 25,000 | 6.45 MiB | 1.43 MiB |
+| Complete four-column typed scan | 250,000 | 145.02 MiB | 23.54 MiB |
+| Complete four-column typed scan | 1,000,000 | 585.62 MiB | 93.45 MiB |
+| Open and read first row | 250,000 | 58.35 MiB | 11.91 MiB |
+| Open and read first row | 1,000,000 | 235.73 MiB | 46.87 MiB |
+
+The 25K decimal typed lane allocates 95.8% less; the complete million-row typed
+scan allocates 84.0% less. Shared-string controls remain effectively unchanged.
+The 65K corpus allocates about 90 KiB in both snapshots. These measurements do
+not establish lower retained or peak memory.
+
+All [46 native cases](excel-large-typed-read-2026-10-04/typed-values-native.json)
+and 2,016 output-validated rotated samples complete. The smaller workloads use
+24 native warmups, twelve iterations, and four operations per iteration; the
+large workloads use five warmups, five iterations, and one operation. PowerForge
+rotates both versions on each processor group with the settings recorded in the
+[provenance](excel-large-typed-read-2026-10-04/typed-values-provenance.json).
+Every sample and outlier remains available in the
+[small](excel-large-typed-read-2026-10-04/typed-values-small-rotated.json) and
+[large](excel-large-typed-read-2026-10-04/typed-values-large-rotated.json) packets.
+
+Timing does not qualify this candidate as a general speedup. Candidate/baseline
+mean ratios from the two processor groups are:
+
+| Operation | `0xFFFF` | `0xFFFF0000` |
+| --- | ---: | ---: |
+| Million-row complete scan | 0.98 | 1.06 |
+| Million-row first-row opening | 1.00 | 1.10 |
+| 250K complete scan | 1.01 | 1.04 |
+| 250K first-row opening | 0.91 | 1.04 |
+| 25K typed numeric DataReader, double | 1.08 | 1.13 |
+| 25K object numeric DataReader, double | 1.17 | 1.05 |
+| 65K corpus | 1.11 | 1.03 |
+
+Several workloads change direction between groups, and means and medians can
+differ considerably. For example, the 2,500-row double typed lane has mean
+ratios of 1.48 and 0.80, with median ratios of 1.13 and 0.94. Million-row
+first-row medians are 0.98 and 1.06. Repeated slower observations in the numeric
+and opening paths remain required throughput work; they are not erased by the
+allocation savings or by faster native observations.
+
+The preceding helper-inlining experiment was rejected. Its
+[measurements](excel-large-typed-read-2026-10-04/coordinate-rejected-inline.json)
+and [patch](excel-large-typed-read-2026-10-04/coordinate-rejected-inline.patch)
+remain for reproduction. Separate
+[validation traversal](excel-large-typed-read-2026-10-04/coordinate-validation-screen.json)
+and [schema-name](excel-large-typed-read-2026-10-04/coordinate-schema-screen.json)
+screens also retain slower observations; neither is represented as an
+independently qualified speed improvement.
+
+Getter-order validation also repairs pre-existing inconsistencies: typed reads
+could change subsequent decimal object results, numeric access could discard
+date interpretation, and buffered readers eagerly converted out-of-range date
+serials before callers could retrieve their numeric value. Eight regression
+cases fail before and pass after the change, covering UTF-8/UTF-16, the 1900/1904
+date systems, and buffered/streaming paths. Independent review identifies a
+stale primitive-cache check when an unsorted reader switches to buffered rows;
+five of eight transition cases reproduce it, all eight pass after correction,
+and the targeted review confirms the fix.
+
+The final Windows .NET 10 non-performance suite passes 5,265 tests with five
+skips. Focused reader checks pass 645 cases on .NET 8 and 640 on .NET Framework
+4.7.2. A fresh Ubuntu 24.04/WSL .NET 10 build passes the same 645 focused cases.
+The product builds for `netstandard2.0` and the benchmark builds for .NET 8 and
+.NET 10 with zero warnings or errors. No public API or production dependency
+changes are introduced. The sparse implicit-row position defect remains open
+at this checkpoint.
+
+
 ## Remaining allocation owners
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
