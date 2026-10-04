@@ -119,7 +119,8 @@ public static partial class OfficePngWriter {
         double? dpiX,
         double? dpiY,
         System.Threading.CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
+        MemoryStream? ownedOutput = null) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
         OfficeRasterOutput.EnsureWritable(destination);
@@ -137,7 +138,12 @@ public static partial class OfficePngWriter {
 
         var idat = new PngIdatChunkStream(destination, StreamingIdatChunkSize);
         if (compression == OfficePngCompression.Optimal) {
-            WriteOptimalZlib(idat, width, height, rgba, bilevel, cancellationToken, checkpointObserver);
+            if (ownedOutput != null && !bilevel && rgba.Length >= MaterializedProbeMinimumRgbaBytes) {
+                WriteMaterializedOptimalZlib(ownedOutput, idat, width, height, rgba,
+                    cancellationToken, checkpointObserver);
+            } else {
+                WriteOptimalZlib(idat, width, height, rgba, bilevel, cancellationToken, checkpointObserver);
+            }
         } else {
             WriteStoredZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
         }
@@ -342,6 +348,13 @@ public static partial class OfficePngWriter {
 #endif
 
         internal void DiscardProbe() => _count = 0;
+
+        // Only an encoder-owned materialized output can rewind a completed candidate.
+        // Keep the bounded unfiltered probe so it can become the selected IDAT payload.
+        internal void ResumeWriting() {
+            if (!_completed) throw new InvalidOperationException("The PNG IDAT candidate is not complete.");
+            _completed = false;
+        }
 
         public override void Flush() => _destination.Flush();
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();

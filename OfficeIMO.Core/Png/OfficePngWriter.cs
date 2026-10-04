@@ -45,9 +45,8 @@ public static partial class OfficePngWriter {
         System.Threading.CancellationToken cancellationToken,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
         if (image == null) throw new ArgumentNullException(nameof(image));
-        using var output = new MemoryStream();
-        EncodeTo(image, output, cancellationToken, compression);
-        return output.ToArray();
+        return EncodeRgbaMaterialized(image.Width, image.Height, image.PixelBuffer,
+            compression, null, null, cancellationToken);
     }
 
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
@@ -63,11 +62,9 @@ public static partial class OfficePngWriter {
     /// Encodes raw RGBA pixels as PNG bytes.
     /// </summary>
     public static byte[] EncodeRgba(int width, int height, byte[] rgba, OfficePngCompression compression = OfficePngCompression.Optimal) {
-        using var output = new MemoryStream();
-        EncodeRgbaStreaming(
-            width, height, rgba, output, compression, null, null,
+        return EncodeRgbaMaterialized(
+            width, height, rgba, compression, null, null,
             System.Threading.CancellationToken.None);
-        return output.ToArray();
     }
 
     /// <summary>Encodes raw RGBA pixels with explicit compression and physical-resolution metadata.</summary>
@@ -81,13 +78,11 @@ public static partial class OfficePngWriter {
             throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }
 
-        using var output = new MemoryStream();
-        EncodeRgbaStreaming(
-            width, height, rgba, output, options.Compression,
+        return EncodeRgbaMaterialized(
+            width, height, rgba, options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
             System.Threading.CancellationToken.None);
-        return output.ToArray();
     }
 
     /// <summary>

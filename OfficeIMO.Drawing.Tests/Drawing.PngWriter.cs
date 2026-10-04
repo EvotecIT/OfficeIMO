@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class DrawingPngWriterTests {
+    public partial class DrawingPngWriterTests {
         [Theory]
         [InlineData(257, 129, OfficePngCompression.Optimal)]
         [InlineData(257, 129, OfficePngCompression.Stored)]
