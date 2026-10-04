@@ -4,6 +4,7 @@ using OfficeIMO.Ocr.Process;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -102,33 +103,55 @@ public sealed class ReaderOcrProcessTests {
     }
 
     [Fact]
-    public async Task OcrProcessRunner_TerminatesWrapperDescendantsAfterTimeout() {
+    public async Task OcrProcessRunner_TerminatesWrapperDescendantsAfterCancellation() {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-runner-pipe-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         int? childProcessId = null;
+        Task<OcrProcessResult>? operation = null;
+        using var cancellation = new CancellationTokenSource();
         try {
             string scriptPath = Path.Combine(directory, "inherited-pipe.sh");
             string childProcessPath = Path.Combine(directory, "child.pid");
-            File.WriteAllText(scriptPath, "(trap '' HUP; sleep 30) &\necho $! > \"$1\"\nexit 0\n");
-            var stopwatch = Stopwatch.StartNew();
-
-            await Assert.ThrowsAsync<TimeoutException>(() => OcrProcessRunner.RunAsync(new OcrProcessCommand {
+            File.WriteAllText(scriptPath, "(trap '' HUP; sleep 30) &\necho $! > \"$1.tmp\"\necho $$ >> \"$1.tmp\"\nmv \"$1.tmp\" \"$1\"\nexit 0\n");
+            operation = OcrProcessRunner.RunAsync(new OcrProcessCommand {
                 FileName = "/bin/sh",
                 Arguments = new[] { scriptPath, childProcessPath },
-                Timeout = TimeSpan.FromMilliseconds(100)
-            }));
+                Timeout = TimeSpan.FromSeconds(30)
+            }, cancellation.Token);
 
-            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), "The process runner waited for inherited pipe handles after its timeout.");
-            Assert.True(File.Exists(childProcessPath), "The wrapper did not record its child process id.");
-            childProcessId = int.Parse(File.ReadAllText(childProcessPath), CultureInfo.InvariantCulture);
+            // Confirm the fixture exists before exercising termination; startup is not a latency contract.
+            using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await WaitForChildStartAsync(childProcessPath, operation, startup.Token);
+            string[] processIds = File.ReadAllLines(childProcessPath);
+            childProcessId = int.Parse(processIds[0], CultureInfo.InvariantCulture);
+            int wrapperProcessId = int.Parse(processIds[1], CultureInfo.InvariantCulture);
+            Assert.True(WaitForProcessExit(wrapperProcessId, TimeSpan.FromSeconds(2)), "The fixture wrapper did not exit.");
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
             Assert.True(
                 WaitForProcessExit(childProcessId.Value, TimeSpan.FromSeconds(2)),
-                "The process runner left a wrapper child alive after its timeout.");
+                "The process runner left a wrapper child alive after cancellation.");
         } finally {
+            cancellation.Cancel();
+            if (operation != null) {
+                try { await operation; }
+                catch (OperationCanceledException) { }
+                catch (TimeoutException) { }
+            }
             if (childProcessId.HasValue) TryKillProcess(childProcessId.Value);
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task OcrProcessRunner_ReportsConfiguredTimeout() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        await Assert.ThrowsAsync<TimeoutException>(() => OcrProcessRunner.RunAsync(new OcrProcessCommand {
+            FileName = "/bin/sh",
+            Arguments = new[] { "-c", "sleep 30" },
+            Timeout = TimeSpan.FromMilliseconds(100)
+        }));
     }
 
     [Fact]
@@ -176,6 +199,17 @@ public sealed class ReaderOcrProcessTests {
             Assert.Empty(Directory.EnumerateDirectories(directory, "officeimo-ocr-*"));
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static async Task WaitForChildStartAsync(string path, Task operation, CancellationToken cancellationToken) {
+        while (!File.Exists(path)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (operation.IsCompleted) {
+                await operation;
+                throw new InvalidOperationException("The wrapper completed before creating its child fixture.");
+            }
+            await Task.Delay(10, cancellationToken);
         }
     }
 

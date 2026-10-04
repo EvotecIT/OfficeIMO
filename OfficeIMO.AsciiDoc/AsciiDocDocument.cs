@@ -105,8 +105,13 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Enumerates attribute snapshots with bounded compound traversal and cooperative cancellation.</summary>
     public IEnumerable<AsciiDocBlockContext> GetBlockContexts(IReadOnlyDictionary<string, string>? initialValues, bool expandAssignmentValues, int maximumNestingDepth, System.Threading.CancellationToken cancellationToken = default) {
+        return GetBlockContextsFromSnapshot(AsciiDocDocumentAttributes.Create(initialValues),
+            expandAssignmentValues, maximumNestingDepth, cancellationToken);
+    }
+
+    internal IEnumerable<AsciiDocBlockContext> GetBlockContextsFromSnapshot(AsciiDocDocumentAttributes attributes,
+        bool expandAssignmentValues, int maximumNestingDepth, System.Threading.CancellationToken cancellationToken = default) {
         if (maximumNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
-        AsciiDocDocumentAttributes attributes = AsciiDocDocumentAttributes.Create(initialValues);
         foreach (AsciiDocBlock block in Blocks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (block is AsciiDocAttributeEntry entry) attributes = attributes.Apply(entry, expandAssignmentValues);

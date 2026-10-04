@@ -30,6 +30,10 @@ OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text -diff
 OfficeIMO.Email.Tests/Corpora/native-apple-20261003/** -text -diff
 OfficeIMO.Email.Tests/Corpora/native-apple-20261003/manifest.json text eol=lf diff
 
+# Independent LaTeX input hashes identify the upstream bytes on every platform.
+OfficeIMO.Latex.Tests/Fixtures/latex2e/*.tex -text
+OfficeIMO.Latex.Tests/Fixtures/latex2e/*.txt -text
+
 # Public showcase downloads are generated binary evidence. Preserve exact bytes
 # so the committed manifest hashes remain stable across platforms and checkouts.
 Website/static/downloads/showcase/** -text -diff

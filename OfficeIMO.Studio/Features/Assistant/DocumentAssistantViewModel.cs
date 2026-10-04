@@ -66,7 +66,7 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     internal OfficeAiDocument? PreparedDocument => _preparedDocument;
     public bool CanPrepare => !_disposed && !IsBusy;
     public bool CanReviewAnswer => !_disposed && !IsBusy && LastAnswerText.Length > 0 && _source?.IsCurrent() == true;
-    public bool CanOpenOcr => !_disposed && !IsBusy && _readiness?.PagesWithoutText.Count > 0 && OpenOcr is not null;
+    public bool CanOpenOcr => !_disposed && !IsBusy && _readiness is not null && _source?.IsCurrent() == true && OpenOcr is not null;
     public bool CanAsk => !_disposed && !IsBusy && Connections.CanUse && (Connections.IsLocal || AllowRemoteProcessing)
         && _preparedDocument is not null && _readiness?.HasText == true && _source?.IsCurrent() == true
         && !string.IsNullOrWhiteSpace(Question) && Question.Length <= 8000;

@@ -112,6 +112,10 @@ public sealed class ReaderHandlerRegistration {
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; set; }
 
+    // A strict path handler also protects content detection before the kind is known.
+    // Internal because consumers do not otherwise need to change Reader path-opening policy.
+    internal Func<string, FileStream>? OpenPathForContentDetection { get; set; }
+
     /// <summary>
     /// Optional advertised default max input bytes for this handler.
     /// Null means "no handler-specific default advertised".

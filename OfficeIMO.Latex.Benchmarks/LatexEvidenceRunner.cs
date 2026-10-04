@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -8,6 +9,7 @@ namespace OfficeIMO.Latex.Benchmarks;
 
 internal static class LatexEvidenceRunner {
     private static readonly string[] Operations = ["Parse", "ParseWrite"];
+    private static readonly string[] SupportedOperations = ["Parse", "ParseWrite", "ParseInspect"];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -16,7 +18,7 @@ internal static class LatexEvidenceRunner {
 
     internal static int RunProbe(string[] args) {
         if (args.Length != 2) {
-            Console.Error.WriteLine("Usage: --evidence-probe <Parse|ParseWrite> <Small|Normal|Large>");
+            Console.Error.WriteLine("Usage: --evidence-probe <Parse|ParseWrite|ParseInspect> <Small|Normal|Large>");
             return 2;
         }
         try {
@@ -50,13 +52,15 @@ internal static class LatexEvidenceRunner {
                         LatexEvidenceMeasurement measurement = RunChildProbe(operation, scale) with { Iteration = iteration };
                         measurements.Add(measurement);
                         if (manifest != null) EvaluateBudget(manifest, measurement, failures);
+                        string processPeak = measurement.AbsoluteProcessPeakWorkingSetBytes is long peak
+                            ? (peak / 1048576D).ToString("F2") : "n/a";
                         Console.WriteLine(
                             $"{operation,-10} {scale,-6} #{iteration,-2} " +
                             $"{measurement.ElapsedMilliseconds,9:F2} ms " +
                             $"{measurement.AllocatedBytes / 1048576D,9:F2} MiB alloc " +
                             $"{measurement.RetainedManagedHeapGrowthBytes / 1048576D,9:F2} MiB retained " +
-                            $"{measurement.PeakManagedHeapGrowthBytes / 1048576D,9:F2} MiB managed peak " +
-                            $"{measurement.AbsoluteProcessPeakWorkingSetBytes / 1048576D,9:F2} MiB process peak " +
+                            $"{measurement.PeakManagedHeapGrowthBytes / 1048576D,9:F2} MiB sampled heap estimate peak " +
+                            $"{processPeak,9} MiB process peak " +
                             $"{measurement.OutputBytes / 1024D,9:F2} KiB output");
                     }
                 }
@@ -91,19 +95,26 @@ internal static class LatexEvidenceRunner {
         LatexBenchmarkFixture fixture = LatexBenchmarkCorpus.Get(scale);
         LatexBenchmarkValidation.Validate(fixture);
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-        long heapBefore = GC.GetTotalMemory(forceFullCollection: false);
+        long heapBefore = GetLiveHeapAfterCollection();
+        long estimatedHeapBefore = GC.GetTotalMemory(forceFullCollection: false);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         using Process process = Process.GetCurrentProcess();
         using var sampler = new LatexManagedHeapSampler();
         var stopwatch = Stopwatch.StartNew();
-        object result = string.Equals(operation, "Parse", StringComparison.Ordinal)
-            ? LatexDocument.ParseResult(fixture.Source)
-            : LatexDocument.ParseResult(fixture.Source).Document.ToLatex();
+        object result;
+        if (string.Equals(operation, "ParseWrite", StringComparison.Ordinal)) {
+            result = LatexDocument.ParseResult(fixture.Source).Document.ToLatex();
+        } else {
+            LatexParseResult parsed = LatexDocument.ParseResult(fixture.Source);
+            if (string.Equals(operation, "ParseInspect", StringComparison.Ordinal)) LatexBenchmarkValidation.InspectTokens(parsed.Document);
+            result = parsed;
+        }
         stopwatch.Stop();
         long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
-        long retained = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - heapBefore);
+        long retained = Math.Max(0, GetLiveHeapAfterCollection() - heapBefore);
+        long estimatedRetained = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - estimatedHeapBefore);
         process.Refresh();
         ValidateMeasuredResult(operation, fixture, result);
         GC.KeepAlive(result);
@@ -118,8 +129,17 @@ internal static class LatexEvidenceRunner {
             stopwatch.Elapsed.TotalMilliseconds,
             allocatedBytes,
             retained,
-            Math.Max(0, peakManagedHeap - heapBefore),
-            process.PeakWorkingSet64);
+            Math.Max(0, peakManagedHeap - estimatedHeapBefore),
+            process.PeakWorkingSet64 > 0 ? process.PeakWorkingSet64 : null,
+            HashAssembly(typeof(LatexDocument).Assembly),
+            HashAssembly(typeof(LatexEvidenceRunner).Assembly),
+            estimatedRetained,
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fixture.Source))));
+    }
+
+    private static long GetLiveHeapAfterCollection() {
+        GCMemoryInfo info = GC.GetGCMemoryInfo(GCKind.FullBlocking);
+        return Math.Max(0, info.HeapSizeBytes - info.FragmentedBytes);
     }
 
     private static void ValidateMeasuredResult(string operation, LatexBenchmarkFixture fixture, object result) {
@@ -178,14 +198,20 @@ internal static class LatexEvidenceRunner {
         Check(measurement.AllocatedBytes, budget.MaxAllocatedBytes, "allocated bytes");
         Check(measurement.RetainedManagedHeapGrowthBytes, budget.MaxRetainedManagedHeapGrowthBytes, "retained bytes");
         Check(measurement.PeakManagedHeapGrowthBytes, budget.MaxPeakManagedHeapGrowthBytes, "managed peak bytes");
-        Check(measurement.AbsoluteProcessPeakWorkingSetBytes, budget.MaxAbsoluteProcessPeakWorkingSetBytes, "process peak bytes");
+        if (measurement.AbsoluteProcessPeakWorkingSetBytes is long processPeak) {
+            Check(processPeak, budget.MaxAbsoluteProcessPeakWorkingSetBytes, "process peak bytes");
+        } else {
+            failures.Add($"{lane}: process peak is unavailable on this platform; its budget cannot be verified.");
+        }
         Check(measurement.OutputBytes, budget.MaxOutputBytes, "output bytes");
         void Check(double actual, double maximum, string metric) {
             if (actual > maximum) failures.Add($"{lane}: {metric} {actual:F0} > {maximum:F0}.");
         }
     }
 
-    private static string SelectOperation(string value) => Operations.FirstOrDefault(
+    private static string HashAssembly(Assembly assembly) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assembly.Location)));
+
+    private static string SelectOperation(string value) => SupportedOperations.FirstOrDefault(
         operation => string.Equals(operation, value, StringComparison.OrdinalIgnoreCase))
         ?? throw new ArgumentException("Unknown LaTeX evidence operation: " + value);
 
@@ -246,7 +272,11 @@ internal sealed record LatexEvidenceMeasurement(
     long AllocatedBytes,
     long RetainedManagedHeapGrowthBytes,
     long PeakManagedHeapGrowthBytes,
-    long AbsoluteProcessPeakWorkingSetBytes);
+    long? AbsoluteProcessPeakWorkingSetBytes,
+    string NativeAssemblySha256,
+    string HarnessAssemblySha256,
+    long FullGcHeapEstimateGrowthBytes,
+    string InputSha256);
 
 internal sealed record LatexEvidenceReport(
     DateTimeOffset MeasuredAtUtc,
@@ -258,7 +288,9 @@ internal sealed record LatexEvidenceReport(
     int ProcessorCount,
     int Repeat,
     IReadOnlyList<LatexEvidenceMeasurement> Measurements,
-    IReadOnlyList<string> Failures);
+    IReadOnlyList<string> Failures,
+    int MeasurementVersion = 2,
+    string CorpusLineEndings = "CRLF");
 
 internal sealed class LatexEvidenceBudgetManifest {
     public int Version { get; set; }

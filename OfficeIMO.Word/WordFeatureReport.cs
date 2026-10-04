@@ -354,10 +354,10 @@ namespace OfficeIMO.Word {
             int endnoteDefinitions = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>().Count(note =>
                 note.Type?.Value != FootnoteEndnoteValues.Separator &&
                 note.Type?.Value != FootnoteEndnoteValues.ContinuationSeparator) ?? 0;
-            int repeatedFootnoteReferences = footnoteReferences.Length - footnoteReferences
-                .Where(reference => reference.Id != null).Select(reference => reference.Id!.Value).Distinct().Count();
-            int repeatedEndnoteReferences = endnoteReferences.Length - endnoteReferences
-                .Where(reference => reference.Id != null).Select(reference => reference.Id!.Value).Distinct().Count();
+            int repeatedFootnoteReferences = footnoteReferences.Length - CountDistinctNoteIds(footnoteReferences
+                .Where(reference => reference.Id != null).Select(reference => reference.Id!.Value));
+            int repeatedEndnoteReferences = endnoteReferences.Length - CountDistinctNoteIds(endnoteReferences
+                .Where(reference => reference.Id != null).Select(reference => reference.Id!.Value));
             Add(features, "Content", "Footnotes", OfficeFeatureSupportLevel.PartiallyEditable,
                 Math.Max(Math.Max(FootNotes.Count, footnoteReferences.Length),
                     footnoteDefinitions + repeatedFootnoteReferences), null,
@@ -863,6 +863,16 @@ namespace OfficeIMO.Word {
         private static int CountDescendantsByLocalName(DocumentFormat.OpenXml.OpenXmlElement? root, string localName) {
             if (root == null) return 0;
             return root.Descendants().Count(element => string.Equals(element.LocalName, localName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static int CountDistinctNoteIds(IEnumerable<long> ids) {
+            long[] ordered = ids.ToArray();
+            Array.Sort(ordered);
+            int distinct = 0;
+            for (int index = 0; index < ordered.Length; index++) {
+                if (index == 0 || ordered[index] != ordered[index - 1]) distinct++;
+            }
+            return distinct;
         }
     }
 }

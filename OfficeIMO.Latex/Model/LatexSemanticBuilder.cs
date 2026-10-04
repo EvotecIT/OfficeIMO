@@ -16,6 +16,7 @@ internal sealed class LatexSemanticModel {
         IReadOnlyList<LatexReference> references,
         IReadOnlyList<LatexLabel> labels,
         IReadOnlyList<LatexTheorem> theorems,
+        IReadOnlyList<LatexFootnote> footnotes,
         IReadOnlyList<LatexMacroDefinition> macroDefinitions) {
         Commands = commands;
         Environments = environments;
@@ -29,6 +30,7 @@ internal sealed class LatexSemanticModel {
         References = references;
         Labels = labels;
         Theorems = theorems;
+        Footnotes = footnotes;
         MacroDefinitions = macroDefinitions;
     }
 
@@ -44,6 +46,7 @@ internal sealed class LatexSemanticModel {
     internal IReadOnlyList<LatexReference> References { get; }
     internal IReadOnlyList<LatexLabel> Labels { get; }
     internal IReadOnlyList<LatexTheorem> Theorems { get; }
+    internal IReadOnlyList<LatexFootnote> Footnotes { get; }
     internal IReadOnlyList<LatexMacroDefinition> MacroDefinitions { get; }
 }
 
@@ -107,6 +110,7 @@ internal static partial class LatexSemanticBuilder {
                 Array.Empty<LatexReference>(),
                 Array.Empty<LatexLabel>(),
                 Array.Empty<LatexTheorem>(),
+                Array.Empty<LatexFootnote>(),
                 Array.Empty<LatexMacroDefinition>());
         }
 
@@ -138,6 +142,7 @@ internal static partial class LatexSemanticBuilder {
         IReadOnlyList<LatexReference> references = BuildReferences(activeCommands);
         IReadOnlyList<LatexLabel> labels = BuildLabels(activeCommands);
         IReadOnlyList<LatexTheorem> theorems = BuildTheorems(orderedEnvironments, directCommands, cancellationToken);
+        IReadOnlyList<LatexFootnote> footnotes = BuildFootnotes(activeCommands, cancellationToken);
         IReadOnlyList<LatexMacroDefinition> macros = BuildMacroDefinitions(activeCommands, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return new LatexSemanticModel(
@@ -153,6 +158,7 @@ internal static partial class LatexSemanticBuilder {
             references,
             labels,
             theorems,
+            footnotes,
             macros);
     }
 
@@ -346,6 +352,16 @@ internal static partial class LatexSemanticBuilder {
         return false;
     }
 
+    // Container semantics own direct commands even when the whole container is
+    // inside an inline body. An intervening command still owns its argument.
+    internal static bool IsInsideCommandArgumentBeforeEnvironment(LatexSyntaxNode node) {
+        for (LatexSyntaxNode? parent = node.Parent; parent != null; parent = parent.Parent) {
+            if (parent.Kind == LatexSyntaxKind.Environment) return false;
+            if (parent.Kind == LatexSyntaxKind.Command) return true;
+        }
+        return false;
+    }
+
     private static void TrimWhitespace(string source, ref int start, ref int end) {
         while (start < end && char.IsWhiteSpace(source[start])) start++;
         while (end > start && char.IsWhiteSpace(source[end - 1])) end--;
@@ -385,11 +401,13 @@ internal static partial class LatexSemanticBuilder {
         IReadOnlyList<LatexMath> math,
         IReadOnlyList<LatexCommand> commands, CancellationToken cancellationToken) {
         var blocked = new List<LatexSourceSpan>();
-        blocked.AddRange(headings.Select(static heading => heading.Command.Syntax.Span));
+        blocked.AddRange(headings.Where(static heading => !IsInsideFootnote(heading.Command.Syntax))
+            .Select(static heading => heading.Command.Syntax.Span));
         LatexCommand[] labels = commands.Where(static command => string.Equals(command.Name, "label", StringComparison.Ordinal)).ToArray();
         int labelIndex = 0;
         for (int index = 0; index < headings.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsInsideFootnote(headings[index].Command.Syntax)) continue;
             LatexSourceSpan headingSpan = headings[index].Command.Syntax.Span;
             while (labelIndex < labels.Length && labels[labelIndex].Syntax.StartOffset < headingSpan.End.Offset) labelIndex++;
             LatexCommand? label = labelIndex < labels.Length
@@ -400,16 +418,16 @@ internal static partial class LatexSemanticBuilder {
             if (label != null) blocked.Add(label.Syntax.Span);
         }
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Command && IsActiveSyntax(node) && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
+            .Where(static node => node.Kind == LatexSyntaxKind.Command && IsActiveSyntax(node) && !IsInsideFootnote(node) && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
             .Where(static node => node.Kind == LatexSyntaxKind.Verbatim && IsActiveSyntax(node) && !IsInsideCommandArgument(node) &&
                 !string.Equals(node.Value, "verb", StringComparison.Ordinal))
             .Select(static node => node.Span));
-        blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) &&
+        blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) && !IsInsideFootnote(environment.Syntax) &&
             environment.Syntax.StartOffset >= body.ContentSpan.Start.Offset &&
             environment.Syntax.EndOffset <= body.ContentSpan.End.Offset).Select(static environment => environment.Syntax.Span));
-        blocked.AddRange(math.Where(static item => item.Kind != LatexMathKind.InlineDollar && item.Kind != LatexMathKind.InlineParentheses && item.Kind != LatexMathKind.Environment)
+        blocked.AddRange(math.Where(static item => !IsInsideFootnote(item.Syntax) && item.Kind != LatexMathKind.InlineDollar && item.Kind != LatexMathKind.InlineParentheses && item.Kind != LatexMathKind.Environment)
             .Select(static item => item.Syntax.Span));
         blocked = Merge(blocked
             .Where(span => span.End.Offset > body.ContentSpan.Start.Offset && span.Start.Offset < body.ContentSpan.End.Offset)
@@ -418,14 +436,16 @@ internal static partial class LatexSemanticBuilder {
             .OrderBy(static span => span.Start.Offset).ToList());
 
         var paragraphs = new List<LatexParagraph>();
+        LatexSourceSpan[] inlineBodies = commands.Where(static command => command.Name == "footnote")
+            .Select(static command => command.Syntax.Span).ToArray();
         int cursor = body.ContentSpan.Start.Offset;
         for (int index = 0; index < blocked.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             LatexSourceSpan span = blocked[index];
-            if (span.Start.Offset > cursor) AddParagraphSegments(source, cursor, span.Start.Offset, paragraphs, cancellationToken);
+            if (span.Start.Offset > cursor) AddParagraphSegments(source, cursor, span.Start.Offset, paragraphs, cancellationToken, inlineBodies);
             cursor = Math.Max(cursor, span.End.Offset);
         }
-        if (cursor < body.ContentSpan.End.Offset) AddParagraphSegments(source, cursor, body.ContentSpan.End.Offset, paragraphs, cancellationToken);
+        if (cursor < body.ContentSpan.End.Offset) AddParagraphSegments(source, cursor, body.ContentSpan.End.Offset, paragraphs, cancellationToken, inlineBodies);
         return paragraphs;
     }
 
@@ -436,11 +456,35 @@ internal static partial class LatexSemanticBuilder {
         return true;
     }
 
-    private static void AddParagraphSegments(LatexSourceText source, int start, int end, List<LatexParagraph> paragraphs, CancellationToken cancellationToken) {
+    /// <summary>Builds source-backed paragraph segments for a bounded container body without reparsing or rebasing offsets.</summary>
+    internal static IReadOnlyList<LatexParagraph> BuildParagraphsInSpan(
+        LatexSourceText source, LatexSourceSpan span, CancellationToken cancellationToken,
+        IReadOnlyList<LatexSourceSpan>? inlineBodies = null) {
+        var paragraphs = new List<LatexParagraph>();
+        AddParagraphSegments(source, span.Start.Offset, span.End.Offset, paragraphs, cancellationToken, inlineBodies);
+        return paragraphs;
+    }
+
+    private static void AddParagraphSegments(LatexSourceText source, int start, int end, List<LatexParagraph> paragraphs,
+        CancellationToken cancellationToken, IReadOnlyList<LatexSourceSpan>? inlineBodies = null) {
         int segmentStart = start;
         int index = start;
+        int low = 0, high = inlineBodies?.Count ?? 0;
+        while (low < high) {
+            int middle = low + (high - low) / 2;
+            if (inlineBodies![middle].Start.Offset < start) low = middle + 1;
+            else high = middle;
+        }
+        int inlineIndex = low;
         while (index < end) {
             if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            while (inlineBodies != null && inlineIndex < inlineBodies.Count && inlineBodies[inlineIndex].Start.Offset < index) inlineIndex++;
+            if (inlineBodies != null && inlineIndex < inlineBodies.Count &&
+                inlineBodies[inlineIndex].Start.Offset == index && inlineBodies[inlineIndex].End.Offset <= end) {
+                index = inlineBodies[inlineIndex++].End.Offset;
+                cancellationToken.ThrowIfCancellationRequested();
+                continue;
+            }
             if (source.Text[index] == '\\') { index += Math.Min(2, end - index); continue; }
             if (source.Text[index] == '%') {
                 while (index < end && source.Text[index] != '\r' && source.Text[index] != '\n') {

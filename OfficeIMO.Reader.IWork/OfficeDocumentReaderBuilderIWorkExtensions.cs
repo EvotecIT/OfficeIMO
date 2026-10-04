@@ -1,4 +1,5 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Reader.IWork;
 
@@ -26,6 +27,7 @@ public static class OfficeDocumentReaderBuilderIWorkExtensions {
             DefaultMaxInputBytes = maximumInputBytes,
             MaxInputBytesCeiling = maximumInputBytes,
             SourceHashBehavior = ReaderSourceHashBehavior.HandlerManaged,
+            OpenPathForContentDetection = IWorkContainerReader.OpenPackageFileForContentDetection,
             ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) =>
                 IWorkReaderAdapter.Probe(stream, sourceName, readerOptions, registered.Clone(), token),
             ReadPath = (path, readerOptions, token) =>

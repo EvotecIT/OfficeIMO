@@ -357,6 +357,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             int cursor = SkipWhitespace(css, importNameEnd);
+            int sourceStart = cursor;
             string source;
             int end;
             if (IsCssFunctionNameAt(css, cursor, "url")) {
@@ -372,7 +373,7 @@ public static partial class HtmlResourcePipeline {
                     continue;
                 }
             } else {
-                int sourceStart = cursor;
+                sourceStart = cursor;
                 while (cursor < css.Length && !IsCssWhitespace(css[cursor]) && css[cursor] != ';') {
                     cursor++;
                 }
@@ -391,7 +392,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             string conditionText = css.Substring(end, Math.Max(0, importEnd - end)).Trim().TrimEnd(';').Trim();
-            yield return new CssImportReference(importStart, importEnd, source, conditionText);
+            yield return new CssImportReference(importStart, importEnd, source, conditionText, sourceStart, end);
             index = importEnd;
         }
     }

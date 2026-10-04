@@ -201,6 +201,10 @@ internal static partial class PdfWriter {
                 rowHeights[ri] = ResolveTableRowHeight(style, ri, maxRequiredHeight);
             }
             ApplyTableRowSpanHeights(tb, style, cols, colPixel, rowLines, rowHeights, rowLeadings, colGapPx, rowGapPx);
+            var remainingRowHeights = new double[rowHeights.Length + 1];
+            for (int row = rowHeights.Length - 1; row >= 0; row--)
+                remainingRowHeights[row] = rowHeights[row] +
+                    GetTableRowGapAfter(row, rowHeights.Length, rowGapPx) + remainingRowHeights[row + 1];
             double tableCornerRadius = ResolveTableCornerRadius(
                 style.CornerRadius,
                 tableWidth,
@@ -403,7 +407,7 @@ internal static partial class PdfWriter {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
                     xOrigin = PositionTableX(continuationPosition, tableWidth);
-                    double continuationHeight = GetTableRowsHeight(rowHeights, rowIndex, rowHeights.Length - rowIndex, rowGapPx);
+                    double continuationHeight = remainingRowHeights[rowIndex];
                     if (startLine > 0)
                         continuationHeight += MeasureTableRowSegmentHeight(rowIndex, startLine, rowLineCounts[rowIndex] - startLine, suppressCellObjects: false) - rowHeights[rowIndex];
                     if (hasRepeatableHeader && rowIndex >= headerRowCount) continuationHeight += repeatHeaderHeight;
@@ -471,7 +475,7 @@ internal static partial class PdfWriter {
                 }
 
                 double currentRowHeight = rowHeights[rowIndex] + GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
-                double finalGroupHeight = GetTableRowsHeight(rowHeights, rowIndex, rowHeights.Length, rowGapPx);
+                double finalGroupHeight = remainingRowHeights[rowIndex];
                 return ShouldBreakBeforeFinalTableBodyRows(
                     rowIndex,
                     headerRowCount,

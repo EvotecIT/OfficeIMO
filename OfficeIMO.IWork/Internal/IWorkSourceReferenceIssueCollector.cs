@@ -10,6 +10,7 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
 
     internal IReadOnlyList<IWorkSourceReferenceIssue> Issues => _issues;
     internal IWorkSourceDeclarationIssueCollector Declarations { get; } = new(source);
+    internal HashSet<ulong> ReportedUnassessedRowStorageTiles { get; } = new();
 
     internal IWorkArchiveRecord? ReadOne(IWorkArchiveRecord owner, IWorkWireMessage message,
         int field, string? path = null, Func<uint, bool>? allowedType = null) {

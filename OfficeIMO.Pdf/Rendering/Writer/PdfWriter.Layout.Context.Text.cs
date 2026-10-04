@@ -147,6 +147,7 @@ internal static partial class PdfWriter {
                     currentPage!.UsedNamedFonts.Add(namedFont);
                 } else {
                     currentPage!.UsedFonts.Add(runFont);
+                    currentOpts.MarkEmbeddedFallbackFontFamilySlotUsed(runFont);
                 }
             }
 
@@ -158,6 +159,7 @@ internal static partial class PdfWriter {
         private void MarkSimpleFont(PdfStandardFont font) {
             EnsurePage();
             currentPage!.UsedFonts.Add(font);
+            currentOpts.MarkEmbeddedFallbackFontFamilySlotUsed(font);
             PdfStandardFont normalFont = ChooseNormal(currentOpts.DefaultFont);
             if (font == ChooseBold(normalFont)) {
                 currentPage.UsedBold = true;

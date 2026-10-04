@@ -174,6 +174,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
+        if (effective.MaxConvertedImageBytes < 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxConvertedImageBytes cannot be negative.");
         ValidateOdtTableExpansion(source, effective);
         WordDocument target = WordDocument.Create();
         var report = new OdfConversionReport("ODT", "DOCX");
@@ -184,6 +186,10 @@ public static partial class WordOpenDocumentConversionExtensions {
         var handledFieldElements = new HashSet<System.Xml.Linq.XElement>();
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0;
         var notes = new NoteMappingStats {
+            Images = new NoteMappingStats.ImageCopyBudget {
+                Limit = effective.MaxConvertedImageBytes,
+                Exhausted = effective.MaxConvertedImageBytes == 0
+            },
             HasOdtDefaultNoteBodyFormatting = HasOdtDefaultNoteBodyFormatting(source),
             HasOdtDefaultNoteReferenceFormatting = HasOdtDefaultNoteReferenceFormatting(source)
         };
@@ -257,6 +263,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             .Sum(part => part.Paragraphs.Count + part.NonParagraphBlockCount);
         bool hasAlternateHeaderFooter = sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null ||
             sourcePageLayout.LeftHeader != null || sourcePageLayout.LeftFooter != null;
+        int skippedFallbackImages = 0;
         if (effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hiddenHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
             target.AddHeadersAndFooters();
             WordSection firstSection = target.Sections[0];
@@ -275,8 +282,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                     : firstSection.GetOrCreateFooter(kind);
                 if (!effectiveStory.IsDisplayed) continue;
                 if (story == null) {
-                    CopyOdtHeaderFooterFallback(effectiveStory, destination, effective, textCaseCulture,
-                        handledFieldElements);
+                    skippedFallbackImages += CopyOdtHeaderFooterFallback(effectiveStory, destination, effective, textCaseCulture,
+                        handledFieldElements, notes);
                 } else {
                     CopyOdtHeaderFooter(effectiveStory, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                         ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
@@ -322,8 +329,9 @@ public static partial class WordOpenDocumentConversionExtensions {
             unsupportedWritingModes, "Vertical and page-relative ODF writing modes are not represented by the current Word paragraph surface.");
         if (approximatedBookmarkRanges > 0) report.Add("bookmark-ranges", OdfConversionMappingStatus.Approximated,
             approximatedBookmarkRanges, "ODT bookmark ranges were retained as collapsed Word bookmark targets at their start position.");
-        if (sourceImages > images) report.Add("images", OdfConversionMappingStatus.Skipped, sourceImages - images,
-            "Images were omitted because IncludeImages is disabled or their source bytes were unavailable.");
+        int skippedImages = Math.Max(0, sourceImages - images) + skippedFallbackImages;
+        if (skippedImages > 0) report.Add("images", OdfConversionMappingStatus.Skipped, skippedImages,
+            "Images were omitted because IncludeImages is disabled, the source bytes were unavailable, or MaxConvertedImageBytes was reached.");
         if (unsupportedMeasurements > 0) report.Add("relative-measurements", OdfConversionMappingStatus.Unsupported,
             unsupportedMeasurements,
             "Relative or unsupported ODF lengths could not be projected to fixed Word point measurements and were omitted.");
@@ -405,14 +413,29 @@ public static partial class WordOpenDocumentConversionExtensions {
                     break;
                 case OdtInlineNodeKind.Image:
                     if (leaf.TargetLink != null) approximatedRuns++;
-                    if (!options.IncludeImages) break;
+                    if (!options.IncludeImages || notes.Images.Exhausted || notes.Images.Used >= notes.Images.Limit) break;
+                    int reservedImageBytes = 0;
                     try {
                         OdtImage image = node.Image!;
-                        using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
-                        target.AddImage(stream, Path.GetFileName(image.Path), image.Width.ToPoints(), image.Height.ToPoints());
+                        byte[] bytes = image.GetImageBytes();
+                        string fileName = Path.GetFileName(image.Path);
+                        if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo imageInfo) &&
+                            imageInfo.Format == OfficeImageFormat.Webp) {
+                            if (!OfficeImagePngConverter.TryConvertToPng(bytes,
+                                new OfficeRasterDecodeOptions { FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames },
+                                out byte[] pngBytes, out _))
+                                throw new InvalidDataException("The WebP image could not be decoded as a static frame for Word.");
+                            bytes = pngBytes;
+                            fileName = Path.ChangeExtension(fileName, ".png");
+                        }
+                        if (!notes.Images.TryReserve(bytes.Length)) break;
+                        reservedImageBytes = bytes.Length;
+                        using var stream = new MemoryStream(bytes, writable: false);
+                        target.AddImage(stream, fileName, image.Width.ToPoints(), image.Height.ToPoints());
                         images++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {
+                        if (reservedImageBytes > 0) notes.Images.Refund(reservedImageBytes);
                         // The loss report compares sourceImages with images and records the skipped media.
                     }
                     break;
@@ -792,6 +815,14 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static void AddUnmappedOdfFindings(OdtDocument source, OdfFeatureReport features, OdfConversionReport report,
         int hyperlinks, int bookmarks, int pageLayouts,
         HashSet<System.Xml.Linq.XElement> handledFieldElements, NoteMappingStats notes) {
+        var handledFieldsByDocument = new Dictionary<System.Xml.Linq.XDocument, List<System.Xml.Linq.XElement>>();
+        foreach (System.Xml.Linq.XElement element in handledFieldElements) {
+            if (element.Document is not System.Xml.Linq.XDocument document) continue;
+            if (!handledFieldsByDocument.TryGetValue(document, out List<System.Xml.Linq.XElement>? fields))
+                handledFieldsByDocument.Add(document, fields = new List<System.Xml.Linq.XElement>());
+            fields.Add(element);
+        }
+        var handledFieldCountsByPart = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (OdfFeatureDiagnostic diagnostic in features.Diagnostics) {
             report.Add("source-inspection", OdfConversionMappingStatus.Unsupported, 1,
                 diagnostic.Code + " in " + diagnostic.PartPath + ": " + diagnostic.Message);
@@ -803,11 +834,13 @@ public static partial class WordOpenDocumentConversionExtensions {
             int handled = 0;
             if (finding.Name == "text-fields" && finding.Support == OdfFeatureSupport.Inspected &&
                 finding.PartPath is string partPath && source.Package.ContainsEntry(partPath)) {
-                System.Xml.Linq.XDocument part = source.Package.GetXml(partPath);
-                handled = handledFieldElements.Count(element =>
-                    ReferenceEquals(element.Document, part) &&
-                    !(OdtField.IsBasicElement(element) &&
-                        OdfFeatureInspector.IsEditableOdtField(source.Package.Kind, partPath, element)));
+                if (!handledFieldCountsByPart.TryGetValue(partPath, out handled)) {
+                    System.Xml.Linq.XDocument part = source.Package.GetXml(partPath);
+                    handled = handledFieldsByDocument.TryGetValue(part, out List<System.Xml.Linq.XElement>? fields)
+                        ? fields.Count(element => !(OdtField.IsBasicElement(element) &&
+                            OdfFeatureInspector.IsEditableOdtField(source.Package.Kind, partPath, element))) : 0;
+                    handledFieldCountsByPart.Add(partPath, handled);
+                }
             } else if (finding.Name == "external-links") {
                 handled = Math.Min(remainingHyperlinks, finding.Count);
                 remainingHyperlinks -= handled;

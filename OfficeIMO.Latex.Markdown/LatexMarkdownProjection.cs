@@ -89,8 +89,7 @@ internal static class LatexProjectedText {
     }
 
     private static IReadOnlyList<LatexTextSegment> Items(IEnumerable<ListItem> items, System.Threading.CancellationToken token) =>
-        Join(items.Select(item => (IReadOnlyList<LatexTextSegment>)Inlines(item.Content, token)
-            .Concat(Segments(item.NestedBlocks, cancellationToken: token)).ToArray()), "\n");
+        Join(items.Select(item => Segments(item.ChildBlocks, cancellationToken: token)), "\n");
 
     internal static bool HasVisibleText(InlineSequence sequence, System.Threading.CancellationToken token) =>
         HasVisibleText(Inlines(sequence, token), token);
@@ -125,7 +124,8 @@ internal static class LatexProjectedText {
                 parts.Add(new LatexTextSegment(html.Html, anchor: true));
                 parts.Add(new LatexTextSegment("\n"));
             } else if (inline is CodeSpanInline code) parts.Add(new LatexTextSegment(code.Text, "text"));
-            else if (inline is IInlineContainerMarkdownInline container) parts.AddRange(Inlines(container.NestedInlines, token));
+            else if (inline is IInlineContainerMarkdownInline container && container.NestedInlines != null)
+                parts.AddRange(Inlines(container.NestedInlines, token));
             else if (inline is InlineSequence nested) parts.AddRange(Inlines(nested, token));
             else {
                 var text = new StringBuilder();

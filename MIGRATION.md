@@ -9,15 +9,26 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## OCR and AI extraction
+
+`OfficeDocumentOcrExecutionOptions` bounds a whole operation with a five-minute `TotalTimeout`, 4 Mi recognized characters, 100,000 detailed spans and 4 Mi span characters by default. These totals also apply across attachments in `ApplyOcrTreeAsync`. Set `MaxTotalRecognizedCharacters`, `MaxTotalSpans`, `MaxTotalSpanCharacters` and `TotalTimeout` explicitly for workloads that require larger accepted output or longer execution. Limit diagnostics report truncation or skipped recognition; unresolved candidates remain available.
+
+Decimal field extraction rejects precision loss and underflow instead of returning a rounded `Present` value. Handle `Invalid` and review its exact raw value and citations when the requested decimal cannot represent the source exactly.
+
 ## ODS row layout conversion
 
 ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
+## ODT-to-Word image copies
+
+ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by default across the resulting document. Set `WordOpenDocumentConversionOptions.MaxConvertedImageBytes` to a larger value for trusted documents that need every image, and inspect the conversion report or use `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when skipped images must fail conversion.
 
 ## Chart data label separators
 
 `OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
 
 ## RTF Unicode fallback width
+
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
@@ -62,6 +73,10 @@ If an application needs retained attachment bytes, register the handler with
 streaming preference disabled. Keep `StoreOptions.RetainAttachmentContent` enabled for that workflow.
 
 ## LaTeX editing and conversion contracts
+
+Known required arguments now accept an unbraced character or control sequence as one token. Code that treated `LATEX007` as a rejection of every unbraced argument should instead inspect `LatexArgument.IsSingleToken` and the actual missing-argument diagnostics. For example, `\textbf ABC` binds only `A`; an edited replacement is written in braces. Handle the additive `LatexSyntaxKind.SingleTokenArgument` enum member in exhaustive syntax switches.
+
+LaTeX footnotes now produce typed Markdown references and definitions. Reader block mode includes `SourceBlockKind = "footnote"` at the note's source location and heading path. Consumers that switch on block kinds should handle it; definition text is separate from the surrounding paragraph.
 
 LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
 

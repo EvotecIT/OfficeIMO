@@ -13,9 +13,11 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         OcrEngineCapabilities capabilities,
         string engineId,
         ExecutionOptionsSnapshot options,
-        List<OfficeDocumentDiagnostic> diagnostics) {
-        var jobs = new List<CandidateJob>(Math.Min(candidates.Count, options.MaxCandidates));
-        if (candidates.Count > options.MaxCandidates) {
+        ExecutionBudget budget,
+        List<OfficeDocumentDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        var jobs = new List<CandidateJob>(Math.Min(candidates.Count, Math.Max(0, options.MaxCandidates - budget.SelectedCandidates)));
+        int selectedCount = Math.Min(candidates.Count, options.MaxCandidates - budget.SelectedCandidates);
+        if (candidates.Count > selectedCount) {
             diagnostics.Add(new OfficeDocumentDiagnostic {
                 Severity = OfficeDocumentDiagnosticSeverity.Warning,
                 Category = OfficeDocumentDiagnosticCategory.Limit,
@@ -26,14 +28,14 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Location = document.Source == null ? null : new ReaderLocation { Path = document.Source.Path },
                 Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["candidateCount"] = candidates.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    ["selectedCount"] = options.MaxCandidates.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    ["selectedCount"] = selectedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }
             });
         }
 
-        long totalBytes = 0;
-        int selectedCount = Math.Min(candidates.Count, options.MaxCandidates);
+        budget.SelectedCandidates += selectedCount;
         for (int index = 0; index < selectedCount; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentOcrCandidate candidate = candidates[index];
             OfficeDocumentAsset? asset = ResolveAsset(candidate, assets, out string? resolutionCode);
             if (asset == null) {
@@ -63,10 +65,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                     BuildLimitAttributes(sourcePayload.LongLength, options.MaxInputBytesPerCandidate)));
                 continue;
             }
-            if (sourcePayload.LongLength > options.MaxTotalInputBytes - totalBytes) {
+            if (sourcePayload.LongLength > options.MaxTotalInputBytes - budget.ReservedInputBytes) {
                 diagnostics.Add(BuildDiagnostic(candidate, asset, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
                     "ocr-total-input-limit", "The OCR source asset was skipped because MaxTotalInputBytes was reached.", true,
-                    BuildLimitAttributes(totalBytes + sourcePayload.LongLength, options.MaxTotalInputBytes)));
+                    BuildLimitAttributes(budget.ReservedInputBytes + sourcePayload.LongLength, options.MaxTotalInputBytes)));
                 continue;
             }
             if (!capabilities.SupportsMediaType(asset.MediaType)) {
@@ -84,7 +86,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
 
             byte[] payload = sourcePayload.ToArray();
             jobs.Add(new CandidateJob(index, candidate, asset, payload));
-            totalBytes += payload.LongLength;
+            budget.ReservedInputBytes += payload.LongLength;
         }
         return jobs;
     }
@@ -131,14 +133,16 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         OcrResult result,
         string engineId,
         ExecutionOptionsSnapshot options,
+        ExecutionBudget budget,
         OfficeDocumentOcrCandidate candidate,
-        List<OfficeDocumentDiagnostic> executionDiagnostics) {
+        List<OfficeDocumentDiagnostic> executionDiagnostics, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool truncatedRecognizedText = false;
-        int remainingRecognizedCharacters = options.MaxRecognizedCharactersPerCandidate;
+        int remainingRecognizedCharacters = Math.Min(options.MaxRecognizedCharactersPerCandidate, budget.RemainingCharacters);
         result.Text = ConsumeRequiredText(result.Text, ref remainingRecognizedCharacters, ref truncatedRecognizedText);
         if (truncatedRecognizedText) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
-                "ocr-text-limit", "OCR recognized text was truncated at MaxRecognizedCharactersPerCandidate.", true));
+                "ocr-text-limit", "OCR recognized text was truncated at a per-candidate or total character limit.", true));
         }
         bool truncatedResultMetadata = false;
         int remainingResultMetadataCharacters = options.MaxResultMetadataCharactersPerCandidate;
@@ -159,9 +163,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         bool discardedHierarchyId = false;
         result.Confidence = NormalizeConfidence(result.Confidence, ref adjustedConfidence);
         IReadOnlyList<OcrTextSpan> returnedSpans = result.Spans ?? Array.Empty<OcrTextSpan>();
-        int spanLimit = Math.Min(returnedSpans.Count, options.MaxSpansPerCandidate);
+        int spanLimit = Math.Min(returnedSpans.Count, Math.Min(options.MaxSpansPerCandidate, budget.RemainingSpans));
         var boundedSpans = new List<OcrTextSpan>(spanLimit);
         for (int index = 0; index < spanLimit; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OcrTextSpan? span = returnedSpans[index];
             if (span != null) boundedSpans.Add(span);
         }
@@ -169,13 +174,14 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             .OrderBy(static span => span.Sequence)
             .ThenBy(static span => span.Level)
             .ToArray();
-        if (result.OmittedSpanCount > 0 || returnedSpans.Count > options.MaxSpansPerCandidate) {
+        if (result.OmittedSpanCount > 0 || returnedSpans.Count > spanLimit) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
-                "ocr-span-limit", "OCR detailed spans were truncated at MaxSpansPerCandidate.", true));
+                "ocr-span-limit", "OCR detailed spans were truncated at a per-candidate or total span limit.", true));
         }
         bool truncatedSpanCharacters = false;
-        int remainingSpanCharacters = options.MaxSpanCharactersPerCandidate;
+        int remainingSpanCharacters = Math.Min(options.MaxSpanCharactersPerCandidate, budget.RemainingSpanCharacters);
         for (int index = 0; index < spans.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OcrTextSpan span = spans[index];
             span.Sequence = index;
             span.Text = ConsumeRequiredText(span.Text, ref remainingSpanCharacters, ref truncatedSpanCharacters);
@@ -200,7 +206,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         result.Spans = spans;
         if (truncatedSpanCharacters) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
-                "ocr-span-text-limit", "OCR span text and metadata were truncated at MaxSpanCharactersPerCandidate.", true));
+                "ocr-span-text-limit", "OCR span text and metadata were truncated at a per-candidate or total character limit.", true));
         }
         if (adjustedConfidence) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
@@ -221,6 +227,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         bool truncatedDiagnosticAttributes = false;
         bool truncatedDiagnosticAttributeCharacters = false;
         for (int index = 0; index < diagnosticLimit; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OcrDiagnostic? diagnostic = returnedDiagnostics[index];
             if (diagnostic == null) continue;
             providerDiagnostics.Add(SanitizeProviderDiagnostic(

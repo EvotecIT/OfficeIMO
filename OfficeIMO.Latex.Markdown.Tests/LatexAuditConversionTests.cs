@@ -139,8 +139,8 @@ public sealed class LatexAuditConversionTests {
     [InlineData("\\pageref{sec:item}", "reference:pageref")]
     [InlineData("\\eqref{eq:item}", "reference:eqref")]
     [InlineData("\\includegraphics[width=2cm,angle=90]{plot.png}", "graphics-options")]
-    [InlineData("\\textbf", "command-arguments:textbf")]
-    [InlineData("\\textbf X", "command-arguments:textbf")]
+    [InlineData("\\textbf\n\n", "command-arguments:textbf")]
+    [InlineData("\\textbf }", "command-arguments:textbf")]
     public void UnsupportedLayoutAndArgumentSemanticsAreReported(string body, string feature) {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(body)).ToMarkdownDocumentResult();
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Feature == feature);
@@ -194,7 +194,7 @@ public sealed class LatexAuditConversionTests {
     [InlineData("\\href{Public\\begin{comment}PRIVATE DRAFT\\end{comment}}")]
     [InlineData("\\newcommand{\\draft}{Public% PRIVATE LINE\n}")]
     public void CommandFallbacksSuppressActualCommentSyntaxAndKeepTheEnclosingDefinition(string source) {
-        LatexDocument document = LatexDocument.Parse(Wrap(source + "Actual"));
+        LatexDocument document = LatexDocument.Parse(Wrap(source + "\n\nActual"));
         LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
         string markdown = result.Value.ToMarkdown();
         Assert.DoesNotContain("PRIVATE", markdown, StringComparison.Ordinal);

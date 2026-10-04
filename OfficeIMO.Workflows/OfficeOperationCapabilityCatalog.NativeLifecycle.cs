@@ -153,7 +153,14 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
             limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
             partial: new[] { OfficeOperationKind.Validate },
-            limitation: "EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry, media-overlay authoring and manuscript conversion are outside this contract.");
+            limitation: "EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract.");
+        AddNativeLifecycle(rows, "book-project", "OfficeIMO.Workflows", "Book.Project",
+            "BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+            "OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation",
+            new[] { ".oibook" }, Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Export },
+            partial: new[] { OfficeOperationKind.Validate },
+            limitation: "Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review.");
     }
 
     private static void AddEmailStoreLifecycleRows(ICollection<OfficeOperationCapability> rows) {

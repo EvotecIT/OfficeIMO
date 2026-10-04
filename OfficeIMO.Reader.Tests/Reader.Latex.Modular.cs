@@ -10,6 +10,64 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderLatexModularTests {
     [Theory]
+    [InlineData(true, 4096)]
+    [InlineData(false, 4096)]
+    [InlineData(true, 7)]
+    [InlineData(false, 7)]
+    public void StructuredNotesAndNestedContainersKeepAllReaderText(bool blocks, int maxChars) {
+        const string source = "\\begin{document}\\section{First}Before\\footnote{Note\\begin{itemize}\\item Alpha\\begin{quote}Quoted\\end{quote}\\item Beta\\end{itemize}\n\nLast} after.\\section{Second}End\\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source),
+            readerOptions: new ReaderOptions { MaxChars = maxChars }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+        foreach (string value in new[] { "Before", "after.", "Note", "Alpha", "Quoted", "Beta", "Last", "End" })
+            Assert.Contains(value, text, StringComparison.Ordinal);
+        if (blocks) {
+            ReaderChunk[] notes = chunks.Where(static chunk => chunk.Location.SourceBlockKind == "footnote").ToArray();
+            Assert.NotEmpty(notes);
+            Assert.All(notes, static chunk => Assert.Equal("First", chunk.Location.HeadingPath));
+            Assert.All(notes, static chunk => Assert.Equal(1, chunk.Location.StartLine));
+            if (maxChars == 4096) Assert.Contains("[^latex-1]:", Assert.Single(notes).Markdown, StringComparison.Ordinal);
+        }
+        if (maxChars == 7) Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()),
+            static warning => warning.Contains("split due to ReaderOptions.MaxChars", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ParserWarningsBelongToTheNoteOrItsSurroundingParagraphOnce() {
+        const string source = "\\begin{document}Before\\footnote{Note \\textbf } after \\textit\n\nEnd\\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source)).ToArray();
+        ReaderChunk note = Assert.Single(chunks, static chunk => chunk.Location.SourceBlockKind == "footnote");
+        Assert.Single(note.Warnings!, static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal));
+        ReaderChunk paragraph = Assert.Single(chunks, static chunk => chunk.Text.Contains("after", StringComparison.Ordinal));
+        Assert.Single(paragraph.Warnings!, static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal));
+        Assert.Equal(2, chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()).Count(static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal)));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PlainLabelLinksRetainTextInReaderProjection(bool blocks) {
+        const string source = @"\documentclass{article}\begin{document}Before \url{https://example.test/a} and \ref{sec:x} then \href{https://example.test/b}{rich label} after.\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+        Assert.Contains("https://example.test/a", text, StringComparison.Ordinal);
+        Assert.Contains("sec:x", text, StringComparison.Ordinal);
+        Assert.Contains("rich label", text, StringComparison.Ordinal);
+        Assert.Contains("after", text, StringComparison.Ordinal);
+        Assert.Contains(chunks, static chunk => chunk.Markdown?.Contains("https://example.test/a", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void EmptyAlignedTablesCannotBypassReaderProjectionBudget() {
+        string table = "\\begin{tabular}{" + new string('l', 4096) + "}\\end{tabular}";
+        string source = "\\documentclass{article}\\begin{document}"
+            + string.Concat(Enumerable.Repeat(table, 17)) + "\\end{document}";
+        Assert.Throws<System.IO.InvalidDataException>(() => LatexReaderAdapter.Read(
+            LatexDocument.Parse(source), latexOptions: new ReaderLatexOptions { ChunkByBlock = true }).ToArray());
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void InertMetadataDoesNotCreateReaderTextOrFrontMatter(bool blocks) {
@@ -227,7 +285,7 @@ public sealed class ReaderLatexModularTests {
 
     [Fact]
     public void SplitFirstBlockCarriesGlobalWarningsOnlyOnce() {
-        LatexDocument document = LatexDocument.Parse("\\author\\begin{document}" + new string('x', 100) + "\\end{document}");
+        LatexDocument document = LatexDocument.Parse("\\author\n\n\\begin{document}" + new string('x', 100) + "\\end{document}");
         ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 12 }).ToArray();
         Assert.True(chunks.Length > 1);
         Assert.Single(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal));
@@ -297,7 +355,7 @@ public sealed class ReaderLatexModularTests {
     [InlineData(true)]
     [InlineData(false)]
     public void PreambleParserWarningsReachTheBodyChunk(bool blocks) {
-        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse("\\author\\begin{document}Body\\end{document}"),
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse("\\author\n\n\\begin{document}Body\\end{document}"),
             latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
         Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal));
     }

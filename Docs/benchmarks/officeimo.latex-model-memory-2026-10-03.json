@@ -1,0 +1,3035 @@
+{
+  "bdn": [
+    {
+      "run": "forward-before",
+      "method": "ParseLossless",
+      "scale": "Scale=Large",
+      "meanMs": 189.39485,
+      "medianMs": 217.66636666666668,
+      "minMs": 73.0156,
+      "maxMs": 249.0281,
+      "allocatedBytes": 55896104,
+      "samplesNs": [
+        248677700,
+        247775066.66666666,
+        249028100,
+        223412300,
+        211920433.33333334,
+        144407233.33333334,
+        116922366.66666667,
+        73015600
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Large",
+      "meanMs": 137.4265333333333,
+      "medianMs": 135.9479916666667,
+      "minMs": 127.73721666666667,
+      "maxMs": 150.22438333333335,
+      "allocatedBytes": 56348371,
+      "samplesNs": [
+        135853383.33333334,
+        150224383.33333334,
+        142163000,
+        132063666.66666667,
+        131788100,
+        127737216.66666667,
+        143539916.66666666,
+        136042600
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Large",
+      "meanMs": 189.33389166666666,
+      "medianMs": 189.31081666666668,
+      "minMs": 171.3947666666667,
+      "maxMs": 207.18746666666667,
+      "allocatedBytes": 64028395,
+      "samplesNs": [
+        171394766.6666667,
+        190027733.33333334,
+        177945733.33333334,
+        188593900,
+        180679866.66666666,
+        198004933.33333334,
+        207187466.66666666,
+        200836733.33333334
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseLossless",
+      "scale": "Scale=Normal",
+      "meanMs": 8.568516796875,
+      "medianMs": 8.529825,
+      "minMs": 8.4159765625,
+      "maxMs": 8.779209375,
+      "allocatedBytes": 5457632,
+      "samplesNs": [
+        8519442.1875,
+        8530620.3125,
+        8614160.9375,
+        8779209.375,
+        8529029.6875,
+        8508314.0625,
+        8415976.5625,
+        8651381.25
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Normal",
+      "meanMs": 8.6678458984375,
+      "medianMs": 8.6800296875,
+      "minMs": 8.005703906250002,
+      "maxMs": 9.32982109375,
+      "allocatedBytes": 5462359,
+      "samplesNs": [
+        8515366.40625,
+        8877214.84375,
+        8061417.968750001,
+        8005703.906250001,
+        9329821.09375,
+        8844692.96875,
+        9210727.34375,
+        8497822.65625
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Normal",
+      "meanMs": 10.4078234375,
+      "medianMs": 10.41095390625,
+      "minMs": 8.904015625,
+      "maxMs": 11.6294109375,
+      "allocatedBytes": 6229862,
+      "samplesNs": [
+        10388854.6875,
+        11629410.9375,
+        10745170.3125,
+        10433053.125,
+        8904015.625,
+        9852104.6875,
+        10354451.5625,
+        10955526.5625
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseLossless",
+      "scale": "Scale=Small",
+      "meanMs": 0.07147274475097656,
+      "medianMs": 0.070846826171875,
+      "minMs": 0.06541560058593751,
+      "maxMs": 0.0787450439453125,
+      "allocatedBytes": 135953,
+      "samplesNs": [
+        75530.52978515625,
+        70393.5302734375,
+        68473.876953125,
+        71300.1220703125,
+        70041.83349609375,
+        78745.0439453125,
+        65415.60058593751,
+        71881.4208984375
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Small",
+      "meanMs": 0.0864769027709961,
+      "medianMs": 0.08548468017578124,
+      "minMs": 0.08126709594726562,
+      "maxMs": 0.09563355102539063,
+      "allocatedBytes": 136713,
+      "samplesNs": [
+        84282.91625976562,
+        87652.63061523438,
+        86004.48608398438,
+        95633.55102539062,
+        84964.87426757812,
+        89461.33422851562,
+        81267.09594726562,
+        82548.33374023438
+      ]
+    },
+    {
+      "run": "forward-before",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Small",
+      "meanMs": 0.11424088592529297,
+      "medianMs": 0.114895458984375,
+      "minMs": 0.11003566284179687,
+      "maxMs": 0.11799210815429688,
+      "allocatedBytes": 152601,
+      "samplesNs": [
+        117992.10815429688,
+        110035.66284179688,
+        111867.66967773438,
+        110627.30102539062,
+        115385.80932617188,
+        116945.70922851562,
+        114405.10864257812,
+        116667.71850585938
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseLossless",
+      "scale": "Scale=Large",
+      "meanMs": 265.05016875,
+      "medianMs": 261.81315,
+      "minMs": 246.5319,
+      "maxMs": 286.62795,
+      "allocatedBytes": 45737312,
+      "samplesNs": [
+        286627950,
+        275455200,
+        260266050.00000003,
+        259702250.00000003,
+        259327700,
+        246531900,
+        269130050,
+        263360250.00000003
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Large",
+      "meanMs": 139.71094375,
+      "medianMs": 127.722275,
+      "minMs": 80.1644,
+      "maxMs": 238.0978,
+      "allocatedBytes": 45572576,
+      "samplesNs": [
+        238097800,
+        182194500,
+        193950300,
+        150961250,
+        104483300,
+        84012400,
+        80164400,
+        83823600
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Large",
+      "meanMs": 132.1393375,
+      "medianMs": 132.26601,
+      "minMs": 125.70218,
+      "maxMs": 140.36326,
+      "allocatedBytes": 67778942,
+      "samplesNs": [
+        140363260,
+        125702180,
+        131092640,
+        133439380,
+        134773420,
+        133490480,
+        128629540,
+        129623800
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseLossless",
+      "scale": "Scale=Normal",
+      "meanMs": 6.1009158203125,
+      "medianMs": 6.0992015625,
+      "minMs": 5.52595,
+      "maxMs": 6.81568359375,
+      "allocatedBytes": 4352041,
+      "samplesNs": [
+        6815683.59375,
+        6157328.90625,
+        6212871.09375,
+        5930435.9375,
+        5525950,
+        6041074.21875,
+        6253023.4375,
+        5870959.375
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Normal",
+      "meanMs": 6.04934013671875,
+      "medianMs": 6.14995546875,
+      "minMs": 5.62344375,
+      "maxMs": 6.349640625,
+      "allocatedBytes": 4356756,
+      "samplesNs": [
+        6158828.125,
+        6016306.25,
+        6171955.46875,
+        5623443.75,
+        6141082.8125,
+        5724898.4375,
+        6349640.625,
+        6208565.625
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Normal",
+      "meanMs": 7.6834146484375,
+      "medianMs": 7.73564453125,
+      "minMs": 7.13060234375,
+      "maxMs": 7.92996953125,
+      "allocatedBytes": 6579853,
+      "samplesNs": [
+        7130602.34375,
+        7663249.21875,
+        7651971.09375,
+        7831185.156250001,
+        7754864.84375,
+        7789050.78125,
+        7716424.21875,
+        7929969.53125
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseLossless",
+      "scale": "Scale=Small",
+      "meanMs": 0.07126543426513672,
+      "medianMs": 0.07144105224609375,
+      "minMs": 0.06490018310546875,
+      "maxMs": 0.0773471923828125,
+      "allocatedBytes": 142065,
+      "samplesNs": [
+        66507.373046875,
+        64900.18310546875,
+        72555.55419921875,
+        69573.79150390625,
+        71544.86083984375,
+        71337.24365234375,
+        76357.275390625,
+        77347.1923828125
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Small",
+      "meanMs": 0.07356597442626953,
+      "medianMs": 0.07323336181640624,
+      "minMs": 0.06904779663085937,
+      "maxMs": 0.07628093872070313,
+      "allocatedBytes": 142825,
+      "samplesNs": [
+        76193.31665039062,
+        71929.84008789062,
+        73796.72241210938,
+        76119.17114257812,
+        69047.79663085938,
+        76280.93872070312,
+        72670.00122070312,
+        72490.00854492188
+      ]
+    },
+    {
+      "run": "forward-after",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Small",
+      "meanMs": 0.10156639099121094,
+      "medianMs": 0.10103837890625,
+      "minMs": 0.096353515625,
+      "maxMs": 0.10809456787109376,
+      "allocatedBytes": 189809,
+      "samplesNs": [
+        96353.515625,
+        102590.29541015625,
+        98815.00244140625,
+        105210.4248046875,
+        99167.61474609375,
+        102813.24462890625,
+        99486.46240234375,
+        108094.56787109375
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseLossless",
+      "scale": "Scale=Large",
+      "meanMs": 180.002278125,
+      "medianMs": 214.557325,
+      "minMs": 93.89905,
+      "maxMs": 256.9377,
+      "allocatedBytes": 45530784,
+      "samplesNs": [
+        236128900,
+        218714275,
+        214993250,
+        256937700,
+        214121400,
+        107528550,
+        97695100,
+        93899050
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Large",
+      "meanMs": 91.83294166666667,
+      "medianMs": 90.78163333333335,
+      "minMs": 86.67835,
+      "maxMs": 100.86495,
+      "allocatedBytes": 45571413,
+      "samplesNs": [
+        96615583.33333333,
+        90858800,
+        90704466.66666667,
+        100864950,
+        86678350,
+        89475283.33333334,
+        91413016.66666667,
+        88053083.33333333
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Large",
+      "meanMs": 122.4213225,
+      "medianMs": 122.89273,
+      "minMs": 115.35418,
+      "maxMs": 127.78334,
+      "allocatedBytes": 67780283,
+      "samplesNs": [
+        127783340,
+        121139500,
+        124645960,
+        125785240,
+        118135260,
+        119560100,
+        115354180,
+        126967000
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseLossless",
+      "scale": "Scale=Normal",
+      "meanMs": 6.2671013671875,
+      "medianMs": 6.33544453125,
+      "minMs": 5.62708203125,
+      "maxMs": 6.5885875,
+      "allocatedBytes": 4352040,
+      "samplesNs": [
+        6440873.4375,
+        6185664.84375,
+        6588587.5,
+        6230015.625,
+        6523035.15625,
+        6502346.09375,
+        5627082.03125,
+        6039206.25
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Normal",
+      "meanMs": 6.40100673828125,
+      "medianMs": 6.355955859375,
+      "minMs": 6.0050609375,
+      "maxMs": 6.82837890625,
+      "allocatedBytes": 4356767,
+      "samplesNs": [
+        6307144.53125,
+        6356639.0625,
+        6340844.53125,
+        6617383.59375,
+        6397329.6875,
+        6828378.90625,
+        6355272.65625,
+        6005060.9375
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Normal",
+      "meanMs": 7.45033671875,
+      "medianMs": 7.4161,
+      "minMs": 7.0169390625,
+      "maxMs": 7.9911015625,
+      "allocatedBytes": 6579853,
+      "samplesNs": [
+        7718837.5,
+        7016939.0625,
+        7069487.5,
+        7206731.25,
+        7767396.875,
+        7246690.625,
+        7991101.5625,
+        7585509.375
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseLossless",
+      "scale": "Scale=Small",
+      "meanMs": 0.06641881713867187,
+      "medianMs": 0.06543425903320313,
+      "minMs": 0.06203005981445313,
+      "maxMs": 0.07361409301757812,
+      "allocatedBytes": 142065,
+      "samplesNs": [
+        63297.515869140625,
+        64128.28979492188,
+        65220.56274414063,
+        62030.059814453125,
+        65647.95532226562,
+        73614.09301757812,
+        67839.77661132812,
+        69572.28393554688
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Small",
+      "meanMs": 0.07002454528808594,
+      "medianMs": 0.06974400024414062,
+      "minMs": 0.06792717895507812,
+      "maxMs": 0.07295650024414063,
+      "allocatedBytes": 142825,
+      "samplesNs": [
+        68384.22241210938,
+        72956.50024414062,
+        70521.14868164062,
+        68810.50415039062,
+        70923.41918945312,
+        71706.53686523438,
+        67927.17895507812,
+        68966.85180664062
+      ]
+    },
+    {
+      "run": "reverse-after",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Small",
+      "meanMs": 0.09531278991699219,
+      "medianMs": 0.09500071411132813,
+      "minMs": 0.08806932983398437,
+      "maxMs": 0.10434628295898438,
+      "allocatedBytes": 189809,
+      "samplesNs": [
+        88069.32983398438,
+        96772.39379882812,
+        104346.28295898438,
+        91691.52221679688,
+        93749.72534179688,
+        93719.03686523438,
+        96251.70288085938,
+        97902.32543945312
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseLossless",
+      "scale": "Scale=Large",
+      "meanMs": 211.43996666666672,
+      "medianMs": 217.39565,
+      "minMs": 115.98946666666667,
+      "maxMs": 275.5047666666667,
+      "allocatedBytes": 55896115,
+      "samplesNs": [
+        247219133.33333334,
+        275504766.6666667,
+        254329433.33333334,
+        237237933.33333334,
+        197553366.66666666,
+        196458166.66666666,
+        167227466.66666666,
+        115989466.66666667
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Large",
+      "meanMs": 97.85211458333333,
+      "medianMs": 98.44526666666665,
+      "minMs": 82.8052,
+      "maxMs": 111.99855,
+      "allocatedBytes": 55936497,
+      "samplesNs": [
+        96172033.33333333,
+        89365383.33333333,
+        92319500,
+        103900866.66666667,
+        111998550,
+        105536883.33333333,
+        100718500,
+        82805200
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Large",
+      "meanMs": 126.440790625,
+      "medianMs": 122.2651,
+      "minMs": 111.9753,
+      "maxMs": 157.760075,
+      "allocatedBytes": 63607366,
+      "samplesNs": [
+        123484375,
+        157760075,
+        133263000,
+        111975300,
+        121045825,
+        129713300,
+        119522825,
+        114761625
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseLossless",
+      "scale": "Scale=Normal",
+      "meanMs": 6.782226171875,
+      "medianMs": 6.435943359375,
+      "minMs": 5.90757109375,
+      "maxMs": 8.91553671875,
+      "allocatedBytes": 5457372,
+      "samplesNs": [
+        6016262.5,
+        6121114.84375,
+        5907571.09375,
+        5926419.53125,
+        6842674.21875,
+        6750771.875,
+        7777458.59375,
+        8915536.71875
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Normal",
+      "meanMs": 7.8009119140625,
+      "medianMs": 8.252875,
+      "minMs": 6.0021984375,
+      "maxMs": 9.3941109375,
+      "allocatedBytes": 5456210,
+      "samplesNs": [
+        8204739.0625,
+        8301010.9375,
+        8803728.125,
+        9233984.375,
+        9394110.9375,
+        6422070.3125,
+        6002198.4375,
+        6045453.125
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Normal",
+      "meanMs": 9.861670703125,
+      "medianMs": 9.84929765625,
+      "minMs": 8.7306359375,
+      "maxMs": 10.7046,
+      "allocatedBytes": 6229862,
+      "samplesNs": [
+        9766087.5,
+        9932507.8125,
+        10478778.125,
+        10379096.875,
+        9728989.0625,
+        10704600,
+        9172670.3125,
+        8730635.9375
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseLossless",
+      "scale": "Scale=Small",
+      "meanMs": 0.062413951110839846,
+      "medianMs": 0.0624293701171875,
+      "minMs": 0.04954211730957031,
+      "maxMs": 0.07175943908691407,
+      "allocatedBytes": 135952,
+      "samplesNs": [
+        61128.10974121093,
+        49542.11730957031,
+        70172.42126464844,
+        58305.83801269531,
+        56323.37951660156,
+        63730.63049316406,
+        68349.67346191406,
+        71759.43908691406
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseAndPreserveWrite",
+      "scale": "Scale=Small",
+      "meanMs": 0.05895122451782227,
+      "medianMs": 0.05898311767578125,
+      "minMs": 0.055054620361328126,
+      "maxMs": 0.06253746337890626,
+      "allocatedBytes": 136712,
+      "samplesNs": [
+        57454.217529296875,
+        60282.232666015625,
+        56496.58203125,
+        58994.476318359375,
+        61818.44482421875,
+        55054.620361328125,
+        62537.46337890625,
+        58971.759033203125
+      ]
+    },
+    {
+      "run": "reverse-before",
+      "method": "ParseAndInspectTokens",
+      "scale": "Scale=Small",
+      "meanMs": 0.07187791137695312,
+      "medianMs": 0.06990165405273438,
+      "minMs": 0.0592839599609375,
+      "maxMs": 0.08424415283203125,
+      "allocatedBytes": 152601,
+      "samplesNs": [
+        68229.98046875,
+        84244.15283203125,
+        62731.005859375,
+        59283.9599609375,
+        70498.779296875,
+        69304.52880859375,
+        82856.50634765625,
+        77874.37744140625
+      ]
+    }
+  ],
+  "memory": [
+    {
+      "run": "forward-before",
+      "operation": "Parse",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 138280,
+        "max": 142936,
+        "median": 138280
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 80696,
+        "max": 83768,
+        "median": 80696
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 139824,
+        "max": 147832,
+        "median": 147832
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 31899648,
+        "max": 32129024,
+        "median": 32108544
+      },
+      "elapsedMilliseconds": {
+        "min": 0.4025,
+        "max": 0.8203,
+        "median": 0.6796
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "ParseWrite",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 137568,
+        "max": 145296,
+        "median": 143760
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 131600,
+        "max": 156056,
+        "median": 139824
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 31879168,
+        "max": 32112640,
+        "median": 31944704
+      },
+      "elapsedMilliseconds": {
+        "min": 0.4388,
+        "max": 0.5318,
+        "median": 0.4598
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "Parse",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 5451432,
+        "max": 5451432,
+        "median": 5451432
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 4419248,
+        "max": 4419248,
+        "median": 4419248
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 5459368,
+        "max": 5459368,
+        "median": 5459368
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 46481408,
+        "max": 46551040,
+        "median": 46497792
+      },
+      "elapsedMilliseconds": {
+        "min": 13.1136,
+        "max": 13.3416,
+        "median": 13.17
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "ParseWrite",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 5456176,
+        "max": 5456176,
+        "median": 5456176
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 5467592,
+        "max": 5467592,
+        "median": 5467592
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 42123264,
+        "max": 42405888,
+        "median": 42381312
+      },
+      "elapsedMilliseconds": {
+        "min": 13.6706,
+        "max": 14.1826,
+        "median": 13.7089
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "Parse",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 55888920,
+        "max": 55888920,
+        "median": 55888920
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 44605568,
+        "max": 44605568,
+        "median": 44605568
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 56020248,
+        "max": 56020248,
+        "median": 56020248
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 98185216,
+        "max": 98488320,
+        "median": 98414592
+      },
+      "elapsedMilliseconds": {
+        "min": 132.8901,
+        "max": 149.2509,
+        "median": 148.3613
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "ParseWrite",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 55929664,
+        "max": 55929664,
+        "median": 55929664
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 720,
+        "max": 720,
+        "median": 720
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 56061112,
+        "max": 56061112,
+        "median": 56061112
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 92676096,
+        "max": 92917760,
+        "median": 92684288
+      },
+      "elapsedMilliseconds": {
+        "min": 127.9192,
+        "max": 140.9038,
+        "median": 139.7204
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "ParseInspect",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 153392,
+        "max": 161120,
+        "median": 161120
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 97304,
+        "max": 100376,
+        "median": 100376
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 148048,
+        "max": 172504,
+        "median": 172504
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 32124928,
+        "max": 32165888,
+        "median": 32137216
+      },
+      "elapsedMilliseconds": {
+        "min": 0.9107,
+        "max": 0.9196,
+        "median": 0.913
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "ParseInspect",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 6223672,
+        "max": 6223672,
+        "median": 6223672
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 5191448,
+        "max": 5191448,
+        "median": 5191448
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 6237576,
+        "max": 6237576,
+        "median": 6237576
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 47210496,
+        "max": 47411200,
+        "median": 47362048
+      },
+      "elapsedMilliseconds": {
+        "min": 18.1678,
+        "max": 21.3122,
+        "median": 20.7373
+      }
+    },
+    {
+      "run": "forward-before",
+      "operation": "ParseInspect",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 63604312,
+        "max": 63604312,
+        "median": 63604312
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 52318568,
+        "max": 52318568,
+        "median": 52318568
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 58670864,
+        "max": 59019848,
+        "median": 59019832
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 107585536,
+        "max": 110018560,
+        "median": 107659264
+      },
+      "elapsedMilliseconds": {
+        "min": 186.6841,
+        "max": 208.2219,
+        "median": 200.5009
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "Parse",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 143288,
+        "max": 143288,
+        "median": 143288
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 69824,
+        "max": 69824,
+        "median": 69824
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 143872,
+        "max": 143872,
+        "median": 143872
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 32055296,
+        "max": 32358400,
+        "median": 32305152
+      },
+      "elapsedMilliseconds": {
+        "min": 0.6868,
+        "max": 4.5493,
+        "median": 1.0884
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "ParseWrite",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 144112,
+        "max": 144112,
+        "median": 144112
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 143872,
+        "max": 143872,
+        "median": 143872
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 32256000,
+        "max": 32346112,
+        "median": 32292864
+      },
+      "elapsedMilliseconds": {
+        "min": 1.088,
+        "max": 1.3838,
+        "median": 1.1136
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "Parse",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 4388048,
+        "max": 4388048,
+        "median": 4388048
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 3556992,
+        "max": 3556992,
+        "median": 3556992
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 4392976,
+        "max": 4392976,
+        "median": 4392976
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 44949504,
+        "max": 44965888,
+        "median": 44961792
+      },
+      "elapsedMilliseconds": {
+        "min": 24.3467,
+        "max": 135.5179,
+        "median": 42.2253
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "ParseWrite",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 4392792,
+        "max": 4396048,
+        "median": 4392792
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 4401200,
+        "max": 4417168,
+        "median": 4401200
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 41623552,
+        "max": 42102784,
+        "median": 41840640
+      },
+      "elapsedMilliseconds": {
+        "min": 48.1459,
+        "max": 82.1605,
+        "median": 54.0975
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "Parse",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 45946712,
+        "max": 45946712,
+        "median": 45946712
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 36308840,
+        "max": 36308840,
+        "median": 36308840
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 40719240,
+        "max": 40719352,
+        "median": 40719240
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 86016000,
+        "max": 86323200,
+        "median": 86282240
+      },
+      "elapsedMilliseconds": {
+        "min": 824.0232,
+        "max": 1408.0053,
+        "median": 1324.0598
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "ParseWrite",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 45987456,
+        "max": 45987456,
+        "median": 45987456
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 184,
+        "max": 184,
+        "median": 184
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 40760360,
+        "max": 40760448,
+        "median": 40760448
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 79564800,
+        "max": 79794176,
+        "median": 79609856
+      },
+      "elapsedMilliseconds": {
+        "min": 256.3406,
+        "max": 1331.7752,
+        "median": 374.5885
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "ParseInspect",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 191032,
+        "max": 191032,
+        "median": 191032
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 92928,
+        "max": 92928,
+        "median": 92928
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 184992,
+        "max": 184992,
+        "median": 184992
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 32006144,
+        "max": 32305152,
+        "median": 32284672
+      },
+      "elapsedMilliseconds": {
+        "min": 1.8793,
+        "max": 4.8968,
+        "median": 2.4238
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "ParseInspect",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 6615728,
+        "max": 6615816,
+        "median": 6615728
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 5145032,
+        "max": 5145120,
+        "median": 5145032
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 6629424,
+        "max": 6637584,
+        "median": 6629424
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 47906816,
+        "max": 47939584,
+        "median": 47935488
+      },
+      "elapsedMilliseconds": {
+        "min": 27.4781,
+        "max": 248.4271,
+        "median": 36.9885
+      }
+    },
+    {
+      "run": "forward-after",
+      "operation": "ParseInspect",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 68195792,
+        "max": 68195792,
+        "median": 68195792
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 52383280,
+        "max": 52383280,
+        "median": 52383280
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 60299256,
+        "max": 60299256,
+        "median": 60299256
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 104099840,
+        "max": 104116224,
+        "median": 104108032
+      },
+      "elapsedMilliseconds": {
+        "min": 385.1831,
+        "max": 1576.1007,
+        "median": 447.5022
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "Parse",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 142856,
+        "max": 144392,
+        "median": 144392
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 70696,
+        "max": 70696,
+        "median": 70696
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 135648,
+        "max": 157336,
+        "median": 157336
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 32137216,
+        "max": 32227328,
+        "median": 32219136
+      },
+      "elapsedMilliseconds": {
+        "min": 0.4702,
+        "max": 0.6621,
+        "median": 0.5183
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "ParseWrite",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 143680,
+        "max": 145216,
+        "median": 145216
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 143872,
+        "max": 157336,
+        "median": 157336
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 31895552,
+        "max": 32141312,
+        "median": 31973376
+      },
+      "elapsedMilliseconds": {
+        "min": 0.497,
+        "max": 0.5167,
+        "median": 0.5133
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "Parse",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 4352608,
+        "max": 4352608,
+        "median": 4352608
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 3557864,
+        "max": 3557864,
+        "median": 3557864
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 4361656,
+        "max": 4361656,
+        "median": 4361656
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 44900352,
+        "max": 45084672,
+        "median": 45072384
+      },
+      "elapsedMilliseconds": {
+        "min": 13.0151,
+        "max": 13.8375,
+        "median": 13.7068
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "ParseWrite",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 4357352,
+        "max": 4357352,
+        "median": 4357352
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 4361656,
+        "max": 4361656,
+        "median": 4361656
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 41443328,
+        "max": 41914368,
+        "median": 41701376
+      },
+      "elapsedMilliseconds": {
+        "min": 13.112,
+        "max": 19.8072,
+        "median": 15.6402
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "Parse",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 45526504,
+        "max": 45529040,
+        "median": 45526504
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 36309376,
+        "max": 36309376,
+        "median": 36309376
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 40717576,
+        "max": 42755176,
+        "median": 40717576
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 85479424,
+        "max": 87420928,
+        "median": 85520384
+      },
+      "elapsedMilliseconds": {
+        "min": 154.168,
+        "max": 164.4693,
+        "median": 158.0671
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "ParseWrite",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 45567248,
+        "max": 45567272,
+        "median": 45567272
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 720,
+        "max": 720,
+        "median": 720
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 40758000,
+        "max": 40758440,
+        "median": 40758000
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 79101952,
+        "max": 79323136,
+        "median": 79114240
+      },
+      "elapsedMilliseconds": {
+        "min": 148.591,
+        "max": 172.6166,
+        "median": 164.7842
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "ParseInspect",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 190600,
+        "max": 192136,
+        "median": 192136
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 93800,
+        "max": 93800,
+        "median": 93800
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 184992,
+        "max": 206680,
+        "median": 206680
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 31907840,
+        "max": 32174080,
+        "median": 32145408
+      },
+      "elapsedMilliseconds": {
+        "min": 1.505,
+        "max": 1.8241,
+        "median": 1.7004
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "ParseInspect",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 6580288,
+        "max": 6580288,
+        "median": 6580288
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 5145904,
+        "max": 5145904,
+        "median": 5145904
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 6589880,
+        "max": 6589880,
+        "median": 6589880
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 47542272,
+        "max": 47828992,
+        "median": 47788032
+      },
+      "elapsedMilliseconds": {
+        "min": 20.7452,
+        "max": 33.0436,
+        "median": 26.035
+      }
+    },
+    {
+      "run": "reverse-after",
+      "operation": "ParseInspect",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 67777936,
+        "max": 67777944,
+        "median": 67777936
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 52383816,
+        "max": 52383816,
+        "median": 52383816
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 57766768,
+        "max": 57767424,
+        "median": 57767136
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 104394752,
+        "max": 104636416,
+        "median": 104407040
+      },
+      "elapsedMilliseconds": {
+        "min": 198.8468,
+        "max": 225.4812,
+        "median": 214.015
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "Parse",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 138280,
+        "max": 144472,
+        "median": 144472
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 80696,
+        "max": 83768,
+        "median": 83768
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 147832,
+        "max": 156056,
+        "median": 156056
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 31891456,
+        "max": 31903744,
+        "median": 31895552
+      },
+      "elapsedMilliseconds": {
+        "min": 0.4202,
+        "max": 0.845,
+        "median": 0.6483
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "ParseWrite",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 139104,
+        "max": 145296,
+        "median": 145296
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 147832,
+        "max": 156056,
+        "median": 156056
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 32096256,
+        "max": 32116736,
+        "median": 32112640
+      },
+      "elapsedMilliseconds": {
+        "min": 0.4464,
+        "max": 0.4833,
+        "median": 0.4581
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "Parse",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 5451432,
+        "max": 5451432,
+        "median": 5451432
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 4419248,
+        "max": 4419248,
+        "median": 4419248
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 5459368,
+        "max": 5459368,
+        "median": 5459368
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 46243840,
+        "max": 46301184,
+        "median": 46252032
+      },
+      "elapsedMilliseconds": {
+        "min": 13.1143,
+        "max": 16.3995,
+        "median": 14.6583
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "ParseWrite",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 5456176,
+        "max": 5459432,
+        "median": 5456176
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 0,
+        "max": 0,
+        "median": 0
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 5467592,
+        "max": 5481560,
+        "median": 5467592
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 42164224,
+        "max": 42414080,
+        "median": 42188800
+      },
+      "elapsedMilliseconds": {
+        "min": 13.6745,
+        "max": 15.7857,
+        "median": 14.4863
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "Parse",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 55888920,
+        "max": 55888920,
+        "median": 55888920
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 44605568,
+        "max": 44605568,
+        "median": 44605568
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 56020248,
+        "max": 56020248,
+        "median": 56020248
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 98078720,
+        "max": 98430976,
+        "median": 98217984
+      },
+      "elapsedMilliseconds": {
+        "min": 133.6463,
+        "max": 180.8676,
+        "median": 164.3077
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "ParseWrite",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 55929664,
+        "max": 55929664,
+        "median": 55929664
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 720,
+        "max": 720,
+        "median": 720
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 56061112,
+        "max": 56061112,
+        "median": 56061112
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 92905472,
+        "max": 92954624,
+        "median": 92950528
+      },
+      "elapsedMilliseconds": {
+        "min": 130.2992,
+        "max": 140.6954,
+        "median": 140.3832
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "ParseInspect",
+      "scale": "Small",
+      "allocatedBytes": {
+        "min": 154928,
+        "max": 161120,
+        "median": 154928
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 97304,
+        "max": 100376,
+        "median": 97304
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 164280,
+        "max": 172504,
+        "median": 164280
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 31907840,
+        "max": 32157696,
+        "median": 32116736
+      },
+      "elapsedMilliseconds": {
+        "min": 0.8611,
+        "max": 1.0479,
+        "median": 0.9852
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "ParseInspect",
+      "scale": "Normal",
+      "allocatedBytes": {
+        "min": 6223672,
+        "max": 6223672,
+        "median": 6223672
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 5191448,
+        "max": 5191448,
+        "median": 5191448
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 6237576,
+        "max": 6237576,
+        "median": 6237576
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 47157248,
+        "max": 47427584,
+        "median": 47415296
+      },
+      "elapsedMilliseconds": {
+        "min": 19.4483,
+        "max": 31.6786,
+        "median": 25.4197
+      }
+    },
+    {
+      "run": "reverse-before",
+      "operation": "ParseInspect",
+      "scale": "Large",
+      "allocatedBytes": {
+        "min": 63604312,
+        "max": 64022160,
+        "median": 63604312
+      },
+      "retainedManagedHeapGrowthBytes": {
+        "min": 51900184,
+        "max": 52318568,
+        "median": 52318568
+      },
+      "peakManagedHeapGrowthBytes": {
+        "min": 58670952,
+        "max": 60394624,
+        "median": 58802240
+      },
+      "absoluteProcessPeakWorkingSetBytes": {
+        "min": 107663360,
+        "max": 110039040,
+        "median": 110030848
+      },
+      "elapsedMilliseconds": {
+        "min": 302.2506,
+        "max": 531.0259,
+        "median": 376.8256
+      }
+    }
+  ],
+  "inputs": {
+    "Small": {
+      "bytes": 1470,
+      "sha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+    },
+    "Normal": {
+      "bytes": 68692,
+      "sha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+    },
+    "Large": {
+      "bytes": 701399,
+      "sha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+    }
+  },
+  "provenance": {
+    "baselineRuntimeSource": "0ae340322bfcd532cf2caebad6f86dba996b72a4",
+    "candidateRuntimeSource": "dfe7fae293d0ef966cf3cc876e33a93b16e371f2",
+    "commonHarnessSource": "c7afeb960338781e31acc99a90a4f47ecf5071eb",
+    "assemblyHashes": [
+      {
+        "variant": "before",
+        "file": "OfficeIMO.Latex.dll",
+        "sha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257"
+      },
+      {
+        "variant": "before",
+        "file": "OfficeIMO.Core.dll",
+        "sha256": "F0AD369E7FE3406F8A6BBF70A812BA0962CD2ED3B220C54B0169CB82335B4439"
+      },
+      {
+        "variant": "before",
+        "file": "OfficeIMO.Latex.Benchmarks.dll",
+        "sha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "variant": "after",
+        "file": "OfficeIMO.Latex.dll",
+        "sha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532"
+      },
+      {
+        "variant": "after",
+        "file": "OfficeIMO.Core.dll",
+        "sha256": "F0AD369E7FE3406F8A6BBF70A812BA0962CD2ED3B220C54B0169CB82335B4439"
+      },
+      {
+        "variant": "after",
+        "file": "OfficeIMO.Latex.Benchmarks.dll",
+        "sha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      }
+    ],
+    "executionLedger": [
+      {
+        "Run": "forward-before",
+        "Mode": "evidence",
+        "StartedUtc": "2026-10-03T21:53:22.0486121+00:00",
+        "CompletedUtc": "2026-10-03T21:53:28.3991406+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "forward-before",
+        "Mode": "inspection",
+        "StartedUtc": "2026-10-03T21:53:28.4998852+00:00",
+        "CompletedUtc": "2026-10-03T21:53:32.2961305+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "forward-before",
+        "Mode": "bdn",
+        "StartedUtc": "2026-10-03T21:53:32.3013669+00:00",
+        "CompletedUtc": "2026-10-03T21:55:08.3183156+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "forward-after",
+        "Mode": "evidence",
+        "StartedUtc": "2026-10-03T21:55:08.3452431+00:00",
+        "CompletedUtc": "2026-10-03T21:55:44.5359482+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "forward-after",
+        "Mode": "inspection",
+        "StartedUtc": "2026-10-03T21:55:44.5386956+00:00",
+        "CompletedUtc": "2026-10-03T21:55:58.4829774+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "forward-after",
+        "Mode": "bdn",
+        "StartedUtc": "2026-10-03T21:55:58.4867072+00:00",
+        "CompletedUtc": "2026-10-03T21:57:24.1985755+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "reverse-after",
+        "Mode": "evidence",
+        "StartedUtc": "2026-10-03T21:57:24.2008398+00:00",
+        "CompletedUtc": "2026-10-03T21:57:30.8385357+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "reverse-after",
+        "Mode": "inspection",
+        "StartedUtc": "2026-10-03T21:57:30.8410056+00:00",
+        "CompletedUtc": "2026-10-03T21:57:34.4357576+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "reverse-after",
+        "Mode": "bdn",
+        "StartedUtc": "2026-10-03T21:57:34.4377281+00:00",
+        "CompletedUtc": "2026-10-03T21:59:03.4590796+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "BB3E4C21D7451651DA150A4D010479803D82C583F3EC68D9BAA1E771DF5F3532",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "reverse-before",
+        "Mode": "evidence",
+        "StartedUtc": "2026-10-03T21:59:03.4610268+00:00",
+        "CompletedUtc": "2026-10-03T21:59:10.4224254+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "reverse-before",
+        "Mode": "inspection",
+        "StartedUtc": "2026-10-03T21:59:10.4260123+00:00",
+        "CompletedUtc": "2026-10-03T21:59:17.4054779+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      },
+      {
+        "Run": "reverse-before",
+        "Mode": "bdn",
+        "StartedUtc": "2026-10-03T21:59:17.4196847+00:00",
+        "CompletedUtc": "2026-10-03T22:00:50.858945+00:00",
+        "Priority": "High",
+        "Affinity": 1,
+        "NativeSha256": "D34D1E1117EE8D194F7601B62979BCACC6486408290EF44E0A4F5671D891E257",
+        "HarnessSha256": "A8087CE49D5A450B23DC0D4A3044FCC2ED494D01D72CE1CA09F2BF4C9A68B088"
+      }
+    ],
+    "windows": {
+      "os": "Windows 11 10.0.26300.9457",
+      "runtime": ".NET 10.0.12",
+      "buildSdk": "10.0.112",
+      "benchmarkHostReportedSdk": "10.0.400",
+      "processor": "AMD Ryzen 9 9950X3D2",
+      "physicalCores": 16,
+      "logicalProcessors": 32,
+      "affinity": 1,
+      "priority": "High",
+      "hostLoadBeforePercent": 41,
+      "benchmarkDotNetVersion": "0.15.8",
+      "toolchain": "InProcessEmit",
+      "warmups": 3,
+      "retainedMeasuredIterations": 8,
+      "outliers": "DontRemove"
+    },
+    "sourceCommitNote": "The isolated Windows binary directories have no Git checkout. Their unknown sourceCommit fields are replaced by this explicit source/hash manifest, not inferred from the current working branch."
+  },
+  "platformEvidence": {
+    "linux": [
+      {
+        "measuredAtUtc": "2026-10-03T22:08:39.7420672+00:00",
+        "sourceCommit": "c7afeb960338781e31acc99a90a4f47ecf5071eb",
+        "sourceTreeDirty": false,
+        "framework": ".NET 10.0.12",
+        "operatingSystem": "Ubuntu 24.04.3 LTS",
+        "architecture": "X64",
+        "processorCount": 32,
+        "repeat": 3,
+        "measurements": [
+          {
+            "operation": "Parse",
+            "scale": "Small",
+            "iteration": 1,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.4752,
+            "allocatedBytes": 143640,
+            "retainedManagedHeapGrowthBytes": 92664,
+            "peakManagedHeapGrowthBytes": 149464,
+            "absoluteProcessPeakWorkingSetBytes": 39743488,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 76440,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Small",
+            "iteration": 2,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.5068,
+            "allocatedBytes": 143928,
+            "retainedManagedHeapGrowthBytes": 92664,
+            "peakManagedHeapGrowthBytes": 157464,
+            "absoluteProcessPeakWorkingSetBytes": 39731200,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 84440,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Small",
+            "iteration": 3,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.5075,
+            "allocatedBytes": 143928,
+            "retainedManagedHeapGrowthBytes": 92664,
+            "peakManagedHeapGrowthBytes": 157488,
+            "absoluteProcessPeakWorkingSetBytes": 39473152,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 84440,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Small",
+            "iteration": 1,
+            "inputBytes": 1470,
+            "outputBytes": 1470,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.574,
+            "allocatedBytes": 144464,
+            "retainedManagedHeapGrowthBytes": 928,
+            "peakManagedHeapGrowthBytes": 149464,
+            "absoluteProcessPeakWorkingSetBytes": 39604224,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Small",
+            "iteration": 2,
+            "inputBytes": 1470,
+            "outputBytes": 1470,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.5912,
+            "allocatedBytes": 144464,
+            "retainedManagedHeapGrowthBytes": 928,
+            "peakManagedHeapGrowthBytes": 157464,
+            "absoluteProcessPeakWorkingSetBytes": 39473152,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Small",
+            "iteration": 3,
+            "inputBytes": 1470,
+            "outputBytes": 1470,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.5308,
+            "allocatedBytes": 150656,
+            "retainedManagedHeapGrowthBytes": 4000,
+            "peakManagedHeapGrowthBytes": 157688,
+            "absoluteProcessPeakWorkingSetBytes": 39612416,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Normal",
+            "iteration": 1,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 14.1871,
+            "allocatedBytes": 4361552,
+            "retainedManagedHeapGrowthBytes": 3582904,
+            "peakManagedHeapGrowthBytes": 4382896,
+            "absoluteProcessPeakWorkingSetBytes": 54292480,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 3574680,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Normal",
+            "iteration": 2,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 15.2654,
+            "allocatedBytes": 4355072,
+            "retainedManagedHeapGrowthBytes": 3579832,
+            "peakManagedHeapGrowthBytes": 4367216,
+            "absoluteProcessPeakWorkingSetBytes": 54226944,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 3563568,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Normal",
+            "iteration": 3,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 13.9274,
+            "allocatedBytes": 4361552,
+            "retainedManagedHeapGrowthBytes": 3582904,
+            "peakManagedHeapGrowthBytes": 4377816,
+            "absoluteProcessPeakWorkingSetBytes": 54218752,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 3574680,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Normal",
+            "iteration": 1,
+            "inputBytes": 68692,
+            "outputBytes": 68692,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 14.2531,
+            "allocatedBytes": 4360104,
+            "retainedManagedHeapGrowthBytes": 968,
+            "peakManagedHeapGrowthBytes": 4378008,
+            "absoluteProcessPeakWorkingSetBytes": 50814976,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Normal",
+            "iteration": 2,
+            "inputBytes": 68692,
+            "outputBytes": 68692,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 14.7395,
+            "allocatedBytes": 4366296,
+            "retainedManagedHeapGrowthBytes": 4040,
+            "peakManagedHeapGrowthBytes": 4389624,
+            "absoluteProcessPeakWorkingSetBytes": 50941952,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Normal",
+            "iteration": 3,
+            "inputBytes": 68692,
+            "outputBytes": 68692,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 15.055,
+            "allocatedBytes": 4360376,
+            "retainedManagedHeapGrowthBytes": 968,
+            "peakManagedHeapGrowthBytes": 4386032,
+            "absoluteProcessPeakWorkingSetBytes": 50884608,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 968,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Large",
+            "iteration": 1,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 136.4795,
+            "allocatedBytes": 45529192,
+            "retainedManagedHeapGrowthBytes": 36309352,
+            "peakManagedHeapGrowthBytes": 42024048,
+            "absoluteProcessPeakWorkingSetBytes": 101867520,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 36309352,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Large",
+            "iteration": 2,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 146.3552,
+            "allocatedBytes": 45535384,
+            "retainedManagedHeapGrowthBytes": 36312424,
+            "peakManagedHeapGrowthBytes": 42032304,
+            "absoluteProcessPeakWorkingSetBytes": 102006784,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 36312424,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Large",
+            "iteration": 3,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 125.9247,
+            "allocatedBytes": 45529192,
+            "retainedManagedHeapGrowthBytes": 36309352,
+            "peakManagedHeapGrowthBytes": 42024024,
+            "absoluteProcessPeakWorkingSetBytes": 102473728,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 36309352,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Large",
+            "iteration": 1,
+            "inputBytes": 701399,
+            "outputBytes": 701399,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 141.9453,
+            "allocatedBytes": 45569936,
+            "retainedManagedHeapGrowthBytes": 696,
+            "peakManagedHeapGrowthBytes": 42065168,
+            "absoluteProcessPeakWorkingSetBytes": 98529280,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 696,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Large",
+            "iteration": 2,
+            "inputBytes": 701399,
+            "outputBytes": 701399,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 140.8081,
+            "allocatedBytes": 45569936,
+            "retainedManagedHeapGrowthBytes": 696,
+            "peakManagedHeapGrowthBytes": 42065144,
+            "absoluteProcessPeakWorkingSetBytes": 98639872,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 696,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Large",
+            "iteration": 3,
+            "inputBytes": 701399,
+            "outputBytes": 701399,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 149.2351,
+            "allocatedBytes": 45569936,
+            "retainedManagedHeapGrowthBytes": 696,
+            "peakManagedHeapGrowthBytes": 42065144,
+            "absoluteProcessPeakWorkingSetBytes": 98443264,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 696,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          }
+        ],
+        "failures": [],
+        "measurementVersion": 2,
+        "corpusLineEndings": "CRLF"
+      },
+      {
+        "measuredAtUtc": "2026-10-03T22:08:54.4443168+00:00",
+        "sourceCommit": "c7afeb960338781e31acc99a90a4f47ecf5071eb",
+        "sourceTreeDirty": false,
+        "framework": ".NET 10.0.12",
+        "operatingSystem": "Ubuntu 24.04.3 LTS",
+        "architecture": "X64",
+        "processorCount": 32,
+        "repeat": 3,
+        "measurements": [
+          {
+            "operation": "ParseInspect",
+            "scale": "Small",
+            "iteration": 1,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.5416,
+            "allocatedBytes": 191384,
+            "retainedManagedHeapGrowthBytes": 115768,
+            "peakManagedHeapGrowthBytes": 198808,
+            "absoluteProcessPeakWorkingSetBytes": 39587840,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 99544,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Small",
+            "iteration": 2,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.6457,
+            "allocatedBytes": 197864,
+            "retainedManagedHeapGrowthBytes": 118840,
+            "peakManagedHeapGrowthBytes": 206808,
+            "absoluteProcessPeakWorkingSetBytes": 39456768,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 110616,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Small",
+            "iteration": 3,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.5497,
+            "allocatedBytes": 191672,
+            "retainedManagedHeapGrowthBytes": 115768,
+            "peakManagedHeapGrowthBytes": 206808,
+            "absoluteProcessPeakWorkingSetBytes": 39604224,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 107544,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Normal",
+            "iteration": 1,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 28.5204,
+            "allocatedBytes": 6583040,
+            "retainedManagedHeapGrowthBytes": 5167872,
+            "peakManagedHeapGrowthBytes": 6608688,
+            "absoluteProcessPeakWorkingSetBytes": 57188352,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 5167416,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Normal",
+            "iteration": 2,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 25.0844,
+            "allocatedBytes": 6589504,
+            "retainedManagedHeapGrowthBytes": 5170944,
+            "peakManagedHeapGrowthBytes": 6620200,
+            "absoluteProcessPeakWorkingSetBytes": 57118720,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 5178712,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Normal",
+            "iteration": 3,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 24.5692,
+            "allocatedBytes": 6583040,
+            "retainedManagedHeapGrowthBytes": 5167872,
+            "peakManagedHeapGrowthBytes": 6606232,
+            "absoluteProcessPeakWorkingSetBytes": 57057280,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 5167416,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Large",
+            "iteration": 1,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 236.3696,
+            "allocatedBytes": 67778272,
+            "retainedManagedHeapGrowthBytes": 52383792,
+            "peakManagedHeapGrowthBytes": 58175808,
+            "absoluteProcessPeakWorkingSetBytes": 127361024,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 52383792,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Large",
+            "iteration": 2,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 224.2015,
+            "allocatedBytes": 67778272,
+            "retainedManagedHeapGrowthBytes": 52383792,
+            "peakManagedHeapGrowthBytes": 58176128,
+            "absoluteProcessPeakWorkingSetBytes": 128147456,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 52383792,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Large",
+            "iteration": 3,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 313.1168,
+            "allocatedBytes": 67784464,
+            "retainedManagedHeapGrowthBytes": 52386864,
+            "peakManagedHeapGrowthBytes": 58184096,
+            "absoluteProcessPeakWorkingSetBytes": 127483904,
+            "nativeAssemblySha256": "EAE8F6357AEB10E7DCA34908F8799E8F6270F1FAD362B8B78EA0F3F31CB5EAFE",
+            "harnessAssemblySha256": "C9DAC48B15AADD54C3EC610A66054930507E45B2BAAB49F9617DF80360CDFA9E",
+            "fullGcHeapEstimateGrowthBytes": 52386864,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          }
+        ],
+        "failures": [],
+        "measurementVersion": 2,
+        "corpusLineEndings": "CRLF"
+      }
+    ],
+    "macos": [
+      {
+        "measuredAtUtc": "2026-10-03T21:51:56.436362+00:00",
+        "sourceCommit": "c7afeb960338781e31acc99a90a4f47ecf5071eb",
+        "sourceTreeDirty": false,
+        "framework": ".NET 10.0.12",
+        "operatingSystem": "macOS 27.0.1",
+        "architecture": "Arm64",
+        "processorCount": 10,
+        "repeat": 3,
+        "measurements": [
+          {
+            "operation": "Parse",
+            "scale": "Small",
+            "iteration": 1,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.4687,
+            "allocatedBytes": 144160,
+            "retainedManagedHeapGrowthBytes": 92664,
+            "peakManagedHeapGrowthBytes": 149544,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 177512,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Small",
+            "iteration": 2,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.443,
+            "allocatedBytes": 144160,
+            "retainedManagedHeapGrowthBytes": 92664,
+            "peakManagedHeapGrowthBytes": 149544,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 177512,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Small",
+            "iteration": 3,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.6047,
+            "allocatedBytes": 143800,
+            "retainedManagedHeapGrowthBytes": 92664,
+            "peakManagedHeapGrowthBytes": 149544,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 177536,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Small",
+            "iteration": 1,
+            "inputBytes": 1470,
+            "outputBytes": 1470,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.1245,
+            "allocatedBytes": 145144,
+            "retainedManagedHeapGrowthBytes": 928,
+            "peakManagedHeapGrowthBytes": 157768,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 1520,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Small",
+            "iteration": 2,
+            "inputBytes": 1470,
+            "outputBytes": 1470,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.9264,
+            "allocatedBytes": 145144,
+            "retainedManagedHeapGrowthBytes": 928,
+            "peakManagedHeapGrowthBytes": 157768,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 1520,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Small",
+            "iteration": 3,
+            "inputBytes": 1470,
+            "outputBytes": 1470,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 0.4567,
+            "allocatedBytes": 144624,
+            "retainedManagedHeapGrowthBytes": 928,
+            "peakManagedHeapGrowthBytes": 149544,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Normal",
+            "iteration": 1,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 16.7152,
+            "allocatedBytes": 4355560,
+            "retainedManagedHeapGrowthBytes": 3579832,
+            "peakManagedHeapGrowthBytes": 4366760,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 7048448,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Normal",
+            "iteration": 2,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 12.503,
+            "allocatedBytes": 4361752,
+            "retainedManagedHeapGrowthBytes": 3582904,
+            "peakManagedHeapGrowthBytes": 4372976,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 7054616,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Normal",
+            "iteration": 3,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 17.0024,
+            "allocatedBytes": 4355560,
+            "retainedManagedHeapGrowthBytes": 3579832,
+            "peakManagedHeapGrowthBytes": 4366760,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 7048448,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Normal",
+            "iteration": 1,
+            "inputBytes": 68692,
+            "outputBytes": 68692,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 15.351,
+            "allocatedBytes": 4360016,
+            "retainedManagedHeapGrowthBytes": 968,
+            "peakManagedHeapGrowthBytes": 4374984,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Normal",
+            "iteration": 2,
+            "inputBytes": 68692,
+            "outputBytes": 68692,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 17.2443,
+            "allocatedBytes": 4360304,
+            "retainedManagedHeapGrowthBytes": 968,
+            "peakManagedHeapGrowthBytes": 4374984,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Normal",
+            "iteration": 3,
+            "inputBytes": 68692,
+            "outputBytes": 68692,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 13.1624,
+            "allocatedBytes": 4360304,
+            "retainedManagedHeapGrowthBytes": 968,
+            "peakManagedHeapGrowthBytes": 4374984,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 0,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Large",
+            "iteration": 1,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 221.391,
+            "allocatedBytes": 45528696,
+            "retainedManagedHeapGrowthBytes": 36309352,
+            "peakManagedHeapGrowthBytes": 76541360,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 70407064,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Large",
+            "iteration": 2,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 132.6873,
+            "allocatedBytes": 45528696,
+            "retainedManagedHeapGrowthBytes": 36309352,
+            "peakManagedHeapGrowthBytes": 76541904,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 70415264,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "Parse",
+            "scale": "Large",
+            "iteration": 3,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 168.8262,
+            "allocatedBytes": 45528696,
+            "retainedManagedHeapGrowthBytes": 36309352,
+            "peakManagedHeapGrowthBytes": 76541648,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 70407040,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Large",
+            "iteration": 1,
+            "inputBytes": 701399,
+            "outputBytes": 701399,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 140.4913,
+            "allocatedBytes": 45569440,
+            "retainedManagedHeapGrowthBytes": 696,
+            "peakManagedHeapGrowthBytes": 76579840,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 8848,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Large",
+            "iteration": 2,
+            "inputBytes": 701399,
+            "outputBytes": 701399,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 162.6701,
+            "allocatedBytes": 45573952,
+            "retainedManagedHeapGrowthBytes": 3768,
+            "peakManagedHeapGrowthBytes": 76582432,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 1688,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseWrite",
+            "scale": "Large",
+            "iteration": 3,
+            "inputBytes": 701399,
+            "outputBytes": 701399,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 157.7069,
+            "allocatedBytes": 45569440,
+            "retainedManagedHeapGrowthBytes": 696,
+            "peakManagedHeapGrowthBytes": 76579768,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 600,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          }
+        ],
+        "failures": [],
+        "measurementVersion": 2,
+        "corpusLineEndings": "CRLF"
+      },
+      {
+        "measuredAtUtc": "2026-10-03T21:51:59.390368+00:00",
+        "sourceCommit": "c7afeb960338781e31acc99a90a4f47ecf5071eb",
+        "sourceTreeDirty": false,
+        "framework": ".NET 10.0.12",
+        "operatingSystem": "macOS 27.0.1",
+        "architecture": "Arm64",
+        "processorCount": 10,
+        "repeat": 3,
+        "measurements": [
+          {
+            "operation": "ParseInspect",
+            "scale": "Small",
+            "iteration": 1,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.1726,
+            "allocatedBytes": 192064,
+            "retainedManagedHeapGrowthBytes": 115768,
+            "peakManagedHeapGrowthBytes": 204328,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 232112,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Small",
+            "iteration": 2,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 2.2219,
+            "allocatedBytes": 191904,
+            "retainedManagedHeapGrowthBytes": 115768,
+            "peakManagedHeapGrowthBytes": 196104,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 223888,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Small",
+            "iteration": 3,
+            "inputBytes": 1470,
+            "outputBytes": 0,
+            "sectionCount": 2,
+            "recordCount": 8,
+            "elapsedMilliseconds": 1.129,
+            "allocatedBytes": 191832,
+            "retainedManagedHeapGrowthBytes": 115768,
+            "peakManagedHeapGrowthBytes": 193008,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 223864,
+            "inputSha256": "9FE36CFF8DE0EE0DBAFEE5ADDBC9BE9D5128C46492A8957913054A4947B2472C"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Normal",
+            "iteration": 1,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 24.3678,
+            "allocatedBytes": 6589432,
+            "retainedManagedHeapGrowthBytes": 5170944,
+            "peakManagedHeapGrowthBytes": 6606608,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 10237128,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Normal",
+            "iteration": 2,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 22.8062,
+            "allocatedBytes": 6582952,
+            "retainedManagedHeapGrowthBytes": 5167872,
+            "peakManagedHeapGrowthBytes": 6603512,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 10230888,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Normal",
+            "iteration": 3,
+            "inputBytes": 68692,
+            "outputBytes": 0,
+            "sectionCount": 100,
+            "recordCount": 400,
+            "elapsedMilliseconds": 20.6288,
+            "allocatedBytes": 6583240,
+            "retainedManagedHeapGrowthBytes": 5167872,
+            "peakManagedHeapGrowthBytes": 6603536,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 10230912,
+            "inputSha256": "58286065C00D306E2E6D19C41DC7BF787638AF1CE403E576C2D2457BBEEF83DE"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Large",
+            "iteration": 1,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 247.3343,
+            "allocatedBytes": 67790152,
+            "retainedManagedHeapGrowthBytes": 52386864,
+            "peakManagedHeapGrowthBytes": 113125376,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 102533432,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Large",
+            "iteration": 2,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 201.7866,
+            "allocatedBytes": 67778792,
+            "retainedManagedHeapGrowthBytes": 52383792,
+            "peakManagedHeapGrowthBytes": 112820648,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 102515920,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          },
+          {
+            "operation": "ParseInspect",
+            "scale": "Large",
+            "iteration": 3,
+            "inputBytes": 701399,
+            "outputBytes": 0,
+            "sectionCount": 1000,
+            "recordCount": 4000,
+            "elapsedMilliseconds": 193.9222,
+            "allocatedBytes": 67785936,
+            "retainedManagedHeapGrowthBytes": 52383792,
+            "peakManagedHeapGrowthBytes": 112822128,
+            "absoluteProcessPeakWorkingSetBytes": null,
+            "nativeAssemblySha256": "771BC001352B68ADFFA09E01EFBE56DE0A8DAF6B152EFEE803A2235EDD39A8EE",
+            "harnessAssemblySha256": "1D4B1A80939E81ACA6B0002947B126FE8A916E1282D394D47E91EFCC39991698",
+            "fullGcHeapEstimateGrowthBytes": 102515920,
+            "inputSha256": "36470963F33460A48CDC314D02ACBDDF23784402B78F4D535B757F603946AF0B"
+          }
+        ],
+        "failures": [],
+        "measurementVersion": 2,
+        "corpusLineEndings": "CRLF"
+      }
+    ]
+  }
+}
