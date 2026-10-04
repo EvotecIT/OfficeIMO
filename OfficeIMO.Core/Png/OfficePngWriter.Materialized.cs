@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
@@ -33,8 +34,8 @@ public static partial class OfficePngWriter {
         destination.Complete();
 
         using var unfilteredSize = new PngSizeProbeStream(destination);
-        WriteRgbaZlib(unfilteredSize, height, rgba, workspace, adaptiveFiltering: false,
-            cancellationToken, checkpointObserver);
+        WriteBoundedUnfilteredProbe(unfilteredSize, height, rgba, workspace,
+            adaptiveSize.Length, cancellationToken, checkpointObserver);
         bool adaptiveFiltering = adaptiveSize.Length <= unfilteredSize.Length;
         cancellationToken.ThrowIfCancellationRequested();
         if (adaptiveFiltering && adaptiveSize.FullyRetained) {
@@ -50,6 +51,45 @@ public static partial class OfficePngWriter {
         destination.DiscardProbe();
         WriteRgbaZlib(destination, height, rgba, workspace, adaptiveFiltering,
             cancellationToken, checkpointObserver);
+    }
+
+    // This destination only counts/captures a size probe; it never writes the final
+    // PNG. Once emitted bytes exceed the complete adaptive candidate, remaining
+    // rows cannot make unfiltered compression win. Finish deflate normally and
+    // discard the losing partial probe through the existing selection logic.
+    private static void WriteBoundedUnfilteredProbe(
+        PngSizeProbeStream destination, int height, byte[] rgba,
+        PngFilteringWorkspace workspace, long adaptiveLength,
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
+        destination.WriteByte(0x78);
+        destination.WriteByte(0x9C);
+        byte[] row = workspace.Row;
+        byte[] batch = workspace.Batch;
+        int stride = workspace.Stride;
+        int batchLength = 0;
+        uint adlerA = 1;
+        uint adlerB = 0;
+
+        using (var deflate = new DeflateStream(destination, CompressionLevel.Optimal, leaveOpen: true)) {
+            for (int y = 0; y < height; y++) {
+                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
+                cancellationToken.ThrowIfCancellationRequested();
+                row[0] = 0;
+                Buffer.BlockCopy(rgba, y * stride, row, 1, stride);
+                if (row.Length > batch.Length - batchLength) {
+                    deflate.Write(batch, 0, batchLength);
+                    batchLength = 0;
+                    if (destination.Length > adaptiveLength) break;
+                }
+                Buffer.BlockCopy(row, 0, batch, batchLength, row.Length);
+                batchLength += row.Length;
+                UpdateAdler32(row, 0, row.Length, ref adlerA, ref adlerB,
+                    cancellationToken, checkpointObserver);
+            }
+            if (batchLength > 0) deflate.Write(batch, 0, batchLength);
+        }
+        WriteAdler32(destination, (adlerB << 16) | adlerA);
     }
 
     private static void RewindMaterializedOutput(MemoryStream output, long position) {

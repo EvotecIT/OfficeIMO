@@ -11,6 +11,7 @@ public partial class DrawingPngWriterTests {
     [InlineData(512, 512, 1)]
     [InlineData(1024, 256, 2)]
     [InlineData(2048, 768, 2)]
+    [InlineData(1024, 1024, 3)]
     [InlineData(2048, 1024, 3)]
     [InlineData(1024, 256, 4)]
     [InlineData(2048, 1536, 4)]
