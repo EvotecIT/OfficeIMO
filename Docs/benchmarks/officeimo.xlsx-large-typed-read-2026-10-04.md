@@ -351,6 +351,29 @@ These are weighted diagnostic samples, not exact allocation accounting or CPU
 time. They identify XML attribute/value handling as the next allocation
 investigation alongside reuse of existing coordinate scans.
 
+## Large-file peer refresh after coordinate correction
+
+The [18-case refresh](excel-large-typed-read-2026-10-04/large-peers-coordinate-checkpoint.json)
+uses source `15b5f2848`, Sylvan.Data.Excel 0.5.8, and ExcelReader.NET 5.1.1.
+Every engine consumes the same four typed fields, with all rows and headers
+validated before measurement. Five warmups and five measured invocations run
+at Normal priority on each processor group; outliers are retained. These are
+sequential BenchmarkDotNet cases, so this diagnostic refresh does not replace
+rotated ordering or portable qualification.
+
+| Rows | OfficeIMO mean ms, groups A / B | Sylvan mean ms, A / B | ExcelReader.NET mean ms, A / B | Allocated MiB, OfficeIMO / Sylvan / ExcelReader.NET |
+| --- | ---: | ---: | ---: | ---: |
+| 25,000 | 127.9 / 114.7 | 99.8 / 79.1 | 27.9 / 23.7 | 1.472 / 0.336 / 0.017 |
+| 250,000 | 709.0 / 828.9 | 409.4 / 243.0 | 93.7 / 66.5 | 23.541 / 0.456 / 0.017 |
+| 1,000,000 | 2,640.9 / 2,188.0 | 952.0 / 862.4 | 337.4 / 469.4 | 93.446 / 0.866 / 0.017 |
+
+Groups A and B use masks `0xFFFF` and `0xFFFF0000`, respectively. The packet
+retains every observation and the source, binary, harness, runtime, and host
+identity. Substantial throughput and allocation gaps remain at this checkpoint.
+The earlier allocation reductions do not establish competitive leadership.
+OfficeIMO's eager validation is part of its measured full-read cost; peer
+first-row behavior is not treated as an equivalent contract.
+
 ## Remaining allocation owners
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
