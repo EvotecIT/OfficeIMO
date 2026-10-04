@@ -309,6 +309,45 @@ and [source, binary, runtime, review and reproduction details](excel-csv-broad-t
 These measurements do not establish a cross-library ranking or close the
 remaining spreadsheet throughput and portable-memory targets.
 
+## Smaller CSV writer buffer experiments
+
+The established 256 KiB write buffer remains the default. Two experiments
+separate write-buffer sizing from read-buffer sizing and try 16 KiB and 64 KiB
+across document saves, byte serialization, file row writers and sequential or
+parallel DataReader exports. Both reduce fixed managed allocation, but neither
+qualifies as a universal default.
+
+The 16 KiB screen saves approximately 0.94–1.41 MiB per operation. Its rotated
+25,000-row file row-writer median ratios are 1.161 and 1.136 on the two CPU
+domains; asynchronous plain-file saves have ratios of 1.141 and 1.253. These
+repeatable file throughput costs outweigh the allocation benefit for a general
+policy.
+
+The 64 KiB screen saves approximately 0.75–1.13 MiB per operation. Some stream
+and compressed workloads improve, but native and rotated timings disagree.
+Longer identical-build controls show 10–21% variation between instances in the
+1,000-row file row-writer case. The candidate follow-up changes direction on
+that case between domains. Larger file workloads still show material costs on
+one domain: the 25,000-row asynchronous plain-file save has median ratios of
+approximately 1.03 and 1.09, with mean ratios of 1.03 and 1.15. This evidence
+does not establish a dependable throughput improvement across the writer APIs.
+
+The packet retains 220 native cases, including the initial baseline, and 6,528
+rotated samples across both experiments and the 64 KiB controls. Every measured
+sample succeeds. Each candidate passes 655 CSV tests on Windows .NET 10 and
+.NET 8 and 463 on .NET Framework 4.7.2. Setup validates all eight API outputs
+across 39 fixture combinations for each actual runtime and snapshot build,
+checking complete decoded CSV and every field. The broader 240-workload timing
+matrix is not run after these candidates fail screening qualification.
+
+The [native results](excel-csv-broad-throughput-2026-10-04/writer-buffer-native.json),
+[rotations and controls](excel-csv-broad-throughput-2026-10-04/writer-buffer-rotated.json),
+and [patches, binary manifests, dispositions and reproduction details](excel-csv-broad-throughput-2026-10-04/writer-buffer-provenance.json)
+preserve favorable, unfavorable and conflicting observations. These are
+Windows workstation experiments. Managed allocated bytes do not establish
+retained or peak memory; file timings include operating-system caching and
+exclude durable-storage flushes. Neither experiment changes the product.
+
 ## Validation and reproduction
 
 - Windows CSV correctness: 630 tests on .NET 10, 630 on .NET 8, and 440 on .NET Framework 4.7.2.
