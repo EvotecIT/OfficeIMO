@@ -302,6 +302,14 @@
           "OfficeIMO.Html": "[3.4.4, )"
         }
       },
+      "officeimo.epub.image": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Epub": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )"
+        }
+      },
       "officeimo.excel": {
         "type": "Project",
         "dependencies": {
@@ -525,6 +533,15 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.word.html": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )"
+        }
+      },
       "officeimo.word.iwork": {
         "type": "Project",
         "dependencies": {
@@ -548,6 +565,7 @@
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Email.Html": "[3.4.4, )",
           "OfficeIMO.Epub": "[3.4.4, )",
+          "OfficeIMO.Epub.Image": "[3.4.4, )",
           "OfficeIMO.Excel": "[3.4.4, )",
           "OfficeIMO.Excel.Pdf": "[3.4.4, )",
           "OfficeIMO.Html": "[3.4.4, )",
@@ -569,6 +587,7 @@
           "OfficeIMO.Rtf.Pdf": "[3.4.4, )",
           "OfficeIMO.Visio": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )",
+          "OfficeIMO.Word.Html": "[3.4.4, )",
           "OfficeIMO.Word.Pdf": "[3.4.4, )"
         }
       },
