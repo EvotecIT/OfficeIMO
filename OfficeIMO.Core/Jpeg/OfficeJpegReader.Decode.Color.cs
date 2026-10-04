@@ -1,6 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+#if NET8_0_OR_GREATER
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace OfficeIMO.Drawing;
 
@@ -259,8 +262,22 @@ internal static partial class OfficeJpegReader {
         int firstXAccumulator = 0;
         int secondXAccumulator = 0;
         int thirdXAccumulator = 0;
+        int startX = 0;
 
-        for (int x = 0; x < width; x++) {
+#if NET8_0_OR_GREATER
+        if (transformYccToRgb && outputRgba && width >= 8 && Avx2.IsSupported && Ssse3.IsSupported &&
+            first.Component.H == maximumHorizontalSampling &&
+            second.Component.H * 2 == maximumHorizontalSampling &&
+            third.Component.H * 2 == maximumHorizontalSampling) {
+            startX = ComposeYccToRgbaHalfChromaVector(first.Buffer, firstRow,
+                second.Buffer, secondRow, third.Buffer, thirdRow, output, target, width);
+            firstX = startX;
+            secondX = thirdX = startX / 2;
+            target += startX * 4;
+        }
+#endif
+
+        for (int x = startX; x < width; x++) {
             byte firstValue = first.Buffer[firstRow + firstX];
             byte secondValue = second.Buffer[secondRow + secondX];
             byte thirdValue = third.Buffer[thirdRow + thirdX];
