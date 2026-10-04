@@ -92,13 +92,46 @@ extension metadata is retained. Relationship-owned DocumentStructure parts keep
 outline links and global story-fragment page numbers aligned with page insertion,
 reordering and transfer. Removing the last reference to a page removes its story
 references and any resulting empty story; outline links remain explicitly unresolved.
-StoryFragments content and unknown extension semantics are not reconstructed.
+Native StoryFragments content is available through the logical-structure APIs below.
+Unknown extension semantics remain preserved and are reported when reading structure.
 Malformed known structure rejects the edit before any package state changes.
 
 `AddResource()` adds a new part. `ReplaceResource()` replaces an existing resource's
 encoded bytes while retaining its URI and content type; structural parts use their
 own editing APIs. `GetPartBytes()` returns a copy, and replacement APIs copy caller
 buffers.
+
+## Native logical structure
+
+`ReadLogicalStructure()` follows native DocumentStructure story references, including
+references that return to an earlier page. It merges continued paragraphs, lists,
+and tables across fragments, honoring `StoryBreak` boundaries and empty table-cell
+placeholders. The resulting nodes retain named page references, list markers,
+table-cell spans, and source page occurrences. It does not infer semantics for
+pages without StoryFragments or invent Unicode text from glyph identifiers.
+
+```csharp
+XpsLogicalStructure structure = document.ReadLogicalStructure();
+foreach (XpsLogicalStory story in structure.Stories)
+    foreach (XpsStructureNode block in story.Blocks)
+        Console.WriteLine(block.Text);
+foreach (string diagnostic in structure.Diagnostics)
+    Console.WriteLine(diagnostic);
+```
+
+`page.ReadContentStructure()` reads a page's own fragments, including headers and
+footers. `GetStoryFragmentsMarkup()` and
+`fixedDocument.GetDocumentStructureMarkup()` return detached native XML.
+Use their matching `Replace…Markup()` methods to create or replace the relationship-owned
+parts. To rename page content and its structure references together, use
+`page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)`. These edits validate known
+references before committing; a failed edit leaves the package unchanged. A shared
+StoryFragments replacement must remain valid for every page that owns it.
+
+Native numeric story addresses use the documented payload-global interpretation;
+see the [support matrix](SUPPORT.md) for the specification ambiguity and qualification
+boundary. Missing story addresses, unknown semantic extensions, and unresolved names
+are reported through `Diagnostics` and `IsComplete`.
 
 ## Native brush rendering
 

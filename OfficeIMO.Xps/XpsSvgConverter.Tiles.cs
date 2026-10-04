@@ -24,7 +24,10 @@ internal sealed partial class XpsSvgConverter {
     }
     private void ImageBrush(XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope, string part, int depth) {
         Charge(depth);
-        CheckAttributes(brush, "ImageSource Viewbox Viewport ViewboxUnits ViewportUnits TileMode Opacity Transform");
+        // Early Microsoft XPS producers emitted Stretch="Fill". It describes
+        // the same viewbox-to-viewport mapping used by the final native format.
+        string legacyFill = _page.Document.Format == XpsFormat.Xps && (string?)brush.Attribute("Stretch") == "Fill" ? " Stretch" : "";
+        CheckAttributes(brush, "ImageSource Viewbox Viewport ViewboxUnits ViewportUnits TileMode Opacity Transform" + legacyFill);
         foreach (var child in brush.Elements()) if (child.Name.LocalName != "ImageBrush.Transform") Loss("Image brush child: " + child.Name.LocalName);
         if (!TileCoordinates(brush, out var source, out var viewport)) { Set(target, attribute, "none"); return; }
         var reference = XpsResourceSyntax.ImageSource((string?)brush.Attribute("ImageSource") ?? throw new InvalidDataException("Missing image source."));

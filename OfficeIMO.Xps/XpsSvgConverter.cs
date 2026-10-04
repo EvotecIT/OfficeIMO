@@ -2,7 +2,10 @@ namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
     private static readonly XNamespace Svg = "http://www.w3.org/2000/svg";
-    private XNamespace ResourceKeyNamespace => _page.Document.Format == XpsFormat.Xps ? "http://schemas.microsoft.com/winfx/2006/xaml" : "http://schemas.openxps.org/oxps/v1.0/resourcedictionary-key";
+    private XNamespace ResourceKeyNamespace => XpsPackage.Namespace(_page.Document.Format) + "/resourcedictionary-key";
+    private static readonly XNamespace LegacyXamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+    private bool IsResourceKey(XName name) => name == ResourceKeyNamespace + "Key" ||
+        (_page.Document.Format == XpsFormat.Xps && name == LegacyXamlNamespace + "Key");
     private readonly XpsPage _page;
     private readonly bool _explicitPageLinks;
     private readonly CancellationToken _token;
@@ -45,7 +48,7 @@ internal sealed partial class XpsSvgConverter {
     private void CheckAttributes(XElement e, string allowed) {
         var names = new HashSet<string>((allowed + " Name").Split(' '), StringComparer.Ordinal);
         foreach (var a in e.Attributes()) {
-            if (a.IsNamespaceDeclaration || a.Name == XNamespace.Xml + "lang" || a.Name == ResourceKeyNamespace + "Key") continue;
+            if (a.IsNamespaceDeclaration || a.Name == XNamespace.Xml + "lang" || IsResourceKey(a.Name)) continue;
             if ((a.Name.NamespaceName.Length != 0 && a.Name.Namespace != e.Name.Namespace) || !names.Contains(a.Name.LocalName)) Loss(e.Name.LocalName + "." + a.Name.LocalName);
         }
     }
@@ -79,7 +82,9 @@ internal sealed partial class XpsSvgConverter {
             stack.Remove(name);
         }
         foreach (var item in dictionary.Elements()) {
-            string? key = (string?)item.Attribute(ResourceKeyNamespace + "Key");
+            var keyAttributes = item.Attributes().Where(a => IsResourceKey(a.Name)).ToArray();
+            if (keyAttributes.Length > 1) throw new InvalidDataException("Ambiguous XPS resource key.");
+            string? key = keyAttributes.Length == 0 ? null : keyAttributes[0].Value;
             if (key == null) { Loss("Unkeyed resource: " + item.Name.LocalName); continue; }
             if (!keys.Add(key)) throw new InvalidDataException("Duplicate XPS resource key.");
             ChargeBindings(1);

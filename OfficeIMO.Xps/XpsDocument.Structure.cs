@@ -128,6 +128,12 @@ public sealed partial class XpsDocument {
         var index = BuildIndex(sequence, changes, pending);
         var navigation = PreserveNavigationTargets(index);
         var documentStructures = PreserveDocumentStructure(index);
+        var storyBudget = new XpsStoryFragmentsReader.Budget(default);
+        foreach (var page in index.Pages.Distinct()) {
+            var structure = ReadPageContent(page, index.Pages.IndexOf(page), storyBudget);
+            if (structure.HasUnresolvedNames)
+                throw new InvalidDataException("Structural edits cannot retain unresolved native content references.");
+        }
         var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) { [_sequence] = XpsPackage.Serialize(sequence) };
         foreach (var structure in documentStructures) replacements[structure.Key] = structure.Value;
         if (changes != null) foreach (var change in changes) replacements[change.Key.PartName] = XpsPackage.Serialize(change.Value);

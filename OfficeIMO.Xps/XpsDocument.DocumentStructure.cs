@@ -1,7 +1,8 @@
 namespace OfficeIMO.Xps;
 
 public sealed partial class XpsDocument {
-    internal XNamespace StructureNamespace => XpsPackage.Namespace(Format) + "/documentstructure";
+    /// <summary>The native DocumentStructure/StoryFragments namespace for this document's dialect.</summary>
+    public XNamespace StructureNamespace => XpsPackage.Namespace(Format) + "/documentstructure";
 
     // Read only relationship-owned structure parts. An unrelated XML resource with
     // a similar element name must not acquire document semantics during an edit.
@@ -9,23 +10,8 @@ public sealed partial class XpsDocument {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var document in activeOnly ? _documents.Distinct() : _documentCache.Values.AsEnumerable()) {
             token.ThrowIfCancellationRequested();
-            string source = document.PartName;
-            int slash = source.LastIndexOf('/');
-            string relName = source.Substring(0, slash + 1) + "_rels/" + source.Substring(slash + 1) + ".rels";
-            if (!_parts.ContainsKey(relName)) continue;
-            var relationships = ReadXml(relName, token);
-            if (relationships.Name != XpsPackage.Relationships + "Relationships") throw new InvalidDataException("Invalid fixed-document relationships.");
-            foreach (var relationship in relationships.Elements(XpsPackage.Relationships + "Relationship")) {
-                token.ThrowIfCancellationRequested();
-                if ((string?)relationship.Attribute("Type") != XpsPackage.Namespace(Format) + "/documentstructure") continue;
-                if (((string?)relationship.Attribute("TargetMode") ?? "Internal") != "Internal") throw new InvalidDataException("Document structure must be package-local.");
-                string part = XpsPackage.Resolve(source, (string?)relationship.Attribute("Target") ?? "");
-                if (!seen.Add(part)) continue;
-                if (ContentType(part) != XpsPackage.Type("documentstructure")) throw new InvalidDataException("Invalid document-structure content type.");
-                var markup = ReadXml(part, token);
-                if (markup.Name != StructureNamespace + "DocumentStructure") throw new InvalidDataException("Invalid document-structure root or dialect.");
-                yield return (part, markup);
-            }
+            var structure = ReadOwnedDocumentStructure(document, token);
+            if (structure.HasValue && seen.Add(structure.Value.Part)) yield return structure.Value;
         }
     }
 

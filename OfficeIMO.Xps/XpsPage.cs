@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Xps;
 
 /// <summary>A fixed page retaining native XML, dimensions, resource references and positioned text.</summary>
-public sealed class XpsPage {
+public sealed partial class XpsPage {
     internal XpsDocument Document { get; }
     private readonly XElement _markup;
     internal XpsPage(XpsDocument document, string partName, XElement markup) {
@@ -25,7 +25,7 @@ public sealed class XpsPage {
         ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Width"))); ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Height")));
         // Reapply XML bounds before taking a caller-owned tree into the document.
         var copy = Document.ValidatePageMarkup(markup);
-        ApplyMarkup(copy);
+        Document.CommitPageContent(this, copy);
     }
     internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); }
     /// <summary>Appends native path geometry; paint strings follow the XPS color syntax.</summary>

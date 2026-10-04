@@ -43,7 +43,8 @@ public sealed partial class XpsDocument {
             throw new ArgumentException("Use the owning API to edit structural package parts.", nameof(partName));
         _ = Part(name);
         string type = ContentType(name);
-        if (type == XpsPackage.Type("fixedpage") || type == XpsPackage.Type("fixeddocument") || type == XpsPackage.Type("fixeddocumentsequence"))
+        if (type == XpsPackage.Type("fixedpage") || type == XpsPackage.Type("fixeddocument") || type == XpsPackage.Type("fixeddocumentsequence") ||
+            type == XpsPackage.Type("documentstructure") || type == XpsPackage.Type("storyfragments"))
             throw new ArgumentException("Use the owning API to edit structural package parts.", nameof(partName));
         if (bytes.Length > _limits.MaximumPartBytes)
             throw new InvalidOperationException("XPS resource limit exceeded.");

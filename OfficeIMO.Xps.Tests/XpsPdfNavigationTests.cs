@@ -56,7 +56,8 @@ public sealed class XpsPdfNavigationTests {
         var outline = structure.Descendants(doc.StructureNamespace + "OutlineEntry").Single();
         outline.SetAttributeValue("Description", "Chapter € “quoted” —"); outline.SetAttributeValue("OutlineTarget", "/" + target.PartName + "#%73ection");
         outline.AddAfterSelf(new XElement(doc.StructureNamespace + "OutlineEntry", new XAttribute("OutlineLevel", "2"), new XAttribute("Description", "Web"), new XAttribute("OutlineTarget", "https://example.com/ż?q=é")));
-        doc.ReplaceResource(part, Encoding.UTF8.GetBytes(structure.ToString()));
+        structure.Elements(doc.StructureNamespace + "Story").Remove();
+        doc.Documents[0].ReplaceDocumentStructureMarkup(structure);
         Check(doc.ToPdf(), 1, 2);
         doc.Documents[0].MovePage(1, 0);
         Check(doc.ToPdf(), 2, 1);
@@ -80,7 +81,8 @@ public sealed class XpsPdfNavigationTests {
         const string part = "Documents/1/Structure/DocumentStructure.struct";
         var structure = XElement.Parse(Encoding.UTF8.GetString(doc.GetPartBytes(part)));
         structure.Descendants(doc.StructureNamespace + "OutlineEntry").Single().SetAttributeValue("OutlineTarget", "/FixedDocumentSequence.fdseq#%32");
-        doc.ReplaceResource(part, Encoding.UTF8.GetBytes(structure.ToString()));
+        structure.Elements(doc.StructureNamespace + "Story").Remove();
+        doc.Documents[0].ReplaceDocumentStructureMarkup(structure);
         doc.Documents[0].MovePage(1, 0);
         var read = PdfReadDocument.Open(doc.ToPdf()); var link = Assert.Single(read.Pages[1].GetLinkAnnotations());
         Assert.Equal(1, read.NamedDestinations.Single(d => d.Name == link.DestinationName).PageNumber);

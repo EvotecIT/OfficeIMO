@@ -9,6 +9,27 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsBrushTests {
     [Theory]
+    [InlineData(XpsFormat.Xps)]
+    [InlineData(XpsFormat.OpenXps)]
+    public void ResourceKeysUseTheNativeDialectNamespace(XpsFormat format) {
+        var doc = XpsDocument.Create(format); var page = doc.AddPage(100, 100); var markup = page.GetMarkup(); var ns = markup.Name.Namespace;
+        markup.Add(new XElement(ns + "FixedPage.Resources", new XElement(ns + "ResourceDictionary",
+            new XElement(ns + "SolidColorBrush", new XAttribute(XName.Get("Key", ns.NamespaceName + "/resourcedictionary-key"), "brush"), new XAttribute("Color", "#FF123456")))),
+            new XElement(ns + "Path", new XAttribute("Data", "M0,0H50V50H0Z"), new XAttribute("Fill", "{StaticResource brush}")));
+        page.ReplaceMarkup(markup); Assert.True(page.ToSvg().IsComplete); Assert.Contains("#123456", page.ToSvg().Svg);
+    }
+    [Fact]
+    public void EarlyMicrosoftImageBrushFillSpellingRetainsNativeCoverage() {
+        var doc = XpsBrushFixtures.Create("image-None", XpsFormat.Xps); var page = doc.Pages[0];
+        var markup = page.GetMarkup(); var brush = markup.Descendants(markup.Name.Namespace + "ImageBrush").Single();
+        brush.SetAttributeValue("Stretch", "Fill"); page.ReplaceMarkup(markup);
+        var raster = Raster(page);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(12, 12)); Assert.Equal(OfficeColor.Blue, raster.GetPixel(27, 12));
+        Assert.Equal(OfficeColor.Green, raster.GetPixel(12, 27));
+        brush.SetAttributeValue("Stretch", "Uniform"); page.ReplaceMarkup(markup);
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+    }
+    [Theory]
     [InlineData("image-Tile", false)]
     [InlineData("image-FlipX", true)]
     [InlineData("image-FlipY", false)]

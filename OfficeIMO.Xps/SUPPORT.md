@@ -7,9 +7,10 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | --- | --- | --- |
 | Read | Microsoft XPS and ECMA-388 OpenXPS; OPC relationships/content types; multiple fixed documents; ordered page references; UTF-8/UTF-16 XML; bounded interleaved OPC piece assembly | Materialized loading, not progressive streaming; protected packages are not supported |
 | Create | Both dialects; pages, vector paths, embedded fonts, Unicode glyph runs, PNG/JPEG/TIFF image placement | Typed creation is a bounded fixed-page profile, not a complete schema object model |
-| Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement; relationship-owned DocumentStructure outline and story-page reference rewriting | Removed parts/resources remain preserved; story references to removed pages and resulting empty stories are removed; opaque metadata and StoryFragments content semantics are not rewritten |
+| Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement; owning APIs for relationship-owned DocumentStructure and StoryFragments; atomic combined page/fragment edits | Removed parts/resources remain preserved; story references to removed pages and resulting empty stories are removed; dangling known name/story addresses reject edits; unknown semantic extensions remain opaque |
 | Save | Original dialect; native page content and opaque parts retained; required-resource relationships emitted, including profiles and transitive dictionary resources; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; interleaved storage is normalized to atomic parts; no dialect conversion; signed packages cannot be rewritten |
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
+| Native logical structure | Relationship-owned StoryFragments; named page/Canvas/Path/Glyphs references; DocumentStructure story-reference order; continued paragraphs, sections, lists, figures and tables; StoryBreak boundaries; list markers and cell spans | No inferred structure on unstructured pages; unknown extensions and unresolved content produce diagnostics; missing Unicode is not reconstructed; one million work units and 16 million resolved text characters bound each read |
 | Paths | Abbreviated geometry, fill rules, explicit figures/segments with fill/stroke suppression, dashes with separate endpoint/dash caps, triangle caps, clipped miters and the degenerate-segment limit, matrix transforms and clipping | Extended strokes use bounded adaptive vector outlines; native Windows confirmation remains for degenerate and mixed-segment cap rules where the independent engines disagree with the specification |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, non-ICC colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
@@ -140,6 +141,18 @@ after insertion and retains all 695 outline entries. It has no story references.
 Story-page remapping follows ECMA-388 section 16.1.1.6's payload-global prose;
 the adjacent attribute table describes document-local ordering. Independent
 multi-document story fixtures are needed to resolve that interoperability ambiguity.
+
+StoryFragments have generated lifecycle coverage in both dialects for reading order,
+continuation, list markers, table-cell spans, repeated page occurrences, shared-part
+validation, cancellation and atomic edits. ECMA-388 example 16-5 reconstructs its
+three-row table from two two-row fragments. An independently produced
+[Microsoft WPF sample](https://github.com/microsoft/WPF-Samples/blob/811d01e95c8c929e68539d698d0a0609e94fd185/Documents/Fixed%20Documents/DocumentStructure/content/spec_wiithstructure.xps)
+resolves all six fragments on its two pages: body sections/tables, headers and
+footers. Adding explicit body story addresses, saving and reopening retains a
+complete logical reconstruction. The sample predates the final XPS specification;
+it does not qualify independently produced OpenXPS or multi-document story addresses.
+Microsoft resource-key namespaces are supported alongside the existing XAML key
+spelling; legacy Microsoft image-brush `Stretch="Fill"` uses the native fill mapping.
 
 PDF navigation has generated coverage in both dialects for forward and same-page
 links, repeated page references, page moves, percent-encoded targets, nested

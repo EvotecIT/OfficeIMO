@@ -1,7 +1,7 @@
 namespace OfficeIMO.Xps;
 
 /// <summary>An editable native fixed document. Page references retain their attributes and link-target declarations.</summary>
-public sealed class XpsFixedDocument {
+public sealed partial class XpsFixedDocument {
     internal XpsDocument Owner { get; }
     internal XElement Markup { get; set; }
     internal XpsFixedDocument(XpsDocument owner, string partName, XElement markup) { Owner = owner; PartName = partName; Markup = markup; }

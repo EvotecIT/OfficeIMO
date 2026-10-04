@@ -9,6 +9,15 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## XPS structural metadata edits
+
+Use `XpsPage.ReplaceStoryFragmentsMarkup()` and
+`XpsFixedDocument.ReplaceDocumentStructureMarkup()` for the native structure parts.
+`ReplaceResource()` rejects these structural content types. When renaming page
+content referenced by StoryFragments, update both detached trees and call
+`page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
+commit together. Page-only edits that leave dangling native names are rejected.
+
 ## ZIP, drawing links, and MCP filesystem access
 
 `OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
