@@ -180,7 +180,7 @@ jobs:
       - name: Validate packed public consumers
         if: ${{ !cancelled() && inputs.suite == 'html-static' }}
         shell: pwsh
-        run: ./Build/Test-HtmlPackages.ps1
+        run: ./Build/Test-HtmlPackages.ps1 -ArtifactsPath "$env:RUNNER_TEMP/html-static-packages"
       - name: Enforce opt-in static resource budgets
         if: ${{ !cancelled() && inputs.suite == 'html-static' }}
         shell: pwsh
@@ -206,5 +206,22 @@ jobs:
             ${{ runner.temp }}/html-static-budget
             ${{ runner.temp }}/html-static-control-budget
             ${{ runner.temp }}/html-static-pdf-proof
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Retain packed consumer origins
+        if: ${{ always() && inputs.suite == 'html-static' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: html-static-packages-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/html-static-packages/feed/*.nupkg
+            ${{ runner.temp }}/html-static-packages/packages/officeimo.*/**/*.nupkg
+            ${{ runner.temp }}/html-static-packages/packages/officeimo.*/**/.nupkg.metadata
+            ${{ runner.temp }}/html-static-packages/packages/officeimo.*/**/*.nupkg.sha512
+            Build/PackageSmoke/OfficeIMO.Html.Document/obj/project.assets.json
+            Build/PackageSmoke/OfficeIMO.Html/obj/project.assets.json
+            Build/PackageSmoke/OfficeIMO.Html.Document/bin/Release/**/OfficeIMO.*.dll
+            Build/PackageSmoke/OfficeIMO.Html/bin/Release/**/OfficeIMO.*.dll
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7

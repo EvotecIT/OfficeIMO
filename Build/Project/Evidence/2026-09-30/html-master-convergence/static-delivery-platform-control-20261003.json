@@ -1,6 +1,6 @@
 {
   "$schema": "officeimo.html.static-delivery-qualification",
-  "recordedAtUtc": "2026-10-03T23:00:50.161124+00:00",
+  "recordedAtUtc": "2026-10-04T12:18:53.832648+00:00",
   "control": {
     "sourceCommit": "0aea7880f94a317c12d1367485d0617af1647f91",
     "workflowCommit": "7c1226b65ff39ccf517ef6eab39f63b9d869e3ac",
@@ -4049,5 +4049,292 @@
       "retainedBytes": 3549791,
       "retainedPurpose": "Diagnostic source/provenance and complete per-case measurements, exact all-output hashes/independent text comparisons, differing PDF/crop proofs, setup failure and normal budget report. Regenerable binaries, obj and private cache removed; original feeds/shared caches preserved."
     }
+  },
+  "sameRunnerCombinedSource20261004": {
+    "runId": 37197479439,
+    "workflowSource": "59d21d60829dee1d6620dd1710c8c6b4c26b1288",
+    "controlSource": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+    "status": "failed; actual combined-source allocation and output-size regression, plus control timing misses",
+    "verifiedCorrectnessTests": 52053,
+    "packedPackagesPerPlatform": 19,
+    "consumerExecutions": 14,
+    "receiptBoundary": "Hosted script/log success; origin/hash receipts were not uploaded. Local nineteen-package receipts remain separate.",
+    "retainedEvidence": "Ignore/MasterConvergenceQualification/same-runner-control",
+    "platforms": [
+      {
+        "platform": "macos-latest",
+        "environment": {
+          "osFamily": "macOS",
+          "osDescription": "macOS 26.6.2",
+          "osArchitecture": "Arm64",
+          "processArchitecture": "Arm64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "iad20-eo1207-cfd2b142-d63f-4957-a7a5-9e010456d0af-4EC32CCAC3AB",
+          "processorCount": 3
+        },
+        "candidate": {
+          "coldProcessMs": 11270.4049,
+          "coldAllocatedBytes": 1845627520,
+          "warmMs": [
+            5571.7789,
+            7835.6006,
+            7131.7138
+          ],
+          "warmAllocatedBytes": [
+            1607495160,
+            1607669848,
+            1607656088
+          ],
+          "peakWorkingSetBytes": 685539328,
+          "outputBytes": 2867671,
+          "fingerprintSha256": "6a0ed91d826aacbb1cc49d33d98299d58ca46d80cbd9e22a4b26bae811dba111",
+          "cancellationMs": 2.917,
+          "failures": [
+            "cold process elapsed milliseconds 11270.4 exceeded ceiling 8000.0.",
+            "cold managed allocated bytes 1845627520.0 exceeded ceiling 1250000000.0.",
+            "warm iteration 1 elapsed milliseconds 5571.8 exceeded ceiling 3000.0.",
+            "warm iteration 1 managed allocated bytes 1607495160.0 exceeded ceiling 1100000000.0.",
+            "warm iteration 2 elapsed milliseconds 7835.6 exceeded ceiling 3000.0.",
+            "warm iteration 2 managed allocated bytes 1607669848.0 exceeded ceiling 1100000000.0.",
+            "warm iteration 3 elapsed milliseconds 7131.7 exceeded ceiling 3000.0.",
+            "warm iteration 3 managed allocated bytes 1607656088.0 exceeded ceiling 1100000000.0."
+          ]
+        },
+        "control": {
+          "coldProcessMs": 7279.2881,
+          "coldAllocatedBytes": 1069340040,
+          "warmMs": [
+            3393.778,
+            2814.2755,
+            2789.3904
+          ],
+          "warmAllocatedBytes": [
+            884065568,
+            885480856,
+            885484280
+          ],
+          "peakWorkingSetBytes": 529481728,
+          "outputBytes": 2131934,
+          "fingerprintSha256": "f13c9b7bb36a389ddf7ba23e8d9e2f3bae91ff0a97a99d65ece9727b2f55f08e",
+          "cancellationMs": 2.5345,
+          "failures": [
+            "warm iteration 1 elapsed milliseconds 3393.8 exceeded ceiling 3000.0."
+          ]
+        }
+      },
+      {
+        "platform": "ubuntu-latest",
+        "environment": {
+          "osFamily": "Linux",
+          "osDescription": "Ubuntu 24.04.5 LTS",
+          "osArchitecture": "X64",
+          "processArchitecture": "X64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "runnervm8df0l",
+          "processorCount": 4
+        },
+        "candidate": {
+          "coldProcessMs": 14344.1051,
+          "coldAllocatedBytes": 1569199960,
+          "warmMs": [
+            6559.2479,
+            6503.0048,
+            6574.7264
+          ],
+          "warmAllocatedBytes": [
+            1390095744,
+            1389987360,
+            1389976944
+          ],
+          "peakWorkingSetBytes": 362557440,
+          "outputBytes": 3116798,
+          "fingerprintSha256": "59b4a66a583244f1fa98087023d7488ef123d90381e93bf161496707246d955a",
+          "cancellationMs": 6.3342,
+          "failures": [
+            "cold process elapsed milliseconds 14344.1 exceeded ceiling 12000.0.",
+            "cold managed allocated bytes 1569199960.0 exceeded ceiling 1100000000.0.",
+            "warm iteration 1 elapsed milliseconds 6559.2 exceeded ceiling 5000.0.",
+            "warm iteration 1 managed allocated bytes 1390095744.0 exceeded ceiling 1000000000.0.",
+            "warm iteration 1 output bytes 3116798.0 exceeded ceiling 3000000.0.",
+            "warm iteration 2 elapsed milliseconds 6503.0 exceeded ceiling 5000.0.",
+            "warm iteration 2 managed allocated bytes 1389987360.0 exceeded ceiling 1000000000.0.",
+            "warm iteration 2 output bytes 3116798.0 exceeded ceiling 3000000.0.",
+            "warm iteration 3 elapsed milliseconds 6574.7 exceeded ceiling 5000.0.",
+            "warm iteration 3 managed allocated bytes 1389976944.0 exceeded ceiling 1000000000.0.",
+            "warm iteration 3 output bytes 3116798.0 exceeded ceiling 3000000.0.",
+            "cold output bytes 3116798.0 exceeded ceiling 3000000.0."
+          ]
+        },
+        "control": {
+          "coldProcessMs": 12074.8947,
+          "coldAllocatedBytes": 975332280,
+          "warmMs": [
+            4497.0429,
+            4398.4565,
+            4477.3666
+          ],
+          "warmAllocatedBytes": [
+            799033784,
+            799424200,
+            799426184
+          ],
+          "peakWorkingSetBytes": 348110848,
+          "outputBytes": 2387388,
+          "fingerprintSha256": "5b3dfc0b2b10341b4d130e9b7d0dd8353a201c172fd6b3ee729094facb146d93",
+          "cancellationMs": 6.3463,
+          "failures": [
+            "cold process elapsed milliseconds 12074.9 exceeded ceiling 12000.0."
+          ]
+        }
+      },
+      {
+        "platform": "windows-latest",
+        "environment": {
+          "osFamily": "Windows",
+          "osDescription": "Microsoft Windows 10.0.26100",
+          "osArchitecture": "X64",
+          "processArchitecture": "X64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "runnervmfi6oq",
+          "processorCount": 4
+        },
+        "candidate": {
+          "coldProcessMs": 13889.2245,
+          "coldAllocatedBytes": 3122089152,
+          "warmMs": [
+            6426.7494,
+            5988.0584,
+            5702.1405
+          ],
+          "warmAllocatedBytes": [
+            1718420568,
+            1718409504,
+            1718330536
+          ],
+          "peakWorkingSetBytes": 1486934016,
+          "outputBytes": 3203501,
+          "fingerprintSha256": "2b4acb055d1502ed5256c91125eb4919c0e0ca95d795efe4cc4a0f44405e1f16",
+          "cancellationMs": 5.0253,
+          "failures": [
+            "cold process elapsed milliseconds 13889.2 exceeded ceiling 12000.0.",
+            "cold managed allocated bytes 3122089152.0 exceeded ceiling 2500000000.0.",
+            "warm iteration 1 elapsed milliseconds 6426.7 exceeded ceiling 4000.0.",
+            "warm iteration 1 managed allocated bytes 1718420568.0 exceeded ceiling 1200000000.0.",
+            "warm iteration 1 output bytes 3203501.0 exceeded ceiling 3000000.0.",
+            "warm iteration 2 elapsed milliseconds 5988.1 exceeded ceiling 4000.0.",
+            "warm iteration 2 managed allocated bytes 1718409504.0 exceeded ceiling 1200000000.0.",
+            "warm iteration 2 output bytes 3203501.0 exceeded ceiling 3000000.0.",
+            "warm iteration 3 elapsed milliseconds 5702.1 exceeded ceiling 4000.0.",
+            "warm iteration 3 managed allocated bytes 1718330536.0 exceeded ceiling 1200000000.0.",
+            "warm iteration 3 output bytes 3203501.0 exceeded ceiling 3000000.0.",
+            "cold output bytes 3203501.0 exceeded ceiling 3000000.0."
+          ]
+        },
+        "control": {
+          "coldProcessMs": 11306.2364,
+          "coldAllocatedBytes": 2385442080,
+          "warmMs": [
+            4006.8097,
+            3955.3551,
+            3550.0329
+          ],
+          "warmAllocatedBytes": [
+            988234656,
+            988780216,
+            988707208
+          ],
+          "peakWorkingSetBytes": 1507999744,
+          "outputBytes": 2467174,
+          "fingerprintSha256": "e351dbd91ced1f68fa31e3df4b4a62f47a718982cb52702baef5f26e019c731f",
+          "cancellationMs": 4.7916,
+          "failures": [
+            "warm iteration 1 elapsed milliseconds 4006.8 exceeded ceiling 4000.0.",
+            "peak working-set bytes 1507999744.0 exceeded ceiling 1500000000.0."
+          ]
+        }
+      }
+    ],
+    "sharedSourceContract": {
+      "cleanSource": true,
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "cases": 8,
+      "outputsPerIteration": 76,
+      "sameRunnerEnvironmentAndCeilingsVerified": true
+    }
+  },
+  "rasterExportResourceRemediation20261004": {
+    "implementationSource": "ff22db9a403c418af7961e3e8548d46f41ec87ee",
+    "standaloneMasterSource": "5956518e5b60153a460451e85b674e932434f84a",
+    "scope": "Reuse bounded contour crossings and select smaller adaptive/unfiltered lossless PNG compression; Core implementation and regression bytes identical on both branches",
+    "diagnosticOnly": true,
+    "workload": {
+      "cases": 8,
+      "outputs": 76,
+      "worker": "unchanged diagnostic copy of the authoritative static worker with per-case counters"
+    },
+    "warmAllocatedBytes": {
+      "baseline": 1607372320,
+      "row-buffer": 992113424,
+      "png-choice": 989636072
+    },
+    "outputBytes": {
+      "baseline": 2867671,
+      "row-buffer": 2867671,
+      "png-choice": 2593665
+    },
+    "rowBufferOutputHashesEqual": true,
+    "pngSelection": {
+      "pngPixelsDimensionsAndDensityExact": 30,
+      "pdfSvgBytesExact": 46,
+      "changedPngContainers": 25,
+      "savedBytes": 274006,
+      "priorPackedSourceRegression": {
+        "source": "3.4.4+966539fd403b36b8af6a946e6f98dc3cf1556f18",
+        "originalOptimalBytes": 963,
+        "unfilteredBytes": 693,
+        "currentSizeContractPass": false
+      }
+    },
+    "testsOnStableRemediationBytes": {
+      "final-drawing-net10.0.trx": {
+        "passed": 3409,
+        "skipped": 0
+      },
+      "final-drawing-net8.0.trx": {
+        "passed": 3411,
+        "skipped": 0
+      },
+      "final-html-net10.0.trx": {
+        "passed": 4266,
+        "skipped": 0
+      },
+      "final-html-net8.0.trx": {
+        "passed": 4266,
+        "skipped": 0
+      },
+      "later-png-cancellation-net10.trx": {
+        "passed": 2,
+        "skipped": 0
+      }
+    },
+    "laterCompressionCancellation": "Both later-pass cases pass: net8 full suite and net10 focused closure; caller stream remains open.",
+    "reviews": [
+      {
+        "boundary": "contour_row_storage_review",
+        "fullPass": "no actionable P0-P3",
+        "confirmationUsed": false,
+        "patchFingerprint": "2b1830846797d793d4ce836afab49b5599a54191"
+      },
+      {
+        "boundary": "png_filter_selection_review",
+        "fullPass": "no actionable P0-P3; later-pass cancellation evidence gap addressed with two regression cases",
+        "confirmationUsed": false,
+        "contentSha256": "8d2c65cc525af2796b5ad109e5994f42a77e57cab141e7f952152f1b07e7a8a5"
+      }
+    ],
+    "tradeoff": "Additional PNG compression passes trade CPU work for smaller lossless output. No portable throughput claim; diagnostic elapsed times are not acceptance.",
+    "hostedPackageEvidence": "Existing opt-in workflow now retains selected feed packages, installed OfficeIMO package origins/hashes, consumer assets and loaded binaries; next run must verify actual artifacts.",
+    "retainedEvidence": "Ignore/MasterConvergenceQualification/static-allocation-diagnostic-c135",
+    "remaining": "Unchanged clean-source/platform timing, allocation, peak-memory, output and cancellation budgets; nineteen current packages/consumers; qualified long-lived adoption. Prior hosted/control failures remain visible."
   }
 }
