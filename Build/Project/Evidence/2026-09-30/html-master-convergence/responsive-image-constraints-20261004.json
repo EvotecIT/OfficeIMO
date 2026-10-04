@@ -1,0 +1,162 @@
+{
+  "recordedUtc": "2026-10-04T21:54:11.486459+00:00",
+  "sourceHead": "ed60a64f3a5367bda2a75f163c7577b6f2141041",
+  "scope": "Responsive replaced-image intrinsic contribution and definite-axis CSS constraints; normal combined-source regression replay",
+  "providers": "AngleSharp/AngleSharp.Css retained; standalone extraction uses released normal master dependencies and adds no runtime dependency",
+  "contracts": [
+    "Compress percentage-constrained replaced contributions using the indefinite intrinsic reference, preserving absolute minima and authored insets",
+    "Preserve a definite image axis while clamping its derived axis independently",
+    "Minimum size takes precedence over a conflicting maximum; opposing automatic constraints may change the aspect ratio"
+  ],
+  "implementationHeads": {
+    "combinedResponsive": "abdab49ce450560adfe8b07756168d6846690331",
+    "deadlineSetup": "2116458f47e80b4c17cd98c8f7e819e2bc301a4d",
+    "selectiveReviewedContourAdoption": "ed60a64f3a5367bda2a75f163c7577b6f2141041",
+    "standaloneImageAxes": "dfaa3b90c0b04749058f23717b10113db385ad51"
+  },
+  "localReview": {
+    "boundary": "responsive_replaced_sizing_owner_review",
+    "fullPassFingerprint": "a5ab5786c69d36e23e606808501cc5471fcbd50d",
+    "targetedConfirmationFingerprint": "db1a7ca5eb16b41522ee67507f12a40d3847fdd5",
+    "resolved": "Reproduced cyclic percentage minimum finding fixed; calculated absolute-floor suggestion independently refuted and withdrawn",
+    "remainingFindings": []
+  },
+  "localCorrectness": {
+    "responsiveStableProductionBytesBeforeContourAdoption": [
+      "responsiveHtmlNet8",
+      "responsiveHtmlNet10"
+    ],
+    "combinedCurrentSource": [
+      "combinedDrawingNet8",
+      "combinedDrawingNet10",
+      "combinedHtmlNet8"
+    ],
+    "suites": {
+      "responsiveHtmlNet8": {
+        "path": "Ignore/MasterConvergenceQualification/reference-width-classification-064229ba4/test-results/html-full-final-net8.trx",
+        "sha256": "6fd1136f6fd9446ed3b1d047ee1463334f1e3311de8a3a035ebcbb37578efd5c",
+        "total": 4290,
+        "passed": 4290,
+        "failed": 0
+      },
+      "responsiveHtmlNet10": {
+        "path": "Ignore/MasterConvergenceQualification/reference-width-classification-064229ba4/test-results/html-full-remediated-net10.trx",
+        "sha256": "98ceed7521561b41e2b217d2676267d1d64c813565a57058b34541fab895f771",
+        "total": 4290,
+        "passed": 4290,
+        "failed": 0
+      },
+      "combinedDrawingNet8": {
+        "path": "Ignore/MasterConvergenceQualification/test-results/drawing-contour-integrated-net8.trx",
+        "sha256": "2cf2c7cd720b5489383a8c96af97e86cb9da0723d5baf8c69f9596d72e5f96ce",
+        "total": 3432,
+        "passed": 3432,
+        "failed": 0
+      },
+      "combinedDrawingNet10": {
+        "path": "Ignore/MasterConvergenceQualification/test-results/drawing-contour-integrated-net10.trx",
+        "sha256": "b773ac18f3c61a8928f08db16a10f58df82f9d8a4af344675f3dccb7c5dd005c",
+        "total": 3432,
+        "passed": 3432,
+        "failed": 0
+      },
+      "combinedHtmlNet8": {
+        "path": "Ignore/MasterConvergenceQualification/test-results/html-contour-images-integrated-net8.trx",
+        "sha256": "2d04cab4858fab4a17393d42d15a0a4e17926b82d13045471626c62ab452ef8b",
+        "total": 286,
+        "passed": 286,
+        "failed": 0
+      }
+    }
+  },
+  "combinedFixtures": {
+    "cases": 14,
+    "maximumImageGeometryDifferenceCssPx": 0.008522727272719521,
+    "allPdfBytesEqualToInspectedCandidate": true,
+    "allLabelsExactlyOnce": true,
+    "independentReference": "Chromium 153.0.8010.12 via test-only HtmlTinkerX 3.0.3, frozen offline HTML and embedded synthetic PNG",
+    "receipt": "Ignore/MasterConvergenceQualification/reference-width-classification-064229ba4/integrated-fixture-geometry.json",
+    "producerHead": "ed60a64f3a5367bda2a75f163c7577b6f2141041"
+  },
+  "referenceDevelopmentReplay": {
+    "sourceSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "routes": 6,
+    "apiToolBytesAndIndependentRawUtf8LfPerPageTextEqual": true,
+    "all36ArticleBlocksInLogicalSourceOrder": true,
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pdfSha256": "43d0b0009dbef837f15c9e6c19806a09f59086da154537cfe85a7f8e7c00f545",
+        "byteIdenticalToBaseline": true,
+        "reportIdentical": true,
+        "fullTextPaintImagesLinksUnchangedByByteIdentity": true,
+        "sourceBlocksInLogicalOrder": 36
+      },
+      {
+        "profile": "screen-media-paged",
+        "pdfSha256": "70c0ca563d1ebefdef4886bd144295145a38060abc3494bb0194708731ced8d0",
+        "byteIdenticalToBaseline": true,
+        "reportIdentical": true,
+        "fullTextPaintImagesLinksUnchangedByByteIdentity": true,
+        "sourceBlocksInLogicalOrder": 36
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pdfSha256": "59ab4fd41027399213e44d4d43e3319e7fd167019c70580c2c5f46a9e49073f7",
+        "byteIdenticalToBaseline": true,
+        "reportIdentical": true,
+        "fullTextPaintImagesLinksUnchangedByByteIdentity": true,
+        "sourceBlocksInLogicalOrder": 36
+      }
+    ],
+    "receipt": "Ignore/MasterConvergenceQualification/reference-integrated-ed60a64f3/decisive-receipt.json"
+  },
+  "standaloneImageAxisExtraction": {
+    "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2793",
+    "head": "dfaa3b90c0b04749058f23717b10113db385ad51",
+    "normalPackages": 6,
+    "packageFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "macosPackedPublicConsumerFrameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "independentPublicPdfArtifacts": 8,
+    "decodedInputPixelsAndExactlyOnceLabelPreserved": true,
+    "publicArtifactsVisuallyInspected": true,
+    "beforeAfter": {
+      "net10.0": {
+        "parentNewImageRegressionsFail": 4,
+        "candidateNewImageRegressionsPass": 4,
+        "candidateFullPassed": 3221,
+        "candidateFullFailed": 6,
+        "newFailures": []
+      },
+      "net8.0": {
+        "parentNewImageRegressionsFail": 4,
+        "candidateNewImageRegressionsPass": 4,
+        "candidateFullPassed": 3221,
+        "candidateFullFailed": 6,
+        "newFailures": []
+      }
+    },
+    "baselineFontFailures": "Six font-selection failures independently reproduced on unchanged parent per framework; no new full-suite failures. They remain outside this image-axis extraction.",
+    "receiptsRoot": "Ignore/HtmlImageAxisQualification in standalone image-axis worktree",
+    "hostedCurrentHeadQualification": "Pending; packed local artifacts do not establish Windows or installed .NET Framework 4.7.2 execution"
+  },
+  "remainingAcceptance": [
+    "Reference chapter responsive width, page-5 flow and footer typography remain open; generic fixture success does not close the named page",
+    "Platform static timing and Windows allocation budgets remain failed in candidate/control evidence; no ceilings changed",
+    "A fresh Windows serialization-deadline regression execution remains required after setup deadline adjustment",
+    "Named corpus, resource, native appearance/manual accessibility and all eleven PDF-intent criteria remain open",
+    "Combined source has not been adopted into the long-lived HTML branches"
+  ]
+}
