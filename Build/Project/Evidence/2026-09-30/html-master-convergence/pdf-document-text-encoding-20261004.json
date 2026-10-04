@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "recordedAtUtc": "2026-10-04T14:56:16.561091+00:00",
+  "recordedAtUtc": "2026-10-04T15:19:10.396618+00:00",
   "sourceCommit": "b6a3a469849f119063beb8a16fef3e54a7924606",
   "scope": "Semantic PDF text encoding, byte-preserving parsed strings and encoded name-tree order; standalone shared PDF owner",
   "observedDefect": "Archived NASA Reference Systems caption contains Earth\u2019s. Prior generated ActualText used Windows-1252 byte 92, which independent PDFDocEncoding readers decode as trademark. Self-round-trip concealed the error.",
@@ -75,9 +75,9 @@
     "preservationGateNotRelaxed": true
   },
   "remainingQualification": [
-    "Standalone net8 correctness, opt-in measurement selection and normal packed public consumers",
-    "Standalone current-head platform CI and delayed review before merge",
-    "Existing larger static timing and qualified long-lived integration gates remain open"
+    "PR #2781 exact-head CI and delayed paginated feedback check before authorized merge/cleanup",
+    "Existing larger static timing and qualified long-lived integration gates remain open",
+    "Named held-out reading-order/width/flow/native/corpus/intent acceptance remains partial"
   ],
   "limits": [
     "Independent artifacts do not establish general PDF compatibility or manual accessibility",
@@ -109,6 +109,16 @@
         }
       ],
       "classification": "Host-dependent wall-clock assertions mixed with correctness; retained as failures. Existing optional PdfPerformanceEvidence lane is being used to preserve unchanged ceilings and semantic checks."
+    },
+    "net8.0": {
+      "passed": 8779,
+      "failed": 0,
+      "skipped": 0,
+      "sourceCheckpoint": "65515d3097f803eff7011a8de3b638a52c136621",
+      "testPolicyCommit": "d19d20503",
+      "trx": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/normal-full-net8/normal-full-net8.trx",
+      "normalFilter": "Category!=ExcelImageVisualGate",
+      "measurementCeilingsPreservedInOptInLane": true
     }
   },
   "interruptedRuns": {
@@ -131,8 +141,151 @@
       "passed": 5,
       "failed": 0,
       "skipped": 0,
-      "source": "Uncommitted test-only conditional routing; production bytes unchanged",
+      "source": "Stable test-only conditional routing; production bytes unchanged from 4f45754c2. Same test tree committed at 372942daa.",
       "trx": "Ignore/PdfDocumentStringQualification/measurement-correctness-net10/measurement-correctness-net10.trx"
+    },
+    "finalHead": "372942daadddbaa2d7b38293d43aa5e7db7893ef",
+    "net8Full": {
+      "passed": 8703,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "Ignore/PdfDocumentStringQualification/full-net8/standalone-full-net8.trx",
+      "normalFilter": "Category!=ExcelImageVisualGate"
+    },
+    "packageProof": {
+      "sourceHead": "372942daadddbaa2d7b38293d43aa5e7db7893ef",
+      "packages": [
+        {
+          "name": "OfficeIMO.Core.3.4.4.nupkg",
+          "sha256": "4d26bb11621636755fd33d441c13ebfd320feb0ae4fde39894def6b57c9e9681",
+          "sha512Base64": "HgyaFKZyl/7cchS7lGEUVp0gAjHeXlLPO1oR2QNYZIjUXqhZziXflIO9yENX5cyx9EI4dF5oTx4kNBLvS1QzRg==",
+          "frameworks": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "OfficeIMO.Pdf.3.4.4.nupkg",
+          "sha256": "b5e696d01034dfa02fe4a4daa191a2e458f5d78008cfc49ad26e6f337e04958b",
+          "sha512Base64": "pJitUN9QGTPMD0HtpvWRYK5Guh4siEPxR4mma4Bfn6/PLvjB+9NOvmPAVaaGRnZ0gnToDj3N1Y5gZMp4DVLLCg==",
+          "frameworks": [
+            "net10.0",
+            "net472",
+            "net8.0",
+            "netstandard2.0"
+          ],
+          "dependencies": [
+            {
+              "id": "OfficeIMO.Core",
+              "version": "3.4.4",
+              "exclude": "Build,Analyzers"
+            },
+            {
+              "id": "OfficeIMO.Core",
+              "version": "3.4.4",
+              "exclude": "Build,Analyzers"
+            },
+            {
+              "id": "OfficeIMO.Core",
+              "version": "3.4.4",
+              "exclude": "Build,Analyzers"
+            },
+            {
+              "id": "OfficeIMO.Core",
+              "version": "3.4.4",
+              "exclude": "Build,Analyzers"
+            }
+          ]
+        }
+      ],
+      "consumers": [
+        {
+          "framework": "net8.0",
+          "package": "OfficeIMO.Core",
+          "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-document-string-encoding/Ignore/PdfDocumentStringQualification/feed",
+          "installedNupkgEqualToLocalFeed": true,
+          "loadedAssemblyEqualToPacked": true,
+          "assemblySha256": "d84678a27caf24f38f0f501ad9956ac139d19cd2292da4986613633facb4b734"
+        },
+        {
+          "framework": "net8.0",
+          "package": "OfficeIMO.Pdf",
+          "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-document-string-encoding/Ignore/PdfDocumentStringQualification/feed",
+          "installedNupkgEqualToLocalFeed": true,
+          "loadedAssemblyEqualToPacked": true,
+          "assemblySha256": "7057aecd4436d222ae496be52a68ee0e6749c9629f5b55f99b75e04040983f33"
+        },
+        {
+          "framework": "net10.0",
+          "package": "OfficeIMO.Core",
+          "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-document-string-encoding/Ignore/PdfDocumentStringQualification/feed",
+          "installedNupkgEqualToLocalFeed": true,
+          "loadedAssemblyEqualToPacked": true,
+          "assemblySha256": "64d28698e45f05103fd580ed660afb2af5741b4bcbe011e541e360515a36c6eb"
+        },
+        {
+          "framework": "net10.0",
+          "package": "OfficeIMO.Pdf",
+          "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-document-string-encoding/Ignore/PdfDocumentStringQualification/feed",
+          "installedNupkgEqualToLocalFeed": true,
+          "loadedAssemblyEqualToPacked": true,
+          "assemblySha256": "cb9263efef956ea68f989cf9c5fc0006e7d8e472f7580c41a9856feb2571a087"
+        }
+      ],
+      "projectReferences": false,
+      "releaseOrPublishedPackageClaim": false
+    },
+    "packedPublicProof": [
+      {
+        "observer": "pypdf 6.10.0 and Poppler 26.09",
+        "metadataActualTextNavigationExact": true,
+        "parsedIndexedPaletteExactAcrossExtractionOptimization": true,
+        "nameTreeEncodedKeysSortedAndPayloadsExact": true,
+        "signatureAppearanceWinAnsiGlyphsIndependent": true,
+        "sha256": {
+          "edited.pdf": "527b944ae312a3ce14bf9747a3939f115f6b612cbd7eac1d6cf4cd91d41312d4",
+          "palette-source.pdf": "f6e705d6f94fe2f0f87ad6af451c9cf7b124d4edc988f93161643d193a022699",
+          "signature-appearance.pdf": "b0c3b64b9c7b97171e5525507dc7344bfe7069754dd3798dda9d52ffff02188b",
+          "attachments-edited.pdf": "a35ba6a32e122143a148f24663423677eb0e40af3d706b14c36acb49ac1e0355",
+          "attachments.pdf": "41982c1556b9fdcde07b1e71ff6eb2e2a8583f8bfe4f1278f60f757215fd43b7",
+          "palette-optimized.pdf": "9a68378d7f1f57c1e09e02b28fdb25736566a4aafe43ea6bf2f5ef652d57e863",
+          "palette-extracted.pdf": "77b2f42cd0ceeb0b2357ab1b9b7c79e36703207fd9a886cb3ccb4fb1dee8388a",
+          "created.pdf": "a9314a14c8c7f436165dc895a99378b0f1e7c60f33a966d014d8479ad1227ad2",
+          "destinations-merged.pdf": "4728460c89b2195bc84f4204d51a4135edfeff73def394b316efa8e9e7c2d585",
+          "signature.pdf": "eaa7b764c52b1e41132dcb8a410eab91132445dc7eb5d7daa1d10c42f9bb66f2"
+        }
+      },
+      {
+        "observer": "pypdf 6.10.0 and Poppler 26.09",
+        "metadataActualTextNavigationExact": true,
+        "parsedIndexedPaletteExactAcrossExtractionOptimization": true,
+        "nameTreeEncodedKeysSortedAndPayloadsExact": true,
+        "signatureAppearanceWinAnsiGlyphsIndependent": true,
+        "sha256": {
+          "edited.pdf": "527b944ae312a3ce14bf9747a3939f115f6b612cbd7eac1d6cf4cd91d41312d4",
+          "palette-source.pdf": "f6e705d6f94fe2f0f87ad6af451c9cf7b124d4edc988f93161643d193a022699",
+          "signature-appearance.pdf": "b0c3b64b9c7b97171e5525507dc7344bfe7069754dd3798dda9d52ffff02188b",
+          "attachments-edited.pdf": "a35ba6a32e122143a148f24663423677eb0e40af3d706b14c36acb49ac1e0355",
+          "attachments.pdf": "41982c1556b9fdcde07b1e71ff6eb2e2a8583f8bfe4f1278f60f757215fd43b7",
+          "palette-optimized.pdf": "4e7586beb18ee97cd3e253e76b2e878aaa904e2d3298517c007477e145017b33",
+          "palette-extracted.pdf": "77b2f42cd0ceeb0b2357ab1b9b7c79e36703207fd9a886cb3ccb4fb1dee8388a",
+          "created.pdf": "a9314a14c8c7f436165dc895a99378b0f1e7c60f33a966d014d8479ad1227ad2",
+          "destinations-merged.pdf": "4728460c89b2195bc84f4204d51a4135edfeff73def394b316efa8e9e7c2d585",
+          "signature.pdf": "2a9c1702f44b73635e7c4cca019d4e32d5aacb22cba8827ee3c901e447ff70d2"
+        }
+      }
+    ],
+    "pullRequest": {
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2781",
+      "state": "OPEN",
+      "initialSnapshotUtc": "2026-10-04T15:07:59.131159+00:00",
+      "isDraft": false,
+      "completeReviewThreadPages": 1,
+      "unresolved": 0,
+      "ci": "Pending; delayed current-head check remains required before merge."
     }
   },
   "heldOutReferenceSystems": {
@@ -213,5 +366,111 @@
     "limits": [
       "This is an encoding correction and explicit partial held-out acceptance; it is not browser parity, general accessibility or all historical PDF intent qualification."
     ]
+  },
+  "measurementRouting": {
+    "declarationsRemoved": 0,
+    "ordinaryAssertionsRemoved": 0,
+    "originalLargeWorkloadsPreserved": true,
+    "elapsedCeilingsChanged": false,
+    "affectedDeclarations": 5,
+    "conditionalSymbol": "PDF_PERFORMANCE_EVIDENCE",
+    "existingBuildProperty": "PdfPerformanceEvidence=true",
+    "existingOptionalWorkflow": ".github/workflows/pdf-performance-evidence.yml",
+    "normalCorrectnessStillSelected": true,
+    "optionalRunnerProof": {
+      "sourceHead": "372942daadddbaa2d7b38293d43aa5e7db7893ef",
+      "declarationsRemoved": 0,
+      "ordinaryAssertionsRemoved": 0,
+      "measurementCeilingsChanged": 0,
+      "measurementAssertionsRelocated": 5,
+      "normalRoute": "Category!=ExcelImageVisualGate (actual CI filter)",
+      "optionalRoute": "PdfPerformanceEvidence=true plus Category=Performance, existing manual lane",
+      "results": {
+        "measurement-correctness-net10": {
+          "counters": {
+            "total": "5",
+            "passed": "5",
+            "failed": "0",
+            "notExecuted": "0"
+          },
+          "fiveKeeperOutcomes": {
+            "OfficeIMO.Tests.Pdf.PdfOcrTests.Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedTransparentPatternTileStaysBounded": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_RepeatedFormsReuseInheritedPatternResource": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative": "Passed"
+          },
+          "trx": "Ignore/PdfDocumentStringQualification/measurement-correctness-net10/measurement-correctness-net10.trx"
+        },
+        "full-net8": {
+          "counters": {
+            "total": "8703",
+            "passed": "8703",
+            "failed": "0",
+            "notExecuted": "0"
+          },
+          "fiveKeeperOutcomes": {
+            "OfficeIMO.Tests.Pdf.PdfOcrTests.Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedTransparentPatternTileStaysBounded": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_RepeatedFormsReuseInheritedPatternResource": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative": "Passed"
+          },
+          "trx": "Ignore/PdfDocumentStringQualification/full-net8/standalone-full-net8.trx"
+        },
+        "measurement-optin-net8": {
+          "counters": {
+            "total": "5",
+            "passed": "5",
+            "failed": "0",
+            "notExecuted": "0"
+          },
+          "fiveKeeperOutcomes": {
+            "OfficeIMO.Tests.Pdf.PdfOcrTests.Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedTransparentPatternTileStaysBounded": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_RepeatedFormsReuseInheritedPatternResource": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative": "Passed"
+          },
+          "trx": "Ignore/PdfDocumentStringQualification/measurement-optin-net8/measurement-optin-net8.trx"
+        },
+        "measurement-correctness-net8": {
+          "counters": {
+            "total": "5",
+            "passed": "5",
+            "failed": "0",
+            "notExecuted": "0"
+          },
+          "fiveKeeperOutcomes": {
+            "OfficeIMO.Tests.Pdf.PdfOcrTests.Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedTransparentPatternTileStaysBounded": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_RepeatedFormsReuseInheritedPatternResource": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative": "Passed",
+            "OfficeIMO.Tests.Pdf.PdfTableStreamExportContracts.VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative": "Passed"
+          },
+          "trx": "Ignore/PdfDocumentStringQualification/measurement-correctness-net8/measurement-correctness-net8.trx"
+        }
+      },
+      "baselineFailuresRetained": "Convergence full net8: 8777 passed, 2 host-dependent elapsed assertions failed; no claim of fixed timing from relocation."
+    },
+    "baselineFailuresNotErased": true,
+    "scopeLimit": "Five existing elapsed-time tests; local optional pass is not all-platform performance qualification."
+  },
+  "cleanup": {
+    "verifiedAtUtc": "2026-10-04T15:17:39.791138+00:00",
+    "targetsRemoved": 294,
+    "knownBuildOutputBytesRemoved": 4803139191,
+    "additionalPrivateExpansionCacheApproxBytes": 154632192,
+    "nativeExecutionErrorsRecovered": 150,
+    "retainedFinalPackageFeed": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-document-string-encoding/Ignore/PdfDocumentStringQualification/feed",
+    "sourceAndArtifactDirectoriesPreserved": true,
+    "allRemovedPathsAbsent": true,
+    "policyRejection": false,
+    "retainedEvidence": [
+      "Ignore/MasterConvergenceQualification/reference-acceptance-164c9dc44 (current PDFs/all-page rasters and predeclared partial acceptance)",
+      "Ignore/MasterConvergenceQualification/pdf-doc-encoding (failure logs, independent fixtures and compact standalone receipts)",
+      "PR worktree Ignore/PdfDocumentStringQualification (four-target feeds, final packed consumers, tests/review snapshots and cleanup receipts)"
+    ],
+    "retainedComparisonRunnerPurpose": "Next declared intent replay/prior-source controls"
   }
 }
