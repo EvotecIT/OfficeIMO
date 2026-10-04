@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.html.master-owner-convergence",
-  "recordedAtUtc": "2026-10-04T08:38:04.755849+00:00",
+  "recordedAtUtc": "2026-10-04T10:17:01.667583+00:00",
   "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
   "masterInputCommit": "2f88a03b487e6dbc2d1fdd1e5d3efa5d9fa718cc",
   "h10InputCommit": "28a9f587556d40651faf2143a609aafc7c33be4a",
@@ -435,5 +435,208 @@
     "Named unfamiliar-page resources/appearance, all eleven historical intents, wider held-out corpus, native editable widths/pagination/appearance and manual accessibility.",
     "Qualified convergence into long-lived branches and scoped worktree cleanup. Full HTML/runtime PR, master merge and release remain unauthorized."
   ],
-  "longLivedAdoption": "Not performed; feature/html-engine and feature/html-unknown-page-qualification remain at40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40 until acceptance gates are satisfied."
+  "longLivedAdoption": "Not performed; feature/html-engine and feature/html-unknown-page-qualification remain at40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40 until acceptance gates are satisfied.",
+  "focusedThreePlatformProbe": {
+    "runId": 37189396257,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37189396257",
+    "sourceCommit": "8206c358fbdbfbb482a3b34962e2e66665d936c6",
+    "status": "success",
+    "passedTests": 372,
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "platforms": [
+      "Windows",
+      "Linux",
+      "macOS"
+    ],
+    "casesPerFrameworkAndPlatform": {
+      "drawingBounded": 8,
+      "pdfFont": 28,
+      "pdfSelected": 26
+    },
+    "independentExactPdfPayloadProofs": 51,
+    "extractors": {
+      "Windows": "Xpdf 4.06",
+      "Linux": "Poppler 24.02.0",
+      "macOS": "Poppler 26.09.0"
+    },
+    "verification": "Ignore/MasterConvergenceQualification/platform-probe-8206c358f/verification.json",
+    "verificationSha256": "17ead21a9a3011fcb75e89ae5d9e7e80436464c10c5072f39d514bf1e6df4617",
+    "scope": "Focused bounded raster/font and logical-text correctness on net8/net10. No full-suite/package/timing claim. Per-framework test execution is proved by separate TRX; producer files use common names and retain last-written artifact copies.",
+    "lastWrittenProducerArtifactPerCommonFilename": true,
+    "doesNotQualify": [
+      "full suites",
+      "packages",
+      "timing",
+      "native or manual accessibility"
+    ]
+  },
+  "standaloneExtractions": [
+    {
+      "pr": 2774,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2774",
+      "baseCommit": "dfb5753794bbbe6cbb1a71c8e5d6fe83f4ec4f07",
+      "head": "5d3e6b8357f2c999e9639824bbbed668f8964b0a",
+      "stateAtCheckpoint": "open; exact-head CI and delayed repository review pending",
+      "fullCorrectnessTestsPerFramework": 3274,
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "packageProof": {
+        "package": "OfficeIMO.Core.3.4.4.nupkg",
+        "sha256": "e460bc4f31a3408563d04ae52d980f70dbec557d4b9d8c01c8f5b5a94c9de0ce",
+        "targets": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "dependencies": [],
+        "privateConsumerOrigin": {
+          "version": 2,
+          "contentHash": "wcAa34Yi+OuA2B1vyNXJ4ckjBTHJzcqP1xsLvrmEwbygFTwCPfLeHcH6RYFWlozcE1uMLrS0Dk42VOyAWL8ttQ==",
+          "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-sampling-working-budget/Ignore/RasterSamplingQualification/feed"
+        },
+        "sameInstalledPackageBytes": true,
+        "consumerFrameworks": [
+          "net8.0",
+          "net10.0"
+        ]
+      },
+      "packageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-sampling-working-budget/Ignore/RasterSamplingQualification/package-proof.json",
+      "cleanup": {
+        "removedTargets": 11,
+        "removedBytes": 483956330,
+        "allAbsent": true,
+        "recovery": "Actual native hidden/read-only filesystem errors recovered after fresh guarded DotNet preflight; no tool-policy rejection"
+      },
+      "independentReview": "Prior current owner full+targeted coverage retained; extracted implementation bytes unchanged, standalone dependency and package proof completed"
+    },
+    {
+      "pr": 2775,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2775",
+      "baseCommit": "dfb5753794bbbe6cbb1a71c8e5d6fe83f4ec4f07",
+      "head": "2dd83d7eb8e9c47d6b317a1c1a2a9f9b2ae0a317",
+      "stateAtCheckpoint": "open; exact-head CI and delayed repository review pending",
+      "fullCorrectnessTestsPerFramework": 8685,
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "packageProof": {
+        "receipts": [
+          {
+            "package": "OfficeIMO.Core.3.4.4.nupkg",
+            "sha256": "8be3c4f882cd9a40b2d485da88dceaeb048ccf8d4d72bdcdad3400acafa2aaf1",
+            "targets": [
+              "net10.0",
+              "net472",
+              "net8.0",
+              "netstandard2.0"
+            ],
+            "dependencies": [],
+            "privateConsumerOrigin": {
+              "version": 2,
+              "contentHash": "PI0aqoI9EcnKeIbmCkCohDVvcgdO/NUursS6BXwzE2lkwH1zxL1AK46fEZH9YFNpLXWRZTubJgtEAk9CQWb1sg==",
+              "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-bounded-logical-spans/Ignore/BoundedPdfQualification/feed"
+            },
+            "sameInstalledBytes": true
+          },
+          {
+            "package": "OfficeIMO.Pdf.3.4.4.nupkg",
+            "sha256": "0537a50eb97181bf4f836706e5f6084ad3b68d8a2b7547811d51d1e6f84dbdeb",
+            "targets": [
+              "net10.0",
+              "net472",
+              "net8.0",
+              "netstandard2.0"
+            ],
+            "dependencies": [
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.4.4",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.4.4",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.4.4",
+                "exclude": "Build,Analyzers"
+              },
+              {
+                "id": "OfficeIMO.Core",
+                "version": "3.4.4",
+                "exclude": "Build,Analyzers"
+              }
+            ],
+            "privateConsumerOrigin": {
+              "version": 2,
+              "contentHash": "HA3N+mFP87xSiCNO/wIxRsxRu+zgss23kkAsaNoJwlkfKxpeXWO1Gd58HpRUB3uw9tIojBTSJAw4o8iCwE+csg==",
+              "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-bounded-logical-spans/Ignore/BoundedPdfQualification/feed"
+            },
+            "sameInstalledBytes": true
+          }
+        ],
+        "publicConsumers": [
+          {
+            "framework": "net8",
+            "pdfSha256": "cab181b6078642019c25ddf7706b396c25b7bedbae99e5fd5435072d0a0940d1",
+            "exactText": "moons. next"
+          },
+          {
+            "framework": "net10",
+            "pdfSha256": "cab181b6078642019c25ddf7706b396c25b7bedbae99e5fd5435072d0a0940d1",
+            "exactText": "moons. next"
+          }
+        ],
+        "net472ExecutionClaimed": false
+      },
+      "packageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-bounded-logical-spans/Ignore/BoundedPdfQualification/package-proof.json",
+      "cleanup": {
+        "removedTargets": 95,
+        "removedBytes": 1830012739,
+        "allAbsent": true,
+        "nativeRemoved": 46,
+        "nativeExecutionErrorsRecovered": 49,
+        "recovery": "Hidden .NET assembly-attribute files and private package metadata required fresh guarded DotNet preflight/recovery; no policy rejection"
+      },
+      "independentReview": {
+        "task": "pdf_standalone_boundary_review",
+        "scope": "Standalone/master dependency, API, font/Form and package boundary",
+        "state": "current",
+        "fullPasses": 1,
+        "findings": [],
+        "targetedConfirmationUsed": false,
+        "disposition": "accept as shaped"
+      }
+    }
+  ],
+  "standaloneAdaptationLimits": [
+    "PDF extraction uses master normalized 1000-em command API; branch-only font-tracking implementation and tests stay on larger branch.",
+    "No standalone HTML/runtime source included. Existing/master Form artifact ownership verified in both nesting arrangements without importing branch-specific inherited reader state.",
+    "Packed PDF consumer initially attempted an internal CanRestamp member; corrected to exercise public Text.Replace rejection, with original setup failure logs retained. No product API changed for this probe.",
+    "Packed raster consumers passed their public limit and red-pixel contracts. Cross-framework PNG byte equality was not established and is not claimed; the proof source and run logs remain."
+  ],
+  "currentTimingState": {
+    "sourceCheckpoint": "74188733763844a18d0ee81d72cd521b728a6536",
+    "normalRunnerRebuilt": true,
+    "measurementAttempted": false,
+    "buildLog": "Ignore/MasterConvergenceQualification/static-budget-build-741887337.log",
+    "hostEvidence": "Ignore/MasterConvergenceQualification/timing-host-741887337.txt",
+    "reason": "At09:47 UTC CPU idle1.27/4.79%; after completed task builds and cleanup10:15 UTC idle14.12/43.86%, with unrelated dotnet, simulator and Actions browser work still present. No current combined-source timing claim.",
+    "unchangedCeilings": true,
+    "previousHostedFailuresRetained": true,
+    "remaining": [
+      "Quiet current-source timing",
+      "Equivalent same-host/domain source controls and hosted budgets/packages",
+      "Qualified long-lived branch adoption"
+    ]
+  }
 }
