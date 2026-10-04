@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -328,7 +328,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -438,12 +438,13 @@ namespace OfficeIMO.Excel {
 
                 if (rowIndex == r1) {
                     var headerValues = new object?[cols];
+                    int nextHeaderColumnIndex = 1;
                     foreach (var cell in row.Elements<Cell>()) {
                         if (canCancel && (++convertedCells & 1023) == 0) {
                             ct.ThrowIfCancellationRequested();
                         }
 
-                        int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                        int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextHeaderColumnIndex);
                         if (columnIndex < c1 || columnIndex > c2) {
                             continue;
                         }
@@ -480,12 +481,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 var dict = result[rr];
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++convertedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (columnIndex < c1 || columnIndex > c2) {
                         continue;
                     }

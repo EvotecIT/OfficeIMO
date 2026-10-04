@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, token);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
             int rowCount = lastRow - firstRow + 1;
             int rowsSeen = 0;
 
-            foreach (var row in data.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(data.Elements<Row>(), token)) {
                 if (canCancel) {
                     token.ThrowIfCancellationRequested();
                 }

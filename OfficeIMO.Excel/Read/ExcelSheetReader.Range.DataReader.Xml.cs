@@ -430,7 +430,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(_reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = _nextWorksheetRowIndex;
+                        rowIndex = _owner.ResolveImplicitXmlRowIndex(_reader, _nextWorksheetRowIndex, _activeReadCancellationToken);
                     }
 
                     _nextWorksheetRowIndex = rowIndex + 1;
@@ -682,7 +682,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(_reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = _nextWorksheetRowIndex;
+                        rowIndex = _owner.ResolveImplicitXmlRowIndex(_reader, _nextWorksheetRowIndex, _activeReadCancellationToken);
                     }
 
                     _nextWorksheetRowIndex = rowIndex + 1;

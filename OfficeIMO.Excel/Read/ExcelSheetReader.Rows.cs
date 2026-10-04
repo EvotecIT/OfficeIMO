@@ -180,12 +180,13 @@ namespace OfficeIMO.Excel {
                 object?[]? arr = null;
                 bool canCancelCell = token.CanBeCanceled;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancelCell) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int cc = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cc = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cc < firstColumn || cc > lastColumn) continue;
                     arr ??= new object?[rowWidth];
                     if (TryConvertCell(cell, out object? value)) {
@@ -234,7 +235,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -414,7 +415,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -471,7 +472,7 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;

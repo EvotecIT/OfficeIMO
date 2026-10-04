@@ -31,12 +31,13 @@ namespace OfficeIMO.Excel {
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
                     if (TryConvertCell(cell, out var value))
                         yield return new ExcelCellValueInfo(rIndex, cIndex, value);
@@ -66,7 +67,7 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;

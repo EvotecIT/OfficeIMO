@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     bool hasExplicitRowIndex = rowIndex > 0;
                     if (!hasExplicitRowIndex) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;

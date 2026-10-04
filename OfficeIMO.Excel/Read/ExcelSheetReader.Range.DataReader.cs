@@ -260,7 +260,7 @@ namespace OfficeIMO.Excel {
             int currentWindow = -1;
             var rows = new List<Row>();
 
-            foreach (var row in sheetData.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 if (ct.CanBeCanceled) {
                     ct.ThrowIfCancellationRequested();
                 }
@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel {
             int chunkRows,
             CancellationToken ct) {
             var windows = new SortedDictionary<int, List<Row>>();
-            foreach (Row row in sheetData.Elements<Row>()) {
+            foreach (Row row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 ct.ThrowIfCancellationRequested();
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < r1 || rowIndex > r2) {
@@ -361,8 +361,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
-                    int column = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int column = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (column < c1 || column > c2) {
                         continue;
                     }

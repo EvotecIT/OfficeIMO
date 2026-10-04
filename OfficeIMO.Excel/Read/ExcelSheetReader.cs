@@ -149,12 +149,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 var rIndex = checked((int)row.RowIndex!.Value);
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    if (cIndex <= 0) continue;
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
                         yield return new ExcelCellValueInfo(rIndex, cIndex, value);
@@ -181,7 +183,7 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;
@@ -264,7 +266,7 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<Row> EnumerateWorksheetRows(CancellationToken ct = default) {
             if (CanStreamWorksheetPart()) {
-                foreach (var row in EnumerateWorksheetRowsFromPart(ct)) {
+                foreach (var row in EnumerateRowsWithCoordinates(EnumerateWorksheetRowsFromPart(ct), ct)) {
                     yield return row;
                 }
 
@@ -277,7 +279,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool canCancel = ct.CanBeCanceled;
-            foreach (var row in sheetData.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }

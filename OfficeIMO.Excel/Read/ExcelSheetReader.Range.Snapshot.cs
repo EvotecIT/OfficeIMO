@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
+                int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
                 if (rowIndex < r1) continue;
                 if (rowIndex > r2) continue;
 
@@ -42,12 +42,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 object?[]? values = null;
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     int cc = cIndex - c1;
@@ -211,16 +212,17 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
+                var rIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     var raw = SnapshotCell(cell, rIndex, cIndex);
@@ -251,19 +253,20 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
+                var rIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
                 int rr = rIndex - r1;
                 if ((uint)rr >= (uint)height) continue;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     int cc = cIndex - c1;
@@ -273,16 +276,6 @@ namespace OfficeIMO.Excel {
                         result[rr, cc] = value;
                 }
             }
-        }
-
-        private static int GetSequentialRowIndex(Row row, ref int inferredRowIndex) {
-            if (row.RowIndex != null) {
-                inferredRowIndex = checked((int)row.RowIndex.Value);
-            } else {
-                inferredRowIndex++;
-            }
-
-            return inferredRowIndex;
         }
 
         private bool TryFillRangeXmlFast(object?[,] result, int r1, int c1, int r2, int c2, CancellationToken ct) {
@@ -312,7 +305,7 @@ namespace OfficeIMO.Excel {
 
                         int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) {
-                            rowIndex = nextRowIndex;
+                            rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                         }
 
                         nextRowIndex = rowIndex + 1;
@@ -357,7 +350,7 @@ namespace OfficeIMO.Excel {
 
                         int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) {
-                            rowIndex = nextRowIndex;
+                            rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                         }
 
                         nextRowIndex = rowIndex + 1;

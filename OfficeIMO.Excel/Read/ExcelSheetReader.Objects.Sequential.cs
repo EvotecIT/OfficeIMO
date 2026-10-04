@@ -249,8 +249,9 @@ namespace OfficeIMO.Excel {
             int c2,
             int cols) where T : new() {
             var headerValues = new object?[cols];
+            int nextDomColumnIndex = 1;
             foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
                     continue;
                 }
@@ -280,12 +281,13 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             ref int convertedCells) {
             bool canCancel = ct.CanBeCanceled;
+            int nextDomColumnIndex = 1;
             foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
                 if (canCancel && (++convertedCells & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
                     continue;
                 }

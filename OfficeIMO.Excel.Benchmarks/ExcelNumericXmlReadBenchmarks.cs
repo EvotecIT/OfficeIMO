@@ -29,8 +29,13 @@ public class ExcelNumericXmlReadBenchmarks {
     [Params("DataReader", "TypedDataReader", "Range", "DataTable")]
     public string Api { get; set; } = "DataReader";
 
+    [Params("Explicit", "ImplicitRows", "ImplicitRowsAndCells")]
+    public string Coordinates { get; set; } = "Explicit";
+
     [GlobalSetup]
     public void Setup() {
+        if (Coordinates is not ("Explicit" or "ImplicitRows" or "ImplicitRowsAndCells"))
+            throw new ArgumentOutOfRangeException(nameof(Coordinates));
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         string root = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_DATA") ?? Path.GetTempPath();
@@ -44,13 +49,18 @@ public class ExcelNumericXmlReadBenchmarks {
                 ExcelDocument.WriteRows(output,
                     ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers,
                     static (writer, row) => writer.Write(row.Id).Write(row.Amount),
-                    new ExcelTabularWriteOptions { IncludeCellReferences = true, UseSharedStrings = false });
+                    new ExcelTabularWriteOptions { IncludeCellReferences = Coordinates != "ImplicitRowsAndCells", UseSharedStrings = false });
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {
                 const string name = "xl/worksheets/sheet1.xml";
                 var entry = package.GetEntry(name) ?? throw new InvalidDataException("Worksheet is missing.");
                 string xml;
                 using (var reader = new StreamReader(entry.Open(), Encoding.UTF8)) xml = reader.ReadToEnd();
+                if (Coordinates == "ImplicitRows") {
+                    if (System.Text.RegularExpressions.Regex.Matches(xml, "(<row) r=\"[0-9]+\"").Count != RowCount + 1)
+                        throw new InvalidDataException("Unexpected generated row references.");
+                    xml = System.Text.RegularExpressions.Regex.Replace(xml, "(<row) r=\"[0-9]+\"", "$1");
+                }
                 entry.Delete();
                 using var writer = new StreamWriter(package.CreateEntry(name, CompressionLevel.Fastest).Open(), Encoding.Unicode);
                 writer.Write(xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16"));

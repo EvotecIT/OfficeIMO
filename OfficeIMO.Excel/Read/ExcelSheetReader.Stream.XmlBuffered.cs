@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
 
                         int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) {
-                            rowIndex = nextRowIndex;
+                            rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                         }
 
                         nextRowIndex = rowIndex + 1;
@@ -273,7 +273,7 @@ namespace OfficeIMO.Excel {
 
                         int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) {
-                            rowIndex = nextRowIndex;
+                            rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                         }
 
                         nextRowIndex = rowIndex + 1;

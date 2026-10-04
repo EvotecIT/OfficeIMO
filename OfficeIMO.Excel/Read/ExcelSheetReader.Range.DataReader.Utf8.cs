@@ -604,6 +604,10 @@ namespace OfficeIMO.Excel {
                         rowIndex = hasRowReference
                             ? ParsePositiveInt(_buffer!, rowReferenceStart, rowReferenceLength)
                             : nextImplicitRow;
+                        if (!hasRowReference && !tag.IsEmpty
+                            && !TryInferImplicitRowIndex(position, nextImplicitRow, ct, out rowIndex)) {
+                            return false;
+                        }
                         if (rowSupportsFastValidation) {
                             repeatedRowShapeValidated = TryCaptureRepeatedRowShape(tag, rowIndex);
                         }
