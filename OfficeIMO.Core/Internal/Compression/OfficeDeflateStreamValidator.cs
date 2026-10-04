@@ -320,7 +320,6 @@ namespace OfficeIMO.Core.Internal {
 
             internal bool TryDecode(DeflateBitReader reader, out int symbol) {
                 symbol = -1;
-                if (_symbols == null || _counts == null || _firstCodes == null || _firstSymbols == null) return false;
                 // Peeking may read ahead, but only the matched code's bits are
                 // consumed. Exact payload accounting must ignore lookahead.
                 if (_lookup != null && reader.TryPeekBits(_lookupBits, out int prefix)) {
@@ -331,6 +330,7 @@ namespace OfficeIMO.Core.Internal {
                         return true;
                     }
                 }
+                if (_symbols == null || _counts == null || _firstCodes == null || _firstSymbols == null) return false;
                 int code = 0;
                 for (int length = 1; length <= _maximumLength; length++) {
                     if (!reader.TryReadBits(1, out int bit)) return false;
@@ -375,6 +375,17 @@ namespace OfficeIMO.Core.Internal {
                 value = 0;
                 if (count < 0 || count > 16) return false;
                 while (_bufferedBits < count) {
+#if NET8_0_OR_GREATER
+                    // Refilling at most 15 buffered bits with 16 more fits the
+                    // uint reservoir. Lookahead does not advance consumption.
+                    if (_end - _readOffset >= 2) {
+                        _buffer |= (uint)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
+                            _bytes.AsSpan(_readOffset, 2)) << _bufferedBits;
+                        _readOffset += 2;
+                        _bufferedBits += 16;
+                        continue;
+                    }
+#endif
                     if (_readOffset >= _end) return false;
                     _buffer |= (uint)_bytes[_readOffset++] << _bufferedBits;
                     _bufferedBits += 8;
