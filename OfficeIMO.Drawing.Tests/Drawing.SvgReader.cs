@@ -1424,6 +1424,48 @@ public class DrawingSvgReaderTests {
         Assert.Contains("pointer-events=\"all\"", exported, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("JaVaScRiPt:alert(1)")]
+    [InlineData("java&#x9;script:alert(1)")]
+    [InlineData("vbscript:alert(1)")]
+    [InlineData("data:text/html,hello")]
+    [InlineData("file:///private/document.txt")]
+    public void SvgReaderDropsUnsafeInteractiveTargetsButKeepsPaintedContent(string href) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<a href='" + href + "'><rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Empty(drawing!.Elements.OfType<OfficeDrawingLink>());
+        Assert.Equal(OfficeColor.Red, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(10, 7));
+        Assert.DoesNotContain("<a", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("#details")]
+    [InlineData("guide.html")]
+    [InlineData("mailto:help@example.test")]
+    [InlineData("tel:+15551234567")]
+    public void SvgReaderRetainsSafeLocalMailAndTelephoneTargets(string href) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<a href='" + href + "'><rect x='5' y='4' width='20' height='8'/></a></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(href, Assert.Single(drawing!.Elements.OfType<OfficeDrawingLink>()).Uri);
+        Assert.Contains("href=\"" + href + "\"", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,hello")]
+    [InlineData("file:///private/document.txt")]
+    public void DrawingRejectsUnsafeLinksAddedDirectly(string href) {
+        var drawing = new OfficeDrawing(40, 20);
+        Assert.Throws<ArgumentException>(() => drawing.AddLink(href, 0, 0, 10, 10));
+    }
+
     [Fact]
     public void SvgReaderPreservesBoundedEmbeddedRasterImages() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red));

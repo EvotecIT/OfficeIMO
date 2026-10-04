@@ -12,7 +12,7 @@ public sealed class PagesToWordResult : IDisposable {
         Report = report;
     }
 
-    /// <summary>Gets the converted editable OfficeIMO Word document.</summary>
+    /// <summary>Gets the converted OfficeIMO Word document.</summary>
     public WordDocument Value { get; }
     /// <summary>Gets the bounded source package and preserved IWA records.</summary>
     public IWorkSourceDocument Source { get; }
@@ -27,6 +27,18 @@ public sealed class PagesToWordResult : IDisposable {
 
     /// <summary>Returns the converted Word document.</summary>
     public WordDocument RequireValue() => Value;
+
+    /// <summary>Returns the converted Word document or throws unless its report permits complete editable reconstruction.</summary>
+    /// <remarks>This checks assessed content completeness, not full appearance or record-level fidelity. A rejected value is disposed.</remarks>
+    public WordDocument RequireCompleteEditableReconstruction() {
+        try {
+            Report.RequireCompleteEditableReconstruction();
+            return Value;
+        } catch {
+            Value.Dispose();
+            throw;
+        }
+    }
 
     /// <summary>Returns the converted Word document or throws when the conversion was lossy.</summary>
     public WordDocument RequireNoLoss() {

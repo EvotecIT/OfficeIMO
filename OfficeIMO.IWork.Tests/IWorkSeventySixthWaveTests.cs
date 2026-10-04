@@ -16,13 +16,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithMalformedTableCatalog(kind, formula);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(result.IsVisualFallback);
             Assert.Contains(result.Projection.Diagnostics, diagnostic => diagnostic.Code ==
                 (formula ? "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED"
                     : "IWORK_TABLE_STRING_STORAGE_UNSUPPORTED"));
         } else {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(result.IsVisualFallback);
             Assert.Contains(result.Projection.Diagnostics, diagnostic => diagnostic.Code ==
                 (formula ? "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED"

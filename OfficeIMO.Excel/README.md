@@ -31,6 +31,14 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
+
+```csharp
+using var incoming = ExcelDocument.Load("upload.xlsx", ExcelLoadOptions.UntrustedDefaults);
+```
+
+This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with workbooks containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
 For ordinary workbook work, use `ExcelDocument.Create(...)` or
 `ExcelDocument.Load(...)`, edit the same document through its sheets, then call
 `Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only

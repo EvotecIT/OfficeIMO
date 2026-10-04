@@ -8,7 +8,6 @@ using OfficeIMO.Workflows.IWork;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
 OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions {
     Mode = IWorkConversionMode.EditableOnly,
-    AllowPartialEditableReconstruction = true,
     NormalizeWorksheetNames = true
 });
 string outputRoot = Path.Combine(Path.GetTempPath(), "officeimo-iwork-package-smoke-" + Guid.NewGuid().ToString("N"));
@@ -29,6 +28,20 @@ try {
             || !read.Chunks.Any(chunk => chunk.Text.Contains(text, StringComparison.Ordinal))) {
             throw new InvalidOperationException("Packed Reader ingestion failed for " + extension + ".");
         }
+        if (extension == "key") {
+            IWorkKeynoteProjection source = IWorkSourceDocument.Open(path).ReadKeynote();
+            IWorkTextBox body = source.Slides[0].TextBoxes.Single(box =>
+                box.Content.PlainText.Contains("first bullet", StringComparison.Ordinal));
+            IWorkTextBoxLayout? frame = body.Layout;
+            IWorkListLayout? list = body.Content.Paragraphs[0].ListLayout;
+            if (body.Geometry is not { WidthPoints: > 0, HeightPoints: > 0 }
+                || frame is not { ShrinkToFit: true, LeftInsetPoints: 4, TopInsetPoints: 4,
+                    RightInsetPoints: 4, BottomInsetPoints: 4 }
+                || list is null || list.TextIndentEm != 1 || list.MarkerIndentPoints != 0
+                || Math.Abs(list.MarkerScale - 1.23) > 0.000001) {
+                throw new InvalidOperationException("Packed Keynote source APIs lost frame or list layout.");
+            }
+        }
         string output = Path.Combine(outputRoot, "converted." + target);
         OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
             InputPath = path, OutputPath = output, Operation = OfficeWorkflowOperation.Convert,
@@ -36,7 +49,10 @@ try {
         });
         if (!result.Succeeded || !File.Exists(output)
             || !result.Diagnostics.Any(diagnostic => diagnostic.Code == "OutputReopened")
-            || result.ConversionEvidence?.Facts["projectionKind"] != "EditableReconstruction") {
+            || result.ConversionEvidence?.Facts["projectionKind"] != "EditableReconstruction"
+            || result.ConversionEvidence.Facts["partialEditableReconstruction"] != bool.FalseString
+            || result.ConversionEvidence.Facts["omittedSourceUnitCount"] != "0"
+            || result.ConversionEvidence.Facts["unassessedSourceUnitCount"] != "0") {
             throw new InvalidOperationException("Packed conversion failed for " + route + ": " + result.Summary);
         }
         switch (extension) {

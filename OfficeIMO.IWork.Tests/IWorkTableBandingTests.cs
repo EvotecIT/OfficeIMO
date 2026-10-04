@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Banded_body_fill_alone_is_bounded_by_the_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001, banded: true, roleDefaults: false);
         using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
-            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("styled-cell budget", StringComparison.Ordinal));
     }

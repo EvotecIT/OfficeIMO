@@ -309,16 +309,14 @@ public sealed class DrawingOfficePackageSecurityTests {
             new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5, 0));
         byte[] package = OfficeCompoundFileWriter.Rewrite(compound,
             new Dictionary<string, byte[]>());
-        OfficePackageSecurityOptions security = OfficePackageSecurityOptions.UntrustedDefaults;
-
         using var excelSource = new MemoryStream(package);
         OfficePackageSecurityException excelException = Assert.Throws<OfficePackageSecurityException>(() =>
-            ExcelDocument.Load(excelSource, new ExcelLoadOptions { PackageSecurity = security }));
+            ExcelDocument.Load(excelSource, ExcelLoadOptions.UntrustedDefaults));
         Assert.Equal(OfficePackageSecurityRule.Macros, excelException.Rule);
 
         using var wordSource = new MemoryStream(package);
         OfficePackageSecurityException wordException = Assert.Throws<OfficePackageSecurityException>(() =>
-            WordDocument.Load(wordSource, new WordLoadOptions { PackageSecurity = security }));
+            WordDocument.Load(wordSource, WordLoadOptions.UntrustedDefaults));
         Assert.Equal(OfficePackageSecurityRule.Macros, wordException.Rule);
     }
 

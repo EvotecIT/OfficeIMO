@@ -8,7 +8,7 @@ public static partial class WordIWorkConverter {
     public static WordDocument ConvertPagesToWord(string path,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) =>
-        ConvertPagesToWordResult(path, readOptions, conversionOptions, cancellationToken).Value;
+        ConvertPagesToWordResult(path, readOptions, conversionOptions, cancellationToken).RequireCompleteEditableReconstruction();
 
     /// <summary>Converts a Pages file or directory bundle with cancellation and retains source evidence.</summary>
     /// <remarks>Cancellation governs loading, semantic projection, and destination construction. Saving is a separate owner operation.</remarks>
@@ -25,7 +25,7 @@ public static partial class WordIWorkConverter {
     public static WordDocument ConvertPagesToWord(Stream stream,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) =>
-        ConvertPagesToWordResult(stream, readOptions, conversionOptions, cancellationToken).Value;
+        ConvertPagesToWordResult(stream, readOptions, conversionOptions, cancellationToken).RequireCompleteEditableReconstruction();
 
     /// <summary>Converts a Pages caller-owned ZIP stream with cancellation and retains source evidence.</summary>
     /// <remarks>Cancellation governs loading, semantic projection, and destination construction. Saving is a separate owner operation.</remarks>

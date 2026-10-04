@@ -14,6 +14,12 @@ The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-P
 
 The parameterized independent-corpus output check converts all 12 fixtures listed by `IWorkCorpusTests.Corpus` to editable DOCX, XLSX or PPTX, saves and reopens the result, and validates the destination Open XML schema. It explicitly accepts partial reconstruction and normalizes worksheet names. This gate catches invalid destination packages; separate semantic tests establish supported content. Passing it does not qualify native application rendering, pagination or complete document fidelity.
 
+## Native default paragraph layout
+
+`native-exports/numbers-simple-v14.5.json` pins the unchanged `nim-iwork/simple.numbers` source and its Numbers 14.5 XLSX/PDF exports. Native body-cell controls show a single line, no custom tab stops, natural horizontal alignment, Helvetica Neue 10-point text, and wrapping. Independent numbers-parser 4.19.0 schemas identify empty `12/13` line-spacing and `12/25` tab declarations in the selected body/header styles. The XLSX oracle adds one table-title row; comparisons offset that row and check all nine types, values, font sizes, header emphasis and General alignment. Empty shared declarations reset inherited relative spacing/custom tabs; explicit zero spacing and unsupported ancestor fields remain rejected. This qualifies the declared defaults and saved XLSX properties; complete appearance remains outside this reference.
+
+`native-exports/pages-simple-v15.4.json` pins the unchanged `nim-iwork/simple.pages` source and its Pages 15.4 DOCX/PDF exports. Reproduce them by opening a copy in Pages and choosing File > Export To > Word or PDF, with password protection off and best PDF image quality. Native controls show Times Regular 12-point text, single spacing, no custom tabs and a 36-point default tab interval. Saved DOCX comparisons check all three paragraphs including the empty paragraph, spacing, paragraph-mark font metrics, page size and margins. The native font label `Times Roman` and decoded `Times-Roman` resolve to Times in this renderer. A one-page native rendering of the saved OfficeIMO DOCX matches all seven word bounds and the 1200-pixel raster after paragraph-mark formatting is preserved. The adjacent manifest records the exact output, fonts and comparison hashes. This qualifies only the recorded fixture and renderer; larger documents, other fonts and producer versions remain open.
+
 ## Native blank-format export
 
 `native-exports/numbers-blank-selectors-v14.5.xlsx` is an Apple Numbers 14.5 export of the unchanged `numbers-parser/cross-table-formulas.numbers` fixture. The adjacent JSON records source/export hashes, export options and ten blank cells in `Main Sheet - Extra Headers`. Reproduce it by opening a copy of the source in Numbers 14.5, choosing File > Export To > Excel, one worksheet per table, and leaving the summary worksheet and password options off. The native export includes a table-title row, so source A8:A17 maps to destination A9:A18. Existing numbers-parser MIT attribution applies.
@@ -24,7 +30,15 @@ Native Numbers' Cell Format panel shows source A8 as Automatic and A9 as Text. `
 
 ## Keynote multi-slide editable output
 
-The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 deck through editable PPTX save and reopen. The corpus test checks slide count and order through each slide's expected title, first-slide bullet content, the second-slide presenter note, and Open XML validation. Conversion explicitly accepts partial editable reconstruction. This extends source-reader evidence to saved destination content; native Apple PPTX export, theme/layout equivalence and rendered appearance remain unqualified.
+`native-exports/keynote-simple-v15.4.json` pins the unchanged two-slide Keynote 14.5 source, Keynote 15.4 PPTX/PDF exports and native renderings of Apple and OfficeIMO PPTX files. Default conversion requires complete editable reconstruction and checks slide order, text, notes, selected placeholder geometry, four-point margins, vertical alignment, fit settings and 123% character bullets. Open XML geometry differs by at most two EMUs. Both PPTX renderings have identical rasters at the recorded resolution. The original `.key` PDF has a small ligature/word-advance difference also present in Apple's PPTX round trip. The OfficeIMO import shows an unused Aptos theme-font warning; actual text uses the recorded installed fonts. There is no repair prompt. Exact typography, theme/master preservation and other producer versions remain outside this evidence.
+
+Reproduce selected frame and list declarations with the pinned isolated numbers-parser 4.19.0 environment:
+
+```text
+python Build/IWork/extract-keynote-text-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-text-layout.json --wrapped-dir <probe-output>
+```
+
+The optional wrapped probes change only selected body text and keep-lines in a copy of the licensed native fixture. They are test-only derived inputs, not independent producer documents or product writing support. Open working copies in Keynote 15.4 and export PDF with best quality, all slides and optional content/password off; preserve the frozen generated inputs because Keynote can auto-save its working copies. Keep-lines remains true/false after native opening, and both two-slide renders are identical. The strict PPTX retains the same two-line wrapping, with the recorded original-to-PPTX ligature difference. This qualifies only unlinked horizontal single-column fixed frames with the recovered layout. Other pagination contexts retain their strict gates. Existing nim-iwork MIT provenance and attribution apply to the derived probes and exports.
 
 ## Pages editable body output
 
@@ -36,7 +50,7 @@ The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragr
 
 ## Pages paragraph layout declarations
 
-`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose effective defaults remain unqualified. The manifest also exposes independently decoded relative multipliers and tab positions/alignments without leaders. The reader retains those explicit values and source paths for remaining unqualified layout. DOCX/PPTX spacing properties are checked separately from rendered appearance. This evidence does not qualify Apple exports or rendered equivalence.
+`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose single-line/empty-custom-tab defaults are qualified by the paired Numbers 14.5 evidence below. The manifest also exposes independently decoded relative multipliers and tab positions/alignments without leaders. The reader retains those explicit values and source paths for remaining unqualified layout. DOCX/PPTX spacing properties are checked separately from rendered appearance. This evidence does not qualify Apple exports or rendered equivalence.
 
 ```sh
 python Build/IWork/extract-pages-paragraph-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-paragraph-layout.json

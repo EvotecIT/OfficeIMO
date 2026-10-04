@@ -92,7 +92,7 @@ public sealed class AgentCommandTests {
     }
 
     [Fact]
-    public async Task McpConfiguredRootsOverrideTheWorkingDirectoryDefault() {
+    public async Task McpConfiguredRootsDoNotIncludeTheWorkingDirectory() {
         string root = Path.Combine(
             Path.GetTempPath(),
             "officeimo-agent-mcp-root-" + Guid.NewGuid().ToString("N"));
@@ -106,7 +106,7 @@ public sealed class AgentCommandTests {
         try {
             await File.WriteAllTextAsync(workingPath, "# Working");
             await File.WriteAllTextAsync(configuredPath, "# Configured");
-            AgentPathPolicy policy = AgentPathPolicy.ForMcp(configuredRoot, workingDirectory);
+            AgentPathPolicy policy = AgentPathPolicy.ForMcp(configuredRoot);
 
             Assert.Equal(OfficeImoToolPathSafety.ResolveExistingLinks(configuredPath), policy.ResolveInput(configuredPath));
             Assert.Throws<UnauthorizedAccessException>(() => policy.ResolveInput(workingPath));
@@ -120,12 +120,22 @@ public sealed class AgentCommandTests {
         string separatorOnly = new(Path.PathSeparator, 2);
 
         AgentUsageException exception = Assert.Throws<AgentUsageException>(
-            () => AgentPathPolicy.ForMcp(separatorOnly, Directory.GetCurrentDirectory()));
+            () => AgentPathPolicy.ForMcp(separatorOnly));
 
         Assert.Contains(
             AgentPathPolicy.AllowedRootsEnvironmentVariable,
             exception.Message,
             StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void McpRequiresExplicitAllowedRoots(string? configuredRoots) {
+        AgentUsageException exception = Assert.Throws<AgentUsageException>(
+            () => AgentPathPolicy.ForMcp(configuredRoots));
+        Assert.Contains(AgentPathPolicy.AllowedRootsEnvironmentVariable, exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

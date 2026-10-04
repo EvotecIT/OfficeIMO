@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
             includePreview: true,
             textBoxDrawable: Message(StringField(4, "https://example.test/empty-pages-shape")));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal("https://example.test/empty-pages-shape",

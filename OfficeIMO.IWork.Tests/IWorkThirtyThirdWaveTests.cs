@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Accessible", 1, 1, 42d)
         }, includePreview: true, tableDrawable: Message(StringField(8, "Source table")));
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTable sourceTable = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
 
         Assert.True(result.IsVisualFallback);
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Malformed", 1, 1, 42d)
         }, includePreview: true, tableDrawable: Message(VarintField(8, 1)));
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

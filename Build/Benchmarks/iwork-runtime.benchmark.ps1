@@ -30,7 +30,7 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
                 $workloads[$key] = if ($factor -eq 0) {
                     [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, (Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/IWorkCorpus'))
                 } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, $units) }
-                [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Source = $size; ConversionPolicy = $(if ($factor -eq 0) { 'PartialEditable' } else { 'CompleteEditable' }); MeasureRetainedMemory = $measureRetainedMemory; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
+                [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Source = $size; ConversionPolicy = 'CompleteEditable'; MeasureRetainedMemory = $measureRetainedMemory; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
             }
         }
     }

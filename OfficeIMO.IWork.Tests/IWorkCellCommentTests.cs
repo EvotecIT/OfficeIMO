@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(ConvertUnitReport(source, kind, visual: false).IsPartialEditableReconstruction);
             using var strict = CommentPackage(kind);
             IWorkSourceDocument strictSource = IWorkSourceDocument.Open(strict, kind);
-            using var result = strictSource.ToPowerPointPresentationResult(); Assert.True(result.IsVisualFallback);
+            using var result = strictSource.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(result.IsVisualFallback);
         }
     }
 
@@ -139,7 +139,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(13, 6005, Message(VarintField(1, 10), BytesField(3, Message(VarintField(1, 1), ReferenceField(10, 14))))),
                 ArchiveRecord(14, 3056, Message(StringField(1, text), BytesField(2, Message(DoubleField(1, 42d))), ReferenceField(3, 15))),
                 ArchiveRecord(15, 212, StringField(1, author))));
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult();
+        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -157,7 +157,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(15, 212, StringField(1, "Reviewer")),
                 ArchiveRecord(16, 3056, Message(StringField(1, "Second"), BytesField(2, Message(DoubleField(1, 43d))), ReferenceField(3, 17))),
                 ArchiveRecord(17, 212, StringField(1, "reviewer"))));
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult();
+        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Message.Contains("differ only by case", StringComparison.Ordinal));
     }
@@ -169,7 +169,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_comments_that_cannot_be_preserved_require_destination_fallback_even_under_partial_policy(string text, string author) {
         using var package = CommentPackage(IWorkDocumentKind.Pages, text: text, author: author);
         using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordDocumentResult(
-            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         IWorkCellComment sourceComment = result.Projection.Tables[0].Cells[0].Comment!;
         Assert.Equal(text, sourceComment.Text);
         Assert.Equal(author, sourceComment.Author);

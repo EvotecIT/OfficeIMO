@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 16), VarintField(2, 328), VarintField(3, 3)))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 42d,
             hasFormula: true, formulaPayload: formula) }, includePreview: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.WorksheetMappings);

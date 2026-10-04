@@ -40,15 +40,19 @@ internal static partial class IWorkTextReader {
                 message.FieldCount(valueField), malformed || value == null
                     ? IWorkSourceDeclarationIssueKind.MalformedMessage
                     : IWorkSourceDeclarationIssueKind.UnsupportedField);
-            // Empty messages remain unassessed: do not invent default semantics or
-            // let descendant resets erase an unsupported ancestor's declaration.
+            // A descendant reset cannot erase an unsupported ancestor's declaration.
             isComplete = false;
         }
     }
     private static bool TryRelativeLineSpacing(IWorkWireMessage value, out double multiplier) {
         multiplier = 0;
-        // Absent mode is the protobuf relative-mode default. An absent amount is
-        // not a qualified single-line default. Unknown extensions remain unassessed.
+        // Apple Numbers 14.5 renders the native empty TSWP spacing declaration as
+        // single spacing. The shared archive default is separate from an explicit
+        // zero or malformed amount; unknown extensions remain unassessed.
+        if (value.TotalFieldCount == 0) {
+            multiplier = 1;
+            return true;
+        }
         if (value.FieldCount(1) > 1 || value.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
             || value.GetUnsigned(1).GetValueOrDefault() != 0
             || value.FieldCount(2) != 1 || value.HasUnexpectedWireKind(2, IWorkWireKind.Fixed32)

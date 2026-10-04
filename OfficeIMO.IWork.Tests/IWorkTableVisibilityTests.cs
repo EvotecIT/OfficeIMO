@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_visibility_output_preserves_values_and_reader_warns_that_visibility_is_unassessed() {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(14, 1));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult();
+        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
         using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);

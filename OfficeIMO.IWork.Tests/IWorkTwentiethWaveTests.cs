@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Rotated",
             includePreview: true, textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Table_drawable_hyperlinks_disable_editable_reconstruction() {
         using MemoryStream package = CreateNumbersPackageWithTableHyperlink();
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -75,14 +75,14 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithUncachedFormulaTable(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             IWorkTableCell cell = Assert.Single(Assert.Single(result.Projection.Tables).Cells);
             Assert.True(result.IsVisualFallback);
             Assert.True(result.Projection.HasEditableContent);
             Assert.True(cell.FormulaIsComplete);
             Assert.Null(cell.Value);
         } else {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             IWorkTableCell cell = Assert.Single(Assert.Single(
                 Assert.Single(result.Projection.Slides).Tables).Cells);
             Assert.True(result.IsVisualFallback);

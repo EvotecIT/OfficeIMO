@@ -41,6 +41,27 @@ public sealed partial class IWorkBoundaryTests {
             IWorkDocumentKind.Pages, null, cancellation.Token));
     }
 
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages, "nim-iwork/simple.pages")]
+    [InlineData(IWorkDocumentKind.Numbers, "nim-iwork/simple.numbers")]
+    [InlineData(IWorkDocumentKind.Keynote, "nim-iwork/simple.key")]
+    public void Reusing_loaded_source_with_an_independent_token_preserves_other_operations(
+        IWorkDocumentKind kind, string fixture) {
+        using var opening = new CancellationTokenSource();
+        IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture(fixture), kind, null, opening.Token);
+        Project(source); // Exercise reuse after the shared parsed-message cache has been populated.
+        using var operation = new CancellationTokenSource();
+        IWorkSourceDocument view = source.WithCancellation(operation.Token);
+        operation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => Project(view));
+        Assert.Throws<OperationCanceledException>(() => ConvertForCancellation(view));
+        Project(source);
+        opening.Cancel();
+        Assert.Throws<OperationCanceledException>(() => Project(source));
+        Project(source.WithCancellation(CancellationToken.None));
+        Assert.Throws<OperationCanceledException>(() => source.WithCancellation(operation.Token));
+    }
+
     private static void Project(IWorkSourceDocument source) {
         switch (source.Kind) {
             case IWorkDocumentKind.Pages: source.ReadPages(); break;

@@ -35,6 +35,14 @@ document.AsFluent()
 document.Save();
 ```
 
+For a drawing from an untrusted source, use the bounded load profile:
+
+```csharp
+var incoming = VisioDocument.Load("upload.vsdx", VisioLoadOptions.UntrustedDefaults);
+```
+
+It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with drawings containing those parts; set `PackageSecurity` explicitly for another policy.
+
 ## What it does
 
 - Creates and edits Visio pages, shapes, connectors, text, styles, Shape Data, layers, hyperlinks, containers, comments, and metadata.

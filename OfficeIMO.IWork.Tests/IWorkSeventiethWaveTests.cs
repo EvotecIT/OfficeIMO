@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         string malformedRecord, string diagnosticCode) {
         using MemoryStream package = CreateKeynotePackageWithMalformedGraphRecord(malformedRecord);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
