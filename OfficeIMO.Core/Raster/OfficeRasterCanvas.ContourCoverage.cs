@@ -58,7 +58,10 @@ public sealed partial class OfficeRasterCanvas {
         try {
             var rowBoundaries = new List<double>();
             var crossings = new List<ContourCrossing>();
-            var scanlines = new List<(double Weight, List<ContourCrossing> Crossings)>();
+            // Retain one bounded row buffer rather than copying every sub-scanline into
+            // a new list. The ranges stay in scanline order, preserving coverage sums.
+            var rowCrossings = new List<ContourCrossing>();
+            var scanlines = new List<(double Weight, int Start, int Count)>();
             int boundaryIndex = 0;
             long crossingWork = 0L;
             for (int y = top; y <= bottom; y++) {
@@ -75,6 +78,7 @@ public sealed partial class OfficeRasterCanvas {
                 }
                 crossingWork += rowWork;
                 scanlines.Clear();
+                rowCrossings.Clear();
                 int retainedCrossings = 0;
                 for (int index = 1; index < rowBoundaries.Count; index++) {
                     double low = rowBoundaries[index - 1], high = rowBoundaries[index];
@@ -88,15 +92,16 @@ public sealed partial class OfficeRasterCanvas {
                             throw new InvalidOperationException("Contour coverage intersections exceed the rasterization limit.");
                         }
                         retainedCrossings += crossings.Count;
-                        scanlines.Add((high - low, new List<ContourCrossing>(crossings)));
+                        scanlines.Add((high - low, rowCrossings.Count, crossings.Count));
+                        rowCrossings.AddRange(crossings);
                     }
                 }
                 for (int tileLeft = left; tileLeft <= right; tileLeft += tileLength) {
                     int tileRight = Math.Min(right, tileLeft + tileLength - 1);
                     int count = tileRight - tileLeft + 1;
                     Array.Clear(coverage, 0, count);
-                    foreach ((double weight, List<ContourCrossing> intersections) in scanlines) {
-                        AccumulateContourIntervals(intersections, fillRule, tileLeft, tileRight, weight, coverage);
+                    foreach ((double weight, int start, int length) in scanlines) {
+                        AccumulateContourIntervals(rowCrossings, start, length, fillRule, tileLeft, tileRight, weight, coverage);
                     }
                     for (int x = tileLeft; x <= tileRight; x++) {
                         double value = coverage[x - tileLeft];
@@ -112,10 +117,14 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private static void AddContourCrossings(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, double y, List<ContourCrossing> crossings, bool secondShape = false) {
-        foreach (IReadOnlyList<OfficePoint> contour in contours) {
+        // These interface-backed lists are visited for every sub-scanline. Indexed
+        // traversal avoids boxing their enumerators for each glyph contour.
+        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
+            IReadOnlyList<OfficePoint> contour = contours[contourIndex];
             if (contour.Count < 3) continue;
             OfficePoint start = contour[contour.Count - 1];
-            foreach (OfficePoint end in contour) {
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                OfficePoint end = contour[pointIndex];
                 bool upward = start.Y <= y && end.Y > y;
                 bool downward = start.Y > y && end.Y <= y;
                 if (upward || downward) crossings.Add(new ContourCrossing(start.X + (y - start.Y) * (end.X - start.X) / (end.Y - start.Y), upward ? 1 : -1, secondShape));
@@ -124,10 +133,11 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
-    private static void AccumulateContourIntervals(List<ContourCrossing> crossings, OfficeFillRule rule, int left, int right, double weight, double[] coverage) {
-        int winding = 0, secondWinding = 0, index = 0;
-        double previous = crossings[0].X;
-        while (index < crossings.Count) {
+    private static void AccumulateContourIntervals(List<ContourCrossing> crossings, int startIndex, int count, OfficeFillRule rule, int left, int right, double weight, double[] coverage) {
+        int winding = 0, secondWinding = 0, index = startIndex;
+        int endIndex = startIndex + count;
+        double previous = crossings[index].X;
+        while (index < endIndex) {
             double x = crossings[index].X;
             bool inside = rule == OfficeFillRule.NonZero ? winding != 0 || secondWinding != 0 : (winding & 1) != 0 || (secondWinding & 1) != 0;
             if (inside && x > previous) {
@@ -144,7 +154,7 @@ public sealed partial class OfficeRasterCanvas {
                 if (crossings[index].SecondShape) secondWinding += delta;
                 else winding += delta;
                 index++;
-            } while (index < crossings.Count && Math.Abs(crossings[index].X - x) <= 1E-9D);
+            } while (index < endIndex && Math.Abs(crossings[index].X - x) <= 1E-9D);
             previous = x;
         }
     }

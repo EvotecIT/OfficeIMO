@@ -198,7 +198,10 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
                     break;
                 case OfficeDrawingLink link:
-                    sb.Append("<a").AppendAttribute("href", link.Uri);
+                    if (!OfficeDrawingLinkPolicy.TryNormalize(link.Uri, out string safeUri)) {
+                        throw new InvalidOperationException("Drawing contains an unsafe interactive link URI.");
+                    }
+                    sb.Append("<a").AppendAttribute("href", safeUri);
                     if (link.AlternativeText != null) sb.AppendAttribute("aria-label", link.AlternativeText);
                     sb.Append("><rect x=\"").Append(Format(link.X))
                         .Append("\" y=\"").Append(Format(link.Y))

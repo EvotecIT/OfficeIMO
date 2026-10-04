@@ -9,6 +9,14 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## ZIP, drawing links, and MCP filesystem access
+
+`OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
+
+`OfficeDrawing.AddLink` rejects script, data, file, unknown-scheme, and ambiguous targets. SVG import keeps the visible content inside a rejected link but does not export its interactive target. Replace such targets with HTTP(S), mail, telephone, or local relative/fragment links where appropriate.
+
+The OfficeIMO.Tool STDIO MCP server requires `OFFICEIMO_MCP_ALLOWED_ROOTS` at startup. Set it to the document and output directories the client may access. The direct `officeimo agent` command keeps its existing local filesystem behavior when the variable is unset.
+
 ## DocBook, ADF and Data projection contracts
 
 ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.

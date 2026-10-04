@@ -28,6 +28,11 @@ namespace OfficeIMO.Word {
         /// <summary>Default maximum complete source size (512 MiB).</summary>
         public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
 
+        /// <summary>Creates bounded options that reject active, embedded, and externally linked package content.</summary>
+        public static WordLoadOptions UntrustedDefaults => new WordLoadOptions {
+            PackageSecurity = OfficePackageSecurityOptions.UntrustedDefaults
+        };
+
         /// <summary>
         /// Maximum number of source bytes accepted before Word package parsing begins.
         /// </summary>

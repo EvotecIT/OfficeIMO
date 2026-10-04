@@ -30,10 +30,18 @@ namespace OfficeIMO.Excel {
 
     /// <summary>Controls access, persistence, and package behavior when loading an Excel workbook.</summary>
     public sealed class ExcelLoadOptions : DocumentLoadOptions {
+        /// <summary>Default maximum complete source size (512 MiB).</summary>
+        public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
+
+        /// <summary>Creates bounded options that reject active, embedded, and externally linked package content.</summary>
+        public static ExcelLoadOptions UntrustedDefaults => new ExcelLoadOptions {
+            PackageSecurity = OfficePackageSecurityOptions.UntrustedDefaults
+        };
+
         /// <summary>
         /// Maximum workbook bytes buffered by load APIs. Default: 512 MiB. Set to null to disable this compatibility guard.
         /// </summary>
-        public long? MaxInputBytes { get; set; } = 512L * 1024L * 1024L;
+        public long? MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 
         /// <summary>Provides optional low-level Open XML package settings.</summary>
         public OfficeOpenXmlLoadSettings? OpenSettings { get; set; }
