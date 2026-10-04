@@ -415,11 +415,13 @@ public sealed class HtmlRenderRequestTests {
     [InlineData(true)]
     public async Task DirectPdfByteEntryPointsKeepSerializationInsideTheRenderDeadline(bool useExplicitAsyncRequest) {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Serialization deadline</p>");
-        // Keep this contract focused on serialization. The first process-wide system-font
-        // discovery is part of rendering and may legitimately consume the short deadline.
+        // Warm system-font discovery and leave rendering a generous setup window so
+        // the observed timeout occurs during serialization, including on a busy CI host.
+        // The provider deliberately exceeds that deadline; this is a cancellation contract,
+        // not a rendering performance budget.
         _ = source.ToPdfBytes();
-        var timeout = TimeSpan.FromMilliseconds(100D);
-        var provider = new SlowFirstEncryptionProvider(TimeSpan.FromMilliseconds(300D));
+        var timeout = TimeSpan.FromSeconds(5D);
+        var provider = new SlowFirstEncryptionProvider(timeout + TimeSpan.FromMilliseconds(300D));
         var options = new HtmlToPdfOptions { RenderTimeout = timeout };
         options.PdfOptions.SetEncryption(new OfficeIMO.Pdf.PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner",
@@ -437,7 +439,7 @@ public sealed class HtmlRenderRequestTests {
         }
 
         Assert.Equal(timeout, exception.Timeout);
-        Assert.True(provider.EncryptOperations > 0);
+        Assert.True(provider.EncryptOperations > 0, "The deadline expired before serialization began.");
     }
 
     [Fact]
