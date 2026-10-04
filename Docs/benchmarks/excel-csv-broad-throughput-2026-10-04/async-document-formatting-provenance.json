@@ -1,0 +1,1121 @@
+{
+  "CapturedUtc": "2026-10-04T22:12:36.9403762Z",
+  "Source": {
+    "Base": "6b1ceb52944bbfc798d2a5b92748685471581139",
+    "PatchSha256": "ED073FA53E4BC25E1B3CEF48340CF2C47B3DBA974302C591F54B6D20F18C2788",
+    "Manifest": [
+      {
+        "File": "BenchmarkDotNet.Annotations.dll",
+        "Before": "4B5D273032CAE7C8FC97E16713B8D4F1EE3A2AA28A0E2BD0695232FB9DD7D558",
+        "After": "4B5D273032CAE7C8FC97E16713B8D4F1EE3A2AA28A0E2BD0695232FB9DD7D558"
+      },
+      {
+        "File": "BenchmarkDotNet.dll",
+        "Before": "D460626B2E1A9FA2F786E09E6C85CDF4D7B73DECA636450A0E23892C8CE6192B",
+        "After": "D460626B2E1A9FA2F786E09E6C85CDF4D7B73DECA636450A0E23892C8CE6192B"
+      },
+      {
+        "File": "CommandLine.dll",
+        "Before": "8A55501CD1A1590A4BD93A17C6FDD2C01A0ED5BFF1AEA9036BDC78D98C9A3FAD",
+        "After": "8A55501CD1A1590A4BD93A17C6FDD2C01A0ED5BFF1AEA9036BDC78D98C9A3FAD"
+      },
+      {
+        "File": "csFastFloat.dll",
+        "Before": "51AF2357CA92A350B035CFEA3A419551E07E5D0FFF45166629794B9646B81853",
+        "After": "51AF2357CA92A350B035CFEA3A419551E07E5D0FFF45166629794B9646B81853"
+      },
+      {
+        "File": "CsvHelper.dll",
+        "Before": "189A0D69F35A7E3827BFC35111D5D6E29D08BAE60780CC48B215A06B18B6A852",
+        "After": "189A0D69F35A7E3827BFC35111D5D6E29D08BAE60780CC48B215A06B18B6A852"
+      },
+      {
+        "File": "CsvReader.dll",
+        "Before": "FF4525F5667F09ECE15731A57E3076E392D3F43AF7F82DA141B62F1A196863FA",
+        "After": "FF4525F5667F09ECE15731A57E3076E392D3F43AF7F82DA141B62F1A196863FA"
+      },
+      {
+        "File": "Dataplat.Dbatools.Csv.dll",
+        "Before": "2B810BA9DF4251653FA55DCE0A2C19E97D43B6794ADD903C29BF20156F0B15BA",
+        "After": "2B810BA9DF4251653FA55DCE0A2C19E97D43B6794ADD903C29BF20156F0B15BA"
+      },
+      {
+        "File": "Dia2Lib.dll",
+        "Before": "6C4CAC68010FE032218EFE5E9FCF46EEF9F77BFAA5F3BD33F03C5FF77D5A8FAC",
+        "After": "6C4CAC68010FE032218EFE5E9FCF46EEF9F77BFAA5F3BD33F03C5FF77D5A8FAC"
+      },
+      {
+        "File": "ExcelReader.Core.dll",
+        "Before": "7991D43BB9A88FA400040401264BECAFBED78155EAE85FEC18B584661A95B4D1",
+        "After": "7991D43BB9A88FA400040401264BECAFBED78155EAE85FEC18B584661A95B4D1"
+      },
+      {
+        "File": "Gee.External.Capstone.dll",
+        "Before": "6DFDA67784598DE9677173B89D0692593935F1A4024D36040C95DEA48C1B5965",
+        "After": "6DFDA67784598DE9677173B89D0692593935F1A4024D36040C95DEA48C1B5965"
+      },
+      {
+        "File": "Iced.dll",
+        "Before": "F058C01321B4CDFC9B9151879E88E59571C8D0BA176FBCF95BC936A8F3D073ED",
+        "After": "F058C01321B4CDFC9B9151879E88E59571C8D0BA176FBCF95BC936A8F3D073ED"
+      },
+      {
+        "File": "Microsoft.CodeAnalysis.CSharp.dll",
+        "Before": "53302ACCA07700E9BB10DCF21034435D6E0454C8EEBF2481164EC13E520004C9",
+        "After": "53302ACCA07700E9BB10DCF21034435D6E0454C8EEBF2481164EC13E520004C9"
+      },
+      {
+        "File": "Microsoft.CodeAnalysis.dll",
+        "Before": "395736B2D0E02BE77BEDC3847B269DA7A93BF8E49CD3431A4A8E68D2C52D5846",
+        "After": "395736B2D0E02BE77BEDC3847B269DA7A93BF8E49CD3431A4A8E68D2C52D5846"
+      },
+      {
+        "File": "Microsoft.Diagnostics.FastSerialization.dll",
+        "Before": "83E89BAF0BBECCA8CFA194CFF13365F716849E22EFC374B669206F26998A019F",
+        "After": "83E89BAF0BBECCA8CFA194CFF13365F716849E22EFC374B669206F26998A019F"
+      },
+      {
+        "File": "Microsoft.Diagnostics.NETCore.Client.dll",
+        "Before": "BAED2D25CA5BC53A3447C237D5572C92EAC1FD842807B3E72602A711749B1B22",
+        "After": "BAED2D25CA5BC53A3447C237D5572C92EAC1FD842807B3E72602A711749B1B22"
+      },
+      {
+        "File": "Microsoft.Diagnostics.Runtime.dll",
+        "Before": "06F9910C8A37F8D4D758538E6DD307DE58BCFB3BB13E83658142C08087A25382",
+        "After": "06F9910C8A37F8D4D758538E6DD307DE58BCFB3BB13E83658142C08087A25382"
+      },
+      {
+        "File": "Microsoft.Diagnostics.Tracing.TraceEvent.dll",
+        "Before": "401E948DAC99D0F9756EF96D5A8B8E4736E19E9F82CE8CDD744495951E3A94BB",
+        "After": "401E948DAC99D0F9756EF96D5A8B8E4736E19E9F82CE8CDD744495951E3A94BB"
+      },
+      {
+        "File": "Microsoft.DotNet.PlatformAbstractions.dll",
+        "Before": "B1F4AD169FB192747F5D2D3111C01DB4257E3EC1F7F18F301F7FC4BE3B869FF3",
+        "After": "B1F4AD169FB192747F5D2D3111C01DB4257E3EC1F7F18F301F7FC4BE3B869FF3"
+      },
+      {
+        "File": "Microsoft.Extensions.DependencyInjection.Abstractions.dll",
+        "Before": "9CCD830351AA28BC683D4F8D1CEFD9E724161F972D25BFB64EEE5BF55C48C5E3",
+        "After": "9CCD830351AA28BC683D4F8D1CEFD9E724161F972D25BFB64EEE5BF55C48C5E3"
+      },
+      {
+        "File": "Microsoft.Extensions.DependencyInjection.dll",
+        "Before": "2AA8182B5356A8CC5C35FC3641A87E814857D8D9BE399AC78F260343754D09E0",
+        "After": "2AA8182B5356A8CC5C35FC3641A87E814857D8D9BE399AC78F260343754D09E0"
+      },
+      {
+        "File": "Microsoft.Extensions.Logging.Abstractions.dll",
+        "Before": "D575C9D1543CA726CE14DBDFFD103E93EA527CD46BB28316DA1F4122DBC55D56",
+        "After": "D575C9D1543CA726CE14DBDFFD103E93EA527CD46BB28316DA1F4122DBC55D56"
+      },
+      {
+        "File": "Microsoft.Extensions.Logging.dll",
+        "Before": "183650081B551DFAD967A7CBF79946A229CB79458B8D04A12DB7C44B03BB9AB7",
+        "After": "183650081B551DFAD967A7CBF79946A229CB79458B8D04A12DB7C44B03BB9AB7"
+      },
+      {
+        "File": "Microsoft.Extensions.Options.dll",
+        "Before": "786112CB2F6646EF1170219A8C0BB813C9F14A6781E67C6266414F55A679565D",
+        "After": "786112CB2F6646EF1170219A8C0BB813C9F14A6781E67C6266414F55A679565D"
+      },
+      {
+        "File": "Microsoft.Extensions.Primitives.dll",
+        "Before": "8CE9A85927EC7507B11FFE90080E7A811D51304A9E8B1DA20C350159BA403902",
+        "After": "8CE9A85927EC7507B11FFE90080E7A811D51304A9E8B1DA20C350159BA403902"
+      },
+      {
+        "File": "OfficeIMO.Core.dll",
+        "Before": "6C450E4ED2EB40D06DDF2EF0D8209DAAD98F2B3D2BAF266B0A67BDD1AD0EA915",
+        "After": "6C450E4ED2EB40D06DDF2EF0D8209DAAD98F2B3D2BAF266B0A67BDD1AD0EA915"
+      },
+      {
+        "File": "OfficeIMO.CSV.Benchmarks.dll",
+        "Before": "0B0EF24539E83A63D530B36FB3DF72EA017BC67147A745A17FA720C83BFF10C5",
+        "After": "0B0EF24539E83A63D530B36FB3DF72EA017BC67147A745A17FA720C83BFF10C5"
+      },
+      {
+        "File": "OfficeIMO.CSV.dll",
+        "Before": "68D39D93BFB38C07D17F5D5E6ED48459E160D748D30F89D29CFA40C8836B7DFA",
+        "After": "D0C85B6254BA8E24D7E7CFA860797A4F4631D7956D2EC0B8453CA80809252E4F"
+      },
+      {
+        "File": "Perfolizer.dll",
+        "Before": "22A4A336DB943465CBDFC8D0A8E23E89DF3024D39F1C5954D97554B3DA39E300",
+        "After": "22A4A336DB943465CBDFC8D0A8E23E89DF3024D39F1C5954D97554B3DA39E300"
+      },
+      {
+        "File": "Pragmastat.dll",
+        "Before": "E9B3FC36000E7FE3FB11D3EA6A65F3C9C7B17E03C9F5034306437D65972E8C51",
+        "After": "E9B3FC36000E7FE3FB11D3EA6A65F3C9C7B17E03C9F5034306437D65972E8C51"
+      },
+      {
+        "File": "Sep.dll",
+        "Before": "95523ADDB830904BE739DB9EFB4AF5184ED2239F8D8C0E3E29BBFC427DDDBA41",
+        "After": "95523ADDB830904BE739DB9EFB4AF5184ED2239F8D8C0E3E29BBFC427DDDBA41"
+      },
+      {
+        "File": "Sylvan.Data.Csv.dll",
+        "Before": "22D9A266CC13C88CBEE08D1A35954B2F45EE8EBF8D7A4C4BFDA2AE0B8D740BB6",
+        "After": "22D9A266CC13C88CBEE08D1A35954B2F45EE8EBF8D7A4C4BFDA2AE0B8D740BB6"
+      },
+      {
+        "File": "System.CodeDom.dll",
+        "Before": "8D0CF191C86FEEA81C9875652C06E454ABE8DBFF66BEA9E4CB5F8AA2DC02F32A",
+        "After": "8D0CF191C86FEEA81C9875652C06E454ABE8DBFF66BEA9E4CB5F8AA2DC02F32A"
+      },
+      {
+        "File": "System.Management.dll",
+        "Before": "0BE24B09DA5ABAD0B20EFCB58FAB14B0DEDC79B09D4FBDCB894BE268105A2195",
+        "After": "0BE24B09DA5ABAD0B20EFCB58FAB14B0DEDC79B09D4FBDCB894BE268105A2195"
+      },
+      {
+        "File": "TraceReloggerLib.dll",
+        "Before": "6830C0F1D3F3C17719181E73DD5CFA8CCBB3F3C575329D2120576545103467B5",
+        "After": "6830C0F1D3F3C17719181E73DD5CFA8CCBB3F3C575329D2120576545103467B5"
+      }
+    ],
+    "CaseCount": 60,
+    "ScreenCount": 9,
+    "Runner": "Ignore/Benchmarks/excel-csv-broad/compare/bin/Release/net10.0/Compare.dll",
+    "RunnerHash": "ED89CCEF7110CBBBD891EE9C4CF03FCFF6F7D6E94A94F5BC846C8F20674A04E3",
+    "PowerPlan": "Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)",
+    "Limits": "Before/after comparisons; complete independent output validation in setup; fresh MemoryStreams; managed allocation only; sync APIs are unchanged controls.",
+    "FinalPatchSha256": "53C485C327A6A94669E582BDA87A0DF32C04DE67A0942B069A9B2633B46C55BF"
+  },
+  "FinalPatch": "diff --git a/OfficeIMO.CSV.Tests/CsvAsyncFormattingContractTests.cs b/OfficeIMO.CSV.Tests/CsvAsyncFormattingContractTests.cs\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..ff03543f3ae21c4ef5e229112e3cd5bc0f52b48a\n--- /dev/null\n+++ b/OfficeIMO.CSV.Tests/CsvAsyncFormattingContractTests.cs\n@@ -0,0 +1,90 @@\n+using System;\n+using System.Globalization;\n+using System.IO;\n+using System.Text;\n+using System.Threading.Tasks;\n+using OfficeIMO.CSV;\n+using Xunit;\n+\n+namespace OfficeIMO.CSV.Tests;\n+\n+public class CsvAsyncFormattingContractTests\n+{\n+    [Theory]\n+    [InlineData(\"Default\")]\n+    [InlineData(\"Semicolon\")]\n+    [InlineData(\"TextDelimiter\")]\n+    [InlineData(\"Culture\")]\n+    [InlineData(\"AlwaysQuote\")]\n+    [InlineData(\"NeverQuote\")]\n+    [InlineData(\"QuoteFields\")]\n+    [InlineData(\"EmptyQuoteFields\")]\n+    [InlineData(\"CustomValues\")]\n+    [InlineData(\"EscapeFormulas\")]\n+    public async Task SaveAsync_Matches_Synchronous_Typed_Value_Formatting(string profile)\n+    {\n+        var options = new CsvSaveOptions { NewLine = \"\\r\\n\", Encoding = new UTF8Encoding(false, true) };\n+        switch (profile)\n+        {\n+            case \"Semicolon\": options.DelimiterText = \";\"; break;\n+            case \"TextDelimiter\": options.DelimiterText = \"||\"; break;\n+            case \"Culture\": options.Culture = CultureInfo.GetCultureInfo(\"fr-FR\"); break;\n+            case \"AlwaysQuote\": options.QuoteMode = CsvQuoteMode.Always; break;\n+            case \"NeverQuote\": options.QuoteMode = CsvQuoteMode.Never; break;\n+            case \"QuoteFields\": options.QuoteFields = new[] { \"number\", \"NULL\" }; break;\n+            case \"EmptyQuoteFields\": options.QuoteFields = new[] { \"\", \"  \" }; break;\n+            case \"CustomValues\":\n+                options.DateTimeFormat = \"O\";\n+                options.UseUtc = true;\n+                options.NullValue = \"<missing, value>\";\n+                break;\n+            case \"EscapeFormulas\": options.FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape; break;\n+        }\n+\n+        var document = new CsvDocument().WithHeader(\"Number\", \"Null\", \"Text\");\n+        document.AddRow(12.50m, null, \"Łódź 🚀 漢字, \\\"quoted\\\"\\r\\nnext;part||end\");\n+        document.AddRow(-123, DBNull.Value, \"=SUM(A1:A2)\");\n+        document.AddRow(long.MinValue, true, Guid.Parse(\"d0ce49a7-fb04-489e-9478-82d07f355a24\"));\n+        document.AddRow(ulong.MaxValue, false, new DateTime(2026, 10, 4, 12, 34, 56, DateTimeKind.Utc));\n+        document.AddRow(1.25e100, double.NaN, new DateTimeOffset(2026, 10, 4, 14, 34, 56, TimeSpan.FromHours(2)));\n+        document.AddRow(float.NegativeInfinity, (short)-12, TimeSpan.FromSeconds(123.45));\n+        document.AddRow((uint)12, (ushort)34, (byte)56);\n+        document.AddRow((sbyte)-78, '\"', new Version(1, 2, 3, 4));\n+        document.AddRow(new LongFormattedValue(), string.Empty, \"@formula\");\n+#if NET6_0_OR_GREATER\n+        document.AddRow(new DateOnly(2026, 10, 4), new TimeOnly(12, 34, 56), \"date-only\");\n+#endif\n+\n+        using var synchronous = new MemoryStream();\n+        document.Save(synchronous, options);\n+        using var asynchronous = new MemoryStream();\n+        await document.SaveAsync(asynchronous, options);\n+\n+        Assert.Equal(Encoding.UTF8.GetBytes(document.ToString(options)), synchronous.ToArray());\n+        Assert.Equal(synchronous.ToArray(), asynchronous.ToArray());\n+    }\n+\n+    private sealed class LongFormattedValue :\n+#if NET6_0_OR_GREATER\n+        ISpanFormattable\n+#else\n+        IFormattable\n+#endif\n+    {\n+        public string ToString(string? format, IFormatProvider? formatProvider) =>\n+            12.50m.ToString(format, formatProvider) + \",\\\"\" + new string('x', 300) + \"\\\"\";\n+\n+        public override string ToString() => ToString(null, CultureInfo.InvariantCulture);\n+\n+#if NET6_0_OR_GREATER\n+        public bool TryFormat(Span<char> destination, out int charsWritten,\n+            ReadOnlySpan<char> format, IFormatProvider? provider)\n+        {\n+            string text = ToString(format.IsEmpty ? null : format.ToString(), provider);\n+            bool copied = text.AsSpan().TryCopyTo(destination);\n+            charsWritten = copied ? text.Length : 0;\n+            return copied;\n+        }\n+#endif\n+    }\n+}\ndiff --git a/OfficeIMO.CSV/CsvWriter.Async.cs b/OfficeIMO.CSV/CsvWriter.Async.cs\nindex 85b1ff7700fab60c61231f949cec903806d69fec..09a4e24d329559b4b5cf122f66f0d930ef5a104f 100644\n--- a/OfficeIMO.CSV/CsvWriter.Async.cs\n+++ b/OfficeIMO.CSV/CsvWriter.Async.cs\n@@ -16,6 +16,10 @@ internal static partial class CsvWriter\n     {\n         string delimiter = GetDelimiterText(options);\n         var quoteFields = CreateQuoteFieldSet(options.QuoteFields);\n+        bool defaultFormatting = delimiter.Length == 1 && options.NullValue == null\n+            && options.DateTimeFormat == null && !options.UseUtc\n+            && options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve\n+            && options.QuoteMode == CsvQuoteMode.AsNeeded && quoteFields == null;\n         var buffer = new StringBuilder();\n         using var recordWriter = new StringWriter(buffer, CultureInfo.InvariantCulture);\n \n@@ -54,7 +58,9 @@ internal static partial class CsvWriter\n         foreach (var row in document.AsEnumerable())\n         {\n             cancellationToken.ThrowIfCancellationRequested();\n-            if (delimiter.Length == 1)\n+            if (defaultFormatting)\n+                AppendRecordDefault(buffer, row.Values, delimiter[0], options.NewLine, options.Culture);\n+            else if (delimiter.Length == 1)\n                 WriteRecord(recordWriter, row.Values, delimiter[0], options.NewLine, options.Culture,\n                     options.FormulaInjectionPolicy, options.QuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);\n             else\n",
+  "Cases": {
+    "Save-Plain-None-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-Plain-None-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "None"
+      }
+    },
+    "Save-Plain-GZip-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-Plain-GZip-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "GZip"
+      }
+    },
+    "Save-Plain-Deflate-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "Deflate"
+      }
+    },
+    "SaveAsync-Plain-Deflate-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "Deflate"
+      }
+    },
+    "Save-Plain-Brotli-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "Brotli"
+      }
+    },
+    "SaveAsync-Plain-Brotli-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "Brotli"
+      }
+    },
+    "Save-Plain-ZLib-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "ZLib"
+      }
+    },
+    "SaveAsync-Plain-ZLib-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Plain",
+        "Compression": "ZLib"
+      }
+    },
+    "Save-Quoted-None-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-Quoted-None-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "None"
+      }
+    },
+    "Save-Quoted-GZip-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-Quoted-GZip-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "GZip"
+      }
+    },
+    "Save-Quoted-Deflate-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "Deflate"
+      }
+    },
+    "SaveAsync-Quoted-Deflate-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "Deflate"
+      }
+    },
+    "Save-Quoted-Brotli-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "Brotli"
+      }
+    },
+    "SaveAsync-Quoted-Brotli-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "Brotli"
+      }
+    },
+    "Save-Quoted-ZLib-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "ZLib"
+      }
+    },
+    "SaveAsync-Quoted-ZLib-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "Quoted",
+        "Compression": "ZLib"
+      }
+    },
+    "Save-MixedJson-None-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-MixedJson-None-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "None"
+      }
+    },
+    "Save-MixedJson-GZip-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-MixedJson-GZip-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "GZip"
+      }
+    },
+    "Save-MixedJson-Deflate-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "Deflate"
+      }
+    },
+    "SaveAsync-MixedJson-Deflate-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "Deflate"
+      }
+    },
+    "Save-MixedJson-Brotli-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "Brotli"
+      }
+    },
+    "SaveAsync-MixedJson-Brotli-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "Brotli"
+      }
+    },
+    "Save-MixedJson-ZLib-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "ZLib"
+      }
+    },
+    "SaveAsync-MixedJson-ZLib-1000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 1000,
+        "Shape": "MixedJson",
+        "Compression": "ZLib"
+      }
+    },
+    "Save-Plain-None-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-Plain-None-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "None"
+      }
+    },
+    "Save-Plain-GZip-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-Plain-GZip-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "GZip"
+      }
+    },
+    "Save-Plain-Deflate-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "Deflate"
+      }
+    },
+    "SaveAsync-Plain-Deflate-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "Deflate"
+      }
+    },
+    "Save-Plain-Brotli-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "Brotli"
+      }
+    },
+    "SaveAsync-Plain-Brotli-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "Brotli"
+      }
+    },
+    "Save-Plain-ZLib-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "ZLib"
+      }
+    },
+    "SaveAsync-Plain-ZLib-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Plain",
+        "Compression": "ZLib"
+      }
+    },
+    "Save-Quoted-None-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-Quoted-None-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "None"
+      }
+    },
+    "Save-Quoted-GZip-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-Quoted-GZip-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "GZip"
+      }
+    },
+    "Save-Quoted-Deflate-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "Deflate"
+      }
+    },
+    "SaveAsync-Quoted-Deflate-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "Deflate"
+      }
+    },
+    "Save-Quoted-Brotli-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "Brotli"
+      }
+    },
+    "SaveAsync-Quoted-Brotli-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "Brotli"
+      }
+    },
+    "Save-Quoted-ZLib-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "ZLib"
+      }
+    },
+    "SaveAsync-Quoted-ZLib-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "Quoted",
+        "Compression": "ZLib"
+      }
+    },
+    "Save-MixedJson-None-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-MixedJson-None-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "None"
+      }
+    },
+    "Save-MixedJson-GZip-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-MixedJson-GZip-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "GZip"
+      }
+    },
+    "Save-MixedJson-Deflate-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "Deflate"
+      }
+    },
+    "SaveAsync-MixedJson-Deflate-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "Deflate"
+      }
+    },
+    "Save-MixedJson-Brotli-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "Brotli"
+      }
+    },
+    "SaveAsync-MixedJson-Brotli-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "Brotli"
+      }
+    },
+    "Save-MixedJson-ZLib-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "ZLib"
+      }
+    },
+    "SaveAsync-MixedJson-ZLib-25000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 25000,
+        "Shape": "MixedJson",
+        "Compression": "ZLib"
+      }
+    },
+    "Save-Plain-None-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Plain",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-Plain-None-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Plain",
+        "Compression": "None"
+      }
+    },
+    "Save-Plain-GZip-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Plain",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-Plain-GZip-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Plain",
+        "Compression": "GZip"
+      }
+    },
+    "Save-Quoted-None-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Quoted",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-Quoted-None-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Quoted",
+        "Compression": "None"
+      }
+    },
+    "Save-Quoted-GZip-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Quoted",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-Quoted-GZip-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "Quoted",
+        "Compression": "GZip"
+      }
+    },
+    "Save-MixedJson-None-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "MixedJson",
+        "Compression": "None"
+      }
+    },
+    "SaveAsync-MixedJson-None-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "MixedJson",
+        "Compression": "None"
+      }
+    },
+    "Save-MixedJson-GZip-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "Save",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "MixedJson",
+        "Compression": "GZip"
+      }
+    },
+    "SaveAsync-MixedJson-GZip-100000": {
+      "Library": "CSV",
+      "Class": "CsvDocumentSaveBenchmarks",
+      "Setup": "Setup",
+      "Method": "SaveAsync",
+      "Properties": {
+        "RowCount": 100000,
+        "Shape": "MixedJson",
+        "Compression": "GZip"
+      }
+    }
+  },
+  "Topology": {
+    "CapturedUtc": "2026-10-04T21:23:24.3523922Z",
+    "L3Caches": [
+      {
+        "Level": 3,
+        "SizeBytes": 100663296,
+        "Mask": 65535,
+        "Group": 0
+      },
+      {
+        "Level": 3,
+        "SizeBytes": 100663296,
+        "Mask": 4294901760,
+        "Group": 0
+      }
+    ],
+    "Cpu": {
+      "Name": "AMD Ryzen 9 9950X3D2 16-Core Processor         ",
+      "NumberOfCores": 16,
+      "NumberOfLogicalProcessors": 32
+    }
+  },
+  "Tests": [
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\formatting-after.trx",
+      "Sha256": "C5DD323B9B75A104FFA37277013F3244EFB841C31D24E9A96A6FDEF1B923CCA2",
+      "Total": 21,
+      "Passed": 21,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\formatting-before.trx",
+      "Sha256": "A04C910BC1FE0A3F040BF533A27803DE75B548493CD49D3B688CFBDE0A093DA8",
+      "Total": 10,
+      "Passed": 10,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\formatting-contracts-net10.0.trx",
+      "Sha256": "2EE3ACFF546D28FE3B990E16BEE921054D36CB41FE34DA0D1438AA610D22FB3D",
+      "Total": 655,
+      "Passed": 655,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\formatting-contracts-net472.trx",
+      "Sha256": "E2BDDEB05EA3F3082AAC671A6ADD017F2B0423FEC62572187E44D157ACF7798F",
+      "Total": 463,
+      "Passed": 463,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\formatting-contracts-net8.0.trx",
+      "Sha256": "C92681572CE7A42EBD9E207944E6F47080FFA4F9D81C0711686EB3A414E72A5B",
+      "Total": 655,
+      "Passed": 655,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\formatting-final-focused.trx",
+      "Sha256": "806A6B6CBECC73366E0BFEBE23696689EAF6469B2CF03894D36B9942F4BF3288",
+      "Total": 10,
+      "Passed": 10,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\linux\\formatting-contracts-linux-net10.trx",
+      "Sha256": "2F8D8E7E70ADDF84909921563F7C955C9CF921F4A20B69B8757A406416265012",
+      "Total": 655,
+      "Passed": 655,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\macos\\async-formatting-final-net10.0.trx",
+      "Sha256": "61F711E3B4F147945871992A35B15A2A991481AF9D45FB68A0FB874BF2D9E684",
+      "Total": 655,
+      "Passed": 655,
+      "Failed": 0,
+      "Skipped": 0
+    },
+    {
+      "File": "Ignore\\Benchmarks\\csv-document-save\\tests\\macos\\async-formatting-final-net8.0.trx",
+      "Sha256": "09CDCC3546E28509CC92E922D2F6C59C5A1DD41D4964779C5FD993D2BF2AA142",
+      "Total": 655,
+      "Passed": 655,
+      "Failed": 0,
+      "Skipped": 0
+    }
+  ],
+  "Review": {
+    "Reviewer": "/root/csv_async_formatting_review",
+    "Base": "6b1ceb52944bbfc798d2a5b92748685471581139",
+    "ReviewedPatchSha256": "ED073FA53E4BC25E1B3CEF48340CF2C47B3DBA974302C591F54B6D20F18C2788",
+    "Outcome": "No actionable P0-P3 findings; accept as shaped subject to measurement and runtime qualification",
+    "Scope": "Public async CSV document saving; reuse of the canonical default formatter; option dispatch, types/culture/escaping, legacy compilation, cancellation/IO/ownership/compression, API and dependencies",
+    "Boundary": "candidate-reviewed",
+    "AfterReview": "Only the test's long custom formatter was extended to implement ISpanFormattable on modern targets, exercising unsuccessful TryFormat fallback. Product code is unchanged from the reviewed and measured candidate.",
+    "ConfirmationUsed": false,
+    "Execution": "Fresh independent read-only subagent; no nested delegation, edits, builds, tests or publication",
+    "Publication": "Local only"
+  },
+  "MacSource": {
+    "Host": "evomini.ad.evotec.xyz",
+    "OS": "macOS 27.0.1 (26A434)",
+    "Architecture": "ARM64",
+    "Processor": "Apple M4",
+    "Base": "a97198615636e0d26636f40a6b9be4b555febd50",
+    "WriterNormalizedSha256": "E836D90C75AAED16C67F442AA795815A5397E4A0D4DC9DFB4D70B2923C25C260",
+    "TestSha256": "FF8588E8EE97C8D277A5A003386D4A522B16C5B826D7E7192F688FC90093AEEA",
+    "TaskPatchSet": "Accepted short XML attributes, stream overwrite fix, retained DataReader writer test, document-save benchmark, async default formatter and formatting parity test",
+    "Timing": "No macOS timing claims",
+    "Validation": "Final NET10/NET8 CSV suites each passed 655 tests",
+    "FirstNet8Attempt": "MSBuild GetCwd Interrupted system call; final single-node no-restore retry passed"
+  },
+  "Reproduction": {
+    "prepare-formatting.ps1": "$ErrorActionPreference = 'Stop'\n$repo = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path\nSet-Location $repo\n$baseline = Join-Path $PSScriptRoot 'baseline-csv'\n$candidate = Join-Path $PSScriptRoot 'candidate-csv'\nif (Test-Path $candidate) { throw 'Candidate snapshot already exists.' }\nCopy-Item -LiteralPath $baseline -Destination $candidate -Recurse\nforeach ($file in 'OfficeIMO.CSV.dll','OfficeIMO.CSV.pdb') {\n    Copy-Item (Join-Path $repo \"OfficeIMO.CSV.Benchmarks/bin/Release/net10.0/$file\") (Join-Path $candidate $file)\n}\n$manifest = @(Get-ChildItem -LiteralPath $baseline -Filter '*.dll' -File | ForEach-Object {\n    $oldHash = (Get-FileHash -LiteralPath $_.FullName).Hash\n    $newHash = (Get-FileHash -LiteralPath (Join-Path $candidate $_.Name)).Hash\n    if ($_.Name -ne 'OfficeIMO.CSV.dll' -and $oldHash -ne $newHash) { throw \"Unexpected differing DLL: $($_.Name)\" }\n    [ordered]@{ File=$_.Name; Before=$oldHash; After=$newHash }\n})\n$cases = [ordered]@{}\n$screen = [ordered]@{}\nforeach ($rows in 1000,25000) {\n    foreach ($shape in 'Plain','Quoted','MixedJson') {\n        foreach ($compression in 'None','GZip','Deflate','Brotli','ZLib') {\n            foreach ($method in 'Save','SaveAsync') {\n                $key = \"$method-$shape-$compression-$rows\"\n                $case = [ordered]@{ Library='CSV'; Class='CsvDocumentSaveBenchmarks'; Setup='Setup'; Method=$method;\n                    Properties=[ordered]@{ RowCount=$rows; Shape=$shape; Compression=$compression } }\n                $cases[$key] = $case\n                if (($method -eq 'SaveAsync' -and $compression -eq 'None') -or\n                    ($rows -eq 25000 -and (($method -eq 'Save' -and $shape -eq 'Plain' -and $compression -eq 'None') -or\n                    ($method -eq 'SaveAsync' -and (($shape -eq 'MixedJson' -and $compression -eq 'GZip') -or\n                    ($shape -eq 'Quoted' -and $compression -eq 'Brotli')))))) { $screen[$key] = $case }\n            }\n        }\n    }\n}\n$cases | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot 'formatting-cases.json') -Encoding utf8\n$screen | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot 'formatting-screen-cases.json') -Encoding utf8\ngit diff --cached --full-index --binary --no-ext-diff --no-textconv --no-color --output=Ignore/Benchmarks/csv-document-save/formatting-candidate.patch\nif ($LASTEXITCODE) { throw 'Cannot record candidate patch.' }\n[ordered]@{\n    Base=(git rev-parse HEAD); PatchSha256=(Get-FileHash (Join-Path $PSScriptRoot 'formatting-candidate.patch')).Hash\n    Manifest=$manifest; CaseCount=$cases.Count; ScreenCount=$screen.Count\n    Runner='Ignore/Benchmarks/excel-csv-broad/compare/bin/Release/net10.0/Compare.dll'\n    RunnerHash=(Get-FileHash (Join-Path $repo 'Ignore/Benchmarks/excel-csv-broad/compare/bin/Release/net10.0/Compare.dll')).Hash\n    PowerPlan=(powercfg /getactivescheme | Out-String).Trim()\n    Limits='Before/after comparisons; complete independent output validation in setup; fresh MemoryStreams; managed allocation only; sync APIs are unchanged controls.'\n} | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot 'formatting-provenance.json') -Encoding utf8\nWrite-Output \"Prepared $($cases.Count) full cases and $($screen.Count) screening cases; only the product DLL differs.\"\n",
+    "screen-formatting.ps1": "$ErrorActionPreference = 'Stop'\n$repo = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path\nSet-Location $repo\n$env:OFFICEIMO_PERFORMANCE_SNAPSHOTS = $PSScriptRoot\n$env:OFFICEIMO_COMPARISON_CASES = Join-Path $PSScriptRoot 'formatting-cases.json'\n$env:OFFICEIMO_COMPARISON_MASK = '65535'\n$env:OFFICEIMO_BENCHMARK_PROCESS_PRIORITY = 'Normal'\n$runner = Join-Path $repo 'Ignore/Benchmarks/excel-csv-broad/compare/bin/Release/net10.0/Compare.dll'\ndotnet $runner --validate *> (Join-Path $PSScriptRoot 'formatting-validation.log')\nif ($LASTEXITCODE) { throw 'Output conformance failed.' }\nWrite-Output 'Validated all 60 before/after document-save cases.'\n$env:OFFICEIMO_COMPARISON_CASES = Join-Path $PSScriptRoot 'formatting-screen-cases.json'\nPush-Location (Join-Path $repo 'Ignore/Benchmarks/excel-csv-broad/compare')\ntry {\n    dotnet $runner --filter '*SnapshotComparison*' --job Dry --warmupCount 0 --iterationCount 1 --invocationCount 1 --unrollFactor 1 --artifacts (Join-Path $PSScriptRoot 'formatting-screen-conformance') *> (Join-Path $PSScriptRoot 'formatting-screen-conformance.log')\n    if ($LASTEXITCODE) { throw 'Dry screening failed.' }\n    Write-Output 'Validated native screening conformance with explicit single-invocation jobs.'\n    dotnet $runner --filter '*SnapshotComparison*' --warmupCount 24 --iterationCount 8 --invocationCount 4 --unrollFactor 1 --outliers DontRemove --artifacts (Join-Path $PSScriptRoot 'formatting-screen-native') *> (Join-Path $PSScriptRoot 'formatting-screen-native.log')\n    if ($LASTEXITCODE) { throw 'Native screening failed.' }\n} finally { Pop-Location }\n$report = Get-Content (Join-Path $PSScriptRoot 'formatting-screen-native/results/SnapshotComparison-report-full.json') -Raw | ConvertFrom-Json\nif ($report.Benchmarks.Count -ne 18 -or @($report.Benchmarks | Where-Object { $_.Statistics.N -ne 8 }).Count) { throw 'Incomplete native screening.' }\nWrite-Output 'Completed all 18 measured native screening cases.'\nforeach ($mask in 65535L,4294901760L) {\n    pwsh -NoProfile -File (Join-Path $PSScriptRoot 'rotated.ps1') -Mask $mask -Cases formatting-screen-cases.json -Label formatting-screen-rotated -Warmup 24 -Iterations 24 -Operations 8 *> (Join-Path $PSScriptRoot \"formatting-screen-rotated-$mask.log\")\n    if ($LASTEXITCODE) { throw \"Screening rotation failed: $mask\" }\n    Write-Output \"Completed screening rotation: $mask\"\n}\n$provenance = Get-Content (Join-Path $PSScriptRoot 'formatting-provenance.json') -Raw | ConvertFrom-Json\nforeach ($item in $provenance.Manifest) {\n    foreach ($version in 'Before','After') {\n        $folder = if ($version -eq 'Before') { 'baseline-csv' } else { 'candidate-csv' }\n        if ((Get-FileHash (Join-Path $PSScriptRoot \"$folder/$($item.File)\")).Hash -ne $item.$version) { throw \"Snapshot changed: $folder/$($item.File)\" }\n    }\n}\nWrite-Output 'Screening completed; snapshot hashes remain unchanged.'\n",
+    "rotated.ps1": "param([long] $Mask = 65535, [int] $Iterations = 24, [int] $Warmup = 12, [int] $Operations = 4,\n    [string] $Cases = 'rotated-cases.json', [string] $Label = 'rotated', [switch] $IdenticalBaseline)\n$ErrorActionPreference = 'Stop'\nImport-Module PSPublishModule\n$env:OFFICEIMO_PERFORMANCE_SNAPSHOTS = $PSScriptRoot\n$env:OFFICEIMO_COMPARISON_CASES = Join-Path $PSScriptRoot $Cases\n$env:OFFICEIMO_PERFORMANCE_AA = if ($IdenticalBaseline) { '1' } else { '0' }\n$env:OFFICEIMO_BENCHMARK_DATA = Join-Path $PSScriptRoot 'fixtures'\n$env:OFFICEIMO_BENCHMARK_OUTPUT = Join-Path $PSScriptRoot 'files'\n[Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity = [IntPtr]::new($Mask)\n[Diagnostics.Process]::GetCurrentProcess().PriorityClass = 'Normal'\n[Reflection.Assembly]::LoadFrom((Join-Path (Split-Path $PSScriptRoot -Parent) 'excel-csv-broad/compare/bin/Release/net10.0/Compare.dll')) | Out-Null\n$global:BroadProbes = @{}\n$global:BroadExpected = @{}\n$global:BroadOperations = $Operations\nforeach ($key in [SnapshotProbe]::Keys()) {\n    $before = [SnapshotProbe]::Load($key, 'baseline')\n    $after = [SnapshotProbe]::Load($key, 'candidate')\n    $expected = $before.RunSynchronously().ToString()\n    if ($after.RunSynchronously().ToString() -ne $expected) { throw \"Validation failed: $key\" }\n    $global:BroadProbes[$key] = @{ Before = $before; After = $after }\n    $global:BroadExpected[$key] = $expected\n}\ntry {\n    Invoke-BenchmarkSuite -OutputRoot (Join-Path $PSScriptRoot \"$Label-$Mask\") -WarmupCount $Warmup -IterationCount $Iterations -RunOrder Rotated -OutlierMode None -Settings {\n        New-BenchmarkSuite 'Excel CSV broad qualification' {\n            Add-BenchmarkMetadata AffinityMask $Mask\n            Add-BenchmarkMetadata OperationsPerSample $Operations\n            Add-BenchmarkMetadata IdenticalBaseline ([string]$IdenticalBaseline)\n            Add-BenchmarkMetadata Priority ([Diagnostics.Process]::GetCurrentProcess().PriorityClass.ToString())\n            Add-BenchmarkCaseSource @($global:BroadProbes.Keys | Sort-Object | ForEach-Object { [pscustomobject]@{Name=$_} })\n            Set-BenchmarkSetup {\n                param($case, $run)\n                $run.Probe = $global:BroadProbes[$case.Scenario][$case.Engine]\n                $run.Expected = $global:BroadExpected[$case.Scenario]\n            }\n            foreach ($engine in 'Before','After') {\n                Add-BenchmarkEngine $engine {\n                    Add-BenchmarkOperation ReadBatch {\n                        param($case, $run)\n                        for ($i=0; $i -lt $global:BroadOperations; $i++) { $run.Result = $run.Probe.RunSynchronously() }\n                    }\n                }\n            }\n            Add-BenchmarkValidation {\n                param($case, $run)\n                if ($run.Result.ToString() -ne $run.Expected) { throw 'Output differs from validated setup.' }\n            }\n            Add-BenchmarkComparison -Baseline Before -Metric MeanMs,MedianMs -TieTolerance 0.05\n        }\n    }\n} finally {\n    foreach ($pair in $global:BroadProbes.Values) { $pair.Before.Dispose(); $pair.After.Dispose() }\n}\n\r\n",
+    "formatting-control-check.ps1": "$ErrorActionPreference = 'Stop'\n$all = Get-Content (Join-Path $PSScriptRoot 'formatting-screen-cases.json') -Raw | ConvertFrom-Json -AsHashtable\n$cases = [ordered]@{}\nforeach ($key in 'Save-Plain-None-25000','SaveAsync-Plain-None-25000','SaveAsync-Quoted-None-25000','SaveAsync-MixedJson-None-1000') { $cases[$key] = $all[$key] }\n$cases | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot 'formatting-control-cases.json') -Encoding utf8\nforeach ($mask in 65535L,4294901760L) {\n    pwsh -NoProfile -File (Join-Path $PSScriptRoot 'rotated.ps1') -Mask $mask -Cases formatting-control-cases.json -Label formatting-aa-control -IdenticalBaseline -Warmup 48 -Iterations 32 -Operations 8 *> (Join-Path $PSScriptRoot \"formatting-aa-control-$mask.log\")\n    if ($LASTEXITCODE) { throw \"Identical-binary control failed: $mask\" }\n    Write-Output \"Completed identical-binary control: $mask\"\n}\n$savedTieredCompilation = $env:DOTNET_TieredCompilation\ntry {\n    $env:DOTNET_TieredCompilation = '0'\n    foreach ($mask in 65535L,4294901760L) {\n        pwsh -NoProfile -File (Join-Path $PSScriptRoot 'rotated.ps1') -Mask $mask -Cases formatting-control-cases.json -Label formatting-no-tiering-control -Warmup 48 -Iterations 32 -Operations 8 *> (Join-Path $PSScriptRoot \"formatting-no-tiering-control-$mask.log\")\n        if ($LASTEXITCODE) { throw \"No-tiering control failed: $mask\" }\n        Write-Output \"Completed no-tiering diagnostic: $mask\"\n    }\n} finally { $env:DOTNET_TieredCompilation = $savedTieredCompilation }\n",
+    "formatting-small-followup.ps1": "$ErrorActionPreference = 'Stop'\n$all = Get-Content (Join-Path $PSScriptRoot 'formatting-full-cases.json') -Raw | ConvertFrom-Json -AsHashtable\n$cases = [ordered]@{}\nforeach ($suffix in 'MixedJson-None-1000','Quoted-Deflate-1000','Plain-ZLib-1000','Quoted-ZLib-1000') {\n    foreach ($method in 'Save','SaveAsync') { $key=\"$method-$suffix\"; $cases[$key]=$all[$key] }\n}\n$cases | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot 'formatting-small-followup-cases.json') -Encoding utf8\nforeach ($mode in 'AA','AB') {\n    foreach ($mask in 65535L,4294901760L) {\n        $workerArgs = @('-NoProfile','-File',(Join-Path $PSScriptRoot 'rotated.ps1'),'-Mask',\"$mask\",\n            '-Cases','formatting-small-followup-cases.json','-Label',\"formatting-small-followup-$mode\",\n            '-Warmup','64','-Iterations','48','-Operations','16')\n        if ($mode -eq 'AA') { $workerArgs += '-IdenticalBaseline' }\n        pwsh @workerArgs *> (Join-Path $PSScriptRoot \"formatting-small-followup-$mode-$mask.log\")\n        if ($LASTEXITCODE) { throw \"Small follow-up failed: $mode/$mask\" }\n        Write-Output \"Completed small follow-up: $mode/$mask\"\n    }\n}\n",
+    "qualify-formatting.ps1": "$ErrorActionPreference = 'Stop'\n$repo = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path\nSet-Location $repo\n$cases = Get-Content (Join-Path $PSScriptRoot 'formatting-cases.json') -Raw | ConvertFrom-Json -AsHashtable\nforeach ($shape in 'Plain','Quoted','MixedJson') {\n    foreach ($compression in 'None','GZip') {\n        foreach ($method in 'Save','SaveAsync') {\n            $cases[\"$method-$shape-$compression-100000\"] = [ordered]@{\n                Library='CSV'; Class='CsvDocumentSaveBenchmarks'; Setup='Setup'; Method=$method\n                Properties=[ordered]@{RowCount=100000;Shape=$shape;Compression=$compression}\n            }\n        }\n    }\n}\n$cases | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot 'formatting-full-cases.json') -Encoding utf8\n$env:OFFICEIMO_PERFORMANCE_SNAPSHOTS = $PSScriptRoot\n$env:OFFICEIMO_COMPARISON_CASES = Join-Path $PSScriptRoot 'formatting-full-cases.json'\n$env:OFFICEIMO_COMPARISON_MASK = '65535'\n$env:OFFICEIMO_BENCHMARK_PROCESS_PRIORITY = 'Normal'\n$runner = Join-Path $repo 'Ignore/Benchmarks/excel-csv-broad/compare/bin/Release/net10.0/Compare.dll'\ndotnet $runner --validate *> (Join-Path $PSScriptRoot 'formatting-full-validation.log')\nif ($LASTEXITCODE) { throw 'Full output conformance failed.' }\nWrite-Output \"Validated all $($cases.Count) full before/after cases, including 100000-row saves.\"\n$output = Join-Path $PSScriptRoot 'formatting-full-native'\nif (Test-Path $output) { throw 'Full native artifacts already exist.' }\nPush-Location (Join-Path $repo 'Ignore/Benchmarks/excel-csv-broad/compare')\ntry {\n    dotnet $runner --filter '*SnapshotComparison*' --warmupCount 24 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove --artifacts $output *> (Join-Path $PSScriptRoot 'formatting-full-native.log')\n    if ($LASTEXITCODE) { throw 'Full native measurement failed.' }\n} finally { Pop-Location }\n$report = Get-Content (Join-Path $output 'results/SnapshotComparison-report-full.json') -Raw | ConvertFrom-Json\nif ($report.Benchmarks.Count -ne 144 -or @($report.Benchmarks | Where-Object { $_.Statistics.N -ne 12 }).Count) { throw 'Incomplete full native comparison.' }\nWrite-Output 'Completed all 144 native full cases.'\nforeach ($mask in 65535L,4294901760L) {\n    foreach ($rows in 1000,25000,100000) {\n        $compressions = if ($rows -eq 100000) { @('None','GZip') } else { @('None','GZip','Deflate','Brotli','ZLib') }\n        foreach ($compression in $compressions) {\n            $batch = [ordered]@{}\n            foreach ($key in ($cases.Keys | Sort-Object)) {\n                if ($cases[$key].Properties.RowCount -eq $rows -and $cases[$key].Properties.Compression -eq $compression) { $batch[$key] = $cases[$key] }\n            }\n            $batchFile = \"formatting-batch-$rows-$compression.json\"\n            $batch | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $PSScriptRoot $batchFile) -Encoding utf8\n            $label = \"formatting-full-$rows-$compression\"\n            pwsh -NoProfile -File (Join-Path $PSScriptRoot 'rotated.ps1') -Mask $mask -Cases $batchFile -Label $label -Warmup 48 -Iterations 24 -Operations 4 *> (Join-Path $PSScriptRoot \"$label-$mask.log\")\n            if ($LASTEXITCODE) { throw \"Full rotation failed: $mask/$rows/$compression\" }\n            Write-Output \"Completed full rotation: $mask/$rows/$compression\"\n        }\n    }\n}\n$provenance = Get-Content (Join-Path $PSScriptRoot 'formatting-provenance.json') -Raw | ConvertFrom-Json\nforeach ($item in $provenance.Manifest) {\n    foreach ($version in 'Before','After') {\n        $folder = if ($version -eq 'Before') { 'baseline-csv' } else { 'candidate-csv' }\n        if ((Get-FileHash (Join-Path $PSScriptRoot \"$folder/$($item.File)\")).Hash -ne $item.$version) { throw \"Snapshot changed: $folder/$($item.File)\" }\n    }\n}\ngit diff --cached --full-index --binary --no-ext-diff --no-textconv --no-color --output=Ignore/Benchmarks/csv-document-save/formatting-final-verification.patch\nif ((git rev-parse HEAD) -ne $provenance.Base -or (Get-FileHash (Join-Path $PSScriptRoot 'formatting-final-verification.patch')).Hash -ne $provenance.FinalPatchSha256) { throw 'Frozen source changed.' }\nWrite-Output 'Full qualification completed; source and binary hashes remain unchanged.'\n",
+    "formatting-contracts.ps1": "$ErrorActionPreference = 'Stop'\n$repo = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path\nSet-Location $repo\nforeach ($framework in 'net10.0','net8.0','net472') {\n    $log = Join-Path $PSScriptRoot \"formatting-contracts-$framework.log\"\n    dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release -f $framework --no-restore --filter 'Category!=Performance' --logger \"trx;LogFileName=formatting-contracts-$framework.trx\" --results-directory (Join-Path $PSScriptRoot 'tests') --nologo -v minimal *> $log\n    if ($LASTEXITCODE) { throw \"Formatting contracts failed: $framework\" }\n    Get-Content $log -Tail 3\n}\nwsl.exe -d Ubuntu -- bash -lc 'cd /mnt/c/Support/GitHub/_worktrees/OfficeIMO-excel-csv-throughput && dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release -f net10.0 --artifacts-path /tmp/officeimo-csv-document-formatting-20261004/artifacts --filter \"Category!=Performance\" --logger \"trx;LogFileName=formatting-contracts-linux-net10.trx\" --results-directory /mnt/c/Support/GitHub/_worktrees/OfficeIMO-excel-csv-throughput/Ignore/Benchmarks/csv-document-save/tests/linux --nologo -v minimal' *> (Join-Path $PSScriptRoot 'formatting-contracts-linux-net10.log')\nif ($LASTEXITCODE) { throw 'Formatting Linux contracts failed.' }\nGet-Content (Join-Path $PSScriptRoot 'formatting-contracts-linux-net10.log') -Tail 3\ndotnet build OfficeIMO.CSV/OfficeIMO.CSV.csproj -c Release -f netstandard2.0 --no-restore --nologo -v minimal *> (Join-Path $PSScriptRoot 'formatting-netstandard.log')\nif ($LASTEXITCODE) { throw 'Formatting netstandard build failed.' }\nGet-Content (Join-Path $PSScriptRoot 'formatting-netstandard.log') -Tail 5\n",
+    "topology.ps1": "$ErrorActionPreference = 'Stop'\nAdd-Type @'\nusing System;\nusing System.Runtime.InteropServices;\npublic static class CsvBenchmarkTopology {\n    [DllImport(\"kernel32.dll\", SetLastError=true)]\n    public static extern bool GetLogicalProcessorInformationEx(int relation, IntPtr buffer, ref uint length);\n}\n'@\n[uint32]$length = 0\n[CsvBenchmarkTopology]::GetLogicalProcessorInformationEx(2,[IntPtr]::Zero,[ref]$length) | Out-Null\n$buffer = [Runtime.InteropServices.Marshal]::AllocHGlobal([int]$length)\ntry {\n    if (![CsvBenchmarkTopology]::GetLogicalProcessorInformationEx(2,$buffer,[ref]$length)) { throw 'Cannot query cache topology.' }\n    $caches = @(for ($offset=0; $offset -lt $length;) {\n        $entry = [IntPtr]::Add($buffer,$offset)\n        $size = [Runtime.InteropServices.Marshal]::ReadInt32($entry,4)\n        if ($size -lt 8) { throw 'Invalid topology entry.' }\n        if ([Runtime.InteropServices.Marshal]::ReadByte($entry,8) -eq 3) {\n            [ordered]@{ Level=3; SizeBytes=[Runtime.InteropServices.Marshal]::ReadInt32($entry,12);\n                Mask=[Runtime.InteropServices.Marshal]::ReadInt64($entry,40);\n                Group=[Runtime.InteropServices.Marshal]::ReadInt16($entry,48) }\n        }\n        $offset += $size\n    })\n    [ordered]@{ CapturedUtc=[DateTime]::UtcNow.ToString('O'); L3Caches=$caches;\n        Cpu=Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors }\n        | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $PSScriptRoot 'formatting-topology.json') -Encoding utf8\n    $caches | ConvertTo-Json\n} finally { [Runtime.InteropServices.Marshal]::FreeHGlobal($buffer) }\n",
+    "compare/Program.cs": "using System.Diagnostics;\nusing System.Linq.Expressions;\nusing System.Reflection;\nusing System.Runtime.Loader;\nusing System.Text.Json;\nusing BenchmarkDotNet.Attributes;\nusing BenchmarkDotNet.Configs;\nusing BenchmarkDotNet.Exporters.Json;\nusing BenchmarkDotNet.Jobs;\nusing BenchmarkDotNet.Running;\n\nif (args.Length > 0 && args[0] == \"--analyze\") { TraceSummary.Run(args[1]); return; }\n\nif (args.Length > 0 && args[0] == \"--conformance\") {\n    string directory = Path.Combine(Environment.GetEnvironmentVariable(\"OFFICEIMO_PERFORMANCE_SNAPSHOTS\")!, \"candidate-excel\");\n    var context = new SnapshotContext(directory);\n    var assembly = context.LoadFromAssemblyPath(Path.Combine(directory, \"OfficeIMO.Excel.Benchmarks.dll\"));\n    Type type = assembly.GetType(\"OfficeIMO.Excel.Benchmarks.ExcelNativeBinaryWriteBenchmarks\", true)!;\n    foreach (string format in new[] { \"Xls\", \"Xlsb\" }) {\n        foreach (int rows in new[] { 1, 257, 5000 }) {\n            object benchmark = Activator.CreateInstance(type)!;\n            type.GetProperty(\"RowCount\")!.SetValue(benchmark, rows);\n            var property = type.GetProperty(\"Format\")!;\n            property.SetValue(benchmark, Enum.Parse(property.PropertyType, format));\n            object result = type.GetMethod(\"SetupComparison\", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(benchmark, null)!;\n            Console.WriteLine(JsonSerializer.Serialize(new { Format = format, RowCount = rows, Observation = result }));\n        }\n    }\n    return;\n}\n\nif (args.Length > 0 && args[0] == \"--profile\") {\n    Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;\n    if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())\n        Process.GetCurrentProcess().ProcessorAffinity = new IntPtr(Convert.ToInt64(Environment.GetEnvironmentVariable(\"OFFICEIMO_COMPARISON_MASK\") ?? \"65535\"));\n    using var probe = SnapshotProbe.Load(args[1], args[2]);\n    Console.WriteLine(\"Setup validated; starting profile operations.\");\n    for (int i = 0; i < int.Parse(args[3]); i++) await probe.Run();\n    Console.WriteLine(\"Profile operations completed.\");\n    return;\n}\n\nif (args.Length > 0 && args[0] == \"--validate\") {\n    foreach (string key in SnapshotProbe.Keys()) {\n        using var before = SnapshotProbe.Load(key, \"baseline\");\n        using var after = SnapshotProbe.Load(key, \"candidate\");\n        string? oldValue = (await before.Run())?.ToString();\n        string? newValue = (await after.Run())?.ToString();\n        if (oldValue != newValue) throw new InvalidDataException($\"{key}: output differs: {oldValue} / {newValue}\");\n        Console.WriteLine($\"Validated {key}: {oldValue}\");\n    }\n    return;\n}\nlong mask = Convert.ToInt64(Environment.GetEnvironmentVariable(\"OFFICEIMO_COMPARISON_MASK\") ?? \"65535\");\nvar config = DefaultConfig.Instance.AddExporter(JsonExporter.Full)\n    .AddJob(Job.Default.WithId($\"Affinity-{mask:X}\").WithAffinity(new IntPtr(mask)));\nBenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);\n\n[MemoryDiagnoser]\npublic class SnapshotComparison {\n    public IEnumerable<string> Scenarios => SnapshotProbe.Keys();\n    [ParamsSource(nameof(Scenarios))] public string Scenario { get; set; } = \"\";\n    private SnapshotProbe _before = null!, _after = null!;\n    [GlobalSetup] public void Setup() {\n        Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;\n        _before = SnapshotProbe.Load(Scenario, \"baseline\");\n        _after = SnapshotProbe.Load(Scenario, \"candidate\");\n        if (_before.Run().GetAwaiter().GetResult()?.ToString() != _after.Run().GetAwaiter().GetResult()?.ToString())\n            throw new InvalidDataException($\"{Scenario}: baseline and candidate outputs differ.\");\n    }\n    [Benchmark(Baseline = true)] public Task<object?> Before() => _before.Run();\n    [Benchmark] public Task<object?> After() => _after.Run();\n    [GlobalCleanup] public void Cleanup() { try { _before?.Dispose(); } finally { _after?.Dispose(); } }\n}\n\npublic sealed class SnapshotProbe : IDisposable {\n    private readonly object _instance;\n    private readonly Func<Task<object?>> _run;\n    private SnapshotProbe(object instance, Func<Task<object?>> run) { _instance = instance; _run = run; }\n    public Task<object?> Run() => _run();\n    public object? RunSynchronously() => _run().GetAwaiter().GetResult();\n    private static Dictionary<string, JsonElement> Cases() => JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(\n        File.ReadAllText(Environment.GetEnvironmentVariable(\"OFFICEIMO_COMPARISON_CASES\")!))!;\n    public static IEnumerable<string> Keys() => Cases().Keys;\n    public static SnapshotProbe Load(string key, string version) {\n        JsonElement spec = Cases()[key];\n        if (Environment.GetEnvironmentVariable(\"OFFICEIMO_PERFORMANCE_AA\") == \"1\") version = \"baseline\";\n        string library = spec.GetProperty(\"Library\").GetString()!;\n        string root = Environment.GetEnvironmentVariable(\"OFFICEIMO_PERFORMANCE_SNAPSHOTS\")!;\n        string directory = Path.Combine(root, version + \"-\" + library.ToLowerInvariant());\n        var context = new SnapshotContext(directory);\n        string assemblyName = $\"OfficeIMO.{library}.Benchmarks\";\n        var assembly = context.LoadFromAssemblyPath(Path.Combine(directory, assemblyName + \".dll\"));\n        Type type = assembly.GetType(assemblyName + \".\" + spec.GetProperty(\"Class\").GetString(), true)!;\n        object instance = Activator.CreateInstance(type)!;\n        foreach (var setting in spec.GetProperty(\"Properties\").EnumerateObject()) {\n            var property = type.GetProperty(setting.Name)!;\n            object value = property.PropertyType.IsEnum ? Enum.Parse(property.PropertyType, setting.Value.GetString()!)\n                : JsonSerializer.Deserialize(setting.Value.GetRawText(), property.PropertyType)!;\n            property.SetValue(instance, value);\n        }\n        object? setup = type.GetMethod(spec.GetProperty(\"Setup\").GetString()!)!.Invoke(instance, null);\n        if (setup is Task task) task.GetAwaiter().GetResult();\n        var method = type.GetMethod(spec.GetProperty(\"Method\").GetString()!)!;\n        Func<Task<object?>> run;\n        if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)) {\n            run = (Func<Task<object?>>)typeof(SnapshotProbe).GetMethod(nameof(BindAsync), BindingFlags.Static | BindingFlags.NonPublic)!\n                .MakeGenericMethod(method.ReturnType.GenericTypeArguments[0]).Invoke(null, [instance, method])!;\n        } else {\n            var sync = Expression.Lambda<Func<object?>>(Expression.Convert(Expression.Call(Expression.Constant(instance), method), typeof(object))).Compile();\n            run = () => Task.FromResult(sync());\n        }\n        return new SnapshotProbe(instance, run);\n    }\n    private static Func<Task<object?>> BindAsync<T>(object instance, MethodInfo method) {\n        var action = (Func<Task<T>>)method.CreateDelegate(typeof(Func<Task<T>>), instance);\n        return async () => await action().ConfigureAwait(false);\n    }\n    public void Dispose() {\n        object? result = _instance.GetType().GetMethod(\"Cleanup\")?.Invoke(_instance, null);\n        if (result is Task task) task.GetAwaiter().GetResult();\n    }\n}\nsealed class SnapshotContext(string directory) : AssemblyLoadContext {\n    protected override Assembly? Load(AssemblyName name) {\n        string path = Path.Combine(directory, name.Name + \".dll\");\n        return File.Exists(path) ? LoadFromAssemblyPath(path) : null;\n    }\n}\n",
+    "compare/Compare.csproj": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsPackable>false</IsPackable>\n  </PropertyGroup>\n  <ItemGroup><PackageReference Include=\"BenchmarkDotNet\" Version=\"0.15.8\" /></ItemGroup>\n</Project>\n"
+  },
+  "ExecutionNotes": [
+    "An initial Dry invocation inadvertently retained the configured default job. The owned process was stopped; no timings from that aborted run are used. The conformance run then used explicit single-invocation settings.",
+    "The initial rotation invocation failed before measurement because its copied helper referenced the old relative runner path. The corrected helper completed all retained samples.",
+    "The first macOS NET8 attempt failed inside MSBuild GetCwd with Interrupted system call; a single-node, no-restore retry passed. The final custom-span fallback test passed on both macOS targets.",
+    "The first rotated screen exhibited a large difference in unchanged synchronous source. Identical-binary and no-tiering diagnostics are retained. Synchronous timings are not attributed to a direct optimization.",
+    "Timing is Windows NET10 host-specific evidence. Linux/macOS and other target frameworks provide correctness proof only. Managed allocations are warmed bytes, not retained/peak memory."
+  ]
+}

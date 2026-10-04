@@ -253,6 +253,62 @@ four-column validation for each compared writer. Reopening checks every header,
 typed value, row count, and the single-sheet result. This is large-output and
 reader-fallback correctness evidence, not a throughput or memory ranking.
 
+## Default typed formatting during asynchronous document saves
+
+`CsvDocument.SaveAsync` reuses the existing buffer formatter for default quoting,
+null/date handling and formula preservation with a single-character delimiter.
+Typed numbers can be appended without first creating a formatted string. Custom
+options use the established serializer, and record emission retains the existing
+cancellation, asynchronous output, compression and caller-ownership behavior.
+
+Qualification covers 72 workloads: 1,000 and 25,000 rows across plain text,
+quoted Unicode/multiline text and mixed JSON/typed values with no compression,
+GZip, Deflate, Brotli and ZLib; 100,000-row cases cover all three shapes with no
+compression and GZip. Setup compares every output field against an independently
+formatted reference. The complete comparison contains 144 native cases and
+6,912 rotated samples. Each rotated process holds one six-workload batch.
+
+The following table shows candidate/baseline median time on the two confirmed
+96 MiB L3 cache domains. Ratios below one are faster. Managed allocation falls
+by approximately 1.71 MiB per 25,000-row async save and 6.86 MiB per 100,000-row
+async save in the native comparison.
+
+| Async save workload | Rows | Domain A, `0xFFFF` | Domain B, `0xFFFF0000` |
+|---|---:|---:|---:|
+| Plain, uncompressed | 25,000 | 0.645 | 0.698 |
+| Quoted, uncompressed | 25,000 | 0.726 | 0.773 |
+| Mixed JSON, uncompressed | 25,000 | 0.796 | 0.747 |
+| Quoted, GZip | 25,000 | 0.813 | 0.777 |
+| Plain, uncompressed | 100,000 | 0.686 | 0.615 |
+| Quoted, uncompressed | 100,000 | 0.699 | 0.620 |
+| Mixed JSON, uncompressed | 100,000 | 0.601 | 0.535 |
+| Quoted, GZip | 100,000 | 0.727 | 0.759 |
+
+Small cases remain timing-sensitive. Four initial 1,000-row async cases on
+domain B have median ratios of 1.10–1.56. A bounded follow-up with longer warmup,
+16 operations per sample and 48 measured samples has ratios of 0.60–0.69 on
+domain A and 0.56–0.69 on domain B. Identical-binary controls in that follow-up
+have ratios of 1.03–1.27, showing substantial host/runtime variation. The packet
+retains both observations. An earlier screen also shows an unexpected difference
+in synchronous source that disappears substantially with tiered compilation
+disabled; synchronous gains are not attributed to this change.
+
+Correctness passes 655 CSV tests on Windows .NET 10 and .NET 8, 463 on .NET
+Framework 4.7.2, 655 on Linux/WSL .NET 10, and 655 on each of macOS ARM64 .NET 10
+and .NET 8. The `netstandard2.0` product build has no warnings or errors. Ten
+formatting parity cases cover typed values, cultures, delimiters, quoting,
+custom value policies, formulas and custom span-formatting fallback. One fresh
+read-only review reports no actionable findings. Timing is Windows .NET 10
+evidence; other platforms and targets provide correctness proof. Warmed managed
+allocation does not establish retained or peak memory.
+
+The packet retains [native measurements](excel-csv-broad-throughput-2026-10-04/async-document-formatting-native.json),
+[full rotations](excel-csv-broad-throughput-2026-10-04/async-document-formatting-rotated.json),
+[screening and follow-up controls](excel-csv-broad-throughput-2026-10-04/async-document-formatting-diagnostics.json),
+and [source, binary, runtime, review and reproduction details](excel-csv-broad-throughput-2026-10-04/async-document-formatting-provenance.json).
+These measurements do not establish a cross-library ranking or close the
+remaining spreadsheet throughput and portable-memory targets.
+
 ## Validation and reproduction
 
 - Windows CSV correctness: 630 tests on .NET 10, 630 on .NET 8, and 440 on .NET Framework 4.7.2.
