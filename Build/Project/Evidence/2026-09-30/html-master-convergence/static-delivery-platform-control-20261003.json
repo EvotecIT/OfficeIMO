@@ -1,6 +1,6 @@
 {
   "$schema": "officeimo.html.static-delivery-qualification",
-  "recordedAtUtc": "2026-10-04T12:18:53.832648+00:00",
+  "recordedAtUtc": "2026-10-04T21:11:04.745745+00:00",
   "control": {
     "sourceCommit": "0aea7880f94a317c12d1367485d0617af1647f91",
     "workflowCommit": "7c1226b65ff39ccf517ef6eab39f63b9d869e3ac",
@@ -5553,5 +5553,628 @@
       "preserved": "Normal Core feed, package origin/consumer hashes, source controls, analytical/full-suite TRX, independent PNGs, traces and failure logs",
       "route": "Guarded native helper; hidden/read-only execution failure recovered through guarded DotNet with fresh preflight"
     }
+  },
+  "contourScanlineQualification20261004": {
+    "source": "4bc99baefea8b944c18b1b5798982ec1914ed216",
+    "runId": 37228306262,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37228306262",
+    "outcome": "failed; do not claim absolute budget acceptance",
+    "coreStandalonePr": 2787,
+    "coreMergedCommit": "e245b63cbe17281a3804a6842dac80b0a7529938",
+    "platforms": {
+      "html-static-qualification-macos-latest": {
+        "tests": {
+          "drawing-math-contours-net10.0.trx": {
+            "counters": {
+              "total": "13",
+              "executed": "13",
+              "passed": "13",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "drawing-math-contours-net8.0.trx": {
+            "counters": {
+              "total": "13",
+              "executed": "13",
+              "passed": "13",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "html-net10.0.trx": {
+            "counters": {
+              "total": "4278",
+              "executed": "4278",
+              "passed": "4278",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "html-net8.0.trx": {
+            "counters": {
+              "total": "4278",
+              "executed": "4278",
+              "passed": "4278",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-fonts-net10.0.trx": {
+            "counters": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-fonts-net8.0.trx": {
+            "counters": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-net10.0.trx": {
+            "counters": {
+              "total": "8779",
+              "executed": "8779",
+              "passed": "8779",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          }
+        },
+        "candidateSource": {
+          "commit": "4bc99baefea8b944c18b1b5798982ec1914ed216",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "controlSource": {
+          "commit": "5e530f885da3b01ec07bd2a13995ddf7e7cce2d7",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "candidateColdMs": 13496.3702,
+        "controlColdMs": 15370.3173,
+        "candidateWarmMs": [
+          4233.896,
+          4260.2144,
+          3704.8439
+        ],
+        "controlWarmMs": [
+          4295.1332,
+          4055.449,
+          4260.783
+        ],
+        "candidateColdAllocatedBytes": 1229280264,
+        "controlColdAllocatedBytes": 1229687024,
+        "candidateFingerprint": "cf9ea4951ded9fb6bd9bb7d336c1ad81e7844a1ce6764f4bd2a7fdc5f07e6e87",
+        "controlFingerprint": "cf9ea4951ded9fb6bd9bb7d336c1ad81e7844a1ce6764f4bd2a7fdc5f07e6e87",
+        "candidateFailures": [
+          "cold process elapsed milliseconds 13496.4 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 4233.9 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 4260.2 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3704.8 exceeded ceiling 3000.0."
+        ],
+        "controlFailures": [
+          "cold process elapsed milliseconds 15370.3 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 4295.1 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 4055.4 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 4260.8 exceeded ceiling 3000.0."
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 3.2965,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "packageReceipt": "Ignore/MasterConvergenceQualification/hosted-contour-macos-package-origins.json"
+      },
+      "html-static-qualification-ubuntu-latest": {
+        "tests": {
+          "drawing-math-contours-net10.0.trx": {
+            "counters": {
+              "total": "13",
+              "executed": "13",
+              "passed": "13",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "drawing-math-contours-net8.0.trx": {
+            "counters": {
+              "total": "13",
+              "executed": "13",
+              "passed": "13",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "html-net10.0.trx": {
+            "counters": {
+              "total": "4278",
+              "executed": "4278",
+              "passed": "4278",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "html-net8.0.trx": {
+            "counters": {
+              "total": "4278",
+              "executed": "4278",
+              "passed": "4278",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-fonts-net10.0.trx": {
+            "counters": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-fonts-net8.0.trx": {
+            "counters": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-net10.0.trx": {
+            "counters": {
+              "total": "8779",
+              "executed": "8779",
+              "passed": "8779",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          }
+        },
+        "candidateSource": {
+          "commit": "4bc99baefea8b944c18b1b5798982ec1914ed216",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "controlSource": {
+          "commit": "5e530f885da3b01ec07bd2a13995ddf7e7cce2d7",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "candidateColdMs": 11913.7244,
+        "controlColdMs": 10713.7022,
+        "candidateWarmMs": [
+          5680.8181,
+          5237.2986,
+          5207.88
+        ],
+        "controlWarmMs": [
+          5550.1101,
+          5299.7715,
+          5248.371
+        ],
+        "candidateColdAllocatedBytes": 1083369744,
+        "controlColdAllocatedBytes": 1086446664,
+        "candidateFingerprint": "473f4b61c0737500f531c1b3b3db14e5bae2b6795c4f029709db417dabee8ea8",
+        "controlFingerprint": "473f4b61c0737500f531c1b3b3db14e5bae2b6795c4f029709db417dabee8ea8",
+        "candidateFailures": [
+          "warm iteration 1 elapsed milliseconds 5680.8 exceeded ceiling 5000.0.",
+          "warm iteration 2 elapsed milliseconds 5237.3 exceeded ceiling 5000.0.",
+          "warm iteration 3 elapsed milliseconds 5207.9 exceeded ceiling 5000.0."
+        ],
+        "controlFailures": [
+          "warm iteration 1 elapsed milliseconds 5550.1 exceeded ceiling 5000.0.",
+          "warm iteration 2 elapsed milliseconds 5299.8 exceeded ceiling 5000.0.",
+          "warm iteration 3 elapsed milliseconds 5248.4 exceeded ceiling 5000.0."
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 4.6531,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "packageReceipt": "Ignore/MasterConvergenceQualification/hosted-contour-ubuntu-package-origins.json"
+      },
+      "html-static-qualification-windows-latest": {
+        "tests": {
+          "drawing-math-contours-net10.0.trx": {
+            "counters": {
+              "total": "13",
+              "executed": "13",
+              "passed": "13",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "drawing-math-contours-net8.0.trx": {
+            "counters": {
+              "total": "13",
+              "executed": "13",
+              "passed": "13",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "html-net10.0.trx": {
+            "counters": {
+              "total": "4278",
+              "executed": "4278",
+              "passed": "4278",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "html-net8.0.trx": {
+            "counters": {
+              "total": "4278",
+              "executed": "4278",
+              "passed": "4277",
+              "failed": "1",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": [
+              {
+                "name": "OfficeIMO.Tests.HtmlRenderRequestTests.DirectPdfByteEntryPointsKeepSerializationInsideTheRenderDeadline(useExplicitAsyncRequest: True)",
+                "message": "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+              }
+            ]
+          },
+          "pdf-fonts-net10.0.trx": {
+            "counters": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-fonts-net8.0.trx": {
+            "counters": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          },
+          "pdf-net10.0.trx": {
+            "counters": {
+              "total": "8779",
+              "executed": "8779",
+              "passed": "8779",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "nonPassed": []
+          }
+        },
+        "candidateSource": {
+          "commit": "4bc99baefea8b944c18b1b5798982ec1914ed216",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "controlSource": {
+          "commit": "5e530f885da3b01ec07bd2a13995ddf7e7cce2d7",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "candidateColdMs": 19380.0196,
+        "controlColdMs": 18551.8172,
+        "candidateWarmMs": [
+          6568.8506,
+          6444.3662,
+          6776.0826
+        ],
+        "controlWarmMs": [
+          7045.9825,
+          7356.3696,
+          7596.4719
+        ],
+        "candidateColdAllocatedBytes": 2506587392,
+        "controlColdAllocatedBytes": 2505755816,
+        "candidateFingerprint": "627f52141d09a68166373c34d2b6a1cbdcab586dd4d407b04ba1ac3b2c207197",
+        "controlFingerprint": "627f52141d09a68166373c34d2b6a1cbdcab586dd4d407b04ba1ac3b2c207197",
+        "candidateFailures": [
+          "cold process elapsed milliseconds 19380.0 exceeded ceiling 12000.0.",
+          "cold managed allocated bytes 2506587392.0 exceeded ceiling 2500000000.0.",
+          "warm iteration 1 elapsed milliseconds 6568.9 exceeded ceiling 4000.0.",
+          "warm iteration 2 elapsed milliseconds 6444.4 exceeded ceiling 4000.0.",
+          "warm iteration 3 elapsed milliseconds 6776.1 exceeded ceiling 4000.0."
+        ],
+        "controlFailures": [
+          "cold process elapsed milliseconds 18551.8 exceeded ceiling 12000.0.",
+          "cold managed allocated bytes 2505755816.0 exceeded ceiling 2500000000.0.",
+          "warm iteration 1 elapsed milliseconds 7046.0 exceeded ceiling 4000.0.",
+          "warm iteration 2 elapsed milliseconds 7356.4 exceeded ceiling 4000.0.",
+          "warm iteration 3 elapsed milliseconds 7596.5 exceeded ceiling 4000.0."
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 8.0252,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "packageReceipt": "Ignore/MasterConvergenceQualification/hosted-contour-windows-package-origins.json"
+      }
+    },
+    "qualificationLimits": [
+      "Windows .NET8 one serialization-deadline test exhausted100ms before encryption began; normal deadline enforcement fired, but serialization was not reached. Test setup now permits5s and intentionally blocks encryption for5.3s. Focused local net10 both entry points pass; fresh Windows proof remains open.",
+      "Budget failures are retained for both candidate and same-runner control; no repeated-until-green run, ceiling change, causation or cross-platform no-regression claim.",
+      "All19 four-target package origins, installed bytes and actual consumer DLL hashes were independently reverified from each platform artifact. Windows63, macOS42 and Ubuntu42 matching consumer assets. Installed .NETFramework4.8 consumer execution is not installed4.7.2 runtime proof."
+    ]
   }
 }
