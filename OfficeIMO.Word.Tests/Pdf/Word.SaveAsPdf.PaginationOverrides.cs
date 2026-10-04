@@ -8,6 +8,30 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("direct")]
+    [InlineData("empty")]
+    [InlineData("manual")]
+    public void SaveAsPdf_PageBreakOffAfterCoverRetainsTheCoverBoundary(string separator) {
+        string path = Path.Combine(_directoryWithFiles, "CoverPageBreakOff-" + separator + ".docx");
+        using (WordDocument document = WordDocument.Create(path)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlock("OverrideCoverMarker"));
+            if (separator == "empty") document.AddParagraph().PageBreakBeforeOverride = false;
+            if (separator == "manual") document.AddPageBreak();
+            document.AddParagraph("AfterCoverMarker").PageBreakBeforeOverride = false;
+            document.Save();
+        }
+
+        using WordDocument reopened = WordDocument.Load(path);
+        using PdfPigDocument pdf = PdfPigDocument.Open(reopened.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, FontFamily = "Helvetica"
+        }));
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("OverrideCoverMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("AfterCoverMarker", pdf.GetPage(1).Text);
+        Assert.Contains("AfterCoverMarker", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]

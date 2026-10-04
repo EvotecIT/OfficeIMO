@@ -220,7 +220,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativePageBreakSeparator(W.Paragraph paragraph) =>
-            paragraph.ParagraphProperties?.PageBreakBefore != null ||
+            ReadNativeOnOff(paragraph.ParagraphProperties?.PageBreakBefore) == true ||
             paragraph.Descendants<W.Break>().Any(breakElement => breakElement.Type?.Value == W.BreakValues.Page);
 
         private static string? GetNativeBuiltInPropertyValue(WordDocument document, W.SdtProperties? properties) {
