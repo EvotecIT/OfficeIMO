@@ -41,9 +41,8 @@ reopens DOCX, XLSX and PPTX, checks Pages body text, Numbers typed cells and a
 formula cache, Keynote titles/body text, presenter notes and qualified backgrounds,
 and recalculates the saved Numbers formula after an operand edit. Caller-owned
 streams, unchanged source bytes and retained source records are checked. The
-Pages and Numbers fixtures use the default policy and require complete editable
-reconstruction. The Keynote fixture uses `AllowPartialEditableReconstruction = true`
-and checks that its partial status remains reported. Passing the native gate does
+Pages, Numbers and Keynote fixtures use the default policy and require complete editable
+reconstruction. Passing the native gate does
 not qualify complete appearance or broader source compatibility.
 
 Run the coordinated native gate from PowerShell with the pinned SDK and platform
@@ -273,7 +272,9 @@ The [Numbers 14.5 source/export evidence](../OfficeIMO.TestAssets/Documents/IWor
 
 The [Pages 15.4 source/export evidence](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-simple-v15.4.json) pairs the unchanged Pages 14.5 source with native DOCX and PDF exports. It qualifies the three body paragraphs, single spacing, empty custom tabs, 36-point default tab interval, 12-point Times text, US Letter size and page margins. Paragraph text formatting also reaches the DOCX paragraph mark, preserving the height of the empty paragraph. Pages imports the saved OfficeIMO DOCX without a repair prompt. Its one-page native PDF rendering matches the reference's seven word bounds and the inspected 1200-pixel raster. This qualification is limited to the recorded fixture, fonts, producer and renderer; it does not establish broader pagination or typography equivalence.
 
-The unchanged `nim-iwork/simple.key` retains two editable slides, text and presenter notes through an explicitly partial result. Its true paragraph pagination flags have no qualified PPTX preservation contract and remain reported. It is not part of the strict subset. Broader native producer/version, pagination, font and rendered qualification remains in [I2 and I3](ROADMAP.md#apple-iwork).
+The [Keynote 15.4 source/export evidence](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-simple-v15.4.json) qualifies default strict conversion of the unchanged Keynote 14.5 `nim-iwork/simple.key`: two editable slides in order, text, presenter notes, selected placeholder geometry, inherited four-point text margins, vertical anchors, shrink-to-fit and character-bullet placement/size. Saved PPTX geometry matches Apple's export within two EMUs. Both native PPTX renderings have identical 1200-pixel rasters. The original `.key` rendering has a small ligature/word-advance difference also present in Apple's own PPTX round trip; strict content completeness does not promise exact typography or theme/master preservation.
+
+`IWorkTextBox.Layout` exposes recovered frame properties and `IWorkTextParagraph.ListLayout` exposes selected character-marker geometry. Keep-lines is inactive only in qualified unlinked, horizontal, single-column fixed frames with recovered positive geometry, margins, vertical alignment and fit settings. A reproducible wrapped-text native toggle proves this bounded case. Keep-with-next, page breaks, linked flows, unknown frame layouts, notes and table-cell pagination retain their strict gates. PPTX marker geometry requires uniform known font size, representable measurements and whole-percentage marker scale; interacting paragraph indents remain unqualified. DOCX character-marker geometry requires partial conversion and reports `IWORK_PAGES_LIST_LAYOUT_APPROXIMATED`. Broader native producer/version, pagination and typography qualification remains in [I2 and I3](ROADMAP.md#apple-iwork).
 
 ## Corpus evidence
 

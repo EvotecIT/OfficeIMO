@@ -256,7 +256,6 @@ public sealed class IWorkCorpusTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
             Fixture("nim-iwork/simple.key"), conversionOptions: new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly,
-                AllowPartialEditableReconstruction = true
             });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream();
@@ -536,7 +535,8 @@ public sealed class IWorkCorpusTests {
 
         Assert.False(pages.IsVisualFallback);
         Assert.False(numbers.IsVisualFallback);
-        Assert.True(keynote.IsVisualFallback);
+        Assert.False(keynote.IsVisualFallback);
+        keynote.Report.RequireCompleteEditableReconstruction();
         using var wordBytes = new MemoryStream();
         using var excelBytes = new MemoryStream();
         using var powerPointBytes = new MemoryStream();
@@ -553,8 +553,9 @@ public sealed class IWorkCorpusTests {
         Assert.Contains(word.Paragraphs, paragraph => paragraph.Text == "hello pages");
         Assert.Single(excel.Sheets);
         Assert.Equal("a", excel.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Single(powerPoint.Slides);
-        Assert.Single(powerPoint.Slides[0].Pictures);
+        Assert.Equal(2, powerPoint.Slides.Count);
+        Assert.Empty(powerPoint.Slides[0].Pictures);
+        Assert.Contains(powerPoint.Slides[0].TextBoxes, box => box.Text.Contains("first bullet", StringComparison.Ordinal));
     }
 
     [Theory]

@@ -82,6 +82,8 @@ Table text formatting is separate from typed values. `IWorkTable.TextStyles` exp
 
 `IWorkKeynoteSlide.HasBackgroundFill` indicates a recovered slide-style background. `BackgroundColor` contains its opaque RGB color; a null color with `HasBackgroundFill = true` denotes explicit no-fill. Selected style inheritance and unsupported-fill diagnostics are described in the [background contract](../Docs/officeimo.iwork-support-matrix.md#keynote-slide-backgrounds).
 
+Keynote `IWorkTextBox.Layout` exposes selected inherited margins in points, `VerticalAlignment` and `ShrinkToFit`; a null layout means those frame properties were not recovered. `IWorkTextParagraph.ListLayout` exposes qualified character-marker indentation in points, text indentation relative to font size and marker scale. These immutable source properties let callers inspect layout without constructing a destination. The [support matrix](../Docs/officeimo.iwork-support-matrix.md#qualified-everyday-subset) defines the bounded PPTX mapping and other destination limits.
+
 ## Cancellation
 
 Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Use `source.WithCancellation(newToken)` for an independently cancellable projection or conversion without rereading the package. The view shares loaded bytes and parsed messages and replaces the previous token; `CancellationToken.None` permits reuse after the opening token is cancelled. Caller-owned streams remain open when loading succeeds or is cancelled.

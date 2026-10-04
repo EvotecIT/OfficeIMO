@@ -47,6 +47,10 @@ public static partial class WordIWorkConverter {
                 .Any(paragraph => paragraph.ListLevel > 8)) {
             return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
+        if (!allowPartialEditableReconstruction && AllPagesText(projection)
+                .SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null)) {
+            return "Pages character-marker geometry has not been qualified for DOCX numbering.";
+        }
         if (AllPagesText(projection).SelectMany(content => content.Paragraphs)
                 .Any(paragraph => paragraph.ListLevel >= 0 && paragraph.ListMarkerKind == IWorkListMarkerKind.Number
                     && !IWorkNativeListCatalog.CanPreserveStart(paragraph.ListLabel))) {

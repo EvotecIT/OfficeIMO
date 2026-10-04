@@ -61,6 +61,13 @@ public static partial class WordIWorkConverter {
         int reconstructedSectionCount = 1 + projection.Body.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section);
         if (editable) {
+            if (AllPagesText(projection).SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null)) {
+                destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                    new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_LIST_LAYOUT_APPROXIMATED",
+                        "DOCX uses destination list-marker placement and size; native list geometry remains available on the projection.",
+                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+                }).ToArray();
+            }
             destinationDiagnostics = destinationDiagnostics.Concat(IWorkNumericDisplayDiagnostics.ForTextTables(
                 projection.Tables.SelectMany(table => table.Cells), "PAGES", "DOCX", cancellationToken)).ToArray();
             if (projection.Tables.Any(table => table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0)) {

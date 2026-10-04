@@ -10,7 +10,6 @@ using OfficeIMO.PowerPoint.IWork;
 Require(!System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported
     && !System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeCompiled,
     "The iWork conversion host must execute as NativeAOT.");
-var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
 var fixtures = new[] {
     ("simple.pages", "5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E"),
     ("simple.numbers", "D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B"),
@@ -32,7 +31,8 @@ foreach (var (name, hash) in fixtures) {
         Require(reopened.Paragraphs.Any(p => p.Text == "hello pages"), "Saved DOCX lost Pages body text.");
         Require(result.Report.PreservedRecords.Count > 0, "Pages lost source evidence.");
     } else if (name.EndsWith(".key", StringComparison.Ordinal)) {
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, conversionOptions: options);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input);
+        result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Keynote unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
@@ -42,7 +42,6 @@ foreach (var (name, hash) in fixtures) {
             && reopened.Slides[0].TextBoxes.Any(t => t.Text.Contains("first bullet", StringComparison.Ordinal))
             && reopened.Slides[1].TextBoxes.Any(t => t.Text.Contains("second slide", StringComparison.Ordinal)),
             "Saved PPTX lost native titles or body text.");
-        Require(result.Report.IsPartialEditableReconstruction, "Keynote lost its partial-reconstruction status.");
         Require(reopened.Slides.Any(s => s.GetSpeakerNotesText().Contains("note text here", StringComparison.Ordinal)),
             "Saved PPTX lost presenter notes.");
         Require(reopened.Slides.All(s => s.BackgroundColor == "FFFFFF"), "Saved PPTX lost qualified backgrounds.");
@@ -70,7 +69,7 @@ foreach (var (name, hash) in fixtures) {
     }
     Require(input.CanRead, "Conversion closed the caller-owned stream.");
     Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == hash, "Conversion changed source bytes.");
-    Console.WriteLine($"PASS | {name} | {hash} | {(name.EndsWith(".key", StringComparison.Ordinal) ? "partial" : "complete")} editable conversion, save/reopen, source preservation");
+    Console.WriteLine($"PASS | {name} | {hash} | complete editable conversion, save/reopen, source preservation");
 }
 Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
     + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);

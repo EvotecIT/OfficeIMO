@@ -218,6 +218,12 @@ public static partial class PowerPointIWorkConverter {
                     .Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))) {
                 return $"Keynote slide {slide.Index} contains a hyperlink that cannot be represented by the PPTX owner.";
             }
+            if (slide.TextBoxes.Concat(slide.TitleBox == null ? Array.Empty<IWorkTextBox>() : new[] { slide.TitleBox })
+                .Where(box => box.Layout != null).Any(box => !FitsTextCoordinate(box.Layout!.LeftInsetPoints)
+                    || !FitsTextCoordinate(box.Layout.TopInsetPoints) || !FitsTextCoordinate(box.Layout.RightInsetPoints)
+                    || !FitsTextCoordinate(box.Layout.BottomInsetPoints))) {
+                return $"Keynote slide {slide.Index} contains text-frame padding outside the PPTX measurement range.";
+            }
             IEnumerable<IWorkGeometry> geometries = slide.TextBoxes
                 .Select(textBox => textBox.Geometry)
                 .Concat(slide.TitleBox == null ? Array.Empty<IWorkGeometry?>() : new[] { slide.TitleBox.Geometry })
@@ -247,7 +253,7 @@ public static partial class PowerPointIWorkConverter {
                     && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0))) {
                 return $"Keynote slide {slide.Index} contains a zero-sized image that cannot be represented by the PPTX image owner.";
             }
-            foreach (IWorkTextContent content in SlideText(slide)) {
+            foreach ((IWorkTextContent content, IWorkTextBox? frame) in SlideTextContexts(slide)) {
                 foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
                     if (paragraph.BreakKind is IWorkParagraphBreakKind.Section
                         or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page) {
@@ -262,8 +268,10 @@ public static partial class PowerPointIWorkConverter {
                         return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
                     }
                     IWorkParagraphStyle style = paragraph.Style;
-                    if (!allowPartialEditableReconstruction && (style.PageBreakBefore == true
-                        || style.KeepWithNext == true || style.KeepLinesTogether == true)) {
+                    if (paragraph.ListLayout != null && !CanApplyListLayout(paragraph)) {
+                        return $"Keynote slide {slide.Index} contains marker placement or size outside the qualified PPTX list-layout range.";
+                    }
+                    if (!allowPartialEditableReconstruction && IWorkTextBoxLayoutReader.HasUnsupportedPagination(style, frame)) {
                         return $"Keynote slide {slide.Index} contains paragraph pagination formatting that the PPTX owner cannot preserve.";
                     }
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
@@ -430,13 +438,16 @@ public static partial class PowerPointIWorkConverter {
     private static double QuantizePositiveEmuPoints(double points) =>
         PowerPointUnits.ToPoints(Math.Max(1L, PowerPointUnits.FromPoints(points)));
 
-    private static IEnumerable<IWorkTextContent> SlideText(IWorkKeynoteSlide slide) {
-        if (slide.TitleBox != null) yield return slide.TitleBox.Content;
-        foreach (IWorkTextBox textBox in slide.TextBoxes) yield return textBox.Content;
-        yield return slide.PresenterNoteContent;
+    private static IEnumerable<IWorkTextContent> SlideText(IWorkKeynoteSlide slide) =>
+        SlideTextContexts(slide).Select(item => item.Content);
+
+    private static IEnumerable<(IWorkTextContent Content, IWorkTextBox? Frame)> SlideTextContexts(IWorkKeynoteSlide slide) {
+        if (slide.TitleBox != null) yield return (slide.TitleBox.Content, slide.TitleBox);
+        foreach (IWorkTextBox textBox in slide.TextBoxes) yield return (textBox.Content, textBox);
+        yield return (slide.PresenterNoteContent, null);
         foreach (IWorkTable table in slide.Tables) {
             foreach (IWorkTableCell cell in table.Cells) {
-                if (cell.RichText != null) yield return cell.RichText;
+                if (cell.RichText != null) yield return (cell.RichText, null);
             }
         }
     }
@@ -446,6 +457,23 @@ public static partial class PowerPointIWorkConverter {
         double scaled = points.Value * PowerPointUnits.EmusPerPoint;
         return IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / PowerPointUnits.EmusPerPoint
             && scaled == Math.Round(scaled);
+    }
+
+    private static bool CanApplyListLayout(IWorkTextParagraph paragraph) {
+        if (paragraph.ListLayout is not { } layout) return true;
+        if (paragraph.Style.TextStyle.FontSizePoints is not double fontSize || !IsFinite(fontSize)
+            || fontSize <= 0 || paragraph.Runs.Any(run => run.Style.FontSizePoints is double size
+                && Math.Abs(size - fontSize) > 0.00001d)) return false;
+        // Additional paragraph indentation interacting with native marker geometry
+        // needs an independent producer/export case before it can be reconstructed.
+        if (Math.Abs(paragraph.Style.LeftIndentPoints.GetValueOrDefault()) > 0.000001d
+            || Math.Abs(paragraph.Style.FirstLineIndentPoints.GetValueOrDefault()) > 0.000001d) return false;
+        double offset = layout.TextIndentEm * fontSize;
+        double percent = layout.MarkerScale * 100d;
+        return FitsTextCoordinate(paragraph.Style.LeftIndentPoints.GetValueOrDefault() + layout.MarkerIndentPoints + offset)
+            && FitsTextCoordinate(paragraph.Style.FirstLineIndentPoints.GetValueOrDefault() - offset)
+            && IsFinite(percent) && percent >= 25d && percent <= 400d
+            && Math.Abs(percent - Math.Round(percent)) <= 0.00001d;
     }
 
     private static bool FitsSpacing(double? points) => !points.HasValue

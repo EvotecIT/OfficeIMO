@@ -120,16 +120,20 @@ public sealed class IWorkImageAsset {
 /// <summary>A positioned rich-text box recovered from an iWork canvas.</summary>
 public sealed class IWorkTextBox {
     internal IWorkTextBox(IWorkTextContent content, IWorkGeometry? geometry,
-        string? hyperlink, string? accessibilityDescription, IWorkObjectIdentity? sourceIdentity = null) {
+        string? hyperlink, string? accessibilityDescription, IWorkObjectIdentity? sourceIdentity = null,
+        IWorkTextBoxLayout? layout = null) {
         Content = content;
         Geometry = geometry;
         Hyperlink = hyperlink;
         AccessibilityDescription = accessibilityDescription;
         SourceIdentity = sourceIdentity;
+        Layout = layout;
     }
 
     /// <summary>Gets the rich text content.</summary>
     public IWorkTextContent Content { get; }
+    /// <summary>Gets selected native text-frame formatting, or null when unspecified.</summary>
+    public IWorkTextBoxLayout? Layout { get; }
     /// <summary>Gets the native text-shape identity, separately from its content storage.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     /// <summary>Gets source drawable geometry.</summary>

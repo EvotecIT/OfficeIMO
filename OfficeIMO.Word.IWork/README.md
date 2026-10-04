@@ -51,6 +51,8 @@ This retains bounded recoverable editable content and reports incomplete details
 
 Under the partial policy, positioned tables become flowing editable Word tables and finite measurements are rounded to DOCX units. `IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED` and `IWORK_PAGES_DOCX_PRECISION` identify those approximations; original geometry remains on the source projection.
 
+Recovered character-list marker geometry remains on `IWorkTextParagraph.ListLayout`. Its DOCX placement and size require `AllowPartialEditableReconstruction = true` and produce `IWORK_PAGES_LIST_LAYOUT_APPROXIMATED`; strict conversion rejects this unqualified numbering layout.
+
 The path and stream convenience APIs accept cancellation after the options:
 
 ```csharp
