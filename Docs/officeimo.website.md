@@ -99,6 +99,11 @@ deployments continue to publish those URLs. Never replace the bytes at a publish
 versioned path. Check the complete deployment against GitHub Pages' one-gigabyte
 site limit; the manifest's byte limit covers installer downloads only.
 
+The site audit exempts the two pinned MSI paths from its general 25 MiB file
+budget. Their exact sizes and hashes are enforced by `download-artifacts`.
+Add the corresponding exact audit exception when pinning a new installer; keep
+the general budget for other site assets.
+
 Before using a URL in a Store submission, retrieve it without following redirects
 and confirm HTTP 200, exact length, SHA-256 and Authenticode signature against the
 release. GitHub release URLs remain suitable for WinGet manifests.
