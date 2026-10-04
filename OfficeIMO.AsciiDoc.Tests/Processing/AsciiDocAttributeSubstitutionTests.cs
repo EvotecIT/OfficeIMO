@@ -13,6 +13,26 @@ public sealed class AsciiDocAttributeSubstitutionTests {
     }
 
     [Fact]
+    public void ManyAttributeSnapshotsRetainEarlierValuesAfterLaterUpdatesAndUnsets() {
+        var source = new System.Text.StringBuilder();
+        for (int index = 0; index < 512; index++)
+            source.Append(":key").Append(index).Append(": value").Append(index).Append('\n');
+        source.Append(":KEY0: updated\n:key1!:\n");
+
+        AsciiDocBlockContext[] contexts = AsciiDocDocument.Parse(source.ToString())
+            .GetBlockContexts().ToArray();
+        Assert.Equal(514, contexts.Length);
+        Assert.Equal("value0", contexts[0].Attributes.GetValueOrDefault("KEY0"));
+        Assert.False(contexts[0].Attributes.Contains("key511"));
+        Assert.Equal("value0", contexts[511].Attributes.GetValueOrDefault("key0"));
+        Assert.Equal(512, contexts[511].Attributes.Count);
+        Assert.Equal("updated", contexts[512].Attributes.GetValueOrDefault("key0"));
+        Assert.Equal(511, contexts[513].Attributes.Count);
+        Assert.False(contexts[513].Attributes.Contains("KEY1"));
+        Assert.Equal(511, contexts[513].Attributes.Values.Count);
+    }
+
+    [Fact]
     public void Substitution_IsRecursiveCaseInsensitiveAndBounded() {
         AsciiDocDocumentAttributes attributes = AsciiDocDocument.ParseResult(
             ":product: OfficeIMO\n:edition: {PRODUCT} Pro\n").Document.GetAttributes();
