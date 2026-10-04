@@ -89,6 +89,18 @@ public sealed class XpsBoundsAndNavigationTests {
         Assert.True(page.ToSvg().IsComplete);
     }
 
+    [Theory]
+    [InlineData("M10,10 L50,10 L50,10 L50,50")]
+    [InlineData("M10,10 L50,10 C50,10 50,10 50,10 L50,50")]
+    [InlineData("M10,10 L10,10 L50,10 L50,50 Z")]
+    public void DegenerateSegmentsUseTheNativeImpliedMiterLimit(string geometry) {
+        var page = XpsDocument.Create().AddPage(100, 100).AddPath(geometry, null, "#FF000000", 4);
+        Assert.Contains("Clipped miter stroke join", page.ToSvg(true).Diagnostics);
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("StrokeLineJoin", "Round"); page.ReplaceMarkup(xml);
+        Assert.True(page.ToSvg().IsComplete);
+    }
+
     [Fact]
     public void DefaultFlatDashCapsDoNotSilentlyBecomeRound() {
         var page = XpsDocument.Create().AddPage(100, 100).AddPath("M10,20L90,20", null, "#FF000000", 3);

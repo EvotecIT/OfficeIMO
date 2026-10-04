@@ -35,15 +35,15 @@ internal sealed partial class XpsSvgConverter {
     private static bool RequiresClippedMiter(string path, double limit) {
         if (!OfficeSvgPathDataParser.TryParse(path, 100000, out var commands, out _, allowEmptyGeometry: true)) throw new InvalidDataException("Invalid stroke path.");
         OfficePoint current = default, start = default, incoming = default, first = default;
-        bool hasTangent = false;
+        bool hasTangent = false, pendingDegenerate = false, leadingDegenerate = false;
         OfficePoint Difference(OfficePoint a, OfficePoint b) => new(a.X - b.X, a.Y - b.Y);
         bool Zero(OfficePoint p) => p.X == 0 && p.Y == 0;
-        bool OverLimit(OfficePoint a, OfficePoint b) {
+        bool OverLimit(OfficePoint a, OfficePoint b, double joinLimit) {
             double dot = (a.X * b.X + a.Y * b.Y) / Math.Sqrt((a.X * a.X + a.Y * a.Y) * (b.X * b.X + b.Y * b.Y));
-            return 1 + Math.Max(-1, Math.Min(1, dot)) < 2 / (limit * limit) - 1e-12;
+            return 1 + Math.Max(-1, Math.Min(1, dot)) < 2 / (joinLimit * joinLimit) - 1e-12;
         }
         foreach (var command in commands) {
-            if (command.Kind == OfficePathCommandKind.MoveTo) { current = start = command.Point; hasTangent = false; continue; }
+            if (command.Kind == OfficePathCommandKind.MoveTo) { current = start = command.Point; hasTangent = pendingDegenerate = leadingDegenerate = false; continue; }
             bool closed = command.Kind == OfficePathCommandKind.Close;
             OfficePoint end = closed ? start : command.Point;
             OfficePoint outgoing = Difference(end, current), ending = outgoing;
@@ -61,11 +61,16 @@ internal sealed partial class XpsSvgConverter {
                 if (Zero(ending)) ending = Difference(end, current);
             }
             if (!Zero(outgoing) && !Zero(ending)) {
-                if (hasTangent && OverLimit(incoming, outgoing)) return true;
+                if (hasTangent && OverLimit(incoming, outgoing, pendingDegenerate ? 1 : limit)) return true;
                 if (!hasTangent) first = outgoing;
-                incoming = ending; hasTangent = true;
+                incoming = ending; hasTangent = true; pendingDegenerate = false;
+            } else if (!closed) {
+                // ECMA-388 18.6.7.3 uses an implied miter limit of one across
+                // degenerate segments, including at the seam of closed figures.
+                pendingDegenerate = true;
+                if (!hasTangent) leadingDegenerate = true;
             }
-            if (closed && hasTangent && OverLimit(incoming, first)) return true;
+            if (closed && hasTangent && OverLimit(incoming, first, pendingDegenerate || leadingDegenerate ? 1 : limit)) return true;
             current = end;
         }
         return false;
