@@ -391,6 +391,22 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasNamedDestinationsPreserveUnicodeKeysAndByteOrdering() {
+        const string name = "Earth’s\u00A0€";
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas.NamedDestination("ÿ", 10, 10)
+                .NamedDestination("’", 10, 20)
+                .NamedDestination(name, 10, 30)
+                .LinkToNamedDestination(name, 10, 40, 80, 20, "Jump"))
+            .ToBytes();
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Contains(name, info.NamedDestinationNames);
+        Assert.Contains(name, info.LinkDestinationNames);
+        string raw = PdfEncoding.Latin1GetString(bytes);
+        Assert.True(raw.IndexOf("(\u0090) [", StringComparison.Ordinal) < raw.IndexOf("(\u00FF) [", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void CanvasStructure_GroupsFragmentedHeadingAndParagraphTextUnderSection() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
