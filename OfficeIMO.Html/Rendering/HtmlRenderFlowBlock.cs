@@ -267,7 +267,8 @@ internal sealed class HtmlRenderFlowBlock {
     }
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null,
-        double pagedBreakTranslation = 0D) =>
+        double pagedBreakTranslation = 0D, IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
+        IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null) =>
         new HtmlRenderFlowBlock(
             Width,
             Height,
@@ -283,8 +284,8 @@ internal sealed class HtmlRenderFlowBlock {
             lineBreakGroups: pagedBreakTranslation > 0D
                 ? LineBreakGroups.Select(group => group.Translate(pagedBreakTranslation))
                 : LineBreakGroups,
-            continuationGroups: ContinuationGroups,
-            trailingGroups: TrailingGroups,
+            continuationGroups: continuationGroups ?? ContinuationGroups,
+            trailingGroups: trailingGroups ?? TrailingGroups,
             pageName: PageName,
             stackingZIndex: StackingZIndex,
             stackingSourceOrder: StackingSourceOrder,

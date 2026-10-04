@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
         }
 
         int documentStructElementId = ReserveObject(objects);
-        var documentChildElementIds = new List<int>();
+        var documentChildren = new List<PageStructElement>();
         var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
@@ -109,7 +109,7 @@ internal static partial class PdfWriter {
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
                 if (!element.ParentElementIndex.HasValue && element.ParentElement == null) {
-                    documentChildElementIds.Add(element.ObjectId);
+                    documentChildren.Add(element);
                 }
             }
 
@@ -137,6 +137,7 @@ internal static partial class PdfWriter {
             }
         }
 
+        List<int> documentChildElementIds = OrderStructureChildren(documentChildren);
         if (documentChildElementIds.Count == 0) {
             ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
             ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));
@@ -154,12 +155,25 @@ internal static partial class PdfWriter {
     private static List<int> StructureChildren(IReadOnlyList<LayoutResult.Page> pages,
         LayoutResult.Page page, PageStructElement element, int elementIndex) {
         var children = page.StructElements.Where(child => child.ParentElementIndex == elementIndex)
-            .Select(child => child.ObjectId).ToList();
+            .ToList();
         foreach (var childPage in pages) {
-            children.AddRange(childPage.StructElements.Where(child => ReferenceEquals(child.ParentElement, element))
-                .Select(child => child.ObjectId));
+            children.AddRange(childPage.StructElements.Where(child => ReferenceEquals(child.ParentElement, element)));
         }
-        return children;
+        return OrderStructureChildren(children);
+    }
+
+    private static List<int> OrderStructureChildren(List<PageStructElement> children) {
+        // Preserve unannotated siblings in their original slots, including flow text,
+        // links and note owners. Equal explicit orders retain fragment arrival order.
+        if (children.Count(child => child.LogicalOrder.HasValue) > 1) {
+            PageStructElement[] ordered = children.Where(child => child.LogicalOrder.HasValue)
+                .OrderBy(child => child.LogicalOrder!.Value).ToArray();
+            int next = 0;
+            for (int index = 0; index < children.Count; index++) {
+                if (children[index].LogicalOrder.HasValue) children[index] = ordered[next++];
+            }
+        }
+        return children.Select(child => child.ObjectId).ToList();
     }
 
     // A paragraph/cell/heading with interleaved links owns ordered Span/Link children.

@@ -5,24 +5,20 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element, string? structureElementKey = null) {
         string tag = element.TagName.ToLowerInvariant();
+        string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (tag == "ul" || tag == "ol") {
-            return block.WithVisuals(new[] {
-                new HtmlRenderSemanticGroup(
-                    HtmlRenderSemanticGroupRole.List,
-                    0D,
-                    0D,
-                    Math.Max(0.01D, block.Width),
-                    Math.Max(0.01D, block.Height),
-                    block.Visuals,
-                    0,
-                    HtmlRenderStyleResolver.DescribeSource(element),
-                    structureElementKey: structureElementKey == null ? null : structureElementKey + ":list")
-            });
+            return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.List, source,
+                structureElementKey == null ? null : structureElementKey + ":list");
         }
 
         if (tag != "li") return block;
+        return WrapSemanticFragments(block, (visuals, height) =>
+            CreateListItemSemanticVisuals(visuals, block.Width, height, source, structureElementKey));
+    }
 
-        PartitionListMarkerVisuals(block.Visuals, out List<HtmlRenderVisual> markerVisuals, out List<HtmlRenderVisual> bodyVisuals);
+    private static IReadOnlyList<HtmlRenderVisual> CreateListItemSemanticVisuals(
+        IReadOnlyList<HtmlRenderVisual> visuals, double width, double height, string source, string? structureElementKey) {
+        PartitionListMarkerVisuals(visuals, out List<HtmlRenderVisual> markerVisuals, out List<HtmlRenderVisual> bodyVisuals);
         var itemVisuals = new List<HtmlRenderVisual>(2);
         if (markerVisuals.Count > 0) {
             if (markerVisuals.Count == 1
@@ -30,45 +26,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && existingLabel.Role == HtmlRenderSemanticGroupRole.ListLabel) {
                 markerVisuals = existingLabel.Visuals.ToList();
             }
-            (double x, double y, double width, double height) = ResolveSemanticBounds(markerVisuals, block.Width, block.Height);
+            (double x, double y, double markerWidth, double markerHeight) = ResolveSemanticBounds(markerVisuals, width, height);
             itemVisuals.Add(new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.ListLabel,
-                x,
-                y,
-                width,
-                height,
-                markerVisuals,
-                itemVisuals.Count,
-                "list-marker",
+                HtmlRenderSemanticGroupRole.ListLabel, x, y, markerWidth, markerHeight,
+                markerVisuals, itemVisuals.Count, "list-marker",
                 structureElementKey: structureElementKey == null ? null : structureElementKey + ":label"));
         }
-
         if (bodyVisuals.Count > 0) {
             itemVisuals.Add(new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.ListBody,
-                0D,
-                0D,
-                Math.Max(0.01D, block.Width),
-                Math.Max(0.01D, block.Height),
-                bodyVisuals,
-                itemVisuals.Count,
-                HtmlRenderStyleResolver.DescribeSource(element),
+                HtmlRenderSemanticGroupRole.ListBody, 0D, 0D, Math.Max(0.01D, width), Math.Max(0.01D, height),
+                bodyVisuals, itemVisuals.Count, source,
                 structureElementKey: structureElementKey == null ? null : structureElementKey + ":body"));
         }
-
-        if (itemVisuals.Count == 0) return block;
-        return block.WithVisuals(new[] {
+        if (itemVisuals.Count == 0) return visuals;
+        return new[] {
             new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.ListItem,
-                0D,
-                0D,
-                Math.Max(0.01D, block.Width),
-                Math.Max(0.01D, block.Height),
-                itemVisuals,
-                0,
-                HtmlRenderStyleResolver.DescribeSource(element),
+                HtmlRenderSemanticGroupRole.ListItem, 0D, 0D, Math.Max(0.01D, width), Math.Max(0.01D, height),
+                itemVisuals, 0, source,
                 structureElementKey: structureElementKey == null ? null : structureElementKey + ":item")
-        });
+        };
     }
 
     private static void PartitionListMarkerVisuals(
@@ -172,7 +148,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 semantic.RowSpan,
                 semantic.HeaderScope,
                 semantic.LayoutY,
-                semantic.StructureElementKey, semantic.LayoutHeight, semantic.AlternativeText, semantic.MathMlSource);
+                semantic.StructureElementKey, semantic.LayoutHeight, semantic.AlternativeText, semantic.MathMlSource, semantic.LogicalOrder);
         }
 
 

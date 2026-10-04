@@ -97,6 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block = item.Element != null
             ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth, pageBoundary: pageBoundary)
             : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        block = ApplyFlexItemSemantics(block, item);
         foreach (FlattenedSemanticPlacement placement in item.FlattenedSemanticPlacements) {
             block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment);
         }

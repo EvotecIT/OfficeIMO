@@ -52,7 +52,8 @@ internal static partial class HtmlPdfRenderedConverter {
             ColumnSpan = group.ColumnSpan,
             RowSpan = group.RowSpan,
             HeaderScope = MapTableHeaderScope(group.HeaderScope),
-            StructureElementKey = group.StructureElementKey
+            StructureElementKey = group.StructureElementKey,
+            LogicalOrder = group.LogicalOrder
         };
         if (group.Role == HtmlRenderSemanticGroupRole.Formula && group.MathMlSource != null)
             pagePaint?.MathMlFiles.Attach(options, group.MathMlSource, cancellationToken);
