@@ -11,7 +11,7 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## DocBook, ADF and Data projection contracts
 
-ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated ADF content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
+ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
 
 DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
 
@@ -21,11 +21,16 @@ Arrow decimals must fit both declared scale and precision. Redundant fractional 
 
 ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
 
+## ODT-to-Word image copies
+
+ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by default across the resulting document. Set `WordOpenDocumentConversionOptions.MaxConvertedImageBytes` to a larger value for trusted documents that need every image, and inspect the conversion report or use `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when skipped images must fail conversion.
+
 ## Chart data label separators
 
 `OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
 
 ## RTF Unicode fallback width
+
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
@@ -160,6 +165,16 @@ Invalid chapter encodings produce `epub.chapter.invalid-encoding` and are skippe
 when a larger publication is required. Check `ReadSummary.IsComplete` and structured
 diagnostics when limits or unreadable content can produce partial output; archive
 recovery scanning cannot establish publication completeness.
+
+## CSL contributor roles, availability dates, and item types
+
+CSL JSON parsing places all standard contributor roles in `BibliographyItem.Contributors`, all standard date roles in `Dates`, and all standard item types in `Type`. Applications reading recognized properties such as `director`, `container-author`, or `available-date` from item `NativeFields` should use the corresponding contributor role or `GetDate(BibliographyDateRole.Available)`. Incorrectly shaped and unknown properties remain native fields, and unchanged preserve-mode writing retains the original source.
+
+Existing enum numeric values remain stable; the additional item types, contributor roles, and availability date are appended. Extend application switches that assumed the earlier enum set. When converting to a format with a smaller vocabulary, inspect the conversion report or enable `RequireNoLoss` to reject unsupported roles, dates, and types.
+
+## Bibliography and AsciiDoc path saves
+
+`BibliographyDocument.Save` / `SaveAsync` and `AsciiDocDocument.Save` / `SaveAsync` require atomic file publication. If a filesystem cannot atomically replace an existing destination, the operation fails and preserves that file. Applications saving to such filesystems should catch the filesystem exception and choose a destination that supports atomic replacement. Caller-owned stream saves retain their stream-writing behavior and can leave partial output on failure or cancellation.
 
 ## Conversion batches replace the PDF archive surface
 

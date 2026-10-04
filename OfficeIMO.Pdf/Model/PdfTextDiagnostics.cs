@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides reusable text preflight helpers for generated PDF output.
 /// </summary>
-internal static class PdfTextDiagnostics {
+internal static partial class PdfTextDiagnostics {
     private const string WinAnsiEncodingDescription = "PDF WinAnsiEncoding";
     private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text.";
     private const string ControlCharacterEncodingDescription = "PDF text output";
@@ -996,7 +996,7 @@ internal static class PdfTextDiagnostics {
                 throw new ArgumentException("Embedded font fallback candidates cannot contain null entries.", nameof(candidates));
             }
 
-            fonts.Add(FallbackProgramCache.GetValue(candidate, CreateFallbackProgram).Program);
+            fonts.Add(new EmbeddedFontFallbackProgram(candidate));
         }
 
         return fonts;
@@ -1386,73 +1386,6 @@ internal static class PdfTextDiagnostics {
         fontData[1] == 0x54 &&
         fontData[2] == 0x54 &&
         fontData[3] == 0x4F;
-
-    private readonly struct EmbeddedFontFallbackProgram {
-        public EmbeddedFontFallbackProgram(
-            string fontName,
-            PdfTrueTypeFontProgram font,
-            OfficeFontUnicodeRangeSet unicodeRanges) {
-            FontName = fontName;
-            _trueTypeFont = font;
-            _cffFont = null;
-            _unicodeRanges = unicodeRanges;
-        }
-
-        public EmbeddedFontFallbackProgram(
-            string fontName,
-            PdfOpenTypeCffFontProgram font,
-            OfficeFontUnicodeRangeSet unicodeRanges) {
-            FontName = fontName;
-            _trueTypeFont = null;
-            _cffFont = font;
-            _unicodeRanges = unicodeRanges;
-        }
-
-        private readonly PdfTrueTypeFontProgram? _trueTypeFont;
-        private readonly PdfOpenTypeCffFontProgram? _cffFont;
-        private readonly OfficeFontUnicodeRangeSet _unicodeRanges;
-
-        public string FontName { get; }
-
-        public bool TryGetGlyphId(int unicodeScalar, out int glyphId) {
-            if (!_unicodeRanges.Contains(unicodeScalar)) {
-                glyphId = 0;
-                return false;
-            }
-            return TryGetGlyphIdIgnoringUnicodeRanges(unicodeScalar, out glyphId);
-        }
-
-        public bool TryGetLigatureGlyphId(
-            string text,
-            int textIndex,
-            int textLength,
-            int ligatureScalar,
-            out int glyphId) {
-            int end = textIndex + textLength;
-            for (int index = textIndex; index < end;) {
-                int scalar = ReadScalar(text, ref index);
-                if (!_unicodeRanges.Contains(scalar)) {
-                    glyphId = 0;
-                    return false;
-                }
-            }
-
-            return TryGetGlyphIdIgnoringUnicodeRanges(ligatureScalar, out glyphId);
-        }
-
-        public bool TryGetGlyphIdIgnoringUnicodeRanges(int unicodeScalar, out int glyphId) {
-            if (_trueTypeFont != null) {
-                return _trueTypeFont.TryGetGlyphId(unicodeScalar, out glyphId);
-            }
-
-            if (_cffFont != null) {
-                return _cffFont.TryGetGlyphId(unicodeScalar, out glyphId);
-            }
-
-            glyphId = 0;
-            return false;
-        }
-    }
 
     private sealed class OpenTypeFontInfoBox {
         public OpenTypeFontInfoBox(byte[] fontData, string fontName) {

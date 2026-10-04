@@ -7,23 +7,27 @@ internal static class AsciiDocReaderChunkBuilder {
         ReaderOptions readerOptions,
         ReaderAsciiDocOptions options,
         CancellationToken cancellationToken) {
+        // Options belong to this read operation. Reuse one document catalog so
+        // cross-block references resolve without rebuilding it for every chunk.
+        options.MarkdownOptions.References ??= AsciiDocReferenceCatalog.Create(result.Document, options.MarkdownOptions.MaximumBlockNestingDepth, cancellationToken);
         var headingStack = new List<HeadingState>();
         var attachedBlocks = new HashSet<AsciiDocBlock>(
             result.Document.BlocksOfType<AsciiDocListBlock>()
                 .SelectMany(static list => list.Items)
                 .SelectMany(static item => item.AttachedBlocks));
-        AsciiDocDocumentAttributes attributes = result.Document.GetAttributes();
         int emittedIndex = 0;
-        for (int sourceIndex = 0; sourceIndex < result.Document.Blocks.Count; sourceIndex++) {
+        int sourceIndex = -1;
+        foreach (AsciiDocBlockContext context in result.Document.GetBlockContexts(null, true, options.MarkdownOptions.MaximumBlockNestingDepth, cancellationToken)) {
+            sourceIndex++;
             cancellationToken.ThrowIfCancellationRequested();
-            AsciiDocBlock block = result.Document.Blocks[sourceIndex];
+            AsciiDocBlock block = context.Block;
             if (attachedBlocks.Contains(block)) continue;
             if (!ShouldEmit(block, options)) continue;
 
-            if (block is AsciiDocHeading heading) UpdateHeadingStack(headingStack, heading);
+            if (block is AsciiDocHeading heading) UpdateHeadingStack(headingStack, heading, ResolveText(heading.Title, context.Attributes, options));
             string headingPath = string.Join(" > ", headingStack.Select(static state => state.Title));
-            string text = GetPlainText(block);
-            AsciiDocToMarkdownResult markdownResult = AsciiDocToMarkdownConverter.ConvertBlock(block, attributes, options.MarkdownOptions);
+            string text = GetPlainText(block, context.Attributes, options, cancellationToken);
+            AsciiDocToMarkdownResult markdownResult = block.ToMarkdownDocumentResult(context.Attributes, options.MarkdownOptions);
             string markdown = markdownResult.Value.ToMarkdown().TrimEnd();
             if (markdown.Length == 0 && block is AsciiDocAttributeEntry) markdown = block.OriginalText.TrimEnd('\r', '\n');
 
@@ -67,9 +71,9 @@ internal static class AsciiDocReaderChunkBuilder {
             result.Document.BlocksOfType<AsciiDocListBlock>()
                 .SelectMany(static list => list.Items)
                 .SelectMany(static item => item.AttachedBlocks));
-        string text = string.Join("\n\n", result.Document.Blocks
-            .Where(block => !attachedBlocks.Contains(block) && ShouldEmit(block, options))
-            .Select(GetPlainText)
+        string text = string.Join("\n\n", result.Document.GetBlockContexts(null, true, options.MarkdownOptions.MaximumBlockNestingDepth, cancellationToken)
+            .Where(context => !attachedBlocks.Contains(context.Block) && ShouldEmit(context.Block, options))
+            .Select(context => GetPlainText(context.Block, context.Attributes, options, cancellationToken))
             .Where(value => value.Length > 0));
         string markdown = conversion.Value.ToMarkdown().TrimEnd();
         IReadOnlyList<string> parts = Split(text.Length == 0 ? markdown : text, readerOptions.MaxChars);
@@ -108,16 +112,25 @@ internal static class AsciiDocReaderChunkBuilder {
         return true;
     }
 
-    private static string GetPlainText(AsciiDocBlock block) {
+    private static string GetPlainText(AsciiDocBlock block, AsciiDocDocumentAttributes attributes, ReaderAsciiDocOptions options, CancellationToken token, int depth = 0) {
+        token.ThrowIfCancellationRequested();
+        if (depth >= options.MarkdownOptions.MaximumBlockNestingDepth) throw new InvalidDataException("AsciiDoc Reader text exceeds MaximumBlockNestingDepth.");
+        string Resolve(string text) => ResolveText(text, attributes, options);
         switch (block) {
-            case AsciiDocHeading heading: return heading.Title;
-            case AsciiDocParagraph paragraph: return paragraph.Text;
+            case AsciiDocHeading heading: return Resolve(heading.Title);
+            case AsciiDocParagraph paragraph: return Resolve(paragraph.Text);
             case AsciiDocListBlock list:
                 return string.Join("\n", list.Items.Select(item => string.Join("\n",
-                    new[] { item.Text }.Concat(item.AttachedBlocks.Select(GetPlainText)).Where(static value => value.Length > 0))));
-            case AsciiDocDescriptionListBlock list: return string.Join("\n", list.Items.Select(static item => item.Term + ": " + item.Description));
-            case AsciiDocAdmonitionBlock admonition: return admonition.Label + ": " + admonition.Text;
-            case AsciiDocTableBlock table: return string.Join("\n", table.Table.Rows.Select(row => string.Join("\t", row.Cells.Select(static cell => cell.Value))));
+                    new[] { Resolve(item.Text) }.Concat(item.AttachedBlocks.Select(child => GetPlainText(child, attributes, options, token, depth + 1))).Where(static value => value.Length > 0))));
+            case AsciiDocDescriptionListBlock list: return string.Join("\n", list.Items.Select(item => Resolve(item.Term) + ": " + Resolve(item.Description)));
+            case AsciiDocAdmonitionBlock admonition: return admonition.Label + ": " + Resolve(admonition.Text);
+            case AsciiDocTableBlock table: return string.Join("\n", table.Table.Rows.Select(row => string.Join("\t", row.Cells.Select(cell => Resolve(cell.Value)))));
+            case AsciiDocDelimitedBlock compound when compound.GetBody(token) is AsciiDocDocument body:
+                int remaining = options.MarkdownOptions.MaximumBlockNestingDepth - depth - 1;
+                if (remaining < 1) throw new InvalidDataException("AsciiDoc Reader text exceeds MaximumBlockNestingDepth.");
+                var attached = new HashSet<AsciiDocBlock>(body.BlocksOfType<AsciiDocListBlock>().SelectMany(list => list.Items).SelectMany(item => item.AttachedBlocks));
+                return string.Join("\n\n", body.GetBlockContextsFromSnapshot(attributes, true, remaining, token)
+                    .Where(context => !attached.Contains(context.Block) && ShouldEmit(context.Block, options)).Select(context => GetPlainText(context.Block, context.Attributes, options, token, depth + 1)).Where(value => value.Length > 0));
             case AsciiDocDelimitedBlock delimited: return delimited.Content.TrimEnd('\r', '\n');
             case AsciiDocLineComment comment: return comment.Text;
             case AsciiDocAttributeEntry attribute: return attribute.Name + (attribute.Value.Length == 0 ? string.Empty : ": " + attribute.Value);
@@ -125,10 +138,14 @@ internal static class AsciiDocReaderChunkBuilder {
         }
     }
 
+    private static string ResolveText(string text, AsciiDocDocumentAttributes attributes, ReaderAsciiDocOptions options) =>
+        options.MarkdownOptions.ExpandDocumentAttributes ? AsciiDocAttributeSubstitutor.Substitute(text, attributes,
+            new AsciiDocAttributeSubstitutionOptions { UndefinedAttributeBehavior = options.MarkdownOptions.UndefinedAttributeBehavior }).Value : text;
+
     private static string GetBlockKind(AsciiDocBlock block) {
         if (block is AsciiDocHeading) return "heading";
         if (block is AsciiDocParagraph) return "paragraph";
-        if (block is AsciiDocListBlock list) return list.Kind == AsciiDocListKind.Ordered ? "ordered-list" : "unordered-list";
+        if (block is AsciiDocListBlock list) return list.Kind == AsciiDocListKind.Callout ? "callout-list" : list.Kind == AsciiDocListKind.Ordered ? "ordered-list" : "unordered-list";
         if (block is AsciiDocDescriptionListBlock) return "description-list";
         if (block is AsciiDocAdmonitionBlock) return "admonition";
         if (block is AsciiDocTableBlock) return "table";
@@ -139,10 +156,10 @@ internal static class AsciiDocReaderChunkBuilder {
         return "raw";
     }
 
-    private static void UpdateHeadingStack(List<HeadingState> stack, AsciiDocHeading heading) {
+    private static void UpdateHeadingStack(List<HeadingState> stack, AsciiDocHeading heading, string title) {
         int level = heading.IsDocumentTitle ? 0 : heading.SectionLevel;
         while (stack.Count > 0 && stack[stack.Count - 1].Level >= level) stack.RemoveAt(stack.Count - 1);
-        stack.Add(new HeadingState(level, heading.Title));
+        stack.Add(new HeadingState(level, title));
     }
 
     private static IReadOnlyList<string>? BuildWarnings(

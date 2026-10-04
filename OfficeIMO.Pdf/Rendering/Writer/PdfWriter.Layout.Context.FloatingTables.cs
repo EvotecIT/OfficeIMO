@@ -26,12 +26,22 @@ internal static partial class PdfWriter {
 
         private void ResolveFloatingBookmarks(double topY) {
             if (pendingFloatingBookmarks.Count == 0) return;
+            Dictionary<LayoutResult.Page, HashSet<PageNamedDestination>>? movedByPage = null;
             foreach (var pending in pendingFloatingBookmarks) {
                 pending.Destination.Y = topY;
                 if (!ReferenceEquals(pending.Page, currentPage)) {
-                    pending.Page.NamedDestinations.Remove(pending.Destination);
+                    movedByPage ??= new Dictionary<LayoutResult.Page, HashSet<PageNamedDestination>>();
+                    if (!movedByPage.TryGetValue(pending.Page, out HashSet<PageNamedDestination>? moved)) {
+                        moved = new HashSet<PageNamedDestination>();
+                        movedByPage.Add(pending.Page, moved);
+                    }
+                    moved.Add(pending.Destination);
                     currentPage!.NamedDestinations.Add(pending.Destination);
                 }
+            }
+            if (movedByPage != null) {
+                foreach (var moved in movedByPage)
+                    moved.Key.NamedDestinations.RemoveAll(moved.Value.Contains);
             }
             pendingFloatingBookmarks.Clear();
         }

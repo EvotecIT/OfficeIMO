@@ -13,6 +13,8 @@ public sealed class BibliographyItem {
     internal string? RisPageStart { get; set; }
     internal string? RisPageEnd { get; set; }
     internal bool BibMonthWasNumeric { get; set; }
+    internal string? CslNumericKey { get; set; }
+    internal string? CslNumericKeyRaw { get; set; }
 
     /// <summary>Stable citation key or source identifier.</summary>
     public string Key { get; set; } = string.Empty;

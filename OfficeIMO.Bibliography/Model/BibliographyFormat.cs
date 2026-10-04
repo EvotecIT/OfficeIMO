@@ -55,7 +55,63 @@ public enum BibliographyItemType {
     /// <summary>Generic document.</summary>
     Document,
     /// <summary>Generic article without a more specific journal, magazine, or newspaper classification.</summary>
-    Article
+    Article,
+    /// <summary>Legislative bill.</summary>
+    Bill,
+    /// <summary>Radio or television broadcast.</summary>
+    Broadcast,
+    /// <summary>Classic work.</summary>
+    Classic,
+    /// <summary>Collection of works or records.</summary>
+    Collection,
+    /// <summary>Generic reference-work entry.</summary>
+    Entry,
+    /// <summary>Dictionary entry.</summary>
+    EntryDictionary,
+    /// <summary>Encyclopedia entry.</summary>
+    EntryEncyclopedia,
+    /// <summary>Event.</summary>
+    Event,
+    /// <summary>Figure.</summary>
+    Figure,
+    /// <summary>Graphic work.</summary>
+    Graphic,
+    /// <summary>Hearing.</summary>
+    Hearing,
+    /// <summary>Interview.</summary>
+    Interview,
+    /// <summary>Legislation.</summary>
+    Legislation,
+    /// <summary>Map.</summary>
+    Map,
+    /// <summary>Motion picture.</summary>
+    MotionPicture,
+    /// <summary>Musical score.</summary>
+    MusicalScore,
+    /// <summary>Pamphlet.</summary>
+    Pamphlet,
+    /// <summary>Performance.</summary>
+    Performance,
+    /// <summary>Periodical as a whole.</summary>
+    Periodical,
+    /// <summary>Generic post.</summary>
+    Post,
+    /// <summary>Weblog post.</summary>
+    PostWeblog,
+    /// <summary>Regulation.</summary>
+    Regulation,
+    /// <summary>Review.</summary>
+    Review,
+    /// <summary>Book review.</summary>
+    ReviewBook,
+    /// <summary>Song.</summary>
+    Song,
+    /// <summary>Speech.</summary>
+    Speech,
+    /// <summary>Standard.</summary>
+    Standard,
+    /// <summary>Treaty.</summary>
+    Treaty
 }
 
 /// <summary>Contributor roles shared by supported formats.</summary>
@@ -75,7 +131,45 @@ public enum BibliographyContributorRole {
     /// <summary>Collection editor.</summary>
     CollectionEditor,
     /// <summary>Other contributor role.</summary>
-    Other
+    Other,
+    /// <summary>Chair.</summary>
+    Chair,
+    /// <summary>Compiler.</summary>
+    Compiler,
+    /// <summary>Author of the containing work.</summary>
+    ContainerAuthor,
+    /// <summary>Contributor without a more specific role.</summary>
+    Contributor,
+    /// <summary>Curator.</summary>
+    Curator,
+    /// <summary>Director.</summary>
+    Director,
+    /// <summary>Editorial director.</summary>
+    EditorialDirector,
+    /// <summary>Executive producer.</summary>
+    ExecutiveProducer,
+    /// <summary>Guest.</summary>
+    Guest,
+    /// <summary>Host.</summary>
+    Host,
+    /// <summary>Illustrator.</summary>
+    Illustrator,
+    /// <summary>Narrator.</summary>
+    Narrator,
+    /// <summary>Organizer.</summary>
+    Organizer,
+    /// <summary>Original author.</summary>
+    OriginalAuthor,
+    /// <summary>Performer.</summary>
+    Performer,
+    /// <summary>Producer.</summary>
+    Producer,
+    /// <summary>Author of the reviewed work.</summary>
+    ReviewedAuthor,
+    /// <summary>Script writer.</summary>
+    ScriptWriter,
+    /// <summary>Series creator.</summary>
+    SeriesCreator
 }
 
 /// <summary>Date roles shared by supported formats.</summary>
@@ -91,5 +185,7 @@ public enum BibliographyDateRole {
     /// <summary>Event date.</summary>
     Event,
     /// <summary>Other date.</summary>
-    Other
+    Other,
+    /// <summary>Date the work became available.</summary>
+    Available
 }

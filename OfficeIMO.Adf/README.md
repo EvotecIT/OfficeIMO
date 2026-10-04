@@ -75,7 +75,7 @@ Known nodes also report attributes, marks, and extension properties omitted or a
 
 Adjacent styled text retains its text and marks through Markdown round trips; empty inline HTML comments separate delimiter runs when needed. Standalone Markdown images become external `mediaSingle` nodes. Inline images retain linked alternate text and report lost image semantics. Nested task lists retain hierarchy and completion state.
 
-Markdown-to-ADF conversion uses parent-aware output. Tasks and other blocks that are invalid in their destination context receive a visible fallback with a diagnostic. Task IDs are deterministic for identical input; callers can supply a unique-ID policy:
+Markdown-to-ADF conversion uses parent-aware output. Tasks and other blocks that are invalid in their destination context receive a visible fallback with a diagnostic. Task IDs derive from bounded converted task-list content and its source paths, after graph checks. Changing unrelated content at the same source paths does not change task IDs; callers can supply a unique-ID policy:
 
 ```csharp
 var options = new AdfConversionOptions {

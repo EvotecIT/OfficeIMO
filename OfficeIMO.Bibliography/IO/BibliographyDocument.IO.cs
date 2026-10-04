@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Bibliography;
 
 public sealed partial class BibliographyDocument {
@@ -42,12 +44,12 @@ public sealed partial class BibliographyDocument {
         return BibliographyReader.Parse(text, format, options, bytes, cancellationToken);
     }
 
-    /// <summary>Saves or converts to a path.</summary>
+    /// <summary>Atomically saves or converts to a path, preserving an existing file when writing fails or is cancelled before commit.</summary>
     public BibliographyWriteResult Save(string path, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)) WriteAllBytes(stream, result.Bytes, cancellationToken);
+        OfficeFileCommit.WriteAtomically(path, stream => WriteAllBytes(stream, result.Bytes, cancellationToken), cancellationToken);
         return result;
     }
 
@@ -62,13 +64,14 @@ public sealed partial class BibliographyDocument {
         return result;
     }
 
-    /// <summary>Saves or converts to a path asynchronously.</summary>
+    /// <summary>Atomically saves or converts to a path asynchronously, preserving an existing file when writing fails or is cancelled before commit.</summary>
     public async Task<BibliographyWriteResult> SaveAsync(string path, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-        await WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAtomicallyAsync(path,
+            (stream, token) => WriteAllBytesAsync(stream, result.Bytes, token),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
         return result;
     }
 

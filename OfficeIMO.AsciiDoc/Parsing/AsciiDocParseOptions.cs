@@ -44,4 +44,12 @@ public sealed class AsciiDocParseOptions {
 
     /// <summary>Maximum inline nodes created for one document. Defaults to 1,000,000.</summary>
     public int MaximumInlineNodeCount { get; set; } = 1_000_000;
+    /// <summary>Maximum table cells scanned in one document, across all tables. Defaults to 1,000,000.</summary>
+    public int MaximumTableCellCount { get; set; } = 1_000_000;
+    /// <summary>Maximum declared or inferred columns in one table. Defaults to 10,000.</summary>
+    public int MaximumTableColumnCount { get; set; } = 10_000;
+    /// <summary>Maximum row or column span in one cell. Defaults to 10,000.</summary>
+    public int MaximumTableSpan { get; set; } = 10_000;
+
+    internal AsciiDocParseOptions Copy() => (AsciiDocParseOptions)MemberwiseClone();
 }

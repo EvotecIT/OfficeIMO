@@ -23,9 +23,9 @@ internal sealed class MarkdownToAdfConverter {
         if (_taskIdentities.Count == 0) return;
         AdfGraphSafety.EnsureSafe(document, options);
         if (_localIdFactory == null) {
-            // Hash bounded canonical content only when default task IDs are needed.
-            // No recursive Markdown rendering occurs before resource checks.
-            string json = document.ToJson(options);
+            // Hash task content once; nested task lists already belong to their outer root.
+            // Unrelated Markdown is neither rendered nor serialized for task identities.
+            string json = new AdfDocument(GetTaskIdentityRoots(options)).ToJson(options);
             using var hash = System.Security.Cryptography.SHA256.Create();
             _identityRoot = BitConverter.ToString(hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(json)));
         }
@@ -33,6 +33,20 @@ internal sealed class MarkdownToAdfConverter {
             options.CancellationToken.ThrowIfCancellationRequested();
             task.Node.SetAttribute("localId", LocalId(task.Path));
         }
+    }
+
+    private IEnumerable<AdfNode> GetTaskIdentityRoots(AdfConversionOptions options) {
+        var nestedLists = new HashSet<AdfNode>();
+        foreach (var task in _taskIdentities) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            if (task.Node.Type != "taskList") continue;
+            foreach (AdfNode child in task.Node.Content) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                if (child.Type == "taskList") nestedLists.Add(child);
+            }
+        }
+        return _taskIdentities.Where(task => task.Node.Type == "taskList" && !nestedLists.Contains(task.Node))
+            .Select(task => task.Node);
     }
 
     private AdfDocument ConvertCore(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics) {

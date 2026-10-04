@@ -136,6 +136,10 @@ public static partial class ExcelIWorkConverter {
                 }
             }
             if (editable) {
+                // All worksheets share one workbook stylesheet; keep its lookup and save scope
+                // across the entire projection instead of repeating work for each source table.
+                using IDisposable? styleBatch = preparedTables!.Count > 0
+                    ? preparedTables.Values.First().BeginStyleBatch() : null;
                 for (int sheetIndex = 0; sheetIndex < projection.Sheets.Count; sheetIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkNumbersSheet sourceSheet = projection.Sheets[sheetIndex];
@@ -384,6 +388,8 @@ public static partial class ExcelIWorkConverter {
                     if (TableParagraphStyles(table).Any(style => style.TextStyle.FontSizePoints is double size
                         && (!IsFinite(size) || size < 1d || size > 409d)))
                         return $"Numbers table '{table.Name}' contains a font size outside the XLSX-supported range of 1 to 409 points.";
+                    if (TableParagraphStyles(table).Any(style => style.TextStyle.FontName is { Length: > 255 }))
+                        return $"Numbers table '{table.Name}' contains a font name longer than the bounded XLSX conversion limit of 255 characters.";
                 }
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
@@ -423,6 +429,11 @@ public static partial class ExcelIWorkConverter {
                             .Any(run => run.Style.FontSizePoints is double size
                                 && (!IsFinite(size) || size < 1d || size > 409d))) {
                         return $"Numbers table '{table.Name}' contains a rich-text font size outside the XLSX-supported range of 1 to 409 points.";
+                    }
+                    if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
+                        && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                            .Any(run => run.Style.FontName is { Length: > 255 })) {
+                        return $"Numbers table '{table.Name}' contains a rich-text font name longer than the bounded XLSX conversion limit of 255 characters.";
                     }
                     string? text = cell.Kind == IWorkCellKind.Error
                         ? cell.DisplayText

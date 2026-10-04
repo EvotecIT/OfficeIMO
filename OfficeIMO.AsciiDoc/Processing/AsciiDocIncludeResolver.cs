@@ -2,11 +2,13 @@ namespace OfficeIMO.AsciiDoc;
 
 /// <summary>Request passed to an explicitly configured include resolver.</summary>
 public sealed class AsciiDocIncludeRequest {
-    internal AsciiDocIncludeRequest(string target, string? currentSourceName, int depth, AsciiDocDocumentAttributes attributes) {
+    internal AsciiDocIncludeRequest(string target, string? currentSourceName, int depth, AsciiDocDocumentAttributes attributes, int maximumContentLength = 16 * 1024 * 1024, System.Threading.CancellationToken cancellationToken = default) {
         Target = target;
         CurrentSourceName = currentSourceName;
         Depth = depth;
         Attributes = attributes;
+        MaximumContentLength = maximumContentLength;
+        CancellationToken = cancellationToken;
     }
 
     /// <summary>Attribute-expanded include target.</summary>
@@ -20,6 +22,12 @@ public sealed class AsciiDocIncludeRequest {
 
     /// <summary>Attributes set when the include was encountered.</summary>
     public AsciiDocDocumentAttributes Attributes { get; }
+
+    /// <summary>Remaining UTF-16 character budget for this resolution. Resolvers must bound reads before materializing content.</summary>
+    public int MaximumContentLength { get; }
+
+    /// <summary>Cancellation requested by the processing caller.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; }
 }
 
 /// <summary>Text returned by an include resolver.</summary>
@@ -79,7 +87,9 @@ public sealed class AsciiDocRootedFileIncludeResolver : IAsciiDocIncludeResolver
         string candidate = Path.GetFullPath(Path.Combine(baseDirectory, request.Target));
         if (!IsWithinRoot(candidate) || !File.Exists(candidate)) return null;
         if (!AllowSymbolicLinks && ContainsReparsePoint(candidate)) return null;
-        return new AsciiDocIncludeResult(File.ReadAllText(candidate), candidate);
+        using var stream = new FileStream(candidate, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return new AsciiDocIncludeResult(OfficeIMO.Core.Internal.OfficeTextReader.ReadAllText(
+            stream, request.MaximumContentLength, cancellationToken: request.CancellationToken), candidate);
     }
 
     private string GetBaseDirectory(string? sourceName) {

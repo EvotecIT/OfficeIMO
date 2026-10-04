@@ -76,50 +76,74 @@ public sealed partial class EpubPublication {
         XDocument navigation = ParseXml(entries[navPath], _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
         ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
+        var contentGroups = manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container &&
+            (HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml") || HasMediaType(item.MediaType, "application/x-dtbncx+xml")))
+            .GroupBy(RequireLocalPath, StringComparer.Ordinal).ToArray();
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-        var fragmented = new List<(string Owner, EpubReference Reference)>();
-        foreach (EpubManifestItem item in manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container &&
-            (HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml") || HasMediaType(item.MediaType, "application/x-dtbncx+xml")))) {
+        bool resourcesRemoved = _originalEntries.Keys.Any(path => !entries.ContainsKey(path));
+        string[] changedStylesheets = manifest.Where(item => HasMediaType(item.MediaType, "text/css") && item.Reference.Kind == EpubReferenceKind.Container)
+            .Select(item => item.Reference.ContainerPath!).Where(path => resourcesRemoved ||
+                !_originalEntries.TryGetValue(path, out byte[]? prior) || !prior.SequenceEqual(entries[path]))
+            .Distinct(StringComparer.Ordinal).ToArray();
+        var stylesheetResults = new Dictionary<string, bool>(StringComparer.Ordinal);
+        bool CheckStylesheet(string path) {
+            if (!stylesheetResults.TryGetValue(path, out bool remote)) stylesheetResults[path] = remote = ValidateStylesheetClosure(path, entries, manifest, token);
+            return remote;
+        }
+        foreach (string path in changedStylesheets) CheckStylesheet(path);
+
+        // Gather each target's anchors before streaming fragment validation.
+        foreach (var group in contentGroups) {
             token.ThrowIfCancellationRequested();
-            string path = RequireLocalPath(item);
+            string path = group.Key;
             if (_encryption.Any(encryption => encryption.Path == path && encryption.RequiresDecryption)) continue;
             XDocument content = path == navPath ? navigation : ParseXml(entries[path], _maximumEntryBytes);
             anchors[path] = new HashSet<string>(content.Descendants().Attributes().Where(attribute => attribute.Name == "id" ||
                 attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
-            bool rewritten = !_originalEntries.TryGetValue(path, out byte[]? original) || !original.SequenceEqual(entries[path]) ||
-                !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType);
-            if (rewritten && !HasMediaType(item.MediaType, "application/x-dtbncx+xml")) {
-                ValidateContent(content, item.MediaType);
-                string analysisContent = content.ToString(SaveOptions.DisableFormatting);
-                var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
-                // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
-                limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
-                var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
-                    new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
-                if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                bool hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token);
-                if (PackageVersion == "3.0") UpdateContentProperties(item, content, hasRemoteResources);
+        }
+        foreach (var group in contentGroups) {
+            token.ThrowIfCancellationRequested();
+            string path = group.Key;
+            if (!anchors.ContainsKey(path)) continue;
+            XDocument content = path == navPath ? navigation : ParseXml(entries[path], _maximumEntryBytes);
+            bool hasSvg = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg");
+            bool hasMathMl = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML");
+            bool payloadChanged = !_originalEntries.TryGetValue(path, out byte[]? original)
+                || !original.SequenceEqual(entries[path]);
+            var checkedMediaTypes = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (EpubManifestItem item in group) {
+                token.ThrowIfCancellationRequested();
+                bool rewritten = payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType);
+                if ((!rewritten && changedStylesheets.Length == 0) || HasMediaType(item.MediaType, "application/x-dtbncx+xml")) continue;
+                if (!checkedMediaTypes.TryGetValue(item.MediaType, out bool hasRemoteResources)) {
+                    ValidateContent(content, item.MediaType);
+                    string analysisContent = content.ToString(SaveOptions.DisableFormatting);
+                    var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
+                    // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
+                    limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
+                    var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
+                        new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
+                    if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
+                    hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token, CheckStylesheet);
+                    checkedMediaTypes.Add(item.MediaType, hasRemoteResources);
+                }
+                if (PackageVersion == "3.0") UpdateContentProperties(item, hasSvg, hasMathMl, hasRemoteResources);
             }
-            ValidateContentReferences(content, path, entries, fragmented, token);
+            ValidateContentReferences(content, path, entries, anchors, token);
         }
         foreach (XAttribute reference in PackageResourceReferences(root)) {
             EpubReference target = EpubReference.Resolve(PackagePath, reference.Value);
-            if (target.ContainerPath != PackagePath) ValidateTarget(target, PackagePath, entries, fragmented);
+            if (target.ContainerPath != PackagePath) ValidateTarget(target, PackagePath, entries, anchors);
             if (reference.Parent?.Name == Opf + "reference" || reference.Parent?.Name == Opf + "site")
                 RequireSpineTarget(target, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty), requireContainer: true);
-        }
-        foreach (var target in fragmented) {
-            token.ThrowIfCancellationRequested();
-            if (anchors.TryGetValue(target.Reference.ContainerPath!, out HashSet<string>? idsInTarget) && !idsInTarget.Contains(target.Reference.Fragment!))
-                throw new InvalidDataException("Content fragment missing in " + target.Owner + ": " + target.Reference.Original);
         }
     }
 
     private static void ValidateContentReferences(XDocument content, string owner, IReadOnlyDictionary<string, byte[]> entries,
-        List<(string Owner, EpubReference Reference)> fragmented, CancellationToken token) {
+        IReadOnlyDictionary<string, HashSet<string>> anchors, CancellationToken token) {
         foreach (EpubReference reference in ContentResourceReferences(content, owner, token)) {
             token.ThrowIfCancellationRequested();
-            ValidateTarget(reference, owner, entries, fragmented);
+            ValidateTarget(reference, owner, entries, anchors);
         }
     }
 
@@ -150,19 +174,23 @@ public sealed partial class EpubPublication {
     }
 
     private static void ValidateTarget(EpubReference reference, string owner, IReadOnlyDictionary<string, byte[]> entries,
-        List<(string Owner, EpubReference Reference)> fragmented) {
+        IReadOnlyDictionary<string, HashSet<string>> anchors) {
         if (reference.Kind == EpubReferenceKind.Invalid) throw new InvalidDataException("Invalid content URL in " + owner);
         if (reference.Kind != EpubReferenceKind.Container) return;
         if (reference.ContainerPath == null || !entries.ContainsKey(reference.ContainerPath))
             throw new InvalidDataException("Content target missing in " + owner + ": " + reference.Original);
-        if (!string.IsNullOrEmpty(reference.Fragment)) fragmented.Add((owner, reference));
+        string fragment = reference.Fragment ?? string.Empty;
+        if (fragment.Length > 0
+            && anchors.TryGetValue(reference.ContainerPath, out HashSet<string>? idsInTarget)
+            && !idsInTarget.Contains(fragment))
+            throw new InvalidDataException("Content fragment missing in " + owner + ": " + reference.Original);
     }
 
-    private static void UpdateContentProperties(EpubManifestItem item, XDocument content, bool hasRemoteResources) {
+    private static void UpdateContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) {
         // Linked CSS dependencies are not exhaustively traversed, so retain an explicit remote declaration.
         var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml"));
-        if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg") && HasMediaType(item.MediaType, "application/xhtml+xml")) properties.Add("svg");
-        if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML")) properties.Add("mathml");
+        if (hasSvg && HasMediaType(item.MediaType, "application/xhtml+xml")) properties.Add("svg");
+        if (hasMathMl) properties.Add("mathml");
         if (hasRemoteResources) properties.Add("remote-resources");
         item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
     }

@@ -490,6 +490,16 @@ public class PdfOcrTests {
         PdfTextSpan nativeSpan = Assert.Single(
             readPage.GetInteractionTextSpans(),
             static span => span.Text == "A much longer replacement");
+        byte[] control = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Text("X", 50D, 100D, 12D, 20D, fontSize: 12D))
+            .ToBytes();
+        PdfTextSpan paintedSpan = Assert.Single(PdfReadDocument.Open(control).Pages[0].GetInteractionTextSpans());
+        Assert.Equal(paintedSpan.X, nativeSpan.X, 6);
+        Assert.Equal(paintedSpan.Y, nativeSpan.Y, 6);
+        Assert.Equal(paintedSpan.Advance, nativeSpan.Advance, 6);
+        Assert.Equal(paintedSpan.FontSize, nativeSpan.FontSize, 6);
+        Assert.Equal(paintedSpan.IsVisible, nativeSpan.IsVisible);
+        Assert.Equal(paintedSpan.TextRenderingMode, nativeSpan.TextRenderingMode);
         PdfSelectionQuad firstLogicalGlyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
         double ocrLeft = firstLogicalGlyph.Left + Math.Abs(nativeSpan.Advance) + 2D;
         var provider = new StubOcrEngine(request => Result(new[] {

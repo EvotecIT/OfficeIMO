@@ -1,0 +1,11 @@
+The unmodified locales-*.xml and locales.json data files are from the Citation Style Language
+locales project, revision a89adece41013402236e2c9020972d7e931fbab8:
+https://github.com/citation-style-language/locales/tree/a89adece41013402236e2c9020972d7e931fbab8
+
+The translators and license attribution are retained in each XML file.
+These data files are licensed under Creative Commons Attribution-ShareAlike 3.0:
+https://creativecommons.org/licenses/by-sa/3.0/
+https://creativecommons.org/licenses/by-sa/3.0/legalcode
+
+The OfficeIMO C# processor is independently implemented and uses OfficeIMO's MIT
+license. The locale data is distributed under its original license.

@@ -2,8 +2,7 @@ namespace OfficeIMO.AsciiDoc;
 
 /// <summary>AsciiDoc document title or section heading.</summary>
 public sealed class AsciiDocHeading : AsciiDocBlock {
-    private string _title;
-    private bool _titleWasAssigned;
+    private readonly AsciiDocEditableInlineContent _content;
 
     internal AsciiDocHeading(
         AsciiDocSyntaxNode syntax,
@@ -14,9 +13,8 @@ public sealed class AsciiDocHeading : AsciiDocBlock {
         string trailingLineEnding)
         : base(syntax, trailingLineEnding) {
         Marker = marker;
-        _title = title;
+        _content = new AsciiDocEditableInlineContent(title, inlines);
         IsDocumentTitle = isDocumentTitle;
-        Inlines = inlines;
     }
 
     /// <summary>Original equals-sign marker.</summary>
@@ -33,20 +31,20 @@ public sealed class AsciiDocHeading : AsciiDocBlock {
 
     /// <summary>Heading text.</summary>
     public string Title {
-        get => !_titleWasAssigned && Inlines.IsModified ? Inlines.ToAsciiDoc() : _title;
+        get => _content.Text;
         set {
             string normalized = value ?? string.Empty;
             AsciiDocText.EnsureSingleLine(normalized, nameof(value));
-            if (SetValue(ref _title, normalized)) _titleWasAssigned = true;
+            _content.Assign(normalized);
         }
     }
 
     /// <summary>Typed lossless inline content in the title.</summary>
-    public AsciiDocInlineSequence Inlines { get; }
+    public AsciiDocInlineSequence Inlines => _content.Inlines;
 
     /// <inheritdoc />
-    public override bool IsModified => base.IsModified || Inlines.IsModified;
+    public override bool IsModified => base.IsModified || _content.IsModified;
 
     internal override string WriteCore(AsciiDocWriterContext context) =>
-        Marker + " " + (_titleWasAssigned ? _title : Inlines.Write(context)) + EffectiveTrailingLineEnding(context);
+        Marker + " " + _content.Write(context) + EffectiveTrailingLineEnding(context);
 }

@@ -312,6 +312,9 @@ public sealed partial class PdfOptions {
         }
 
         PdfFontInput.EnsureWithinLimit(data.LongLength);
+        // Any explicit face registration claims the whole compatibility family,
+        // even when its bytes and generated name already match the current face.
+        _fallbackOwnedFontFamilies?.Remove(PdfStandardFontMapper.GetFontFamily(font));
 
         string? normalizedFontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         if (_embeddedFonts != null &&

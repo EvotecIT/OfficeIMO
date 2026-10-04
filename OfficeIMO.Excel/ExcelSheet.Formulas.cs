@@ -692,54 +692,29 @@ namespace OfficeIMO.Excel {
                         result = FormulaArgumentValue.Error("#N/A");
                         return true;
                     }
-                    if (function == "DATE" && TryEvaluateDateValue(args, out result)) return true;
-                    if (function == "DATEDIF" && TryEvaluateDateDifValue(args, out result)) return true;
-                    if (function == "IFERROR" && TryEvaluateIfErrorValue(args, out result)) {
-                        return true;
-                    }
+                    if (function == "DATE") return TryEvaluateDateValue(args, out result);
+                    if (function == "DATEDIF") return TryEvaluateDateDifValue(args, out result);
+                    if (function == "IFERROR") return TryEvaluateIfErrorValue(args, out result);
+                    if (function == "IFNA") return TryEvaluateIfNaValue(args, out result);
 
-                    if (function == "IFNA" && TryEvaluateIfNaValue(args, out result)) {
-                        return true;
-                    }
+                    if (function == "IF") return TryEvaluateIfValue(args, out result);
+                    if (function == "IFS") return TryEvaluateIfsValue(args, out result);
+                    if (function == "SWITCH") return TryEvaluateSwitchValue(args, out result);
+                    if (function == "CHOOSE") return TryEvaluateChooseValue(args, out result);
 
-                    if (function == "IF" && TryEvaluateIfValue(args, out result)) {
-                        return true;
-                    }
+                    if (function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT"
+                        || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
+                        return TryEvaluateInfoFunction(function, args, out result);
 
-                    if (function == "IFS" && TryEvaluateIfsValue(args, out result)) {
-                        return true;
-                    }
+                    if (function == "AVERAGEA" || function == "MINA" || function == "MAXA")
+                        return TryEvaluateAValueAggregate(function, args, out result);
 
-                    if (function == "SWITCH" && TryEvaluateSwitchValue(args, out result)) {
-                        return true;
-                    }
+                    if (IsSupportedTextFunction(function)) return TryEvaluateTextFunction(function, args, out result);
 
-                    if (function == "CHOOSE" && TryEvaluateChooseValue(args, out result)) {
-                        return true;
-                    }
+                    if (function == "VLOOKUP" || function == "HLOOKUP" || function == "XLOOKUP")
+                        return TryEvaluateLookupValue(function, args, out result);
 
-                    if ((function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
-                        && TryEvaluateInfoFunction(function, args, out result)) {
-                        return true;
-                    }
-
-                    if ((function == "AVERAGEA" || function == "MINA" || function == "MAXA")
-                        && TryEvaluateAValueAggregate(function, args, out result)) {
-                        return true;
-                    }
-
-                    if (TryEvaluateTextFunction(function, args, out result)) {
-                        return true;
-                    }
-
-                    if ((function == "VLOOKUP" || function == "HLOOKUP" || function == "XLOOKUP")
-                        && TryEvaluateLookupValue(function, args, out result)) {
-                        return true;
-                    }
-
-                    if (function == "INDEX" && TryEvaluateIndexValue(args, out result)) {
-                        return true;
-                    }
+                    if (function == "INDEX") return TryEvaluateIndexValue(args, out result);
                 }
 
             if (functionCall == null && TryEvaluateCustomFormulaFunction(formula, out result)) {
@@ -937,8 +912,10 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (TryEvaluateTextFunction(function, args, out FormulaArgumentValue textFunctionResult)
-                        && textFunctionResult.Number.HasValue) {
+                    if (IsSupportedTextFunction(function)) {
+                        if (!TryEvaluateTextFunction(function, args, out FormulaArgumentValue textFunctionResult)) return false;
+                        if (textFunctionResult.IsError) { error = textFunctionResult; return false; }
+                        if (!textFunctionResult.Number.HasValue) return false;
                         result = textFunctionResult.Number.Value;
                         return true;
                     }

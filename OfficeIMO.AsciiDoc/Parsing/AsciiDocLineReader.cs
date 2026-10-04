@@ -1,13 +1,16 @@
 namespace OfficeIMO.AsciiDoc;
 
 internal static class AsciiDocLineReader {
-    internal static IReadOnlyList<AsciiDocSourceLine> Read(string source) {
+    internal static IReadOnlyList<AsciiDocSourceLine> Read(string source, System.Threading.CancellationToken cancellationToken = default) {
         var lines = new List<AsciiDocSourceLine>();
         int offset = 0;
         int lineNumber = 1;
         while (offset < source.Length) {
             int start = offset;
-            while (offset < source.Length && source[offset] != '\r' && source[offset] != '\n') offset++;
+            while (offset < source.Length && source[offset] != '\r' && source[offset] != '\n') {
+                if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                offset++;
+            }
             int contentEnd = offset;
             if (offset < source.Length && source[offset] == '\r') {
                 offset++;

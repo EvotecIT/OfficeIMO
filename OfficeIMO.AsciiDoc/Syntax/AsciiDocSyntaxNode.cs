@@ -56,6 +56,7 @@ public sealed class AsciiDocSyntaxNode {
     internal int StartOffset => _startOffset;
 
     internal int EndOffset => _endOffset;
+    internal AsciiDocSourceText SourceText => GetSource();
 
     /// <summary>Enumerates this node and descendants in depth-first order.</summary>
     public IEnumerable<AsciiDocSyntaxNode> DescendantsAndSelf() {

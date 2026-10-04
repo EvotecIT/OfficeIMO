@@ -13,7 +13,18 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Loads an AsciiDoc document from a caller-owned stream with syntax and recovery diagnostics.</summary>
     public static AsciiDocParseResult LoadResult(Stream stream, AsciiDocParseOptions? options = null, Encoding? encoding = null) {
-        return ParseResult((encoding ?? Utf8WithoutBom).GetString(OfficeStreamReader.ReadAllBytes(stream)), options);
+        return LoadResult(stream, options, encoding, CancellationToken.None);
+    }
+
+    /// <summary>Loads bounded text with cooperative cancellation while preserving the caller's stream.</summary>
+    public static AsciiDocDocument Load(Stream stream, AsciiDocParseOptions? options, Encoding? encoding, CancellationToken cancellationToken) =>
+        LoadResult(stream, options, encoding, cancellationToken).Document;
+
+    /// <summary>Loads bounded text and returns recovery diagnostics with cooperative cancellation.</summary>
+    public static AsciiDocParseResult LoadResult(Stream stream, AsciiDocParseOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
+        options ??= new AsciiDocParseOptions();
+        AsciiDocParser.ValidateOptions(string.Empty, options);
+        return ParseResult(OfficeTextReader.ReadAllText(stream, options.MaximumInputLength, encoding, cancellationToken), options, cancellationToken);
     }
 
     /// <summary>Asynchronously loads and parses an AsciiDoc file.</summary>
@@ -31,6 +42,7 @@ public sealed partial class AsciiDocDocument {
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
     }
@@ -49,8 +61,11 @@ public sealed partial class AsciiDocDocument {
         AsciiDocParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        return ParseResult((encoding ?? Utf8WithoutBom).GetString(bytes), options);
+        options ??= new AsciiDocParseOptions();
+        AsciiDocParser.ValidateOptions(string.Empty, options);
+        string text = await OfficeTextReader.ReadAllTextAsync(stream, options.MaximumInputLength, encoding, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ParseResult(text, options, cancellationToken);
     }
 
     /// <summary>Encodes the current document text.</summary>
@@ -64,7 +79,8 @@ public sealed partial class AsciiDocDocument {
     /// <summary>Saves the current document text to a file.</summary>
     public void Save(string path, AsciiDocWriterOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        OfficeFileCommit.WriteAllBytes(path, ToBytes(options, encoding));
+        byte[] bytes = ToBytes(options, encoding);
+        OfficeFileCommit.WriteAtomically(path, stream => stream.Write(bytes, 0, bytes.Length));
     }
 
     /// <summary>Writes the current document text to a caller-owned stream.</summary>
@@ -79,10 +95,11 @@ public sealed partial class AsciiDocDocument {
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        await OfficeFileCommit.WriteAllBytesAsync(
-            path,
-            ToBytes(options, encoding),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = ToBytes(options, encoding);
+        await OfficeFileCommit.WriteAtomicallyAsync(path,
+            (stream, token) => stream.WriteAsync(bytes, 0, bytes.Length, token),
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously writes the current document text to a caller-owned stream.</summary>

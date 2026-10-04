@@ -5,6 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 internal sealed class IWorkObjectIndex {
     private readonly Dictionary<ulong, IWorkArchiveRecord> _objects;
     private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages = new();
+    private readonly Dictionary<IWorkArchiveRecord, InvalidDataException> _malformedMessages = new();
     private readonly object _messageLock = new();
     private readonly IWorkReadOptions _options;
     private readonly CancellationToken _cancellationToken;
@@ -31,9 +32,15 @@ internal sealed class IWorkObjectIndex {
         _cancellationToken.ThrowIfCancellationRequested();
         lock (_messageLock) {
             if (_messages.TryGetValue(record, out IWorkWireMessage? cached)) return cached;
-            IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
-            _messages.Add(record, parsed);
-            return parsed;
+            if (_malformedMessages.TryGetValue(record, out InvalidDataException? malformed)) throw malformed;
+            try {
+                IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
+                _messages.Add(record, parsed);
+                return parsed;
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+                _malformedMessages.Add(record, exception);
+                throw;
+            }
         }
     }
 

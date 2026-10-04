@@ -172,14 +172,15 @@ namespace OfficeIMO.Internal {
             }
         }
 
-        internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize) {
+        internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize,
+            FileShare share = FileShare.Read) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (physicalRoot == null) throw new ArgumentNullException(nameof(physicalRoot));
             if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
             string fullPath = Path.GetFullPath(path);
             FileStream stream;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                stream = OpenWindowsRegularFileForRead(fullPath, bufferSize);
+                stream = OpenWindowsRegularFileForRead(fullPath, bufferSize, share);
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 stream = OpenUnixRegularFileForRead(fullPath, bufferSize);
             } else {

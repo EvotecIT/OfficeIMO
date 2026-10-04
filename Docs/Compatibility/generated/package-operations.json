@@ -2688,7 +2688,7 @@
       "evidence":"OfficeIMO.Shared.Tests EPUB reading/writing contracts and independent EPUBCheck validation::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".epub"],
-      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry, media-overlay authoring and manuscript conversion are outside this contract."
+      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract."
     },
     {
       "id":"native:epub-native:read",
@@ -2716,7 +2716,7 @@
       "evidence":"OfficeIMO.Shared.Tests EPUB reading/writing contracts and independent EPUBCheck validation::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".epub"],
-      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry, media-overlay authoring and manuscript conversion are outside this contract."
+      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract."
     },
     {
       "id":"native:epub-native:preserve",
@@ -2730,7 +2730,7 @@
       "evidence":"OfficeIMO.Shared.Tests EPUB reading/writing contracts and independent EPUBCheck validation::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".epub"],
-      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry, media-overlay authoring and manuscript conversion are outside this contract."
+      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract."
     },
     {
       "id":"native:epub-native:inspect",
@@ -2758,7 +2758,21 @@
       "evidence":"OfficeIMO.Shared.Tests EPUB reading/writing contracts and independent EPUBCheck validation::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".epub"],
-      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry, media-overlay authoring and manuscript conversion are outside this contract."
+      "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract."
+    },
+    {
+      "id":"conversion:html-epub",
+      "packageId":"OfficeIMO.Epub",
+      "formatId":"HTML",
+      "targetFormatId":"EPUB",
+      "capabilityId":"html-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)",
+      "evidence":"Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".htm",".html"],
+      "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
     },
     {
       "id":"conversion:epub-jpeg",
@@ -19209,6 +19223,118 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".rtf"],
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
+    },
+    {
+      "id":"native:book-project:create",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book.Project",
+      "targetFormatId":"",
+      "capabilityId":"book-project",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+      "evidence":"OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oibook"],
+      "limitation":"Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review."
+    },
+    {
+      "id":"native:book-project:read",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book.Project",
+      "targetFormatId":"",
+      "capabilityId":"book-project",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+      "evidence":"OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oibook"],
+      "limitation":"Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review."
+    },
+    {
+      "id":"native:book-project:edit",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book.Project",
+      "targetFormatId":"",
+      "capabilityId":"book-project",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+      "evidence":"OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oibook"],
+      "limitation":"Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review."
+    },
+    {
+      "id":"native:book-project:preserve",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book.Project",
+      "targetFormatId":"",
+      "capabilityId":"book-project",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+      "evidence":"OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation::Preserve",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oibook"],
+      "limitation":"Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review."
+    },
+    {
+      "id":"native:book-project:validate",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book.Project",
+      "targetFormatId":"",
+      "capabilityId":"book-project",
+      "operation":"Validate",
+      "state":"Partial",
+      "publicApi":"BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+      "evidence":"OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation::Validate",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oibook"],
+      "limitation":"Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review."
+    },
+    {
+      "id":"native:book-project:export",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book.Project",
+      "targetFormatId":"",
+      "capabilityId":"book-project",
+      "operation":"Export",
+      "state":"Supported",
+      "publicApi":"BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+      "evidence":"OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation::Export",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".oibook"],
+      "limitation":"Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review."
+    },
+    {
+      "id":"conversion:docx-epub",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"DOCX",
+      "targetFormatId":"EPUB",
+      "capabilityId":"docx-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"BookManuscriptImporter.ImportWordAsync(document, options)",
+      "evidence":"Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
+    },
+    {
+      "id":"conversion:markdown-epub",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Markdown",
+      "targetFormatId":"EPUB",
+      "capabilityId":"markdown-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"BookManuscriptImporter.ImportMarkdownAsync(document, options)",
+      "evidence":"Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".markdown",".md"],
+      "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
     }
   ]
 }
