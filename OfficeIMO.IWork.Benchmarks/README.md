@@ -1,8 +1,9 @@
 # iWork runtime evidence
 
 This opt-in workload library measures the shared iWork reader and the Word, Excel
-and PowerPoint destination adapters. It stays outside the normal solution and
-correctness CI. [PowerForge](https://github.com/EvotecIT/PSPublishModule) owns
+and PowerPoint destination adapters. It stays outside the normal solution;
+deterministic native-content and cancellation checks run in a dedicated workflow.
+[PowerForge](https://github.com/EvotecIT/PSPublishModule) owns
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
@@ -41,8 +42,8 @@ checked before a sample succeeds. `-Scale`, `-Kind` and `-Operation` select case
 `-WarmupCount` and `-IterationCount` default to two and five. A quick smoke run uses
 `-Scale Small -WarmupCount 0 -IterationCount 1`.
 
-Use `-Scale Native -Kind Pages,Numbers` for the independent `nim-iwork/simple.pages`
-and `nim-iwork/simple.numbers` fixtures in the [licensed corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
+Use `-Scale Native` for `nim-iwork/simple.pages`, `nim-iwork/simple.numbers` and
+`native-exports/keynote-colors-v15.4.key` in the [licensed corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
 Their SHA-256 hashes are checked before execution. Pages validates all three body
 paragraphs, including the empty paragraph; Numbers validates the complete 3×3 grid,
 coordinates, value types and contents. Both operations use the same reader and
@@ -50,9 +51,22 @@ editable-conversion owners as the synthetic cases, requiring complete editable
 reconstruction for their qualified paragraph defaults. They reject preview fallback
 and verify all listed content. The conversion policy is recorded in case variables so these runs
 are not compared with earlier strict-policy samples. Saved packages are reopened
-before a sample succeeds. These small native inputs complement the scale matrix;
-they do not establish large native-package budgets. Native Keynote runtime cases
-remain unqualified, so `Native` requires an explicit Pages/Numbers kind selection.
+before a sample succeeds. Keynote validates both slides, their 1024×768-point canvas,
+all title/body text drawables in order and the two opaque background colors against
+the controlled Apple export. These small native inputs complement the scale matrix;
+they do not establish large native-package budgets or new rendering/font coverage.
+
+Validate the pinned native workload and active cancellation without measuring performance:
+
+```powershell
+dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -- --validate OfficeIMO.TestAssets/Documents/IWorkCorpus
+```
+
+The [iWork runtime evidence workflow](../.github/workflows/iwork-runtime-evidence.yml)
+runs this correctness check on Windows, Linux and macOS for workload changes.
+Manual dispatch additionally builds a pinned PowerForge source owner, runs the
+scale matrix twice, and measures 50 repeated native operations per case and pass
+in fresh PowerShell hosts. Measurements stay outside ordinary PR gates.
 
 Artifacts include raw samples, summaries, CSV tables and environment metadata.
 Case variables retain deterministic input SHA-256 hashes; metadata retains the
@@ -72,6 +86,30 @@ The retained-memory option is recorded in case variables so its runs are distinc
 from normal allocation runs. It is off by default and does not need a new runtime
 dependency in OfficeIMO packages.
 
+`RepeatedManagedBaselineBytes` retains the first measured setup baseline for each
+case/operation. `RepeatedRetainedManagedDeltaBytes` compares later collected heaps
+with that fixed baseline, so gradual changes remain visible across iterations.
+Use a single case and operation in a fresh host to reduce changes from other cases:
+
+```powershell
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale Native -Kind Keynote -Operation ConvertSave -IterationCount 50 -MeasureRetainedMemory
+```
+
+`CancelDuringLoad` and `CancelDuringConvert` request cancellation synchronously
+after the caller stream's first nonempty package read. `CancelDuringNativeCopy`
+uses an owned one-slide model with 150,000 ASCII characters and requests cancellation
+after the first 64 KiB write. Select only `-Scale Native -Kind Keynote -Operation
+CancelDuringNativeCopy` for that fixed writer case. Its input hash and size describe
+the model's deterministic native encoding. It does not consume a producer fixture.
+
+Every cancellation sample must observe `OperationCanceledException` after real I/O
+and leave the caller stream open. Writer copying must stop at 64 KiB. `VerifiedUnits`
+is one cancellation boundary in these cases, rather than the fixture's content count.
+Metrics retain bytes at the request, total observed I/O and request-to-exception
+latency. This qualifies cancellation during package intake and native stream copying;
+it does not measure cancellation during projection, destination construction or
+native encoding, and it does not qualify atomic path cancellation during staging.
+
 Repeat an equivalent matrix after warmup before selecting a host-specific budget.
 Per-iteration deltas do not establish long-run stability, native-memory retention,
 peak usage or a portable leak threshold. Keep the native and synthetic workloads
@@ -85,7 +123,7 @@ runs on the same idle host; do not infer portable ceilings from one measurement.
 Keep these gates opt-in.
 
 Synthetic ZIP inputs isolate scaling behavior; the pinned native inputs exercise
-independent producers. Neither lane qualifies Apple export equivalence, rendering,
-repeated-open retention, cancellation
-latency, managed peaks, trimming/AOT or sandbox/device acceptance. Those contracts
+independent producers. The lane does not qualify Apple export equivalence, rendering,
+native-memory retention, managed/resident peaks, trimming/AOT, sandbox/device
+acceptance or portable resource ceilings. Those contracts
 remain in [I5](../Docs/ROADMAP.md#i5-runtime-and-apple-host-acceptance).
