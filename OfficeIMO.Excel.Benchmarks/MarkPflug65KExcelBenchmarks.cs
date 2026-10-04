@@ -4,7 +4,9 @@ using System.Text;
 using BenchmarkDotNet.Attributes;
 using ClosedXML.Excel;
 using ExcelReader.Core.Reader;
+#if !NET10_0_OR_GREATER
 using ExcelReader.Core.ValueObjects;
+#endif
 using OfficeIMO.Benchmarks;
 using OfficeIMO.Excel.Xlsb.Read;
 using OfficeOpenXml;
@@ -81,14 +83,22 @@ public class MarkPflug65KXlsxBenchmarks {
 
     [Benchmark]
     public ExcelReadObservation ExcelReaderNet() {
+#if NET10_0_OR_GREATER
+        using XlsxReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+#else
         using XlsxReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
+#endif
         return Validate(nameof(ExcelReaderNet), ObserveExcelReader(reader));
     }
 
     [Benchmark]
     public ExcelReadObservation ExcelReaderNet_Prefetch() {
         ExcelReaderOptions options = ExcelReaderOptions.Default with { PrefetchDecompression = true };
+#if NET10_0_OR_GREATER
+        using XlsxReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath, options);
+#else
         using XlsxReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath, options);
+#endif
         return Validate(nameof(ExcelReaderNet_Prefetch), ObserveExcelReader(reader));
     }
 

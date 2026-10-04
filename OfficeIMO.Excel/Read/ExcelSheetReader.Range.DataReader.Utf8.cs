@@ -137,8 +137,10 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)) {
-                            candidate.ValidateBufferedWorksheetXml(ct);
+                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)
+                            && !candidate.ValidateBufferedWorksheetXml(ct)) {
+                            candidate.Dispose();
+                            return false;
                         }
 
                         ct.ThrowIfCancellationRequested();
@@ -191,8 +193,10 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)) {
-                            candidate.ValidateBufferedWorksheetXml(ct);
+                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)
+                            && !candidate.ValidateBufferedWorksheetXml(ct)) {
+                            candidate.Dispose();
+                            return false;
                         }
                     } catch {
                         candidate.Dispose();
@@ -500,11 +504,14 @@ namespace OfficeIMO.Excel {
                 int position = 0;
                 Utf8Tag sheetData = default;
                 bool foundSheetData = false;
+                bool foundRoot = false;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
                     ct.ThrowIfCancellationRequested();
                     if (!tag.IsEnd
-                        && IsUnprefixedTag(tag)
                         && LocalNameEquals(tag, "worksheet")) {
+                        if (foundRoot) return false;
+                        foundRoot = true;
+                        SetWorksheetPrefix(tag);
                         hasCanonicalRootNamespaces = ValidateCanonicalNamespaceUsage(
                             tag,
                             isRootStartTag: true,
@@ -514,7 +521,7 @@ namespace OfficeIMO.Excel {
                             namespaceUriLengths,
                             ref namespacePrefixCount);
                     }
-                    if (!tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
+                    if (!tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "sheetData")) {
                         sheetData = tag;
                         foundSheetData = true;
                         break;
@@ -550,12 +557,12 @@ namespace OfficeIMO.Excel {
                     if (!repeatedRow && ContainsNonWhitespace(tagSearchStart, tag.Start)) {
                         _sheetDataSupportsFastValidation = false;
                     }
-                    if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "sheetData")) {
+                    if (tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "sheetData")) {
                         _sheetDataEndTagStart = tag.Start;
                         return !_parseFailed;
                     }
 
-                    if (tag.IsEnd || !IsUnprefixedTag(tag) || !LocalNameEquals(tag, "row")) {
+                    if (tag.IsEnd || !IsIndexedTag(tag) || !LocalNameEquals(tag, "row")) {
                         return false;
                     }
 
@@ -655,7 +662,7 @@ namespace OfficeIMO.Excel {
                         if (!TryReadNextTag(ref position, _length, out tag)) {
                             return false;
                         }
-                        if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "row")) {
+                        if (tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "row")) {
                             if (ContainsNonWhitespace(originalPosition, tag.Start)) {
                                 _sheetDataSupportsFastValidation = false;
                             }
@@ -664,7 +671,7 @@ namespace OfficeIMO.Excel {
                         }
                         _sheetDataSupportsFastValidation = false;
                         if (tag.IsEnd
-                            || !IsUnprefixedTag(tag)
+                            || !IsIndexedTag(tag)
                             || !LocalNameEquals(tag, "c")
                             || !TryGetCellAttributes(tag, ref nextColumn, out columnIndex, out kind, out styleIndex)) {
                             return false;
@@ -765,7 +772,7 @@ namespace OfficeIMO.Excel {
                 if (!TryReadNextTag(ref position, _length, out Utf8Tag textTag)
                     || ContainsNonWhitespace(contentBoundary, textTag.Start)
                     || textTag.IsEnd
-                    || !IsUnprefixedTag(textTag)
+                    || !IsIndexedTag(textTag)
                     || !LocalNameEquals(textTag, "t")) {
                     return false;
                 }
@@ -776,7 +783,7 @@ namespace OfficeIMO.Excel {
                 if (!textTag.IsEmpty) {
                     if (!TryReadNextTag(ref position, _length, out Utf8Tag textEndTag)
                         || !textEndTag.IsEnd
-                        || !IsUnprefixedTag(textEndTag)
+                        || !IsIndexedTag(textEndTag)
                         || !LocalNamesEqual(textTag, textEndTag)
                         || ContainsByte(textTag.End + 1, textEndTag.Start, (byte)'<')) {
                         return false;
@@ -790,7 +797,7 @@ namespace OfficeIMO.Excel {
                 if (!TryReadNextTag(ref position, _length, out Utf8Tag inlineStringEndTag)
                     || ContainsNonWhitespace(nextBoundary, inlineStringEndTag.Start)
                     || !inlineStringEndTag.IsEnd
-                    || !IsUnprefixedTag(inlineStringEndTag)
+                    || !IsIndexedTag(inlineStringEndTag)
                     || !LocalNamesEqual(inlineStringTag, inlineStringEndTag)) {
                     return false;
                 }
@@ -807,7 +814,7 @@ namespace OfficeIMO.Excel {
                 return TryReadNextTag(ref position, _length, out Utf8Tag cellEndTag)
                     && !ContainsNonWhitespace(contentBoundary, cellEndTag.Start)
                     && cellEndTag.IsEnd
-                    && IsUnprefixedTag(cellEndTag)
+                    && IsIndexedTag(cellEndTag)
                     && LocalNameEquals(cellEndTag, "c");
             }
 
@@ -978,12 +985,13 @@ namespace OfficeIMO.Excel {
 
             private string DecodeXmlText(int start, int length) {
                 string text = Encoding.UTF8.GetString(_buffer!, start, length);
-                if (text.IndexOf('&') >= 0) {
-                    text = WebUtility.HtmlDecode(text);
-                }
-
+                // XML normalizes literal line endings before expanding character references.
+                // A referenced carriage return must survive unchanged.
                 if (text.IndexOf('\r') >= 0) {
                     text = text.Replace("\r\n", "\n").Replace('\r', '\n');
+                }
+                if (text.IndexOf('&') >= 0) {
+                    text = WebUtility.HtmlDecode(text);
                 }
 
                 return text;
@@ -1225,9 +1233,6 @@ namespace OfficeIMO.Excel {
 
             private static bool IsAsciiWhitespace(byte value) =>
                 value == (byte)' ' || value == (byte)'\t' || value == (byte)'\r' || value == (byte)'\n';
-
-            private static bool IsUnprefixedTag(Utf8Tag tag) =>
-                tag.NameStart == tag.LocalNameStart;
 
             private static bool IsTagNameTerminator(byte value) =>
                 IsAsciiWhitespace(value) || value == (byte)'/' || value == (byte)'>';

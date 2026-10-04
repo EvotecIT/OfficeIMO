@@ -11,14 +11,19 @@ using Sylvan.Data.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
-/// <summary>Reads small string tables whose final item requires full XML decoding.</summary>
+/// <summary>Reads small and large shared-string tables with ordinary and prefixed worksheet XML.</summary>
 [MemoryDiagnoser]
 public class ExcelSharedStringReadBenchmarks {
-    private const int RowCount = 256;
     private byte[] _workbook = [];
     private string[] _expected = [];
 
-    [Params("Ascii", "UnicodeTail", "EntityTail")]
+    [Params(256, 25000)]
+    public int RowCount { get; set; }
+
+    [Params(false, true)]
+    public bool PrefixedWorksheet { get; set; }
+
+    [Params("Ascii", "UnicodeTail", "EntityTail", "Unicode", "RichText")]
     public string Shape { get; set; } = "Ascii";
 
     [GlobalSetup]
@@ -26,9 +31,10 @@ public class ExcelSharedStringReadBenchmarks {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         _expected = Enumerable.Range(0, RowCount)
-            .Select(index => "Label" + index.ToString("D4", CultureInfo.InvariantCulture)).ToArray();
+            .Select(index => (Shape == "Unicode" ? "Łódź 東京 😀 " : "Label")
+                + index.ToString("D4", CultureInfo.InvariantCulture)).ToArray();
         _expected[^1] = Shape switch {
-            "Ascii" => _expected[^1],
+            "Ascii" or "Unicode" or "RichText" => _expected[^1],
             "UnicodeTail" => "Łódź 東京 😀",
             "EntityTail" => "A&B <last>",
             _ => throw new InvalidOperationException("Unknown shared-string shape.")
@@ -46,11 +52,19 @@ public class ExcelSharedStringReadBenchmarks {
             // uncommon text at the end so late fallback remains measurable.
             using var writer = new StreamWriter(strings.GetStream(), new UTF8Encoding(false));
             writer.Write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-            writer.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"256\" uniqueCount=\"256\">");
+            writer.Write($"<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"{RowCount}\" uniqueCount=\"{RowCount}\">");
             foreach (string value in _expected) {
-                writer.Write("<si><t>");
-                writer.Write(System.Security.SecurityElement.Escape(value));
-                writer.Write("</t></si>");
+                if (Shape == "RichText") {
+                    writer.Write("<si><r><rPr><b/></rPr><t>");
+                    writer.Write(value.AsSpan(0, 3));
+                    writer.Write("</t></r><r><t>");
+                    writer.Write(value.AsSpan(3));
+                    writer.Write("</t></r></si>");
+                } else {
+                    writer.Write("<si><t>");
+                    writer.Write(System.Security.SecurityElement.Escape(value));
+                    writer.Write("</t></si>");
+                }
             }
             writer.Write("</sst>");
         }
@@ -61,22 +75,23 @@ public class ExcelSharedStringReadBenchmarks {
         Validate(peer);
     }
 
-    private static void WriteWorksheet(WorksheetPart part) {
+    private void WriteWorksheet(WorksheetPart part) {
         const string ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        string? prefix = PrefixedWorksheet ? "x" : null;
         using var writer = XmlWriter.Create(part.GetStream(), new XmlWriterSettings { Encoding = new UTF8Encoding(false) });
-        writer.WriteStartElement("worksheet", ns);
-        writer.WriteStartElement("dimension", ns);
-        writer.WriteAttributeString("ref", "A1:A256");
+        writer.WriteStartElement(prefix, "worksheet", ns);
+        writer.WriteStartElement(prefix, "dimension", ns);
+        writer.WriteAttributeString("ref", "A1:A" + RowCount.ToString(CultureInfo.InvariantCulture));
         writer.WriteEndElement();
-        writer.WriteStartElement("sheetData", ns);
+        writer.WriteStartElement(prefix, "sheetData", ns);
         for (int index = 0; index < RowCount; index++) {
             string row = (index + 1).ToString(CultureInfo.InvariantCulture);
-            writer.WriteStartElement("row", ns);
+            writer.WriteStartElement(prefix, "row", ns);
             writer.WriteAttributeString("r", row);
-            writer.WriteStartElement("c", ns);
+            writer.WriteStartElement(prefix, "c", ns);
             writer.WriteAttributeString("r", "A" + row);
             writer.WriteAttributeString("t", "s");
-            writer.WriteElementString("v", ns, index.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString(prefix, "v", ns, index.ToString(CultureInfo.InvariantCulture));
             writer.WriteEndElement();
             writer.WriteEndElement();
         }
@@ -111,7 +126,7 @@ public class ExcelSharedStringReadBenchmarks {
         if (reader.Read()) throw new InvalidDataException("Shared-string read returned extra rows.");
     }
 
-    private static long Observe(DbDataReader reader) {
+    private long Observe(DbDataReader reader) {
         long signature = 0;
         int rows = 0;
         while (reader.Read()) {

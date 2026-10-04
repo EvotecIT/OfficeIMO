@@ -7,16 +7,18 @@ namespace OfficeIMO.Excel.Benchmarks;
 public class ExcelWriteBenchmarks {
     private IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> _rows = null!;
 
-    [Params(250, 2500)]
+    [Params(250, 2500, 25000)]
     public int RowCount { get; set; }
 
     [GlobalSetup]
     public void Setup() {
         _rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
+        ExcelSalesOutputValidator.ValidateWorkbook(OfficeIMO_Write_Report(), _rows);
+        ExcelSalesOutputValidator.ValidateWorkbook(ClosedXML_Write_Report(), _rows);
     }
 
     [Benchmark(Baseline = true)]
-    public int OfficeIMO_Write_Report() {
+    public byte[] OfficeIMO_Write_Report() {
         using var stream = new MemoryStream();
 
         using (var document = ExcelDocument.Create(stream)) {
@@ -25,11 +27,11 @@ public class ExcelWriteBenchmarks {
             document.Save(stream);
         }
 
-        return checked((int)stream.Length);
+        return stream.ToArray();
     }
 
     [Benchmark]
-    public int ClosedXML_Write_Report() {
+    public byte[] ClosedXML_Write_Report() {
         using var stream = new MemoryStream();
         using var workbook = new XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Data");
@@ -37,6 +39,6 @@ public class ExcelWriteBenchmarks {
         ExcelBenchmarkScenarioFactory.PopulateClosedXmlWorksheet(worksheet, _rows);
         workbook.SaveAs(stream);
 
-        return checked((int)stream.Length);
+        return stream.ToArray();
     }
 }

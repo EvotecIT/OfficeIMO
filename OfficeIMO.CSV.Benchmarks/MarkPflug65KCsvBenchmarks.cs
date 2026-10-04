@@ -3,7 +3,6 @@ using System.Data.Common;
 using BenchmarkDotNet.Attributes;
 using CsvHelper.Configuration;
 using ExcelReader.Core.Reader;
-using ExcelReader.Core.ValueObjects;
 using nietras.SeparatedValues;
 using OfficeIMO.Benchmarks;
 using CsvHelperReader = CsvHelper.CsvReader;
@@ -12,7 +11,6 @@ using LumenWorksCsvReader = CsvReader.CsvReader;
 using SepLib = nietras.SeparatedValues.Sep;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
-using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
 
 namespace OfficeIMO.CSV.Benchmarks;
 

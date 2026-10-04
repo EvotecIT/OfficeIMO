@@ -218,10 +218,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell.InlineString != null) {
-                if (cell.InlineString.InnerText.IndexOf('\r') < 0) {
-                    builder.Append(cell.InlineString.OuterXml);
-                } else {
-                    builder.Append(ExcelXmlPartWriter.SerializePreservingLineEndings(cell.InlineString));
+                if (!TryAppendPlainInlineString(builder, cell.InlineString)) {
+                    if (cell.InlineString.InnerText.IndexOf('\r') < 0) {
+                        builder.Append(cell.InlineString.OuterXml);
+                    } else {
+                        builder.Append(ExcelXmlPartWriter.SerializePreservingLineEndings(cell.InlineString));
+                    }
                 }
                 builder.Append("</c>");
                 return;

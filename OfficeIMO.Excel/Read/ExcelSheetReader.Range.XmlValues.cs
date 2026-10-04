@@ -903,6 +903,9 @@ namespace OfficeIMO.Excel {
 
         private static string ReadXmlInlineString(XmlReader inlineReader) {
             if (inlineReader.IsEmptyElement) {
+                // Cell readers resume on the current node after this helper returns.
+                // Advance past <is/> so they cannot repeatedly consume the same element.
+                inlineReader.Read();
                 return string.Empty;
             }
 

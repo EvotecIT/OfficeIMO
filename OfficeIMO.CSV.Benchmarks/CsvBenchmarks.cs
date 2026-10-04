@@ -20,10 +20,7 @@ using SepWriterOptions = nietras.SeparatedValues.SepWriterOptions;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
 using SylvanCsvDataWriter = Sylvan.Data.Csv.CsvDataWriter;
 using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
-using ExcelReaderNetCsvRowWriter = ExcelReader.Core.Writer.CsvRowWriter;
-using ExcelReaderNetCsvWriter = ExcelReader.Core.Writer.CsvWriter;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
-using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -50,7 +47,11 @@ public class CsvBenchmarks
     private string _csvText = string.Empty;
     private byte[] _csvUtf8 = [];
     private int _expectedTypedReadChecksum;
+#if NET10_0_OR_GREATER
+    private readonly ExcelParser<CsvBenchmarkRow> _excelReaderParser = ExcelParser.FromAttributes<CsvBenchmarkRow>();
+#else
     private readonly ExcelParser<CsvBenchmarkRow> _excelReaderParser = new();
+#endif
     private bool _captureWriteOutput;
     private string? _capturedWriteOutput;
     private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
@@ -304,7 +305,12 @@ public class CsvBenchmarks
     public int ExcelReaderNet_WriteProjectedRows()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
@@ -353,7 +359,12 @@ public class CsvBenchmarks
     public int ExcelReaderNet_WriteTypedRecords()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
@@ -436,7 +447,12 @@ public class CsvBenchmarks
     public int ExcelReaderNet_WriteTextRows()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
