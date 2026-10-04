@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "recordedAtUtc": "2026-10-04T14:41:47.948469+00:00",
+  "recordedAtUtc": "2026-10-04T14:56:16.561091+00:00",
   "sourceCommit": "b6a3a469849f119063beb8a16fef3e54a7924606",
   "scope": "Semantic PDF text encoding, byte-preserving parsed strings and encoded name-tree order; standalone shared PDF owner",
-  "observedDefect": "Archived NASA Reference Systems caption contains Earth’s. Prior generated ActualText used Windows-1252 byte 92, which independent PDFDocEncoding readers decode as trademark. Self-round-trip concealed the error.",
+  "observedDefect": "Archived NASA Reference Systems caption contains Earth\u2019s. Prior generated ActualText used Windows-1252 byte 92, which independent PDFDocEncoding readers decode as trademark. Self-round-trip concealed the error.",
   "ownerShape": {
     "existingPdfDocEncodingExtended": true,
     "fontGlyphEncodingSeparate": true,
@@ -75,9 +75,9 @@
     "preservationGateNotRelaxed": true
   },
   "remainingQualification": [
-    "Full PDF correctness suites net8/net10 after interrupted runs",
-    "Current-master standalone extraction package/platform CI",
-    "Clean-source held-out API/Tool replay, all-page content and visuals"
+    "Standalone net8 correctness, opt-in measurement selection and normal packed public consumers",
+    "Standalone current-head platform CI and delayed review before merge",
+    "Existing larger static timing and qualified long-lived integration gates remain open"
   ],
   "limits": [
     "Independent artifacts do not establish general PDF compatibility or manual accessibility",
@@ -90,6 +90,25 @@
       "failed": 0,
       "skipped": 0,
       "trx": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/resumed-full-net10/resumed-full-net10.trx"
+    },
+    "net8.0BeforeMeasurementCutover": {
+      "passed": 8777,
+      "failed": 2,
+      "skipped": 0,
+      "trx": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/resumed-full-net8/resumed-full-net8.trx",
+      "failures": [
+        {
+          "identity": "PdfOcrTests.Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation",
+          "elapsedSeconds": 13.5394021,
+          "originalCeilingSeconds": 5
+        },
+        {
+          "identity": "PdfTableStreamExportContracts.VectorVisibility_RepeatedFormsReuseInheritedPatternResource",
+          "elapsedSeconds": 16.1671079,
+          "originalCeilingSeconds": 15
+        }
+      ],
+      "classification": "Host-dependent wall-clock assertions mixed with correctness; retained as failures. Existing optional PdfPerformanceEvidence lane is being used to preserve unchanged ceilings and semantic checks."
     }
   },
   "interruptedRuns": {
@@ -97,6 +116,102 @@
     "retainedLogs": [
       "Ignore/MasterConvergenceQualification/pdf-doc-encoding-closure-full-net10.log",
       "Ignore/MasterConvergenceQualification/pdf-doc-encoding-closure-full-net8.log"
+    ]
+  },
+  "standaloneExtraction": {
+    "sourceHead": "4f45754c27c77872a35bb0a5399d888eabd7c1f2",
+    "baseHead": "af25f4b70cbdb37082bbb0f1fac33444568f93b6",
+    "net10Full": {
+      "passed": 8703,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "Ignore/PdfDocumentStringQualification/full-net10/standalone-full-net10.trx"
+    },
+    "normalMeasurementKeepersNet10": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "source": "Uncommitted test-only conditional routing; production bytes unchanged",
+      "trx": "Ignore/PdfDocumentStringQualification/measurement-correctness-net10/measurement-correctness-net10.trx"
+    }
+  },
+  "heldOutReferenceSystems": {
+    "recordedAtUtc": "2026-10-04T14:55:41.748541+00:00",
+    "sourceHead": "164c9dc4410996ffac8c7f3db57635fc76e25951",
+    "sourceArchiveSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+    "allPageVisualsInspected": 30,
+    "contactSheets": [
+      "print-paged-contact-1.png",
+      "print-paged-contact-2.png",
+      "screen-media-paged-contact-1.png",
+      "screen-media-paged-contact-2.png",
+      "screen-snapshot-paged-contact-1.png",
+      "screen-snapshot-paged-contact-2.png"
+    ],
+    "encodingCorrection": "All 36 source article blocks, including the exact U+2019 pole-location caption, are independently present in structural ActualText for all three profiles. No punctuation normalization.",
+    "criteria": [
+      {
+        "name": "API/Tool and independent raw per-page text agree",
+        "status": "pass"
+      },
+      {
+        "name": "Source article order",
+        "status": "partial",
+        "detail": "All 36 blocks are present; screen-media structural order matches source. Print and snapshot place longitude/latitude captions before two preceding paragraphs; floating-figure structure order remains open."
+      },
+      {
+        "name": "Illustrations/captions and clipping",
+        "status": "classified",
+        "detail": "All coordinate/solar-system illustrations and captions remain legible. Print/media keep figures whole; snapshot splits the polar-motion figure and recommendation cards at slice boundaries. Every page is pixel-identical to the prior output at 72dpi."
+      },
+      {
+        "name": "Responsive width, page-five flow, footer typography",
+        "status": "open",
+        "detail": "Print retains narrow floated prose and blank space opposite continuation after the globe images; screen-media stacks the figures. Page-five boundaries differ by profile. Footer text remains readable but layout/typography and browser reference policy comparison are not accepted by this encoding-only replay."
+      },
+      {
+        "name": "Resources and loss reports",
+        "status": "pass",
+        "detail": "Per-page decoded images and link targets/rectangles are unchanged; all three HasLoss reports remain true."
+      }
+    ],
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "images": 11,
+        "links": 58,
+        "pdfSha256": "08b7f2512f321a0a9e3ab8aef3a5a5781d6878e2d10f4a79832c989894c69a98",
+        "allPagesPixelIdenticalToPrior": true,
+        "sourceOrderUnmatched": [
+          9,
+          10
+        ]
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "images": 11,
+        "links": 58,
+        "pdfSha256": "bcd1dc0b91326cc0102724ce7bc677e0697879bf699e02de09351a44f4565230",
+        "allPagesPixelIdenticalToPrior": true,
+        "sourceOrderUnmatched": []
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "images": 17,
+        "links": 62,
+        "pdfSha256": "1484af4202d962f19039b97d37c5d36aafd7d5923fd57c0ce7bef8db571cf728",
+        "allPagesPixelIdenticalToPrior": true,
+        "sourceOrderUnmatched": [
+          9,
+          10
+        ]
+      }
+    ],
+    "limits": [
+      "This is an encoding correction and explicit partial held-out acceptance; it is not browser parity, general accessibility or all historical PDF intent qualification."
     ]
   }
 }
