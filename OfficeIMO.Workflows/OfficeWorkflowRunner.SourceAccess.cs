@@ -64,7 +64,10 @@ public sealed partial class OfficeWorkflowRunner {
             _accesses = accesses;
             _output = output;
             _allowMissingLocalSources = allowMissingLocalSources;
-            _localScopes = accesses.Where(access => access.LocalPath is not null)
+            // Directory-package streams are complete in-memory transport archives, not filesystem
+            // access scopes. The batch preflight opens them one at a time; their owner guards and
+            // captured root identities remain in _accesses for both publication checks.
+            _localScopes = accesses.Where(access => access.LocalPath is not null && !access.IsDirectoryPackage)
                 .GroupBy(access => access.Location, StringComparer.Ordinal).Select(group => group.First()).ToArray();
             _localSources = sources.Where(source => !accesses.Any(access => access.Location == source))
                 .Select(OfficeStorageIdentity.GetLocalPath).OfType<string>()
@@ -96,6 +99,12 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 if (_host is not null && !await _host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
                 token.ThrowIfCancellationRequested();
+                // Reopen package transports after host authorization to check membership again.
+                // Each archive is disposed before the next one is opened, so batch size does not
+                // multiply the live in-memory transport budget.
+                foreach (var access in _accesses.Where(access => access.IsDirectoryPackage && access.LocalPath is not null)) {
+                    await using Stream package = await access.OpenReadAsync(token).ConfigureAwait(false);
+                }
                 foreach (var access in _accesses) {
                     if (access.SourceGuard is { } guard && !await guard.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
                 }

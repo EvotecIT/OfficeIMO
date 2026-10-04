@@ -125,7 +125,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IScanTextRecognitionService? scanTextRecognition = null,
         Func<CancellationToken, Task<string?>>? pickPrintOutput = null,
         Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null,
-        Func<CancellationToken, Task<string?>>? pickProvenanceFile = null) {
+        Func<CancellationToken, Task<string?>>? pickProvenanceFile = null,
+        Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
+        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
@@ -169,6 +171,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message);
         Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication,
             folder => _openUri(new Uri(folder)));
+        BookWorkbench = new BookWorkbenchViewModel(() => FileDialogs, _services.Storage,
+            bookPublicationGuard == null ? publicationGuard : new StudioProtectedPublicationGuard(_services.Storage, bookPublicationGuard),
+            confirmBookChanges ?? _confirmUnsavedChanges, _localizer);
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
@@ -217,6 +222,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         ConversionWorkbench.BatchExport.PropertyChanged += OnWorkflowPropertyChanged;
         InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        BookWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
         ProvenanceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -296,7 +302,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -463,7 +469,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         return true;
     }
 
-    internal Task<bool> PrepareCloseDocumentAsync() => PrepareDocumentTransitionAsync();
+    internal async Task<bool> PrepareCloseDocumentAsync() =>
+        await BookWorkbench.PrepareCloseAsync().ConfigureAwait(true) && await PrepareDocumentTransitionAsync().ConfigureAwait(true);
 
     internal void CancelPreparedClose() => _discardOnNextTransition = false;
 
@@ -589,6 +596,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.BatchExport.PropertyChanged -= OnWorkflowPropertyChanged;
         InvoiceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        BookWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         ProvenanceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
@@ -596,6 +604,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
         InvoiceWorkbench.Dispose();
+        BookWorkbench.Dispose();
         Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();

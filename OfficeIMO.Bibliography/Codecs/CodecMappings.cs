@@ -31,6 +31,7 @@ internal static class CodecMappings {
     }
 
     internal static BibliographyItemType ParseCslType(string? type) =>
+        CslVocabulary.TryAdditionalType(type, out BibliographyItemType additional) ? additional :
         string.Equals(type?.Trim(), "article", StringComparison.OrdinalIgnoreCase) ? BibliographyItemType.Article : ParseType(type);
 
     internal static string ToCslType(BibliographyItemType type) {
@@ -52,7 +53,7 @@ internal static class CodecMappings {
             case BibliographyItemType.LegalCase: return "legal_case";
             case BibliographyItemType.PersonalCommunication: return "personal_communication";
             case BibliographyItemType.Manuscript: return "manuscript";
-            default: return "document";
+            default: return CslVocabulary.AdditionalTypeProperty(type) ?? "document";
         }
     }
 

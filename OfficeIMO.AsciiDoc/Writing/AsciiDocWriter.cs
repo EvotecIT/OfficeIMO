@@ -17,7 +17,17 @@ internal static class AsciiDocWriter {
         var context = new AsciiDocWriterContext(options.Mode, lineEnding);
         var builder = new StringBuilder(document.Source.Text.Length);
         for (int index = 0; index < document.Blocks.Count; index++) {
-            builder.Append(document.Blocks[index].Write(context));
+            AsciiDocBlock block = document.Blocks[index];
+            if (document.IsStructureModified && index > 0) {
+                AsciiDocBlock previous = document.Blocks[index - 1];
+                bool originalNeighbors = ReferenceEquals(previous.Syntax.Parent, block.Syntax.Parent) && previous.Syntax.EndOffset == block.Syntax.StartOffset;
+                if (!originalNeighbors && builder.Length > 0) {
+                    if (builder[builder.Length - 1] != '\n' && builder[builder.Length - 1] != '\r') builder.Append(lineEnding);
+                    if (previous is not AsciiDocBlankLine && block is not AsciiDocBlankLine &&
+                        previous is not IAsciiDocBlockMetadata && previous is not AsciiDocListContinuation) builder.Append(lineEnding);
+                }
+            }
+            builder.Append(block.Write(context));
         }
         return builder.ToString();
     }

@@ -160,6 +160,22 @@ public sealed class IWorkDirectoryWorkflowTests {
         Assert.False(Directory.Exists(Path.Combine(second.Input, "nested")));
     }
 
+    [Fact]
+    public async Task Batch_rechecks_other_local_package_membership_after_host_authorization() {
+        using var first = new Bundle("pages", "docx");
+        using var second = new Bundle("pages", "docx");
+        OfficeWorkflowRequest request = first.Request("pages-docx");
+        request.PublicationGuard = new ActionGuard(() =>
+            File.WriteAllText(Path.Combine(second.Input, "new-entry.txt"), "changed"));
+
+        IReadOnlyList<OfficeWorkflowResult> results = await IWorkWorkflow.CreateRunner().RunBatchAsync([
+            request, second.Request("pages-docx")]);
+
+        Assert.False(results[0].Succeeded);
+        Assert.False(File.Exists(first.Output));
+        Assert.Contains("membership", results[0].Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
     [DllImport("libc", EntryPoint = "link", SetLastError = true)]
     private static extern int Link(string source, string destination);
     [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]

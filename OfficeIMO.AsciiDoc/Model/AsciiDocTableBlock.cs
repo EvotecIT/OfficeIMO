@@ -14,6 +14,8 @@ public enum AsciiDocTableFormat {
 
 /// <summary>Typed source-backed AsciiDoc table.</summary>
 public sealed class AsciiDocTableBlock : AsciiDocDelimitedBlock {
+    private AsciiDocTable _table;
+    private AsciiDocParseOptions _tableOptions = new AsciiDocParseOptions();
     internal AsciiDocTableBlock(
         AsciiDocSyntaxNode syntax,
         string delimiter,
@@ -24,11 +26,33 @@ public sealed class AsciiDocTableBlock : AsciiDocDelimitedBlock {
         string trailingLineEnding,
         AsciiDocTable table)
         : base(syntax, AsciiDocDelimitedBlockKind.Table, delimiter, openingText, content, closingText, isTerminated, trailingLineEnding) {
-        Table = table;
+        _table = table;
     }
 
     /// <summary>Rows, cells, spans, format, and separator semantics.</summary>
-    public AsciiDocTable Table { get; }
+    public AsciiDocTable Table => _table;
+
+    /// <summary>Current table source. Assignment reparses the typed cells before changing the block.</summary>
+    public override string Content {
+        get => Table.IsModified ? Table.Write(new AsciiDocWriterContext(AsciiDocWriterMode.Preserve, "\n")) : base.Content;
+        set {
+            string replacement = value ?? string.Empty;
+            if (string.Equals(Content, replacement, StringComparison.Ordinal)) return;
+            AsciiDocParser.ValidateOptions(replacement, _tableOptions);
+            var factory = new AsciiDocSyntaxFactory(new AsciiDocSourceText(replacement), default, _tableOptions);
+            var configuration = AsciiDocTableConfiguration.Create(Delimiter, AttributeLists, _tableOptions.MaximumTableColumnCount);
+            AsciiDocTable parsed = AsciiDocTableParser.Parse(factory, 0, replacement.Length, configuration).Table;
+            foreach (AsciiDocTableCell cell in parsed.Cells) cell.SetBodyOptions(_tableOptions);
+            base.Content = replacement;
+            SetValue(ref _table, parsed);
+        }
+    }
+
+    internal override void SetBodyOptions(AsciiDocParseOptions options) {
+        _tableOptions = options.Copy();
+        base.SetBodyOptions(options);
+        foreach (AsciiDocTableCell cell in Table.Cells) cell.SetBodyOptions(options);
+    }
 
     /// <inheritdoc />
     public override bool IsModified => base.IsModified || Table.IsModified;
@@ -130,6 +154,9 @@ public sealed class AsciiDocTableRow {
 public sealed class AsciiDocTableCell {
     private string _content;
     private bool _isModified;
+    private AsciiDocDocument? _body;
+    private AsciiDocInlineSequence? _inlines;
+    private AsciiDocParseOptions _bodyOptions = new AsciiDocParseOptions();
 
     internal AsciiDocTableCell(
         AsciiDocSyntaxNode syntax,
@@ -139,7 +166,8 @@ public sealed class AsciiDocTableCell {
         string specifier,
         string content,
         int rowIndex,
-        int columnIndex) {
+        int columnIndex,
+        char columnStyle = 'd') {
         Syntax = syntax;
         Format = format;
         Separator = separator;
@@ -151,7 +179,7 @@ public sealed class AsciiDocTableCell {
         ParseSpan(specifier, out int columnSpan, out int rowSpan);
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
-        Style = ParseStyle(specifier);
+        Style = ParseStyle(specifier, columnStyle);
     }
 
     /// <summary>Lossless cell syntax, including its leading separator or row boundary.</summary>
@@ -177,11 +205,13 @@ public sealed class AsciiDocTableCell {
 
     /// <summary>Exact raw content after the leading separator and specifier.</summary>
     public string Content {
-        get => _content;
+        get => _body?.IsModified == true ? _body.ToAsciiDoc() : _inlines?.IsModified == true ? ReplaceValue(_content, _inlines.ToAsciiDoc()) : _content;
         set {
             string normalized = value ?? string.Empty;
-            if (string.Equals(_content, normalized, StringComparison.Ordinal)) return;
+            if (string.Equals(Content, normalized, StringComparison.Ordinal)) return;
             _content = normalized;
+            _body = null;
+            _inlines = null;
             _isModified = true;
         }
     }
@@ -190,21 +220,43 @@ public sealed class AsciiDocTableCell {
     public string Value {
         get => Decode(Content, Format);
         set {
-            string encoded = Encode(value ?? string.Empty, Format, Separator);
-            int leading = 0;
-            while (leading < Content.Length && char.IsWhiteSpace(Content[leading])) leading++;
-            int trailing = Content.Length;
-            while (trailing > leading && char.IsWhiteSpace(Content[trailing - 1])) trailing--;
-            Content = Content.Substring(0, leading) + encoded + Content.Substring(trailing);
+            Content = ReplaceValue(Content, value ?? string.Empty);
         }
     }
 
     /// <summary>True when content changed.</summary>
-    public bool IsModified => _isModified;
+    public bool IsModified => _isModified || _body?.IsModified == true || _inlines?.IsModified == true;
+
+    /// <summary>Typed editable content for default, emphasis, header, or strong cells; null for block and verbatim styles.</summary>
+    public AsciiDocInlineSequence? Inlines => GetInlines();
+    /// <summary>Parses inline cell content with the owning document's limits and cancellation.</summary>
+    public AsciiDocInlineSequence? GetInlines(System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Style == 'a' || Style == 'l' || Style == 'm') return null;
+        return _inlines ??= AsciiDocInlineSequence.Parse(Value, _bodyOptions, cancellationToken);
+    }
+
+    /// <summary>Typed editable child blocks for an AsciiDoc-style PSV cell; null for other cell styles.</summary>
+    public AsciiDocDocument? Body => GetBody();
+    /// <summary>Parses the cell body with the owning document's limits and cooperative cancellation.</summary>
+    public AsciiDocDocument? GetBody(System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Style != 'a' || Format != AsciiDocTableFormat.Psv) return null;
+        return _body ??= AsciiDocDocument.Parse(_content, _bodyOptions, cancellationToken);
+    }
+    internal void SetBodyOptions(AsciiDocParseOptions options) => _bodyOptions = options.Copy();
 
     internal AsciiDocTableFormat Format { get; }
     internal string Separator { get; }
     internal string LeadingText { get; }
+
+    private string ReplaceValue(string content, string value) {
+        int leading = 0;
+        while (leading < content.Length && char.IsWhiteSpace(content[leading])) leading++;
+        int trailing = content.Length;
+        while (trailing > leading && char.IsWhiteSpace(content[trailing - 1])) trailing--;
+        return content.Substring(0, leading) + Encode(value, Format, Separator) + content.Substring(trailing);
+    }
 
     internal string Write(AsciiDocWriterContext context) {
         if (context.Mode == AsciiDocWriterMode.Preserve && !IsModified) return Syntax.OriginalText;
@@ -234,12 +286,12 @@ public sealed class AsciiDocTableCell {
         }
     }
 
-    private static char ParseStyle(string specifier) {
+    private static char ParseStyle(string specifier, char fallback) {
         for (int index = specifier.Length - 1; index >= 0; index--) {
             char value = specifier[index];
             if (value == 'a' || value == 'd' || value == 'e' || value == 'h' || value == 'l' || value == 'm' || value == 's') return value;
         }
-        return 'd';
+        return fallback;
     }
 
     private static string Decode(string value, AsciiDocTableFormat format) {

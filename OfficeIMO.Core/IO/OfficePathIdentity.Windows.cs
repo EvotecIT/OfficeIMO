@@ -6,8 +6,8 @@ using System.Text;
 
 namespace OfficeIMO.Internal {
     internal static partial class OfficePathIdentity {
-        private static FileStream OpenWindowsRegularFileForRead(string path, int bufferSize) {
-            SafeFileHandle handle = CreateFile(WindowsApiPath(path), GenericRead, FileShare.Read,
+        private static FileStream OpenWindowsRegularFileForRead(string path, int bufferSize, FileShare share) {
+            SafeFileHandle handle = CreateFile(WindowsApiPath(path), GenericRead, share,
                 IntPtr.Zero, OpenExisting, FileFlagOpenReparsePoint | FileFlagSequentialScan, IntPtr.Zero);
             if (handle.IsInvalid) {
                 handle.Dispose();

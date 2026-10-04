@@ -8,22 +8,24 @@ internal static class AsciiDocToMarkdownConverter {
         AsciiDocToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new AsciiDocToMarkdownOptions();
+        if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
+        options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.Create(document, options.MaximumBlockNestingDepth));
 
         var markdown = MarkdownDoc.Create();
         var diagnostics = new List<AsciiDocMarkdownConversionDiagnostic>();
-        AsciiDocDocumentAttributes attributes = document.GetAttributes();
         var attachedBlocks = new HashSet<AsciiDocBlock>(
             document.BlocksOfType<AsciiDocListBlock>()
                 .SelectMany(static list => list.Items)
                 .SelectMany(static item => item.AttachedBlocks));
         AddFrontMatter(document, markdown, options, diagnostics);
 
-        for (int index = 0; index < document.Blocks.Count; index++) {
-            AsciiDocBlock block = document.Blocks[index];
+        foreach (AsciiDocBlockContext context in document.GetBlockContexts(null, true, options.MaximumBlockNestingDepth)) {
+            AsciiDocBlock block = context.Block;
             if (attachedBlocks.Contains(block)) continue;
-            AddBlock(markdown, block, attributes, options, diagnostics);
+            AddBlock(markdown, block, context.Attributes, options, diagnostics);
         }
 
+        AddFootnotes(markdown, options, diagnostics);
         return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 
@@ -34,18 +36,35 @@ internal static class AsciiDocToMarkdownConverter {
         if (block == null) throw new ArgumentNullException(nameof(block));
         if (attributes == null) throw new ArgumentNullException(nameof(attributes));
         options ??= new AsciiDocToMarkdownOptions();
+        if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
+        options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.CreateForBlock(block, attributes, options.MaximumBlockNestingDepth));
         var markdown = MarkdownDoc.Create();
         var diagnostics = new List<AsciiDocMarkdownConversionDiagnostic>();
         AddBlock(markdown, block, attributes, options, diagnostics);
+        AddFootnotes(markdown, options, diagnostics);
         return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 
-    private static void AddBlock(
+    private static void AddFootnotes(MarkdownDoc markdown, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        if (options.References == null) return;
+        foreach (var definition in options.References.Footnotes) {
+            if (!options.UsedFootnotes.Contains(definition.Key)) continue;
+            var context = options.References.GetFootnoteContext(definition.Value);
+            InlineSequence content = AsciiDocInlineToMarkdownConverter.Convert(definition.Value.Inlines, context.Attributes, options, diagnostics, context.Owner);
+            markdown.Add(new FootnoteDefinitionBlock(definition.Key, new IMarkdownBlock[] { new ParagraphBlock(content) }));
+        }
+        foreach (AsciiDocReferenceDiagnostic diagnostic in options.References.Diagnostics)
+            diagnostics.Add(new AsciiDocMarkdownConversionDiagnostic(diagnostic.Code, AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Simplified, "reference", diagnostic.Message, diagnostic.Span));
+    }
+
+    internal static void AddBlock(
         MarkdownDoc markdown,
         AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
-        List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
+        int depth = 0) {
+        if (depth >= options.MaximumBlockNestingDepth) throw new System.IO.InvalidDataException("AsciiDoc conversion exceeds MaximumBlockNestingDepth.");
         switch (block) {
             case AsciiDocBlankLine:
             case AsciiDocAttributeEntry:
@@ -56,7 +75,8 @@ internal static class AsciiDocToMarkdownConverter {
                 int level = heading.IsDocumentTitle ? 1 : Math.Max(1, Math.Min(6, heading.SectionLevel + 1));
                 var markdownHeading = new HeadingBlock(level,
                     AsciiDocInlineToMarkdownConverter.Convert(heading.Inlines, attributes, options, diagnostics, heading));
-                ApplyMetadata(markdownHeading, heading);
+                if (options.References?.GetBlockId(heading) == null) markdownHeading.SuppressAutomaticIdentifier();
+                ApplyMetadata(markdownHeading, heading, options.References?.GetBlockId(heading));
                 markdown.Add(markdownHeading);
                 break;
             case AsciiDocParagraph paragraph:
@@ -66,7 +86,7 @@ internal static class AsciiDocToMarkdownConverter {
                 markdown.Add(markdownParagraph);
                 break;
             case AsciiDocListBlock list:
-                AddList(markdown, list, attributes, options, diagnostics);
+                AddList(markdown, list, attributes, options, diagnostics, depth);
                 break;
             case AsciiDocDescriptionListBlock descriptionList:
                 AddDescriptionList(markdown, descriptionList, attributes, options, diagnostics);
@@ -75,12 +95,12 @@ internal static class AsciiDocToMarkdownConverter {
                 AddAdmonition(markdown, admonition, attributes, options, diagnostics);
                 break;
             case AsciiDocTableBlock table:
-                TableBlock markdownTable = AsciiDocTableToMarkdownConverter.Convert(table, attributes, options, diagnostics);
+                TableBlock markdownTable = AsciiDocTableToMarkdownConverter.Convert(table, attributes, options, diagnostics, depth);
                 ApplyMetadata(markdownTable, table);
                 markdown.Add(markdownTable);
                 break;
             case AsciiDocDelimitedBlock delimited:
-                AddDelimitedBlock(markdown, delimited, attributes, options, diagnostics);
+                AddDelimitedBlock(markdown, delimited, attributes, options, diagnostics, depth);
                 break;
             case AsciiDocBlockMacro macro:
                 AddMacro(markdown, macro, options, diagnostics);
@@ -101,7 +121,7 @@ internal static class AsciiDocToMarkdownConverter {
         MarkdownDoc target,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
-        AsciiDocAttributeEntry[] attributes = source.BlocksOfType<AsciiDocAttributeEntry>().ToArray();
+        AsciiDocAttributeEntry[] attributes = source.GetAttributeEntries(options.MaximumBlockNestingDepth).ToArray();
         if (attributes.Length == 0) return;
 
         if (!options.IncludeDocumentAttributesAsFrontMatter) {
@@ -113,14 +133,18 @@ internal static class AsciiDocToMarkdownConverter {
         }
 
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        AsciiDocDocumentAttributes current = AsciiDocDocumentAttributes.Create();
         for (int index = 0; index < attributes.Length; index++) {
             AsciiDocAttributeEntry attribute = attributes[index];
+            current = current.Apply(attribute, expandReferences: true);
             if (attribute.IsUnset) {
+                values.Remove(attribute.Name);
                 Report(diagnostics, "ADOCMD002", AsciiDocMarkdownDiagnosticSeverity.Info, AsciiDocMarkdownConversionOutcome.Omitted,
                     "unset-document-attribute", "Unset document attribute has no YAML front-matter equivalent.", attribute);
                 continue;
             }
-            values[attribute.Name] = attribute.Value.Length == 0 ? true : (object)attribute.Value;
+            string effective = current.GetValueOrDefault(attribute.Name) ?? string.Empty;
+            values[attribute.Name] = effective.Length == 0 ? true : (object)effective;
         }
 
         if (values.Count > 0) target.FrontMatter(values);
@@ -131,14 +155,19 @@ internal static class AsciiDocToMarkdownConverter {
         AsciiDocListBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
-        List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
+        int depth) {
+        if (source.Kind == AsciiDocListKind.Callout) {
+            AddCalloutList(target, source, attributes, options, diagnostics, depth);
+            return;
+        }
         if (source.Kind == AsciiDocListKind.Ordered) {
             var list = new OrderedListBlock();
             for (int index = 0; index < source.Items.Count; index++) {
                 AsciiDocListItem sourceItem = source.Items[index];
                 var item = new ListItem(AsciiDocInlineToMarkdownConverter.Convert(sourceItem.Inlines, attributes, options, diagnostics, source));
                 item.Level = Math.Max(0, sourceItem.Depth - 1);
-                AddAttachedBlocks(item, sourceItem, attributes, options, diagnostics);
+                AddAttachedBlocks(item, sourceItem, attributes, options, diagnostics, depth);
                 list.Items.Add(item);
             }
             ApplyMetadata(list, source);
@@ -149,7 +178,7 @@ internal static class AsciiDocToMarkdownConverter {
                 AsciiDocListItem sourceItem = source.Items[index];
                 var item = new ListItem(AsciiDocInlineToMarkdownConverter.Convert(sourceItem.Inlines, attributes, options, diagnostics, source));
                 item.Level = Math.Max(0, sourceItem.Depth - 1);
-                AddAttachedBlocks(item, sourceItem, attributes, options, diagnostics);
+                AddAttachedBlocks(item, sourceItem, attributes, options, diagnostics, depth);
                 list.Items.Add(item);
             }
             ApplyMetadata(list, source);
@@ -162,10 +191,11 @@ internal static class AsciiDocToMarkdownConverter {
         AsciiDocListItem source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
-        List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
+        int depth) {
         for (int index = 0; index < source.AttachedBlocks.Count; index++) {
             var temporary = MarkdownDoc.Create();
-            AddBlock(temporary, source.AttachedBlocks[index], attributes, options, diagnostics);
+            AddBlock(temporary, source.AttachedBlocks[index], attributes, options, diagnostics, depth + 1);
             for (int childIndex = 0; childIndex < temporary.Blocks.Count; childIndex++) {
                 target.NestedBlocks.Add(temporary.Blocks[childIndex]);
             }
@@ -211,12 +241,13 @@ internal static class AsciiDocToMarkdownConverter {
         AsciiDocDelimitedBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
-        List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
+        int depth) {
         string content = TrimOneTrailingLineEnding(source.Content);
         if (source.AdmonitionKind.HasValue) {
             var callout = new CalloutBlock(source.AdmonitionKind.Value.ToString().ToLowerInvariant(),
                 source.BlockTitle?.Title ?? string.Empty,
-                content);
+                ConvertCompoundBody(source, attributes, options, diagnostics, depth).Blocks);
             ApplyMetadata(callout, source);
             target.Add(callout);
             return;
@@ -244,7 +275,8 @@ internal static class AsciiDocToMarkdownConverter {
                 target.Add(literal);
                 break;
             case AsciiDocDelimitedBlockKind.Quote:
-                var quote = new QuoteBlock(content.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'));
+                var quote = new QuoteBlock();
+                quote.ChildBlocks.AddRange(ConvertCompoundBody(source, attributes, options, diagnostics, depth).Blocks);
                 ApplyMetadata(quote, source);
                 target.Add(quote);
                 break;
@@ -261,19 +293,78 @@ internal static class AsciiDocToMarkdownConverter {
             case AsciiDocDelimitedBlockKind.Example:
             case AsciiDocDelimitedBlockKind.Sidebar:
             case AsciiDocDelimitedBlockKind.Open:
-                AsciiDocParagraph? paragraph = AsciiDocDocument.ParseResult(content).Document.BlocksOfType<AsciiDocParagraph>().FirstOrDefault();
-                var simplified = paragraph == null
-                    ? new ParagraphBlock(new InlineSequence().Text(content))
-                    : new ParagraphBlock(AsciiDocInlineToMarkdownConverter.Convert(paragraph.Inlines, attributes, options, diagnostics, source));
-                ApplyMetadata(simplified, source);
-                target.Add(simplified);
+                MarkdownDoc children = ConvertCompoundBody(source, attributes, options, diagnostics, depth);
+                int firstBlockIndex = target.Blocks.Count;
+                foreach (IMarkdownBlock child in children.Blocks) target.Add(child);
+                if (target.Blocks.Count > firstBlockIndex && target.Blocks[firstBlockIndex] is MarkdownObject first) ApplyMetadata(first, source);
                 Report(diagnostics, "ADOCMD010", AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Simplified,
-                    source.Kind.ToString(), "Delimited container converted to a plain Markdown paragraph.", source);
+                    source.Kind.ToString(), "Delimited container flattened while preserving its child blocks.", source);
                 break;
             default:
                 AddSourceFallback(target, source, "ADOCMD013", source.Kind.ToString(), options, diagnostics);
                 break;
         }
+    }
+
+    private static void AddCalloutList(MarkdownDoc target, AsciiDocListBlock source, AsciiDocDocumentAttributes attributes, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
+        var numbers = new List<int>();
+        int automatic = 0;
+        foreach (var item in source.Items) numbers.Add(item.Marker == "<.>" ? ++automatic : int.Parse(item.Marker.Substring(1, item.Marker.Length - 2), System.Globalization.CultureInfo.InvariantCulture));
+        bool consecutive = numbers.Count == 0 || numbers.Select((number, index) => number == (long)numbers[0] + index).All(value => value);
+        var ordered = new OrderedListBlock { Start = numbers.Count == 0 ? 1 : numbers[0] };
+        var unordered = new UnorderedListBlock();
+        for (int index = 0; index < source.Items.Count; index++) {
+            var sourceItem = source.Items[index];
+            InlineSequence content = AsciiDocInlineToMarkdownConverter.Convert(sourceItem.Inlines, attributes, options, diagnostics, source);
+            if (!consecutive) {
+                var labeled = new InlineSequence { AutoSpacing = false };
+                labeled.AddRaw(new MarkdownTextRun("(" + numbers[index].ToString(System.Globalization.CultureInfo.InvariantCulture) + ") "));
+                foreach (var inline in content.Nodes) labeled.AddRaw(inline);
+                content = labeled;
+            }
+            var item = new ListItem(content);
+            AddAttachedBlocks(item, sourceItem, attributes, options, diagnostics, depth);
+            if (consecutive) ordered.Items.Add(item); else unordered.Items.Add(item);
+        }
+        IMarkdownBlock list = consecutive ? (IMarkdownBlock)ordered : unordered;
+        if (consecutive) ApplyMetadata(ordered, source); else ApplyMetadata(unordered, source);
+        target.Add(list);
+        Report(diagnostics, "ADOCMD052", AsciiDocMarkdownDiagnosticSeverity.Warning, AsciiDocMarkdownConversionOutcome.Simplified, "callout-list",
+            consecutive ? "Callout explanations are shown as an ordered list; verbatim markers remain visible." : "Callout numbers are retained as visible labels because Markdown lists cannot represent irregular numbering.", source);
+    }
+
+    private static MarkdownDoc ConvertCompoundBody(AsciiDocDelimitedBlock source, AsciiDocDocumentAttributes attributes,
+        AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
+        AsciiDocDocument children = source.Body!;
+        var result = MarkdownDoc.Create();
+        var attached = new HashSet<AsciiDocBlock>(children.BlocksOfType<AsciiDocListBlock>()
+            .SelectMany(static list => list.Items).SelectMany(static item => item.AttachedBlocks));
+        int diagnosticStart = diagnostics.Count;
+        int remainingDepth = options.MaximumBlockNestingDepth - depth - 1;
+        if (remainingDepth < 1) throw new System.IO.InvalidDataException("AsciiDoc conversion exceeds MaximumBlockNestingDepth.");
+        foreach (AsciiDocBlockContext child in children.GetBlockContextsFromSnapshot(attributes, true, remainingDepth))
+            if (!attached.Contains(child.Block)) AddBlock(result, child.Block, child.Attributes, options, diagnostics, depth + 1);
+        // Child documents retain local syntax spans. Map conversion evidence back
+        // to the enclosing original source when its body has not been rewritten.
+        if (!source.IsModified) {
+            int offset = source.Span.Start.Offset + source.OpeningText.Length;
+            AsciiDocSourceText original = source.Syntax.SourceText;
+            for (int index = diagnosticStart; index < diagnostics.Count; index++) {
+                AsciiDocMarkdownConversionDiagnostic diagnostic = diagnostics[index];
+                int start = offset + diagnostic.SourceSpan.Start.Offset;
+                int end = offset + diagnostic.SourceSpan.End.Offset;
+                if (start < 0 || end > original.Text.Length) continue;
+                diagnostics[index] = new AsciiDocMarkdownConversionDiagnostic(diagnostic.Code, diagnostic.Severity,
+                    diagnostic.Outcome, diagnostic.Feature, diagnostic.Message, original.CreateSpan(start, end));
+            }
+        } else {
+            for (int index = diagnosticStart; index < diagnostics.Count; index++) {
+                AsciiDocMarkdownConversionDiagnostic diagnostic = diagnostics[index];
+                diagnostics[index] = new AsciiDocMarkdownConversionDiagnostic(diagnostic.Code, diagnostic.Severity,
+                    diagnostic.Outcome, diagnostic.Feature, diagnostic.Message, source.Span);
+            }
+        }
+        return result;
     }
 
     private static void AddMacro(
@@ -335,10 +426,10 @@ internal static class AsciiDocToMarkdownConverter {
         diagnostics.Add(new AsciiDocMarkdownConversionDiagnostic(code, severity, outcome, feature, message, source.Span));
     }
 
-    private static void ApplyMetadata(MarkdownObject target, AsciiDocBlock source) {
+    private static void ApplyMetadata(MarkdownObject target, AsciiDocBlock source, string? referenceId = null) {
         var roles = new List<string>();
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        string? id = source.BlockAnchor?.Id;
+        string? id = referenceId ?? source.BlockAnchor?.Id;
         for (int listIndex = 0; listIndex < source.AttributeLists.Count; listIndex++) {
             AsciiDocElementAttributes attributes = source.AttributeLists[listIndex].Attributes;
             id = attributes.Id ?? id;

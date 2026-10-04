@@ -282,6 +282,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_EmptyParagraphSpacingCountsDiscardedPagesAgainstLimit() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph blank = document.AddParagraph(string.Empty);
+            blank.LineSpacingBeforePoints = 100_000D;
+            document.AddParagraph("After spacing");
+
+            Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
+                new WordToPdfOptions {
+                    IncludePageNumbers = false,
+                    PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 2 }
+                }).Value.ToBytes());
+        }
+
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Justified_Paragraphs() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeJustifiedParagraph.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeJustifiedParagraph.pdf");

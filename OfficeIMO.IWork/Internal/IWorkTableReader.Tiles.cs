@@ -99,8 +99,7 @@ internal static partial class IWorkTableReader {
         }
         if (!unassessed) return;
         supportsEditableReconstruction = false;
-        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
-                && diagnostic.RecordIdentifier == tile.Identifier)) return;
+        if (!references.ReportedUnassessedRowStorageTiles.Add(tile.Identifier)) return;
         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_ROW_STORAGE_UNASSESSED",
             "Selected modern row storage has an invalid or inconsistent cell count, or a non-empty buffer with no selected cell offsets. Recoverable cells remain available; unmaterialized contents cannot be identified.",
             tile.EntryPath, tile.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));

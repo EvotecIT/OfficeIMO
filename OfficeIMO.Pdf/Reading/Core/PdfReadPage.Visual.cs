@@ -220,19 +220,33 @@ public sealed partial class PdfReadPage {
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource> registeredFonts,
         PageContentBudget pageContentBudget,
         CancellationToken cancellationToken) {
-        for (int index = elements.Count - 1; index >= 0; index--) {
+        List<PdfPageDrawingElement>? expanded = null;
+        for (int index = 0; index < elements.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageDrawingElement element = elements[index];
             if (element.Kind != PdfPageDrawingElementKind.Text || element.TextSpan is not PdfTextSpan span ||
                 !span.IsVisible || span.Color?.A == 0 ||
                 span.DrawingFontFamily == null || !registeredFonts.TryGetValue(PaintedFontKey(span), out PdfFontResource? registered) ||
-                registered.DrawingProgram is not PdfDrawingFontProgram program) continue;
+                registered.DrawingProgram is not PdfDrawingFontProgram program) {
+                expanded?.Add(element);
+                continue;
+            }
             List<PdfTextSpan>? glyphs = PdfPaintedGlyphRuns.SplitAlternateGlyphRun(span, program,
                 pageContentBudget.ChargePositionedTextWorkCharacters, cancellationToken);
-            if (glyphs == null) continue;
-            elements.RemoveAt(index);
-            elements.InsertRange(index, glyphs.Select(glyph =>
-                PdfPageDrawingElement.FromText(glyph, element.Sequence).WithEffect(element.Effect)));
+            if (glyphs == null) {
+                expanded?.Add(element);
+                continue;
+            }
+            if (expanded == null) {
+                expanded = new List<PdfPageDrawingElement>(elements.Count);
+                for (int prior = 0; prior < index; prior++) expanded.Add(elements[prior]);
+            }
+            foreach (PdfTextSpan glyph in glyphs)
+                expanded.Add(PdfPageDrawingElement.FromText(glyph, element.Sequence).WithEffect(element.Effect));
+        }
+        if (expanded != null) {
+            elements.Clear();
+            elements.AddRange(expanded);
         }
     }
 

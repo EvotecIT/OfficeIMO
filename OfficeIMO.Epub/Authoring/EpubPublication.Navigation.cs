@@ -88,7 +88,7 @@ public sealed partial class EpubPublication {
             var navigation = new XDocument(new XElement(Html + "html", new XAttribute(XNamespace.Xml + "lang", Language),
                 new XAttribute(XNamespace.Xmlns + "epub", Ops.NamespaceName),
                 new XElement(Html + "head", new XElement(Html + "title", "Contents")),
-                new XElement(Html + "body", new XElement(Html + "nav", new XAttribute(Ops + "type", "toc"),
+                new XElement(Html + "body", new XElement(Html + "nav", new XAttribute(Ops + "type", "toc"), new XAttribute("role", "doc-toc"),
                     new XElement(Html + "h1", "Contents"), new XElement(Html + "ol")))));
             AddResource("navigation", "EPUB/nav.xhtml", "application/xhtml+xml", SerializeXml(navigation, _maximumEntryBytes), "nav");
         } else {
@@ -161,6 +161,8 @@ public sealed partial class EpubPublication {
             nav = new XElement(Html + "nav", new XAttribute(Ops + "type", type), new XElement(Html + "h1", heading));
             body.Add(nav);
         }
+        if (type == "toc" && nav.Attribute("role") == null) nav.SetAttributeValue("role", "doc-toc");
+        if (type == "page-list" && nav.Attribute("role") == null) nav.SetAttributeValue("role", "doc-pagelist");
         XElement? old = nav.Element(Html + "ol");
         if (old != null) ReplaceNavigationChildren(old, Html + "li", BuildHtmlNodes(nodes, path, 0));
         else nav.Add(new XElement(Html + "ol", BuildHtmlNodes(nodes, path, 0)));

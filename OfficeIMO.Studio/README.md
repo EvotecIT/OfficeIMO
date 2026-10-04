@@ -59,6 +59,32 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 - In **OCR → Images and multiple files**, add PDFs or raster images and choose an output folder. The queue shows proposed filenames before recognition and adds numeric suffixes when selected files share a name. PDFs produce searchable copies; images produce UTF-8 text files whose text can be corrected alongside the source preview. Enlarge an image or select another image/page when the source container provides several. Review each file before saving. Completed outputs are available immediately in Jobs and from **Open output** in the session. Cancelling retains earlier outputs; **Retry failed or cancelled** excludes completed and uncertain attempts and protects retained outputs from replacement. An uncertain output stops the remaining files for inspection. Provider folders use the same explicit write confirmation and durable recovery contract as other workflows. Recognition uses one engine sequentially within the session and shares the application's workflow execution budget.
 - Closing a tab or Studio while work is active offers **Wait and close**, **Cancel work and close**, and **Keep open**. Waiting or cancelling keeps the affected document alive until operations finish; cancelling one tab leaves other tabs' jobs running. Whole-window close also waits for session restoration. Cancelling restoration retains unopened entries for a later restart choice. Already saved outputs are preserved, and unsaved-edit choices follow once active work has stopped. An unexpected process exit does not resume workflow execution.
 
+## Book publishing
+
+Choose **Publish book** to create a reflowable book or open a DOCX, Markdown, HTML,
+EPUB or `.oibook` project. The workspace edits title, language, creator, cover and
+project CSS. The Chapters tab preserves drafts while changing selection and supports
+insertion, removal, reordering, titles and XHTML body editing. Applying an invalid
+draft retains the last validated book. One package edit can be undone or redone
+within the current session.
+
+The Preview tab renders the selected chapter through the existing EPUB image owner.
+Reader applications can reflow it differently. Import review lists conversion losses;
+acknowledge non-fatal findings only after inspecting them. Missing dependencies or
+other failed imports require source repair and re-import. EPUB export runs the native
+writer's validation and cannot bypass failed import findings.
+
+**Save project** retains the EPUB and review state together in `.oibook`.
+**Export EPUB** writes a separate reader-facing publication. Both routes verify their
+stored output and protect opened sources, changed project files, recovery paths and
+other open documents. Cancellation and publication failures retain the current book.
+Local manuscript assets stay within the source's physical parent; provider imports
+need embedded resources when their provider does not expose an authorized asset base.
+
+The source editor is XHTML, and this workspace targets reflowable books. Fixed-page
+layout, media-overlay timing, scripting, DRM rewriting, automatic accessibility
+certification and crash recovery of unsaved book drafts remain outside its contract.
+
 ## Document assistant
 
 Open **Assistant** to ask read-only questions about the current PDF. Choose **Connections and model** to open guided setup, choose a provider, connect, and select an available model. Choose **Use this connection** to return to the document. Starter prompts help you summarize, find action items, or review key facts; you can edit the question before sending it. The assistant uses the current workspace bytes, including applied unsaved edits. Apply form drafts before asking; PDFs that prohibit content extraction are unavailable to the assistant.
@@ -100,6 +126,7 @@ Studio does not contain a second document engine:
 
 - `OfficeIMO.Pdf` owns PDF reading, rendering, interaction geometry, editing, forms, security, signatures, redaction, and output mutation.
 - `OfficeIMO.Workflows` owns reusable conversion, inspection, repair, optimization, comparison, sanitization, image-export, print-planning, and mixed-source assembly workflows.
+- `OfficeIMO.Epub` owns manuscript packaging and native EPUB validation; `OfficeIMO.Word.Html` and `OfficeIMO.Markdown` own their source projections. `OfficeIMO.Workflows.BookProject` owns book edits, project persistence and review state. Studio supplies editor state and permission-aware storage.
 - `OfficeIMO.Pdf.Ocr` owns searchable text generation. `OfficeIMO.Workflows` owns source snapshots, output validation, publication, and ordered OCR sessions; Studio configures the optional Tesseract CLI provider. `OfficeIMO.Reader.Image` identifies image sources, and `OfficeIMO.Reader.Ocr` owns their recognition and normalized-document enrichment.
 - Avalonia owns only the cross-platform windowing and control layer. Studio uses OfficeIMO's retained page scene with the canonical raster renderer for content that the Avalonia adapter cannot preserve, including transformed text and embedded-font metrics. Restricted viewing also uses the raster path. Studio does not use PDFium.
 

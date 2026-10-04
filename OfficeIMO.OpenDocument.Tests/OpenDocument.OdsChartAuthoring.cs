@@ -12,6 +12,28 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdsChartAuthoringTests {
     [Fact]
+    public void RepeatedChartFramesShareParsedSeriesAndStopAtFrameLimit() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Category");
+        sheet.Cell(0, 1).SetNumber(1);
+        sheet.AddChart(OdsChartType.Column, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1") }, 1, 0,
+            OdfRect.FromCentimeters(1, 1, 8, 5));
+        XElement frame = Assert.Single(document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "frame"));
+        for (int index = 0; index < OdsSheet.DefaultMaximumChartFrames; index++)
+            frame.Parent!.Add(new XElement(frame));
+        document.MarkPartDirty("content.xml");
+
+        var charts = sheet.GetCharts(2, out bool truncated);
+        Assert.True(truncated);
+        Assert.Equal(2, charts.Count);
+        Assert.Same(charts[0].Series, charts[1].Series);
+        Assert.Throws<NotSupportedException>(() => _ = sheet.Charts);
+    }
+
+    [Fact]
     public void CartesianPointStyleIgnoresInheritedPieOffset() {
         var definition = new XElement(OdfNamespaces.Style + "style",
             new XAttribute(OdfNamespaces.Style + "family", "chart"),

@@ -196,6 +196,34 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Numbers_table_oversized_font_name_falls_back_before_cell_style_expansion() {
+        string name = new string('A', 256);
+        using var package = TableTextStylePackage(IWorkDocumentKind.Numbers,
+            TableParagraphStyle(30, 18, false, fontName: name));
+        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Equal(name, result.Projection.Sheets[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontName);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("font name", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Numbers_rich_text_run_oversized_font_name_falls_back_before_cell_style_expansion() {
+        string name = new string('B', 256);
+        using var package = TableTextStylePackage(IWorkDocumentKind.Numbers, richRunFontName: name);
+        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.RichText!.Paragraphs
+            .SelectMany(paragraph => paragraph.Runs), run => run.Style.FontName == name);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("rich-text font name", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void Mixed_selected_text_and_cell_styles_share_one_catalog_budget_and_preserve_both_properties() {
         using var selected = TableTextStylePackage(IWorkDocumentKind.Pages, cellStyle: true);
         var limited = IWorkSourceDocument.Open(selected, new IWorkReadOptions { MaximumTableCatalogEntries = 2 });
@@ -274,17 +302,19 @@ public sealed partial class IWorkBoundaryTests {
             3 => IWorkTextAlignment.Justified, _ => IWorkTextAlignment.Natural }, actual.Alignment);
     }
 
-    private static byte[] TableParagraphStyle(ulong id, float fontSize, bool bold, ulong? parent = null, ulong alignment = 2) =>
+    private static byte[] TableParagraphStyle(ulong id, float fontSize, bool bold, ulong? parent = null, ulong alignment = 2,
+        string fontName = "HelveticaNeue") =>
         ArchiveRecord(id, 2022, Message(parent.HasValue ? BytesField(1, ReferenceField(3, parent.Value)) : Array.Empty<byte>(),
-            BytesField(11, Message(FloatField(3, fontSize), VarintField(1, bold ? 1UL : 0), StringField(5, "HelveticaNeue"))),
+            BytesField(11, Message(FloatField(3, fontSize), VarintField(1, bold ? 1UL : 0), StringField(5, fontName))),
             BytesField(12, VarintField(1, alignment))));
 
     private static MemoryStream TableTextStylePackage(IWorkDocumentKind kind, byte[]? selectedStyle = null, bool cellStyle = false,
-        bool emptyRichParagraph = false, float richParagraphFontSize = 36) {
+        bool emptyRichParagraph = false, float richParagraphFontSize = 36, string? richRunFontName = null) {
+        bool richText = emptyRichParagraph || richRunFontName != null;
         byte[] first = new byte[cellStyle ? 28 : 24]; first[0] = 5; first[1] = 2; first[8] = cellStyle ? (byte)0x62 : (byte)0x42;
         Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, first, 12, 8); first[20] = cellStyle ? (byte)2 : (byte)1;
         if (cellStyle) first[24] = 1;
-        if (emptyRichParagraph) {
+        if (richText) {
             first = new byte[20]; first[0] = 5; first[1] = 9; first[8] = 0x50; first[12] = 1; first[16] = 1;
         }
         byte[] second = new byte[cellStyle ? 20 : 16]; second[0] = 5; second[8] = cellStyle ? (byte)0x60 : (byte)0x40; second[12] = cellStyle ? (byte)2 : (byte)1;
@@ -299,18 +329,18 @@ public sealed partial class IWorkBoundaryTests {
         records.Add(ArchiveRecord(10, 6000, Message(ReferenceField(2, 11), kind == IWorkDocumentKind.Keynote ? BytesField(1, GeometryDrawable(0, 0, 144, 72)) : Array.Empty<byte>())));
         records.Add(ArchiveRecord(11, 6001, Message(VarintField(6, 3), VarintField(7, 3), VarintField(9, 1), VarintField(10, 1), VarintField(11, 1),
             ReferenceField(24, 40), ReferenceField(25, 41), ReferenceField(26, 42), ReferenceField(27, 43),
-            BytesField(4, Message(ReferenceField(5, 13), emptyRichParagraph ? ReferenceField(17, 14) : Array.Empty<byte>(),
+            BytesField(4, Message(ReferenceField(5, 13), richText ? ReferenceField(17, 14) : Array.Empty<byte>(),
                 BytesField(3, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, 12)))))))));
         records.Add(ArchiveRecord(12, 6002, tile));
         records.Add(ArchiveRecord(13, 6005, Message(VarintField(1, 4), BytesField(3, Message(VarintField(1, 1), ReferenceField(4, 30))),
             cellStyle ? BytesField(3, Message(VarintField(1, 2), ReferenceField(4, 60))) : Array.Empty<byte>())));
         if (cellStyle) records.Add(FillStyle(60, FillColor(1, 0, 0)));
-        if (emptyRichParagraph) {
+        if (richText) {
             records.Add(ArchiveRecord(14, 6005, Message(VarintField(1, 8), BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 15))))));
             records.Add(ArchiveRecord(15, 6218, ReferenceField(1, 16)));
-            records.Add(ArchiveRecord(16, 2001, Message(StringField(3, "\n"),
+            records.Add(ArchiveRecord(16, 2001, Message(StringField(3, richRunFontName is null ? "\n" : "Styled\n"),
                 BytesField(5, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, 17)))))));
-            records.Add(TableParagraphStyle(17, richParagraphFontSize, true));
+            records.Add(TableParagraphStyle(17, richParagraphFontSize, true, fontName: richRunFontName ?? "HelveticaNeue"));
         }
         records.Add(selectedStyle ?? TableParagraphStyle(30, 18, false, 31, alignment: 1));
         records.Add(TableParagraphStyle(31, 24, true));

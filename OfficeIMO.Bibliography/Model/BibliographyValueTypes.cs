@@ -112,6 +112,17 @@ public sealed class BibliographyNativeField {
     internal static BibliographyNativeField FromParsedSource(BibliographyFormat format, string name, string value, string? rawValue = null) =>
         new BibliographyNativeField(format, name, value, rawValue, true);
 
+    private BibliographyNativeField(BibliographyNativeField source) {
+        Format = source.Format;
+        Name = source.Name;
+        Value = source.Value;
+        RawValue = source.RawValue;
+        _originalValue = source._originalValue;
+        _rawValueRepresentsOriginalValue = source._rawValueRepresentsOriginalValue;
+    }
+
+    internal BibliographyNativeField Copy() => new BibliographyNativeField(this);
+
     /// <summary>Source format that owns the field name and syntax.</summary>
     public BibliographyFormat Format { get; }
     /// <summary>Native field, tag, or element name.</summary>

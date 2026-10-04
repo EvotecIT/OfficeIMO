@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -10,6 +11,23 @@ namespace OfficeIMO.Excel {
 
         internal bool HasConditionalFormatting =>
             WorksheetRoot.GetFirstChild<ConditionalFormatting>() != null || HasOffice2010ConditionalFormatting();
+
+        internal int CountConditionalFormattingRules() => Locking.ExecuteRead(
+            _excelDocument.EnsureLock(), () => {
+                int count = 0;
+                foreach (ConditionalFormatting container in WorksheetRoot.Elements<ConditionalFormatting>()) {
+                    foreach (ConditionalFormattingRule _ in container.Elements<ConditionalFormattingRule>())
+                        count = count == int.MaxValue ? count : count + 1;
+                }
+                WorksheetExtensionList? extensions = WorksheetRoot.GetFirstChild<WorksheetExtensionList>();
+                if (extensions != null) {
+                    foreach (X14.ConditionalFormatting container in extensions.Descendants<X14.ConditionalFormatting>()) {
+                        foreach (X14.ConditionalFormattingRule _ in container.Elements<X14.ConditionalFormattingRule>())
+                            count = count == int.MaxValue ? count : count + 1;
+                    }
+                }
+                return count;
+            });
 
         /// <summary>
         /// Lists conditional formatting rules on the worksheet.

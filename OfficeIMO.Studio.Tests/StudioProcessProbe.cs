@@ -17,6 +17,9 @@ internal static partial class StudioProcessProbe {
 
     [STAThread]
     public static async Task<int> Main(string[] args) {
+        if (args is ["--book-visual-probe", var bookRoot, var bookState, var bookWidth, var bookHeight]
+            && int.TryParse(bookWidth, out int publishingWidth) && int.TryParse(bookHeight, out int publishingHeight))
+            return BookStudioVisualProbe.Run(bookRoot, bookState, publishingWidth, publishingHeight);
         if (args is ["--studio-visual-probe", var visualRoot]) return StudioVisualProbe.Run(visualRoot);
         if (args is ["--studio-experience-probe", var experienceRoot, var scenario, var width, var height, var culture, var theme]
             && int.TryParse(width, out int windowWidth) && int.TryParse(height, out int windowHeight))

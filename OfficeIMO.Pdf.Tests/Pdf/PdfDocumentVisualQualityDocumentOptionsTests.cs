@@ -26,6 +26,19 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void GeneratedPageLimitCountsDiscardedSpacerPages() {
+        var options = new PdfOptions {
+            PageHeight = 180, MarginTop = 24, MarginBottom = 24, MaxGeneratedPages = 2
+        };
+        PdfDocument document = PdfDocument.Create(options)
+            .Spacer(100_000)
+            .Paragraph(paragraph => paragraph.Text("After spacing"));
+
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
+
+
+    [Fact]
     public void GeneratedPageLimitAlsoAppliesToPagesComposedBeforeSettings() {
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page

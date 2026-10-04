@@ -702,6 +702,27 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
+                // Empty pages are discarded by FlushPage. Jump over complete
+                // blank spacer pages instead of allocating and discarding each
+                // one; count them against the generated-page limit regardless.
+                if (remaining > available &&
+                    System.Math.Abs(y - yStart) <= 0.001D && !pageDirty &&
+                    !HasCurrentPageNonContentObjects() && sb.Length == 0 &&
+                    activeLayers.Count == 0 && activeContainerScopes.Count == 0 &&
+                    activeFloatingFlowCaptures.Count == 0 && pendingFloatingBookmarks.Count == 0 &&
+                    behindTextCanvases.Count == 0 && !HasFloatingTables) {
+                    double completePages = System.Math.Floor((remaining - 0.001D) / available);
+                    if (completePages >= 2D) {
+                        if (completePages > long.MaxValue - startedPageCount)
+                            throw new InvalidDataException("PDF spacer traversed too many generated pages.");
+                        long skippedPages = (long)completePages;
+                        startedPageCount += skippedPages - 1;
+                        remaining = System.Math.Max(0D, remaining - skippedPages * available);
+                        NewPage();
+                        continue;
+                    }
+                }
+
                 RecordFlowPlacement(y);
                 double consumed = Math.Min(remaining, available);
                 y -= consumed;

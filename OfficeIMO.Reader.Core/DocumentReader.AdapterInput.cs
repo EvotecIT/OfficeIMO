@@ -10,13 +10,15 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions options,
         CancellationToken cancellationToken,
-        long? maximumInputBytes = null) {
+        long? maximumInputBytes = null,
+        Func<string, FileStream>? openFile = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("File '" + path + "' does not exist.", path);
         long? maxInputBytes = BoundAdapterInputBytes(ResolveInitialMaxInputBytes(path, options), maximumInputBytes);
         ReaderInputLimits.EnforceFileSize(path, maxInputBytes);
 
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var stream = openFile?.Invoke(path)
+            ?? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         ReaderAdapterInputSnapshot snapshot = CaptureAdapterInput(
             stream,
             path,

@@ -45,8 +45,4 @@
     <Using Include="OfficeIMO.Markdown" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
-  </ItemGroup>
-
 </Project>

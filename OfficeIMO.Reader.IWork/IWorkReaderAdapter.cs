@@ -26,7 +26,8 @@ internal static class IWorkReaderAdapter {
             bounded.MaximumPackageBytes = Math.Min(bounded.MaximumPackageBytes, maximumBytes);
         }
         ReaderAdapterInputSnapshot? input = Directory.Exists(path) ? null
-            : DocumentReaderEngine.ReadAdapterInput(path, readerOptions, cancellationToken, bounded.MaximumPackageBytes);
+            : DocumentReaderEngine.ReadAdapterInput(path, readerOptions, cancellationToken,
+                bounded.MaximumPackageBytes, IWorkContainerReader.OpenPackageFileForRead);
         IWorkSourceDocument source = input != null
             ? expected.HasValue
                 ? IWorkSourceDocument.Open(input.Bytes, expected.Value, bounded, cancellationToken)

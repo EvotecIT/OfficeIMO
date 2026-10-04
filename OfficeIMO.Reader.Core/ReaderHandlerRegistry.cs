@@ -99,6 +99,11 @@ internal sealed class ReaderHandlerRegistrySnapshot {
         .OrderBy(static handler => handler.Id, StringComparer.Ordinal)
         .ToArray();
 
+    internal Func<string, FileStream>? OpenPathForContentDetection => _handlersById.Values
+        .OrderBy(static handler => handler.Id, StringComparer.Ordinal)
+        .Select(static handler => handler.OpenPathForContentDetection)
+        .FirstOrDefault(static opener => opener != null);
+
     public IReadOnlyList<string> Extensions => _handlerIdByExtension.Keys
         .OrderBy(static extension => extension, StringComparer.Ordinal)
         .ToArray();
@@ -192,7 +197,8 @@ internal sealed class ReaderHandlerDescriptor {
         Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentPathAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentStreamAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, bool>? probeStream,
-        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? extensionValidationProbeStream) {
+        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? extensionValidationProbeStream,
+        Func<string, FileStream>? openPathForContentDetection) {
         Id = id;
         DisplayName = displayName;
         Description = description;
@@ -217,6 +223,7 @@ internal sealed class ReaderHandlerDescriptor {
         ReadDocumentStreamAsync = readDocumentStreamAsync;
         ProbeStream = probeStream;
         ExtensionValidationProbeStream = extensionValidationProbeStream;
+        OpenPathForContentDetection = openPathForContentDetection;
     }
 
     public string Id { get; }
@@ -243,6 +250,7 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ProbeStream { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; }
+    internal Func<string, FileStream>? OpenPathForContentDetection { get; }
     public bool SupportsPathInput => ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null;
     public bool SupportsStreamInput => ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null;
 
@@ -311,7 +319,8 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync,
             registration.ProbeStream,
-            registration.ExtensionValidationProbeStream) {
+            registration.ExtensionValidationProbeStream,
+            registration.OpenPathForContentDetection) {
                 FormatQualifications = NormalizeQualifications(registration.FormatQualifications, extensions, id),
                 SupportsIncrementalPath = registration.SupportsIncrementalPath,
                 SupportsIncrementalStream = registration.SupportsIncrementalStream

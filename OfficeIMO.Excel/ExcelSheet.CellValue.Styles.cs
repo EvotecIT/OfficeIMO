@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -405,7 +405,7 @@ namespace OfficeIMO.Excel {
             newFormat.NumberFormatId = builtInFormatId;
             newFormat.ApplyNumberFormat = true;
             uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
             return index;
         }
 
@@ -427,7 +427,7 @@ namespace OfficeIMO.Excel {
             newFormat.Alignment = alignment;
             newFormat.ApplyAlignment = true;
             uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
             return index;
         }
 
@@ -481,7 +481,7 @@ namespace OfficeIMO.Excel {
                 cellFormatsEl.Append(newFormat);
                 cellFormatsEl.Count = (uint)cellFormatsEl.Count();
                 wrapIndex = (int)cellFormatsEl.Count.Value - 1;
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             }
 
             cell.StyleIndex = (uint)wrapIndex;
@@ -540,7 +540,39 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
+            });
+        }
+
+        internal void CellLayout(int row, int column, ExcelHorizontalAlignment? horizontal,
+            ExcelVerticalAlignment? vertical, bool? wrap,
+            Dictionary<(uint BaseStyle, ExcelHorizontalAlignment? Horizontal,
+                ExcelVerticalAlignment? Vertical, bool? Wrap), uint> styleIndexes) {
+            if (!horizontal.HasValue && !vertical.HasValue && !wrap.HasValue) return;
+            WriteLockConditional(() => {
+                Cell cell = GetCell(row, column);
+                uint baseStyle = cell.StyleIndex?.Value ?? 0U;
+                var key = (baseStyle, horizontal, vertical, wrap);
+                if (!styleIndexes.TryGetValue(key, out uint styleIndex)) {
+                    WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot
+                        ?? throw new InvalidOperationException("WorkbookPart is null");
+                    WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart
+                        ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                    Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                    EnsureDefaultStylePrimitives(stylesheet);
+                    CellFormat format = GetBaseCellFormat(stylesheet, baseStyle);
+                    Alignment alignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true) : new Alignment();
+                    if (horizontal.HasValue) alignment.Horizontal = horizontal.Value.ToOpenXml();
+                    if (vertical.HasValue) alignment.Vertical = vertical.Value.ToOpenXml();
+                    if (wrap.HasValue) alignment.WrapText = wrap.Value ? true : null;
+                    format.Alignment = alignment;
+                    format.ApplyAlignment = true;
+                    styleIndex = AppendOrReuseCellFormat(stylesheet, format);
+                    styleIndexes.Add(key, styleIndex);
+                    SaveStylesheet(stylesPart);
+                }
+                cell.StyleIndex = styleIndex;
             });
         }
 
@@ -567,7 +599,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -598,7 +630,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -625,7 +657,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -651,7 +683,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyBorder = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -679,7 +711,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyBorder = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -708,7 +740,7 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
 
-                stylesPart.Stylesheet.Save();
+                SaveStylesheet(stylesPart);
             });
         }
 
@@ -728,7 +760,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = boldFontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontItalic(Cell cell, bool italic) {
@@ -747,7 +779,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = italicFontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontUnderline(Cell cell, bool underline) {
@@ -766,7 +798,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = underlineFontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontUnderline(Cell cell, ExcelUnderlineStyle underlineStyle) {
@@ -783,7 +815,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = fontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontStrikethrough(Cell cell, bool strikethrough) {
@@ -799,7 +831,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = fontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontVerticalTextAlignment(Cell cell, ExcelVerticalTextAlignment alignment) {
@@ -816,7 +848,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = fontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontName(Cell cell, string fontName) {
@@ -835,7 +867,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = namedFontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontSize(Cell cell, double fontSize) {
@@ -854,7 +886,7 @@ namespace OfficeIMO.Excel {
                 format.FontId = fontId;
                 format.ApplyFont = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private static string NormalizeHexColor(string hex) {
@@ -887,7 +919,7 @@ namespace OfficeIMO.Excel {
                 format.FillId = fillId;
                 format.ApplyFill = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void FillRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string hexColor) {
@@ -919,7 +951,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void ApplyBuiltInNumberFormat(int row, int column, uint builtInFormatId) {
@@ -941,7 +973,7 @@ namespace OfficeIMO.Excel {
                 format.NumberFormatId = builtInFormatId;
                 format.ApplyNumberFormat = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void FormatCellCore(int row, int column, string numberFormat) {
@@ -962,7 +994,7 @@ namespace OfficeIMO.Excel {
                 format.NumberFormatId = numberFormatId;
                 format.ApplyNumberFormat = true;
             });
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
         private void FormatRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string numberFormat) {
@@ -989,7 +1021,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            stylesPart.Stylesheet.Save();
+            SaveStylesheet(stylesPart);
         }
 
     }
