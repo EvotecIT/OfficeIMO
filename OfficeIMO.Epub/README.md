@@ -291,6 +291,48 @@ properties discovered in rewritten XHTML/SVG. Existing remote-resource declarati
 intact. Dependencies reached through external stylesheets require correct manifest
 declarations from the caller and independent validation.
 
+## Import an HTML manuscript
+
+`EpubManuscript` converts inert HTML into a reflowable EPUB 3 publication. It splits
+chapters at heading level 1 by default, retains nested heading navigation, and rewrites
+internal links across chapter files. Lists, tables, code, notes, image alternatives,
+SVG namespaces and source styles remain semantic content rather than page snapshots.
+
+```csharp
+using OfficeIMO.Epub;
+using OfficeIMO.Html;
+
+var source = HtmlConversionDocument.Parse(
+    "<title>A short book</title><h1 id='opening'>Opening</h1><p>First chapter.</p>" +
+    "<h1 id='closing'>Closing</h1><p><a href='#opening'>Return</a></p>");
+EpubManuscriptResult imported = EpubManuscript.ImportHtml(source,
+    new EpubManuscriptOptions { Language = "en", Creator = "A writer" });
+imported.RequireNoLoss().Save("book.epub");
+```
+
+Set `ChapterHeadingLevel` to 0 for one chapter, or 1–6 for the split threshold.
+Title, language and creator overrides take precedence over supported source metadata.
+Embedded data resources work without a resolver. `ImportHtmlAsync` accepts an explicit
+`ResourceResolver` for authorized external assets; the importer does not fetch the
+network or open files implicitly. Resource collection includes inactive CSS imports,
+fonts, responsive image candidates, and nested SVG dependencies. References are
+rebased into declared package resources, with byte, count and total-resource bounds.
+The defaults allow 256 resources, 10 MiB per resource and 50 MiB in aggregate.
+Import review retains at most 10,000 findings; reaching that bound adds a failure
+diagnostic instead of silently treating a truncated report as successful.
+
+Inspect `Report.FidelityDiagnostics` before publishing. Executable content and active
+attributes are omitted and reported. Missing assets, unresolved internal anchors,
+invalid package content and unnamed images produce failure diagnostics. Images may
+provide `alt`, an accessible ARIA name, or an explicit decorative role. The importer
+does not invent image descriptions. `RequireValue` rejects failed imports;
+`RequireNoLoss` also rejects reported approximations and omissions. Imported HTML is
+not a full EPUB schema or accessibility certification route; independently validate
+the final publication and review its content in representative readers.
+
+DOCX and Markdown composition and editable book projects belong to
+[`OfficeIMO.Workflows`](../OfficeIMO.Workflows/README.md#book-publishing).
+
 ## Edit and preserve a package
 
 ```csharp
@@ -369,7 +411,9 @@ stylesheet links, even when the renderer selects a different alternative.
 New or rewritten XHTML/SVG requires manifest declarations for embedded container
 resources and remote audio, video, or fonts. EPUB 3 remote images, stylesheets, and
 embedded documents are rejected. Inline CSS references are checked across media
-conditions; linked stylesheet dependency closure still requires independent validation.
+conditions. New or changed linked CSS is checked recursively for declared imports,
+fonts and images, including inactive rules; cycles terminate without discarding CSS.
+Removing resources cannot leave retained stylesheets with dangling dependencies.
 Data URLs are limited to inert raster image, audio/video, and font contexts. Embedded
 data documents, SVG data URLs, and data hyperlinks are rejected under the writer's
 non-scripted contract. Referenced imported scripted resources cannot be newly embedded.
@@ -382,7 +426,7 @@ Custom vocabulary declarations reject EPUB-prohibited mappings. Declare custom
 prefixes before assigning metadata, manifest, or spine properties. Newly assigned
 property tokens require valid declared or reserved prefixes and nonempty references;
 unrelated imported extension declarations remain intact.
-External content is never downloaded or executed. CSS resource closure, full schema
+External content is never downloaded or executed. CSS semantics, full schema
 validation, accessibility certification, and EPUB conformance need independent validation,
 such as [EPUBCheck](https://github.com/w3c/epubcheck).
 
@@ -425,9 +469,9 @@ save policy first, including signature and output-limit checks.
 
 ## Boundaries
 
-- This package owns EPUB parsing, native authoring, and package-preserving editing.
+- This package owns EPUB parsing, native authoring, package-preserving editing, and bounded HTML manuscript import.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. Browser layout, scripting, DRM, general encrypted-resource editing, media-overlay authoring, manuscript import, and fixed-page geometry creation are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
+- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. Browser layout, scripting, DRM, general encrypted-resource editing, media-overlay authoring, and fixed-page geometry creation are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
 
 ## Targets and license
 
@@ -457,6 +501,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 1 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 1 |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Epub` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

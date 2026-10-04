@@ -132,7 +132,9 @@ public sealed partial class MainWindow : Window {
             services: _services,
             canPublishPath: path => TabHost.CanPublishPath(path),
             publicationGuard: new StudioWorkflowPublicationGuard((path, isDirectory) =>
-                isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)));
+                isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)),
+            confirmBookChanges: () => new UnsavedChangesDialog(document?.BookWorkbench.BookTitle ?? "Book", _services.Localizer).ShowDialog<UnsavedChangesDecision>(this),
+            bookPublicationGuard: new StudioWorkflowPublicationGuard((path, _) => TabHost.CanPublishBookPath(document, path)));
         document.Session = _session;
         document.FileDialogs = FileDialogs;
         document.CreateSignatureDialog = kind => new Features.Sign.SignatureDialog(kind, _services.Localizer).ShowDialog<StudioSignatureDraft?>(this);
