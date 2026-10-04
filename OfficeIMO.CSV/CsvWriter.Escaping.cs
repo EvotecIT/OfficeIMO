@@ -137,7 +137,17 @@ internal static partial class CsvWriter
     private static void AppendDenseQuotedText(StringBuilder buffer, string text, int start)
     {
 #if NET6_0_OR_GREATER
-        AppendDenseQuotedSpan(buffer, text.AsSpan(start));
+        if (text.Length - start > 256)
+        {
+            AppendDenseQuotedSpan(buffer, text.AsSpan(start));
+            return;
+        }
+        if (TryAppendQuoteRun(buffer, text.AsSpan(start))) return;
+        foreach (char character in text.AsSpan(start))
+        {
+            if (character == '"') buffer.Append("\"\"");
+            else buffer.Append(character);
+        }
 #else
         for (int index = start; index < text.Length; index++)
         {
@@ -145,8 +155,8 @@ internal static partial class CsvWriter
             if (character == '"') buffer.Append("\"\"");
             else buffer.Append(character);
         }
-        buffer.Append('"');
 #endif
+        buffer.Append('"');
     }
 
 #if NET6_0_OR_GREATER
