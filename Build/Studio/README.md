@@ -101,7 +101,13 @@ launch and removal on the claimed architectures before catalog acceptance.
 WinGet submission creates a pull request in Microsoft's package repository;
 catalog availability requires its validation and acceptance.
 
-The Store uses the same versioned HTTPS MSI URLs and `/qn /norestart` switches.
+The Store reuses the same signed MSI bytes and `/qn /norestart` switches. Its
+package URLs must return those bytes directly over HTTPS without redirection.
+GitHub release download URLs redirect and are rejected by Partner Center.
+Before using the generated `desktop-packages.json` for the Store, set each
+`PackageUrl` to an immutable URL on the product's approved distribution host
+and verify that a request with redirects disabled returns the matching release
+checksum. WinGet may retain its GitHub release URLs.
 Create a company developer account once, then reserve **OfficeIMO Studio** as an
 MSI/EXE product. Complete the first submission in Partner Center: package URLs,
 availability, properties, age ratings, description, screenshots, support and
