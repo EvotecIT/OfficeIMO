@@ -20,10 +20,10 @@ public static partial class OfficePngWriter {
 
     private static void WriteMaterializedOptimalZlib(
         MemoryStream output, PngIdatChunkStream destination, int width, int height,
-        byte[] rgba, CancellationToken cancellationToken,
+        byte[] rgba, bool rgb, CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         long idatStart = output.Position;
-        var workspace = new PngFilteringWorkspace(width, bilevel: false);
+        var workspace = new PngFilteringWorkspace(width, bilevel: false, rgb);
         using var adaptiveSize = new PngForwardProbeStream(destination, MaterializedProbeMaximumPayloadBytes);
         WriteRgbaZlib(adaptiveSize, height, rgba, workspace, adaptiveFiltering: true,
             cancellationToken, checkpointObserver);
@@ -67,6 +67,7 @@ public static partial class OfficePngWriter {
         byte[] row = workspace.Row;
         byte[] batch = workspace.Batch;
         int stride = workspace.Stride;
+        int filteredRowLength = workspace.FilteredRowLength;
         int batchLength = 0;
         uint adlerA = 1;
         uint adlerB = 0;
@@ -77,14 +78,15 @@ public static partial class OfficePngWriter {
                 cancellationToken.ThrowIfCancellationRequested();
                 row[0] = 0;
                 Buffer.BlockCopy(rgba, y * stride, row, 1, stride);
-                if (row.Length > batch.Length - batchLength) {
+                if (workspace.Rgb) CompactOpaqueRgbRow(row, stride, cancellationToken, checkpointObserver);
+                if (filteredRowLength > batch.Length - batchLength) {
                     deflate.Write(batch, 0, batchLength);
                     batchLength = 0;
                     if (destination.Length > adaptiveLength) break;
                 }
-                Buffer.BlockCopy(row, 0, batch, batchLength, row.Length);
-                batchLength += row.Length;
-                UpdateAdler32(row, 0, row.Length, ref adlerA, ref adlerB,
+                Buffer.BlockCopy(row, 0, batch, batchLength, filteredRowLength);
+                batchLength += filteredRowLength;
+                UpdateAdler32(row, 0, filteredRowLength, ref adlerA, ref adlerB,
                     cancellationToken, checkpointObserver);
             }
             if (batchLength > 0) deflate.Write(batch, 0, batchLength);

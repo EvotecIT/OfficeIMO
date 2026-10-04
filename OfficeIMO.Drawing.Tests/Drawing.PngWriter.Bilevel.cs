@@ -58,14 +58,17 @@ public class DrawingPngBilevelWriterTests {
         image.SetPixel(image.Width - 1, image.Height - 1, OfficeColor.FromRgba(r, g, b, alpha));
         byte[] png = OfficePngWriter.Encode(image);
         Assert.Equal(8, png[24]);
-        Assert.Equal(6, png[25]);
+        Assert.Equal(alpha == 255 ? 2 : 6, png[25]);
         Assert.True(OfficePngReader.TryDecode(png, out var decoded));
         Assert.Equal(image.GetPixels(), decoded!.GetPixels());
     }
 
-    [Fact]
-    public void BilevelSelectionObservesCancellationBeforeWritingTheDestination() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LosslessColorSelectionObservesCancellationBeforeWritingTheDestination(bool colored) {
         var image = CreateScan(8193, 2);
+        if (colored) image.SetPixel(0, 0, OfficeColor.FromRgb(17, 31, 255));
         using var destination = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         int selections = 0;

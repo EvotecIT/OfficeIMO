@@ -128,10 +128,12 @@ public static partial class OfficePngWriter {
             throw new ArgumentOutOfRangeException(nameof(compression));
         }
 
-        bool bilevel = compression == OfficePngCompression.Optimal
-            && IsOpaqueBilevel(rgba, cancellationToken, checkpointObserver);
+        int colorType = compression == OfficePngCompression.Optimal
+            ? SelectOptimalColorType(rgba, cancellationToken, checkpointObserver) : 6;
+        bool bilevel = colorType == 0;
+        bool rgb = colorType == 2;
         destination.Write(PngSignature, 0, PngSignature.Length);
-        WriteChunk(destination, "IHDR", BuildIhdr(width, height, bilevel ? 1 : 8, bilevel ? 0 : 6));
+        WriteChunk(destination, "IHDR", BuildIhdr(width, height, bilevel ? 1 : 8, colorType));
         if (dpiX.HasValue && dpiY.HasValue) {
             WriteChunk(destination, "pHYs", BuildPhysicalResolution(dpiX.Value, dpiY.Value));
         }
@@ -139,10 +141,10 @@ public static partial class OfficePngWriter {
         var idat = new PngIdatChunkStream(destination, StreamingIdatChunkSize);
         if (compression == OfficePngCompression.Optimal) {
             if (ownedOutput != null && !bilevel && rgba.Length >= MaterializedProbeMinimumRgbaBytes) {
-                WriteMaterializedOptimalZlib(ownedOutput, idat, width, height, rgba,
+                WriteMaterializedOptimalZlib(ownedOutput, idat, width, height, rgba, rgb,
                     cancellationToken, checkpointObserver);
             } else {
-                WriteOptimalZlib(idat, width, height, rgba, bilevel, cancellationToken, checkpointObserver);
+                WriteOptimalZlib(idat, width, height, rgba, bilevel, rgb, cancellationToken, checkpointObserver);
             }
         } else {
             WriteStoredZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
@@ -158,9 +160,10 @@ public static partial class OfficePngWriter {
         int height,
         byte[] rgba,
         bool bilevel,
+        bool rgb,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
-        var workspace = new PngFilteringWorkspace(width, bilevel);
+        var workspace = new PngFilteringWorkspace(width, bilevel, rgb);
         using var adaptiveSize = new PngSizeProbeStream();
         using var unfilteredSize = new PngSizeProbeStream(destination);
         WriteRgbaZlib(adaptiveSize, height, rgba, workspace, adaptiveFiltering: true, cancellationToken, checkpointObserver);
@@ -181,6 +184,7 @@ public static partial class OfficePngWriter {
         destination.WriteByte(0x9C);
 
         int stride = workspace.Stride;
+        int filteredRowLength = workspace.FilteredRowLength;
         byte[] filteredRow = workspace.Row;
         byte[] paethCandidate = workspace.Paeth;
         byte[] compressionBatch = workspace.Batch;
@@ -214,13 +218,14 @@ public static partial class OfficePngWriter {
                     }
                 }
 
-                if (filteredRow.Length > compressionBatch.Length - batchLength) {
+                if (workspace.Rgb) CompactOpaqueRgbRow(filteredRow, stride, cancellationToken, checkpointObserver);
+                if (filteredRowLength > compressionBatch.Length - batchLength) {
                     deflate.Write(compressionBatch, 0, batchLength);
                     batchLength = 0;
                 }
-                Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRow.Length);
-                batchLength += filteredRow.Length;
-                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
+                Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRowLength);
+                batchLength += filteredRowLength;
+                UpdateAdler32(filteredRow, 0, filteredRowLength, ref adlerA, ref adlerB, cancellationToken, checkpointObserver);
             }
             if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
         }

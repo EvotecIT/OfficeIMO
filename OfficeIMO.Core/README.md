@@ -118,8 +118,10 @@ The source image stays unchanged. The report records transformations, skipped de
 
 PNG encoding with `OfficePngCompression.Optimal` stores fully opaque black-and-white rasters
 as one-bit grayscale images. This reduces the encoded scan payload while preserving every
-pixel, dimensions, and requested resolution metadata. Intermediate gray values, colors,
-and transparency retain RGBA output; the encoder does not threshold or quantize them.
+pixel, dimensions, and requested resolution metadata. Other opaque rasters use eight-bit
+RGB samples, avoiding an alpha channel that is uniformly opaque. Transparent rasters
+retain eight-bit RGBA samples. The encoder preserves every channel value without
+thresholding or quantization.
 Byte, stream, and buffer-writer APIs use the same selection. `Stored` compression retains
 eight-bit RGBA samples.
 

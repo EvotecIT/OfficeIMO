@@ -4,22 +4,6 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficePngWriter {
-    // Scan cleanup produces RGBA pixels too. Pack only exact opaque black/white;
-    // intermediate gray, colored and transparent pixels must keep all channels.
-    private static bool IsOpaqueBilevel(byte[] rgba, CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
-        for (int offset = 0; offset < rgba.Length; offset += 4) {
-            if ((offset & 4095) == 0) {
-                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngColorSelectionBlock);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            byte gray = rgba[offset];
-            if ((gray != 0 && gray != 255) || rgba[offset + 1] != gray
-                || rgba[offset + 2] != gray || rgba[offset + 3] != 255) return false;
-        }
-        return true;
-    }
-
     private static void FilterBilevelRow(byte[] rgba, int rgbaOffset, PngFilteringWorkspace workspace,
         int y, bool adaptiveFiltering, CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {

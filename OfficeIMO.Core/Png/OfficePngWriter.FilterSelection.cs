@@ -8,10 +8,12 @@ public static partial class OfficePngWriter {
     // A probe may retain a small compressed candidate in the existing IDAT chunk;
     // large candidates still keep only their size and use the final write pass.
     private sealed class PngFilteringWorkspace {
-        internal PngFilteringWorkspace(int width, bool bilevel) {
+        internal PngFilteringWorkspace(int width, bool bilevel, bool rgb) {
             RgbaStride = checked(width * 4);
             Stride = bilevel ? checked((int)((width + 7L) / 8L)) : RgbaStride;
             Row = new byte[checked(Stride + 1)];
+            Rgb = rgb;
+            FilteredRowLength = rgb ? checked(width * 3 + 1) : Row.Length;
             Paeth = new byte[Stride];
             Batch = new byte[Math.Max(Row.Length, 64 * 1024)];
             BilevelRows = bilevel ? new byte[checked(Stride * 2)] : null;
@@ -19,6 +21,8 @@ public static partial class OfficePngWriter {
 
         internal int RgbaStride { get; }
         internal int Stride { get; }
+        internal bool Rgb { get; }
+        internal int FilteredRowLength { get; }
         internal byte[] Row { get; }
         internal byte[] Paeth { get; }
         internal byte[] Batch { get; }
