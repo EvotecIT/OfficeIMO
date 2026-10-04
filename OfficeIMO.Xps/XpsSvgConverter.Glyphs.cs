@@ -49,6 +49,7 @@ internal sealed partial class XpsSvgConverter {
         double minX = double.PositiveInfinity, minY = double.PositiveInfinity, maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
         var data = new StringBuilder();
         int textIndex = 0, entryIndex = 0;
+        int firstSpan = _textSpans.Count;
         while (entryIndex < entries.Length || textIndex < text.Length) {
             Charge(depth);
             int codeUnits = 1, glyphCount = 1;
@@ -63,6 +64,8 @@ internal sealed partial class XpsSvgConverter {
                 entry = entry.Substring(end + 1);
             } else if (textIndex < text.Length && char.IsHighSurrogate(text[textIndex]) && textIndex + 1 < text.Length && char.IsLowSurrogate(text[textIndex + 1])) codeUnits = 2;
             if (text.Length > 0 && codeUnits > text.Length - textIndex) throw new InvalidDataException("Glyph cluster exceeds UnicodeString.");
+            double clusterLeft = double.PositiveInfinity, clusterTop = double.PositiveInfinity;
+            double clusterRight = double.NegativeInfinity, clusterBottom = double.NegativeInfinity;
             for (int g = 0; g < glyphCount; g++) {
                 string[] fields = (g == 0 ? entry : entries[entryIndex + g]).Split(',');
                 if (fields.Length > 4 || fields[0].Contains("(")) throw new InvalidDataException("Malformed XPS glyph mapping.");
@@ -83,6 +86,13 @@ internal sealed partial class XpsSvgConverter {
                 double u = fields.Length > 2 && fields[2].Length > 0 ? XpsPackage.Number(fields[2]) * size / 100 : 0;
                 double v = fields.Length > 3 && fields[3].Length > 0 ? XpsPackage.Number(fields[3]) * size / 100 : 0;
                 double gx = rtl ? x - nativeAdvance - u : x + u;
+                double cellLeft = rtl ? x - u - advance : gx;
+                double cellRight = rtl ? x - u : gx + advance;
+                clusterLeft = Math.Min(clusterLeft, cellLeft); clusterRight = Math.Max(clusterRight, cellRight);
+                if (!sideways) {
+                    double cellTop = y - v - font.BaselineOffset(size);
+                    clusterTop = Math.Min(clusterTop, cellTop); clusterBottom = Math.Max(clusterBottom, cellTop + font.LineHeight(size));
+                }
                 var contours = font.FixedGlyphContours(glyph, size, sideways ? 0 : gx, sideways ? 0 : y - v, Math.Max(1, 1000000 - _points), _token);
                 foreach (var contour in contours) {
                     _points = checked(_points + contour.Count);
@@ -96,6 +106,8 @@ internal sealed partial class XpsSvgConverter {
                             else px -= shear * (py - (y - v));
                         }
                         if (bold) { px += size * 0.01; py -= size * 0.01; }
+                        clusterLeft = Math.Min(clusterLeft, px); clusterTop = Math.Min(clusterTop, py);
+                        clusterRight = Math.Max(clusterRight, px); clusterBottom = Math.Max(clusterBottom, py);
                         minX = Math.Min(minX, px); minY = Math.Min(minY, py); maxX = Math.Max(maxX, px); maxY = Math.Max(maxY, py);
                         string point = (i == 0 ? "M" : "L") + N(px) + " " + N(py) + " ";
                         EnsureOutputCapacity((long)data.Length + point.Length + 2);
@@ -105,10 +117,24 @@ internal sealed partial class XpsSvgConverter {
                 }
                 x += rtl ? -advance : advance;
             }
+            if (_visualDepth == 0 && textIndex < text.Length) {
+                // Keep native clusters intact: a ligature or a surrogate pair must not
+                // be split into unrelated PDF replacement-text sequences.
+                double left = clusterLeft, right = clusterRight;
+                double top = double.IsPositiveInfinity(clusterTop) ? y - size / 2 : clusterTop;
+                double bottom = double.IsNegativeInfinity(clusterBottom) ? y + size / 2 : clusterBottom;
+                // Zero-advance combining clusters still need a finite selection region.
+                right = Math.Max(right, left + size * 0.001);
+                bottom = Math.Max(bottom, top + size * 0.001);
+                _textSpans.Add(new XpsTextSpan(text.Substring(textIndex, codeUnits),
+                    new OfficePoint(rtl ? right : left, top), new OfficePoint(rtl ? left : right, top),
+                    new OfficePoint(rtl ? left : right, bottom), new OfficePoint(rtl ? right : left, bottom)));
+            }
             textIndex += codeUnits;
             entryIndex += glyphCount;
         }
 
+        JoinWhitespace(firstSpan, rtl);
         if (data.Length == 0) {
             var empty = Element("g");
             if (text.Length > 0) Set(empty, "aria-label", text);

@@ -20,7 +20,7 @@ public sealed partial class PdfPageCanvas {
     }
 
     internal PdfPageCanvas SearchableText(string text, PdfSelectionQuad geometry) {
-        Guard.NotNullOrWhiteSpace(text, nameof(text));
+        if (string.IsNullOrEmpty(text)) throw new ArgumentException("Searchable text cannot be empty.", nameof(text));
         Guard.NotNull(geometry, nameof(geometry));
         Guard.Positive(geometry.Width, nameof(geometry));
         Guard.Positive(geometry.Height, nameof(geometry));

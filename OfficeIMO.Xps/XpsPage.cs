@@ -94,7 +94,9 @@ public sealed class XpsPage {
     public XpsSvgResult ToSvg(bool allowPartial = false, CancellationToken cancellationToken = default) => new XpsSvgConverter(this, cancellationToken).Convert(allowPartial);
     /// <summary>Converts through the shared SVG reader. Any SVG import loss fails rather than silently disappearing.</summary>
     public OfficeDrawing ToDrawing(CancellationToken cancellationToken = default) {
-        var svg = ToSvg(false, cancellationToken);
+        return ImportDrawing(ToSvg(false, cancellationToken), cancellationToken);
+    }
+    internal static OfficeDrawing ImportDrawing(XpsSvgResult svg, CancellationToken cancellationToken) {
         if (!OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken, MaximumGeometryCommands = 1000000, MaximumElements = 100000 }, out var drawing, out int unsupported) || drawing == null || unsupported != 0)
             throw new NotSupportedException("The shared drawing importer cannot represent this XPS page without loss. Use ToSvg for the native vector projection.");
         return drawing;
@@ -105,7 +107,8 @@ public sealed class XpsPage {
 
 /// <summary>A self-contained SVG projection and its explicit loss diagnostics.</summary>
 public sealed class XpsSvgResult {
-    internal XpsSvgResult(string svg, List<string> diagnostics) { Svg = svg; Diagnostics = diagnostics.AsReadOnly(); }
+    internal XpsSvgResult(string svg, List<string> diagnostics, List<XpsTextSpan> textSpans) { Svg = svg; Diagnostics = diagnostics.AsReadOnly(); TextSpans = textSpans.AsReadOnly(); }
+    internal IReadOnlyList<XpsTextSpan> TextSpans { get; }
     /// <summary>Self-contained SVG. Embedded glyphs are outlined to preserve native positioning.</summary>
     public string Svg { get; }
     /// <summary>Unsupported features encountered while converting.</summary>

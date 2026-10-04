@@ -31,7 +31,7 @@ internal sealed partial class XpsSvgConverter {
         if (page.Attribute("Name") is XAttribute pageName) Set(root, "id", "xps-" + pageName.Value);
         RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0, new BrushRegion(0, 0, _page.Width, _page.Height));
         if (_diagnostics.Count != 0 && !allowPartial) throw new NotSupportedException("XPS conversion would lose features: " + string.Join("; ", _diagnostics.Take(12)));
-        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics);
+        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics, _textSpans);
     }
     private static string N(double value) {
         if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidDataException("Non-finite XPS projection coordinate.");
@@ -99,6 +99,7 @@ internal sealed partial class XpsSvgConverter {
             if (child.Name.NamespaceName != XpsPackage.Namespace(_page.Document.Format)) { Loss("Foreign element: " + child.Name); continue; }
             string? transform = Transform(child, scope);
             BrushRegion localRegion = LocalRegion(region, transform);
+            int firstText = _textSpans.Count;
             XElement? result;
             switch (child.Name.LocalName) {
                 case "Canvas":
@@ -110,6 +111,7 @@ internal sealed partial class XpsSvgConverter {
                 default: Loss("Element: " + child.Name.LocalName); continue;
             }
             if (result == null) continue;
+            TransformText(firstText, transform);
             ApplyOpacityMask(child, result, scope, part, depth + 1, localRegion);
             if (transform != null) Set(result, "transform", transform);
             string? clip = Geometry(child, "Clip", scope);

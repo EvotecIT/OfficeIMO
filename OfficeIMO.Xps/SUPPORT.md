@@ -17,7 +17,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
-| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Vector outlines rather than searchable text; no print-ticket/structure/signature migration |
+| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Searchable native Unicode clusters alongside vector outlines; no print-ticket/structure/signature migration; source markup order, not reconstructed logical reading order; clipped/transparent source text remains searchable |
 | Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
 
 ICC ContextColor uses Core's supported RGB, gray, CMYK and N-channel profiles,
@@ -109,7 +109,7 @@ placement, but GhostXPS omits bold outline widening for non-solid glyph brushes;
 that difference is not used as a fidelity target. Independent PDF rendering confirms
 the gradient-filled bold outline. Bold fill is applied once through a
 coverage mask in a local viewport; repeated small runs and non-tiled strokes do
-not allocate a page-sized coverage layer each. These checks do not imply searchable PDF text or native font hinting.
+not allocate a page-sized coverage layer each. These style checks do not qualify native font hinting.
 
 The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).
 
@@ -123,3 +123,12 @@ PDF swatches match the managed raster exactly when independently rendered at
 with either profile association method; independent PDF/reference images confirm
 placement, with raster interpolation differences at the color boundary. These
 checks are not a broad photographic image corpus.
+
+Searchable PDF projection is checked with native Unicode clusters, whitespace,
+ligatures, surrogate pairs, right-to-left advances, sideways glyphs, affine
+transforms, explicit offsets and blank pages. Poppler independently extracts the
+expected text from both dialects; Ghostscript renders the generated vector PDFs
+with a mean channel difference of 0.71/255 from the managed raster on the text
+fixture. Interactive selection/highlighting in independent viewers remains
+unqualified. Text follows source markup order and retains clipped/transparent
+source content; this is not a redaction or accessibility reconstruction contract.
