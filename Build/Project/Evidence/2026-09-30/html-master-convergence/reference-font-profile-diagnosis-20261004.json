@@ -1,0 +1,114 @@
+{
+  "recordedUtc": "2026-10-04T22:10:28.728411+00:00",
+  "sourceHead": "5a9de77f6c4b9d423e659bc268484d4c220908d9",
+  "actualOfficeimoProducerHead": "ed60a64f3a5367bda2a75f163c7577b6f2141041",
+  "sourceSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+  "scope": "Read-only frozen Reference Systems font and print-profile diagnosis; no renderer or acceptance reduction",
+  "independentFontTool": {
+    "name": "fontTools",
+    "version": "4.60.1",
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]"
+  },
+  "capturedFontPrograms": [
+    {
+      "location": "https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts-split/db-mono/aFTU7PB1QTsUX8KYthqQBA.woff2",
+      "sha256": "8b22f1d6d7350e7cea705355a1521c9ede6f026a9edb10b368f05650dd7a319a",
+      "names": {
+        "1": "DM Mono",
+        "2": "Regular",
+        "4": "DM Mono Regular",
+        "6": "DMMono-Regular"
+      },
+      "unitsPerEm": 1000,
+      "containerSignature": "774f4632"
+    },
+    {
+      "location": "https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts-split/inter/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2",
+      "sha256": "450f3ba4e47ee174bd9692b396f264b907d37d2528f53911760f3d0edb785f7e",
+      "names": {
+        "1": "Inter",
+        "2": "Regular",
+        "4": "Inter Regular",
+        "6": "Inter-Regular"
+      },
+      "unitsPerEm": 2816,
+      "containerSignature": "774f4632"
+    },
+    {
+      "location": "https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts-split/inter/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2",
+      "sha256": "0364d368abf457d4e70dbc7a7a360f3486eaea2837b194915b23d4398bee91ac",
+      "names": {
+        "1": "Inter",
+        "2": "Regular",
+        "4": "Inter Regular",
+        "6": "Inter-Regular"
+      },
+      "unitsPerEm": 2816,
+      "containerSignature": "774f4632"
+    },
+    {
+      "location": "https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts/public-sans/PublicSans-Bold.woff2",
+      "sha256": "970fbaaebe5403cae84370f17f4303f91b317c0e7d44607fb2c7fed7571c013f",
+      "names": {
+        "1": "Public Sans",
+        "2": "Bold",
+        "4": "Public Sans Bold",
+        "6": "PublicSans-Bold"
+      },
+      "unitsPerEm": 2000,
+      "containerSignature": "774f4632"
+    },
+    {
+      "location": "https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts/public-sans/PublicSans-Italic.woff2",
+      "sha256": "e71bfa91c378d7ae6ac44c07700112050b42c8f26266453b1d9d097cf40b0bb0",
+      "names": {
+        "1": "Public Sans",
+        "2": "Italic",
+        "4": "Public Sans Italic",
+        "6": "PublicSans-Italic"
+      },
+      "unitsPerEm": 2000,
+      "containerSignature": "774f4632"
+    },
+    {
+      "location": "https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts/public-sans/PublicSans-Regular.woff2",
+      "sha256": "bea988eeadc7c0ddf9644c2dce7efb35f1767eac0187c0967f8a2567473cbbfe",
+      "names": {
+        "1": "Public Sans",
+        "2": "Regular",
+        "4": "Public Sans Regular",
+        "6": "PublicSans-Regular"
+      },
+      "unitsPerEm": 2000,
+      "containerSignature": "774f4632"
+    }
+  ],
+  "selectedOutlinedFamilies": [
+    "Inter",
+    "Public Sans Web",
+    "dm-mono"
+  ],
+  "fontEvidenceLimit": "Producer diagnostics establish selected outlined programs; PDF font resources also contain logical-text carriers and cannot alone establish visible-paint fallback. All six captured WOFF2 programs parse independently. Additional uncaptured declared font-face candidates remain informational diagnostics, not proof that the selected body fonts are absent.",
+  "printProfileBoundary": {
+    "browserPages": 9,
+    "officeimoDefaultPages": 10,
+    "browserSha256": "3d8274541127c9753d80beab8b96dd9c7cec19b0b40ce5f8f80c64cffb7dccbf",
+    "officeimoSha256": "43d0b0009dbef837f15c9e6c19806a09f59086da154537cfe85a7f8e7c00f545",
+    "officeimoDefaultMarginsCssPixels": 48,
+    "officeimoDefaultMarginsPdfPoints": 36,
+    "browserCapture": "A4, prefer CSS page size, background and tags enabled; no explicit page margins in retained capture route",
+    "bodyFirstParagraphLeftPositionPdfPoints": {
+      "browser": 17.999999,
+      "officeimo": 54.0,
+      "difference": 36.000001
+    },
+    "interpretation": "The default routes have different print geometry. The observed horizontal offset matches the OfficeIMO default page margin; page counts and wraps alone cannot classify a renderer defect."
+  },
+  "nextBoundedDeliverable": "Replay the same frozen MHTML with explicitly equivalent paper, viewport, margins, fonts and print-media settings in the normal OfficeIMO route and independent browser producer. Classify residual width, page-5 and footer differences while preserving all36 article blocks/resources/source order. Do not alter defaults or fit widths merely to match a page count.",
+  "retainedRawEvidence": "Ignore/MasterConvergenceQualification/reference-font-diagnosis-5a9de77f6/{captured-and-pdf-fonts.json,paragraph-line-bounds.json,observe_fonts.py}",
+  "unchangedOpenCriteria": [
+    "Named appearance, resource/loss and manual-accessibility criteria",
+    "All11 historical PDF intents",
+    "Supported-platform timing/allocation/memory budgets and qualified long-lived integration"
+  ]
+}
