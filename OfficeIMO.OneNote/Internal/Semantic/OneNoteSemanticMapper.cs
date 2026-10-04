@@ -386,6 +386,7 @@ internal static partial class OneNoteSemanticMapper {
             case ".jpg":
             case ".jpeg": return "image/jpeg";
             case ".gif": return "image/gif";
+            case ".webp": return "image/webp";
             case ".bmp": return "image/bmp";
             case ".tif":
             case ".tiff": return "image/tiff";
