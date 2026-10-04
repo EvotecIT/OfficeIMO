@@ -165,20 +165,32 @@ public static partial class HtmlPowerPointConverterExtensions {
                 .DefaultIfEmpty(1L).Max()));
         int rows = EnumerateDirectTableRows(block.SourceElement)
             .Take(budget.Limits.MaxTableCells).Count();
+        int sourceCells = 0;
         for (int rowIndex = 0; rowIndex < sourceRows; rowIndex++) {
             foreach (HtmlSemanticTableCell cell in source.Rows[rowIndex].Cells) {
+                if (sourceCells >= budget.Limits.MaxTableCells) break;
+                sourceCells++;
                 rows = Math.Max(rows, (int)Math.Min(budget.Limits.MaxTableCells,
                     (long)source.Rows[rowIndex].SourceRowIndex + Math.Max(1, cell.RowSpan)));
             }
+            if (sourceCells >= budget.Limits.MaxTableCells) break;
         }
         double[] rowHeights = Enumerable.Repeat(34D, rows).ToArray();
+        // Range-max updates preserve the height assigned by spanning cells
+        // without visiting every covered row for every source cell.
+        int leafCount = 1;
+        while (leafCount < rows) leafCount <<= 1;
+        var spanHeights = new double[leafCount * 2];
         double cellWidth = Math.Max(40D, tableWidth / columns - 16D);
         var measurers = new Dictionary<(double Size, OfficeFontStyle Style), OfficeTextMeasurer>();
+        int measuredCells = 0;
         for (int rowIndex = 0; rowIndex < sourceRows; rowIndex++) {
             HtmlSemanticTableRow row = source.Rows[rowIndex];
             int authoredRow = row.SourceRowIndex;
             if (authoredRow >= rows) continue;
             foreach (HtmlSemanticTableCell cell in row.Cells) {
+                if (measuredCells >= budget.Limits.MaxTableCells) break;
+                measuredCells++;
                 double fontSize = 18D;
                 if (TryParseSemanticPixels(cell.Style?.GetValue("font-size"), out double cellPixels)) {
                     fontSize = Math.Max(fontSize, cellPixels * 0.75D);
@@ -202,11 +214,26 @@ public static partial class HtmlPowerPointConverterExtensions {
                     wrap: true, forceSingleLine: false, shrinkToFit: false);
                 int span = Math.Min(rows - authoredRow, Math.Max(1, cell.RowSpan));
                 double heightPerRow = Math.Ceiling((layout.Height + 16D) / span);
-                for (int spannedRow = authoredRow; spannedRow < authoredRow + span; spannedRow++) {
-                    rowHeights[spannedRow] = Math.Max(rowHeights[spannedRow], heightPerRow);
+                for (int left = authoredRow + leafCount, right = authoredRow + span + leafCount;
+                     left < right; left >>= 1, right >>= 1) {
+                    if ((left & 1) != 0) {
+                        spanHeights[left] = Math.Max(spanHeights[left], heightPerRow);
+                        left++;
+                    }
+                    if ((right & 1) != 0) {
+                        right--;
+                        spanHeights[right] = Math.Max(spanHeights[right], heightPerRow);
+                    }
                 }
             }
+            if (measuredCells >= budget.Limits.MaxTableCells) break;
         }
+        for (int node = 1; node < leafCount; node++) {
+            spanHeights[node * 2] = Math.Max(spanHeights[node * 2], spanHeights[node]);
+            spanHeights[node * 2 + 1] = Math.Max(spanHeights[node * 2 + 1], spanHeights[node]);
+        }
+        for (int row = 0; row < rows; row++)
+            rowHeights[row] = Math.Max(rowHeights[row], spanHeights[leafCount + row]);
         return rowHeights;
     }
 

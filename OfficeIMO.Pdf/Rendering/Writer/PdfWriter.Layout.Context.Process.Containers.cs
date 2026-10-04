@@ -311,8 +311,8 @@ internal static partial class PdfWriter {
                 double bottomPadding = Math.Min(style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
-                // Nested margin options own separate font programs; the page's
-                // subsets must include glyphs used by every child paragraph.
+                // Nested margin options can resolve new fallback mappings as well
+                // as glyphs. Transfer both to the page's font resource owner.
                 parentOptions.MergeFontProgramUsageFrom(nestedOptions);
             } finally {
                 activeContainerScopes.RemoveAt(activeContainerScopes.Count - 1);

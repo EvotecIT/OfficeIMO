@@ -396,6 +396,9 @@ namespace OfficeIMO.Word.Html {
                     WordParagraph fallbackRun,
                     IReadOnlyList<DocumentFormat.OpenXml.OpenXmlElement>? visibleRunChildren = null) {
                     var expandedNodes = new List<INode>();
+                    HashSet<DocumentFormat.OpenXml.OpenXmlElement>? visibleChildren = visibleRunChildren == null
+                        ? null : new HashSet<DocumentFormat.OpenXml.OpenXmlElement>(visibleRunChildren,
+                            OpenXmlElementReferenceComparer.Instance);
                     IElement? hyperlinkNode = container is Hyperlink hyperlink
                         ? CreateEquationHyperlinkNode(
                             htmlDoc,
@@ -407,7 +410,7 @@ namespace OfficeIMO.Word.Html {
                         DocumentFormat.OpenXml.OpenXmlElement directChild = element;
                         while (directChild.Parent != null && !ReferenceEquals(directChild.Parent, container))
                             directChild = directChild.Parent;
-                        return visibleRunChildren.Contains(directChild);
+                        return visibleChildren!.Contains(directChild);
                     }
                     foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(
                         container, coveringEquations, IncludeVisibleRunElement)) {
@@ -1633,6 +1636,16 @@ namespace OfficeIMO.Word.Html {
                 object identity = paragraph._paragraph != null ? paragraph._paragraph : paragraph;
                 return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(identity);
             }
+        }
+
+        private sealed class OpenXmlElementReferenceComparer : IEqualityComparer<DocumentFormat.OpenXml.OpenXmlElement> {
+            internal static readonly OpenXmlElementReferenceComparer Instance = new();
+
+            public bool Equals(DocumentFormat.OpenXml.OpenXmlElement? left,
+                DocumentFormat.OpenXml.OpenXmlElement? right) => ReferenceEquals(left, right);
+
+            public int GetHashCode(DocumentFormat.OpenXml.OpenXmlElement element) =>
+                System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(element);
         }
 
         private static string? NormalizeRunLanguage(string? language, string? documentLanguage) {
