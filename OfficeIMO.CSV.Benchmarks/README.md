@@ -133,6 +133,26 @@ cache topology. Keep each domain separate and retain outliers when background
 work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
 records the long-note improvement and the limits of short-row timing on a busy PC.
 
+## Document saves and compression
+
+`CsvDocumentSaveBenchmarks` measures `CsvDocument.Save(Stream)` and
+`SaveAsync(Stream)` with fresh caller-owned memory streams. It covers 1,000 and
+25,000 rows, plain text, multiline quoted Unicode, mixed JSON and typed values,
+and uncompressed, GZip, Deflate, Brotli and ZLib output. Document preparation is
+outside timing; serialization, compression, destination growth and disposal are
+inside it. This lane compares OfficeIMO APIs, not equivalent cross-library APIs.
+
+Setup decompresses both outputs, compares their complete text with an independent
+CsvHelper reference, checks every field, and verifies that the destination remains
+open. Compressed bytes may differ while decoded text remains identical. The lane
+uses empty streams and makes no claim about overwriting existing stream content.
+Managed allocation includes the destination; it does not measure retained or peak
+memory, file I/O, or the latency of a destination that suspends asynchronous writes.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvDocumentSaveBenchmarks*" --priority Normal --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 16 --outliers DontRemove --artifacts ./Ignore/Benchmarks/csv-document-save
+```
+
 ## UTF-8 file export
 
 `CsvFileWriteBenchmarks` writes and closes complete files. Most fixtures contain
