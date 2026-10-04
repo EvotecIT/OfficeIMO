@@ -116,17 +116,23 @@ namespace OfficeIMO.Internal {
             throw new PlatformNotSupportedException("Opened-file path resolution is not supported on this platform.");
         }
 
-        private static string ResolveUnixExistingPath(string path) {
+        private static bool TryResolveUnixExistingPath(string path, out string resolvedPath) {
             IntPtr pointer = IntPtr.Zero;
             try {
                 pointer = RealPath(path, IntPtr.Zero);
                 if (pointer == IntPtr.Zero) {
+                    int error = Marshal.GetLastWin32Error();
+                    if (IsConfirmedMissing(error)) {
+                        resolvedPath = string.Empty;
+                        return false;
+                    }
                     throw new IOException("Unable to resolve physical path '" + path + "' (OS error " +
-                        Marshal.GetLastWin32Error() + ").");
+                        error + ").");
                 }
                 string? value = Marshal.PtrToStringAnsi(pointer);
                 if (string.IsNullOrEmpty(value)) throw new IOException("The resolved physical path was empty.");
-                return value!;
+                resolvedPath = value!;
+                return true;
             } catch (DllNotFoundException exception) {
                 throw new PlatformNotSupportedException("The Unix runtime does not expose realpath.", exception);
             } catch (EntryPointNotFoundException exception) {
