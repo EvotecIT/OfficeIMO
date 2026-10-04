@@ -138,7 +138,9 @@ internal static partial class OfficeJpegReader {
         out int componentCount,
         int? requestedColorTransform,
         bool usePdfColorTransformDefault,
-        OfficeJpegDecodeOptions options = default) {
+        OfficeJpegDecodeOptions options = default,
+        CancellationToken cancellationToken = default,
+        long retainedManagedBytes = 0L) {
         if (requestedColorTransform.HasValue && requestedColorTransform.Value is not (0 or 1)) {
             throw new ArgumentOutOfRangeException(nameof(requestedColorTransform));
         }
@@ -152,8 +154,8 @@ internal static partial class OfficeJpegReader {
             requestedColorTransform,
             usePdfColorTransformDefault,
             returnColorComponents: true,
-            CancellationToken.None,
-            retainedManagedBytes: 0L);
+            cancellationToken,
+            retainedManagedBytes);
     }
 
     private static byte[] Decode(
@@ -366,6 +368,7 @@ internal static partial class OfficeJpegReader {
                     requestedColorTransform,
                     usePdfColorTransformDefault,
                     options.HighQualityChroma,
+                    cancellationToken,
                     out componentCount);
             }
             var rgba = baselineState.RenderRgba(frame, adobeTransform, options.HighQualityChroma, cancellationToken);
@@ -383,6 +386,7 @@ internal static partial class OfficeJpegReader {
                     requestedColorTransform,
                     usePdfColorTransformDefault,
                     options.HighQualityChroma,
+                    cancellationToken,
                     out componentCount);
             }
             var rgba = progressiveState.RenderRgba(frame, adobeTransform, options.HighQualityChroma, cancellationToken);

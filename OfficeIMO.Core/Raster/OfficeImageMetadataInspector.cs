@@ -67,7 +67,8 @@ internal static partial class OfficeImageMetadataInspector {
         byte[] data,
         OfficeImageMetadataSnapshot snapshot,
         long retainedManagedBytes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        int maximumIccBytes = OfficeRasterGuards.MaximumEncodedBytes) {
         JpegIccPart?[]? iccParts = null;
         bool invalidIccSequence = false;
         int offset = 2;
@@ -157,7 +158,7 @@ internal static partial class OfficeImageMetadataInspector {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!iccParts[index].HasValue) return;
                 JpegIccPart part = iccParts[index]!.Value;
-                if (part.Length > OfficeRasterGuards.MaximumEncodedBytes - length) return;
+                if (part.Length > maximumIccBytes - length) return;
                 length += part.Length;
             }
             long inspectorRetainedBytes;

@@ -12,7 +12,11 @@ internal sealed partial class XpsSvgConverter {
         string name = XpsPackage.Resolve(part, uri);
         if (_profiles.TryGetValue(name, out var existing)) return existing;
         if (_page.Document.ContentType(name) != "application/vnd.ms-color.iccprofile") throw new InvalidDataException("Invalid ICC resource content type.");
-        byte[] bytes = _page.Document.Part(name);
+        return ParseColorProfile(name, _page.Document.Part(name));
+    }
+
+    private OfficeIccColorProfile? ParseColorProfile(string name, byte[] bytes) {
+        if (_profiles.TryGetValue(name, out var existing)) return existing;
         // LUT parsing expands encoded samples. Reserve the same conservative parser
         // allowance used by Core's packed ICC raster converter before parsing each profile.
         long allowance = bytes.LongLength * 32L + 4096;

@@ -67,7 +67,7 @@ public sealed class OfficeIccRasterConversionOptions {
 /// metadata from encoded images, alter the source buffer, or change image optimizer metadata reports.
 /// Alpha, planar samples, higher bit depths, and implicit device-color conversion are outside this contract.
 /// </remarks>
-public static class OfficeIccRasterConverter {
+public static partial class OfficeIccRasterConverter {
     /// <summary>Attempts one complete conversion, returning a typed rejection instead of partial pixels.</summary>
     public static OfficeIccRasterConversionStatus TryConvertToSrgb(
         byte[] deviceSamples,

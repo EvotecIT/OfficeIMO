@@ -994,6 +994,7 @@ internal static partial class OfficeJpegReader {
             int? requestedColorTransform,
             bool usePdfColorTransformDefault,
             bool highQualityChroma,
+            CancellationToken cancellationToken,
             out int componentCount) {
             for (var i = 0; i < DecodedComponents.Length; i++) {
                 if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
@@ -1007,7 +1008,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
-                CancellationToken.None,
+                cancellationToken,
                 out componentCount);
         }
     }
@@ -1132,8 +1133,9 @@ internal static partial class OfficeJpegReader {
             int? requestedColorTransform,
             bool usePdfColorTransformDefault,
             bool highQualityChroma,
+            CancellationToken cancellationToken,
             out int componentCount) {
-            BaselineComponentState[] baselineStates = CreateBaselineStates(CancellationToken.None);
+            BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
             return ComposeColorComponents(
                 frame,
                 baselineStates,
@@ -1142,7 +1144,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
-                CancellationToken.None,
+                cancellationToken,
                 out componentCount);
         }
 

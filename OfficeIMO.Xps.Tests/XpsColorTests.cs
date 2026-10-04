@@ -92,7 +92,7 @@ public sealed class XpsColorTests {
     }
 
     [Fact]
-    public void TiffWithUnappliedEmbeddedProfileReportsLoss() {
+    public void TiffWithEmbeddedProfileConvertsPixels() {
         byte[] tiff = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red), OfficeImageExportFormat.Tiff);
         Assert.Equal((byte)'I', tiff[0]);
         int oldIfd = BitConverter.ToInt32(tiff, 4);
@@ -106,8 +106,8 @@ public sealed class XpsColorTests {
         stream.Position = 4; writer.Write(newIfd);
         var doc = XpsDocument.Create(); string uri = doc.AddResource("Images/profile.tif", stream.ToArray(), "image/tiff");
         var page = doc.AddPage(20, 20).AddImage(uri, 0, 0, 20, 20);
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
-        Assert.Contains("TIFF embedded color management", page.ToSvg(true).Diagnostics);
+        Assert.Empty(page.ToSvg().Diagnostics);
+        Assert.Equal(OfficeColor.Red, Raster(page).GetPixel(10, 10));
     }
 
     private static OfficeRasterImage Raster(XpsPage page) {

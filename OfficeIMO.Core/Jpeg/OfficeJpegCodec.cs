@@ -54,7 +54,9 @@ public static partial class OfficeJpegCodec {
         out int width,
         out int height,
         out int componentCount,
-        OfficeJpegDecodeOptions options = default) {
+        OfficeJpegDecodeOptions options = default,
+        CancellationToken cancellationToken = default,
+        long retainedManagedBytes = 0L) {
         components = Array.Empty<byte>();
         width = 0;
         height = 0;
@@ -68,7 +70,7 @@ public static partial class OfficeJpegCodec {
                 out componentCount,
                 requestedColorTransform,
                 usePdfColorTransformDefault,
-                options);
+                options, cancellationToken, retainedManagedBytes);
             return true;
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException || ex is OverflowException) {
             components = Array.Empty<byte>();

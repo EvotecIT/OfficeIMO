@@ -12,10 +12,23 @@ internal static class XpsResourceSyntax {
         return (fields[1], samples.Select(s => XpsPackage.Number(s.Trim())).ToArray());
     }
 
+    internal static (string Image, string? Profile) ImageSource(string value) {
+        if (!value.StartsWith("{", StringComparison.Ordinal)) return (value, null);
+        string trimmed = value.TrimEnd();
+        if (!trimmed.EndsWith("}", StringComparison.Ordinal)) throw new InvalidDataException("Invalid image source extension.");
+        string[] fields = trimmed.Substring(1, trimmed.Length - 2).Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (fields.Length != 3 || fields[0] != "ColorConvertedBitmap") throw new InvalidDataException("Invalid ColorConvertedBitmap syntax.");
+        return (fields[1], fields[2]);
+    }
+
     internal static IEnumerable<string> References(XElement markup) {
         foreach (var attribute in markup.DescendantsAndSelf().Attributes()) {
             string value = attribute.Value;
-            if (attribute.Name.LocalName == "FontUri" || attribute.Name.LocalName == "ImageSource" ||
+            if (attribute.Name.LocalName == "ImageSource") {
+                var image = ImageSource(value);
+                yield return image.Image;
+                if (image.Profile != null) yield return image.Profile;
+            } else if (attribute.Name.LocalName == "FontUri" ||
                 (attribute.Name.LocalName == "Source" && attribute.Parent?.Name.LocalName == "ResourceDictionary")) {
                 if (!value.StartsWith("{", StringComparison.Ordinal)) yield return value.Split('#')[0];
             } else if ((attribute.Name.LocalName == "Color" || attribute.Name.LocalName == "Fill" ||

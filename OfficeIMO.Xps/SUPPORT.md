@@ -12,7 +12,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
-| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Color-converted images, embedded TIFF color management, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
+| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, non-ICC colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; document navigation is not a PDF preservation contract |
 | Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
@@ -24,9 +24,13 @@ ICC ContextColor uses Core's supported RGB, gray, CMYK and N-channel profiles,
 converting to sRGB with media-relative colorimetric intent and no black-point
 compensation. Alpha and channel values are clamped to the native range. Profile
 parsing has a 4 MiB per-profile ceiling and a 64 MiB aggregate parser allowance.
-PrintTicket color overrides are not interpreted. TIFF uses Core's managed decoder
-for the first image, up to four million pixels, retaining its physical dimensions;
-embedded color-management metadata is diagnosed rather than discarded.
+PrintTicket color overrides are not interpreted. Image brushes apply associated
+`ColorConvertedBitmap` profiles in preference to embedded profiles. Core decodes
+RGB and gray PNG/JPEG/TIFF, including PNG/TIFF alpha, and CMYK JPEG/TIFF device
+channels before ICC conversion. The first image is limited to four million pixels;
+physical dimensions are retained. Malformed, oversized or incompatible profiles
+and unsupported non-ICC color metadata are diagnosed. Default CMYK/SWOP and
+incompatible-profile fallback behavior are not qualified.
 
 ## Qualification
 
@@ -108,3 +112,14 @@ coverage mask in a local viewport; repeated small runs and non-tiled strokes do
 not allocate a page-sized coverage layer each. These checks do not imply searchable PDF text or native font hinting.
 
 The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).
+
+ICC image qualification uses 24 independently encoded Pillow/LittleCMS fixtures,
+covering associated/embedded RGB, gray, CMYK and alpha combinations. Both dialects
+match the independent reference channels within two values. Of 48 GhostXPS
+10.08.0 comparisons, 42 match within one channel value; its split JPEG-profile
+reader and gray-alpha TIFF paths do not qualify the other six. All 48 exported
+PDF swatches match the managed raster exactly when independently rendered at
+96 DPI. Four nonuniform baseline/progressive JPEG checks retain EXIF orientation
+with either profile association method; independent PDF/reference images confirm
+placement, with raster interpolation differences at the color boundary. These
+checks are not a broad photographic image corpus.
