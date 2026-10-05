@@ -146,6 +146,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 format.FontFamily,
                 positions,
                 specified: format.Specified,
+                styleRelative: format.StyleRelative,
+                styleInverted: format.StyleInverted,
                 characterSpacingTwips: format.CharacterSpacingTwips,
                 kerningMinimumFontSizeHalfPoints: format.KerningMinimumFontSizeHalfPoints,
                 language: format.Language,

@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         private static void MergeLegacyDocBuiltInStyleFormatting(WordDocument document, Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
             MergeLegacyDocBuiltInStyleBasedOn(style, legacyStyle, styleSheet);
             MergeLegacyDocBuiltInStyleParagraphFormatting(document, style, legacyStyle.ParagraphFormat);
-            MergeLegacyDocBuiltInStyleRunFormatting(style, legacyStyle.CharacterFormat);
+            MergeLegacyDocBuiltInStyleRunFormatting(style, legacyStyle.CharacterFormat, GetLegacyDocParentStyleToggles(legacyStyle, styleSheet));
         }
 
         private static void MergeLegacyDocBuiltInStyleBasedOn(Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
@@ -195,7 +195,10 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void MergeLegacyDocBuiltInStyleRunFormatting(Style style, LegacyDocCharacterFormat characterFormat) {
+        private static void MergeLegacyDocBuiltInStyleRunFormatting(Style style, LegacyDocCharacterFormat characterFormat, LegacyDocCharacterFormatProperties styleToggles) {
+            bool Resolve(bool value, LegacyDocCharacterFormatProperties property) =>
+                ResolveLegacyDocToggle(value, property, characterFormat.StyleRelative, characterFormat.StyleInverted, styleToggles);
+
             if (style.StyleRunProperties is StyleRunProperties templateProperties) {
                 // Missing source toggles inherit through basedOn, not through our built-in template.
                 foreach (OnOffType property in templateProperties.Elements<OnOffType>().ToArray()) {
@@ -226,20 +229,20 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, CreateLegacyDocLanguages(characterFormat.Language, characterFormat.EastAsiaLanguage));
             }
 
-            ReplaceStyleOnOffProperty<Bold>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            ReplaceStyleOnOffProperty<BoldComplexScript>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            ReplaceStyleOnOffProperty<Italic>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            ReplaceStyleOnOffProperty<ItalicComplexScript>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            ReplaceStyleOnOffProperty<Strike>(properties, characterFormat.Strike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
-            ReplaceStyleOnOffProperty<DoubleStrike>(properties, characterFormat.DoubleStrike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
-            ReplaceStyleOnOffProperty<Outline>(properties, characterFormat.Outline, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
-            ReplaceStyleOnOffProperty<Shadow>(properties, characterFormat.Shadow, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
-            ReplaceStyleOnOffProperty<Emboss>(properties, characterFormat.Emboss, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
-            ReplaceStyleOnOffProperty<Imprint>(properties, characterFormat.Imprint, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
-            ReplaceStyleOnOffProperty<Vanish>(properties, characterFormat.Hidden, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
-            ReplaceStyleOnOffProperty<NoProof>(properties, characterFormat.NoProof, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
-            ReplaceStyleOnOffProperty<Caps>(properties, characterFormat.Caps == LegacyDocCapsKind.Caps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
-            ReplaceStyleOnOffProperty<SmallCaps>(properties, characterFormat.Caps == LegacyDocCapsKind.SmallCaps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
+            ReplaceStyleOnOffProperty<Bold>(properties, Resolve(characterFormat.Bold, LegacyDocCharacterFormatProperties.Bold), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            ReplaceStyleOnOffProperty<BoldComplexScript>(properties, Resolve(characterFormat.Bold, LegacyDocCharacterFormatProperties.Bold), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            ReplaceStyleOnOffProperty<Italic>(properties, Resolve(characterFormat.Italic, LegacyDocCharacterFormatProperties.Italic), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            ReplaceStyleOnOffProperty<ItalicComplexScript>(properties, Resolve(characterFormat.Italic, LegacyDocCharacterFormatProperties.Italic), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            ReplaceStyleOnOffProperty<Strike>(properties, Resolve(characterFormat.Strike, LegacyDocCharacterFormatProperties.Strike), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
+            ReplaceStyleOnOffProperty<DoubleStrike>(properties, Resolve(characterFormat.DoubleStrike, LegacyDocCharacterFormatProperties.DoubleStrike), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
+            ReplaceStyleOnOffProperty<Outline>(properties, Resolve(characterFormat.Outline, LegacyDocCharacterFormatProperties.Outline), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
+            ReplaceStyleOnOffProperty<Shadow>(properties, Resolve(characterFormat.Shadow, LegacyDocCharacterFormatProperties.Shadow), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
+            ReplaceStyleOnOffProperty<Emboss>(properties, Resolve(characterFormat.Emboss, LegacyDocCharacterFormatProperties.Emboss), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
+            ReplaceStyleOnOffProperty<Imprint>(properties, Resolve(characterFormat.Imprint, LegacyDocCharacterFormatProperties.Imprint), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
+            ReplaceStyleOnOffProperty<Vanish>(properties, Resolve(characterFormat.Hidden, LegacyDocCharacterFormatProperties.Hidden), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
+            ReplaceStyleOnOffProperty<NoProof>(properties, Resolve(characterFormat.NoProof, LegacyDocCharacterFormatProperties.NoProof), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
+            ReplaceStyleOnOffProperty<Caps>(properties, Resolve(characterFormat.Caps == LegacyDocCapsKind.Caps, LegacyDocCharacterFormatProperties.Caps), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
+            ReplaceStyleOnOffProperty<SmallCaps>(properties, Resolve(characterFormat.Caps == LegacyDocCapsKind.SmallCaps, LegacyDocCharacterFormatProperties.SmallCaps), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
                 ReplaceStyleProperty(properties, new Color { Val = characterFormat.ColorHex! });
