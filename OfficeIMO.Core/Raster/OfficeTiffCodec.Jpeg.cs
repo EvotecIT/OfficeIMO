@@ -9,10 +9,10 @@ public static partial class OfficeTiffCodec {
         OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source) {
         source = Array.Empty<byte>();
         bool ycc = photometric == 6;
-        int horizontal = 1, vertical = 1;
+        int horizontal = 1, vertical = 1, positioning = 1;
         double[] coefficients = { .299, .587, .114 }, reference = { 0, 255, 128, 255, 128, 255 };
         if (ycc) {
-            if (!TryReadScalarOrDefault(bytes, entries, 531, littleEndian, 1, out int positioning) || positioning != 1) return false;
+            if (!TryReadScalarOrDefault(bytes, entries, 531, littleEndian, 1, out positioning) || (positioning != 1 && positioning != 2)) return false;
             if (entries.ContainsKey(530)) {
                 if (!TryReadValues(bytes, entries, 530, littleEndian, 2, out int[] subsampling)) return false;
                 horizontal = subsampling[0]; vertical = subsampling[1];
@@ -69,8 +69,12 @@ public static partial class OfficeTiffCodec {
             if (!HasSegment(bytes, offsets[segment], lengths[segment]) || lengths[segment] < 4 ||
                 budget != null && !budget.TryReserve(checked(lengths[segment] + tables.Length), expected)) return false;
             int combinedLength = checked(lengths[segment] + (tables.Length == 0 ? 0 : tables.Length - 4));
+            // TIFF reconstruction retains two reduced chroma planes when positioning
+            // differs from JPEG or a partial tile needs image-boundary clamping.
+            bool reconstructChroma = ycc && planar == 1 && (positioning == 2 || columns < decodeWidth || rows < decodeRows);
+            long chromaScratch = reconstructChroma ? expected : 0;
             // The temporary segment copy and combined stream coexist with the TIFF and output.
-            if (retained + lengths[segment] + combinedLength + expected > OfficeRasterGuards.MaximumDecodedBytes) return false;
+            if (retained + lengths[segment] + combinedLength + expected + chromaScratch > OfficeRasterGuards.MaximumDecodedBytes) return false;
             var jpeg = new byte[lengths[segment]];
             CopyWithCancellation(bytes, offsets[segment], jpeg, 0, jpeg.Length, options.CancellationToken);
             if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, ycc && planar == 1 ? horizontal : 1,
@@ -82,13 +86,16 @@ public static partial class OfficeTiffCodec {
                 CopyWithCancellation(jpeg, 2, combined, tables.Length - 2, jpeg.Length - 2, options.CancellationToken);
             }
             if (!OfficeJpegCodec.TryDecodeColorComponents(combined, 0, false, out byte[] decoded,
-                out int jw, out int jh, out int jc, options: new OfficeJpegDecodeOptions(highQualityChroma: ycc), cancellationToken: options.CancellationToken,
-                retainedManagedBytes: retained + jpeg.Length) || jw != decodeWidth || jh != decodeRows || jc != channels || decoded.Length != expected) return false;
+                out int jw, out int jh, out int jc, options: new OfficeJpegDecodeOptions(highQualityChroma: ycc && !reconstructChroma), cancellationToken: options.CancellationToken,
+                retainedManagedBytes: retained + jpeg.Length + chromaScratch) || jw != decodeWidth || jh != decodeRows || jc != channels || decoded.Length != expected) return false;
             if (!retainPixels) continue;
-            if (ycc && planar == 1) ConvertTiffJpegYcc(decoded, coefficients, reference, options);
+            if (ycc && planar == 1) {
+                if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, options);
+                ConvertTiffJpegYcc(decoded, coefficients, reference, options);
+            }
             if (planar == 2) {
                 if (ycc && plane > 0) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
-                    decodeWidth, decodeRows, horizontal, vertical, options);
+                    decodeWidth, decodeRows, horizontal, vertical, positioning, options);
                 else if (strips) CopyPlanarRows(decoded, source, plane, samples, 1, width, top, rows, options);
                 else CopyTile(decoded, source, plane, planar, samples, 1, width, height, left, top, sw, sh, options);
             } else for (int row = 0; row < rows; row++)

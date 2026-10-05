@@ -14,7 +14,9 @@ for h,v in [(1,1),(2,1),(2,2),(4,1),(4,2),(4,4)]:
     while offset<len(data):
      plane,x,y,w,height=struct.unpack_from('<5I',data,offset);offset+=20
      image=Image.frombytes('L',(w,height),data[offset:offset+w*height]);offset+=w*height
-     if plane:image=image.resize((w*h,height*v),Image.Resampling.BILINEAR)
+     if plane:
+      w=min(w,(67-x+h-1)//h);height=min(height,(35-y+v-1)//v)
+      image=image.crop((0,0,w,height)).resize((w*h,height*v),Image.Resampling.BILINEAR)
      planes[plane].paste(image.crop((0,0,min(image.width,67-x),min(image.height,35-y))),(x,y))
     (root/(name+'.rgb')).write_bytes(Image.merge('YCbCr',planes).convert('RGB').tobytes())
     rows.append(f'{name},{big},{tiled},{tables},{h},{v}')

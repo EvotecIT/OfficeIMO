@@ -56,9 +56,9 @@ including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
 above the page height, including 0xFFFFFFFF, describe a single strip. Optional uncompressed fax
 extension mode is rejected. Baseline eight-bit JPEG (compression 7) accepts shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
-planes, and chunky or separate centered YCbCr. TIFF tags control color interpretation and
+planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
 component order; JPEG application markers cannot override them. Legacy compression
-6, non-baseline JPEG processes, JPEG extra channels and cosited chroma remain unsupported. Mixed component widths, reversed
+6, non-baseline JPEG processes, JPEG extra channels remain unsupported. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -95,6 +95,17 @@ plane decoding and Pillow reconstruction. Both dialects produce 96 documents and
 rendering by at most 2/255. GhostXPS still differs by up to 255, including blank
 planar/tiled output. Native Windows acceptance remains unqualified. Shared JPEG
 tables ignore DAC/DRI control markers without carrying their state into segments.
+
+Cosited YCbCr qualification adds 88 LibTIFF fixtures and two centered chunky
+partial-tile regressions spanning chunky/separate
+planes, byte order, strips/tiles, local/shared tables and odd/even image edges.
+Reconstruction clamps chroma to the visible image extent before interpolation;
+contrasting tile padding cannot supply additional interpolation samples.
+Independent libjpeg-turbo raw component decoding and Pillow reconstruction agree
+with all 215,788 Core pixel comparisons within 3/255. Both dialects produce 180
+documents and 431,576 pixel-center probes per route; MuPDF SVG/PDF output differs
+from managed rendering by at most 2/255. GhostXPS differs by up to 255, including
+blank tiled/separate-plane cases. Native Windows acceptance remains unqualified.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,

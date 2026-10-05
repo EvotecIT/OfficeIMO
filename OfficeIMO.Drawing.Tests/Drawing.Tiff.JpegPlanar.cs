@@ -4,17 +4,22 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class TiffJpegPlanarTests {
-    [Fact]
-    public void IndependentlyDecodedPlanarChromaRetainsOddEdgesAndSampling() {
-        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpegPlanar");
+    [Theory]
+    [InlineData("TiffJpegPlanar")]
+    [InlineData("TiffJpegCosited")]
+    public void IndependentlyDecodedChromaRetainsEdgesAndPositioning(string folder) {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
-            string name = row.Split(',')[0];
+            string[] fields = row.Split(',');
+            string name = fields[0];
+            int width = folder == "TiffJpegCosited" ? int.Parse(fields[7]) : 67;
+            int height = folder == "TiffJpegCosited" ? int.Parse(fields[8]) : 35;
             byte[] bytes = File.ReadAllBytes(Path.Combine(corpus, name));
             byte[] expected = File.ReadAllBytes(Path.Combine(corpus, name + ".rgb"));
             Assert.True(OfficeImageReader.TryValidateContent(bytes, name, out _), name + " validation");
             Assert.True(OfficeTiffCodec.TryDecode(bytes, out var image), name + " decode");
-            for (int y = 0; y < 35; y++) for (int x = 0; x < 67; x++) {
-                var actual = image!.GetPixel(x, y); int offset = (y * 67 + x) * 3;
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                var actual = image!.GetPixel(x, y); int offset = (y * width + x) * 3;
                 int error = Math.Max(Math.Abs(actual.R - expected[offset]),
                     Math.Max(Math.Abs(actual.G - expected[offset + 1]), Math.Abs(actual.B - expected[offset + 2])));
                 Assert.True(error <= 3, $"{name} {x},{y}: delta {error}");

@@ -14,10 +14,13 @@ public sealed class XpsTiffJpegTests {
     [InlineData(XpsFormat.OpenXps, "TiffJpeg", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegPlanar", 67, 35)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegPlanar", 67, 35)]
+    [InlineData(XpsFormat.Xps, "TiffJpegCosited", 0, 0)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegCosited", 0, 0)]
     public void JpegTiffResourcesRetainRasterSvgAndPdfPaint(XpsFormat format, string folder, int width, int height) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
+            if (folder == "TiffJpegCosited") { width = int.Parse(fields[7]); height = int.Parse(fields[8]); }
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, fields[0])), "image/tiff");
             document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
