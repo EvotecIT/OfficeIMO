@@ -40,6 +40,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| Browser exports | None | Streaming tabular XLSX and CSV JavaScript, declarations and embedded offline assets |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML document contracts (`OfficeIMO.Html.Core`) | None | Owned nodes, immutable snapshots, edits and parser/charset contracts |
@@ -485,6 +486,17 @@ _Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified b
 - [x] Cross-library BenchmarkDotNet coverage with row-count and payload checks so lanes cannot win by under-reading
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
+
+#### [OfficeIMO.Browser](OfficeIMO.Browser/README.md)
+
+- [x] Value-only tabular XLSX and CSV exports from synchronous or asynchronous JavaScript row iterables
+- [x] Current-view projection, multiple sheets, column styles, date formats, frozen headers and autofilters
+- [x] Platform raw-deflate compression with stored ZIP fallback, cooperative yielding, progress and cancellation
+- [x] CSV formula protection with shared .NET/JavaScript byte vectors
+- [x] ES modules, classic scripts and strict TypeScript declarations under `@evotecit/officeimo`
+- [x] Embedded .NET assets with content-hashed names and a [single-file/bundle example](OfficeIMO.Browser.Examples/README.md)
+
+_Dependency footprint:_ no JavaScript or third-party .NET runtime dependencies.
 
 #### [OfficeIMO.Email](OfficeIMO.Email/README.md)
 

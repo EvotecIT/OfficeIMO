@@ -16,6 +16,10 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Add handle-bound output creation and writing for report-producing tools so path authorization remains tied to the final file handles instead of a separate pre-write check. Cover symlink, junction, hard-link, and replacement races across supported operating systems in the shared path owner.
 - [ ] Publish versioned, self-contained NativeAOT `OfficeIMO.Tool` release assets for supported Windows, Linux, and macOS x64/Arm64 targets in addition to the NuGet tool. Require exact-artifact startup and representative HTML/PDF workflow smoke tests, dependency and license inventory, checksums, SBOM and provenance, and release-page install instructions; keep one CLI command contract rather than a separate native implementation.
 
+## Portable browser exports
+
+- [ ] Integrate [OfficeIMO.Browser](../OfficeIMO.Browser/README.md) with CanopyX's current-view export menu and HtmlForgeX's data explorer/report shell in their owning repositories. Preserve the current filter, sort, column order and visibility; qualify inline and bundled delivery in SharePoint through UltimateHtmlViewer. Decide whether the hosts retain their browser CSV implementation or consume the same OfficeIMO writer.
+
 ## Product discovery and public evidence
 
 - [ ] Publish the OfficeIMO document MCP server in the MCP Registry with NuGet ownership verification and versioned plugin artifacts produced by PowerForge. Qualify clean plugin installation and bounded document/mailbox workflows on supported operating systems and clients; distinguish client compatibility from directory approval.

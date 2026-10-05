@@ -38,6 +38,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Legacy Word DOC compatibility](officeimo.word.legacy-doc-compatibility.md)
 - [Excel large-workbook guidance](officeimo.excel.large-workbook-guidance.md)
 - [Excel remote loading](officeimo.excel.remote-loading.md)
+- [Browser XLSX and CSV exports](../OfficeIMO.Browser/README.md) and [offline current-view example](../OfficeIMO.Browser.Examples/README.md)
 - [Legacy Excel XLS compatibility](officeimo.excel.legacy-xls-compatibility.md)
 - [Apple iWork reading and native creation support](officeimo.iwork-support-matrix.md) and [shared conversion workflows](../OfficeIMO.Workflows.IWork/README.md)
 - [Reader package family](officeimo.reader.md)

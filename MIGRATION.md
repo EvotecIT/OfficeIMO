@@ -17,6 +17,12 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 The OfficeIMO.Tool STDIO MCP server requires `OFFICEIMO_MCP_ALLOWED_ROOTS` at startup. Set it to the document and output directories the client may access. The direct `officeimo agent` command keeps its existing local filesystem behavior when the variable is unset.
 
+## Portable report exports
+
+Hosts adopting [OfficeIMO.Browser](OfficeIMO.Browser/README.md) can export a reader's current table view without a server callback. Pass the filtered and sorted rows with only the visible columns in their displayed order. Keep full-dataset, build-time Excel generation on OfficeIMO.Excel. Use the embedded classic asset for single-file reports and `file://` bundles; ES-module loading can be blocked by local-file origin policy.
+
+Browser CSV enables OfficeIMO.CSV's apostrophe-prefix formula protection by default. Existing .NET CSV defaults are unchanged. When replacing another browser CSV writer, expect dangerous string prefixes to gain an apostrophe; disable protection only for a trusted non-spreadsheet consumer. Browser XLSX dates default to local wall-clock fields; choose `dateMode: "utc"` explicitly when an existing export uses UTC fields.
+
 ## DocBook, ADF and Data projection contracts
 
 ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
