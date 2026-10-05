@@ -142,18 +142,28 @@ public static partial class OfficeWebpCodec {
         uint[] cache = cacheSize == 0 ? Array.Empty<uint>() : new uint[cacheSize];
         int position = 0;
         int nextCancellationCheck = 0;
+        int prefixBlockSize = 1 << prefixBits;
+        int prefixBlockMask = prefixBlockSize - 1;
+        int nextGroupPosition = 0;
+        Vp8lHuffmanGroup currentGroup = groups[0];
         while (position < pixelCount) {
             // Backreferences advance by several pixels and can skip exact multiples.
             if (position >= nextCancellationCheck) {
                 cancellationToken.ThrowIfCancellationRequested();
                 nextCancellationCheck = position + 4096;
             }
-            int x = position % width;
-            int y = position / width;
-            int groupIndex = prefixImage == null ? 0 :
-                (int)((prefixImage[(y >> prefixBits) * prefixWidth + (x >> prefixBits)] >> 8) & 0xFFFFU);
-            if ((uint)groupIndex >= (uint)groups.Length) return false;
-            Vp8lHuffmanGroup group = groups[groupIndex];
+            if (prefixImage != null && position >= nextGroupPosition) {
+                int y = position / width;
+                int x = position - y * width;
+                int groupIndex = (int)((prefixImage[(y >> prefixBits) * prefixWidth + (x >> prefixBits)] >> 8) & 0xFFFFU);
+                if ((uint)groupIndex >= (uint)groups.Length) return false;
+                currentGroup = groups[groupIndex];
+                // Reuse this group up to the next block or row boundary.
+                // A copy may jump past it; its next encoded symbol selects
+                // the group at the new position, not inside copied pixels.
+                nextGroupPosition = position + Math.Min(width - x, prefixBlockSize - (x & prefixBlockMask));
+            }
+            Vp8lHuffmanGroup group = currentGroup;
             int symbol = group.Green.ReadSymbol(reader);
             if (symbol < 0) return false;
             if (symbol < 256) {
