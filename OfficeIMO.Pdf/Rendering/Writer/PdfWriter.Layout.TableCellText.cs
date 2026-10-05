@@ -26,7 +26,6 @@ internal static partial class PdfWriter {
             return runs;
         }
 
-        double minimumExplicitFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 0.001D;
         var scaledRuns = new System.Collections.Generic.List<PdfTextRun>(runs.Count);
         foreach (PdfTextRun run in runs) {
             if (run.InlineElement != null) {
@@ -34,12 +33,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            double? scaledFontSize = null;
-            if (run.FontSize.HasValue) {
-                scaledFontSize = run.FontSize.Value <= minimumExplicitFontSize
-                    ? run.FontSize.Value
-                    : System.Math.Max(minimumExplicitFontSize, run.FontSize.Value * runFontSizeScale);
-            }
+            double? scaledFontSize = ScaleTableFontSizeForShrink(run.FontSize, runFontSizeScale, minimumShrinkFontSize);
 
             scaledRuns.Add(new PdfTextRun(
                 run.Text,
@@ -68,6 +62,11 @@ internal static partial class PdfWriter {
         return scaledRuns.AsReadOnly();
     }
 
+    private static double? ScaleTableFontSizeForShrink(double? fontSize, double scale, double minimum) {
+        double floor = minimum > 0D ? minimum : 0.001D;
+        return !fontSize.HasValue || fontSize.Value <= floor ? fontSize : Math.Max(floor, fontSize.Value * scale);
+    }
+
     private static System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> ScaleTableCellParagraphsForShrink(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double runFontSizeScale, double minimumShrinkFontSize) {
         if (runFontSizeScale >= 0.999D) {
             return paragraphs;
@@ -85,7 +84,9 @@ internal static partial class PdfWriter {
                 paragraph.FirstLineIndent,
                 paragraph.LineHeight,
                 paragraph.DefaultTabStopWidth,
-                paragraph.TabStops));
+                paragraph.TabStops,
+                ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
+                paragraph.LineSpacing));
         }
 
         return scaledParagraphs.AsReadOnly();

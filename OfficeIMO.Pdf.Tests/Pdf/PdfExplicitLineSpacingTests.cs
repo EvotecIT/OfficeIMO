@@ -8,6 +8,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfExplicitLineSpacingTests {
     [Theory]
+    [InlineData(false, 20D)]
+    [InlineData(true, 14D)]
+    public void Table_text_shrinking_retains_explicit_paragraph_spacing(bool exact, double expected) {
+        var runs = new[] { new PdfTextRun("Q\nThisIdentifierShouldShrinkToFit\nZ", fontSize: 30, font: PdfStandardFont.Courier) };
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, lineHeight: 3, fontSize: 8,
+            lineSpacing: exact ? PdfLineSpacing.Exactly(14) : PdfLineSpacing.AtLeast(20)) });
+        var style = new PdfTableStyle { HeaderRowCount = 0, FontSize = 18, MinimumShrinkFontSize = 7,
+            ShrinkTextToFit = true, ColumnWidthPoints = new() { 180 }, CellPaddingX = 0, CellPaddingY = 0 };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { cell } }, style: style).ToBytes());
+        var letters = pdf.GetPage(1).Letters;
+        var first = Assert.Single(letters, letter => letter.Value == "Q");
+        Assert.InRange(first.FontSize, 7D, 29.99D);
+        Assert.Single(letters, letter => letter.Value == "Z");
+        var baselines = letters.Select(letter => letter.StartBaseLine.Y).Distinct().OrderByDescending(y => y).ToArray();
+        Assert.True(baselines.Length >= 3);
+        Assert.All(Enumerable.Range(1, baselines.Length - 1), index => Assert.Equal(expected, baselines[index - 1] - baselines[index], 3));
+    }
+
+    [Theory]
     [InlineData(false, 52D)]
     [InlineData(true, 40D)]
     public void Styled_blank_lines_expand_minimum_spacing_and_preserve_exact_spacing(bool exact, double expected) {
