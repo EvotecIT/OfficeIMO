@@ -562,6 +562,26 @@ See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resou
 for supported substitutions and limits. Use `TextShapingProvider` when a full
 OpenType shaping provider is needed.
 
+`PdfParagraphBuilder.FeatureSettings(...)` applies the same per-run policy to
+subsequent plain, styled, linked and fallback text. Use
+`ResetFeatureSettings()` to restore the default policy. Runs supplied through
+`Runs(...)` retain their own feature settings.
+
+```csharp
+PdfDocument.Create(pdf => pdf.Content(content => content
+    .Paragraph(paragraph => paragraph
+        .FontFamily("Report Serif")
+        .FeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1))
+        .Text("AV")
+        .ResetFeatureSettings()
+        .Text(" Default text."))), options)
+    .Save("text-features.pdf");
+```
+
+Register the named family in `options` before using it. Feature support depends
+on the selected font and shaping provider. Prepared rich header and footer runs
+retain their settings through glyph placement, alignment and decoration widths.
+
 ### Write a generated PDF
 
 ```csharp
