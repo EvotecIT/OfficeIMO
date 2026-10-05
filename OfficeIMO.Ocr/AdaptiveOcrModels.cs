@@ -54,7 +54,7 @@ public sealed class AdaptiveOcrResult {
     public IReadOnlyList<OcrAttemptAssessment> Attempts { get; }
     /// <summary>Whether completed attempts disagreed after NFC and whitespace normalization. Case/punctuation remain significant.</summary>
     public bool HasDisagreement { get; }
-    /// <summary>Whether a retry failed, timed out, was unsupported, or could not start within the budget.</summary>
+    /// <summary>Whether an attempt lost evidence, failed, timed out, was unsupported, or could not start within the budget.</summary>
     public bool RetryIncomplete { get; }
     /// <summary>Selected output's checks before adaptive diagnostics are added.</summary>
     public OcrQualityAssessment Quality { get; }

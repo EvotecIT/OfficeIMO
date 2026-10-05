@@ -71,6 +71,39 @@ public sealed class AdaptiveOcrTests {
         Assert.True(limited.Review.ComparisonIncomplete);
     }
 
+    [Theory]
+    [InlineData("spans", false)]
+    [InlineData("spans", true)]
+    [InlineData("diagnostics", false)]
+    [InlineData("diagnostics", true)]
+    [InlineData("attributes", false)]
+    [InlineData("attributes", true)]
+    public async Task RetentionLossInAnyAttemptRequiresReview(string loss, bool baselineLosesEvidence) {
+        OcrResult Incomplete() {
+            var result = Words("A B", 1, 1);
+            if (loss == "spans") {
+                result.Spans = Words("A B C", 1, 1, 1).Spans;
+            } else if (loss == "diagnostics") {
+                result.Diagnostics = Enumerable.Range(0, 129).Select(_ => new OcrDiagnostic { Severity = OcrDiagnosticSeverity.Info }).ToArray();
+            } else {
+                result.Diagnostics = new[] { new OcrDiagnostic { Severity = OcrDiagnosticSeverity.Info,
+                    Attributes = Enumerable.Range(0, 513).ToDictionary(i => i.ToString(), _ => "value") } };
+            }
+            return result;
+        }
+        var engine = new AdaptiveOcrEngine("retention", new[] {
+            Attempt("baseline", () => baselineLosesEvidence ? Incomplete() : Words("A B", 1, 1)),
+            Attempt("alternate", () => baselineLosesEvidence ? Words("A B", 1, 1) : Incomplete())
+        }, new OcrReviewPolicy(OcrRetryMode.CompareAll), maximumSpans: 2);
+        AdaptiveOcrResult result = await engine.RecognizeWithReviewAsync(Request());
+        Assert.True(result.Quality.MeetsThresholds);
+        Assert.Equal(baselineLosesEvidence ? 1 : 0, result.SelectedAttempt);
+        Assert.Equal(2, result.Review.CompletedAttempts);
+        Assert.True(result.Review.ComparisonIncomplete);
+        Assert.Equal(OcrReviewStatus.ReviewRecommended, result.Review.Status);
+        Assert.False(result.HasDisagreement);
+    }
+
     [Fact]
     public async Task ImprovedUncertaintyCanSelectRetryButDisagreementStillRequiresReview() {
         var engine = new AdaptiveOcrEngine("adaptive", new[] {

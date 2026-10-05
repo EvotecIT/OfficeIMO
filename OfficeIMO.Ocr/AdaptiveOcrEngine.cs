@@ -24,7 +24,7 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
 
     /// <summary>Creates up to four ordered variants with a single total execution budget.</summary>
     /// <param name="id">Stable identifier for this configured policy.</param>
-    /// <param name="attempts">First attempt is the baseline. Later variants run only when its checks fail.</param>
+    /// <param name="attempts">First attempt is the baseline. The review policy controls whether later variants always run or run only after failed checks.</param>
     /// <param name="reviewPolicy">Measurable checks; defaults are starting settings, not calibrated accuracy claims.</param>
     /// <param name="timeout">Total budget including every gate wait, result capture, and retry. Defaults to one minute.</param>
     /// <param name="maximumSpans">Maximum retained spans per attempt.</param>
@@ -131,6 +131,7 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
             }
             cancellationToken.ThrowIfCancellationRequested();
             summaries.Add(new OcrAttemptAssessment(_names[index], quality, "completed", attemptClock.Elapsed));
+            incomplete |= OcrReviewPolicy.HasOmittedEvidence(candidate) || candidate.Review?.ComparisonIncomplete == true;
             if (index == 0) {
                 selected = candidate; selectedQuality = quality; baselineWords = quality.WordCount; baselineText = normalized;
             } else {

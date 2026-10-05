@@ -49,12 +49,15 @@ public sealed class OcrReviewPolicy {
             else if (span.Confidence.Value < MinimumWordConfidence) low++;
         }
         bool diagnostics = result.OmittedDiagnosticCount > 0 || (result.Diagnostics ?? Array.Empty<OcrDiagnostic>())
-            .Any(item => item == null || item.Severity != OcrDiagnosticSeverity.Info);
+            .Any(item => item == null || item.Severity != OcrDiagnosticSeverity.Info || item.OmittedAttributeCount > 0);
         double fraction = words == 0 ? 1 : (double)(low + unknown) / words;
         bool meets = !string.IsNullOrWhiteSpace(result.Text) && words >= MinimumWordCount &&
             fraction <= MaximumUncertainWordFraction && result.OmittedSpanCount == 0 && !diagnostics;
         return new OcrQualityAssessment(words, low, unknown, fraction, meets, diagnostics, result.OmittedSpanCount > 0, MinimumWordConfidence, MaximumUncertainWordFraction);
     }
+
+    internal static bool HasOmittedEvidence(OcrResult result) => result.OmittedSpanCount > 0 || result.OmittedDiagnosticCount > 0
+        || (result.Diagnostics ?? Array.Empty<OcrDiagnostic>()).Any(item => item?.OmittedAttributeCount > 0);
 
     private static bool ValidUnit(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0 && value <= 1;
     private static void ValidateUnit(double value, string name) {

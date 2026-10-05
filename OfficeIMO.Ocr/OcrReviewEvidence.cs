@@ -29,7 +29,7 @@ public sealed class OcrReviewEvidence {
     public int CompletedAttempts { get; }
     /// <summary>Completed variants returned differing normalized text.</summary>
     public bool HasDisagreement { get; }
-    /// <summary>A configured comparison failed or exceeded its budget.</summary>
+    /// <summary>A configured comparison failed, exceeded its budget, or lost retained evidence.</summary>
     public bool ComparisonIncomplete { get; }
     /// <summary>Check status, deliberately separate from approval and correctness.</summary>
     public OcrReviewStatus Status => !Quality.MeetsThresholds || HasDisagreement || ComparisonIncomplete
