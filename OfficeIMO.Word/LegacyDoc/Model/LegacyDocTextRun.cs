@@ -27,7 +27,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? language = null,
             string? eastAsiaLanguage = null,
             LegacyDocPicture? picture = null,
-            LegacyDocRevision revision = default)
+            LegacyDocRevision revision = default,
+            int? kerningMinimumFontSizeHalfPoints = null)
             : this(
                 text,
                 bold,
@@ -57,7 +58,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 language: language,
                 eastAsiaLanguage: eastAsiaLanguage,
                 picture: picture,
-                revision: revision) {
+                revision: revision,
+                kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints) {
         }
 
         internal LegacyDocTextRun(
@@ -89,7 +91,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? language = null,
             string? eastAsiaLanguage = null,
             LegacyDocPicture? picture = null,
-            LegacyDocRevision revision = default) {
+            LegacyDocRevision revision = default,
+            int? kerningMinimumFontSizeHalfPoints = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -111,6 +114,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            KerningMinimumFontSizeHalfPoints = kerningMinimumFontSizeHalfPoints;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
             Picture = picture;
@@ -162,6 +166,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FontFamily { get; }
 
         internal int? CharacterSpacingTwips { get; }
+
+        internal int? KerningMinimumFontSizeHalfPoints { get; }
 
         internal string? Language { get; }
 

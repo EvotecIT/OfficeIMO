@@ -147,6 +147,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 positions,
                 specified: format.Specified,
                 characterSpacingTwips: format.CharacterSpacingTwips,
+                kerningMinimumFontSizeHalfPoints: format.KerningMinimumFontSizeHalfPoints,
                 language: format.Language,
                 eastAsiaLanguage: format.EastAsiaLanguage,
                 revision: format.Revision));

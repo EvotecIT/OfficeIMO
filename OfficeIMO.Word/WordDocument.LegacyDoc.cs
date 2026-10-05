@@ -1433,6 +1433,7 @@ namespace OfficeIMO.Word {
                 fieldInstruction: source.FieldInstruction,
                 specified: source.Specified,
                 characterSpacingTwips: source.CharacterSpacingTwips,
+                kerningMinimumFontSizeHalfPoints: source.KerningMinimumFontSizeHalfPoints,
                 language: source.Language,
                 eastAsiaLanguage: source.EastAsiaLanguage,
                 picture: source.Picture,
@@ -1836,10 +1837,10 @@ namespace OfficeIMO.Word {
             paragraphProperties.RemoveAllChildren<ParagraphMarkRunProperties>();
             var paragraphMarkRunProperties = new ParagraphMarkRunProperties();
             foreach (OpenXmlElement property in styleRunProperties.ChildElements) {
-                paragraphMarkRunProperties.Append(property.CloneNode(true));
+                paragraphMarkRunProperties.AddChild(property.CloneNode(true), true);
             }
 
-            paragraphProperties.Append(paragraphMarkRunProperties);
+            paragraphProperties.AddChild(paragraphMarkRunProperties, true);
         }
 
         private static bool TryMapVerticalCharacterAlignment(byte alignment, out VerticalTextAlignmentValues verticalCharacterAlignment) {
@@ -2406,17 +2407,17 @@ namespace OfficeIMO.Word {
             bool hasProperties = false;
 
             if (!string.IsNullOrEmpty(characterFormat.FontFamily)) {
-                properties.Append(new RunFonts {
+                properties.AddChild(new RunFonts {
                     Ascii = characterFormat.FontFamily,
                     HighAnsi = characterFormat.FontFamily,
                     ComplexScript = characterFormat.FontFamily,
                     EastAsia = characterFormat.FontFamily
-                });
+                }, true);
                 hasProperties = true;
             }
 
             if (!string.IsNullOrEmpty(characterFormat.Language) || !string.IsNullOrEmpty(characterFormat.EastAsiaLanguage)) {
-                properties.Append(CreateLegacyDocLanguages(characterFormat.Language, characterFormat.EastAsiaLanguage));
+                properties.AddChild(CreateLegacyDocLanguages(characterFormat.Language, characterFormat.EastAsiaLanguage), true);
                 hasProperties = true;
             }
 
@@ -2436,19 +2437,24 @@ namespace OfficeIMO.Word {
             hasProperties |= AppendLegacyDocStyleRunOnOffProperty<SmallCaps>(properties, characterFormat.Caps == LegacyDocCapsKind.SmallCaps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
-                properties.Append(new Color { Val = characterFormat.ColorHex! });
+                properties.AddChild(new Color { Val = characterFormat.ColorHex! }, true);
                 hasProperties = true;
             }
 
             if (characterFormat.FontSizeHalfPoints != null) {
                 string fontSize = characterFormat.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                properties.Append(new FontSize { Val = fontSize });
-                properties.Append(new FontSizeComplexScript { Val = fontSize });
+                properties.AddChild(new FontSize { Val = fontSize }, true);
+                properties.AddChild(new FontSizeComplexScript { Val = fontSize }, true);
+                hasProperties = true;
+            }
+
+            if (characterFormat.KerningMinimumFontSizeHalfPoints.HasValue) {
+                properties.AddChild(new Kern { Val = (uint)characterFormat.KerningMinimumFontSizeHalfPoints.Value }, true);
                 hasProperties = true;
             }
 
             if (characterFormat.CharacterSpacingTwips != null || characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
-                properties.Append(new Spacing { Val = characterFormat.CharacterSpacingTwips ?? 0 });
+                properties.AddChild(new Spacing { Val = characterFormat.CharacterSpacingTwips ?? 0 }, true);
                 hasProperties = true;
             }
 
@@ -2461,18 +2467,18 @@ namespace OfficeIMO.Word {
             }
 
             if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
-                properties.Append(new Underline { Val = underline });
+                properties.AddChild(new Underline { Val = underline }, true);
                 hasProperties = true;
             } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Underline)) {
-                properties.Append(new Underline { Val = UnderlineValues.None });
+                properties.AddChild(new Underline { Val = UnderlineValues.None }, true);
                 hasProperties = true;
             }
 
             if (characterFormat.VerticalPosition != null && TryMapVerticalPosition(characterFormat.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
-                properties.Append(new VerticalTextAlignment { Val = verticalPosition });
+                properties.AddChild(new VerticalTextAlignment { Val = verticalPosition }, true);
                 hasProperties = true;
             } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.VerticalPosition)) {
-                properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Baseline });
+                properties.AddChild(new VerticalTextAlignment { Val = VerticalPositionValues.Baseline }, true);
                 hasProperties = true;
             }
 
@@ -2489,7 +2495,7 @@ namespace OfficeIMO.Word {
                 property.Val = false;
             }
 
-            properties.Append(property);
+            properties.AddChild(property, true);
             return true;
         }
 
@@ -2507,7 +2513,7 @@ namespace OfficeIMO.Word {
                 property.Val = false;
             }
 
-            runProperties.Append(property);
+            runProperties.AddChild(property, true);
         }
 
         private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {
@@ -2600,6 +2606,10 @@ namespace OfficeIMO.Word {
 
             if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {
                 run.SetFontFamily(legacyRun.FontFamily!);
+            }
+
+            if (legacyRun.KerningMinimumFontSizeHalfPoints.HasValue) {
+                run.KerningMinimumFontSizePoints = legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D;
             }
 
             if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {

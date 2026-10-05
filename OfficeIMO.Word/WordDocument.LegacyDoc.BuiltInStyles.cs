@@ -196,11 +196,18 @@ namespace OfficeIMO.Word {
         }
 
         private static void MergeLegacyDocBuiltInStyleRunFormatting(Style style, LegacyDocCharacterFormat characterFormat) {
+            if (style.StyleRunProperties is StyleRunProperties templateProperties) {
+                RemoveStyleProperties<Kern>(templateProperties);
+            }
             if (!characterFormat.HasFormatting) {
                 return;
             }
 
             StyleRunProperties properties = style.StyleRunProperties ?? style.AppendChild(new StyleRunProperties());
+
+            if (characterFormat.KerningMinimumFontSizeHalfPoints.HasValue) {
+                ReplaceStyleProperty(properties, new Kern { Val = (uint)characterFormat.KerningMinimumFontSizeHalfPoints.Value });
+            }
 
             if (!string.IsNullOrEmpty(characterFormat.FontFamily)) {
                 ReplaceStyleProperty(properties, new RunFonts {
