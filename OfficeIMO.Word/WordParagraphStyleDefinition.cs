@@ -35,6 +35,15 @@ public sealed class WordParagraphStyleDefinition {
         LeftIndentTwips = ReadInt32(paragraph?.Indentation?.Left?.Value);
         SpacingBeforeTwips = ReadInt32(paragraph?.SpacingBetweenLines?.Before?.Value);
         SpacingAfterTwips = ReadInt32(paragraph?.SpacingBetweenLines?.After?.Value);
+        PageBreakBefore = ReadOnOff(paragraph?.PageBreakBefore);
+        KeepWithNext = ReadOnOff(paragraph?.KeepNext);
+        KeepLinesTogether = ReadOnOff(paragraph?.KeepLines);
+        AvoidWidowAndOrphan = ReadOnOff(paragraph?.WidowControl);
+        ContextualSpacing = ReadOnOff(paragraph?.ContextualSpacing);
+        SuppressLineNumbers = ReadOnOff(paragraph?.SuppressLineNumbers);
+        SuppressAutoHyphens = ReadOnOff(paragraph?.SuppressAutoHyphens);
+        MirrorIndents = ReadOnOff(paragraph?.MirrorIndents);
+        OutlineLevel = paragraph?.OutlineLevel?.Val?.Value;
 
         StyleRunProperties? run = style.StyleRunProperties;
         FontName = run?.RunFonts?.Ascii?.Value ?? run?.RunFonts?.HighAnsi?.Value;
@@ -83,6 +92,41 @@ public sealed class WordParagraphStyleDefinition {
     /// <summary>Gets or sets spacing after the paragraph in twentieths of a point.</summary>
     public int? SpacingAfterTwips { get; set; }
 
+    /// <summary>Gets or sets starting paragraphs on a new page; null inherits from the base style.</summary>
+    public bool? PageBreakBefore { get; set; }
+
+    /// <summary>Gets or sets keeping paragraphs with their following paragraphs; null inherits from the base style.</summary>
+    public bool? KeepWithNext { get; set; }
+
+    /// <summary>Gets or sets keeping all paragraph lines together; null inherits from the base style.</summary>
+    public bool? KeepLinesTogether { get; set; }
+
+    /// <summary>Gets or sets widow/orphan control; null inherits from the base style.</summary>
+    public bool? AvoidWidowAndOrphan { get; set; }
+
+    /// <summary>Gets or sets suppression of spacing between paragraphs of the same style; null inherits.</summary>
+    public bool? ContextualSpacing { get; set; }
+
+    /// <summary>Gets or sets paragraph line-number suppression; null inherits.</summary>
+    public bool? SuppressLineNumbers { get; set; }
+
+    /// <summary>Gets or sets paragraph automatic-hyphenation suppression; null inherits.</summary>
+    public bool? SuppressAutoHyphens { get; set; }
+
+    /// <summary>Gets or sets use of left/right indents as inside/outside indents; null inherits.</summary>
+    public bool? MirrorIndents { get; set; }
+
+    private int? _outlineLevel;
+
+    /// <summary>Gets or sets outline level: 0-8 for heading levels 1-9, 9 for body text, or null to inherit.</summary>
+    public int? OutlineLevel {
+        get => _outlineLevel;
+        set {
+            if (value is < 0 or > 9) throw new ArgumentOutOfRangeException(nameof(value), "Outline level must be between 0 and 9.");
+            _outlineLevel = value;
+        }
+    }
+
     /// <summary>Gets or sets whether this is the default paragraph style.</summary>
     public bool IsDefault { get; set; }
 
@@ -106,7 +150,7 @@ public sealed class WordParagraphStyleDefinition {
             SpacingBeforeTwips.HasValue || SpacingAfterTwips.HasValue;
         StyleParagraphProperties? paragraph = style.StyleParagraphProperties;
         if (hasParagraphFormatting) {
-            paragraph ??= style.AppendChild(new StyleParagraphProperties());
+            paragraph ??= style.StyleParagraphProperties = new StyleParagraphProperties();
             SetChild(paragraph, Alignment.HasValue ? new Justification { Val = Alignment.Value.ToOpenXml() } : null);
             if (LeftIndentTwips.HasValue) {
                 paragraph.Indentation ??= new Indentation();
@@ -123,11 +167,27 @@ public sealed class WordParagraphStyleDefinition {
             }
         }
 
+        bool hasPaginationFormatting = PageBreakBefore.HasValue || KeepWithNext.HasValue ||
+            KeepLinesTogether.HasValue || AvoidWidowAndOrphan.HasValue || ContextualSpacing.HasValue ||
+            SuppressLineNumbers.HasValue || SuppressAutoHyphens.HasValue || MirrorIndents.HasValue || OutlineLevel.HasValue;
+        if (paragraph != null || hasPaginationFormatting) {
+            paragraph ??= style.StyleParagraphProperties = new StyleParagraphProperties();
+            SetParagraphOnOff<PageBreakBefore>(paragraph, PageBreakBefore);
+            SetParagraphOnOff<KeepNext>(paragraph, KeepWithNext);
+            SetParagraphOnOff<KeepLines>(paragraph, KeepLinesTogether);
+            SetParagraphOnOff<WidowControl>(paragraph, AvoidWidowAndOrphan);
+            SetParagraphOnOff<ContextualSpacing>(paragraph, ContextualSpacing);
+            SetParagraphOnOff<SuppressLineNumbers>(paragraph, SuppressLineNumbers);
+            SetParagraphOnOff<SuppressAutoHyphens>(paragraph, SuppressAutoHyphens);
+            SetParagraphOnOff<MirrorIndents>(paragraph, MirrorIndents);
+            paragraph.OutlineLevel = OutlineLevel.HasValue ? new OutlineLevel { Val = OutlineLevel.Value } : null;
+        }
+
         bool hasRunFormatting = !string.IsNullOrWhiteSpace(FontName) || FontSizePoints.HasValue ||
             !string.IsNullOrWhiteSpace(ColorHex) || Bold.HasValue || Italic.HasValue;
         StyleRunProperties? run = style.StyleRunProperties;
         if (hasRunFormatting) {
-            run ??= style.AppendChild(new StyleRunProperties());
+            run ??= style.StyleRunProperties = new StyleRunProperties();
             if (!string.IsNullOrWhiteSpace(FontName)) {
                 run.RunFonts = new RunFonts {
                     Ascii = FontName,
@@ -155,7 +215,7 @@ public sealed class WordParagraphStyleDefinition {
     private static void SetChild<T>(OpenXmlCompositeElement parent, T? child) where T : OpenXmlElement {
         parent.RemoveAllChildren<T>();
         if (child != null) {
-            parent.Append(child);
+            parent.AddChild(child, true);
         }
     }
 
@@ -166,4 +226,9 @@ public sealed class WordParagraphStyleDefinition {
         double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double result) ? result / 2d : null;
 
     private static bool? ReadOnOff(OnOffType? value) => value == null ? null : value.Val?.Value ?? true;
+
+    private static void SetParagraphOnOff<T>(StyleParagraphProperties paragraph, bool? value) where T : OnOffType, new() {
+        paragraph.RemoveAllChildren<T>();
+        if (value.HasValue) paragraph.AddChild(new T { Val = value.Value }, true);
+    }
 }

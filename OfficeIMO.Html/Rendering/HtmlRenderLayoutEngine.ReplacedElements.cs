@@ -80,6 +80,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (declaredWidth.HasValue && declaredHeight.HasValue) {
             width = ClampWithMinimumPrecedence(width, minimumWidth, maximumWidth);
             height = ClampWithMinimumPrecedence(height, minimumHeight, maximumHeight);
+        } else if (declaredWidth.HasValue) {
+            // A constraint on the auto axis must not resize the definite axis.
+            width = ClampWithMinimumPrecedence(width, minimumWidth, maximumWidth);
+            height = ClampWithMinimumPrecedence(width / preferredRatio, minimumHeight, maximumHeight);
+        } else if (declaredHeight.HasValue) {
+            height = ClampWithMinimumPrecedence(height, minimumHeight, maximumHeight);
+            width = ClampWithMinimumPrecedence(height * preferredRatio, minimumWidth, maximumWidth);
         } else {
             ConstrainProportionalSize(ref width, ref height, minimumWidth, maximumWidth, minimumHeight, maximumHeight);
         }
@@ -197,12 +204,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double maximumHeight) {
         width = Math.Max(0.01D, width);
         height = Math.Max(0.01D, height);
+        maximumWidth = Math.Max(minimumWidth, maximumWidth);
+        maximumHeight = Math.Max(minimumHeight, maximumHeight);
         double minimumScale = Math.Max(minimumWidth / width, minimumHeight / height);
         double maximumScale = Math.Min(maximumWidth / width, maximumHeight / height);
-        double scale = Math.Max(1D, minimumScale);
-        if (maximumScale >= minimumScale) scale = Math.Min(scale, maximumScale);
-        width *= scale;
-        height *= scale;
+        double scale = Math.Min(Math.Max(1D, minimumScale), maximumScale);
+        // Opposing axis constraints can require a non-proportional box. Preserve
+        // both bounds rather than overflowing one axis to retain the ratio.
+        width = ClampWithMinimumPrecedence(width * scale, minimumWidth, maximumWidth);
+        height = ClampWithMinimumPrecedence(height * scale, minimumHeight, maximumHeight);
     }
 
     private readonly struct ReplacedContentSize {

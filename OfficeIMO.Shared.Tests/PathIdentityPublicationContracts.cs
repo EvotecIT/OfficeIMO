@@ -45,6 +45,7 @@ public class PathIdentityPublicationContracts {
         string destination = Path.Combine(root, "pages");
         string recovery = Path.Combine(root, "recovery");
         Directory.CreateDirectory(destination);
+        string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(root);
         using var ready = new ManualResetEventSlim();
         using var stop = new CancellationTokenSource();
         Task mover = Task.Run(() => {
@@ -59,7 +60,7 @@ public class PathIdentityPublicationContracts {
             for (int index = 0; index < 2_000; index++) {
                 string physical = OfficePathIdentity.ResolvePhysicalPath(destination);
                 Assert.True(Path.IsPathRooted(physical));
-                Assert.Equal(root, Path.GetDirectoryName(physical));
+                Assert.Equal(physicalRoot, Path.GetDirectoryName(physical));
             }
         } finally {
             stop.Cancel();

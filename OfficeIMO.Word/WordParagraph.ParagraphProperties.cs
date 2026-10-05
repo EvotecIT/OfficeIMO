@@ -170,6 +170,7 @@ namespace OfficeIMO.Word {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value) {
                     props.KeepNext ??= new KeepNext();
+                    props.KeepNext.Val = null;
                 } else {
                     props.KeepNext?.Remove();
                 }
@@ -187,6 +188,7 @@ namespace OfficeIMO.Word {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value) {
                     props.KeepLines ??= new KeepLines();
+                    props.KeepLines.Val = null;
                 } else {
                     props.KeepLines?.Remove();
                 }

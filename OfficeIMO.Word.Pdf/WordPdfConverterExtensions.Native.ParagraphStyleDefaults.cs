@@ -464,7 +464,7 @@ namespace OfficeIMO.Word.Pdf {
             ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?.GetFirstChild<T>());
 
         private static bool HasNativePageBreakBefore(WordParagraph paragraph) =>
-            paragraph.PageBreakBefore ||
-            GetNativeParagraphStyleDefaults(paragraph).PageBreakBefore == true;
+            ReadNativeDirectParagraphOnOff<W.PageBreakBefore>(paragraph) ??
+            GetNativeParagraphStyleDefaults(paragraph).PageBreakBefore ?? false;
     }
 }
