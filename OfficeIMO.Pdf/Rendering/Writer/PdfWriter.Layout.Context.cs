@@ -23,6 +23,11 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]> rowColumnKeepChainHeights = new System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]>();
         private bool encounteredTableOfContents;
         private PdfOptions currentOpts;
+        private PdfOptions currentPageBaseOptions;
+        private readonly Dictionary<PdfOptions, PdfOptions> mirroredPageOptions = new();
+        private readonly HashSet<int> emittedPageGroups = new();
+        private int previousVisiblePageNumber;
+        private int currentVisiblePageNumber;
         private int currentPageGroupId;
         private int nextPageGroupId = 1;
         private LayoutResult.Page? currentPage;
@@ -52,6 +57,7 @@ internal static partial class PdfWriter {
             System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null,
             System.Threading.CancellationToken cancellationToken = default) {
             currentOpts = options;
+            currentPageBaseOptions = options;
             this.cancellationToken = cancellationToken;
             maximumGeneratedPages = options.MaxGeneratedPages;
             pageContents = new PdfPageContentStore(options.PageContentMemoryLimitBytes);
@@ -94,11 +100,25 @@ internal static partial class PdfWriter {
             if (effectiveMaximumPages is int maximumPages && startedPageCount >= maximumPages)
                 throw new InvalidDataException("PDF layout exceeded the configured generated page limit.");
             startedPageCount++;
+            currentPageBaseOptions = options;
+            currentVisiblePageNumber = ResolveNextVisiblePageNumber(pages.Count,
+                !emittedPageGroups.Contains(currentPageGroupId), previousVisiblePageNumber, options);
             currentOpts = options;
-            width = options.PageWidth - options.MarginLeft - options.MarginRight;
-            yStart = options.PageHeight - options.MarginTop;
+            if (options.MirrorMargins && currentVisiblePageNumber % 2 == 0) {
+                // Keep one effective frame per source options instance. Deep copies
+                // retain document assets and font state, so they must not grow per page.
+                if (!mirroredPageOptions.TryGetValue(options, out PdfOptions? mirrored)) {
+                    mirrored = options.Clone();
+                    mirrored.MarginLeft = options.MarginRight;
+                    mirrored.MarginRight = options.MarginLeft;
+                    mirroredPageOptions.Add(options, mirrored);
+                }
+                currentOpts = mirrored;
+            }
+            width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+            yStart = currentOpts.PageHeight - currentOpts.MarginTop;
             y = yStart;
-            currentPage = new LayoutResult.Page { Options = options, PageGroupId = currentPageGroupId };
+            currentPage = new LayoutResult.Page { Options = currentOpts, PageGroupId = currentPageGroupId };
             sb.Clear();
             behindTextCanvases.Clear();
             pageDirty = false;
@@ -108,12 +128,14 @@ internal static partial class PdfWriter {
         }
 
         private void EnsurePage() {
-            if (currentPage == null) StartPage(currentOpts);
+            if (currentPage == null) StartPage(currentPageBaseOptions);
         }
 
-        private void PadSectionStart(PdfPageParity? parity) {
+        private void PadSectionStart(PdfOptions sectionOptions) {
+            PdfPageParity? parity = sectionOptions.PageStartParity;
             if (!parity.HasValue || pages.Count == 0) return;
-            bool nextPageIsEven = (pages.Count + 1) % 2 == 0;
+            int nextNumber = sectionOptions.UseContinuingPageNumberForStartParity ? previousVisiblePageNumber + 1 : pages.Count + 1;
+            bool nextPageIsEven = nextNumber % 2 == 0;
             if (nextPageIsEven == (parity == PdfPageParity.Even)) return;
             PdfOptions previous = pages[pages.Count - 1].Options;
             StartPage(new PdfOptions {
@@ -160,6 +182,8 @@ internal static partial class PdfWriter {
             }
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
+            emittedPageGroups.Add(currentPage.PageGroupId);
+            previousVisiblePageNumber = currentVisiblePageNumber;
             currentPage = null;
             // Reuse the buffer across pages (content already captured above) instead of re-growing a new
             // StringBuilder per page.
@@ -167,11 +191,11 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage() {
+        private void NewPage(bool preserveEmptyPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
             PrepareActiveContainerScopesForPageBreak();
-            FlushPage(pageDirty || HasCurrentPageNonContentObjects());
-            StartPage(currentOpts);
+            FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
+            StartPage(currentPageBaseOptions);
             ResumeActiveContainerScopesOnNewPage();
         }
 

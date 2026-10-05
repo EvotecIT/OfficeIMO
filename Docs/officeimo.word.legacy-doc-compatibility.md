@@ -84,6 +84,10 @@ The writer also covers supported inline pictures and inset source crops. `Optimi
 
 Paragraph and style pagination flags retain explicit false values as well as true values. This includes page-break-before, keep-with-next, keep-lines-together, widow/orphan control, contextual spacing, line-number suppression, hyphenation suppression, and mirrored indentation. Direct outline levels retain values 0–9, including body text (9); built-in Heading styles retain their required heading levels. These are file-format preservation contracts; fixed-layout export has separate rendering limits.
 
+Page setup retains section gutter widths and right-edge gutter settings. Document options retain mirrored margins and top gutters alongside revision tracking, odd/even header selection, and endnote placement.
+
+Each section retains its own start type: continuous, next-column, next-page, odd-page, or even-page. Native section marks remain distinct from manual page breaks within paragraphs. An empty section-mark paragraph retains its paragraph and paragraph-mark formatting; import attaches the section to that paragraph without adding another terminator. `AddSection()` continues page numbering; explicit numbering restarts remain properties of the new section. PDF and image export resolve odd/even starts and numbering restarts through their layout engines.
+
 The writer preflights the complete document before committing output. Unsupported destination features, including floating drawings, rotated or mirrored inline pictures, unsupported image effects, embedded objects, and richer table/story structures, raise `NotSupportedException` and leave an existing destination intact. The [generated capability matrix](Compatibility/generated/word-legacy-doc.md) lists the current feature families.
 
 When an application needs a non-throwing gate before selecting a destination, run the real encoder without committing a file:

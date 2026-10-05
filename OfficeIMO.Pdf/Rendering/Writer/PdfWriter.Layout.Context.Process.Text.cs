@@ -138,6 +138,7 @@ internal static partial class PdfWriter {
             }
 
             List<double>? floatingLineOffsets = null;
+            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             List<double>? floatingLineWidths = null;
             List<double>? floatingLineGaps = null;
             HashSet<int>? floatingPageStarts = null;
@@ -202,8 +203,10 @@ internal static partial class PdfWriter {
 
             int lineIndex = 0;
             bool firstSegment = true;
+            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             void NewParagraphPage() {
                 NewPage();
+                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
                 if (lineIndex == 0) { RestoreUnobstructedWrapping(); return; }
                 // Widow/orphan control can carry a previously simulated float-side line forward.
                 // Keep its line break, but remove the old page's exclusion offset and clearance.

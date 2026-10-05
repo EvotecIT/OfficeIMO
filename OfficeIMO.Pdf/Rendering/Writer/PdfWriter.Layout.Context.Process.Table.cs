@@ -249,6 +249,7 @@ internal static partial class PdfWriter {
             }
             void NewInitialTablePage() {
                 NewPage();
+                xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
                 if (style.Position is { } position) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
@@ -404,6 +405,7 @@ internal static partial class PdfWriter {
 
             void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
                 NewPage();
+                xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
                 if (style.Position is { } continuationPosition) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;

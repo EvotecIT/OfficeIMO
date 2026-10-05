@@ -130,13 +130,17 @@ namespace OfficeIMO.Word {
             if (legacyDocument.BodyBlocks.Count == 0) {
                 section.AddParagraph();
             } else {
+                Paragraph? pendingBoundaryParagraph = null;
                 foreach (LegacyDocBodyBlock block in legacyDocument.BodyBlocks) {
                     if (block is LegacyDocParagraphBlock paragraphBlock) {
-                        AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
+                        WordParagraph paragraph = AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
+                        pendingBoundaryParagraph = paragraphBlock.EndsWithSectionMark ? paragraph._paragraph : null;
                     } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
-                        section = document.AddSection((sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage).ToOfficeEnum());
+                        section = document.AddSectionCore(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage, pendingBoundaryParagraph);
+                        pendingBoundaryParagraph = null;
                         sectionFormats.Add((section, sectionBreakBlock.Format));
                     } else if (block is LegacyDocTableBlock tableBlock) {
+                        pendingBoundaryParagraph = null;
                         AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet, notes);
                     }
                 }
@@ -182,6 +186,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocDocumentOptions(WordDocument document, LegacyDocDocument legacyDocument) {
+            document.Settings.MirrorMargins = legacyDocument.MirrorMargins;
+            document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
             }
@@ -959,14 +965,14 @@ namespace OfficeIMO.Word {
                 .ToArray();
         }
 
-        private static void AddLegacyDocParagraph(WordSection section, LegacyDocParagraphBlock paragraphBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
+        private static WordParagraph AddLegacyDocParagraph(WordSection section, LegacyDocParagraphBlock paragraphBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
             IReadOnlyList<LegacyDocTextRun> paragraphRuns = paragraphBlock.Runs;
             LegacyDocParagraphFormat paragraphFormat = paragraphBlock.Format;
             if (paragraphRuns.Count == 0) {
                 WordParagraph emptyParagraph = section.AddParagraph();
                 ApplyLegacyDocParagraphFormatting(emptyParagraph, paragraphFormat, styleSheet);
                 LegacyDocBookmarkProjection.Create(paragraphBlock.Bookmarks, paragraphBlock.StartCharacter, paragraphBlock.EndCharacter).EmitRemaining(emptyParagraph._paragraph);
-                return;
+                return emptyParagraph;
             }
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
@@ -974,6 +980,7 @@ namespace OfficeIMO.Word {
             LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(paragraphBlock.Bookmarks, paragraphBlock.StartCharacter, paragraphBlock.EndCharacter);
             AddLegacyDocRuns(paragraph, paragraphRuns, notes, bookmarks);
             bookmarks.EmitRemaining(paragraph._paragraph);
+            return paragraph;
         }
 
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocNoteProjection notes) {

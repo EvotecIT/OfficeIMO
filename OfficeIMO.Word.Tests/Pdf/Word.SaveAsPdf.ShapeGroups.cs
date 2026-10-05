@@ -14,6 +14,43 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed class PdfShapeGroupTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void BehindTextGroupsFollowMirroredMarginsAndRetainPageRelativePositions(bool marginRelative, int startNumber) {
+        using WordDocument word = WordDocument.Create();
+        var section = word.Sections[0];
+        section.PageSettings.Width = 6000; section.PageSettings.Height = 6000;
+        section.Margins.Left = 800; section.Margins.Right = 1400;
+        section.Margins.Top = section.Margins.Bottom = 800;
+        section.AddPageNumbering(startNumber);
+        word.Settings.MirrorMargins = true;
+        word.AddParagraph("First");
+        var paragraph = word.AddParagraph("Second");
+        paragraph.PageBreakBeforeOverride = true;
+        paragraph.AddShapeGroup(new[] {
+            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, 24, 0, 8, 12) { FillColorHex = "0000FF" }
+        }, 10, 60);
+        var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
+        anchor.BehindDoc = true;
+        anchor.RemoveAllChildren<DW.WrapSquare>();
+        anchor.AddChild(new DW.WrapNone(), true);
+        anchor.HorizontalPosition!.RelativeFrom = marginRelative ? DW.HorizontalRelativePositionValues.Margin : DW.HorizontalRelativePositionValues.Page;
+        anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Page;
+
+        var result = word.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        Assert.Equal(2, pdf.Reader.Pages().Count);
+        double x = marginRelative ? (startNumber == 1 ? 70 : 40) + 10 : 10;
+        var bitmap = Render(pdf, 2);
+        AssertPixel(bitmap, (int)x + 6, 66, 255, 0, 0);
+        AssertPixel(bitmap, (int)x + 28, 66, 0, 0, 255);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeShapeGroup"));
+    }
+
     // Public reporter fixture: https://github.com/EvotecIT/OfficeIMO/issues/2675
     [Theory]
     [InlineData(false)]

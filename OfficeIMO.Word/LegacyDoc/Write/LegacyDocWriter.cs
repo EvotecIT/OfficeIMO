@@ -91,11 +91,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbPlcfBklOffset = 0x156;
         private const int FcPlcfHddOffset = 0xF2;
         private const int LcbPlcfHddOffset = 0xF6;
-        private const int DopBaseLength = 8;
-        private const int DopBaseEndnotePlacementLength = 56;
-        private const int DopBaseEndnotePlacementOffset = 52;
-        private const int DopBaseEndnotePlacementShift = 16;
-        private const ushort FacingPagesDopFlag = 0x0001;
         private const ushort NoteTextParagraphStyleIndex = 0x0023;
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
@@ -205,7 +200,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyDictionary<string, Style> tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
-            SectionMarkValues? pendingSectionBreakType = null;
             int bodyContentCount = 0;
             foreach (OpenXmlElement child in body.ChildElements) {
                 AppendBodyChild(
@@ -222,7 +216,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     endnotes,
                     sections,
                     ref finalSectionFormat,
-                    ref pendingSectionBreakType,
                     ref bodyContentCount,
                     "body");
             }
@@ -231,7 +224,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 text.Append('\r');
             }
 
-            AddSection(sections, text.Length, finalSectionFormat.WithSectionBreakType(pendingSectionBreakType));
+            AddSection(sections, text.Length, finalSectionFormat);
             footnotes.ThrowIfUnreferencedFootnotesRemain();
             endnotes.ThrowIfUnreferencedEndnotesRemain();
             comments.BindBodyReferences(body, text.ToString());
@@ -268,6 +261,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 pictures.DataBytes,
                 pictures.HasPictures,
                 HasEvenAndOddHeaders(mainPart),
+                settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
+                settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
                 ReadDocumentEndnotePosition(sections),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
@@ -435,16 +430,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
         }
 
-        private static bool IsPureSectionBreakParagraph(Paragraph paragraph) {
-            ParagraphProperties? paragraphProperties = paragraph.GetFirstChild<ParagraphProperties>();
-            if (paragraphProperties?.GetFirstChild<SectionProperties>() == null) {
-                return false;
-            }
-
-            return paragraph.ChildElements.All(element => element is ParagraphProperties)
-                && paragraphProperties.ChildElements.All(element => element is SectionProperties);
-        }
-
         private static void AddSection(List<LegacyDocWritableSection> sections, int endCharacter, LegacyDocSectionFormat format) {
             if (sections.Count > 0 && endCharacter < sections[sections.Count - 1].EndCharacter) {
                 throw new NotSupportedException("Native DOC saving cannot write sections with non-monotonic text ranges.");
@@ -472,21 +457,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableEndnotes endnotes,
             List<LegacyDocWritableSection> sections,
             ref LegacyDocSectionFormat finalSectionFormat,
-            ref SectionMarkValues? pendingSectionBreakType,
             ref int bodyContentCount,
             string containerDescription) {
             switch (child) {
                 case Paragraph paragraph:
-                    if (!IsPureSectionBreakParagraph(paragraph)) {
-                        AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, pictures, styleIndexes, footnotes, endnotes);
-                        bodyContentCount++;
-                    }
+                    AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, pictures, styleIndexes, footnotes, endnotes);
+                    bodyContentCount++;
 
                     SectionProperties? paragraphSectionProperties = paragraph.GetFirstChild<ParagraphProperties>()?.GetFirstChild<SectionProperties>();
                     if (paragraphSectionProperties != null) {
                         LegacyDocSectionFormat paragraphSectionFormat = ReadSupportedSectionProperties(paragraphSectionProperties);
-                        AddSection(sections, text.Length, paragraphSectionFormat.WithSectionBreakType(pendingSectionBreakType));
-                        pendingSectionBreakType = paragraphSectionFormat.SectionBreakType;
+                        // A section mark terminates this paragraph. The PLC and SEPX retain
+                        // this section's own formatting, including its start type.
+                        text[text.Length - 1] = LegacyDocSpecialCharacters.PageBreak;
+                        AddSection(sections, text.Length, paragraphSectionFormat);
                     }
 
                     break;
@@ -509,7 +493,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         endnotes,
                         sections,
                         ref finalSectionFormat,
-                        ref pendingSectionBreakType,
                         ref bodyContentCount);
                     break;
                 case BookmarkStart bookmarkStart:
@@ -540,7 +523,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableEndnotes endnotes,
             List<LegacyDocWritableSection> sections,
             ref LegacyDocSectionFormat finalSectionFormat,
-            ref SectionMarkValues? pendingSectionBreakType,
             ref int bodyContentCount) {
             SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
             if (contentBlock == null) {
@@ -562,7 +544,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     endnotes,
                     sections,
                     ref finalSectionFormat,
-                    ref pendingSectionBreakType,
                     ref bodyContentCount,
                     "body content control");
             }
@@ -637,30 +618,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 or CommentRangeEnd;
         }
 
-        private static byte[] CreateDopBase(LegacyDocWritableBody body) {
-            var dop = new byte[body.DopLength];
-            if (body.FacingPages) {
-                WriteUInt16(dop, 0, FacingPagesDopFlag);
-            }
-
-            uint revisionFlags = 0;
-            if (body.TrackRevisions) {
-                revisionFlags |= 0x00008000;
-            }
-            if (body.LockRevisionTracking) {
-                revisionFlags |= 0x40000000;
-            }
-            if (revisionFlags != 0) {
-                WriteUInt32(dop, 4, revisionFlags);
-            }
-
-            if (body.EndnotePosition != null) {
-                uint placement = (uint)GetEndnotePositionOperand(body.EndnotePosition.Value)!.Value;
-                WriteUInt32(dop, DopBaseEndnotePlacementOffset, placement << DopBaseEndnotePlacementShift);
-            }
-
-            return dop;
-        }
 
         private static bool CanWriteCompressedText(string text) {
             foreach (char character in text) {

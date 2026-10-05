@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 byte[] pictureData,
                 bool hasPictures,
                 bool facingPages,
+                bool mirrorMargins,
+                bool gutterAtTop,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
@@ -53,6 +55,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PictureData = pictureData;
                 HasPictures = hasPictures;
                 FacingPages = facingPages;
+                MirrorMargins = mirrorMargins;
+                GutterAtTop = gutterAtTop;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
@@ -167,6 +171,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool FacingPages { get; }
 
+            internal bool MirrorMargins { get; }
+
+            internal bool GutterAtTop { get; }
+
             internal byte[] PictureData { get; }
 
             internal bool HasPictures { get; }
@@ -220,11 +228,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
             internal bool HasDocumentOptions => FacingPages
+                || MirrorMargins
+                || GutterAtTop
                 || EndnotePosition != null
                 || TrackRevisions
                 || LockRevisionTracking;
 
-            internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+            internal int DopLength => GutterAtTop ? DopBaseFullLength
+                : EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 
@@ -508,17 +519,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         return PlainParagraphPapx;
-                    });
+                    }, new HashSet<int>(Sections.Select(section => section.EndCharacter)));
             }
 
             private static void AddStoryParagraphSegments(
                 List<LegacyDocWritableParagraphSegment> segments,
                 string story,
                 int storyStart,
-                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
+                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat,
+                HashSet<int>? sectionEndCharacters = null) {
                 int paragraphStart = 0;
                 for (int index = 0; index < story.Length; index++) {
-                    if (story[index] != '\r' && story[index] != '\a') {
+                    bool isSectionMark = story[index] == LegacyDocSpecialCharacters.PageBreak &&
+                        sectionEndCharacters?.Contains(storyStart + index + 1) == true;
+                    if (story[index] != '\r' && story[index] != '\a' && !isSectionMark) {
                         continue;
                     }
 

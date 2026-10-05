@@ -633,26 +633,22 @@ namespace OfficeIMO.Word {
             return AddSectionCore(null);
         }
 
-        private WordSection AddSectionCore(SectionMarkValues? sectionMark) {
-            Paragraph paragraph = new Paragraph();
-
-            ParagraphProperties paragraphProperties = new ParagraphProperties();
+        private WordSection AddSectionCore(SectionMarkValues? sectionMark, Paragraph? existingBoundaryParagraph = null) {
+            Paragraph paragraph = existingBoundaryParagraph ?? new Paragraph();
+            ParagraphProperties paragraphProperties = paragraph.ParagraphProperties ??= new ParagraphProperties();
 
             SectionProperties sectionProperties = WordHeadersAndFooters.CreateSectionProperties();
 
-            if (sectionMark != null) {
-                SectionType sectionType = new SectionType() { Val = sectionMark };
-                sectionProperties.Append(sectionType);
-            }
-
-            paragraphProperties.Append(sectionProperties);
-            paragraph.Append(paragraphProperties);
-
-
-            AppendBlockToBody(paragraph);
+            paragraphProperties.AddChild(sectionProperties, true);
+            if (existingBoundaryParagraph == null) AppendBlockToBody(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);
+            // Section properties describe how their own section starts, not the following one.
+            // Let the constructor preserve the preceding section before setting the new start.
+            wordSection.BreakType = sectionMark?.ToOfficeEnum() ?? WordSectionBreakType.NextPage;
+            PageNumberType? pageNumberType = wordSection._sectionProperties.GetFirstChild<PageNumberType>();
+            if (pageNumberType != null) pageNumberType.Start = null;
 
             return wordSection;
         }

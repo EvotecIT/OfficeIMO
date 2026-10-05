@@ -100,6 +100,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
+            if (runs.Any(run => !IsNativeHiddenTextRun(run, paragraph) && run.GetNonTextBreakPositions()?.Values.Contains(WordBreakType.Page) == true)) return false;
             if (runs.Any(run => run.IsImage) || HasNativeParagraphShapeGroups(runs)) {
                 return false;
             }

@@ -42,7 +42,6 @@ internal static partial class PdfWriter {
         }
 
         private void RenderImageFlowBlock(ImageBlock ib, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
-            double xImg = currentOpts.MarginLeft;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             PdfImageStyle imageStyle = ResolveImageStyle(ib, currentOpts);
             PdfDocument.ValidateImageStyleForBox(imageStyle, ib.Width, ib.Height, nameof(imageStyle.ClipPath));
@@ -50,8 +49,6 @@ internal static partial class PdfWriter {
             double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore);
             var imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
             double needed = imageSpacingBefore + imageBox.Height + imageStyle.SpacingAfter;
-            if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - imageBox.Width) / 2);
-            else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - imageBox.Width);
             EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, contentWidth);
             if (imageStyle.KeepWithNext && nextBlock != null) {
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
@@ -62,8 +59,6 @@ internal static partial class PdfWriter {
                     imageSpacingBefore = 0D;
                     imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
                     needed = imageBox.Height + imageStyle.SpacingAfter;
-                    if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - imageBox.Width) / 2);
-                    else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - imageBox.Width);
                 }
             }
 
@@ -73,6 +68,7 @@ internal static partial class PdfWriter {
             }
             if (imageSpacingBefore > 0) y -= imageSpacingBefore;
             EnsurePage();
+            double xImg = GetAlignedObjectX(currentOpts.MarginLeft, contentWidth, imageBox.Width, imageStyle.Align);
             RecordFlowPlacement(y);
             PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - imageBox.Height, imageBox.Width, imageBox.Height);
             currentPage!.Images.Add(pageImage);

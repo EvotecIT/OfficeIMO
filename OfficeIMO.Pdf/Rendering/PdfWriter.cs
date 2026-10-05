@@ -2030,10 +2030,9 @@ internal static partial class PdfWriter {
             bool firstPageOfGroup = pageNumber == 1;
             if (pending.Count == 0 || (firstPageOfGroup && page.Options.HasExplicitPageNumberStart)) {
                 currentSequenceId = nextSequenceId++;
-                currentVisiblePageNumber = page.Options.HasExplicitPageNumberStart ? page.Options.PageNumberStart : 1;
-            } else {
-                currentVisiblePageNumber++;
             }
+            currentVisiblePageNumber = ResolveNextVisiblePageNumber(pending.Count, firstPageOfGroup,
+                currentVisiblePageNumber, page.Options);
 
             pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId));
         }

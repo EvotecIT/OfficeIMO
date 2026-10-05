@@ -1974,6 +1974,22 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("draft.pdf");
 ```
 
+For facing-page layouts, set `PdfOptions.MirrorMargins = true` or use
+`page.MirrorMargins()` in a section. The authored left and right margins apply to
+odd visible page numbers and swap on even numbers. `PageNumberStart` restarts
+that parity. Flow content follows the current page frame, including automatic
+continuation through paragraphs, tables, lists, columns, and padded elements.
+Canvas coordinates remain absolute.
+
+Use `page.StartOnPageParity(PdfPageParity.Odd)` or `Even` to pad a later section
+with a blank page when its physical page index has the wrong parity. Pass
+`useContinuingPageNumber: true` to choose parity from the preceding section's
+continuing page number; the new section's `PageNumberStart` applies after padding.
+The equivalent options are `PageStartParity` and
+`UseContinuingPageNumberForStartParity`. The first section starts without padding.
+`content.PageBreak(preserveEmptyPage: true)` preserves an empty page when explicit
+breaks are consecutive. The parameterless overload skips empty pages.
+
 ### Inspect and preflight before rewriting
 
 ```csharp
