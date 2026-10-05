@@ -48,20 +48,21 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
     }
     evidence.Add(new { profile = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), previews = previewPaths });
 }
-byte[] glossaryBytes = GlossaryFixture.Create().Write(new EpubWriteOptions {
-    ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
-}).Bytes;
-File.WriteAllBytes(Path.Combine(outputDirectory, "glossary.epub"), glossaryBytes);
-evidence.Add(new { fixture = "glossary", epub = "glossary.epub", sha256 = Convert.ToHexString(SHA256.HashData(glossaryBytes)).ToLowerInvariant() });
-byte[] bibliographyBytes = BibliographyFixture.Create().Write(new EpubWriteOptions {
-    ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
-}).Bytes;
-File.WriteAllBytes(Path.Combine(outputDirectory, "bibliography.epub"), bibliographyBytes);
-evidence.Add(new { fixture = "bibliography", epub = "bibliography.epub", sha256 = Convert.ToHexString(SHA256.HashData(bibliographyBytes)).ToLowerInvariant() });
+WriteFixture("glossary", GlossaryFixture.Create());
+WriteFixture("bibliography", BibliographyFixture.Create());
+WriteFixture("index", IndexFixture.Create());
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine(Path.Combine(outputDirectory, "manifest.json"));
+
+void WriteFixture(string name, EpubPublication publication) {
+    byte[] bytes = publication.Write(new EpubWriteOptions {
+        ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
+    }).Bytes;
+    File.WriteAllBytes(Path.Combine(outputDirectory, name + ".epub"), bytes);
+    evidence.Add(new { fixture = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() });
+}
 
 internal static class FixtureContent {
     internal const string Manuscript = """

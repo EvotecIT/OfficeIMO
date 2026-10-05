@@ -562,6 +562,37 @@ CSL hanging indents, spacing and second-field alignment still require publisher 
 derived from the renderer's layout result and independent presentation checks.
 `OfficeIMO.Epub` does not take a runtime dependency on the citation renderer.
 
+## Indexes
+
+`AddIndexEntry` appends a plain-text term and labelled links to an existing `ul`
+directly inside a body `section`. It marks that section with `epub:type="index"`
+and `role="doc-index"`. Existing headings and entries remain intact, and publisher
+order is retained.
+
+```csharp
+publication.AddChapter("index", "EPUB/back/index.xhtml", "Index",
+    "<section><h1>Index</h1><ul id='entries'/></section>");
+publication.AddIndexEntry("index", "entries", "publishing", "Publishing",
+    Array.Empty<EpubIndexLocator>(), subentriesId: "publishing-entries");
+publication.AddIndexEntry("index", "publishing-entries", "reading-order", "reading order",
+    new[] { new EpubIndexLocator {
+        ManifestId = "chapter", FragmentId = "reading-order-heading", Label = "Reading order"
+    } });
+```
+
+The optional `subentriesId` creates a nested list for subsequent entries; fill it
+before publishing. Each entry requires locators or a subentry list. Locators target
+existing XHTML spine documents, optionally selecting one unambiguous body-content
+identifier. They can also target an existing index term for a cross-reference.
+Omit `FragmentId` for a whole-document link. Labels can be source-page labels or
+section titles; this API does not infer screen pages, sort terms, or extract an index
+from prose. Each call accepts at most 1024 locators and observes cancellation.
+
+Links respect the index document's effective HTML base. Target content stays
+unchanged, while invalid targets, conflicting roles, duplicate identifiers and
+retention-limit failures leave the index unchanged. Native reader interaction and
+human accessibility assessment remain separate qualification steps.
+
 ## Glossaries
 
 Append entries to an existing definition list, then link any number of occurrences

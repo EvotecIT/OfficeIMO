@@ -55,6 +55,10 @@ local style, not a claim of qualification for every publisher's citation style.
 It has no third-party test dependency and
 is outside the normal solution and shipped packages.
 
+`index.epub` exercises nested terms, multiple locators and an intra-index
+cross-reference. Its labels target sections and chapters rather than inferred
+screen page numbers.
+
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
   /path/to/task-evidence/typography
