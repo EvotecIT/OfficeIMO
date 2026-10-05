@@ -28,6 +28,8 @@ public sealed class BookProjectRevisionTests {
         var first = project.CreateRevision("Editorial baseline");
         project.SetMetadata("Second edition", "en", "Author");
         var second = project.CreateRevision("Copyedited");
+        Assert.True(project.CompareRevision(first.Id).MetadataChanged);
+        Assert.False(project.CompareRevision(second.Id).HasChanges);
         var reopened = BookProject.LoadProject(project.ToProjectBytes());
         Assert.Equal(new[] { first, second }, reopened.Revisions);
         reopened.RestoreRevision(first.Id);

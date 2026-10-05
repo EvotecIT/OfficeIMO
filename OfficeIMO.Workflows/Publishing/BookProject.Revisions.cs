@@ -42,6 +42,14 @@ public sealed partial class BookProject {
         _publication = restored;
     }
 
+    /// <summary>Compares a retained revision with the current publication through the EPUB owner.</summary>
+    public EpubEditionComparison CompareRevision(string revisionId, CancellationToken cancellationToken = default) {
+        var revision = RequireRevision(revisionId);
+        using var stream = new MemoryStream(revision.Bytes, false);
+        var baseline = EpubPublication.Load(stream, cancellationToken: cancellationToken);
+        return baseline.CompareTo(_publication, cancellationToken);
+    }
+
     /// <summary>Explicitly removes a named snapshot without changing the current publication or session undo.</summary>
     public void RemoveRevision(string revisionId) => _revisions.Remove(RequireRevision(revisionId));
 

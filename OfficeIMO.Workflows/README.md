@@ -109,6 +109,12 @@ restored.RestoreRevision(baseline.Id);
 restored.Undo(); // Return to the revised title.
 ```
 
+Use `CompareRevision(id)` to compare a retained revision with the current book.
+The EPUB owner reports metadata, reading-order, resource and source-text changes;
+`TextChanges` contains bounded before/after excerpts. Comparison does not modify the
+project, undo state or revision history. See the EPUB README for matching rules and
+coverage limits.
+
 A project retains up to 100 named revisions and 128 MiB of combined revision EPUB
 bytes, in addition to its current publication (up to 128 MiB). Capture rejects an
 exhausted bound without evicting existing revisions. Version-2 projects retain these

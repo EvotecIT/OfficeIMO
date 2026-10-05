@@ -433,6 +433,28 @@ whitespace. Proposals copy their XML. Identifier changes and deletions require a
 remaining references to be valid in the combined batch; links are not guessed or
 silently removed. The same validation and atomicity rules as the document batch apply.
 
+Compare editions with `baseline.CompareTo(revised)`. The read-only result separates
+package metadata, spine order/attributes, package scaffolding and resource changes.
+Resources match by manifest ID; retained entries outside the manifest match by path.
+Resource flags distinguish additions/removals, resolved location, declarations, XML
+structure, text, serialization-only differences and uninterpreted binary changes.
+The unrefined `dcterms:modified` write timestamp is excluded from metadata comparison.
+
+`TextChanges` reports changed XHTML leaf text blocks (paragraphs, headings, list and
+definition items, quotations, preformatted text, table cells and figure captions),
+plus a `$body` aggregate to cover loose text. Blocks match by unique `id`/`xml:id`,
+or by namespace-aware element position when no unique ID exists. Position matching
+can report shifted blocks after insertion; it does not infer editorial intent.
+Before/after excerpts are limited to 4096 UTF-16 characters and carry `IsTruncated`;
+comparison uses full text. More than 10,000 changed text blocks rejects the operation
+instead of returning an apparently complete partial report.
+
+Comparison does not render content, normalize whitespace, interpret CSS, decrypt
+assets, fetch remote resources or infer renamed manifest IDs. Added/removed resources
+have resource flags; text excerpts compare resources present in both editions. XML
+parse failures remain explicit. A report with no changes describes these source
+contracts, not visual, accessibility or reader equivalence.
+
 `RenameResource(manifestId, containerPath)` moves a local resource without changing its
 manifest identifier or spine position. It repairs incoming links and rebases relative
 references inside a moved document. Standard OPF links, XHTML/SVG links and resource
