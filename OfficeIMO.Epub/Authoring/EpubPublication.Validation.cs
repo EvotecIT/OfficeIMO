@@ -98,8 +98,10 @@ public sealed partial class EpubPublication {
             string path = group.Key;
             if (_encryption.Any(encryption => encryption.Path == path && encryption.RequiresDecryption)) continue;
             XDocument content = path == navPath ? navigation : ParseXml(entries[path], _maximumEntryBytes);
-            anchors[path] = new HashSet<string>(content.Descendants().Attributes().Where(attribute => attribute.Name == "id" ||
-                attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
+            bool rewritten = group.Any(item => HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml")) &&
+                (!_originalEntries.TryGetValue(path, out byte[]? retained) || !retained.SequenceEqual(entries[path]));
+            anchors[path] = EpubContentIdentifiers.Collect(content.Root!, path, rewritten, token);
+            if (rewritten) EpubContentIdentifiers.ValidateReferences(content.Root!, anchors[path], path, token);
         }
         foreach (var group in contentGroups) {
             token.ThrowIfCancellationRequested();

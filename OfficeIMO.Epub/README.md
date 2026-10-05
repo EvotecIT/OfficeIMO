@@ -389,6 +389,41 @@ their protection metadata and ciphertext; the writer neither decrypts nor re-key
 Editable loading rejects unreadable, over-budget, or ambiguous encryption declarations
 so protection guards cannot be bypassed by incomplete classification.
 
+## Publication preflight
+
+`Preflight` returns structured native checks without writing a destination or invoking
+external tools. It uses the supplied save policy, inspects retained XHTML/SVG identifiers
+and document-local ARIA/table-header references, and checks HTML image alternative
+presence. It also inspects unchanged imported content, even when saving preserves that
+content byte-for-byte.
+
+```csharp
+EpubPreflightReport review = publication.Preflight();
+foreach (EpubPreflightCheck check in review.Checks) {
+    Console.WriteLine($"{check.Code}: {check.Status}");
+    foreach (EpubDiagnostic finding in check.Diagnostics) {
+        Console.WriteLine($"{finding.Path}: {finding.Code}: {finding.Message}");
+    }
+}
+```
+
+`HasErrors` describes the executed native checks. `HasUncheckedItems` remains true
+because full EPUB schema conformance, comprehensive accessibility assessment, and
+reading-system presentation need independent validation and review. Image alternative
+presence does not establish whether the descriptions are useful. Each native check
+retains at most 10,000 findings and reports an error when that bound is reached.
+The report is a snapshot; rerun it after editing. `RequireNoLoss` remains a separate
+conversion/preservation check.
+
+Newly authored or rewritten content rejects duplicate IDs and unresolved document-local
+ARIA and table-header references. IDs may repeat in separate content documents.
+Manuscript splitting reports a failure when a relationship crosses the resulting
+chapter boundary; keep the related content in one chapter or repair the source.
+`AddDublinCoreMetadata` accepts the standard Dublin Core element names, with exact
+lowercase spelling; custom metadata belongs in the EPUB property vocabulary APIs.
+
+For repeatable external validation, see the [EPUBCheck evidence runner](../Build/Epub/README.md).
+
 ## Save validation and limits
 
 Save preflight checks required metadata, unique package ids, manifest targets and

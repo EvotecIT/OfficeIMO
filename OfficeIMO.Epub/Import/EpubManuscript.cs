@@ -42,6 +42,14 @@ public static partial class EpubManuscript {
         var chapters = SplitChapters(body, options.ChapterHeadingLevel, title, diagnostics, cancellationToken);
         AssignAnchors(chapters, diagnostics);
         RewriteChapterLinks(chapters, manuscript, diagnostics);
+        foreach (Chapter chapter in chapters) {
+            try {
+                var ids = EpubContentIdentifiers.Collect(chapter.Body, chapter.Path, true, cancellationToken);
+                EpubContentIdentifiers.ValidateReferences(chapter.Body, ids, chapter.Path, cancellationToken);
+            } catch (InvalidDataException error) {
+                AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", error.Message, chapter.Path, OfficeConversionLossKind.Failure);
+            }
+        }
         foreach (var active in source.QuerySelectorAll("script,iframe,object,embed,form,input,button,select,textarea")) active.Remove();
         List<ImportedStylesheet> sourceStyles = await CollectResourcesAsync(source, chapters, publication, manuscript, options, diagnostics, cancellationToken).ConfigureAwait(false);
         var styles = new List<string>();
