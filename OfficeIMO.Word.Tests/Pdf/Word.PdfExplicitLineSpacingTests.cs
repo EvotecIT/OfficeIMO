@@ -34,9 +34,11 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SaveAsPdf_EmptyParagraphUsesItsMarkFontMetrics(bool nativeDoc) {
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_EmptyParagraphUsesItsMarkFontMetrics(bool nativeDoc, bool hidden) {
         const string markFamily = "OfficeIMO Tall Paragraph Mark";
         using WordDocument source = WordDocument.Create();
         var first = source.AddParagraph("A");
@@ -52,6 +54,7 @@ public partial class Word {
         blank._paragraph.RemoveAllChildren<Run>();
         blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
             new RunFonts { Ascii = markFamily, HighAnsi = markFamily }, new FontSize { Val = "64" });
+        if (hidden) blank._paragraph.Append(new Run(new RunProperties(new Vanish(), new FontSize { Val = "144" }), new Text("Invisible")));
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
         var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,

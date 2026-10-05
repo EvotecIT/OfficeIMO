@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Pdf {
         private static IEnumerable<PdfCore.PdfTextRun> CreateNativeNoteReferenceRuns(
             WordParagraph paragraph, IReadOnlyList<int> numbers, Dictionary<long, int> numbersById,
             NativeDocumentDefaults defaults, NativeFontMap? fontMap,
-            NativeTableRunStyleDefaults tableDefaults = default) {
+            NativeTableRunStyleDefaults tableDefaults = default, bool useConfiguredTypography = false) {
             foreach (int number in numbers) {
                 WordParagraph? source = null;
                 foreach (W.Run run in paragraph._paragraph.Descendants<W.Run>()) {
@@ -25,8 +25,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(source ?? paragraph, paragraph,
                     tableDefaults, defaults, fontMap);
-                double size = source != null ? style.FontSize ?? defaults.FontSize :
-                    GetNativeParagraphStyleDefaults(paragraph).FontSize ?? tableDefaults.FontSize ?? defaults.FontSize;
+                double? size = source != null ? style.FontSize ?? (useConfiguredTypography ? null : defaults.FontSize) :
+                    GetNativeParagraphStyleDefaults(paragraph).FontSize ?? tableDefaults.FontSize ?? (useConfiguredTypography ? null : defaults.FontSize);
                 yield return new PdfCore.PdfTextRun(number.ToString(CultureInfo.InvariantCulture),
                     bold: style.Bold, underline: style.Underline, italic: style.Italic, strike: style.Strike,
                     color: style.Color, fontSize: size, font: style.Font, fontFamily: style.FontFamily,

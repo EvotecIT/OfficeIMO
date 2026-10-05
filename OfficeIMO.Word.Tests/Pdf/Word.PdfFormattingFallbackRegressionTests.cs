@@ -109,6 +109,40 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         Assert.InRange(letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 13.3D, 38.5D);
     }
 
+    [Theory]
+    [InlineData("link", false)]
+    [InlineData("link", true)]
+    [InlineData("footnote", false)]
+    [InlineData("footnote", true)]
+    [InlineData("endnote", false)]
+    [InlineData("endnote", true)]
+    public void ConfiguredTableTypographyReachesLinksAndNoteReferences(string kind, bool authored) {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle?.Remove();
+        var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        paragraph._paragraph.RemoveAllChildren<W.Run>();
+        paragraph._paragraph.Append(new W.Run(new W.Text("Body ")));
+        if (kind == "link") paragraph.AddHyperLink("Linked", new Uri("https://example.com/"));
+        else if (kind == "footnote") paragraph.AddFootNote("Note text");
+        else paragraph.AddEndNote("Note text");
+        var sourceRun = paragraph._paragraph.Descendants<W.Run>().Last();
+        sourceRun.RunProperties ??= new W.RunProperties();
+        sourceRun.RunProperties.FontSize = authored ? new W.FontSize { Val = "36" } : null;
+        var options = Options();
+        options.PdfOptions!.DefaultTableStyle = new PdfTableStyle { FontSize = 12.5, HeaderRowCount = 0 };
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var body = pdf.GetPage(1).Letters.First(letter => letter.Value == "B");
+        Assert.Equal(12.5D, body.PointSize, precision: 3);
+        if (kind == "link") Assert.Equal(authored ? 18D : 12.5D,
+            pdf.GetPage(1).Letters.First(letter => letter.Value == "L").PointSize, precision: 3);
+        else {
+            var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "1" && letter.StartBaseLine.Y > body.StartBaseLine.Y + .1);
+            // PDF text sizes are serialized to hundredths of a point.
+            Assert.InRange(Math.Abs(marker.PointSize - (authored ? 18D : 12.5D) * .65D), 0D, .01D);
+        }
+    }
+
     private static W.Run Text(string text, int points) => new(new W.RunProperties(new W.FontSize { Val = (points * 2).ToString() }),
         new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
     private static WordToPdfOptions Options() => new() {

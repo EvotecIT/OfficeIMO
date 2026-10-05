@@ -321,11 +321,9 @@ namespace OfficeIMO.Word.Pdf {
                         lineHeight = null;
                         lineSpacing = null;
                     }
-                    if (paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>() == null &&
-                        !GetNativeRuns(paragraph).Any(run => !IsNativeHiddenTextRun(run, paragraph) &&
-                            ResolveNativeTextRunStyle(run, paragraph, tableStyleDefaults.RunStyle, nativeDefaults).FontSize.HasValue)) {
-                        paragraphFontSize = paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
-                    }
+                    string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+                    paragraphFontSize = double.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
+                        ? halfPoints / 2D : paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
                 }
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
@@ -577,7 +575,7 @@ namespace OfficeIMO.Word.Pdf {
             if (footnoteNumbersById != null) {
                 List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
                 result.AddRange(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
-                    nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle));
+                    nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography));
             }
 
             return result;
@@ -757,7 +755,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize ?? nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize,
+                fontSize: style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
+                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize),
                 font: style.Font,
                 linkUri: linkUri,
                 linkContents: contents,
