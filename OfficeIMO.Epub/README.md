@@ -411,6 +411,28 @@ This overload requires a structurally valid resulting publication; the single-do
 setter remains available while assembling a book. Export still applies signature,
 encryption and output policies, and independent accessibility and reader checks remain separate.
 
+For editorial changes to individual elements, use `ApplyContentEdits` with immutable
+`EpubContentEdit` proposals. Each proposal selects a manifest ID and `id`/`xml:id`,
+retains the expected element, and supplies a replacement (or `null` to delete it).
+
+```csharp
+var document = publication.GetContentXml("chapter-1");
+var expected = document.Descendants().Single(e => (string?)e.Attribute("id") == "paragraph-1");
+var replacement = new XElement(expected);
+replacement.Value = "Revised paragraph text.";
+publication.ApplyContentEdits(new[] {
+    new EpubContentEdit("chapter-1", "paragraph-1", expected, replacement)
+});
+```
+
+The operation compares expected XML with current content and rejects stale proposals.
+Targets must be inside an XHTML body or below an SVG root. Up to 10,000 independent,
+non-overlapping targets can be edited together; surrounding content and document
+scaffolding remain intact. Namespace-aware XML equality includes attributes and
+whitespace. Proposals copy their XML. Identifier changes and deletions require all
+remaining references to be valid in the combined batch; links are not guessed or
+silently removed. The same validation and atomicity rules as the document batch apply.
+
 `RenameResource(manifestId, containerPath)` moves a local resource without changing its
 manifest identifier or spine position. It repairs incoming links and rebases relative
 references inside a moved document. Standard OPF links, XHTML/SVG links and resource

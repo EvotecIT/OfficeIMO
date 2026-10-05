@@ -6,6 +6,10 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
+    /// <summary>Applies stale-checked scoped content edits in one undoable transaction.</summary>
+    public void ApplyContentEdits(IEnumerable<EpubContentEdit> edits, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.ApplyContentEdits(edits, cancellationToken), cancellationToken);
+
     /// <summary>Merges consecutive compatible chapters, repairing references in one undoable transaction.</summary>
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
         Mutate(publication => publication.MergeChapters(firstManifestId, secondManifestId, boundaryId, cancellationToken), cancellationToken);

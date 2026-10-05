@@ -6,6 +6,23 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class BookProjectRevisionTests {
     [Fact]
+    public void ScopedEditsParticipateInUndoAndDurableRevisions() {
+        var project = BookProject.Create("Book");
+        project.SetChapterBody(0, "<body xmlns='http://www.w3.org/1999/xhtml'><p id='paragraph'>Original</p></body>");
+        var baseline = project.CreateRevision("Before editing");
+        var expected = project.Publication.GetContentXml("chapter-1").Descendants().Single(e => (string?)e.Attribute("id") == "paragraph");
+        var replacement = new System.Xml.Linq.XElement(expected); replacement.Value = "Edited";
+        project.ApplyContentEdits(new[] { new OfficeIMO.Epub.EpubContentEdit("chapter-1", "paragraph", expected, replacement) });
+        Assert.Contains("Edited", project.Publication.GetContentXml("chapter-1").ToString());
+        project.Undo(); Assert.Contains("Original", project.Publication.GetContentXml("chapter-1").ToString());
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Contains("Edited", reopened.Publication.GetContentXml("chapter-1").ToString());
+        reopened.RestoreRevision(baseline.Id);
+        Assert.Contains("Original", reopened.Publication.GetContentXml("chapter-1").ToString());
+    }
+
+    [Fact]
     public void NamedRevisionsSurviveReopenAndRestoreIsUndoable() {
         var project = BookProject.Create("First edition");
         var first = project.CreateRevision("Editorial baseline");
