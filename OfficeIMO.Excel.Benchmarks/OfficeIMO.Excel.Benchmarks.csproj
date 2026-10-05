@@ -20,7 +20,7 @@
     <PackageReference Include="ExcelReader.Arrow" Version="$(ExcelReaderBenchmarkVersion)" />
     <PackageReference Include="EPPlus" Version="8.7.0" />
     <PackageReference Include="LargeXlsx" Version="2.0.2" />
-    <PackageReference Include="MiniExcel" Version="1.45.0" />
+    <PackageReference Include="MiniExcel" Version="1.46.0" />
     <PackageReference Include="SpreadCheetah" Version="1.28.0" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.8" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.9" />
