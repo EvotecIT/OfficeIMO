@@ -1,9 +1,68 @@
 using OfficeIMO.Word;
 using Xunit;
+using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Validation;
+using DocumentFormat.OpenXml;
 
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void NativeDocKerningAndFontSizeProduceValidStyleAndParagraphMarkProperties(bool paragraphMark, bool additionalFormatting) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("AV formatted text");
+        var formatting = new StyleRunProperties();
+        formatting.AddChild(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, true);
+        formatting.AddChild(new Kern { Val = 16U }, true);
+        formatting.AddChild(new FontSize { Val = "48" }, true);
+        if (additionalFormatting) {
+            formatting.AddChild(new Bold(), true);
+            formatting.AddChild(new Caps(), true);
+            formatting.AddChild(new Spacing { Val = 20 }, true);
+            formatting.AddChild(new Underline { Val = UnderlineValues.Single }, true);
+            formatting.AddChild(new Languages { Val = "en-US" }, true);
+        }
+
+        if (paragraphMark) {
+            var mark = new ParagraphMarkRunProperties();
+            foreach (OpenXmlElement property in formatting.ChildElements) {
+                mark.AddChild(property.CloneNode(true), true);
+            }
+            var paragraphProperties = paragraph._paragraphProperties
+                ?? paragraph._paragraph.PrependChild(new ParagraphProperties());
+            paragraphProperties.AddChild(mark, true);
+        } else {
+            const string styleId = "KerningSchemaOrder";
+            var style = new Style {
+                Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true
+            };
+            style.Append(new StyleName { Val = "Kerning Schema Order" });
+            style.StyleRunProperties = formatting;
+            source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+            paragraph.SetStyleId(styleId);
+        }
+
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        OpenXmlCompositeElement properties = paragraphMark
+            ? reloaded.Paragraphs[0]._paragraphProperties!.GetFirstChild<ParagraphMarkRunProperties>()!
+            : reloaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>()
+                .Single(style => style.StyleId == reloaded.Paragraphs[0].StyleId).StyleRunProperties!;
+        Assert.Equal(16U, properties.GetFirstChild<Kern>()!.Val!.Value);
+        Assert.Equal("48", properties.GetFirstChild<FontSize>()!.Val!.Value);
+        if (additionalFormatting) {
+            Assert.Equal("en-US", properties.GetFirstChild<Languages>()!.Val!.Value);
+            Assert.Equal(20, properties.GetFirstChild<Spacing>()!.Val!.Value);
+        }
+        var validator = new OpenXmlValidator();
+        Assert.Empty(validator.Validate(properties));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(reloaded.ToBytes()));
+        Assert.Empty(docx.ValidateDocument());
+    }
+
     [Theory]
     [InlineData(false, 0D)]
     [InlineData(false, 1.5D)]
@@ -44,7 +103,7 @@ public partial class Word {
         WordParagraph link = paragraph.AddHyperLink("AV", new Uri("https://example.com/kerning"));
         link.KerningMinimumFontSizePoints = 1.5D;
         Assert.Equal(1.5D, link.KerningMinimumFontSizePoints);
-        Assert.Equal(16U, paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Run>()
+        Assert.Equal(16U, paragraph._paragraph.Elements<Run>()
             .First().RunProperties!.Kern!.Val!.Value);
 
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
