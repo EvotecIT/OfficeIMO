@@ -10,6 +10,7 @@ internal sealed class HeadingBlock : IPdfBlock {
     public string? LinkContents { get; }
     public PdfHeadingStyle? Style { get; }
     public HeadingBlock(int level, string text, PdfAlign align, PdfColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+        if (level < 1 || level > 9) throw new System.ArgumentOutOfRangeException(nameof(level), level, "Heading level must be between 1 and 9.");
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         Guard.LeftCenterRightAlign(align, nameof(align), "Heading");
         if (linkUri != null && linkDestinationName != null) {

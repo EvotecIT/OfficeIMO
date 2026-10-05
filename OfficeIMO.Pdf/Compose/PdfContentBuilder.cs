@@ -65,6 +65,13 @@ public sealed class PdfContentBuilder {
     public PdfContentBuilder PageBreak(bool preserveEmptyPage) { _doc.PageBreak(preserveEmptyPage); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>
     public PdfContentBuilder Spacer(double height) { _doc.Spacer(height); return this; }
+    /// <summary>Adds a heading at an authored level from 1 through 9.</summary>
+    /// <remarks>Levels 7 through 9 retain their outline depth and use custom tagged roles mapped to H6.</remarks>
+    public PdfContentBuilder Heading(int level, string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+        _doc.Heading(level, text, align, color, linkUri, style, linkContents, linkDestinationName);
+        return this;
+    }
+
     /// <summary>Adds an H1 heading.</summary>
     public PdfContentBuilder H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>

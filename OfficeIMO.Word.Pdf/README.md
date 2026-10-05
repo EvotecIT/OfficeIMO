@@ -212,7 +212,7 @@ pdf.SaveAsWord(
 
 ## What it exports
 
-- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents.
+- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents. Built-in Word heading levels 1–9 retain their depth in body and column flow, using the same level mapping as the table of contents. Tagged PDF uses standard-compatible role mappings for levels 7–9.
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.

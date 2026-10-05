@@ -690,7 +690,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static WordParagraphStyles MapHeadingStyle(int level) {
-            switch (Math.Max(1, Math.Min(6, level))) {
+            switch (Math.Max(1, Math.Min(9, level))) {
                 case 1:
                     return WordParagraphStyles.Heading1;
                 case 2:
@@ -701,8 +701,14 @@ namespace OfficeIMO.Word.Pdf {
                     return WordParagraphStyles.Heading4;
                 case 5:
                     return WordParagraphStyles.Heading5;
-                default:
+                case 6:
                     return WordParagraphStyles.Heading6;
+                case 7:
+                    return WordParagraphStyles.Heading7;
+                case 8:
+                    return WordParagraphStyles.Heading8;
+                default:
+                    return WordParagraphStyles.Heading9;
             }
         }
 

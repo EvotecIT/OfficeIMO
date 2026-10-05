@@ -98,9 +98,7 @@ namespace OfficeIMO.Word.Pdf {
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
                 _pdf.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
             public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
-                if (level == 1) _pdf.H1(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else if (level == 2) _pdf.H2(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else _pdf.H3(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
+                _pdf.Heading(level, text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
             }
             public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style) => _pdf.RichNumbered(items, align, color, startNumber, style);
             public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style) => _pdf.RichBullets(items, align, color, style);
@@ -136,9 +134,7 @@ namespace OfficeIMO.Word.Pdf {
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
                 _column.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
             public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
-                if (level == 1) _column.H1(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else if (level == 2) _column.H2(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else _column.H3(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
+                _column.Heading(level, text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
             }
             public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style) => _column.RichNumbered(items, align, color, startNumber, style);
             public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style) => _column.RichBullets(items, align, color, style);

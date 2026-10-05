@@ -577,19 +577,7 @@ namespace OfficeIMO.Word.Pdf {
             MapNativeNullableCellVerticalAlign(alignment.ToOpenXml());
 
         private static int GetHeadingLevel(WordParagraph paragraph) {
-            if (!paragraph.Style.HasValue) {
-                return 0;
-            }
-
-            return paragraph.Style.Value switch {
-                WordParagraphStyles.Heading1 => 1,
-                WordParagraphStyles.Heading2 => 2,
-                WordParagraphStyles.Heading3 => 3,
-                WordParagraphStyles.Heading4 => 3,
-                WordParagraphStyles.Heading5 => 3,
-                WordParagraphStyles.Heading6 => 3,
-                _ => 0
-            };
+            return GetNativeTableOfContentsHeadingLevel(paragraph);
         }
 
         private static PdfCore.PdfColor? GetNativeHeadingColor(int headingLevel, PdfCore.PdfColor? explicitColor) {

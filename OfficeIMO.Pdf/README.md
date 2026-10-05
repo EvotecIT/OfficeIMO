@@ -62,6 +62,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
+`document.Content.Heading(level, text)` preserves an authored heading level from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role, while outlines and semantic reading retain the authored depth.
+
 ## Paragraph font size and line spacing
 
 Paragraphs can use a fallback font size independently of the document default:
