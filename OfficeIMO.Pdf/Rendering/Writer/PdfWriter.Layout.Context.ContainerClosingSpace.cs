@@ -8,6 +8,12 @@ internal static partial class PdfWriter {
             style is { RepeatFragmentDecoration: false } ? Math.Max(0D, style.PaddingY - style.FragmentBottomInset) : 0D;
 
         private double GetClosingContainerPadding() {
+            if (activeBlockSequences.Count > 0) {
+                BlockSequenceScope leaf = activeBlockSequences[activeBlockSequences.Count - 1];
+                // A section heading precedes its body. Its enclosing panel is
+                // not closing until the section's final child is placed.
+                if (leaf.Blocks[leaf.Index] is SectionBlock section && section.Blocks.Count > 0) return 0D;
+            }
             double padding = 0D;
             double trailingSpacing = 0D;
             for (int index = activeBlockSequences.Count - 1; index >= 0; index--) {
@@ -21,7 +27,7 @@ internal static partial class PdfWriter {
                     if (closing > 0D) { padding += closing + trailingSpacing; trailingSpacing = 0D; }
                     trailingSpacing += style.SpacingAfter;
                 }
-                else if (sequence.Owner is not (SemanticBlock or FlowBlock)) break;
+                else if (sequence.Owner is not (SemanticBlock or FlowBlock or LayerBlock or SectionBlock or TableOfContentsBlock)) break;
             }
             return padding;
         }

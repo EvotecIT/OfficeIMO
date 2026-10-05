@@ -5,6 +5,36 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPanelContinuationTests {
     [Fact]
+    public void Panel_SectionHeadingUsesIntermediateFragmentCapacity() {
+        var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
+        byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
+            .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 4).Select(i => $"Marker{i:D3}"))), style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exactly(32), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false })
+            .Section("MarkerHeading", section => section.Paragraph(p => p.Text("Marker005"), style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exactly(26), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false }), new PdfSectionOptions {
+                    StartOnNewPage = false, HeadingStyle = new PdfHeadingStyle { FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(26),
+                        SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false }
+                }), new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false }).ToBytes();
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("MarkerHeading", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.Contains("Marker005", pdf.GetPage(2).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Panel_TableOfContentsRetainsClosingSpaceAfterItsFinalEntry() {
+        var options = new PdfOptions { PageWidth = 300, PageHeight = 196, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 20, MaxGeneratedPages = 4 };
+        PdfDocument document = PdfDocument.Create(options).Panel(panel => panel.TableOfContents(new PdfTableOfContentsOptions { Title = null }),
+            new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false });
+        for (int i = 1; i <= 5; i++) document.Section($"Marker{i:D3}", _ => { }, new PdfSectionOptions { IncludeHeading = false });
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("Marker005", pdf.GetPage(2).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Panel_FinalParagraphSpacingMovesWithItsClosingPadding() {
         var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
@@ -52,6 +82,8 @@ public class PdfPanelContinuationTests {
     [InlineData("row", "list")]
     [InlineData("body", "nested")]
     [InlineData("row", "nested")]
+    [InlineData("body", "layer")]
+    [InlineData("body", "section")]
     public void Panel_FinalContentKeepsClosingSpaceAcrossSupportedChildren(string layout, string child) {
         var options = new PdfOptions {
             PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
@@ -60,7 +92,13 @@ public class PdfPanelContinuationTests {
         var panelStyle = new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false };
         string[] markers = Enumerable.Range(1, 6).Select(i => $"Marker{i:D3}").ToArray();
         void Content(PdfContentBuilder content) {
-            if (child == "table") content.Table(markers.Select(marker => new[] { marker }), style: new PdfTableStyle {
+            if (child == "layer" || child == "section") {
+                void Wrapped(PdfContentBuilder wrapped) => wrapped.Paragraph(p => p.Text(string.Join("\n", markers)),
+                    style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(26), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false });
+                if (child == "layer") content.Layer("Content", Wrapped);
+                else content.Section("Content", Wrapped, new PdfSectionOptions { IncludeHeading = false, StartOnNewPage = false });
+            }
+            else if (child == "table") content.Table(markers.Select(marker => new[] { marker }), style: new PdfTableStyle {
                 HeaderRowCount = 0, FixedRowHeights = Enumerable.Repeat<double?>(26, 6).ToList(),
                 CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 6,
                 MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
