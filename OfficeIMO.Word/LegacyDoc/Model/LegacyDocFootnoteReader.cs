@@ -669,6 +669,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentHyperlinkTarget.Anchor,
                     specified: currentFormat.Specified,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
+                    kerningMinimumFontSizeHalfPoints: currentFormat.KerningMinimumFontSizeHalfPoints,
                     language: currentFormat.Language,
                     eastAsiaLanguage: currentFormat.EastAsiaLanguage,
                     revision: currentFormat.Revision));

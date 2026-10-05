@@ -1428,6 +1428,7 @@ namespace OfficeIMO.Word {
                 fieldInstruction: source.FieldInstruction,
                 specified: source.Specified,
                 characterSpacingTwips: source.CharacterSpacingTwips,
+                kerningMinimumFontSizeHalfPoints: source.KerningMinimumFontSizeHalfPoints,
                 language: source.Language,
                 eastAsiaLanguage: source.EastAsiaLanguage,
                 picture: source.Picture,
@@ -2442,6 +2443,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.KerningMinimumFontSizeHalfPoints.HasValue) {
+                properties.Append(new Kern { Val = (uint)characterFormat.KerningMinimumFontSizeHalfPoints.Value });
+                hasProperties = true;
+            }
+
             if (characterFormat.CharacterSpacingTwips != null || characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
                 properties.Append(new Spacing { Val = characterFormat.CharacterSpacingTwips ?? 0 });
                 hasProperties = true;
@@ -2595,6 +2601,10 @@ namespace OfficeIMO.Word {
 
             if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {
                 run.SetFontFamily(legacyRun.FontFamily!);
+            }
+
+            if (legacyRun.KerningMinimumFontSizeHalfPoints.HasValue) {
+                run.KerningMinimumFontSizePoints = legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D;
             }
 
             if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
