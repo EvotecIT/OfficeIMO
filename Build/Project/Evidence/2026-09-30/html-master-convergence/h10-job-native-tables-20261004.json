@@ -1883,7 +1883,7 @@
       "initialFingerprint": "805319184fea2d319a7a6de98686b1aa048d577d",
       "full": "One independent read-only pass found3P2, all reproduced: wrapped host scope, sparse trailing rowspan logical boundaries, intrinsic-image refitting.",
       "confirmation": "Initial targeted pass confirmed3original fixes and exposed authored-percent scope. Canonical Word scope owner implemented and independently reviewed.",
-      "remaining": "Standalone exact-head CI and delayed feedback are complete. Combined-source adoption and wider native appearance remain separate gates.",
+      "remaining": "Selected standalone PR is merged and cleaned; combined-source adoption and wider native appearance remain separate gates.",
       "canonicalWordOwner": "One scoped full plus targeted pass exposed shared-story selected section and annotation lifetime defects (resave/move). Both reproduced by3 failing regressions, fixed;18focused net10 and61focused net8 passed.",
       "closure": "One bounded read-only lifetime/inherited-reference closure audit found inherited shared stories. Four before regressions fail, after22 width cases pass; effective per-type inherited references now followed. No unaddressed validated scope finding. No new API/dependency."
     },
@@ -1894,7 +1894,6 @@
       "disposition": "Existing RTF table ownership gap remains in Docs/ROADMAP.md; no unrelated writer edit in width candidate."
     },
     "remaining": [
-      "Current-head hosted CI/delayed feedback/remediation and authorized merge",
       "Qualified integration and whole-source native replay",
       "Excel/PPT/OneNote appearance and ownership",
       "Native application/manual accessibility and source operation loss acceptance"
@@ -2000,6 +1999,135 @@
         "bytes": 194891042,
         "allAbsent": true
       }
+    }
+  },
+  "excelGenericNativePresentationQualification20261005": {
+    "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+    "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+    "scope": "Generic worksheet default column/row presentation and shared wrapped row estimates; additive batch width owner.",
+    "sourceOrder": {
+      "nativeBaselineRawCells": 106,
+      "independentlyDeclaredSourceRows": 21,
+      "allCoordinatesAndValuesEqual": true
+    },
+    "nativeAppearance": {
+      "controls": "Two/three/five-column fixtures and both NASA table pages, independently rendered with LibreOffice26.8alpha0 and inspected.",
+      "rowFit": "Bold/plain/inline-bold fixtures retain complete labels and short control.",
+      "limit": "No native desktop Excel, full-article, manual accessibility or named-table claim."
+    },
+    "reviews": {
+      "full": "One fresh read-only full pass found candidate-introduced P2 repeated serialization.",
+      "confirmation": "One targeted pass confirmed owner batching and accepted additive API, no remaining finding.",
+      "allowancesUsed": true
+    },
+    "tests": {
+      "priorNet8": "5285passed/5skipped before batch remediation",
+      "priorNet10": "5285passed/5skipped before batch remediation",
+      "finalNet10": "5292passed/5skipped; stable remediation bytes compiled before its metadata-only commit",
+      "focusNet10": "48passed",
+      "adapterNet10": "84passed; normal current-source build",
+      "finalNet8": "5292 passed/5 skipped; normal rebuilt current source",
+      "adapterNet8": "142 passed/0 skipped; normal rebuilt current source, filter FullyQualifiedName~Excel"
+    },
+    "batchSaveProof": {
+      "before": {
+        "columns": 64,
+        "cells": 256,
+        "worksheetSaves": 64,
+        "expectedBatchSaves": 1,
+        "timingMeasured": false
+      },
+      "after": {
+        "columns": 64,
+        "cells": 256,
+        "worksheetSaves": 1,
+        "expectedBatchSaves": 1,
+        "timingMeasured": false
+      }
+    },
+    "proofHashes": {
+      "excel-final-net10.trx": "fd3bd67cc444e0d4c82722c6e8c2e2603dfbe84e8fba843fb05311c5774709a1",
+      "excel-html-final-net10.trx": "3b1f9e954aca9b1b487aa9805548d19312a74e225f95cd203bda9e80b7c84619",
+      "column-batch-autofit-net10.trx": "90b80f1672210980723a032737cb830df5a8bc6e704338a23a92df71a9b12f31",
+      "final-native-table-acceptance.json": "abdc3f6792e663094160e046eaeab38694a1b4fc4d9db01863305053a8c5b05e",
+      "row-fit-native-appearance.json": "3f25eba37dcb1e4a949d1bdfd9fe7107108864b05eb7cace615763a98452aded",
+      "excel-final-net8.trx": "5504a0deb7949a0bf49daf845e85721b6192efe32b5487a1ed130b0523dd273b",
+      "excel-html-final-net8.trx": "cb3673ba7686da86f84608089a122e4278c203b671fa9f231bbe699578edefbf",
+      "packages-final/package-hash-receipts.json": "14f4a8469f6a0b886fef7bcf7c52393e9472e54184cb9096c3c98487b96ac2fa",
+      "packages-final/packed-consumer-receipts.json": "6fc8a07d60d19aa26617e9ecda92e208df884efd2d07f88e40ef95f6d9d1d3ad"
+    },
+    "pending": [
+      "Current-head PR CI/delayed complete feedback and authorized merge/cleanup",
+      "Qualified combined-source adoption and wider H10/native/platform budgets"
+    ],
+    "setupFailuresRetained": [
+      "Event observer initially compared root instead of WorksheetPart; corrected actual saves64/1.",
+      "First scratch pack argument interpreted encoded semicolons as one target; corrected to existing quoted TargetFrameworks pattern.",
+      "Initial strict XML byte observer rejected generated hyperlink ID differences. Node-level delta showed only IDs; each resolved target/type/mode matches with all other nodes exact."
+    ],
+    "cleanup": {
+      "obsoletePrivateBuildTargets": 6,
+      "bytesRemoved": 85311514,
+      "actualNativeErrorsRecovered": 3,
+      "allAbsent": true,
+      "publicationBuilds": {
+        "targets": 83,
+        "bytes": 1753064653,
+        "actualNativeErrorsRecovered": 43,
+        "allAbsent": true,
+        "record": "publication-build-cleanup-results.json",
+        "sha256": "aae7bafc36378ef827ea76e76eff31a11339982e320a67c622ad195c688d5581"
+      }
+    },
+    "packages": {
+      "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+      "count": 6,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "normalPack": true,
+      "sourceCommitsAndAllSixHashesVerified": true,
+      "coreRuntimeDependencyCount": 0,
+      "consumerNet8": "Saved/reopened fixtures and frozen source; six actual loaded DLLs match feed hashes/source versions, isolated installed origins exact.",
+      "consumerNet10": "Same public contracts and hash/origin checks pass.",
+      "nativeInputComparison": "Geometry/styles/text/theme and resolved links equal to independently inspected C11 native input; generated hyperlink IDs differ. No text normalization or all-byte claim.",
+      "receipt": "packages-final/packed-consumer-receipts.json",
+      "windowsBoundary": "Local net472 is cross-compilation; hosted native Windows execution still required."
+    },
+    "candidate": {
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2838",
+      "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+      "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+      "worktree": "../OfficeIMO-excel-html-generic-table-presentation",
+      "status": "Open; initial exact-head current CI queued/running, complete feedback page contains no threads. Delayed review/CI/merge remain required. Combined-source adoption not performed."
+    },
+    "proofRoot": "../OfficeIMO-excel-html-generic-table-presentation/Ignore/ExcelGenericPresentationQualification",
+    "qualificationReceiptSha256": "9853facd4b493eea8d205b0a1c80d1c3a30a29a4070cc91c483f24377232f9a1"
+  },
+  "powerPointLinkedHeaderReproduction20261005": {
+    "proofRoot": "Ignore/MasterConvergenceQualification/ppt-native-header-current-a8df20d61",
+    "observations": {
+      "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+      "controls": "Plain unlinked header and authored hex dark/light fill/text controls are readable.",
+      "linkedHeaders": "Minimal unstyled links and all four exact source-fragment slides render low-contrast blue header links; source row cells/targets not yet fully accepted by independent machine observer.",
+      "schema": "Supported authored dark #123456 / white #ffffff linked header returns two OpenXmlValidator unexpected solidFill errors. Header color is appended after hlinkClick by the shared PowerPointTextRun.Color setter; other five produced fixtures return zero schema errors.",
+      "native": "Supported authored white header link still paints blue in independent LibreOffice; no claim that schema order alone explains the separate valid unstyled-header contrast failure.",
+      "next": "Separate master-based fix: reproduce public run color/font/highlight-after-link schema ordering, sweep reachable shared setters; then preserve inherited/explicit text color for generic repeated header links through canonical table/style owner. Keep targets, underlines, explicit inline colors, row order, merges and native fragment safety.",
+      "boundary": "Bounded native LibreOffice projection; no desktop PowerPoint, full-article, accessibility or browser parity.",
+      "orderOnlyNativeControl": "Independent test-only control moves existing white solidFill before hlinkClick; text/attributes/targets are unchanged. Native LibreOffice still paints blue links. Schema ordering is a separate observed writer defect and must not be claimed to fix header contrast."
+    },
+    "preservationManifestSha256": "2c74a435692ed81372f12ba2ddf0d34b30ee9b5f8080453a5bc9f79c59a624cb",
+    "files": 61,
+    "bytes": 1021960,
+    "activeSharedWriterSlice": {
+      "worktree": "../OfficeIMO-powerpoint-run-format-order",
+      "branch": "fix/powerpoint-run-format-order",
+      "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+      "scope": "Run formatting/action schema order only; default native header hyperlink contrast remains a separate criterion.",
+      "next": "Four public table/textbox save/reopen schema regressions running on untouched owner before scoped shared setter fix."
     }
   }
 }

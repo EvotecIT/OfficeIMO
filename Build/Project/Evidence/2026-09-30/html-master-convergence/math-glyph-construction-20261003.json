@@ -1080,7 +1080,7 @@
           "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
           "proof": "../OfficeIMO-raster-contour-single-tile/Ignore/ContourSingleTileQualification/receipt.json",
           "validation": "Full Drawing3319 eachnet8/net10;Corestandard0warnings;same independent pixel/resource controls. Code blobs identical to reviewed12candidate. No larger HTML/runtime dependency.",
-          "publication": "Accepted website validation owner included; exact-head initialCI96queued3skip and complete feedback0unresolved. New delayed check required, no merge-readiness claim.",
+          "publication": "Current accepted-master head has complete delayed feedback with no actionable findings; CI is held on hosted-runner allocation and pending test jobs. No merge-readiness claim.",
           "cleanup": "Ten generated targets357175247bytes removed, all absent; six actual native filesystem errors recovered with guarded helper. Required proof/source retained.",
           "delayedSnapshot": {
             "checkedUtc": "2026-10-05T17:02:00Z",
@@ -1089,7 +1089,22 @@
             "feedback": "Complete paginated review/nested comments/reviews/raw/issue/reactions;0 unresolved or actionable review findings.",
             "failure": "Website browser readiness in Test-BenchmarkPage.Browser.ps1:95; generated site and Chromium endpoint not ready. Failure preserved, root cause unresolved; merge held."
           },
-          "acceptedMasterUpdate": "Conflict-free merge139files; Core/Drawing owner bytes unchanged.33contour contracts net10pass, normalCorestandard0warnings. Full combined graph remains exact-head CI gate."
+          "acceptedMasterUpdate": "Conflict-free merge139files; Core/Drawing owner bytes unchanged.33contour contracts net10pass, normalCorestandard0warnings. Full combined graph remains exact-head CI gate.",
+          "delayedSnapshot202610052045": {
+            "source": "f16c2ec83239eeaaf0907f1cbd6ebd0c1013b678",
+            "checkedUtc": "2026-10-05T20:45:14.738871+00:00",
+            "ci": "29success5skip55queued13cancelled at snapshot",
+            "feedback": "Every thread page/nested comment and raw review/issue/reactions checked; zero unresolved or actionable findings. PR text accurate.",
+            "terminalReason": "All13cancelled jobs had runner_id0, zero steps, and annotation The job was not acquired by Runner of type hosted even after multiple attempts. No product execution or test failure on these jobs.",
+            "proofRoot": "../OfficeIMO-raster-contour-single-tile/Ignore/ContourSingleTileQualification",
+            "allocationProofSha256": "8ee70e90fcc80113ace76210823952d17bf8d7534b1235cab753a0460b2a0240",
+            "oneBoundedRerun": {
+              "completedWorkflowsRetriedOnce": 7,
+              "testParentHeld": "37363418184 still queued; no rerun of active parent attempted. One bounded retry of allocation-only cancelled jobs requires parent completion.",
+              "receiptSha256": "44a541d73f448a2b63212c185be20e6f9eae3d10daa8cc9d7ad80b7da2dd9731"
+            },
+            "remaining": "Exact-head rerun/pending CI must actually pass; no live watching or repeated-until-green retry."
+          }
         }
       }
     },
