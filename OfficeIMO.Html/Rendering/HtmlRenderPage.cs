@@ -330,7 +330,7 @@ public sealed partial class HtmlRenderPage {
         double bottom = group.ClipVertical ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : surfaceHeight;
         if (right <= left + 0.0001D || bottom <= top + 0.0001D) return;
 
-        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken, authoredClip: group);
         double minimumLeft = bounds.Left;
         double minimumTop = bounds.Top;
         double shiftX = -minimumLeft;
@@ -360,7 +360,7 @@ public sealed partial class HtmlRenderPage {
         double surfaceHeight,
         OfficeFontFaceCollection fonts,
         CancellationToken cancellationToken) {
-        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken, authoredClip: group);
         double minimumLeft = bounds.Left;
         double minimumTop = bounds.Top;
         double shiftX = -minimumLeft;
