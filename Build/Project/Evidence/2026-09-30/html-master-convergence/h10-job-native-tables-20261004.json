@@ -1964,5 +1964,12 @@
       "reviewComments": 0,
       "ci": "Queued/running immediately after publication; no failure at that snapshot. Delayed exact-head check remains."
     }
+  },
+  "excelNativeLabelNextSlice20261005": {
+    "predeclared": "Ignore/MasterConvergenceQualification/excel-native-labels-inspection-96d76110c/predeclared-next-slice.json",
+    "sha256": "0a7427ace2ebf512d2921680a7c917e56db6641a0014dda9db7571e3896f65d7",
+    "historicalArtifactSource": "fe05c0413",
+    "observation": "First-column labels are visibly clipped in the independently rendered five-column XLSX. Saved data is complete; no explicit column widths or wrap flags exist in either table worksheet. Current source owner formats only unspanned two-column generic tables.",
+    "boundary": "Historical native evidence, not current-source acceptance; reproduce a small current public fixture before a patch. Generic worksheet grids do not promise named Excel table objects. Preserve explicit workbook profile metadata and spans separately."
   }
 }

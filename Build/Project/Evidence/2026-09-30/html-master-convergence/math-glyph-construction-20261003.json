@@ -408,7 +408,7 @@
     ],
     "outputAllocationsMemoryCancellation": "All retained runs pass these unchanged ceilings; output fingerprint matches the prior qualified constant-metrics baseline.",
     "timingLimit": "Unrelated compiler/simulator activity was observed during earlier runs. Latest cold process passes but all three warm iterations fail. A timing regression is not excluded by unchanged deterministic output or allocation counts.",
-    "nextCheck": "Inspect current 44027 same-runner candidate/control run 37315963943 at or after 2026-10-05T14:45:00Z. Interpret actual packages/test/budget artifacts; investigate comparable failures without relaxing ceilings or repeating until green.",
+    "nextCheck": "Historical local attempts retained. Current same-runner run37335168701 preserves Windows/macOS correctness and package proof but fails unchanged timings; Linux setup timeout produced no product evidence. Use currentSourceAudit and the predeclared equivalent profiling slice, not repeated-until-green runs.",
     "historicalScope": "Original 395d5ce48 local attempts; preserved failures. This section is not the current combined-source measurement gate."
   },
   "remainingMathScopes": [
@@ -1051,7 +1051,7 @@
           "firstDelayedRecheckNotBeforeUtc": "2026-10-05T17:00:00Z",
           "state": "completed-failure",
           "observations": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/hosted-37335168701/qualification-observations.json",
-          "observationsSha256": "77d00a74c6f250a4e9557bf88d58688cbf8f2f3fb5fd59fee6d78d7ab00e1837",
+          "observationsSha256": "6a54522907d3362e014a37f11d608eb3f00691e17775cbf71bc9b9863242a466",
           "correctness": "Windows and macOS HTML4367/framework, installed math1/framework, font selection28/framework, PDF8788net10 all pass;14 named TRX scopes inspected. Linux stops during font setup before product execution.",
           "packages": "Nineteen normal four-target feeds on Windows/macOS; two packed consumer graphs per platform, installed origins/package bytes/SHA512/loaded owner DLL/source versions independently verified. Native Windows direct MATH proof remains separately verified on a0.",
           "budgets": "Current allocation/peak/output/cancellation ceilings pass on both measured platforms. Cold/warm timings fail; prior a0 controls fail timings too. No performance acceptance, causal host claim or repeated-until-green measurement.",
@@ -1091,6 +1091,16 @@
           }
         }
       }
+    },
+    "standaloneWebsiteValidation20261005": {
+      "source": "554193ba5a2fe7482a0499ab3be5b452bffcef80",
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2828",
+      "role": "Test-only published HtmlTinkerX browser session replaces consumer-owned Chromium/CDP harness; server errors reported; same rendered benchmark assertions retained. No production dependency or product API change.",
+      "proof": "../OfficeIMO-website-benchmark-browser-contract/Ignore/WebsiteBrowserQualification/qualification.json",
+      "receiptSha256": "9e8dd1fabf4c46faa5a9182d3c5667fb8653a0c4d93af26bf122aaaae4170a21",
+      "localReview": "Fresh full read-only pass plus targeted routing/build-isolation/cleanup confirmation, all valid findings fixed.",
+      "localBehavior": "Styled generated page passes both selections; missing-page, failed-server and wrong-page controls fail. Five generated targets268596574bytes removed with absence proof.",
+      "remaining": "Exact-head website CI and delayed feedback. Original Linux startup cause unconfirmed. PR2826 cannot merge while its failed website gate remains."
     }
   }
 }
