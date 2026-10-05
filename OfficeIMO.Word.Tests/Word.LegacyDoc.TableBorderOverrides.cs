@@ -6,6 +6,33 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("WordTableRowCellAutoNative.doc", WordBorderStyle.Single)]
+    [InlineData("WordTableRowCellNilNative.doc", WordBorderStyle.Nil)]
+    public void LegacyDoc_WordProducedCellBorderOverride_ClearsRowAttributes(string fixture, WordBorderStyle style) {
+        using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", fixture));
+        AssertExplicitCellEdges(document);
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
+            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
+        AssertExplicitCellEdges(restored);
+
+        void AssertExplicitCellEdges(WordDocument value) {
+            var borders = value.Tables[0].Rows[0].Cells[0].Borders;
+            var edges = new[] {
+                (borders.TopStyle, borders.TopColorHex, borders.TopSize, borders.TopSpace),
+                (borders.LeftStyle, borders.LeftColorHex, borders.LeftSize, borders.LeftSpace),
+                (borders.BottomStyle, borders.BottomColorHex, borders.BottomSize, borders.BottomSpace),
+                (borders.RightStyle, borders.RightColorHex, borders.RightSize, borders.RightSpace)
+            };
+            foreach (var edge in edges) {
+                Assert.Equal(style, edge.Item1);
+                Assert.Null(edge.Item2);
+                Assert.Equal(style == WordBorderStyle.Nil ? (uint?)null : 4U, edge.Item3);
+                Assert.Null(edge.Item4);
+            }
+        }
+    }
+
+    [Theory]
     [InlineData("WordTableLastRowGreenNative.doc", "00FF00")]
     [InlineData("WordTableFirstRowRedNative.doc", "FF0000")]
     [InlineData("WordTableLastRowNilNative.doc", null)]
