@@ -30,6 +30,9 @@ public class PdfEncodingTests {
     [InlineData("ï»¿", "FEFF00EF00BB00BF")]
     public void PdfTextStringsUseUtf16ForUnrepresentedCharactersAndBomCollisions(string text, string hex) {
         Assert.Equal("<" + hex + ">", PdfSyntaxEscaper.TextString(text));
+        var appended = new StringBuilder();
+        PdfSyntaxEscaper.AppendTextStringCancellable(appended, text, CancellationToken.None);
+        Assert.Equal("<" + hex + ">", appended.ToString());
         Assert.Equal(PdfTextString.DecodeHexBytes(hex), PdfTextString.Encode(text));
         Assert.Equal(text, PdfTextString.Decode(PdfTextString.Encode(text)));
     }

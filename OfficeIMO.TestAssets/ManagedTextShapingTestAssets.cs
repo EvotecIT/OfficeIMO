@@ -21,6 +21,9 @@ internal static partial class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
+    internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
+        CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
+
     internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
         ushort windowsDescent, params int[] scalars) {
         int[] ordered = new SortedSet<int>(scalars).ToArray();
@@ -61,10 +64,10 @@ internal static partial class ManagedTextShapingTestAssets {
             gsub: CreateLigatureGsub(featureTag, 1, 2, 3, scriptTag, lookupFlags));
     }
 
-    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar) {
+    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar, bool includeSpace = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 2),
             glyphCount: 3,
             gsub: CreateLigatureGsub("liga", 1, 2, 1));
     }
@@ -237,8 +240,9 @@ internal static partial class ManagedTextShapingTestAssets {
         byte[]? cpal = null,
         int baseGlyphHeight = 700,
         bool inkedNotdef = false,
+        bool emptyGlyphs = false,
         byte[]? os2 = null) {
-        byte[] glyph = CreateVisibleGlyph(400);
+        byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
         var hmtx = new byte[4 + (glyphCount - 1) * 2];
@@ -251,7 +255,8 @@ internal static partial class ManagedTextShapingTestAssets {
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)((byteOffset + glyph.Length) / 2)));
         }
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
-        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, checked((byte)glyphCount) };
+        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
+        WriteUInt16(maxp, 4, checked((ushort)glyphCount));
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", glyf),

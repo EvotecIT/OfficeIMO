@@ -153,6 +153,7 @@ internal static partial class PdfWriter {
                     var rowLeadings = new double[tb2.Rows.Count];
                     var rowSizes = new double[tb2.Rows.Count];
                     var rowBold = new bool[tb2.Rows.Count];
+                    var textLayouts = new TableTextLayoutReuse(currentOpts);
                     for (int ri = 0; ri < tb2.Rows.Count; ri++) {
                         bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
                         double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
@@ -166,24 +167,22 @@ internal static partial class PdfWriter {
                         rowLines[ri] = new TableCellTextLayout[cols];
                         int maxLines = 1;
                         double maxRequiredHeight = rowLeading + GetTableRowMaxPaddingTop(tb2, style, ri, cols) + GetTableRowMaxPaddingBottom(tb2, style, ri, cols);
-                        for (int ci = 0; ci < cols; ci++) {
-                            rowLines[ri][ci] = new TableCellTextLayout(new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() }, new System.Collections.Generic.List<double> { rowLeading });
-                        }
-
                         var cells = GetTableCellLayouts(tb2, ri, cols);
                         for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                             TableCellLayout cell = cells[cellIndex];
                             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                             double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, columnGap);
                             double innerWidth = Math.Max(1, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
+                            TableCellTextLayout lines = textLayouts.Create(cell, innerWidth, cellFont, rowSize, rowLeading, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
                             rowLines[ri][cell.Column] = lines;
                             if (cell.RowSpan <= 1 && cell.Viewport == null) {
                                 maxLines = Math.Max(maxLines, lines.LineCount);
                                 maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
                             }
                         }
-
+                        for (int ci = 0; ci < cols; ci++) {
+                            rowLines[ri][ci] ??= new TableCellTextLayout(new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() }, new System.Collections.Generic.List<double> { rowLeading });
+                        }
                         rowLineCounts[ri] = maxLines;
                         rowHeights[ri] = ResolveTableRowHeight(style, ri, maxRequiredHeight);
                     }

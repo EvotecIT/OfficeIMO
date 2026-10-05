@@ -262,6 +262,8 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
 - Serves as the shared engine for Word, Excel, PowerPoint, OpenDocument, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters.
 
+Opaque grayscale PNG images with 1-, 2-, or 4-bit samples retain their packed sample depth when embedded. Noninterlaced inputs reuse the validated compressed image stream; Adam7 inputs normalize their rows first. Images with grayscale transparency use the existing grayscale and soft-mask conversion. This keeps scanned-page images compact without changing their pixels.
+
 ## Existing PDF workflows
 
 ```csharp
