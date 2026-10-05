@@ -83,7 +83,7 @@ public static partial class OfficeTiffCodec {
 
                 if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
+                    !TryReadRowsPerStrip(encodedBytes, entries, littleEndian, height, out int rowsPerStrip) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor)) {
                     return false;
@@ -104,7 +104,7 @@ public static partial class OfficeTiffCodec {
                      compression != (int)OfficeTiffCompression.Lzw &&
                      compression != (int)OfficeTiffCompression.PackBits &&
                      compression != (int)OfficeTiffCompression.Deflate &&
-                     compression != 32946) ||
+                     compression != 32946 && !IsTiffFaxCompression(compression)) ||
                     orientation < 1 || orientation > 8 ||
                     (samples != baseSamples && samples != baseSamples + 1) ||
                     rowsPerStrip < 1 ||
@@ -114,6 +114,7 @@ public static partial class OfficeTiffCodec {
                 }
 
                 if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
+                    (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
                     (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) {
                     return false;
                 }

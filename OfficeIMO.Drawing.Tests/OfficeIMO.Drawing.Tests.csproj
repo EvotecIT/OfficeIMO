@@ -121,4 +121,5 @@
   </ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffFloating/*.tif;TestAssets/TiffFloating/*.rgba;TestAssets/TiffFloating/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffPacked/*.tif;TestAssets/TiffPacked/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffFax/*.tif;TestAssets/TiffFax/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

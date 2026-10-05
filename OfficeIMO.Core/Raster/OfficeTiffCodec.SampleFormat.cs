@@ -8,7 +8,9 @@ public static partial class OfficeTiffCodec {
         bool littleEndian, int samples, int photometric, out int sampleBytes, out bool floating, out int packedBits) {
         sampleBytes = 0; floating = false; packedBits = 0;
         if (!TryReadScalarOrDefault(bytes, entries, 266, littleEndian, 1, out int fillOrder) ||
-            fillOrder != 1) return false;
+            (fillOrder != 1 && (fillOrder != 2 ||
+             !TryReadScalarOrDefault(bytes, entries, 259, littleEndian, 1, out int compression) ||
+             !IsTiffFaxCompression(compression)))) return false;
         int[] bits;
         if (entries.ContainsKey(258)) {
             if (!TryReadValues(bytes, entries, 258, littleEndian, samples, out bits) ||

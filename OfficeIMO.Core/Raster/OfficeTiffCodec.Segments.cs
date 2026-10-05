@@ -40,7 +40,7 @@ public static partial class OfficeTiffCodec {
             "TIFF decoded source pixels exceed the managed limit.");
 
         if (hasStrips) {
-            if (!TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
+            if (!TryReadRowsPerStrip(encodedBytes, entries, littleEndian, height, out int rowsPerStrip) ||
                 rowsPerStrip < 1) return false;
             int segmentsPerPlane = checked((height + rowsPerStrip - 1) / rowsPerStrip);
             int segmentCount = checked(segmentsPerPlane * (planarConfiguration == 2 ? samples : 1));
@@ -222,8 +222,9 @@ public static partial class OfficeTiffCodec {
             maximumDecodedSegmentLength < 0 || retainedManagedBytes < 0L) return false;
         try {
             long retainedSourceBytes = retainPixels ? sourceLength : 0L;
-            bool usesDeflateTemporaries = compression == (int)OfficeTiffCompression.Deflate || compression == 32946;
-            long codecTemporaryBytes = usesDeflateTemporaries
+            bool usesCodecTemporaries = compression == (int)OfficeTiffCompression.Deflate ||
+                compression == 32946 || IsTiffFaxCompression(compression);
+            long codecTemporaryBytes = usesCodecTemporaries
                 ? checked((long)maximumCompressedSegmentLength + maximumDecodedSegmentLength)
                 : 0L;
             long segmentPeak = checked(
@@ -236,6 +237,22 @@ public static partial class OfficeTiffCodec {
         } catch (OverflowException) {
             return false;
         }
+    }
+
+    // RowsPerStrip is an unsigned TIFF value; UINT_MAX means a single strip.
+    // Clamp before signed arithmetic, allocation estimates, or strip-count division.
+    private static bool TryReadRowsPerStrip(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
+        bool littleEndian, int height, out int rows) {
+        rows = height;
+        if (height <= 0) return false;
+        if (!entries.TryGetValue(278, out TiffEntry entry)) return true;
+        if (entry.Count != 1 || (entry.Type != 3 && entry.Type != 4) ||
+            !HasBytes(bytes, entry.ValueFieldOffset, entry.Type == 3 ? 2 : 4)) return false;
+        uint declared = entry.Type == 3 ? (uint)ReadUInt16(bytes, entry.ValueFieldOffset, littleEndian)
+            : ReadUInt32(bytes, entry.ValueFieldOffset, littleEndian);
+        if (declared == 0) return false;
+        rows = (int)Math.Min((uint)height, declared);
+        return true;
     }
 
     private static bool HasSegment(byte[] encodedBytes, int offset, int count) =>

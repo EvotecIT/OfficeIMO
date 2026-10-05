@@ -42,4 +42,5 @@
   </ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/manifest.csv" Link="Fixtures/TiffFloating/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffPacked/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffPacked/manifest.csv" Link="Fixtures/TiffPacked/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFax/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFax/manifest.csv" Link="Fixtures/TiffFax/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

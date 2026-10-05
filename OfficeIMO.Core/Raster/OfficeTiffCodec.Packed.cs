@@ -10,12 +10,14 @@ public static partial class OfficeTiffCodec {
         bool littleEndian, int width, int height, int bits, int photometric, int compression,
         OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source) {
         source = Array.Empty<byte>();
+        bool fax = IsTiffFaxCompression(compression);
+        if (!TryGetTiffFaxSettings(bytes, entries, littleEndian, compression, out int faxK, out int fillOrder)) return false;
         bool strips = entries.ContainsKey(273) || entries.ContainsKey(279);
         bool tiles = entries.ContainsKey(324) || entries.ContainsKey(325) || entries.ContainsKey(322) || entries.ContainsKey(323);
         if (strips == tiles) return false;
         int segmentWidth = width, segmentHeight;
         if (strips) {
-            if (!TryReadScalarOrDefault(bytes, entries, 278, littleEndian, height, out segmentHeight) || segmentHeight < 1) return false;
+            if (!TryReadRowsPerStrip(bytes, entries, littleEndian, height, out segmentHeight) || segmentHeight < 1) return false;
             segmentHeight = Math.Min(segmentHeight, height);
         } else if (!TryReadScalar(bytes, entries, 322, littleEndian, out segmentWidth) ||
             !TryReadScalar(bytes, entries, 323, littleEndian, out segmentHeight) ||
@@ -58,7 +60,11 @@ public static partial class OfficeTiffCodec {
             int rows = Math.Min(segmentHeight, height - top);
             int columns = Math.Min(segmentWidth, width - left);
             int expected = checked(rowBytes * (strips ? rows : segmentHeight));
-            if (!TryDecodeStrip(bytes, offsets[segment], lengths[segment], compression,
+            if (fax) {
+                if (!TryDecodeTiffFax(bytes, offsets[segment], lengths[segment], segmentWidth,
+                    strips ? rows : segmentHeight, compression, faxK, fillOrder, packed, expected,
+                    options.CancellationToken)) return false;
+            } else if (!TryDecodeStrip(bytes, offsets[segment], lengths[segment], compression,
                 packed, 0, expected, options.CancellationToken)) return false;
             if (!retainPixels) continue;
             for (int y = 0; y < rows; y++) {

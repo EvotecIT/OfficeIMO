@@ -237,13 +237,14 @@ public static partial class OfficeTiffCodec {
              compression != (int)OfficeTiffCompression.Lzw &&
              compression != (int)OfficeTiffCompression.PackBits &&
              compression != (int)OfficeTiffCompression.Deflate &&
-            compression != 32946)) return false;
+            compression != 32946 && !IsTiffFaxCompression(compression))) return false;
 
         if (!options.IgnoreTiffOrientation &&
             (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
              orientation < 1 || orientation > 8)) return false;
 
         if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
+                    (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
                     (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) return false;
 
         if (photometric == 5 &&

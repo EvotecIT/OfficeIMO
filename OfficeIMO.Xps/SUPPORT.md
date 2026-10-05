@@ -50,8 +50,12 @@ packed one/four-bit grayscale samples, and one/four/eight-bit palette indices in
 and tiles use uncompressed, LZW, PackBits or Deflate payloads, including word-based
 horizontal prediction and floating-point prediction for LZW/Deflate. Sample and associated-alpha precision is retained through
 ICC conversion before eight-bit RGBA projection. Packed rows retain byte alignment, and bilevel images may omit BitsPerSample.
-Packed samples require no predictor. CCITT and JPEG-compressed TIFF, mixed component widths, reversed
-bit order, sixteen-bit palette indices, signed and undefined
+Packed samples require no predictor. Bilevel CCITT decoding supports Modified
+Huffman, Group 3 one/two-dimensional coding with optional fill bits, and Group 4,
+including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
+above the page height, including 0xFFFFFFFF, describe a single strip. Optional uncompressed fax
+extension mode is rejected. JPEG-compressed TIFF, mixed component widths, reversed
+bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
 clips to SDR output. It does not infer linear scRGB or rescale scientific ranges,
@@ -77,6 +81,16 @@ per rendering route across raster, SVG and PDF readback; MuPDF SVG/PDF compariso
 differ by at most 2/255 per channel. GhostXPS returns success but differs by up to
 255 and leaves tiled cases blank. Its output is retained as a consumer difference;
 native Windows packed-TIFF acceptance remains unqualified.
+
+CCITT qualification covers 99 independently encoded and decoded LibTIFF fixtures:
+Modified Huffman, Group 3 one/two-dimensional coding with optional fill bits,
+Group 4, both byte/bit orders and grayscale polarities, strips and tiles. Three
+single-strip cases use the unsigned RowsPerStrip sentinel. Both dialects produce
+198 documents and 312,246 pixel-center probes per rendering route. Managed pixels
+match exactly; MuPDF SVG/PDF output differs by at most 3/255 per channel.
+GhostXPS returns success but differs by up to 255 and leaves some mixed/tiled
+cases blank. Its output is retained as a consumer difference; native Windows
+acceptance and the optional uncompressed fax extension remain unqualified.
 
 Floating-point qualification covers 304 independently encoded and decoded LibTIFF
 fixtures: 16/24/32/64-bit samples, both byte orders, compression/prediction and
