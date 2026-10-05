@@ -299,13 +299,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
-            string? paragraphMarkSize = paragraph._paragraph?.ParagraphProperties?
-                .ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
-            if (int.TryParse(paragraphMarkSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints) && halfPoints > 0) {
-                fontSize = halfPoints / 2D;
-            }
-            double lineHeight = style.LineHeight ?? ResolveNativeParagraphLineHeight(
+            double fontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(
                 paragraph,
                 fontSize,
                 nativeDefaults,

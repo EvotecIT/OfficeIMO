@@ -53,7 +53,12 @@ namespace OfficeIMO.Word.Pdf {
                 double size = ResolveNativeTextRunStyle(run, paragraph, tableRunStyleDefaults, nativeDefaults).FontSize ?? nativeDefaults.FontSize;
                 if (size > 0D) minimum = minimum.HasValue ? Math.Min(minimum.Value, size) : size;
             }
-            return minimum ?? ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableRunStyleDefaults);
+            if (minimum.HasValue) return minimum.Value;
+            string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+            if (int.TryParse(markSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints) && halfPoints > 0)
+                return halfPoints / 2D;
+            return Math.Max(ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableRunStyleDefaults),
+                tableRunStyleDefaults.FontSize ?? 0D);
         }
     }
 }
