@@ -2126,8 +2126,41 @@
       "worktree": "../OfficeIMO-powerpoint-run-format-order",
       "branch": "fix/powerpoint-run-format-order",
       "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
-      "scope": "Run formatting/action schema order only; default native header hyperlink contrast remains a separate criterion.",
-      "next": "Four public table/textbox save/reopen schema regressions running on untouched owner before scoped shared setter fix."
+      "source": "f3784a939457a20adf4c6adc80c27e401d02a424",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2840",
+      "scope": "Shared run/box/cell/chart formatting and hyperlink/sound schema order only; native header hyperlink contrast remains a separate criterion.",
+      "validation": {
+        "before": "Four run-order, two box/cell and four imported chart title/legend cases reproduce schema/font preservation failures.",
+        "after": "Full PowerPoint 2144 passed and 2 existing opt-in skips on each net8/net10; normal six four-target packages and both public packed consumers produce twelve schema-valid artifacts each, with exact six-owner origin/DLL hash receipts.",
+        "review": "One fresh read-only full pass and targeted chart-sibling confirmation complete; no remaining actionable finding.",
+        "native": {
+          "checkedUtc": "2026-10-05T21:28:48.544217+00:00",
+          "application": "Microsoft PowerPoint 16.112.4",
+          "source": "f3784a939457a20adf4c6adc80c27e401d02a424",
+          "artifact": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification/packages-final/consumer-net10/linked-dark.pptx",
+          "sha256": "5024c89517ab31cb00e3d3a8ca6e5c0e1b21f28999a8f2cd9c0f3fe2c6747999",
+          "openedWithoutRepair": true,
+          "appearance": "Quantity white; Mercury and Venus dark teal on dark blue as in the independent pre-fix order-only control. Native linked-header contrast not changed or claimed fixed.",
+          "closure": "Cmd-W closed owned document; subsequent observation returned noWindowsAvailable. App inventory retains running PowerPoint process; user app not quit.",
+          "boundary": "Native open/visual observation of one packaged fixture, not full native/manual accessibility acceptance."
+        },
+        "boundary": "Hosted native Windows net472, current-head CI and delayed PR feedback remain required; standalone proof is not combined H10 adoption or header-contrast acceptance."
+      },
+      "evidenceRoot": "../OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification",
+      "cleanup": {
+        "manifest": "publication-build-cleanup-results.json",
+        "targets": 27,
+        "bytes": 972335067,
+        "actualFilesystemRecoveries": 15,
+        "allAbsent": true
+      },
+      "next": "Current-head CI/delayed feedback then merge and preserve unique evidence before owned worktree removal."
+    },
+    "nativeColorProducer20261005": {
+      "application": "Microsoft PowerPoint 16.112.4",
+      "evidence": "../OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification/native-color-edit-observations.json",
+      "observation": "Native white text-color override produces DrawingML hlinkClr val=tx under extension URI {A12FA001-AC4F-418D-AE19-62706E023703}; Mercury is white/underlined while unchanged Venus retains theme hyperlink color.",
+      "boundary": "Separate native producer proof only; generic text-color compatibility control and product contrast fix remain open."
     }
   }
 }
