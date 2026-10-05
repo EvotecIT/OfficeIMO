@@ -36,12 +36,17 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        double x2 = x + w;
-        double y2 = y + h;
         PdfPanelBorder? top = drawTop ? ResolvePanelSideBorder(style.TopBorderSnapshot, style) : null;
         PdfPanelBorder? right = ResolvePanelSideBorder(style.RightBorderSnapshot, style);
         PdfPanelBorder? bottom = drawBottom ? ResolvePanelSideBorder(style.BottomBorderSnapshot, style) : null;
         PdfPanelBorder? left = ResolvePanelSideBorder(style.LeftBorderSnapshot, style);
+        x -= IsRenderablePanelBorderSide(left) ? left!.Offset : 0D;
+        y -= IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D;
+        w += (IsRenderablePanelBorderSide(left) ? left!.Offset : 0D) + (IsRenderablePanelBorderSide(right) ? right!.Offset : 0D);
+        h += (IsRenderablePanelBorderSide(top) ? top!.Offset : 0D) + (IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D);
+        if (w <= 0D || h <= 0D) throw new ArgumentException("Panel border offsets must leave positive border dimensions.");
+        double x2 = x + w;
+        double y2 = y + h;
 
         // Rounded box: draw each side as a rounded-rectangle stroke clipped to that side and its two
         // corners, so the sides meet at the corner tangents and share the box's rounded corners (the CSS

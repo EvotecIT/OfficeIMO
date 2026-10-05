@@ -5,6 +5,33 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPanelContinuationTests {
     [Theory]
+    [InlineData(0D)]
+    [InlineData(6D)]
+    public void Panel_BorderOffsetsMovePaintWithoutMovingText(double radius) {
+        var options = new PdfOptions {
+            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20
+        };
+        var style = new PdfPanelStyle {
+            PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, CornerRadius = radius,
+            LeftBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 },
+            RightBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 3 },
+            TopBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = -0.25 },
+            BottomBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = -0.25 }
+        };
+        byte[] bytes = PdfDocument.Create(options).Panel(panel => panel.Paragraph(p => p.Text("Marker")), style).ToBytes();
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+        Assert.Equal(20, Assert.Single(page.GetWords()).BoundingBox.Left, 3);
+        var bounds = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
+            .Where(rectangle => rectangle.HasValue).Select(rectangle => rectangle!.Value).ToArray();
+        Assert.NotEmpty(bounds);
+        Assert.Equal(18, bounds.Min(rectangle => rectangle.Left), 3);
+        Assert.Equal(283, bounds.Max(rectangle => rectangle.Right), 3);
+        Assert.Equal(179.75, bounds.Max(rectangle => rectangle.Top), 3);
+    }
+
+    [Theory]
     [InlineData("body")]
     [InlineData("columns")]
     [InlineData("row")]
