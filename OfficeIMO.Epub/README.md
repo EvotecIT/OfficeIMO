@@ -343,12 +343,13 @@ viewport, CSS page canvas and typed presentation overrides:
 // For an entirely fixed-layout book, declare the package default too.
 publication.SetRenditionLayout(EpubRenditionLayout.PrePaginated);
 publication.AddChapter("plate", "EPUB/plate.xhtml", "Illustrated plate",
-    "<main style='position:absolute;left:40px;top:40px;width:720px'>" +
+    "<main id='plate-content'>" +
     "<h1>Illustrated plate</h1><p>Selectable text in reading order.</p></main>");
 publication.SetFixedLayoutPage("plate", new EpubFixedLayoutPage(800, 600) {
     Orientation = EpubPageOrientation.Landscape,
     Spread = EpubPageSpread.Both,
-    Side = EpubPageSide.Right
+    Side = EpubPageSide.Right,
+    Regions = new[] { new EpubFixedLayoutRegion("plate-content", 40, 40, 720, 520) }
 });
 ```
 
@@ -356,9 +357,31 @@ Dimensions are positive integer CSS pixels. The method replaces the document's
 single viewport declaration with `width` and `height`, and maintains a dedicated
 canvas stylesheet setting HTML/body dimensions, zero margin/padding and a relative
 body positioning context. Other content and styles remain intact. The method does
-not place individual objects, fit overflowing text, paginate prose or rasterize text.
-Author element geometry in XHTML/CSS and inspect the result; existing CSS and reader
-styles can override the canvas rules. Overflow is not hidden automatically.
+not fit overflowing text, paginate prose or rasterize text. Existing CSS and reader
+styles can override the generated rules. Overflow is not hidden automatically.
+
+`Regions` places existing top-level XHTML body elements by their HTML `id`. Each
+rectangle supplies left, top, width and height as decimal CSS pixels, with a top-left
+origin even in RTL books. Generated rules use absolute positioning, zero margins and
+`border-box` sizing, so padding and borders belong inside the supplied dimensions.
+Nested content retains its semantic structure and normal layout within each region.
+Use a top-level section, figure or other appropriate XHTML container for grouped
+content; nested targets and standalone SVG elements require a different layout policy.
+
+Every region must fit inside the canvas with positive width/height and nonnegative
+coordinates. Rejection identifies the target and canvas dimensions, and leaves the
+whole publication unchanged. This checks declared boxes, not actual glyph, image,
+transform or shadow overflow. Inspect rendered content at the intended fonts and
+reader settings. Intentional region overlap is allowed; DOM order remains the
+logical reading order and determines normal painting order.
+
+A page accepts at most 1024 regions, each with an identifier of at most 1024 UTF-16
+code units. Duplicate or missing targets are rejected. Each call replaces the complete
+set of generated region rules; the default empty collection removes prior generated
+placement while preserving authored CSS. Existing inline geometry or more specific
+styles may take precedence, so remove competing declarations when the generated
+boxes should control placement. IDs, content, links, ARIA relationships and DOM order
+are not rewritten; CSS selectors safely quote punctuation and Unicode identifiers.
 
 The selected spine position receives `rendition:layout-pre-paginated`, orientation
 and spread overrides. `Auto` resets that aspect to the reading system's default;

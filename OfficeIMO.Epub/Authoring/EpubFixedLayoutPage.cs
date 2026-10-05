@@ -42,6 +42,11 @@ public sealed class EpubFixedLayoutPage {
     public int Width { get; }
     /// <summary>Canvas height in CSS pixels.</summary>
     public int Height { get; }
+    /// <summary>
+    /// Complete set of positioned top-level body elements, at most 1024. Empty removes previously
+    /// generated region rules. Unselected elements retain normal CSS behavior; DOM order is preserved.
+    /// </summary>
+    public IReadOnlyList<EpubFixedLayoutRegion> Regions { get; set; } = Array.Empty<EpubFixedLayoutRegion>();
     /// <summary>Requested orientation, independent of the canvas aspect ratio.</summary>
     public EpubPageOrientation Orientation { get; set; }
     /// <summary>Requested synthetic spread behavior.</summary>

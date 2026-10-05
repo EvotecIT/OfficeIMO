@@ -105,7 +105,11 @@ Use it to check TOC order and link destinations in independent readers as well a
 with the automated validators.
 
 `fixed-layout-ltr.epub` and `fixed-layout-rtl.epub` contain an 800×600 landscape
-canvas and a 600×800 portrait canvas. They exercise typed orientation, spread and
+canvas and a 600×800 portrait canvas. Typed regions position headers, sections and
+footers while preserving the semantic document order. `fixed-layout-escaped-id.epub`
+exercises fractional coordinates and an identifier containing punctuation and a
+supplementary Unicode character. Verify its region rectangle in a browser as well
+as checking its EPUB package. The page fixtures exercise typed orientation, spread and
 page-side requests, logical DOM order and semantic links with a package-level
 fixed-layout default. `fixed-layout-item-overrides.epub` deliberately omits that
 default to expose readers that do not honor item-only fixed-layout declarations.

@@ -49,7 +49,8 @@ public sealed partial class EpubPublication {
             matchingIds[0].Parent != head || (string?)matchingIds[0].Attribute("data-officeimo-canvas") != "1"))
             throw new InvalidDataException("The fixed-layout canvas style identifier is already used by other content.");
         XElement style = matchingIds.SingleOrDefault() ?? new XElement(Html + "style", new XAttribute("id", FixedLayoutStyleId), new XAttribute("data-officeimo-canvas", "1"));
-        style.Value = "html, body { width: " + width + "px; height: " + height + "px; margin: 0; padding: 0; } body { position: relative; }";
+        style.Value = "html, body { width: " + width + "px; height: " + height + "px; margin: 0; padding: 0; } body { position: relative; }" +
+            FixedLayoutRegionCss(document, page, cancellationToken);
         if (style.Parent != null) style.Remove();
         head.Add(style);
         string[] properties = Tokens((string?)positions[0].Attribute("properties")).Where(token => !IsFixedLayoutOverride(token)).Concat(new[] {
