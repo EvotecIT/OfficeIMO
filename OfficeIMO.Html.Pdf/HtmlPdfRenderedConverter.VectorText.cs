@@ -20,7 +20,8 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken,
         double baselineFontSize,
         bool suppressLink,
-        bool preservePositionedFrame) {
+        bool preservePositionedFrame,
+        ClipBounds? logicalClip) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -335,25 +336,27 @@ internal static partial class HtmlPdfRenderedConverter {
             addDrawingAndLink(canvas);
         } else {
             double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
+            var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X + textX, visual.Y, resolvedAdvance, logicalHeight)
+                ?? (X: visual.X + textX, Y: visual.Y, Width: resolvedAdvance, Height: logicalHeight);
             PdfCore.PdfCanvasTextStructureRole role = asSpan
                 ? PdfCore.PdfCanvasTextStructureRole.Span
                 : MapStructureRole(visual.SemanticRole);
             if (role == PdfCore.PdfCanvasTextStructureRole.Span) {
                 canvas.ActualText(
                     visual.Text,
-                    (visual.X + textX) * PointsPerCssPixel,
-                    visual.Y * PointsPerCssPixel,
-                    resolvedAdvance * PointsPerCssPixel,
-                    logicalHeight * PointsPerCssPixel,
+                    carrier.X * PointsPerCssPixel,
+                    carrier.Y * PointsPerCssPixel,
+                    carrier.Width * PointsPerCssPixel,
+                    carrier.Height * PointsPerCssPixel,
                     addDrawingAndLink);
             } else {
                 canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
                     nested.ActualText(
                         visual.Text,
-                        (visual.X + textX) * PointsPerCssPixel,
-                        visual.Y * PointsPerCssPixel,
-                        resolvedAdvance * PointsPerCssPixel,
-                        logicalHeight * PointsPerCssPixel,
+                        carrier.X * PointsPerCssPixel,
+                        carrier.Y * PointsPerCssPixel,
+                        carrier.Width * PointsPerCssPixel,
+                        carrier.Height * PointsPerCssPixel,
                         addDrawingAndLink));
             }
         }

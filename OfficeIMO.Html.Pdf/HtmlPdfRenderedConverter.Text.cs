@@ -21,7 +21,8 @@ internal static partial class HtmlPdfRenderedConverter {
         bool colorOpacityApplied = false,
         bool suppressLink = false,
         bool preservePositionedFrame = false,
-        bool constrainToSurface = true) {
+        bool constrainToSurface = true,
+        ClipBounds? logicalClip = null) {
         if (visual.Text.Length == 0) return;
         // Canvas and outline writers must anchor a script to the original line's metrics.
         baselineFontSize ??= visual.Font.Size;
@@ -29,7 +30,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (visual.Y < 0D) {
             HtmlRenderText shifted = (HtmlRenderText)visual.TranslatePaint(0D, -visual.Y, visual.PaintOrder);
             canvas.Effect(OfficeTransform.Translate(0D, visual.Y * PointsPerCssPixel), 1D,
-                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame, constrainToSurface: constrainToSurface));
+                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame, constrainToSurface: constrainToSurface, logicalClip: logicalClip?.Translate(0D, -visual.Y)));
             return;
         }
         string? link = suppressLink || string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
@@ -60,7 +61,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     cancellationToken,
                     baselineFontSize.Value,
                     suppressLink,
-                    preservePositionedFrame)) {
+                    preservePositionedFrame,
+                    logicalClip)) {
                 return;
             }
         } catch (InvalidOperationException exception) when (
@@ -85,7 +87,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (!colorOpacityApplied && visual.Color.A < 255) {
             canvas.Effect(OfficeTransform.Identity, visual.Color.A / 255D,
                 nested => AddText(nested, visual, webFonts, conversionReport, surfaceWidth,
-                    asSpan, logicalTextOwned, cancellationToken, baselineFontSize, colorOpacityApplied: true, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame, constrainToSurface: constrainToSurface));
+                    asSpan, logicalTextOwned, cancellationToken, baselineFontSize, colorOpacityApplied: true, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame, constrainToSurface: constrainToSurface, logicalClip: logicalClip));
             return;
         }
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
@@ -128,7 +130,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
                     .WithFeatureSettings(visual.FeatureSettings));
             }).ToArray();
-        canvas.PositionedText(
+        void Paint(PdfCore.PdfPageCanvas target) => target.PositionedText(
             runs,
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
             visual.X * PointsPerCssPixel,
@@ -142,6 +144,15 @@ internal static partial class HtmlPdfRenderedConverter {
             (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel,
             visual.PaintTopOverflow * PointsPerCssPixel,
             fontMetricScale: PointsPerCssPixel);
+        double logicalWidth = visual.TextPaintWidth ?? visual.TextAdvanceWidth ?? frameWidth;
+        double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
+        var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X, visual.Y, logicalWidth, logicalHeight)
+            ?? (X: visual.X, Y: visual.Y, Width: logicalWidth, Height: logicalHeight);
+        if (!logicalTextOwned && (carrier.X != visual.X || carrier.Y != visual.Y
+            || carrier.Width != logicalWidth || carrier.Height != logicalHeight)) {
+            canvas.ActualText(pdfText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
+                carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel, Paint);
+        } else Paint(canvas);
     }
 
 }

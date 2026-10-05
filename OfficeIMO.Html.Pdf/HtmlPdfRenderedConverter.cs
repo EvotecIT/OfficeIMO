@@ -402,7 +402,8 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderText text) {
             AddText(canvas, text, webFonts, conversionReport, surfaceWidth, textAsSpan, logicalTextOwned, cancellationToken,
                 suppressLink: pagePaint?.Covers(text) == true,
-                constrainToSurface: !activeClip.HasValue || activeClip.Value.ConstrainToSurface);
+                constrainToSurface: !activeClip.HasValue || activeClip.Value.ConstrainToSurface,
+                logicalClip: activeClip ?? new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight));
         } else if (visual is HtmlRenderNamedDestination destination) {
             canvas.NamedDestination(
                 MapNamedDestination(destination.Name),
@@ -534,66 +535,6 @@ internal static partial class HtmlPdfRenderedConverter {
                 : alignment == OfficeTextAlignment.Right
                     ? PdfCore.PdfFormFieldTextAlignment.Right
                     : PdfCore.PdfFormFieldTextAlignment.Left;
-
-    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {
-        void AddChildren(PdfCore.PdfPageCanvas target) {
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(target, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true, pagePaint: pagePaint);
-            }
-        }
-        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
-            AddChildren(canvas);
-            return;
-        }
-        var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
-        AddChildren(content);
-        if (!HasCanvasContent(content.Items)) {
-            canvas.AddItems(content.Items);
-            return;
-        }
-        string replacementText = group.Text;
-        IEnumerable<HtmlRenderVisual> logicalPaint = group.Visuals;
-        bool scopedText = group.LogicalScope != null && pagePaint != null;
-        if (scopedText) {
-            if (pagePaint!.IsClaimed(group.LogicalScope!)) {
-                canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
-                return;
-            }
-            // Resolve coverage from all page-local fragments, rather than assuming
-            // the first source layer can paint or knows other layers' font failures.
-            logicalPaint = pagePaint!.GetLogicalPaint(group.LogicalScope!);
-            HtmlRenderLogicalText.TryResolveSourceText(logicalPaint.Where(visual =>
-                ContainsPdfRenderableVisual(visual, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)), out replacementText,
-                preserveBlockSeparators: group.LogicalScope!.PreserveBlockSeparators);
-        }
-        if (replacementText.Length == 0) {
-            // Artifact marking excludes tagged reading order, but independent
-            // extractors still read scalar glyphs. An empty replacement owns the
-            // secondary paint without inventing another text value or hiding links.
-            canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
-            return;
-        }
-        string? logicalText = FilterLogicalPrivateUseGlyphs(replacementText, logicalPaint, webFonts, cancellationToken);
-        if (logicalText == null) {
-            canvas.AddItems(content.Items);
-            return;
-        }
-        if (logicalText.Length == 0) {
-            canvas.AddItems(content.Items);
-            return;
-        }
-        if (scopedText && !pagePaint!.TryClaim(group.LogicalScope!)) {
-            canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
-            return;
-        }
-        if (logicalTextOwned) canvas.AddItems(content.Items);
-        else canvas.ActualText(
-            logicalText,
-            group.X * PointsPerCssPixel,
-            (group.Y + Math.Min(group.Height, 12D)) * PointsPerCssPixel,
-            nested => nested.AddItems(content.Items));
-    }
 
     private static bool ContainsRenderableVisual(HtmlRenderVisual visual, double surfaceWidth, double surfaceHeight, ClipBounds? activeClip) {
         if (!ContainsPaintableVisual(visual)) return false;
@@ -1073,48 +1014,6 @@ internal static partial class HtmlPdfRenderedConverter {
             linkArea.StrokeColor = null;
             canvas.Shape(linkArea, linkX, linkY, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: visual.LinkUri, linkContents: visual.Source);
         }
-    }
-
-    private readonly struct ClipBounds {
-        internal ClipBounds(double left, double top, double right, double bottom, bool allowsInteractiveWidgets = true, bool constrainToSurface = true) {
-            Left = left;
-            Top = top;
-            Right = right;
-            Bottom = bottom;
-            AllowsInteractiveWidgets = allowsInteractiveWidgets;
-            ConstrainToSurface = constrainToSurface;
-        }
-
-        private double Left { get; }
-        private double Top { get; }
-        private double Right { get; }
-        private double Bottom { get; }
-        internal bool AllowsInteractiveWidgets { get; }
-        internal bool ConstrainToSurface { get; }
-        internal static ClipBounds TransformedCoordinateSpace { get; } = new(
-            double.NegativeInfinity,
-            double.NegativeInfinity,
-            double.PositiveInfinity,
-            double.PositiveInfinity,
-            allowsInteractiveWidgets: false,
-            constrainToSurface: false);
-
-        internal bool Contains(HtmlRenderVisual visual) {
-            double right = visual.X + visual.Width;
-            double bottom = visual.Y + visual.Height;
-            return visual.X >= Left - 0.0001D && visual.Y >= Top - 0.0001D
-                && right <= Right + 0.0001D && bottom <= Bottom + 0.0001D;
-        }
-
-        internal static ClipBounds Intersect(ClipBounds? active, ClipBounds next) => !active.HasValue
-            ? next
-            : new ClipBounds(
-                Math.Max(active.Value.Left, next.Left),
-                Math.Max(active.Value.Top, next.Top),
-                Math.Min(active.Value.Right, next.Right),
-                Math.Min(active.Value.Bottom, next.Bottom),
-                active.Value.AllowsInteractiveWidgets && next.AllowsInteractiveWidgets,
-                active.Value.ConstrainToSurface && next.ConstrainToSurface);
     }
 
     private static PdfCore.PdfAlign MapAlignment(OfficeTextAlignment alignment) {
