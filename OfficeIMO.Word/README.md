@@ -85,6 +85,24 @@ paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
 
 PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
 
+## Page sizes and orientation
+
+Set a section's paper preset and orientation through `PageSettings`:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+var page = document.Sections[0].PageSettings;
+page.PageSize = WordPageSize.Tabloid;
+page.Orientation = OfficePageOrientation.Landscape;
+WordPageSizeDefinition? definition = WordPageSizes.GetDefinition(WordPageSize.Tabloid);
+```
+
+Presets include Letter, Legal, Statement, Executive, A3–A6, JIS B4/B5, Tabloid, C sheet, and number 9, number 10, DL, C5, C4, B5 and Monarch envelopes. `WordPageSize.B5` retains its established JIS dimensions of 182 × 257 mm; `EnvelopeB5` measures 176 × 250 mm. The shared `OfficePageSizes` catalog owns physical dimensions.
+
+`Width` and `Height` expose custom dimensions in twips (1/20 point). Changing `Orientation` swaps those dimensions. The preset getter recognizes matching dimensions when a producer omits the optional printer code, with a one-twip tolerance for unit rounding. Native DOC retains physical dimensions and orientation; its imported page settings do not carry the DOCX printer code. PDF conversion preserves stored width and height, including a wide custom page without an orientation flag, and supports explicit export orientation overrides.
+
 ## Paragraph tab stops
 
 Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.
