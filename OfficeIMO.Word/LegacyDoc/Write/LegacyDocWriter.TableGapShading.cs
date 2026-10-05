@@ -34,18 +34,5 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return shading == null ? null : ReadSupportedTableCellShading(shading, "table style gap shading");
         }
 
-        private static void ThrowIfUnsupportedConditionalTableGapShading(int spacing, Shading? directShading,
-            LegacyDocTableConditionalStyleSet styles, LegacyDocTableLook look, int row, int rowCount, int columnCount) {
-            // Direct table formatting has already been checked and overrides style formatting.
-            if (spacing <= 0 || directShading != null) return;
-            foreach (var style in styles.Styles) {
-                if (!style.TableShading.HasAny) continue;
-                for (int column = 0; column < columnCount; column++) {
-                    if (AppliesToCell(style.Type, look, styles.RowBandSize, styles.ColumnBandSize, row, rowCount, column, columnCount)) {
-                        throw new NotSupportedException("Native DOC saving does not support visible conditional table gap shading with positive cell spacing. Remove the gap shading or use zero cell spacing before saving as DOC.");
-                    }
-                }
-            }
-        }
     }
 }

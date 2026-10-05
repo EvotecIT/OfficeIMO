@@ -10,9 +10,17 @@ public partial class Word {
     [InlineData("inherited")]
     [InlineData("direct-spacing")]
     [InlineData("direct-shading")]
+    [InlineData("root-conditional-clear")]
     public void LegacyDoc_TableGapShading_RejectsLossBeforeCreatingFile(string mode) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateNativeGapShadingTable(document, mode);
+        if (mode == "root-conditional-clear") {
+            table._tableProperties!.TableLook = new TableLook { FirstRow = true };
+            Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid").Append(
+                new TableStyleProperties(new TableStyleConditionalFormattingTableProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "auto" })) { Type = TableStyleOverrideValues.FirstRow });
+        }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Visible gaps";
         string output = Path.Combine(Path.GetTempPath(), "OfficeIMO-gap-" + Guid.NewGuid().ToString("N") + ".doc");
         try {
@@ -49,7 +57,7 @@ public partial class Word {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void LegacyDoc_TableGapShading_ConditionalRegionsRespectTableLook(bool active) {
+    public void LegacyDoc_TableGapShading_ConditionalGapPropertiesFollowWord(bool active) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Conditional gap";
@@ -59,11 +67,36 @@ public partial class Word {
         Style grid = styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid");
         grid.Append(new TableStyleProperties(new TableStyleConditionalFormattingTableProperties(
             new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) { Type = TableStyleOverrideValues.FirstRow });
-        if (active) Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
-        else {
-            using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
-            Assert.Equal("Conditional gap", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
-        }
+        // Word 16 ignores gap shading inside tblStylePr/tblPr even when the region is active.
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        Assert.Equal("Conditional gap", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
+        Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal((short)120, restored.Tables[0].StyleDetails!.CellSpacing);
+    }
+
+    [Theory]
+    [InlineData("first-row")]
+    [InlineData("corner")]
+    public void LegacyDoc_TableGapShading_InheritedConditionalClearsPermitSave(string region) {
+        TableStyleOverrideValues clearRegion = region == "corner"
+            ? TableStyleOverrideValues.NorthWestCell : TableStyleOverrideValues.FirstRow;
+        using WordDocument document = WordDocument.Create();
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+        table.StyleDetails!.CellSpacing = 120;
+        table._tableProperties!.TableLook = new TableLook { FirstRow = true, FirstColumn = true };
+        Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid").Append(
+            new TableStyleProperties(new TableStyleConditionalFormattingTableProperties(
+                new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) { Type = TableStyleOverrideValues.FirstRow });
+        styles.Append(new Style(new StyleName { Val = "Gap Clear" }, new BasedOn { Val = "TableGrid" },
+            new TableStyleProperties(new TableStyleConditionalFormattingTableProperties(
+                new Shading { Val = ShadingPatternValues.Clear, Fill = "auto" })) { Type = clearRegion }) {
+            Type = StyleValues.Table, StyleId = "GapClear", CustomStyle = true
+        });
+        table._tableProperties.TableStyle = new TableStyle { Val = "GapClear" };
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        Assert.Equal((short)120, restored.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
     }
 
     private static WordTable CreateNativeGapShadingTable(WordDocument document, string mode) {

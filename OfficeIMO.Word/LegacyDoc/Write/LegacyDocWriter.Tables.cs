@@ -49,8 +49,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 IReadOnlyList<LegacyDocWritableTableCell> writableCells = ExpandSupportedTableCells(cells, gridColumnWidthsTwips, tableBorders, tableShading, conditionalStyles, tableLook, rowIndex, rows.Length);
-                ThrowIfUnsupportedConditionalTableGapShading(defaultCellSpacingTwips ?? 0,
-                    tableProperties?.GetFirstChild<Shading>(), conditionalStyles, tableLook, rowIndex, rows.Length, writableCells.Count);
                 IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(writableCells);
                 IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges = ReadSupportedTableCellHorizontalMerges(writableCells);
                 IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges = ReadSupportedTableCellVerticalMerges(writableCells);
