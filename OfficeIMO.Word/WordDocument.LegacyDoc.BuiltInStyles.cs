@@ -197,6 +197,10 @@ namespace OfficeIMO.Word {
 
         private static void MergeLegacyDocBuiltInStyleRunFormatting(Style style, LegacyDocCharacterFormat characterFormat) {
             if (style.StyleRunProperties is StyleRunProperties templateProperties) {
+                // Missing source toggles inherit through basedOn, not through our built-in template.
+                foreach (OnOffType property in templateProperties.Elements<OnOffType>().ToArray()) {
+                    property.Remove();
+                }
                 RemoveStyleProperties<Kern>(templateProperties);
             }
             if (!characterFormat.HasFormatting) {
