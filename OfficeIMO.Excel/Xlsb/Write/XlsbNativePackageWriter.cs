@@ -116,7 +116,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => element is not Sheets
+                .FirstOrDefault(element => !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
+                    && element is not Sheets
                     && element is not WorkbookProperties
                     && element is not WorkbookProtection
                     && element is not DefinedNames

@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
                     double leading = GetHeadingLeading(headingStyle, size);
                     PdfColor? headingColor = hb2.Color ?? headingStyle?.Color;
                     System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb2, headingStyle, headingColor);
-                    var wrap = WrapRichRunsCore(headingRuns, columnWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+                    var wrap = WrapRichRunsWithSpacing(headingRuns, columnWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
                     items.Add(new ColHead {
                         Block = hb2,
                         Runs = headingRuns,
@@ -41,11 +41,11 @@ internal static partial class PdfWriter {
                         Color = headingColor
                     });
                 } else if (cb is RichParagraphBlock rpb2) {
-                    double size = currentOpts.DefaultFontSize;
                     PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb2);
+                    double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
                     double leading = GetParagraphLeading(paragraphStyle, size);
                     var textFrame = GetParagraphTextFrame(paragraphStyle, 0, columnWidth);
-                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
+                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
                     items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, XOffset = textFrame.X, TextWidth = textFrame.Width, FirstLineXOffset = textFrame.FirstLineX, FirstLineTextWidth = textFrame.FirstLineWidth });
                 } else if (cb is PdfListBlock list) {
                     PreparedListLayout prepared = PrepareListLayout(
@@ -175,10 +175,10 @@ internal static partial class PdfWriter {
                             TableCellLayout cell = cells[cellIndex];
                             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                             double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, columnGap);
-                            double innerWidth = Math.Max(1, cellWidth - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
+                            double innerWidth = Math.Max(1, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
                             TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
                             rowLines[ri][cell.Column] = lines;
-                            if (cell.RowSpan <= 1) {
+                            if (cell.RowSpan <= 1 && cell.Viewport == null) {
                                 maxLines = Math.Max(maxLines, lines.LineCount);
                                 maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
                             }

@@ -109,6 +109,7 @@ namespace OfficeIMO.Tests.Pdf {
                 null,
                 new[] { new PdfTabStop(90) },
                 null,
+                null,
                 null
             })!;
 

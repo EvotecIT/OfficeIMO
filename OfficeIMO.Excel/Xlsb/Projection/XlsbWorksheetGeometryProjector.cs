@@ -17,10 +17,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 worksheet.PrependChild(new SheetDimension { Reference = sourceSheet.UsedRange.ToA1Reference() });
             }
 
-            SheetViews? sheetViews = CreateSheetViews(sourceSheet.Pane);
-            if (sheetViews != null) {
-                worksheet.InsertBefore(sheetViews, sheetData);
-            }
+            worksheet.RemoveAllChildren<SheetViews>();
+            worksheet.InsertBefore(CreateSheetViews(sourceSheet), sheetData);
 
             SheetFormatProperties? format = CreateSheetFormatProperties(sourceSheet.FormatInfo);
             if (format != null) {
@@ -66,7 +64,12 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             ValidateDimension(worksheet, sourceSheet, sheet);
-            ValidateSingleElement(worksheet, CreateSheetViews(sourceSheet.Pane), sheet, "worksheet panes");
+            SheetViews[] actualViews = worksheet.Elements<SheetViews>().ToArray();
+            bool equivalentDefaultView = sourceSheet.Pane == null && sourceSheet.ShowGridLines != false
+                && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));
+            if (!equivalentDefaultView) {
+                ValidateSingleElement(worksheet, CreateSheetViews(sourceSheet), sheet, "worksheet panes");
+            }
             ValidateSingleElement(worksheet, CreateSheetFormatProperties(sourceSheet.FormatInfo), sheet, "worksheet defaults");
             ValidateSingleElement(worksheet, CreateColumns(sourceSheet.Columns), sheet, "column metadata");
             ValidateSingleElement(worksheet, CreateMergeCells(sourceSheet.MergedRanges), sheet, "merged ranges");
@@ -215,8 +218,12 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return merges;
         }
 
-        private static SheetViews? CreateSheetViews(XlsbPaneInfo? source) {
-            if (source == null) return null;
+        private static SheetViews CreateSheetViews(XlsbWorksheet sourceSheet) {
+            SheetViews views = ExcelSheet.CreateDefaultSheetViews();
+            SheetView view = views.Elements<SheetView>().Single();
+            if (sourceSheet.ShowGridLines == false) view.ShowGridLines = false;
+            XlsbPaneInfo? source = sourceSheet.Pane;
+            if (source == null) return views;
 
             var pane = new Pane {
                 HorizontalSplit = source.HorizontalSplit,
@@ -227,10 +234,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     ? source.FrozenNoSplit ? PaneStateValues.FrozenSplit : PaneStateValues.Frozen
                     : PaneStateValues.Split
             };
-            var view = new SheetView { WorkbookViewId = 0U };
             view.Append(pane);
-            var views = new SheetViews();
-            views.Append(view);
             return views;
         }
 

@@ -83,8 +83,8 @@ public sealed class PdfParagraphBuilder {
         _runs.AddRange(runs);
         return this;
     }
-    /// <summary>Adds an explicit line break inside the current paragraph.</summary>
-    public PdfParagraphBuilder LineBreak() { _runs.Add(PdfTextRun.LineBreak()); return this; }
+    /// <summary>Adds an explicit line break using the current run style.</summary>
+    public PdfParagraphBuilder LineBreak() => Text("\n");
     /// <summary>Adds an explicit paragraph tab using the current style flags.</summary>
     public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader) => Tab(leader, PdfTabAlignment.Left);
     /// <summary>Adds an aligned paragraph tab using the current style flags.</summary>
