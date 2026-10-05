@@ -330,6 +330,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double runFontSizeScale, double cellYFromTop) {
+            double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
             PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             double padLeft = GetTableCellPaddingLeft(style, rowIndex, columnIndex);
@@ -381,7 +382,7 @@ internal static partial class PdfWriter {
             if (cell.Viewport != null)
                 OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
-                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts);
+                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts, cellFont);
             int? markedContentId = RegisterTextStructureElement(
                 rowIsHeader ? "TH" : "TD",
                 _canvasStructureParentElement,
@@ -398,10 +399,10 @@ internal static partial class PdfWriter {
                 fontSize,
                 leading,
                 currentPage!.Annotations,
-                cellX - TableCellClipBleed,
-                cellBottom - TableCellClipBleed,
-                cellWidth + (TableCellClipBleed * 2D),
-                cellHeight + (TableCellClipBleed * 2D),
+                cellX - textClipBleed,
+                cellBottom - textClipBleed,
+                cellWidth + (textClipBleed * 2D),
+                cellHeight + (textClipBleed * 2D),
                 contentFrame.Left + padLeft,
                 innerWidth,
                 structureType: rowIsHeader ? "TH" : "TD",
@@ -409,12 +410,12 @@ internal static partial class PdfWriter {
                 structurePage: currentPage,
                 lineAlignments: visibleAlignments,
                 lineXOffsets: visibleXOffsets,
-                lineWidths: visibleWidths);
+                lineWidths: visibleWidths, baselineFont: cellFont);
             MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {
-                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, firstBaseline);
+                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, AdjustRichLineBaseline(firstBaseline, lines.Lines[0], currentOpts, fontSize, cellFont));
                 } else {
                     double textHeight = MeasureTableCellTextHeight(lines, 0, lineCount, leading);
                     double formFieldTop = contentFrame.Top - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
@@ -432,10 +433,10 @@ internal static partial class PdfWriter {
 
             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
                 currentPage!.Annotations.Add(new LinkAnnotation {
-                    X1 = cellX + padLeft - TableCellClipBleed,
-                    Y1 = cellBottom - TableCellClipBleed,
-                    X2 = cellX + cellWidth - padRight + TableCellClipBleed,
-                    Y2 = cellTop + TableCellClipBleed,
+                    X1 = cellX + padLeft - textClipBleed,
+                    Y1 = cellBottom - textClipBleed,
+                    X2 = cellX + cellWidth - padRight + textClipBleed,
+                    Y2 = cellTop + textClipBleed,
                     Uri = linkUri,
                     DestinationName = linkDestinationName,
                     Contents = linkContents ?? cell.Text

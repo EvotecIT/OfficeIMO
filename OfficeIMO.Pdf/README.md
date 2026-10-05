@@ -88,6 +88,10 @@ styles accept the same spacing object. Font size and spacing are snapshotted wit
 their style and apply consistently to paragraph measurement, pagination and
 rendering in flow, columns and nested frames.
 
+Each wrapped line places its baseline using the fonts and sizes it contains.
+Larger text and lowered inline elements reserve their combined ascent and descent,
+including inside columns, table cells and canvas text boxes.
+
 `PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.

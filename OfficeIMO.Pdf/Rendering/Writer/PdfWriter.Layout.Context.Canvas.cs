@@ -529,7 +529,8 @@ internal static partial class PdfWriter {
                     structureType: _suppressCanvasAccessibilityWrappers ? null : "P",
                     markedContentId: markedContentId,
                     structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
-                    suppressActualText: _suppressCanvasActualTextChildren);
+                    suppressActualText: _suppressCanvasActualTextChildren,
+                    baselineFont: baseFont);
                 MarkRichFonts(item.Runs);
                 if (rotated && annotations.Count > 0) {
                     RotateCanvasLinkAnnotations(annotations, item.X, bottomY, item.Width, item.Height, item.RotationAngle);

@@ -21,6 +21,27 @@ internal static partial class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
+    internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
+        ushort windowsDescent, params int[] scalars) {
+        int[] ordered = new SortedSet<int>(scalars).ToArray();
+        var os2 = new byte[78];
+        WriteUInt16(os2, 4, 400);
+        WriteUInt16(os2, 74, checked((ushort)Math.Max(0, (int)ascender)));
+        WriteUInt16(os2, 76, windowsDescent);
+        byte[] font = CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1, os2: os2);
+        int count = ReadUInt16(font, 4);
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (ReadUInt32(font, record) != 0x68686561) continue;
+            int offset = checked((int)ReadUInt32(font, record + 8));
+            WriteUInt16(font, offset + 4, unchecked((ushort)ascender));
+            WriteUInt16(font, offset + 6, unchecked((ushort)descender));
+            WriteUInt16(font, offset + 8, unchecked((ushort)lineGap));
+            return font;
+        }
+        throw new InvalidOperationException("The test font is missing its horizontal metrics.");
+    }
+
     internal static byte[] CreateFontWithInkedNotdef() =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }), inkedNotdef: true);
 
@@ -215,7 +236,8 @@ internal static partial class ManagedTextShapingTestAssets {
         byte[]? colr = null,
         byte[]? cpal = null,
         int baseGlyphHeight = 700,
-        bool inkedNotdef = false) {
+        bool inkedNotdef = false,
+        byte[]? os2 = null) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -245,6 +267,7 @@ internal static partial class ManagedTextShapingTestAssets {
         if (gpos != null) tables.Add(("GPOS", gpos));
         if (colr != null) tables.Add(("COLR", colr));
         if (cpal != null) tables.Add(("CPAL", cpal));
+        if (os2 != null) tables.Add(("OS/2", os2));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];

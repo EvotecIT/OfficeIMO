@@ -13,6 +13,7 @@ internal static partial class PdfWriter {
         private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY) {
         var tbColumn = table.Block;
         var tableStyle = table.Style;
+        double textClipBleed = tableStyle.ClipTextToCellBounds ? 0D : TableCellClipBleed;
         bool tableStartedInThisColumn = state.Line == 0 && state.Subline == 0;
         double flowYBeforeTable = state.Y;
         double flowRemainingBeforeTable = state.Remaining;
@@ -352,9 +353,9 @@ internal static partial class PdfWriter {
                     var visibleAlignments = SliceTableCellLineAlignments(lines, sourceStartLine, visibleLineCount);
                     var visibleXOffsets = SliceTableCellLineXOffsets(lines, sourceStartLine, visibleLineCount);
                     var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
-                    double textClipX = xi - TableCellClipBleed;
-                    double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                    if (cell.Viewport == null) ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
+                    double textClipX = xi - textClipBleed;
+                    double textClipWidth = cellWidth + (textClipBleed * 2D);
+                    if (cell.Viewport == null && !tableStyle.ClipTextToCellBounds) ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
                     var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                     string structureType = renderAsHeader ? "TH" : "TD";
                     int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -374,12 +375,12 @@ internal static partial class PdfWriter {
                     if (cell.Viewport != null)
                         OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                             paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
-                            xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts);
-                    WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - TableCellClipBleed, textClipWidth, cellHeight + (TableCellClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths);
+                            xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts, cellFont);
+                    WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - textClipBleed, textClipWidth, cellHeight + (textClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths, baselineFont: cellFont);
                 }
                 if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                     if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
-                        RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, firstBaseline);
+                        RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, AdjustRichLineBaseline(firstBaseline, lines.Lines[sourceStartLine], currentOpts, rowSize, cellFont));
                     } else {
                         double formFieldTop = contentFrame.Top - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
                         TableCellContentFrame? clip = cell.Viewport == null ? null : new TableCellContentFrame(xi, state.Y, cellWidth, cellHeight);
@@ -392,7 +393,7 @@ internal static partial class PdfWriter {
                     double linkCellHeight = sourceStartLine == 0 && cell.RowSpan > 1
                         ? GetTableCellHeight(table.RowHeights, rowIndex, cell.RowSpan, columnTableRowGap)
                         : cellHeight;
-                    currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft - TableCellClipBleed, Y1 = state.Y - linkCellHeight - TableCellClipBleed, X2 = xi + cellWidth - cellPadRight + TableCellClipBleed, Y2 = state.Y + TableCellClipBleed, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
+                    currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft - textClipBleed, Y1 = state.Y - linkCellHeight - textClipBleed, X2 = xi + cellWidth - cellPadRight + textClipBleed, Y2 = state.Y + textClipBleed, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
                 }
             }
 

@@ -65,14 +65,14 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void AddHeadingLinkAnnotations(HeadingBlock heading, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.List<RichSeg>> lines, PdfStandardFont font, double fontSize, double lineHeight, double x, double widthUsed, double startBaselineY, int? structElementIndex = null) {
+        private void AddHeadingLinkAnnotations(HeadingBlock heading, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.List<RichSeg>> lines, PdfStandardFont font, double fontSize, double lineHeight, double x, double widthUsed, double startBaselineY, int? structElementIndex = null, System.Collections.Generic.List<double>? lineHeights = null) {
             if (string.IsNullOrEmpty(heading.LinkUri) && string.IsNullOrEmpty(heading.LinkDestinationName)) {
                 return;
             }
 
-            double asc = GetAscenderForOptions(font, fontSize, currentOpts);
-            double desc = GetDescenderForOptions(font, fontSize, currentOpts);
+            double offset = 0D;
             for (int i = 0; i < lines.Count; i++) {
+                if (i > 0) offset += lineHeights != null && i - 1 < lineHeights.Count ? lineHeights[i - 1] : lineHeight;
                 double lineWidth = MeasureRichLineWidth(lines[i], currentOpts);
                 if (lineWidth <= 0.001D) {
                     continue;
@@ -81,7 +81,8 @@ internal static partial class PdfWriter {
                 double dx = 0D;
                 if (heading.Align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - lineWidth) / 2);
                 else if (heading.Align == PdfAlign.Right) dx = Math.Max(0, widthUsed - lineWidth);
-                double baselineY = startBaselineY - i * lineHeight;
+                double baselineY = AdjustRichLineBaseline(startBaselineY - offset, lines[i], currentOpts, fontSize, font);
+                GetRichLineInkMetrics(lines[i], currentOpts, out double asc, out double desc);
                 double x1 = x + dx;
                 double x2 = x1 + Math.Min(widthUsed, lineWidth);
                 double y1 = baselineY - desc;

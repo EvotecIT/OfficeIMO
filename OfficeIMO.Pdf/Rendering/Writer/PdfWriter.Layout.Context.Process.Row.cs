@@ -304,9 +304,9 @@ internal static partial class PdfWriter {
                                 markedContentId = RegisterTextStructureElement(structureType);
                             }
 
-                            AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex);
+                            AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex, heights);
                             RecordFlowPlacement(yCol);
-                            WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                            WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont);
                             MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
                                 currentPage!.UsedBold = true;
@@ -406,7 +406,7 @@ internal static partial class PdfWriter {
                                     leading,
                                     xCol + listItem.MarkerXOffset,
                                     listItem.MarkerWidth,
-                                    baselineY,
+                                    AdjustRichLineBaseline(baselineY, sliceLines[0], currentOpts, listItem.Size),
                                     markerLines,
                                     listItem.MarkerAlign,
                                     listItem.MarkerColor ?? listItem.Color,

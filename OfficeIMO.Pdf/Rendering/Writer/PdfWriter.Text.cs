@@ -697,7 +697,7 @@ internal static partial class PdfWriter {
         bool preserveWhitespace = options?.PreserveTextWhitespace == true;
         System.Collections.Generic.IEnumerable<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
         PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops);
-        var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
+        var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new RichLine() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
@@ -719,6 +719,12 @@ internal static partial class PdfWriter {
         double currentLineHeight = Math.Max(lineHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
         double currentMinimumWidth = 0;
         PdfNamedFontFace? currentRunNamedFont = null;
+        double currentRunAscent = 0;
+        double currentRunDescent = 0;
+        double currentLineAscent = 0;
+        double currentLineDescent = 0;
+        bool currentRunIsInline = false;
+        bool currentLineHasInline = false;
         PdfColor? currentRunDecorationColor = null;
         OfficeTextFeatureSettings currentRunFeatureSettings = OfficeTextFeatureSettings.Default;
         OfficeIMO.Drawing.OfficeTextDecorationStyle currentRunUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
@@ -729,17 +735,17 @@ internal static partial class PdfWriter {
         double CurrentLineOriginOffset() => currentFrame?.Origin ?? (lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D);
         void RegisterLineHeight(double runFontSize) {
             currentLineHeight = Math.Max(currentLineHeight, RunLineHeight(runFontSize) + (currentFrame?.Gap ?? 0));
+            RegisterLineMetrics();
         }
 
-        void RegisterInlineLineHeight(PdfInlineElement inlineElement) {
+        void RegisterLineMetrics() {
             if (lineSpacing?.IsExact == true) return;
-            double baseAscent = GetAscenderForOptions(baseFont, fontSize, options);
-            double baseDescent = GetDescenderForOptions(baseFont, fontSize, options);
-            double inlineAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
-            double inlineDescent = Math.Max(0D, -inlineElement.BaselineOffset);
-            currentLineHeight = Math.Max(
-                currentLineHeight,
-                Math.Max(baseAscent, inlineAscent) + Math.Max(baseDescent, inlineDescent) + (currentFrame?.Gap ?? 0));
+            currentLineAscent = Math.Max(currentLineAscent, currentRunAscent);
+            currentLineDescent = Math.Max(currentLineDescent, currentRunDescent);
+            currentLineHasInline |= currentRunIsInline;
+            if (currentLineHasInline)
+                currentLineHeight = Math.Max(currentLineHeight,
+                    currentLineAscent + currentLineDescent + (currentFrame?.Gap ?? 0));
         }
 
         void StartNewLine() {
@@ -747,8 +753,11 @@ internal static partial class PdfWriter {
                 throw new System.IO.InvalidDataException("PDF paragraph layout exceeds the 100,000-line limit.");
             heights.Add(currentLineHeight);
             completedHeight += currentLineHeight;
-            lines.Add(new());
+            lines.Add(new RichLine());
             lineWidth = 0;
+            currentLineAscent = 0;
+            currentLineDescent = 0;
+            currentLineHasInline = false;
             currentContentHeight = lineHeight;
             currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, currentContentHeight, 0);
             currentLineHeight = Math.Max(currentContentHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
@@ -759,6 +768,8 @@ internal static partial class PdfWriter {
         void PrepareLineFrame(double contentHeight, double minimumWidth = 0) {
             if (lineLayout == null) return;
             if (lineSpacing?.IsExact == true) contentHeight = lineHeight;
+            double incomingContentHeight = contentHeight;
+            contentHeight = CombinedContentHeight(contentHeight);
             currentContentHeight = Math.Max(lineHeight, contentHeight);
             double oldHeight = currentLineHeight - (currentFrame?.Gap ?? 0);
             var oldFrame = currentFrame;
@@ -770,7 +781,7 @@ internal static partial class PdfWriter {
                 lineLayout(lines.Count - 1, completedHeight, oldHeight, currentMinimumWidth);
                 currentFrame = oldFrame;
                 StartNewLine();
-                height = Math.Max(lineHeight, contentHeight);
+                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight));
                 requiredWidth = minimumWidth;
                 frame = lineLayout(lines.Count - 1, completedHeight, height, requiredWidth);
             }
@@ -778,6 +789,10 @@ internal static partial class PdfWriter {
             currentMinimumWidth = requiredWidth;
             currentLineHeight = height + frame.Gap;
         }
+
+        double CombinedContentHeight(double contentHeight) => lineSpacing?.IsExact == true || !(currentLineHasInline || currentRunIsInline) ? contentHeight
+            : Math.Max(contentHeight, Math.Max(currentLineAscent, currentRunAscent)
+                + Math.Max(currentLineDescent, currentRunDescent));
 
         PdfTabStop? ResolveNextExplicitTabStop() {
             if (explicitTabStops == null || explicitTabStops.Length == 0) {
@@ -885,9 +900,14 @@ internal static partial class PdfWriter {
                 ? resolvedNamedFont
                 : null;
             double runFontSize = run.FontSize ?? fontSize;
+            currentRunIsInline = run.InlineElement != null;
+            GetRichRunLineMetrics(fontForRun, currentRunNamedFont, runFontSize, baseline, options, lineSpacing,
+                out currentRunAscent, out currentRunDescent);
             double spaceW = MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings);
             if (run.InlineElement != null) {
                 PdfInlineElement inlineElement = run.InlineElement;
+                currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
+                currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
                 double inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset + inlineElement.Height)
                     + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset);
                 PrepareLineFrame(inlineHeight, inlineElement.Width);
@@ -951,7 +971,7 @@ internal static partial class PdfWriter {
                     leadingDecorationFontSize: pendingLeadingDecorationFontSize,
                     leadingDecorationTextRise: pendingLeadingDecorationTextRise));
                 lineWidth += leadingAdvance + inlineElement.Width;
-                RegisterInlineLineHeight(inlineElement);
+                RegisterLineMetrics();
                 ResetPendingLeading();
                 continue;
             }
@@ -1135,6 +1155,8 @@ internal static partial class PdfWriter {
         }
         if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }
         if (heights.Count < lines.Count) heights.Add(currentLineHeight);
+        foreach (RichLine line in lines)
+            line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, lineSpacing);
         return (lines, heights);
 
         bool TryAppendSoftLineBreakLongToken(
@@ -1793,22 +1815,6 @@ internal static partial class PdfWriter {
     private static double GetRichSegmentWidth(RichSeg segment) =>
         segment.MeasuredWidth;
 
-    private static double AdjustRichLineBaseline(
-        double baseline,
-        System.Collections.Generic.IReadOnlyList<RichSeg> segments,
-        PdfOptions options,
-        double fontSize) {
-        double baseAscent = GetAscenderForOptions(ChooseNormal(options.DefaultFont), fontSize, options);
-        double requiredAscent = baseAscent;
-        foreach (RichSeg segment in segments) {
-            if (segment.InlineElement != null) {
-                requiredAscent = Math.Max(requiredAscent, segment.InlineElement.BaselineOffset + segment.InlineElement.Height);
-            }
-        }
-
-        return baseline - Math.Max(0D, requiredAscent - baseAscent);
-    }
-
     private static int? RegisterInlineFigureStructureElement(
         LayoutResult.Page? page,
         PdfOptions options,
@@ -1905,7 +1911,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
@@ -1951,7 +1957,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            double lineY = AdjustRichLineBaseline(startY - backgroundYOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize);
+            double lineY = AdjustRichLineBaseline(startY - backgroundYOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize, baselineFont);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             double baseLineW = 0;
@@ -2032,7 +2038,7 @@ internal static partial class PdfWriter {
 
         double yOffset = 0D;
         for (int li = 0; li < lines.Count; li++) {
-            double lineY = AdjustRichLineBaseline(startY - yOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize);
+            double lineY = AdjustRichLineBaseline(startY - yOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize, baselineFont);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             var segs = lines[li];
@@ -2447,7 +2453,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null) {
+    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null) {
         // Prevent link coalescing from extending a newly clipped annotation into a prior text frame.
         annots.Add(new LinkAnnotation());
         int annotationStart = annots.Count;
@@ -2457,7 +2463,7 @@ internal static partial class PdfWriter {
             .ClipPath()
             .EndPath();
 
-        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths, suppressActualText);
+        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths, suppressActualText, lineTopGaps, baselineFont);
         ClipLinkAnnotations(annots, annotationStart, clipX, clipY, clipWidth, clipHeight);
         annots.RemoveAt(annotationStart - 1);
 
