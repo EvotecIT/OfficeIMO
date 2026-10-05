@@ -20,5 +20,6 @@ internal static class PowerPointTextPropertyFormatting {
         properties.RemoveAllChildren<A.PatternFill>();
         properties.RemoveAllChildren<A.GroupFill>();
         properties.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = value }), true);
+        PowerPointTextHyperlinkColor.UseExplicitTextColor(properties);
     }
 }

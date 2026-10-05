@@ -297,6 +297,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!string.IsNullOrWhiteSpace(allowedHyperlink)
             && Uri.TryCreate(allowedHyperlink, UriKind.RelativeOrAbsolute, out Uri? targetUri)) {
             target.Hyperlink = targetUri;
+            if (bool.TryParse(source.GetAttribute("data-officeimo-powerpoint-hyperlink-use-text-color"), out bool useTextColor)) {
+                target.HyperlinkUsesTextColor = useTextColor;
+            }
         }
     }
 
@@ -459,6 +462,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!string.IsNullOrWhiteSpace(resolvedHyperlink)
             && Uri.TryCreate(resolvedHyperlink, UriKind.RelativeOrAbsolute, out Uri? hyperlink)) {
             target.Hyperlink = hyperlink;
+            if (source.DataAttributes.TryGetValue("data-officeimo-powerpoint-hyperlink-use-text-color", out string? colorPolicy)
+                && bool.TryParse(colorPolicy, out bool useTextColor)) {
+                target.HyperlinkUsesTextColor = useTextColor;
+            }
         }
     }
 

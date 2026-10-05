@@ -171,6 +171,8 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append(" data-officeimo-powerpoint-hyperlink=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(run.Hyperlink.ToString()))
                 .Append('"');
+            body.Append(" data-officeimo-powerpoint-hyperlink-use-text-color=\"")
+                .Append(run.HyperlinkUsesTextColor ? "true" : "false").Append('"');
         }
     }
 

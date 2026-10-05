@@ -763,3 +763,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.PowerPoint` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+### Hyperlink text colors
+
+Assigning `PowerPointTextRun.Color` keeps that explicit color on hyperlinks in readers supporting the native text-color extension. Links without an explicit color retain the theme hyperlink color. To use a style-inherited text color, create the link and set `run.HyperlinkUsesTextColor = true`; set it to `false` to select the theme hyperlink color. The extension is supported by Office 2019 and newer; older readers may ignore it.

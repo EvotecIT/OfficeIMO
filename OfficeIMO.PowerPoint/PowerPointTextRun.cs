@@ -230,7 +230,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000").  
+        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000"). Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
         public string? Color {
             get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
@@ -384,12 +384,17 @@ namespace OfficeIMO.PowerPoint {
             A.HyperlinkOnClick[] previous = properties
                 .Elements<A.HyperlinkOnClick>().ToArray();
             if (replacement != null) {
+                bool? colorChoice = previous.Select(PowerPointTextHyperlinkColor.ReadChoice)
+                    .FirstOrDefault(choice => choice.HasValue);
+                if (colorChoice.HasValue || properties.GetFirstChild<A.SolidFill>()?.RgbColorModelHex != null) {
+                    PowerPointTextHyperlinkColor.SetChoice(replacement, colorChoice ?? true);
+                }
                 A.HyperlinkSound? preservedSound = previous
                     .SelectMany(link => link.Elements<A.HyperlinkSound>())
                     .FirstOrDefault();
                 if (preservedSound != null) {
-                    replacement.Append((A.HyperlinkSound)preservedSound
-                        .CloneNode(true));
+                    replacement.AddChild((A.HyperlinkSound)preservedSound
+                        .CloneNode(true), true);
                 }
                 bool? preservedEndSound = previous
                     .Select(link => link.EndSound?.Value)
