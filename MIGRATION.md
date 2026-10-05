@@ -12,11 +12,22 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 ## PNG scan sample layout
 
 `OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
-one-bit grayscale PNGs. Decoded pixels, dimensions, and density remain unchanged.
+one-bit grayscale PNGs. Other opaque images use eight-bit RGB samples. Decoded
+pixels, dimensions, and density remain unchanged.
 Consumers that inspect samples or add color-dependent PNG chunks must read the
 IHDR bit depth and color type instead of assuming eight-bit RGBA output.
 `EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
 encoding retains eight-bit RGBA output.
+
+## Long-document AI request budgets
+
+Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
+
+## OCR review and AI evidence
+
+A single adaptive OCR attempt that passes confidence checks now has `OcrReviewStatus.Unassessed`, emits `adaptive-ocr-unassessed`, and sets `ReviewRecommended` to true. Use `Quality.MeetsThresholds` when you specifically need the old confidence-only signal. Use `new OcrReviewPolicy(OcrRetryMode.CompareAll)` to run every configured variant within the shared deadline. `ChecksPassed` reports agreement and passing checks, not correctness or approval.
+
+Reader OCR blocks carry `Recognition` provenance through JSON and nested projection. AI includes it in evidence snapshot hashes, requests, citations and reports. Recreate cached snapshots/results together; do not combine results with newly captured evidence merely because the original source hash matches. Extraction consumers can inspect `TextValueMatched` and `RecognitionReviewRequired` alongside field status.
 
 ## ZIP, drawing links, and MCP filesystem access
 
