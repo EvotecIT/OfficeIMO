@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## Book project revision storage
+
+`BookProject.ToProjectBytes()` writes version-2 `.oibook` files, including named
+publication revisions. Update applications that read these projects before sharing
+newly saved files with them; older readers reject version 2. Existing version-1
+projects remain readable. `MaximumProjectBytes` is now 260 MiB to accommodate the
+current publication and bounded revision storage. Session undo/redo remains transient.
+
 This guide contains version-to-version changes that require application code, package references, or configuration to change. It is not a release history or a second API manual.
 
 - Use [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) for release notes and downloadable artifacts.

@@ -144,7 +144,7 @@ public sealed class BookProjectTests {
         else Assert.NotEmpty(Assert.Single(project.PreviewChapter(1)).Bytes!);
     }
     [Theory]
-    [InlineData("{\"Version\":2,\"Diagnostics\":[]}", typeof(NotSupportedException))]
+    [InlineData("{\"Version\":99,\"Diagnostics\":[]}", typeof(NotSupportedException))]
     [InlineData("{\"Version\":1,\"Diagnostics\":[],\"Unexpected\":true}", typeof(System.Text.Json.JsonException))]
     [InlineData("{\"Version\":1,\"Diagnostics\":[{\"Code\":\"TEST\",\"Message\":\"Finding\",\"Source\":\"HTML\",\"LossKind\":99}]}", typeof(InvalidDataException))]
     public void InvalidProjectReviewRecordsAreRejected(string review, Type expectedException) {

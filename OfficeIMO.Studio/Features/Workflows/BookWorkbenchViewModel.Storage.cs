@@ -22,7 +22,7 @@ public sealed partial class BookWorkbenchViewModel {
     }
     internal async Task OpenLocationAsync(string location, CancellationToken token) {
         string extension = Path.GetExtension(_storage.Describe(location).Name).ToLowerInvariant();
-        StudioStorageSnapshot input = await _storage.ReadSnapshotAsync(location, token, extension == ".oibook" ? 130L * 1024 * 1024 : 128L * 1024 * 1024);
+        StudioStorageSnapshot input = await _storage.ReadSnapshotAsync(location, token, extension == ".oibook" ? BookProject.MaximumProjectBytes : 128L * 1024 * 1024);
         BookProject project;
         if (extension == ".oibook") project = await Task.Run(() => BookProject.LoadProject(input.Bytes, token), token);
         else if (extension == ".epub") project = await Task.Run(() => BookProject.FromEpub(input.Bytes, token), token);

@@ -85,13 +85,35 @@ chapter titles and XHTML bodies, resource renaming with reference repair, a proj
 `ApplyEdits` commits a complete editor draft atomically. Invalid or cancelled edits
 retain the previous publication. Deleting a linked chapter requires repairing its
 remaining links first. A blank creator retains the current creator. Package edits
-have one bounded session-only undo/redo step; the history is not saved in the project.
+have one bounded session-only undo/redo step. Named revisions are saved separately.
 `PreviewChapter` renders through `OfficeIMO.Epub.Image` using retained package assets.
 It selects the requested spine position and fails if that chapter was omitted by the
 bounded reading policy. Navigation edits also reject incomplete reader projections,
 retaining the complete publication when item, depth, or XML size limits are reached.
 
-The `.oibook` container stores `publication.epub` and a versioned review record, with
+Capture editorial milestones explicitly with `CreateRevision(name)`. `Revisions`
+returns immutable descriptors with an ID, name, UTC timestamp, SHA-256 hash and byte
+count. `RestoreRevision(id)` restores publication content as an undoable edit;
+`RemoveRevision(id)` removes only that snapshot. Import diagnostics and acceptance
+remain project-wide. Direct edits through `Publication` are included when capturing
+a revision, but are not automatically recorded as history.
+
+```csharp
+var baseline = project.CreateRevision("Before copyediting");
+project.SetMetadata("Revised title", "en", "Author");
+byte[] saved = project.ToProjectBytes();
+var restored = BookProject.LoadProject(saved);
+restored.RestoreRevision(baseline.Id);
+restored.Undo(); // Return to the revised title.
+```
+
+A project retains up to 100 named revisions and 128 MiB of combined revision EPUB
+bytes, in addition to its current publication (up to 128 MiB). Capture rejects an
+exhausted bound without evicting existing revisions. Version-2 projects retain these
+snapshots; version-1 projects remain readable. Session undo/redo is not persisted.
+Revision hashes detect inconsistent stored content; they are not digital signatures.
+
+The `.oibook` container stores `publication.epub`, named revision EPUBs and a versioned review record, with
 physical ZIP validation and byte/count limits. Loading never extracts files.
 Projects may retain non-fatal review findings until the author acknowledges them;
 failure diagnostics cannot be accepted as export-ready. Every EPUB export still runs
