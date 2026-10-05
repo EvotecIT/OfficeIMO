@@ -70,12 +70,18 @@ internal static partial class PdfWriter {
             : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(shading.X0, shading.Y0, shading.X1, shading.Y1, shading.Stops, alphaOnly: true);
         int maskShadingId = shading.SpreadMode != OfficeGradientSpreadMode.Pad
             ? AddRadialSpreadShading(objects, shading, alphaOnly: true) : AddObject(objects, maskShading);
-        string entries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [" +
-            PdfNumberFormatter.Precise(shading.AlphaLeft) + " " + PdfNumberFormatter.Precise(shading.AlphaBottom) + " " +
-            PdfNumberFormatter.Precise(shading.AlphaRight) + " " + PdfNumberFormatter.Precise(shading.AlphaTop) + "]" +
+        // Zero-based mask bounds avoid native consumers clipping negative-origin
+        // transparency groups. Matrix and inverse content translation preserve placement.
+        string left = PdfNumberFormatter.Precise(shading.AlphaLeft);
+        string bottom = PdfNumberFormatter.Precise(shading.AlphaBottom);
+        string entries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [0 0 " +
+            PdfNumberFormatter.Precise(shading.AlphaRight - shading.AlphaLeft) + " " +
+            PdfNumberFormatter.Precise(shading.AlphaTop - shading.AlphaBottom) + "] /Matrix [1 0 0 1 " + left + " " + bottom + "]" +
             " /Group << /S /Transparency /CS /DeviceGray /I true >>" +
             " /Resources << /Shading << /A " + maskShadingId + " 0 R >> >>";
-        var maskContent = new StringBuilder();
+        var maskContent = new StringBuilder("1 0 0 1 ")
+            .Append(PdfNumberFormatter.Precise(-shading.AlphaLeft)).Append(' ')
+            .Append(PdfNumberFormatter.Precise(-shading.AlphaBottom)).Append(" cm\n");
         var content = new ContentStreamBuilder(maskContent);
         if (shading.OutsideColor is OfficeColor outside) {
             content.FillGray(outside.A / 255D)

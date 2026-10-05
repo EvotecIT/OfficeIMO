@@ -316,8 +316,14 @@ native XPS sampling. Ghostscript independently renders the vector files; its
 maximum mean difference is 2.218/255, including dense cycle sampling differences.
 MuPDF 1.28.2 also renders the 32 periodic RGB cases, with a maximum whole-image
 mean channel difference of 3.700/255 against managed PDF readback. Near-tangent
-cycle sampling still differs between renderers. These are generated fixtures,
-not independent-producer or native Windows proof.
+cycle sampling still differs between renderers. macOS 27.0.1 PDFKit renders the
+same 32 RGB cases with a maximum mean difference of 3.127/255. Calculator fields
+use ordered comparisons and alpha Forms use zero-based bounds with equivalent
+placement transforms to avoid native evaluation and clipping differences.
+PDFKit also renders 32 converted CMYK cases and two 1,024-stop RGB/CMYK stress
+exports. CMYK mean differences reach 44.853/255, and the RGB stress case reaches
+24.649/255; these cases establish execution and placement, not color equivalence.
+These are generated fixtures, not independent-producer or native Windows proof.
 Explicit print-condition conversion reuses the PDF engine's ICC gradient sampler,
 retaining vector CMYK component functions and scalar alpha. Caller-supplied
 profiles, rendering intent and black-preservation settings follow the existing
