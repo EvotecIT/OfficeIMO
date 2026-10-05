@@ -7,13 +7,6 @@ internal sealed partial class XpsSvgConverter {
     private void NativeRadialPad(XElement gradient, XElement target, string attribute, BrushRegion region) {
         if (region.Width <= 0 || region.Height <= 0) { Set(target, attribute, "none"); return; }
         string id = (string)gradient.Attribute("id")!;
-        if ((string?)gradient.Attribute("gradientUnits") == "objectBoundingBox") {
-            StripFillRule((string?)target.Attribute("d") ?? "", out _, out var bounds);
-            if (!bounds.HasValue || bounds.Value.Width <= 0 || bounds.Value.Height <= 0) { Set(target, attribute, "none"); return; }
-            var box = bounds.Value;
-            Set(gradient, "gradientTransform", "matrix(" + N(box.Width) + " 0 0 " + N(box.Height) + " " + N(box.X) + " " + N(box.Y) + ") " + (string?)gradient.Attribute("gradientTransform"));
-        }
-        Set(gradient, "gradientUnits", "userSpaceOnUse");
         string cx = (string)gradient.Attribute("cx")!, cy = (string)gradient.Attribute("cy")!, radius = (string)gradient.Attribute("r")!;
         Set(gradient, "cx", (string)gradient.Attribute("fx")!); Set(gradient, "cy", (string)gradient.Attribute("fy")!);
         Set(gradient, "fx", cx); Set(gradient, "fy", cy); Set(gradient, "fr", radius); Set(gradient, "r", "0");

@@ -81,6 +81,7 @@ public sealed class XpsRadialBoundaryTests {
         page.ReplaceMarkup(markup);
         Assert.Throws<NotSupportedException>(() => page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => document.ToPdf());
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
     }
 
     [Theory]
@@ -108,6 +109,8 @@ public sealed class XpsRadialBoundaryTests {
             Assert.InRange(Math.Abs(pixel.G - 255 * (1 - opacity)), 0, 4);
             Assert.InRange(Math.Abs(pixel.B - (255 * ratio * opacity + 255 * (1 - opacity))), 0, 4);
         }
+        XpsRadialExteriorSpreadTests.AssertDirectSvgMatches(page, raster,
+            new[] { (20, 20), (60, 40), (100, 80), (right - 10, 130) });
         var pdf = PdfReadDocument.Open(document.ToPdf());
         Assert.Single(pdf.Pages);
         if (!alpha) {
@@ -129,6 +132,7 @@ public sealed class XpsRadialBoundaryTests {
         page.ReplaceMarkup(xml);
         Assert.Throws<NotSupportedException>(() => page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => doc.ToPdf());
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
     }
 
     internal static XpsDocument Create(XpsFormat format, int focus, string matrix, bool alpha, bool stroke) {

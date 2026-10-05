@@ -42,7 +42,7 @@ public sealed class XpsRadialExteriorSpreadTests {
                 Assert.InRange(Math.Abs(actual.B - expected.B), 0, 4);
             }
         }
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        AssertDirectSvgMatches(page, image!, points);
         Assert.Contains("<pattern", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
     }
 
@@ -54,6 +54,37 @@ public sealed class XpsRadialExteriorSpreadTests {
         page.ReplaceMarkup(xml);
         Assert.Throws<NotSupportedException>(() => page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => doc.ToPdf());
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+    }
+
+    [Theory]
+    [InlineData(XpsFormat.Xps, "Repeat")]
+    [InlineData(XpsFormat.OpenXps, "Reflect")]
+    public void DirectSpreadCoversUnfilledStrokedFigures(XpsFormat format, string spread) {
+        var document = XpsFigurePaintTests.Create(format, false);
+        var page = document.Pages[0]; var xml = page.GetMarkup(); var ns = xml.Name.Namespace;
+        var path = xml.Element(ns + "Path")!;
+        path.Attribute("Stroke")!.Remove();
+        path.SetAttributeValue("StrokeThickness", "4"); path.SetAttributeValue("StrokeMiterLimit", "1");
+        var brush = Create(format, spread, "1,0,0,1,0,0", false, false).Pages[0].GetMarkup()
+            .Descendants().Single(element => element.Name.LocalName == "RadialGradientBrush");
+        path.Add(new System.Xml.Linq.XElement(ns + "Path.Stroke", brush)); page.ReplaceMarkup(xml);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        AssertDirectSvgMatches(page, image!, new[] { (20, 40), (80, 50), (110, 50), (170, 50) });
+    }
+
+    internal static void AssertDirectSvgMatches(XpsPage page, OfficeRasterImage expected, (int, int)[] points) {
+        var svg = page.ToSvg();
+        Assert.Empty(svg.Diagnostics);
+        Assert.True(OfficeSvgDrawingReader.TryRead(System.Text.Encoding.UTF8.GetBytes(svg.Svg), out var drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        var actual = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
+        foreach (var xy in points) {
+            var left = expected.GetPixel(xy.Item1, xy.Item2); var right = actual.GetPixel(xy.Item1, xy.Item2);
+            Assert.InRange(Math.Abs(left.R - right.R), 0, 4);
+            Assert.InRange(Math.Abs(left.G - right.G), 0, 4);
+            Assert.InRange(Math.Abs(left.B - right.B), 0, 4);
+        }
     }
 
     internal static XpsDocument Create(XpsFormat format, string spread, string matrix, bool alpha, bool stroke) {
