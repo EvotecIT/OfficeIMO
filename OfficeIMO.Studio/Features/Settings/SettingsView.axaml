@@ -12,7 +12,7 @@
         <TextBlock Text="{loc:Loc Settings.Description}" Classes="muted" TextWrapping="Wrap" />
       </StackPanel>
 
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+      <Grid x:Name="AppearanceGrid" ColumnDefinitions="*,*" ColumnSpacing="16" RowSpacing="16">
         <Border Classes="card">
           <StackPanel Spacing="12">
             <TextBlock Text="{loc:Loc Settings.AppearanceAndLanguage}" Classes="sectionTitle" />
@@ -56,7 +56,7 @@
           <StackPanel Spacing="10">
             <TextBlock Text="{loc:Loc Settings.ReadingWorkspace}" Classes="sectionTitle" />
             <TextBlock Text="{loc:Loc Settings.ReadingWorkspaceDescription}" TextWrapping="Wrap" />
-            <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="6" Padding="10,8">
+            <Border x:Name="FocusReadingHelp" Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="6" Padding="10,8">
               <TextBlock Text="{loc:Loc Settings.FocusReadingHelp}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" />
             </Border>
             <TextBlock Text="{loc:Loc Settings.DocumentAppearanceHelp}" Classes="muted" TextWrapping="Wrap" />
@@ -64,7 +64,7 @@
         </Border>
       </Grid>
 
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+      <Grid x:Name="PrivacyGrid" ColumnDefinitions="*,*" ColumnSpacing="16" RowSpacing="16">
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Text="{loc:Loc Settings.PrivacyAndDiagnostics}" Classes="sectionTitle" />

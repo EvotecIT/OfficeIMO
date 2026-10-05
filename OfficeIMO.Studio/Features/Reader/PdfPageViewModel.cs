@@ -115,6 +115,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     public int PageNumber { get; }
 
+    /// <summary>The page identity used by item containers and assistive technology.</summary>
+    public override string ToString() => PageLabel;
+
     public string PageLabel => _localizer.Format("PdfPage.Label", PageNumber);
 
     public bool HasScene => Scene is not null;

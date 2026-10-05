@@ -45,7 +45,7 @@ public class PdfSignatureProfileTests {
             Y = 54,
             Width = 210,
             Height = 60,
-            Text = "Approved by external signer"
+            Text = "Approved: Earth’s €"
         };
 
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
@@ -67,7 +67,14 @@ public class PdfSignatureProfileTests {
         Assert.Equal(54, widget.Y1);
         Assert.Equal(252, widget.X2);
         Assert.Equal(114, widget.Y2);
-        Assert.Contains("Approved by external signer", raw, StringComparison.Ordinal);
+        Assert.Contains("<417070726F7665643A20456172746892732080> Tj", raw, StringComparison.Ordinal);
+        var appearanceStream = Assert.Single(PdfSyntax.ParseObjects(preparation.PreparedPdf).Map.Values
+            .Select(o => o.Value).OfType<PdfStream>(), s =>
+                s.Dictionary.Items.TryGetValue("Subtype", out var subtype) && subtype is PdfName { Name: "Form" });
+        var resources = Assert.IsType<PdfDictionary>(appearanceStream.Dictionary.Items["Resources"]);
+        var fonts = Assert.IsType<PdfDictionary>(resources.Items["Font"]);
+        var font = Assert.IsType<PdfDictionary>(fonts.Items["F1"]);
+        Assert.Equal("WinAnsiEncoding", Assert.IsType<PdfName>(font.Items["Encoding"]).Name);
         Assert.Contains("/Subtype /Widget", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form", raw, StringComparison.Ordinal);
     }

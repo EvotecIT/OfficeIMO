@@ -891,6 +891,9 @@ public class PdfOcrTests {
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation() {
         byte[] pdf = PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
@@ -899,15 +902,21 @@ public class PdfOcrTests {
             .Select(static index => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D, index))
             .ToArray();
         var pageMerge = new PdfOcrPageMergeResult(1, words, 0, 0, Array.Empty<string>(), string.Empty);
+#if PDF_PERFORMANCE_EVIDENCE
         var timer = System.Diagnostics.Stopwatch.StartNew();
+#endif
 
         PdfDocumentReadResult enriched = BuildOcrDocument(pdf, new[] { pageMerge }, CancellationToken.None);
+#if PDF_PERFORMANCE_EVIDENCE
         timer.Stop();
+#endif
 
         Assert.Single(enriched.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.True(
             timer.Elapsed < TimeSpan.FromSeconds(5),
             "Maximum same-line OCR projection exceeded the bounded contract: " + timer.Elapsed + ".");
+#endif
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

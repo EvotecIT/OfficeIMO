@@ -19,6 +19,8 @@ public sealed partial class App : Application {
 
     internal StudioApplicationServices Services { get; private set; } = null!;
 
+    internal Func<App, Avalonia.Controls.Control>? SingleViewFactory { get; init; }
+
     public override void Initialize() {
         Services ??= StudioApplicationServices.CreateDefault();
         StudioLocalization.Configure(Services.Localizer);
@@ -59,6 +61,9 @@ public sealed partial class App : Application {
             window.OpenInitialDocument(desktop.Args);
             desktop.MainWindow = window;
             AttachFileActivation(desktop, window);
+        } else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView && SingleViewFactory is not null) {
+            AttachDiagnosticHandlers();
+            singleView.MainView = SingleViewFactory(this);
         }
 
         base.OnFrameworkInitializationCompleted();

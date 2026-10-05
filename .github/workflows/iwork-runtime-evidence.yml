@@ -1,0 +1,85 @@
+name: iWork runtime evidence
+
+on:
+  pull_request:
+    paths:
+      - "OfficeIMO.IWork.Benchmarks/**"
+      - "Build/Benchmarks/*IWork*"
+      - "Build/Benchmarks/iwork-runtime.benchmark.ps1"
+      - ".github/workflows/iwork-runtime-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.112
+            10.0.303
+      - name: Build iWork workloads
+        run: dotnet build OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0
+      - name: Validate native content and active cancellation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          New-Item -ItemType Directory -Path .benchmark-artifacts/iwork-resource -Force | Out-Null
+          dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0 --no-build -- --validate OfficeIMO.TestAssets/Documents/IWorkCorpus | Tee-Object .benchmark-artifacts/iwork-resource/validation.txt
+      - name: Checkout canonical measurement owner
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v7
+        with:
+          repository: EvotecIT/PSPublishModule
+          ref: 000237c50bad900df3ce95b7ed81488fa1189734
+          path: .benchmark-artifacts/iwork-tooling
+          persist-credentials: false
+      - name: Build pinned PowerForge measurement owner
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: .benchmark-artifacts/iwork-tooling
+        run: dotnet build PSPublishModule/PSPublishModule.csproj -c Release -f net8.0
+      - name: Measure scale, repeated native operations and I/O cancellation
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $runner = './Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1'
+          $module = (Resolve-Path .benchmark-artifacts/iwork-tooling/PSPublishModule/bin/Release/net8.0/PSPublishModule.dll).Path
+          foreach ($pass in 1..2) {
+              # A fresh host per run separates assembly caches and retained observations.
+              pwsh -NoLogo -NoProfile -File $runner -ModulePath $module -OutputRoot ".benchmark-artifacts/iwork-resource/scale-$pass" -MeasureRetainedMemory
+              foreach ($kind in 'Pages', 'Numbers', 'Keynote') {
+                  foreach ($operation in 'LoadProject', 'ConvertSave', 'CancelDuringLoad', 'CancelDuringConvert') {
+                      pwsh -NoLogo -NoProfile -File $runner -ModulePath $module -OutputRoot ".benchmark-artifacts/iwork-resource/$kind-$operation-$pass" -Scale Native -Kind $kind -Operation $operation -IterationCount 50 -MeasureRetainedMemory
+                  }
+              }
+              pwsh -NoLogo -NoProfile -File $runner -ModulePath $module -OutputRoot ".benchmark-artifacts/iwork-resource/Keynote-CancelDuringNativeCopy-$pass" -Scale Native -Kind Keynote -Operation CancelDuringNativeCopy -IterationCount 50 -MeasureRetainedMemory
+          }
+          # Instrumented timing is recorded separately from the normal runs above.
+          foreach ($kind in 'Pages', 'Numbers', 'Keynote') {
+              foreach ($operation in 'LoadProject', 'ConvertSave', 'CancelDuringLoad', 'CancelDuringConvert') {
+                  pwsh -NoLogo -NoProfile -File $runner -ModulePath $module -OutputRoot ".benchmark-artifacts/iwork-resource/sampled-$kind-$operation" -Scale Native -Kind $kind -Operation $operation -IterationCount 50 -MeasureRetainedMemory -MemorySamplingIntervalMilliseconds 5
+              }
+          }
+          pwsh -NoLogo -NoProfile -File $runner -ModulePath $module -OutputRoot '.benchmark-artifacts/iwork-resource/sampled-Keynote-CancelDuringNativeCopy' -Scale Native -Kind Keynote -Operation CancelDuringNativeCopy -IterationCount 50 -MeasureRetainedMemory -MemorySamplingIntervalMilliseconds 5
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: iwork-runtime-${{ matrix.os }}
+          path: .benchmark-artifacts/iwork-resource
+          if-no-files-found: error

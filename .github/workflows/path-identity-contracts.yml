@@ -14,6 +14,7 @@ on:
       - 'OfficeIMO.Email.Tests/Store/Pst/PstMutationTransactionTests.cs'
       - 'OfficeIMO.GoogleWorkspace.Drive/**'
       - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
+      - 'OfficeIMO.Shared.Tests/PathIdentityPublicationContracts.cs'
       - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
   push:
     branches:
@@ -30,6 +31,7 @@ on:
       - 'OfficeIMO.Email.Tests/Store/Pst/PstMutationTransactionTests.cs'
       - 'OfficeIMO.GoogleWorkspace.Drive/**'
       - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
+      - 'OfficeIMO.Shared.Tests/PathIdentityPublicationContracts.cs'
       - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
   workflow_dispatch:
 
@@ -103,7 +105,7 @@ jobs:
         run: dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore --nologo
 
       - name: Run physical identity contracts
-        run: dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PathIdentityContracts --nologo
+        run: dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter "FullyQualifiedName~PathIdentityContracts|FullyQualifiedName~PathIdentityPublicationContracts" --nologo
 
       - name: Run PST mutation contracts
         run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PstMutationTransactionTests --nologo

@@ -559,6 +559,8 @@ PdfDocument.Create(pdf => pdf.Page(page => page
     .Save("service-report.pdf");
 ```
 
+Metadata, bookmark titles, link descriptions and logical text use PDFDocEncoding or UTF-16. Standard-font paint uses the font encoding separately. Page extraction and rewriting retain original parsed string bytes, including binary image palettes.
+
 Generated headers and footers can combine literal text, visually styled runs, and styled page tokens. The same builder is available for the default, first-page, and even-page variants:
 
 ```csharp

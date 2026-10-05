@@ -35,7 +35,7 @@ internal static class PdfOutlineDictionaryBuilder {
 
         var item = new StringBuilder();
         item.Append("<< /Title ")
-            .Append(PdfSyntaxEscaper.LiteralString(title))
+            .Append(PdfSyntaxEscaper.LiteralTextString(title))
             .Append(" /Parent ")
             .Append(PdfSyntaxEscaper.IndirectReference(parentId));
 

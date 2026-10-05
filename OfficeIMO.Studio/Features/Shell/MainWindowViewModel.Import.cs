@@ -9,6 +9,25 @@ public sealed partial class MainWindowViewModel {
     private readonly Func<PageImportPreviewViewModel, Task<bool>> _reviewPageImport;
     private bool _reviewingPageImport;
 
+    /// <summary>Owns a host's picker and working-copy read until it is accepted, cancelled, or discarded.</summary>
+    internal async Task<string?> RunFileImportAsync(Func<CancellationToken, Task<string?>> import,
+        Action<string> discard, CancellationToken cancellationToken) {
+        if (_disposed || CanCancelOperation) return null;
+        string? path = null;
+        bool completed = await RunStandaloneAsync(async token => {
+            try {
+                path = await import(token).ConfigureAwait(true);
+                token.ThrowIfCancellationRequested();
+            } catch {
+                if (path is not null) { discard(path); path = null; }
+                throw;
+            }
+        }, cancellationToken).ConfigureAwait(true);
+        if (completed && !_disposed) return path;
+        if (path is not null) discard(path);
+        return null;
+    }
+
     [RelayCommand]
     private async Task ImportPagesAsync(CancellationToken cancellationToken) {
         using var notifications = BeginNotificationScope();
