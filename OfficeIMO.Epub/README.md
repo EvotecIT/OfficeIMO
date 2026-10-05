@@ -421,6 +421,34 @@ leave the publication unchanged. Generated links respect local HTML base URLs;
 external bases are rejected. EPUB 2 note authoring is unsupported. Full save and
 independent accessibility/reader checks still apply; note popup behavior depends on the reader.
 
+## Book matter and print-page navigation
+
+`SetDocumentMatter` marks an XHTML document as front, body, or back matter while
+retaining its other semantic tokens. It does not change spine order or the table of contents.
+`AddPrintPageMarker` marks an existing empty span as a source-page boundary and adds
+its labelled link to the EPUB 3 page list.
+
+```csharp
+publication.AddChapter("preface", "EPUB/front/preface.xhtml", "Preface",
+    "<h1>Preface</h1><p><span id='page-iv'/>Opening text.</p>");
+publication.SetDocumentMatter("preface", EpubDocumentMatter.FrontMatter);
+publication.AddPrintPageMarker("preface", "page-iv", "iv", "Reference pages");
+publication.SetMetadataProperty("pageBreakSource", "urn:isbn:9781234567897");
+```
+
+Add markers in the source edition's page order and identify that edition with
+`SetMetadataProperty("pageBreakSource", sourceIdentifier)`, using its actual identifier
+or a description that uniquely identifies the source. Page labels and
+the new page-list heading are caller-supplied text and can be localized. Existing
+page-list headings, attributes, and entries are retained; adding a duplicate target
+is rejected. Content and navigation edits commit together, including retention-limit
+and cancellation checks. Generated links respect local HTML base URLs.
+
+These APIs require EPUB 3. Page markers belong to spine documents and receive
+`epub:type="pagebreak"`, `role="doc-pagebreak"`, and an accessible page label.
+They reference an existing edition's pages; they do not paginate text or create
+fixed-layout geometry. Independent reader and accessibility qualification still applies.
+
 ## Publication preflight
 
 `Preflight` returns structured native checks without writing a destination or invoking
