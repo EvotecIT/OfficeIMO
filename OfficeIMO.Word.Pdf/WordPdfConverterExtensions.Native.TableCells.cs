@@ -314,8 +314,19 @@ namespace OfficeIMO.Word.Pdf {
                 double? lineHeight = nativeLineSpacing.Resolve(
                     ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults), naturalLineHeight)
                     ?? tableStyleDefaults.ParagraphLineHeight;
-                double paragraphFontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle);
+                double? paragraphFontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle);
                 PdfCore.PdfLineSpacing? lineSpacing = nativeLineSpacing.ToPdfLineSpacing(naturalLineHeight);
+                if (tableStyleDefaults.UseConfiguredTypography) {
+                    if (!nativeLineSpacing.Value.HasValue) {
+                        lineHeight = null;
+                        lineSpacing = null;
+                    }
+                    if (paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>() == null &&
+                        !GetNativeRuns(paragraph).Any(run => !IsNativeHiddenTextRun(run, paragraph) &&
+                            ResolveNativeTextRunStyle(run, paragraph, tableStyleDefaults.RunStyle, nativeDefaults).FontSize.HasValue)) {
+                        paragraphFontSize = paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
+                    }
+                }
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
@@ -565,7 +576,8 @@ namespace OfficeIMO.Word.Pdf {
 
             if (footnoteNumbersById != null) {
                 List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
-                AddNativeCellFootnoteReferences(result, paragraphFootnoteNumbers);
+                result.AddRange(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
+                    nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle));
             }
 
             return result;
@@ -675,7 +687,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize ?? nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize,
+                fontSize: style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
+                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize),
                 font: style.Font,
                 baseline: style.Baseline,
                 backgroundColor: style.BackgroundColor,
@@ -767,12 +780,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return PdfCore.PdfTextRun.Tab();
-        }
-
-        private static void AddNativeCellFootnoteReferences(List<PdfCore.PdfTextRun> target, IReadOnlyList<int> footnoteNumbers) {
-            foreach (int footnoteNumber in footnoteNumbers) {
-                target.Add(PdfCore.PdfTextRun.Superscript(footnoteNumber.ToString(CultureInfo.InvariantCulture)));
-            }
         }
 
         private static string GetNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById) {

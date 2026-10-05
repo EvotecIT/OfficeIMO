@@ -165,7 +165,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (WordParagraph run in runs) {
-                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text) || IsNativeHiddenTextRun(run, paragraph)) {
                     continue;
                 }
 
@@ -202,7 +202,7 @@ namespace OfficeIMO.Word.Pdf {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             double? lineHeight = null;
             foreach (WordParagraph run in runs) {
-                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text) || IsNativeHiddenTextRun(run, paragraph)) {
                     continue;
                 }
 

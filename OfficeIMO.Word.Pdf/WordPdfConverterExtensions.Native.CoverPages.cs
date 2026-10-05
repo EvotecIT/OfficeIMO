@@ -1497,7 +1497,7 @@ namespace OfficeIMO.Word.Pdf {
         private static double GetNativeVmlDefaultFontSize(IReadOnlyList<PdfCore.PdfTextRun> runs) {
             double max = 0D;
             foreach (PdfCore.PdfTextRun run in runs) {
-                if (run.FontSize.HasValue && run.FontSize.Value > max) {
+                if (!string.IsNullOrWhiteSpace(run.Text) && run.FontSize.HasValue && run.FontSize.Value > max) {
                     max = run.FontSize.Value;
                 }
             }

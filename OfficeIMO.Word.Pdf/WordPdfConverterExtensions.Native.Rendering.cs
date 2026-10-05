@@ -109,7 +109,7 @@ namespace OfficeIMO.Word.Pdf {
                     ApplyNativeInlineListIndent(paragraph, markerStyle);
                     markerStyle.SpacingAfter = 0D;
                     pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker,
-                        Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), options, nativeDefaults, nativeFontMap,
+                        Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), footnoteNumbersById, options, nativeDefaults, nativeFontMap,
                         inlineMarkerColumnWidth: Math.Max(0D, -markerStyle.FirstLineIndent)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
                 }
@@ -219,7 +219,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfPanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
             if (panelStyle != null) {
                 pdf.PanelParagraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
                 }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
@@ -238,7 +238,7 @@ namespace OfficeIMO.Word.Pdf {
 
             if (needsAnchorLine || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
                 pdf.Paragraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
                 }, align, defaultColor, paragraphStyle);
             }
 
@@ -567,6 +567,7 @@ namespace OfficeIMO.Word.Pdf {
             bool hasRenderableRuns,
             string content,
             IReadOnlyList<int> paragraphFootnoteNumbers,
+            Dictionary<long, int> footnoteNumbersById,
             WordToPdfOptions? options,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
@@ -656,7 +657,8 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeText(builder, content, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
             }
 
-            AddNativeFootnoteReferences(builder, paragraphFootnoteNumbers);
+            builder.Runs(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
+                nativeDefaults, nativeFontMap));
         }
 
         private static void AddNativeInlineListMarkerSpacer(PdfCore.PdfParagraphBuilder builder, double width) {
@@ -749,14 +751,6 @@ namespace OfficeIMO.Word.Pdf {
             return content.Substring(emittedText.Length);
         }
 
-        private static void AddNativeFootnoteReferences(PdfCore.PdfParagraphBuilder builder, IReadOnlyList<int> footnoteNumbers) {
-            foreach (int footnoteNumber in footnoteNumbers) {
-                builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
-                builder.Text(footnoteNumber.ToString(CultureInfo.InvariantCulture));
-                builder.Baseline(PdfCore.PdfTextBaseline.Normal);
-            }
-        }
-
         private static bool IsNativeTextWrappingBreak(WordParagraph run) =>
             run.IsBreak && run.Break?.BreakType != WordBreakType.Page;
 
@@ -815,7 +809,7 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphStyle.SpacingBefore = 0D;
                     paragraphStyle.SpacingAfter = 0D;
                     contentBuilder.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
-                        runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap,
+                        runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
                         inlineMarkerColumnWidth: Math.Max(0D, -paragraphStyle.FirstLineIndent)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: paragraphStyle);
                 }

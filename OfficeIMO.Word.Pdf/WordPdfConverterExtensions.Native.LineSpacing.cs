@@ -54,7 +54,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
             double? minimum = null;
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
-                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) continue;
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text) || IsNativeHiddenTextRun(run, paragraph)) continue;
                 double size = ResolveNativeTextRunStyle(run, paragraph, tableRunStyleDefaults, nativeDefaults).FontSize ?? nativeDefaults.FontSize;
                 if (size > 0D) minimum = minimum.HasValue ? Math.Min(minimum.Value, size) : size;
             }
