@@ -12,6 +12,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.Xps;
 
 namespace OfficeIMO.Workflows;
 
@@ -85,6 +86,15 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] bytes;
         bool hasLoss = false;
         switch (route.Id) {
+            case "xps-pdf": {
+                var limits = new XpsReadOptions();
+                limits.MaximumInputBytes = (int)Math.Min(limits.MaximumInputBytes, request.Limits.MaximumInputBytes);
+                var document = XpsDocument.Load(input, limits, cancellationToken);
+                using var output = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
+                document.SavePdf(output, settings.Xps, cancellationToken);
+                bytes = output.ToArray();
+                break;
+            }
             case "doc-pdf": {
                 using var source = new MemoryStream(input, writable: false);
                 PdfDocumentConversionResult conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source,

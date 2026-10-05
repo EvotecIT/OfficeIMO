@@ -35,6 +35,9 @@ internal static class OfficeConversionSupportAssessments {
         "txt-pdf" => Targeted(
             "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
             "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
+        "xps-pdf" => Targeted(
+            "Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
+            "Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts."),
         "docx-pdf" => Advanced(
             "Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",
             "Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced."),

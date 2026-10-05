@@ -10,6 +10,24 @@ XpsDocument document = XpsDocument.Load("report.xps");
 File.WriteAllBytes("report.pdf", document.ToPdf());
 ```
 
+For a caller-owned output stream, use `SavePdf`. It returns the PDF engine's
+`PdfSaveResult` and accepts its existing output settings:
+
+```csharp
+using OfficeIMO.Pdf;
+
+using var output = File.Create("report.pdf");
+PdfSaveResult saved = document.SavePdf(output, new XpsToPdfOptions {
+    PdfOptions = new PdfOptions().SetEncryption("document-password")
+}, cancellationToken);
+```
+
+The stream remains open. A successful save replaces and rewinds seekable output.
+Validation runs before writing, but a serialization failure can leave partial
+stream contents. Stage and reopen output before publishing it when the destination
+must survive a failed operation. [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md)
+provides that publication contract for `.xps` and `.oxps` through `xps-pdf`.
+
 Page dimensions convert from XPS's 96 units per inch to PDF's 72 points per inch.
 The bridge preserves the fixed page canvas instead of reflowing it. Embedded
 text remains positioned vector outlines. A separate invisible text layer preserves
@@ -49,3 +67,15 @@ conservative geometry bounds; link hit areas are rectangles.
 Export rejects known conversion losses and unsafe or unresolved outline targets.
 Opaque XPS metadata, print tickets and signatures are not PDF preservation contracts. Consult the [XPS support matrix](../OfficeIMO.Xps/SUPPORT.md) and the
 PDF engine's own rendering limits before choosing an archival workflow.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Xps.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->
