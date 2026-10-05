@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void StartTable() {
+        private void StartTable(IElement? token = null, HtmlStyleDeclaration? style = null) {
             RtfTableCell? parentCell = _cell;
             _tableStates.Push(new TableReadState(
                 _table,
@@ -20,6 +20,12 @@ internal static partial class RtfHtmlReader {
                 AddSectionBlock(_table);
             }
 
+            if (token != null && !IsLegacyRoundTripRow(token) &&
+                !(style?.TableWidth > 0) &&
+                !(HtmlStyleDeclarationParser.TryParseTableWidth(GetAttribute(token, "width") ?? "", out int authoredWidth, out _) && authoredWidth > 0)) {
+                _automaticWidthTables.Add(_table);
+            }
+
             _row = null;
             _cell = null;
             _rowSpans.Clear();
@@ -27,6 +33,8 @@ internal static partial class RtfHtmlReader {
         }
 
         private void EndTable() {
+            if (_table != null && (_tableStates.Count == 0 || _tableStates.Peek().Table == null))
+                FitDefaultTableColumns(_table, GetPageTextWidthTwips());
             _paragraph = null;
             _cell = null;
             _row = null;

@@ -648,8 +648,8 @@ namespace OfficeIMO.Word.Html {
                 return percent >= 0;
             }
 
-            var declaration = ParseInlineDeclaration($"x:{value}");
-            var raw = declaration.GetProperty("x")?.RawValue;
+            var declaration = ParseInlineDeclaration($"margin-left:{value}");
+            var raw = declaration.GetProperty("margin-left")?.RawValue;
             if (allowNegative ? TryConvertToTwipAllowNegative(raw, out _) : TryConvertToTwip(raw, out _)) {
                 return true;
             }
