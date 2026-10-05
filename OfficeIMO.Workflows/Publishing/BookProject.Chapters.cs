@@ -6,6 +6,10 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
+    /// <summary>Moves a publication resource and repairs its references in an undoable project edit.</summary>
+    public void RenameResource(string manifestId, string containerPath, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.RenameResource(manifestId, containerPath, cancellationToken), cancellationToken);
+
     /// <summary>Appends a chapter, retaining the first XHTML chapter's head and resolving its resource references from the new location.</summary>
     public string AddChapter(string title, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);

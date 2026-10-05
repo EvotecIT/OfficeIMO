@@ -72,7 +72,7 @@ public sealed partial class EpubPublication {
             while (!IsSupportedContentDocument(item.MediaType) && item.FallbackId != null) item = byId[item.FallbackId];
             if (!IsSupportedContentDocument(item.MediaType)) throw new NotSupportedException("Spine item has no supported EPUB " + PackageVersion + " content-document fallback: " + id);
         }
-        string navPath = NavigationPath();
+        string navPath = NavigationPath(root, entries);
         XDocument navigation = ParseXml(entries[navPath], _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
         ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));

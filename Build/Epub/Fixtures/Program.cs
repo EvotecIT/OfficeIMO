@@ -51,6 +51,11 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
 WriteFixture("glossary", GlossaryFixture.Create());
 WriteFixture("bibliography", BibliographyFixture.Create());
 WriteFixture("index", IndexFixture.Create());
+var renamed = IndexFixture.Create();
+renamed.RenameResource("source", "EPUB/revised/part one.xhtml");
+renamed.RenameResource("index", "EPUB/revised/back/index.xhtml");
+renamed.RenameResource("navigation", "EPUB/revised/navigation.xhtml");
+WriteFixture("renamed-index", renamed);
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));

@@ -57,7 +57,9 @@ is outside the normal solution and shipped packages.
 
 `index.epub` exercises nested terms, multiple locators and an intra-index
 cross-reference. Its labels target sections and chapters rather than inferred
-screen page numbers.
+screen page numbers. `renamed-index.epub` moves both chapters and the navigation
+document into new directories, exercising locator, cross-reference and TOC repair.
+Run both artifacts through the independent validators to compare their conformance.
 
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \

@@ -44,6 +44,7 @@ public sealed partial class EpubPublication {
             ?? new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
         _entries = entries;
         _originalEntries = new Dictionary<string, byte[]>(entries, StringComparer.Ordinal);
+        _entryOrigins = entries.Keys.ToDictionary(path => path, path => path, StringComparer.Ordinal);
         _originalBytes = originalBytes;
         _originalEntryCount = originalEntryCount;
         _originalExpandedBytes = originalExpandedBytes;

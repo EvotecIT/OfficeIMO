@@ -102,14 +102,17 @@ public sealed partial class EpubPublication {
             EditPackageElement(RequireSection("spine"), proposed => proposed.SetAttributeValue("toc", "navigation"));
         }
     }
-    private string NavigationPath() {
-        EpubManifestItem? item = PackageVersion == "3.0" ? Manifest.SingleOrDefault(resource => HasToken(resource.Properties, "nav")) :
-            Manifest.SingleOrDefault(resource => resource.Id == (string?)RequireSection("spine").Attribute("toc"));
+    private string NavigationPath() => NavigationPath(Root, _entries);
+
+    private string NavigationPath(XElement root, IReadOnlyDictionary<string, byte[]> entries) {
+        var manifest = root.Element(Opf + "manifest")!.Elements(Opf + "item").Select(element => new EpubManifestItem(element, PackagePath));
+        EpubManifestItem? item = PackageVersion == "3.0" ? manifest.SingleOrDefault(resource => HasToken(resource.Properties, "nav")) :
+            manifest.SingleOrDefault(resource => resource.Id == (string?)root.Element(Opf + "spine")!.Attribute("toc"));
         if (item == null) throw new InvalidDataException("Package has no declared navigation resource.");
         string expected = PackageVersion == "3.0" ? "application/xhtml+xml" : "application/x-dtbncx+xml";
         if (!HasMediaType(item.MediaType, expected)) throw new InvalidDataException("Navigation resource must declare " + expected + ".");
         string path = RequireLocalPath(item);
-        if (!_entries.ContainsKey(path)) throw new InvalidDataException("Navigation resource is missing.");
+        if (!entries.ContainsKey(path)) throw new InvalidDataException("Navigation resource is missing.");
         return path;
     }
     private byte[] PrepareAppendedNavigation(EpubNavigationEntry entry, string pendingPath) {

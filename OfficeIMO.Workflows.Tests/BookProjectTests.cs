@@ -5,6 +5,20 @@ using System.Xml.Linq;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class BookProjectTests {
+    [Fact]
+    public void ResourceRenameRepairsNavigationAndParticipatesInUndoRedo() {
+        var project = BookProject.Create("Book");
+        string id = project.Publication.Spine[0].ManifestId;
+        string oldPath = project.Publication.Manifest.Single(item => item.Id == id).Reference.ContainerPath!;
+        project.RenameResource(id, "EPUB/edited/first.xhtml");
+        Assert.Equal("EPUB/edited/first.xhtml", project.Publication.Read().TableOfContents[0].Target);
+        project.Undo();
+        Assert.Equal(oldPath, project.Publication.Read().TableOfContents[0].Target);
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Equal("EPUB/edited/first.xhtml", reopened.Publication.Read().TableOfContents[0].Target);
+    }
+
     [Theory]
     [InlineData("rename", EpubVersion.Epub3)]
     [InlineData("move", EpubVersion.Epub3)]

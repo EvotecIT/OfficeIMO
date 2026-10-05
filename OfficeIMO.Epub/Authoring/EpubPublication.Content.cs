@@ -178,6 +178,7 @@ public sealed partial class EpubPublication {
         EditPackageElement(RequireSection("manifest"), proposed => proposed.Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove(), -releasedBytes);
         if (removePayload) {
             _entries.Remove(path); _retainedBytes -= releasedBytes;
+            _entryOrigins.Remove(path);
         }
     }
 

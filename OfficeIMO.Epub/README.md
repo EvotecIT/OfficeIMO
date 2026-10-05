@@ -411,7 +411,30 @@ This overload requires a structurally valid resulting publication; the single-do
 setter remains available while assembling a book. Export still applies signature,
 encryption and output policies, and independent accessibility and reader checks remain separate.
 
-`EpubWriteReport` identifies preserved, regenerated, and removed entries. Explicit
+`RenameResource(manifestId, containerPath)` moves a local resource without changing its
+manifest identifier or spine position. It repairs incoming links and rebases relative
+references inside a moved document. Standard OPF links, XHTML/SVG links and resource
+carriers, responsive image candidates, inline/external CSS and XML stylesheet
+processing instructions, NCX navigation and SMIL
+text/audio references use the same operation. Queries and fragments are retained.
+For example:
+
+```csharp
+publication.RenameResource("chapter-1", "EPUB/parts/introduction.xhtml");
+```
+
+Renaming requires one rendition, no encryption/font obfuscation or scripting, no
+`xml:base`, SVG animation or refresh navigation, and inspectable resource types. XHTML, SVG, NCX, SMIL, CSS and supported
+raster/font/audio/video resources are inspected or retained as appropriate; unknown
+resource formats and unknown XML processing instructions are rejected rather than
+assumed to contain no references. Container
+controls and rootfiles cannot be renamed. All changes are staged and validated before
+commit; rejection leaves the publication unchanged. SMIL reference repair does not
+qualify timing or playback. Export signature policy still applies.
+
+`EpubWriteReport` identifies preserved, regenerated, and removed entries. Its
+`RenamedEntries` map distinguishes original paths relocated by the rename API from
+content omissions, so a rename alone does not fail `RequireNoLoss`. Explicit
 resource or signature removal produces omission diagnostics; `RequireNoLoss` rejects
 them. `RemoveResource` blocks structural and cover references, declared rootfiles,
 and payloads referenced by retained alternate packages or their XHTML/SVG/NCX content.
