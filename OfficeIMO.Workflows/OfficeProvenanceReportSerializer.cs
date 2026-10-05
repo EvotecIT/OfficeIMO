@@ -88,7 +88,7 @@ public static class OfficeProvenanceReportSerializer {
             signal.ProviderName,
             signal.SignalKind.ToString(),
             signal.Status.ToString(),
-            signal.Findings)).ToArray());
+            signal.Findings, signal.Measurement)).ToArray());
 
     private static ProvenanceReportDto ToDto(OfficeProvenanceReport report) => new(
         report.Format.ToString(),
@@ -140,7 +140,11 @@ public sealed record ProvenanceEvidenceDto(string Carrier, string Location, bool
 public sealed record ProvenanceAssessmentDto(ProvenanceReportDto Structural, string TextIntegrityStatus, string VerificationStatus, string ProviderSignalsStatus, ProvenanceVerificationDto? Verification, IReadOnlyList<ProvenanceTextFindingDto>? TextIntegrity, IReadOnlyList<ProvenanceSignalDto> ProviderSignals);
 public sealed record ProvenanceVerificationDto(string ProviderName, string Status, IReadOnlyList<string> Findings, string? RawReport);
 public sealed record ProvenanceTextFindingDto(string Kind, string Risk, int TextOffset, int TextLength, int CodePoint, string UnicodeNotation, string Location);
-public sealed record ProvenanceSignalDto(string ProviderName, string SignalKind, string Status, IReadOnlyList<string> Findings);
+public sealed record ProvenanceSignalDto(string ProviderName, string SignalKind, string Status, IReadOnlyList<string> Findings) {
+    public OfficeProvenanceSignalMeasurement? Measurement { get; init; }
+    public ProvenanceSignalDto(string providerName, string signalKind, string status, IReadOnlyList<string> findings,
+        OfficeProvenanceSignalMeasurement? measurement) : this(providerName, signalKind, status, findings) => Measurement = measurement;
+}
 public sealed record ProvenanceChangeDto(string Carrier, string Location, long RemovedBytes);
 public sealed record ProvenanceDiagnosticDto(string Code, string Message, string Severity, string? Stage, IReadOnlyDictionary<string, string> Details);
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.ContentSafety;
@@ -14,22 +15,31 @@ public partial class WordDocument {
     /// <summary>Inspects DOCX-family content that remains machine-readable while hidden or outside the primary document story.</summary>
     public static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
-        OfficeContentSafetyOptions? options = null) {
+        OfficeContentSafetyOptions? options = null) => InspectContentSafety(filePath, options, CancellationToken.None);
+
+    /// <summary>Inspects a saved Word package with cancellation during bounded input reading and text traversal.</summary>
+    public static OfficeContentSafetyReport InspectContentSafety(
+        string filePath, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
-        return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective, inspectZipPackage: true), effective);
+        return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective, inspectZipPackage: true, cancellationToken), effective, cancellationToken);
     }
 
     /// <summary>Inspects encoded DOCX, DOCM, DOTX, or DOTM bytes.</summary>
     public static OfficeContentSafetyReport InspectContentSafety(
         byte[] documentBytes,
-        OfficeContentSafetyOptions? options = null) {
+        OfficeContentSafetyOptions? options = null) => InspectContentSafety(documentBytes, options, CancellationToken.None);
+
+    /// <summary>Inspects encoded Word content while observing cancellation between native text surfaces.</summary>
+    public static OfficeContentSafetyReport InspectContentSafety(
+        byte[] documentBytes, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (documentBytes == null) throw new ArgumentNullException(nameof(documentBytes));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(documentBytes, effective, inspectZipPackage: true);
         using var stream = new MemoryStream(documentBytes, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
-        return InspectContentSafetyDocument(document, effective, targets: null);
+        return InspectContentSafetyDocument(document, effective, targets: null, cancellationToken);
     }
 
     /// <summary>Removes exact selected concealed-content findings and reinspects the encoded document.</summary>
@@ -83,9 +93,9 @@ public partial class WordDocument {
     private static OfficeContentSafetyReport InspectContentSafetyDocument(
         WordprocessingDocument document,
         OfficeContentSafetyOptions? options,
-        IDictionary<string, WordCleanupTarget>? targets) {
+        IDictionary<string, WordCleanupTarget>? targets, CancellationToken cancellationToken = default) {
         MainDocumentPart main = document.MainDocumentPart ?? throw new InvalidDataException("The package has no Word main document part.");
-        var builder = new OfficeContentSafetyBuilder("Word Open XML", options);
+        var builder = new OfficeContentSafetyBuilder("Word Open XML", options, cancellationToken);
         WordStyleResolver styleResolver = new WordStyleResolver(main);
         W.Document mainDocument = main.Document ?? throw new InvalidDataException("The Word main document part has no document root.");
         InspectWordRoot(mainDocument, "Document", false, styleResolver, builder, targets);
@@ -97,6 +107,7 @@ public partial class WordDocument {
         if (main.EndnotesPart?.Endnotes != null) InspectWordRoot(main.EndnotesPart.Endnotes, "Endnotes", true, styleResolver, builder, targets);
         if (main.WordprocessingCommentsPart?.Comments != null) InspectWordRoot(main.WordprocessingCommentsPart.Comments, "Comments", true, styleResolver, builder, targets);
         InspectWordAlternativeText(main, builder, targets);
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.Build();
     }
 
@@ -109,8 +120,9 @@ public partial class WordDocument {
         IDictionary<string, WordCleanupTarget>? targets) {
         int runIndex = 0;
         foreach (W.Run run in root.Descendants<W.Run>()) {
+            builder.CancellationToken.ThrowIfCancellationRequested();
             string text = run.InnerText;
-            if (string.IsNullOrWhiteSpace(text)) continue;
+            if (text.Length == 0) continue;
             string location = rootLocation + "/Run[" + (++runIndex).ToString(CultureInfo.InvariantCulture) + "]";
             EffectiveWordRunStyle style = styleResolver.Resolve(run);
             OfficeContentConcealmentKind? kind = null;

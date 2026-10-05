@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.dotnetpublish.schema.json",
+  "SchemaVersion": 1,
+  "DotNet": {
+    "ProjectRoot": "../..",
+    "Configuration": "Release",
+    "Restore": true,
+    "Build": true,
+    "NoRestoreInPublish": true,
+    "NoBuildInPublish": true
+  },
+  "Targets": [
+    {
+      "Name": "OfficeIMO.Tool",
+      "Kind": "Cli",
+      "ProjectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
+      "Publish": {
+        "Framework": "net10.0",
+        "Runtimes": [ "win-x64", "win-arm64", "osx-x64", "osx-arm64", "linux-x64", "linux-arm64" ],
+        "Style": "SelfContained",
+        "UseStaging": true,
+        "ClearOutput": true,
+        "KeepSymbols": false,
+        "KeepDocs": false,
+        "Zip": true,
+        "ZipNameTemplate": "OfficeIMO-Tool-{version}-{rid}-{style}.zip",
+        "OutputPath": "Artifacts/Tool/{rid}/{framework}/{style}"
+      }
+    }
+  ]
+}

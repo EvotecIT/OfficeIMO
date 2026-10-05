@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.ContentSafety;
@@ -17,9 +18,15 @@ public sealed class OfficeContentSafetyBuilder {
     private readonly List<OfficeTextIntegrityFinding> _textIntegrity = new List<OfficeTextIntegrityFinding>();
     private readonly List<string> _diagnostics = new List<string>();
     private int _characters;
+    internal CancellationToken CancellationToken { get; }
 
     /// <summary>Creates a bounded collector for one format adapter.</summary>
-    public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options = null) {
+    public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options = null) : this(format, options, CancellationToken.None) { }
+
+    /// <summary>Creates a collector that observes cancellation while charging text and collecting findings.</summary>
+    public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
+        CancellationToken = cancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A format name is required.", nameof(format));
         _format = format.Trim();
         _options = options ?? new OfficeContentSafetyOptions();
@@ -141,9 +148,10 @@ public sealed class OfficeContentSafetyBuilder {
         OfficeTextIntegrityReport unicode = OfficeTextIntegrityInspector.Inspect(text, new OfficeTextIntegrityOptions {
             MaxCharacters = Math.Max(1, text.Length),
             MaxFindings = Math.Max(1, remaining),
-            IncludeTypographicSpaces = true,
-            IncludeVariationSelectors = true
-        }, location);
+            IncludeTypographicSpaces = _options.TextIntegrityOptions?.IncludeTypographicSpaces ?? true,
+            IncludeVariationSelectors = _options.TextIntegrityOptions?.IncludeVariationSelectors ?? true,
+            IgnoreLeadingByteOrderMark = _options.TextIntegrityOptions?.IgnoreLeadingByteOrderMark ?? true
+        }, location, CancellationToken);
         if (remaining <= 0 && unicode.Findings.Count > 0) {
             throw new InvalidDataException("The asset exceeds the configured combined finding limit.");
         }
@@ -222,6 +230,7 @@ public sealed class OfficeContentSafetyBuilder {
     }
 
     private void EnsureCanCharge(int characters) {
+        CancellationToken.ThrowIfCancellationRequested();
         if (characters < 0 || _characters > _options.MaxCharacters - characters) {
             throw new InvalidDataException("The asset exceeds the configured decoded-character limit.");
         }
@@ -235,6 +244,7 @@ public sealed class OfficeContentSafetyBuilder {
     private int RemainingFindingCapacity() => _options.MaxFindings - _findings.Count;
 
     private void EnsureFindingCapacity() {
+        CancellationToken.ThrowIfCancellationRequested();
         if (RemainingFindingCapacity() <= 0) {
             throw new InvalidDataException("The asset exceeds the configured combined finding limit.");
         }

@@ -40,8 +40,17 @@ public sealed class OfficeProvenanceSignalResult {
         string providerName,
         OfficeProvenanceSignalKind signalKind,
         OfficeProvenanceSignalStatus status,
-        IReadOnlyList<string>? findings = null) {
+        IReadOnlyList<string>? findings = null) : this(providerName, signalKind, status, findings, null) { }
+
+    /// <summary>Creates a provider result with optional reproducible detector measurements.</summary>
+    public OfficeProvenanceSignalResult(
+        string providerName,
+        OfficeProvenanceSignalKind signalKind,
+        OfficeProvenanceSignalStatus status,
+        IReadOnlyList<string>? findings,
+        OfficeProvenanceSignalMeasurement? measurement) {
         if (string.IsNullOrWhiteSpace(providerName)) throw new ArgumentException("A provider name is required.", nameof(providerName));
+        Measurement = measurement;
         ProviderName = providerName;
         SignalKind = signalKind;
         Status = status;
@@ -54,6 +63,8 @@ public sealed class OfficeProvenanceSignalResult {
     public OfficeProvenanceSignalKind SignalKind { get; }
     /// <summary>Gets the normalized detection status.</summary>
     public OfficeProvenanceSignalStatus Status { get; }
+    /// <summary>Gets provider-specific measurements, when supplied; scores are not authorship probabilities.</summary>
+    public OfficeProvenanceSignalMeasurement? Measurement { get; }
     /// <summary>Gets provider findings without implying a universal AI verdict.</summary>
     public IReadOnlyList<string> Findings { get; }
 }
@@ -218,7 +229,8 @@ public static class OfficeProvenanceAssessment {
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
         CancellationToken cancellationToken = default,
         Encoding? textEncoding = null,
-        Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null) => AssessFileCore(
+        Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null,
+        Func<OfficeTextIntegrityReport>? inspectDocumentText = null) => AssessFileCore(
             snapshotFilePath,
             logicalFilePath,
             structural,
@@ -226,7 +238,7 @@ public static class OfficeProvenanceAssessment {
             verifier,
             signalDetectors,
             cancellationToken,
-            textEncoding, checkStatus);
+            textEncoding, checkStatus, inspectDocumentText);
 
     private static OfficeProvenanceAssessmentReport AssessFileCore(
         string filePath,
@@ -237,7 +249,8 @@ public static class OfficeProvenanceAssessment {
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors,
         CancellationToken cancellationToken,
         Encoding? textEncoding = null,
-        Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null) {
+        Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null,
+        Func<OfficeTextIntegrityReport>? inspectDocumentText = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
         string fullPath = Path.GetFullPath(filePath);
@@ -248,9 +261,9 @@ public static class OfficeProvenanceAssessment {
 
         cancellationToken.ThrowIfCancellationRequested();
         OfficeTextIntegrityReport? textIntegrity = null;
-        if (options.InspectTextIntegrity && IsTextLike(structural.Format)) {
+        if (options.InspectTextIntegrity && (IsTextLike(structural.Format) || inspectDocumentText != null)) {
             checkStatus?.Invoke(Check.TextIntegrity, OfficeProvenanceCheckStatus.Failed);
-            textIntegrity = OfficeTextIntegrityInspector.InspectFile(
+            textIntegrity = inspectDocumentText != null ? inspectDocumentText() : OfficeTextIntegrityInspector.InspectFile(
                 fullPath,
                 options.TextIntegrity,
                 logicalFullPath,

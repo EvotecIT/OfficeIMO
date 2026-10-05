@@ -42,6 +42,13 @@ public sealed class ProvenanceWorkbenchTests {
             try {
                 window.Show(); window.UpdateLayout();
                 Capture(window, "provenance-review-" + width);
+                var provider = view.GetVisualDescendants().OfType<Expander>().Single();
+                provider.IsExpanded = true; provider.BringIntoView(); window.UpdateLayout();
+                Capture(window, "provenance-provider-" + width);
+                var providerButton = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, workspace.CheckProviderCommand));
+                providerButton.BringIntoView(); window.UpdateLayout();
+                Assert.True(providerButton.IsEffectivelyVisible);
+                provider.IsExpanded = false;
                 var copyButton = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, workspace.CreateCopyCommand));
                 copyButton.BringIntoView(); window.UpdateLayout();
                 Assert.True(copyButton.IsEffectivelyVisible); Assert.True(copyButton.IsEnabled);
@@ -65,6 +72,11 @@ public sealed class ProvenanceWorkbenchTests {
                     ReferenceEquals(button.Command, model.Jobs.OpenOutputCommand) &&
                     ReferenceEquals(button.CommandParameter, exported) && button.IsEnabled);
                 Capture(window, "provenance-jobs-" + width);
+                workspace.C2paToolPath = Path.Combine(services.Paths.Root, "missing-c2patool");
+                Assert.False(workspace.CanCreateCopy); Assert.False(workspace.CanExportReport);
+                await workspace.CheckProviderCommand.ExecuteAsync(null);
+                Assert.Contains("Unavailable", workspace.ProviderStatus);
+                Assert.False(workspace.IsBusy);
                 workspace.InputPath = Path.Combine(services.Paths.Root, "other.html");
                 Assert.False(workspace.CanCreateCopy); Assert.False(workspace.CanExportReport);
             } finally { window.Close(); }
