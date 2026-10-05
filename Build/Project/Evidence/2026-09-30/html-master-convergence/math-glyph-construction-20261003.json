@@ -580,8 +580,9 @@
       },
       {
         "requirement": "Framework and packed-consumer qualification",
-        "proof": "Combined HTML 4,367 and PDF 8,788 pass each net8/net10. Normal 44027 feed contains 19 packages across four targets; two canonical consumers and the unchanged public math consumer execute net8/net10 with exact package/DLL/font hashes. Native net472 execution is required from current Windows hosted lane. The direct synthetic-font public contract now executes on net8/net10 and cross-compiles net472; the earlier hosted general consumer does not prove native math. A focused package-only native run is required.",
-        "status": "net8/net10 execution and four-target packing proven; current hosted/native lane pending"
+        "proof": "Combined HTML4367/PDF8788 eachnet8/net10;19four-target44027 packages, exact canonical/public math consumers. Focused a0 source37327795720 verifies direct mathematical public contracts on native Windowsnet472 and all3OSnet8/net10, plus fresh19package feeds and loaded DLL origins. This does not qualify the newer12contour source budgets.",
+        "status": "Framework correctness and four-target packed MATH execution qualified; newer contour platform/budget acceptance remains open",
+        "currentNativePackedMath": "Focused sourcea0 probe37327795720: seven direct MATH executions, including nativeWindowsnet472, normal19four-target feeds and exact origin/loadedDLL verification. New raster12platform route remains separate."
       },
       {
         "requirement": "H4/static rendered output and independent fonts/browser",
@@ -698,7 +699,7 @@
     },
     "historicalCorePackageNote": "Older 966539fd4 package source retained; later raster changes are qualified in the fresh e377c6ad6 Core package, not asserted byte-identical to that older package.",
     "latestCombinedValidation": {
-      "recordedAtUtc": "2026-10-05T13:09:31.344398+00:00",
+      "recordedAtUtc": "2026-10-05T17:21:32.953307+00:00",
       "cleanReplaySourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
       "mathMetadataAndPlacementSourceBlobs": [
         {
@@ -907,16 +908,12 @@
         "complete": false,
         "heldSteps": [
           {
-            "step": "Direct native packed MATH contract",
-            "dependency": "Actual Windows log and retained origins from focused run37327795720; first delayed check16:00UTC."
+            "step": "Current contour candidate platform correctness/packages and unchanged budgets",
+            "dependency": "37335168701: actual Windows/macOS correctness/packages pass, timings fail; Linux current-source proof absent due to apt font setup timeout. Retain prior failures and establish bounded actionable performance/setup remediation before another measurement."
           },
           {
-            "step": "Unchanged current-source opt-in budgets",
-            "dependency": "Current44027 fails; active bounded contour candidate must finish review/validation, then measure without ceilings/workarounds."
-          },
-          {
-            "step": "Qualified long-lived synchronization/cleanup/completion",
-            "dependency": "Both acceptance gates above and fresh clean/local+remote ancestry proof."
+            "step": "Qualified clean long-lived synchronization and goal completion",
+            "dependency": "Actual current-source acceptance and clean ancestry/local+remote proof; no adoption performed."
           }
         ]
       },
@@ -998,14 +995,18 @@
         "receiptSha256": "7ed46f3367e15f2fc816bbe6a125dc1da209b2173fd08bca9de087ef7e761956",
         "fixtureSha256": "db8334b017a154cd4e80aa048e226dfb308c67fde671b97c1061f649fa203613",
         "net8AndNet10": "Final consumer executes all declared checks with exact 44027 package-owner DLL hashes.",
-        "nativeNet472": "Pending actual Windows execution of this consumer. Earlier general package lane did not call the mathematical renderer.",
+        "nativeNet472": "Actual Windows .NET Framework4.8.9345.0 executes the new direct packed MATH contracts; net8/net10 execute on Windows/Linux/macOS. All7 MATH pass lines and actual runtimes retained.",
         "hostedRoute": "Manual html-static-package-probe; existing canonical nineteen-package script, no budget rerun.",
         "hostedProbe": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37327795720",
         "workflowAndSource": "a0e10b21b9c96190d4e563c4d09fb59a5229f8cd",
         "dispatchUtc": "2026-10-05T14:49:10Z",
         "initialState": "queued, verified once; no budget steps in this focused run.",
         "localCleanup": "Three generated outputs/cache paths absent; two actual native hidden/read-only filesystem errors recovered through guarded helper.",
-        "setupFailures": "Incorrect dispatch-source SHA and incomplete package-artifact condition were cancelled and corrected before final dispatch; retained in the receipt."
+        "setupFailures": "Incorrect dispatch-source SHA and incomplete package-artifact condition were cancelled and corrected before final dispatch; retained in the receipt.",
+        "hostedState": "completed-success; all three jobs and original nineteen fresh package feeds, installed origins/SHA512 and loaded public consumer DLL hashes independently verified.",
+        "hostedProof": "Ignore/MasterConvergenceQualification/math-native-package-contract/hosted-native-receipt.json",
+        "hostedPackageProof": "Ignore/MasterConvergenceQualification/math-native-package-contract/summary.json",
+        "transportCleanup": "Three verified duplicated outer archives removed,369028751bytes; original manifests,19 fresh feeds per platform, origin metadata, loaded DLLs/assets and logs retained."
       },
       "mergedLogicalAnchorPrecision": {
         "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2820",
@@ -1026,11 +1027,69 @@
         "diff": "9703eb2febbe46b9617ed6f83d4ec8a57a705020",
         "proof": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/inspection-comparison.json",
         "focused": "39net10pass; same3pixel hashes and resource rejections; single-call normal-line allocation1878560 to428296 bytes, diagnostic only.",
-        "review": "Fresh read-only full contour_single_tile_review found no actionable P0-P3; current boundary, targeted confirmation unused. No API/dependency gap. Full Drawing3438 passes on both net8/net10; remaining HTML/artifact/framework/package/budget proof remains open.",
-        "pending": "Full HTML net8/net10, H4/static rendered equivalence, current clean packages and unchanged opt-in budget acceptance.",
+        "review": "Fresh read-only contour_single_tile_review no actionable P0-P3; current boundary, one full pass used, confirmation unused. No API/dependency gap.",
+        "pending": "Unchanged timing acceptance remains open on current Windows/macOS; Linux current source correctness/packages/budgets were not executed due to apt font-download timeout. No qualified long-lived synchronization.",
         "reviewReceipt": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/local-review.json",
         "reviewReceiptSha256": "a2ed1c9b0d719c24d612334b8a2beeba07c918a11d4791398fa0722c66962b84",
-        "frameworkProof": "Drawing3438/3438 on net8 and net10; normal Core netstandard2.0 build zero warnings/errors."
+        "frameworkProof": "Full Drawing3438 and HTML4367 each net8/net10; Core normal netstandard2.0 zero warnings/errors.",
+        "cleanSource": "12c99503b7aae7ac934728e5c3ba6fdf655c9a1b",
+        "renderedProof": {
+          "h4": "8acceptance cases pass;72/72 artifacts byte-identical to acceptedb40",
+          "static": "18cases and independent observations pass;150/150 artifacts byte-identical to acceptedb40",
+          "proofs": [
+            "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/h4-equivalence.json",
+            "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/static-equivalence.json"
+          ]
+        },
+        "setupFailure": "First static replay incorrectly passed the H4-only acceptance flag. All18rendered then the runner rejected the absent acceptance manifest. Original log/output hash manifest retained; disposable output removed before corrected replay. This was not a product defect.",
+        "hostedRun": {
+          "id": 37335168701,
+          "source": "12c99503b7aae7ac934728e5c3ba6fdf655c9a1b",
+          "control": "a0e10b21b9c96190d4e563c4d09fb59a5229f8cd",
+          "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37335168701",
+          "dispatchReceipt": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/current-platform-dispatch.json",
+          "firstDelayedRecheckNotBeforeUtc": "2026-10-05T17:00:00Z",
+          "state": "completed-failure",
+          "observations": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/hosted-37335168701/qualification-observations.json",
+          "observationsSha256": "77d00a74c6f250a4e9557bf88d58688cbf8f2f3fb5fd59fee6d78d7ab00e1837",
+          "correctness": "Windows and macOS HTML4367/framework, installed math1/framework, font selection28/framework, PDF8788net10 all pass;14 named TRX scopes inspected. Linux stops during font setup before product execution.",
+          "packages": "Nineteen normal four-target feeds on Windows/macOS; two packed consumer graphs per platform, installed origins/package bytes/SHA512/loaded owner DLL/source versions independently verified. Native Windows direct MATH proof remains separately verified on a0.",
+          "budgets": "Current allocation/peak/output/cancellation ceilings pass on both measured platforms. Cold/warm timings fail; prior a0 controls fail timings too. No performance acceptance, causal host claim or repeated-until-green measurement.",
+          "timings": {
+            "windows": {
+              "currentColdMs": 16711.2,
+              "currentWarmMs": [
+                6692.1,
+                6514.9,
+                6498.1
+              ]
+            },
+            "macos": {
+              "currentColdMs": 17823.0,
+              "currentWarmMs": [
+                5729.9,
+                4891.2,
+                4866.8
+              ]
+            }
+          }
+        },
+        "standalone": {
+          "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2826",
+          "head": "0c8776a7ddcce4258040c367fe47c12f41665256",
+          "base": "e0e13a2403444f0d7a8b4d17a78491e3b60835fe",
+          "proof": "../OfficeIMO-raster-contour-single-tile/Ignore/ContourSingleTileQualification/receipt.json",
+          "validation": "Full Drawing3319 eachnet8/net10;Corestandard0warnings;same independent pixel/resource controls. Code blobs identical to reviewed12candidate. No larger HTML/runtime dependency.",
+          "publication": "Normal attached PR; initial complete feedback empty/current CI pending. No delayed readiness claim.",
+          "cleanup": "Ten generated targets357175247bytes removed, all absent; six actual native filesystem errors recovered with guarded helper. Required proof/source retained.",
+          "delayedSnapshot": {
+            "checkedUtc": "2026-10-05T17:02:00Z",
+            "exactHead": true,
+            "checks": "98success6skip1failure",
+            "feedback": "Complete paginated review/nested comments/reviews/raw/issue/reactions;0 unresolved or actionable review findings.",
+            "failure": "Website browser readiness in Test-BenchmarkPage.Browser.ps1:95; generated site and Chromium endpoint not ready. Failure preserved, root cause unresolved; merge held."
+          }
+        }
       }
     }
   }

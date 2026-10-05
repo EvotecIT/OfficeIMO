@@ -1861,5 +1861,108 @@
     "risk": "Incoming selected static/shared owners span 179 changed files (~7021 added/4591 removed lines). Prior narrow fix tests/review do not qualify this merge; use risk-appropriate read-only integration review for new interacting contracts.",
     "preservedLongLivedHead": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
     "qualifiedIntegrationNotPerformed": true
+  },
+  "defaultNativeTableWidthQualification20261005": {
+    "recordedUtc": "2026-10-05T17:21:32.956545+00:00",
+    "predeclaredSource": "12c99503b7aae7ac934728e5c3ba6fdf655c9a1b",
+    "scope": "Default native HTML table geometry, authored widths and containing-cell/section scope; wider native appearance and all operation losses remain separate.",
+    "observedBefore": {
+      "word": "Unstyled five-column native grid12000twips exceeds9360 body; independent LibreOffice clips the last column.",
+      "rtf": "Unstyled default boundaries12000 exceed8640 text area; independent LibreOffice clips Neptune/ring labels.",
+      "proof": "Ignore/MasterConvergenceQualification/native-table-width-12c99503b"
+    },
+    "candidate": {
+      "worktree": "../OfficeIMO-native-html-table-widths",
+      "base": "e0e13a2403444f0d7a8b4d17a78491e3b60835fe",
+      "state": "Published focused PR2827 at exact source; not adopted into convergence.",
+      "owner": "Word.Html default grids and typed CSS lengths, Word shared width scope, Html.Rtf logical boundaries and intrinsic cell images; no new public API/runtime dependency.",
+      "source": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2827"
+    },
+    "review": {
+      "initialFingerprint": "805319184fea2d319a7a6de98686b1aa048d577d",
+      "full": "One independent read-only pass found3P2, all reproduced: wrapped host scope, sparse trailing rowspan logical boundaries, intrinsic-image refitting.",
+      "confirmation": "Initial targeted pass confirmed3original fixes and exposed authored-percent scope. Canonical Word scope owner implemented and independently reviewed.",
+      "remaining": "Exact-head hosted CI and delayed feedback; local net472 package is not native Windows proof.",
+      "canonicalWordOwner": "One scoped full plus targeted pass exposed shared-story selected section and annotation lifetime defects (resave/move). Both reproduced by3 failing regressions, fixed;18focused net10 and61focused net8 passed.",
+      "closure": "One bounded read-only lifetime/inherited-reference closure audit found inherited shared stories. Four before regressions fail, after22 width cases pass; effective per-type inherited references now followed. No unaddressed validated scope finding. No new API/dependency."
+    },
+    "nativeEvidence": "../OfficeIMO-native-html-table-widths/Ignore/NativeTableWidthQualification",
+    "adjacentTableObservation": {
+      "fixture": "Two immediately adjacent table excerpts without separating content save/reopen as one RTF table with all rows retained.",
+      "sourceDistinction": "Frozen planetary source has intervening heading/prose/figures; separated two-table controls retain21 independently transcribed rows.",
+      "disposition": "Existing RTF table ownership gap remains in Docs/ROADMAP.md; no unrelated writer edit in width candidate."
+    },
+    "remaining": [
+      "Current-head hosted CI/delayed feedback/remediation and authorized merge",
+      "Qualified integration and whole-source native replay",
+      "Excel/PPT/OneNote appearance and ownership",
+      "Native application/manual accessibility and source operation loss acceptance"
+    ],
+    "baselineFailures": {
+      "fontContracts": "Six full HTML font assertions fail identically in focused untouched e0 base control; unrelated source font fixes remain in convergence.",
+      "rowHeight": "Exact-row PDF gap assertion fails identically on untouched e0 base: exact18/atLeast33; source/threshold unchanged.",
+      "net8DeepTextBox": "Full Word .NET8 run aborts with AppendVisibleText stack overflow; untouched e0 focused deep-textbox export control reproduces same stack/test. Trace/sequence retained; not caused or fixed by table width.",
+      "proof": "../OfficeIMO-native-html-table-widths/Ignore/NativeTableWidthQualification/base-controls"
+    },
+    "cleanup": {
+      "baseControlWorktreeRemoved": true,
+      "compactControlProofFiles": 8,
+      "discardedDuplicateCrashDumpBytes": 14719722224,
+      "crashTraceAndTestSequencePreserved": true,
+      "publicationGeneratedTargets": 94,
+      "publicationGeneratedBytesRemoved": 2443690697
+    },
+    "validation": {
+      "widthCases": {
+        "net8": 22,
+        "net10": 22,
+        "failed": 0
+      },
+      "rtfFull": {
+        "net8": 942,
+        "net10": 942,
+        "failed": 0
+      },
+      "htmlFullNet10": {
+        "passed": 3253,
+        "failed": 6,
+        "failedUntouchedBaseControls": 6
+      },
+      "wordTableSectionStoriesNet8": {
+        "passed": 1088,
+        "failed": 1,
+        "skipped": 2,
+        "failedUntouchedBaseControl": 1
+      },
+      "baselineWordNet8Abort": "Retained deep textbox base reproduction; not a passing full-suite claim."
+    },
+    "packedPublicProof": {
+      "receipt": "../OfficeIMO-native-html-table-widths/Ignore/NativeTableWidthQualification/packed-clean-2fdf11d55/packed-origin-receipt.json",
+      "sha256": "08bc4b1e641948af550d6547752e30ae2c21282a278e085732d53e9b9d065c9a",
+      "packages": 8,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "executedConsumers": [
+        "native-consumer/net8",
+        "native-consumer/net10",
+        "scope-consumer/net8",
+        "scope-consumer/net10"
+      ],
+      "all21DeclaredFiveColumnRowsSourceOrdered": true,
+      "inheritedHeaderFooterSaveReloadGridTwips": 5000,
+      "nativeRendering": "Final packed Word/RTF and inherited stories inspected in independent LibreOffice. Final-column clipping closed in bounded controls; RTF trailing blank page and wider native acceptance remain separate."
+    },
+    "publicationSnapshot": {
+      "head": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
+      "completePaginatedThreads": true,
+      "unresolvedThreads": 0,
+      "reviewComments": 0,
+      "ci": "Queued/running immediately after publication; no failure at that snapshot. Delayed exact-head check remains."
+    }
   }
 }
