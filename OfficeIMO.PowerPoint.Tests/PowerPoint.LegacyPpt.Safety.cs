@@ -812,9 +812,11 @@ namespace OfficeIMO.Tests {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 #endif
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
-            Assert.Equal(storageCount, layout.Streams.Count);
 #if POWERPOINT_PERFORMANCE_EVIDENCE
             stopwatch.Stop();
+#endif
+            Assert.Equal(storageCount, layout.Streams.Count);
+#if POWERPOINT_PERFORMANCE_EVIDENCE
             Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
 #endif
         }
