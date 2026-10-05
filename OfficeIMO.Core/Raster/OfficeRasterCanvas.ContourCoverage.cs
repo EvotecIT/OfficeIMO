@@ -25,7 +25,18 @@ public sealed partial class OfficeRasterCanvas {
     internal void FillContourPaint(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, Func<double, double, OfficeColor> paint,
         IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours = null) {
         if (contours == null || contours.Count == 0) return;
-        var boundaries = new List<double>();
+        ContourCoverageWorkspace workspace = TakeContourCoverageWorkspace();
+        try {
+            FillContourPaint(contours, fillRule, paint, unionContours, workspace);
+        } finally {
+            ReturnContourCoverageWorkspace(workspace);
+        }
+    }
+
+    private void FillContourPaint(
+        IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, Func<double, double, OfficeColor> paint,
+        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, ContourCoverageWorkspace workspace) {
+        List<double> boundaries = workspace.Boundaries;
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         long contourEdges = 0L;
         if (!CollectContourBounds(contours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
@@ -47,12 +58,12 @@ public sealed partial class OfficeRasterCanvas {
 #endif
         ContourRowEdge[]? rowEdges = null;
         try {
-            var rowBoundaries = new List<double>();
-            var crossings = new List<ContourCrossing>();
+            List<double> rowBoundaries = workspace.RowBoundaries;
+            List<ContourCrossing> crossings = workspace.Crossings;
             // Retain one bounded row buffer rather than copying every sub-scanline into
             // a new list. The ranges stay in scanline order, preserving coverage sums.
-            var rowCrossings = new List<ContourCrossing>();
-            var scanlines = new List<(double Weight, int Start, int Count)>();
+            List<ContourCrossing> rowCrossings = workspace.RowCrossings;
+            List<(double Weight, int Start, int Count)> scanlines = workspace.Scanlines;
             int boundaryIndex = 0;
             long crossingWork = 0L;
             for (int y = top; y <= bottom; y++) {
