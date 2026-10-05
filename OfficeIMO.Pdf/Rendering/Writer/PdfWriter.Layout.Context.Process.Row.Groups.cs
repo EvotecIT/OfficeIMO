@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
                     return false;
             }
 
-            List<ColItem> children = BuildColumnItems(blocks, childWidth, childX, reservedImageHeight + (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+            List<ColItem> children = BuildColumnItems(blocks, childWidth, childX, reservedImageHeight + (group.Style?.InitialFragmentImageReservation ?? 0D));
             group.Children = children;
             group.ItemCount = children.Count + 2;
             items.Add(new ColGroupStart { Group = group, ColumnXOffset = columnXOffset, ColumnWidth = columnWidth });
@@ -74,7 +74,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Keep-together element or component content exceeds the available column height.");
             }
 
-            double needed = group.KeepTogether ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + firstHeight;
+            double needed = group.KeepTogether ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D) + firstHeight;
             int nextItemIndex = itemIndex + group.ItemCount;
             if (group.Style?.KeepWithNext == true && nextItemIndex < items.Count) {
                 double keepHeight = fullHeight + MeasureColKeepWithNextChainHeight(items, nextItemIndex);
@@ -105,13 +105,13 @@ internal static partial class PdfWriter {
                 double next = BeginContainerFragment(group.Decoration, cursor);
                 ConsumeColumnSpace(cursor - next, ref cursor, ref remaining, ref consumed);
                 // Reserve bottom padding so an inner item cannot occupy the decoration's closing space.
-                remaining -= group.Style.FragmentPaddingReservation;
+                remaining -= group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
             }
         }
 
         private void EndColumnGroupFragment(ColumnGroup group, double columnX, ref double cursor, ref double remaining, ref double consumed, bool continues = false) {
             if (group.Style != null) {
-                remaining += group.Style.FragmentPaddingReservation;
+                remaining += group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
                 ConsumeColumnSpace(Math.Min(group.Style.GetFragmentBottomPadding(continues), Math.Max(0D, remaining)), ref cursor, ref remaining, ref consumed);
                 FinalizeContainerFragment(group.Decoration!, cursor, continues);
             }
@@ -123,7 +123,7 @@ internal static partial class PdfWriter {
 
         private void ResumeColumnGroups(List<ColumnGroup> groups, double columnX, ref double cursor, ref double remaining, ref double consumed) {
             double padding = groups.Sum(group => (group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D)
-                + (group.Style?.FragmentPaddingReservation ?? 0D));
+                + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D));
             if (padding > remaining + 0.001D) {
                 throw new ArgumentException("Nested element padding exceeds the available column height.");
             }

@@ -475,11 +475,12 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
                             PdfDocument.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                             double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
-                            var imageBox = ResolveImageFlowBox(ib2, imageStyle, wCol, spacingBefore, imageStyle.SpacingAfter, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            double imageReservation = activeGroups.Sum(group => group.Style?.InitialFragmentImageReservation ?? 0D);
+                            var imageBox = ResolveImageFlowBox(ib2, imageStyle, wCol, spacingBefore, imageStyle.SpacingAfter, imageReservation);
                             ciimg.Width = imageBox.Width;
                             ciimg.Height = imageBox.Height;
                             double needed = spacingBefore + ciimg.Height + imageStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol, imageReservation);
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;

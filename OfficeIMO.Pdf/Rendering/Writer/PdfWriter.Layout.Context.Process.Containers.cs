@@ -21,10 +21,10 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double firstVisualHeight = container.Blocks.Count == 0
                 ? 0D
-                : MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () =>
+                : MeasureWithContainerPaddingReservation(style, () =>
                     MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
-            double minimumStartHeight = spacingBefore + style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight;
-            if (style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
+            double minimumStartHeight = spacingBefore + style.PaddingY + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+            if (style.PaddingY + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
             while (ShouldAdvanceForBlockHeight(minimumStartHeight)) {
@@ -32,10 +32,10 @@ internal static partial class PdfWriter {
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 parentLeft = currentOpts.MarginLeft; parentWidth = width;
                 frame = ResolveContainerFrame(style, parentLeft, parentWidth);
-                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () =>
+                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style, () =>
                     MeasureNextBlockFirstVisualHeight(container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
-                minimumStartHeight = spacingBefore + style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight;
-                if (style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
+                minimumStartHeight = spacingBefore + style.PaddingY + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+                if (style.PaddingY + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
 
@@ -94,6 +94,7 @@ internal static partial class PdfWriter {
             var nestedOptions = currentOpts.Clone();
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
+            nestedOptions.MarginBottom += style.FragmentBottomInset;
             nestedOptions.Validate();
 
             var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions);
@@ -103,7 +104,7 @@ internal static partial class PdfWriter {
             BeginContainerFragment(scope);
             try {
                 ProcessBlocks(container.Blocks, container);
-                double bottomPadding = Math.Min(style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
+                double bottomPadding = Math.Min(style.PaddingY, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well
@@ -167,7 +168,7 @@ internal static partial class PdfWriter {
                 // and their accumulated font usage instead of copying assets per page.
                 scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
                 scope.NestedOptions.MarginTop = currentOpts.MarginTop;
-                scope.NestedOptions.MarginBottom = currentOpts.MarginBottom;
+                scope.NestedOptions.MarginBottom = currentOpts.MarginBottom + scope.Style.FragmentBottomInset;
                 scope.NestedOptions.MarginRight = currentOpts.PageWidth -
                     (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);
                 currentOpts = scope.NestedOptions;

@@ -4,19 +4,23 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private double imageMeasurementReservedHeight;
         private double containerMeasurementTopPadding;
+        private double containerMeasurementBottomInset;
 
         // Preflight visits containers before their render scopes exist. Preserve the
         // same image content height while recursively measuring those containers.
-        private T MeasureWithContainerPaddingReservation<T>(double paddingY, Func<T> measure) {
+        private T MeasureWithContainerPaddingReservation<T>(PdfPanelStyle style, Func<T> measure) {
             double saved = imageMeasurementReservedHeight;
             double savedTopPadding = containerMeasurementTopPadding;
-            imageMeasurementReservedHeight += paddingY * 2D;
-            containerMeasurementTopPadding += paddingY;
+            double savedBottomInset = containerMeasurementBottomInset;
+            imageMeasurementReservedHeight += style.InitialFragmentImageReservation;
+            containerMeasurementTopPadding += style.GetFragmentTopPadding(isContinuation: true);
+            containerMeasurementBottomInset += style.FragmentBottomInset;
             try {
                 return measure();
             } finally {
                 imageMeasurementReservedHeight = saved;
                 containerMeasurementTopPadding = savedTopPadding;
+                containerMeasurementBottomInset = savedBottomInset;
             }
         }
 
@@ -105,7 +109,7 @@ internal static partial class PdfWriter {
                 }
 
                 double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                double? contentHeight = MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () => MeasureBlockSequence(
+                double? contentHeight = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
                     container.Blocks,
                     frameX + style.PaddingX,
                     contentWidth,

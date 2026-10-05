@@ -9,8 +9,11 @@ internal static partial class PdfWriter {
             ColumnFlowScope? scope = columnBalanceMeasurementScope ?? activeColumnFlow;
             double height = scope == null ? yStart - currentOpts.MarginBottom : scope.ParentYStart - scope.ParentOptions.MarginBottom;
             int activeDepth = columnBalanceMeasurementScope == null ? activeContainerScopes.Count : columnBalanceMeasurementScope.ContainerDepth;
-            for (int index = 0; index < activeDepth; index++) height -= activeContainerScopes[index].Style.GetFragmentTopPadding(isContinuation: true);
-            return Math.Max(0D, height - containerMeasurementTopPadding);
+            for (int index = 0; index < activeDepth; index++) {
+                height -= activeContainerScopes[index].Style.GetFragmentTopPadding(isContinuation: true);
+                if (scope != null && index >= scope.ContainerDepth) height -= activeContainerScopes[index].Style.FragmentBottomInset;
+            }
+            return Math.Max(0D, height - containerMeasurementTopPadding - containerMeasurementBottomInset);
         }
 
         /// <summary>Includes the full physical page available after columns that start partway down a page.</summary>
