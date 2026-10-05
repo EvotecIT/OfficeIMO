@@ -568,13 +568,13 @@ subsequent plain, styled, linked and fallback text. Use
 `Runs(...)` retain their own feature settings.
 
 ```csharp
-PdfDocument.Create(options)
+PdfDocument.Create(pdf => pdf.Content(content => content
     .Paragraph(paragraph => paragraph
         .FontFamily("Report Serif")
         .FeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1))
         .Text("AV")
         .ResetFeatureSettings()
-        .Text(" Default text."))
+        .Text(" Default text."))), options)
     .Save("text-features.pdf");
 ```
 
