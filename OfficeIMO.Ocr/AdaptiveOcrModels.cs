@@ -41,6 +41,10 @@ public sealed class AdaptiveOcrResult {
         bool disagreement, bool interrupted, OcrQualityAssessment quality) {
         Result = result; SelectedAttempt = selected; Attempts = attempts;
         HasDisagreement = disagreement; RetryIncomplete = interrupted; Quality = quality;
+        int completed = 0;
+        foreach (OcrAttemptAssessment attempt in attempts) if (attempt.Quality != null) completed++;
+        Review = new OcrReviewEvidence(quality, completed, disagreement, interrupted);
+        result.Review = Review;
     }
     /// <summary>Owned output from the selected variant; geometry belongs to the original request raster.</summary>
     public OcrResult Result { get; }
@@ -50,10 +54,12 @@ public sealed class AdaptiveOcrResult {
     public IReadOnlyList<OcrAttemptAssessment> Attempts { get; }
     /// <summary>Whether completed attempts disagreed after NFC and whitespace normalization. Case/punctuation remain significant.</summary>
     public bool HasDisagreement { get; }
-    /// <summary>Whether a retry failed, timed out, was unsupported, or could not start within the budget.</summary>
+    /// <summary>Whether an attempt lost evidence, failed, timed out, was unsupported, or could not start within the budget.</summary>
     public bool RetryIncomplete { get; }
     /// <summary>Selected output's checks before adaptive diagnostics are added.</summary>
     public OcrQualityAssessment Quality { get; }
-    /// <summary>Whether threshold, disagreement, or incomplete-retry evidence recommends human attention.</summary>
-    public bool ReviewRecommended => !Quality.MeetsThresholds || HasDisagreement || RetryIncomplete;
+    /// <summary>Immutable comparison evidence. A single passing attempt remains unassessed.</summary>
+    public OcrReviewEvidence Review { get; }
+    /// <summary>Whether recognition lacks corroboration or its checks recommend attention.</summary>
+    public bool ReviewRecommended => Review.Status != OcrReviewStatus.ChecksPassed;
 }
