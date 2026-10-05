@@ -811,6 +811,7 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000002">
+          <w:type w:val="nextPage" />
           <w:pgSz w:w="16838" w:h="11906" w:orient="landscape" w:code="9" />
           <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
@@ -881,6 +882,7 @@
       </w:sdtContent>
     </w:sdt>
     <w:sectPr w:rsidR="R00000003">
+      <w:type w:val="nextPage" />
       <w:pgSz w:w="8391" w:h="11906" w:code="11" />
       <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0" />
     </w:sectPr>
