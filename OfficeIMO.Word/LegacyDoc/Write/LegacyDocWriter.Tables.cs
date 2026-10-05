@@ -1342,6 +1342,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
                 .WithInheritedParagraphFormatting(ReadSupportedCellParagraphStyleFormatting(paragraph, mainPart))
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
+            tableStyleRunFormatting = ReadSupportedCellParagraphStyleRunFormatting(paragraph, mainPart)
+                .WithInheritedFormatting(tableStyleRunFormatting);
 
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
             for (int index = 0; index < children.Length; index++) {

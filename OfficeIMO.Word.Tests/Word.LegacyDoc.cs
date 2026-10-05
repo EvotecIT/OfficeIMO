@@ -9367,8 +9367,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(untouchedCell.FitText);
                 Assert.True(untouchedCell.WrapText);
                 Assert.False(untouchedCell.HideMark);
-                Assert.Null(untouchedCell.MarginTopWidth);
-                Assert.Null(untouchedCell.MarginLeftWidth);
+                Assert.Equal((short)0, untouchedCell.MarginTopWidth);
+                Assert.Equal((short)108, untouchedCell.MarginLeftWidth);
             } finally {
                 DeleteIfExists(docPath);
             }

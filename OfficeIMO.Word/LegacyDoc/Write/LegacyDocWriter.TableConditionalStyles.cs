@@ -51,7 +51,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId, tableStyleDefinitions)) {
                 return;
             }
 
@@ -304,11 +304,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         .Aggregate((derived, inherited) => derived.WithInheritedParagraphFormatting(inherited))
                 })
                 .ToArray();
+            var runConditions = conditionalStyles.Styles
+                .Where(style => style.RunFormatting.HasFormatting)
+                .GroupBy(style => style.Type)
+                .Select(group => new {
+                    Type = group.Key,
+                    Formatting = group.Select(style => style.RunFormatting)
+                        .Aggregate((derived, inherited) => derived.WithInheritedFormatting(inherited))
+                })
+                .ToArray();
             var styledCells = new LegacyDocWritableTableCell[writableCells.Count];
             for (int columnIndex = 0; columnIndex < writableCells.Count; columnIndex++) {
                 LegacyDocWritableTableCell cell = writableCells[columnIndex];
                 LegacyDocWritableParagraphFormatting originalParagraphFormatting = cell.ParagraphFormatting;
                 LegacyDocWritableParagraphFormatting conditionalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
+                LegacyDocWritableFormatting conditionalRunFormatting = LegacyDocWritableFormatting.Plain;
                 foreach (LegacyDocTableConditionalStyle conditionalStyle in conditionalStyles.Styles) {
                     if (!AppliesToCell(conditionalStyle.Type, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count)) {
                         continue;
@@ -355,15 +365,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         cell = cell.WithBorders(MergeSupportedTableCellBorders(cell.Borders, regionBorders));
                     }
 
-                    if (conditionalStyle.RunFormatting.HasFormatting) {
-                        cell = cell.WithRunFormatting(conditionalStyle.RunFormatting.WithInheritedFormatting(cell.RunFormatting));
-                    }
                 }
 
                 foreach (var condition in paragraphConditions) {
                     if (AppliesToCell(condition.Type, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count)) {
-                        conditionalParagraphFormatting = condition.Formatting.WithInheritedParagraphFormatting(conditionalParagraphFormatting);
+                        conditionalParagraphFormatting = conditionalParagraphFormatting.WithInheritedParagraphFormatting(condition.Formatting);
                     }
+                }
+                foreach (var condition in runConditions) {
+                    if (AppliesToCell(condition.Type, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count)) {
+                        conditionalRunFormatting = conditionalRunFormatting.WithInheritedFormatting(condition.Formatting);
+                    }
+                }
+                if (conditionalRunFormatting.HasFormatting) {
+                    cell = cell.WithRunFormatting(conditionalRunFormatting.WithInheritedFormatting(cell.RunFormatting));
                 }
                 if (conditionalParagraphFormatting.HasFormatting) {
                     cell = cell.WithParagraphFormatting(conditionalParagraphFormatting.WithInheritedParagraphFormatting(originalParagraphFormatting));
