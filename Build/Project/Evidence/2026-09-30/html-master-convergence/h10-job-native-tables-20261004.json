@@ -2160,7 +2160,226 @@
       "application": "Microsoft PowerPoint 16.112.4",
       "evidence": "../OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification/native-color-edit-observations.json",
       "observation": "Native white text-color override produces DrawingML hlinkClr val=tx under extension URI {A12FA001-AC4F-418D-AE19-62706E023703}; Mercury is white/underlined while unchanged Venus retains theme hyperlink color.",
-      "boundary": "Separate native producer proof only; generic text-color compatibility control and product contrast fix remain open."
+      "boundary": "Independent native producer and compatibility controls are preserved with the separate hyperlink-color owner proof; combined H10 adoption remains open."
+    },
+    "activeHyperlinkColorSlice": {
+      "recordedUtc": "2026-10-05T22:07:04.715964+00:00",
+      "worktree": "../OfficeIMO-powerpoint-hyperlink-text-color",
+      "branch": "fix/powerpoint-hyperlink-text-color",
+      "source": "d6f82ffe6f2acaaf5fd8a20d314eedc7d34c4c85",
+      "behaviorSource": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+      "base": "f3784a939457a20adf4c6adc80c27e401d02a424",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2841",
+      "stack": "https://github.com/EvotecIT/OfficeIMO/issues/2842",
+      "scope": "Canonical PowerPoint native hyperlink text/inherited/theme choice; generic and repeated HTML headers inherit native style; both semantic round-trip paths preserve the explicit true/false policy. No new dependency.",
+      "validation": {
+        "recordedUtc": "2026-10-05T22:00:05.291507+00:00",
+        "behaviorSource": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+        "currentSource": "d6f82ffe6f2acaaf5fd8a20d314eedc7d34c4c85",
+        "finalDifference": "README/XML remarks and four assertions clarify/test the preserved Color=null policy; no product behavior changed.",
+        "frameworkTests": {
+          "full-powerpoint-net10": {
+            "total": "2153",
+            "executed": "2151",
+            "passed": "2151",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "full-powerpoint-net8": {
+            "total": "2153",
+            "executed": "2151",
+            "passed": "2151",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "focused-html-net8": {
+            "total": "34",
+            "executed": "34",
+            "passed": "34",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "policy-clear-net10": {
+            "total": "7",
+            "executed": "7",
+            "passed": "7",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "policy-clear-net8": {
+            "total": "7",
+            "executed": "7",
+            "passed": "7",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        "standard-powerpoint": {
+          "warnings": 0,
+          "errors": 0
+        },
+        "standard-powerpoint-html": {
+          "warnings": 0,
+          "errors": 0
+        }
+      },
+      "packageProof": {
+        "packages": 6,
+        "targets": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "consumers": [
+          "net8.0",
+          "net10.0"
+        ],
+        "artifacts": 24,
+        "sixLoadedOwnerHashesAndPrivateFeedOriginVerified": true,
+        "receipt": "packages-final/packed-consumer-receipts.json",
+        "boundary": "Native Windows net472 execution remains a CI gate."
+      },
+      "review": {
+        "reviewedSource": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+        "base": "f3784a939457a20adf4c6adc80c27e401d02a424",
+        "reviewer": "powerpoint_hyperlink_color_review",
+        "mode": "Fresh strictly read-only independent owner review",
+        "scope": [
+          "Native policy/extension ownership",
+          "Color-before/after link creation and target replacement",
+          "Sound/relationship/schema preservation",
+          "HTML header styles and semantic true/false round trips",
+          "Public API/dependency fit",
+          "Independent retained native control byte/paint proof"
+        ],
+        "actionableFindings": [],
+        "clarification": "Color=null intentionally preserves the independent native color policy. README and XML docs clarified; existing meaningful policy regression extended and passes on net8/net10. No product behavior change.",
+        "confirmation": "Not required for documentation and directly observed test assertion; no second full pass.",
+        "boundary": "Older-reader paint remains unqualified; exact current native fixtures observed by primary."
+      },
+      "native": {
+        "checkedUtc": "2026-10-05T22:04:39.741458+00:00",
+        "source": "d6f82ffe6f2acaaf5fd8a20d314eedc7d34c4c85",
+        "application": "Microsoft PowerPoint 16.112.4",
+        "artifact": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-powerpoint-hyperlink-text-color/Ignore/PowerPointHyperlinkColorQualification/packages-final/consumer-net10/linked-dark.pptx",
+        "sha256": "7e1a8ab860c45b1e8e092c63d81cde6611c5959af85febdad71f5a95e6a0e9a4",
+        "openedWithoutRepair": true,
+        "appearance": "White underlined Mercury and Venus links on authored dark #123456 header, matching Quantity; original table/body geometry and values retained. Inspected at 1600x900.",
+        "closure": "Cmd-W closed the owned document. PowerPoint kept its empty start screen despite close/Escape/Cancel, so the otherwise document-free validation application was quit through its native Cmd-Q. Subsequent process and artifact-handle inspection found neither PowerPoint nor open fixture handles.",
+        "boundary": "One exact packed native document, not all readers/manual accessibility. Earlier f41 project-reference default header and all eight LibreOffice fixture pages remain independent complementary proof."
+      },
+      "independentNativeFixtures": {
+        "source": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+        "comparedWith": "f3784a939457a20adf4c6adc80c27e401d02a424",
+        "observations": [
+          {
+            "name": "linked",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 2,
+            "afterSha256": "dedcf977559e136f07a66faa7f3286eff4715bac2be58aae41216cf8aed86c30"
+          },
+          {
+            "name": "linked-dark",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 2,
+            "afterSha256": "e2644c64d7be797c679c45be903680be2b75251815c36565804f7e185b5dd36e"
+          },
+          {
+            "name": "light",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 0,
+            "afterSha256": "0479d380cd861c3eead85899669a27657c278d61ac425efe4e15f1db69d076a3"
+          },
+          {
+            "name": "source-tables",
+            "slideCount": 4,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 20,
+            "afterSha256": "e924b47ec1169dd77e11ffa4680b3467874e9636019cadce5eb4e69ffe62546b"
+          },
+          {
+            "name": "formatted-table",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 2,
+            "afterSha256": "2fc40fcd5c4f8a22a746f7490dfa1e29fdd4b7b2ba6d37e8fa78ec002d48c394"
+          }
+        ],
+        "visuals": "All eight rendered fixture pages inspected at 1200px. Default/dark linked headers white; light authored header dark; four NASA table pages have legible linked repeated headers. Highlighted white label preserved as authored.",
+        "observerCorrections": [
+          "Compare xfrm extents rather than metadata extension nodes.",
+          "Resolve randomly generated hyperlink relationship ids to type/target/mode; raw id byte equality is not a cross-generation invariant."
+        ],
+        "boundary": "Native file geometry/resources and actual rendered fixture observations; not all readers or manual accessibility."
+      },
+      "cleanup": {
+        "targets": 77,
+        "bytes": 1830409806,
+        "actualFilesystemRecoveries": 41,
+        "allAbsent": true,
+        "preserved": "Six package feed, installed origin/hash receipts, original before-failures, final TRX, public native artifacts, independent producer/compatibility controls and final PDF/PNG visuals."
+      },
+      "evidenceRoot": "../OfficeIMO-powerpoint-hyperlink-text-color/Ignore/PowerPointHyperlinkColorQualification",
+      "next": "Exact-head hosted CI and delayed complete feedback, lower writer dependency settlement, then merge/preserve proof/owned worktree cleanup. Combined H10 source and broader native/profile acceptance remain separate."
     }
   }
 }
