@@ -77,7 +77,8 @@ internal static partial class PdfWriter {
             if (units == null) return null;
             double firstHeight = remainder != null || container.Blocks.Count == 0 ? 0D :
                 MeasureWithContainerPaddingReservation(style.PaddingY, () => MeasureNextBlockFirstVisualHeight(
-                    container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
+                    container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize,
+                    allowTableFragments: true, suppressParagraphSpacingBefore: true));
             return new() { new(new ColumnBalanceContainer(style, units, firstHeight, remainder != null)) };
         }
 
@@ -89,11 +90,12 @@ internal static partial class PdfWriter {
                 } else if (unit.Paragraph is { } paragraph) {
                     if (!PackColumnBalanceParagraph(paragraph, height, columnCount, continuationPadding, ref columns, ref used)) return false;
                 } else if (unit.RowFragment is { } row) {
-                    if (!PackColumnBalanceRowFragment(row, height, columnCount, ref columns, ref used, continuationPadding)) return false;
+                    if (!PackColumnBalanceRowFragment(row, height, columnCount, ref columns, ref used, continuationPadding, unit.SpacingBefore)) return false;
                 } else {
-                    if (used + unit.Height > height + .001D) { columns++; used = continuationPadding + unit.ContinuationHeight; }
+                    double before = used > continuationPadding + .001D ? unit.SpacingBefore : 0D;
+                    if (used + before + unit.Height > height + .001D) { columns++; used = continuationPadding + unit.ContinuationHeight; before = 0D; }
                     if (columns > columnCount || used + unit.Height > height + .001D) return false;
-                    used += unit.Height;
+                    used += before + unit.Height;
                 }
             }
             return true;

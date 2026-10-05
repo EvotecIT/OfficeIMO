@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
                     throw new NotSupportedException("KeepWithNext chains cannot contain more than " + MaxKeepWithNextChainBlocks + " visual blocks.");
                 List<ColumnBalanceUnit>? units = MeasureColumnBalanceUnits(blocks[index], scope, frameWidth);
                 if (units == null || units.Count == 0) return height;
-                height += units[0].Height;
+                height += units[0].Height + (precedingHeight + height > .001D ? units[0].SpacingBefore : 0D);
                 if (units.Count > 1 || !KeepsWithNext(blocks[index])) break;
             }
             return height;

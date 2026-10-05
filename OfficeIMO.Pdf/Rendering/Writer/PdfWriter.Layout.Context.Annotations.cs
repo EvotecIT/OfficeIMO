@@ -4,13 +4,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderTextAnnotationFlowBlock(TextAnnotationBlock annotation) {
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            double spacingBefore = ResolveTopLevelSpacingBefore(annotation.SpacingBefore);
-            double needed = spacingBefore + annotation.Height + annotation.SpacingAfter;
-            EnsureFixedFlowBlockFits("Text annotation", annotation.Width, needed, contentWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Text annotation", annotation.Width, annotation.Height,
+                annotation.SpacingBefore, annotation.SpacingAfter, ref contentWidth);
 
             if (spacingBefore > 0D) {
                 y -= spacingBefore;
@@ -27,13 +22,8 @@ internal static partial class PdfWriter {
 
         private void RenderFreeTextAnnotationFlowBlock(FreeTextAnnotationBlock annotation) {
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            double spacingBefore = ResolveTopLevelSpacingBefore(annotation.SpacingBefore);
-            double needed = spacingBefore + annotation.Height + annotation.SpacingAfter;
-            EnsureFixedFlowBlockFits("Free text annotation", annotation.Width, needed, contentWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Free text annotation", annotation.Width, annotation.Height,
+                annotation.SpacingBefore, annotation.SpacingAfter, ref contentWidth);
 
             if (spacingBefore > 0D) {
                 y -= spacingBefore;
@@ -50,13 +40,8 @@ internal static partial class PdfWriter {
 
         private void RenderHighlightAnnotationFlowBlock(HighlightAnnotationBlock annotation) {
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            double spacingBefore = ResolveTopLevelSpacingBefore(annotation.SpacingBefore);
-            double needed = spacingBefore + annotation.Height + annotation.SpacingAfter;
-            EnsureFixedFlowBlockFits("Highlight annotation", annotation.Width, needed, contentWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Highlight annotation", annotation.Width, annotation.Height,
+                annotation.SpacingBefore, annotation.SpacingAfter, ref contentWidth);
 
             if (spacingBefore > 0D) {
                 y -= spacingBefore;

@@ -12,10 +12,14 @@ internal static partial class PdfWriter {
                 double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize);
                 bool bold = GetTableRowBold(style, row, headerCount, footerStart);
                 TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, row, columns, columnWidths, columnGap, originalSize, bold, currentOpts);
-                double size = continued ? previous!.Sizes[row] : sizing.FontSize;
-                double leading = continued ? previous!.Leadings[row] : GetTableLeading(style, size);
+                double size = continued ? Math.Min(previous!.Sizes[row], sizing.FontSize) : sizing.FontSize;
+                double runScale = continued ? Math.Min(previous!.RunFontSizeScales[row], sizing.RunFontSizeScale) : sizing.RunFontSizeScale;
+                double continuationScale = continued ? Math.Min(size / previous!.Sizes[row], runScale / previous.RunFontSizeScales[row]) : 1D;
+                double leading = continued && Math.Abs(size - previous!.Sizes[row]) <= .001D
+                    ? previous.Leadings[row] : GetTableLeading(style, size);
                 result.Sizes[row] = size;
                 result.Leadings[row] = leading;
+                result.RunFontSizeScales[row] = runScale;
                 result.Bold[row] = bold;
                 result.Lines[row] = new TableCellTextLayout[columns];
                 int maxLines = 1;
@@ -29,7 +33,8 @@ internal static partial class PdfWriter {
                     double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) -
                         GetTableCellPaddingLeft(style, row, cell.Column) - GetTableCellPaddingRight(style, row, cell.Column));
                     TableCellTextLayout lines = continued
-                        ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], consumedLines, innerWidth, font, size, leading, currentOpts)
+                        ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], consumedLines, innerWidth, font, size, leading,
+                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D)
                         : CreateTableCellTextLayout(cell, innerWidth, font, size, leading, currentOpts, sizing.RunFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {
@@ -51,12 +56,14 @@ internal static partial class PdfWriter {
                 Lines = new TableCellTextLayout[rows][];
                 LineCounts = new int[rows]; Heights = new double[rows]; Leadings = new double[rows];
                 Sizes = new double[rows]; Bold = new bool[rows];
+                RunFontSizeScales = new double[rows];
             }
             public TableCellTextLayout[][] Lines { get; }
             public int[] LineCounts { get; }
             public double[] Heights { get; }
             public double[] Leadings { get; }
             public double[] Sizes { get; }
+            public double[] RunFontSizeScales { get; }
             public bool[] Bold { get; }
         }
     }

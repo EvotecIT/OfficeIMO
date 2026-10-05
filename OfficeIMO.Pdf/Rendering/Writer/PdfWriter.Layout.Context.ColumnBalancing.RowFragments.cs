@@ -5,17 +5,17 @@ internal static partial class PdfWriter {
         /// <summary>Preserves a fitting kept trailing group and row measurement for a kept leading block.</summary>
         private static ColumnBalanceUnit JoinColumnBalanceUnits(ColumnBalanceUnit first, ColumnBalanceUnit second) {
             // A fitting last row and its next block must remain atomic, just as in ordinary table flow.
-            if (first.RowFragment != null) return new ColumnBalanceUnit(first.Height + second.Height, first.ContinuationHeight);
+            if (first.RowFragment != null) return new ColumnBalanceUnit(first.Height + second.SpacingBefore + second.Height, first.ContinuationHeight);
             if (first.RowFragment == null && second.RowFragment is { } leading)
                 return new ColumnBalanceUnit(leading.WithSpacing(leading.Before + first.Height,
-                    leading.MovedBefore + first.Height + first.ContinuationHeight, leading.After));
-            return new ColumnBalanceUnit(first.Height + second.Height, first.ContinuationHeight);
+                    leading.MovedBefore + first.Height + first.ContinuationHeight, leading.After), first.SpacingBefore);
+            return new ColumnBalanceUnit(first.Height + second.SpacingBefore + second.Height, first.ContinuationHeight, first.SpacingBefore);
         }
 
         private static bool PackColumnBalanceRowFragment(ColumnBalanceRowFragment fragment, double height,
-            int columnCount, ref int columns, ref double used, double continuationPadding = 0D) {
+            int columnCount, ref int columns, ref double used, double continuationPadding = 0D, double spacingBefore = 0D) {
             int start = fragment.StartLine;
-            double before = fragment.Before;
+            double before = fragment.Before + (used > continuationPadding + .001D ? spacingBefore : 0D);
             while (start < fragment.Rows.LineCounts[fragment.RowIndex]) {
                 int remaining = fragment.Rows.LineCounts[fragment.RowIndex] - start;
                 double whole = fragment.Measure(start, remaining);

@@ -73,14 +73,14 @@ internal static partial class PdfWriter {
                     style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing);
                 var heights = wrapped.LineHeights.ToList();
                 if (heights.Count == 0) heights.Add(leading);
-                heights[0] += GetParagraphSpacingBefore(style);
+                double spacingBefore = GetParagraphSpacingBefore(style);
                 heights[heights.Count - 1] += GetParagraphSpacingAfter(style, leading);
                 if (style?.KeepTogether == true && !scope.Options.BalanceKeptParagraphLines || !scope.Options.BalanceParagraphLines)
-                    return new() { new(heights.Sum()) };
+                    return new() { new(heights.Sum(), spacingBefore: spacingBefore) };
                 int orphans = style == null ? 1 : Math.Max(1, ResolveMinimumOrphanLines(style));
                 int widows = style == null ? 1 : Math.Max(1, ResolveMinimumWidowLines(style));
-                if (orphans + widows > heights.Count) return new() { new(heights.Sum()) };
-                var units = new List<ColumnBalanceUnit> { new(heights.Take(orphans).Sum()) };
+                if (orphans + widows > heights.Count) return new() { new(heights.Sum(), spacingBefore: spacingBefore) };
+                var units = new List<ColumnBalanceUnit> { new(heights.Take(orphans).Sum(), spacingBefore: spacingBefore) };
                 units.AddRange(heights.Skip(orphans).Take(heights.Count - orphans - widows).Select(height => new ColumnBalanceUnit(height)));
                 units.Add(new ColumnBalanceUnit(heights.Skip(heights.Count - widows).Sum()));
                 if (style?.KeepTogether == true && scope.Options.BalanceKeptParagraphLines)
@@ -92,23 +92,28 @@ internal static partial class PdfWriter {
         }
 
         private readonly struct ColumnBalanceUnit {
-            public ColumnBalanceUnit(double height, double continuationHeight = 0D) {
-                Height = height; ContinuationHeight = continuationHeight; RowFragment = null; Container = null; Paragraph = null;
+            public ColumnBalanceUnit(double height, double continuationHeight = 0D, double spacingBefore = 0D) {
+                Height = height; ContinuationHeight = continuationHeight; SpacingBefore = spacingBefore;
+                RowFragment = null; Container = null; Paragraph = null;
             }
-            public ColumnBalanceUnit(ColumnBalanceRowFragment fragment) {
-                Height = fragment.Height; ContinuationHeight = fragment.MovedBefore; RowFragment = fragment; Container = null; Paragraph = null;
+            public ColumnBalanceUnit(ColumnBalanceRowFragment fragment, double spacingBefore = 0D) {
+                Height = fragment.Height; ContinuationHeight = fragment.MovedBefore; SpacingBefore = spacingBefore;
+                RowFragment = fragment; Container = null; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceContainer container) {
                 Height = container.Units.Sum(unit => unit.Height) + container.Style.PaddingY * 2D + container.Style.SpacingAfter;
-                ContinuationHeight = 0D; RowFragment = null; Container = container; Paragraph = null;
+                ContinuationHeight = 0D; SpacingBefore = 0D; RowFragment = null; Container = container; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceParagraph paragraph) {
                 Height = paragraph.Units.Sum(unit => unit.Height); ContinuationHeight = 0D;
+                SpacingBefore = paragraph.Units.Count == 0 ? 0D : paragraph.Units[0].SpacingBefore;
                 RowFragment = null; Container = null; Paragraph = paragraph;
             }
             public double Height { get; }
             /// <summary>Repeated content or spacing required when this unit starts a new column.</summary>
             public double ContinuationHeight { get; }
+            /// <summary>Paragraph spacing applied only when this unit follows content in the same frame.</summary>
+            public double SpacingBefore { get; }
             public ColumnBalanceRowFragment? RowFragment { get; }
             public ColumnBalanceContainer? Container { get; }
             public ColumnBalanceParagraph? Paragraph { get; }

@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Rewraps unpainted cell text while keeping paragraph formatting and the row's consumed-line cursor.</summary>
     private static TableCellTextLayout ContinueTableCellTextLayout(TableCellLayout cell, TableCellTextLayout previous,
-        int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfOptions options) {
+        int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfOptions options,
+        double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D) {
         double wrapWidth = GetTableCellWrapWidth(innerWidth, cell.NoWrap);
         TableCellTextLayout remainder;
         if (consumedLines >= previous.Lines.Count) {
@@ -23,10 +24,12 @@ internal static partial class PdfWriter {
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext));
             }
-            remainder = CreateTableCellParagraphTextLayout(paragraphs, wrapWidth, innerWidth, font, size, leading, options);
+            remainder = CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(paragraphs, additionalFontSizeScale, minimumShrinkFontSize),
+                wrapWidth, innerWidth, font, size, leading, options);
         } else {
             var remainingRuns = BuildTextRunsFromWrappedLines(previous.Lines, consumedLines, previous.Lines.Count - consumedLines);
-            var wrapped = WrapRichRunsCore(remainingRuns, wrapWidth, size, font, leading, null, DefaultParagraphTabStopWidth, options);
+            var wrapped = WrapRichRunsCore(ScaleTableRunsForShrink(remainingRuns, additionalFontSizeScale, minimumShrinkFontSize),
+                wrapWidth, size, font, leading, null, DefaultParagraphTabStopWidth, options);
             remainder = new TableCellTextLayout(wrapped.Lines, wrapped.LineHeights);
         }
 

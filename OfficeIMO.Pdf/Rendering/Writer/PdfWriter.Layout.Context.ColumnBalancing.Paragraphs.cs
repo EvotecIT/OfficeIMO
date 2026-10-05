@@ -6,11 +6,13 @@ internal static partial class PdfWriter {
         private static bool PackColumnBalanceParagraph(ColumnBalanceParagraph paragraph, double height, int columnCount,
             double continuationPadding, ref int columns, ref double used) {
             double whole = paragraph.Units.Sum(unit => unit.Height);
+            double before = used > continuationPadding + .001D && paragraph.Units.Count > 0
+                ? paragraph.Units[0].SpacingBefore : 0D;
             if (whole > height - continuationPadding + .001D)
                 return PackColumnBalanceUnits(paragraph.Units, height, columnCount, continuationPadding, ref columns, ref used);
-            if (used + whole > height + .001D) { columns++; used = continuationPadding; }
+            if (used + before + whole > height + .001D) { columns++; used = continuationPadding; before = 0D; }
             if (columns > columnCount) return false;
-            used += whole;
+            used += before + whole;
             return true;
         }
 

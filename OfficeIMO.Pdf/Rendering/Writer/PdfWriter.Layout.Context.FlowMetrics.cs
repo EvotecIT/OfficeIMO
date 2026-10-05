@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException(blockName + " width exceeds the available page content width.");
             }
 
-            double availableHeight = GetFullPageContentHeight() - reservedHeight;
+            double availableHeight = GetMaximumBlockContinuationHeight() - reservedHeight;
             if (blockHeight > availableHeight + 0.001) {
                 throw new ArgumentException(blockName + " height exceeds the available page content height.");
             }
@@ -22,7 +22,7 @@ internal static partial class PdfWriter {
                 return (imageWidth, imageHeight);
             }
 
-            double availableHeight = GetFullPageContentHeight() - reservedHeight - imageMeasurementReservedHeight
+            double availableHeight = GetMaximumBlockContinuationHeight() - reservedHeight - imageMeasurementReservedHeight
                 - activeContainerScopes.Sum(scope => scope.Style.PaddingY) - spacingBefore - spacingAfter;
             double scale = 1D;
             if (imageWidth > frameWidth) {
@@ -99,11 +99,12 @@ internal static partial class PdfWriter {
 
         private PdfParagraphStyle? EffectiveParagraphStyle(RichParagraphBlock paragraph) => paragraph.Style ?? currentOpts.DefaultParagraphStyleSnapshot;
 
-        private double MeasureNextParagraphFirstVisualHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize) {
+        private double MeasureNextParagraphFirstVisualHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize,
+            bool suppressSpacingBefore = false) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
             fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
-            double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
+            double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
             var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
             if (wrap.LineHeights.Count == 0) {
@@ -305,13 +306,14 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        private double MeasureNextBlockFirstVisualHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize, bool allowTableFragments = false) {
+        private double MeasureNextBlockFirstVisualHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize,
+            bool allowTableFragments = false, bool suppressParagraphSpacingBefore = false) {
             if (block is SemanticBlock semantic) {
-                return MeasureFirstNestedVisualHeight(semantic.Blocks, frameX, frameWidth, fontSize, allowTableFragments);
+                return MeasureFirstNestedVisualHeight(semantic.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore);
             }
 
             if (block is LayerBlock layer) {
-                return MeasureFirstNestedVisualHeight(layer.Blocks, frameX, frameWidth, fontSize, allowTableFragments);
+                return MeasureFirstNestedVisualHeight(layer.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore);
             }
 
             if (block is SectionBlock section) {
@@ -324,7 +326,7 @@ internal static partial class PdfWriter {
                     return MeasureNextBlockFirstVisualHeight(sectionHeading, frameX, frameWidth, fontSize);
                 }
 
-                return MeasureFirstNestedVisualHeight(section.Blocks, frameX, frameWidth, fontSize, allowTableFragments);
+                return MeasureFirstNestedVisualHeight(section.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore);
             }
 
             if (block is ContainerBlock container) {
@@ -338,11 +340,11 @@ internal static partial class PdfWriter {
 
                 return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.PaddingY +
                        MeasureWithContainerPaddingReservation(style.PaddingY, () =>
-                           MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize, allowTableFragments));
+                           MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
             }
 
             if (block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null) {
-                return MeasureFirstNestedVisualHeight(flow.StaticBlocks, frameX, frameWidth, fontSize, allowTableFragments);
+                return MeasureFirstNestedVisualHeight(flow.StaticBlocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore);
             }
 
             if (block is MultiColumnBlock columns) {
@@ -356,7 +358,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is RichParagraphBlock paragraph) {
-                return MeasureNextParagraphFirstVisualHeight(paragraph, frameX, frameWidth, fontSize);
+                return MeasureNextParagraphFirstVisualHeight(paragraph, frameX, frameWidth, fontSize, suppressParagraphSpacingBefore);
             }
 
             if (block is HeadingBlock heading) {
@@ -442,14 +444,15 @@ internal static partial class PdfWriter {
             return 0D;
         }
 
-        private double MeasureFirstNestedVisualHeight(IReadOnlyList<IPdfBlock> blocks, double frameX, double frameWidth, double fontSize, bool allowTableFragments = false) {
+        private double MeasureFirstNestedVisualHeight(IReadOnlyList<IPdfBlock> blocks, double frameX, double frameWidth, double fontSize,
+            bool allowTableFragments = false, bool suppressParagraphSpacingBefore = false) {
             for (int index = 0; index < blocks.Count; index++) {
                 IPdfBlock block = blocks[index];
                 if (block is BookmarkBlock || block is ColumnBreakBlock) {
                     continue;
                 }
 
-                return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize, allowTableFragments);
+                return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore);
             }
 
             return 0D;
@@ -572,7 +575,7 @@ internal static partial class PdfWriter {
                 // Empty pages are discarded by FlushPage. Jump over complete
                 // blank spacer pages instead of allocating and discarding each
                 // one; count them against the generated-page limit regardless.
-                if (remaining > available &&
+                if (activeColumnFlow == null && remaining > available &&
                     System.Math.Abs(y - yStart) <= 0.001D && !pageDirty &&
                     !HasCurrentPageNonContentObjects() && sb.Length == 0 &&
                     activeLayers.Count == 0 && activeContainerScopes.Count == 0 &&
@@ -604,13 +607,8 @@ internal static partial class PdfWriter {
             double frameMarginLeft = currentOpts.MarginLeft;
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(block, currentOpts);
             ValidateHorizontalRule(ruleStyle);
-            double spacingBefore = ResolveTopLevelSpacingBefore(ruleStyle.SpacingBefore);
-            double needed = spacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
-            EnsureFixedFlowBlockFits("Horizontal rule", containerWidth, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Horizontal rule", 0D, ruleStyle.Thickness,
+                ruleStyle.SpacingBefore, ruleStyle.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             containerX += currentOpts.MarginLeft - frameMarginLeft;
             RecordFlowPlacement(y);

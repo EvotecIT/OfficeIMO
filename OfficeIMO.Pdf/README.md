@@ -833,6 +833,31 @@ measurement includes cell padding and repeated headers and preserves fitting
 paragraph keep and widow rules. The default balances whole rows; set
 `BalanceLastPage = false` to fill column frames sequentially.
 
+Use `ColumnDefinitions` to give sequential columns different widths and gutters:
+
+```csharp
+var document = PdfDocument.Create().Columns(content =>
+    content.Paragraph(paragraph => paragraph.Text("Text flows through each column in order.")),
+    new PdfMultiColumnOptions {
+        BalanceLastPage = false,
+        Gap = 18,
+        ColumnDefinitions = new[] {
+            new PdfFlowColumn(PdfColumnWidth.Fixed(96), gapAfter: 24),
+            new PdfFlowColumn(PdfColumnWidth.Percent(25)),
+            new PdfFlowColumn(PdfColumnWidth.Relative(1))
+        }
+    });
+document.Save("columns.pdf");
+```
+
+Fixed widths and gutters use points. Percentages use the content width after
+gutters; relative weights divide the remaining width. `GapAfter` overrides `Gap`
+for the following gutter, and the final column has no following gutter. The
+definitions determine `ColumnCount`; an explicitly assigned count must match.
+Widths must leave positive space for every column. Automatic content-sized widths
+are unsupported. Unequal columns fill sequentially; final-page balancing applies
+to equal widths.
+
 When columns begin partway down a page, table keep rules and minimum or fixed row
 heights can move content to the next full page. Kept tables, unsplittable rows and
 complete cell viewports must fit an available physical page. Set
