@@ -403,6 +403,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageShading {
+        public OfficeGradientColorInterpolation ColorInterpolation { get; set; }
         public string Name { get; set; } = string.Empty;
         public bool IsRadial { get; set; }
         public OfficeColor? OutsideColor { get; set; }

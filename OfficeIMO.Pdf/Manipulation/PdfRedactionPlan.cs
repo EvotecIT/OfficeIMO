@@ -658,6 +658,7 @@ public sealed class PdfRedactionPlan {
         }
         identity.Append(":L,").Append(FormatIdentityNumber(gradient.StartX)).Append(',').Append(FormatIdentityNumber(gradient.StartY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY));
+        identity.Append(',').Append((int)gradient.ColorInterpolation);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 
@@ -674,6 +675,7 @@ public sealed class PdfRedactionPlan {
         identity.Append(',').Append(FormatIdentityNumber(transform.M11)).Append(',').Append(FormatIdentityNumber(transform.M12))
             .Append(',').Append(FormatIdentityNumber(transform.M21)).Append(',').Append(FormatIdentityNumber(transform.M22))
             .Append(',').Append(FormatIdentityNumber(transform.OffsetX)).Append(',').Append(FormatIdentityNumber(transform.OffsetY));
+        identity.Append(',').Append((int)gradient.ColorInterpolation);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 

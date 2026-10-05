@@ -43,6 +43,16 @@ public sealed partial class OfficeRadialGradient {
     /// <summary>Vertical end ellipse radius.</summary>
     public double EndRadiusY { get; }
 
+    /// <summary>Color space used to interpolate RGB channels between stops. Defaults to encoded sRGB.</summary>
+    public OfficeGradientColorInterpolation ColorInterpolation { get; private set; }
+
+    /// <summary>Returns a detached gradient using the specified color interpolation space.</summary>
+    public OfficeRadialGradient WithColorInterpolation(OfficeGradientColorInterpolation interpolation) {
+        if (interpolation != OfficeGradientColorInterpolation.Srgb && interpolation != OfficeGradientColorInterpolation.LinearRgb)
+            throw new ArgumentOutOfRangeException(nameof(interpolation));
+        var copy = Clone(); copy.ColorInterpolation = interpolation; return copy;
+    }
+
     /// <summary>Gradient stops in offset order.</summary>
     public IReadOnlyList<OfficeGradientStop> Stops { get; private set; }
 

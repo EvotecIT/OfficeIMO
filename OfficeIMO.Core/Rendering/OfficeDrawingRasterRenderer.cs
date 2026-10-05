@@ -489,7 +489,7 @@ public static partial class OfficeDrawingRasterRenderer {
             gradient.StartY,
             gradient.EndX,
             gradient.EndY,
-            stops);
+            stops).WithColorInterpolation(gradient.ColorInterpolation);
     }
 
     private static OfficeRadialGradient ApplyOpacity(OfficeRadialGradient gradient, double? opacity) {

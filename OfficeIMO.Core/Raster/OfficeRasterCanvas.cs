@@ -721,15 +721,15 @@ public sealed partial class OfficeRasterCanvas {
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(value)));
 
     private static OfficeColor InterpolateGradient(OfficeLinearGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio);
+        return InterpolateGradientStops(gradient.Stops, ratio, interpolation: gradient.ColorInterpolation);
     }
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
         return double.IsNaN(ratio) ? OfficeColor.Transparent
-            : InterpolateGradientStops(gradient.Stops, ratio, gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius);
+            : InterpolateGradientStops(gradient.Stops, ratio, gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius, gradient.ColorInterpolation);
     }
 
-    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false) {
+    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
         if (ratio <= stops[0].Offset) {
             return stops[0].Color;
         }
@@ -743,6 +743,7 @@ public sealed partial class OfficeRasterCanvas {
                 localRatio = Clamp(localRatio, 0D, 1D);
                 // Native XPS radial paint interpolates color and alpha separately,
                 // consistently with paths, strokes, SVG composition and PDF.
+                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation);
                 if (separateAlpha) return OfficeColor.FromRgba(
                     InterpolateByte(previous.Color.R, next.Color.R, localRatio),
                     InterpolateByte(previous.Color.G, next.Color.G, localRatio),

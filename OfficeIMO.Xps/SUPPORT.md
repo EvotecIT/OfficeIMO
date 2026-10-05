@@ -321,11 +321,18 @@ An 84-case direct-SVG browser comparison covers 36 boundary fields and 48 exteri
 fields across both dialects, Repeat/Reflect, stop alpha, transforms, strokes and
 non-endpoint stops and mixed filled/unfilled stroke figures. The 76 sRGB cases have a maximum whole-page mean difference
 of 1.366/255 against managed PNG output, including geometry and cycle edges.
-All 84 SVG files reimport without unsupported-feature diagnostics. The eight
-linearRGB cases expose a remaining shared-import limitation: managed gradients
-interpolate in sRGB even when the source requests linearRGB. Their maximum
-whole-page mean difference is 12.495/255; they are not qualified as matching
-managed output. Direct SVG retains the requested interpolation mode.
+All 84 SVG files reimport without unsupported-feature diagnostics. Native
+`ScRgbLinearInterpolation` is retained through shared Drawing, raster, SVG and
+PDF output. A 184-pair browser comparison includes direct and Drawing SVG for
+all 84 cases, plus managed PDF readback and Ghostscript for eight linearRGB
+cases. Those eight cases have maximum mean channel differences of 0.071/255
+for SVG/PNG, 0.099/255 for managed PDF readback and 0.549/255 for Ghostscript,
+including cone and cycle-edge rasterization. Direct and Drawing SVG differ
+from managed PNG by at most one channel value in these linearRGB cases; managed
+PDF readback differs by at most two. PDF uses calibrated RGB shading; color-stop
+alpha remains independent of color interpolation. This qualifies these generated
+fields, not arbitrary native-producer coverage.
+
 
 Boundary Repeat/Reflect qualification adds 36 generated cases across both dialects,
 fill, stroke, translucent stops, shear and reflection. Managed samples differ from

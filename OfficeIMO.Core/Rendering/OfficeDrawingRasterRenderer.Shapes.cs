@@ -240,12 +240,12 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static OfficeColor InterpolateGradient(OfficeLinearGradient gradient, double ratio) =>
-        InterpolateGradientStops(gradient.Stops, ratio);
+        InterpolateGradientStops(gradient.Stops, ratio, gradient.ColorInterpolation);
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) =>
-        double.IsNaN(ratio) ? OfficeColor.Transparent : InterpolateGradientStops(gradient.Stops, ratio);
+        double.IsNaN(ratio) ? OfficeColor.Transparent : InterpolateGradientStops(gradient.Stops, ratio, gradient.ColorInterpolation);
 
-    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio) {
+    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, OfficeGradientColorInterpolation interpolation) {
         if (ratio <= stops[0].Offset) {
             return stops[0].Color;
         }
@@ -256,22 +256,12 @@ public static partial class OfficeDrawingRasterRenderer {
                 OfficeGradientStop previous = stops[i - 1];
                 double span = next.Offset - previous.Offset;
                 double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
-                return Interpolate(previous.Color, next.Color, Clamp(localRatio, 0D, 1D));
+                return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation);
             }
         }
 
         return stops[stops.Count - 1].Color;
     }
-
-    private static OfficeColor Interpolate(OfficeColor start, OfficeColor end, double ratio) =>
-        OfficeColor.FromRgba(
-            InterpolateByte(start.R, end.R, ratio),
-            InterpolateByte(start.G, end.G, ratio),
-            InterpolateByte(start.B, end.B, ratio),
-            InterpolateByte(start.A, end.A, ratio));
-
-    private static byte InterpolateByte(byte start, byte end, double ratio) =>
-        (byte)Math.Round(start + ((end - start) * Clamp(ratio, 0D, 1D)));
 
     private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
 

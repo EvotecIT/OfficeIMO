@@ -39,7 +39,7 @@ public static partial class OfficeDrawingSvgExporter {
         var colors = field.WithStops(field.Stops.Select(stop => new OfficeGradientStop(stop.Offset,
             OfficeColor.FromRgb(stop.Color.R, stop.Color.G, stop.Color.B))).ToArray());
         var alpha = field.WithStops(field.Stops.Select(stop => new OfficeGradientStop(stop.Offset,
-            OfficeColor.FromRgb(stop.Color.A, stop.Color.A, stop.Color.A))).ToArray());
+            OfficeColor.FromRgb(stop.Color.A, stop.Color.A, stop.Color.A))).ToArray()).WithColorInterpolation(OfficeGradientColorInterpolation.Srgb);
         builder.AppendNativeRadialPatternDefinition(id, left, top, width, height,
             OfficeSvgFormatting.ToCssColor(colors.Stops[0].Color), OfficeSvgFormatting.ToCssColor(alpha.Stops[0].Color),
             (output, fieldId) => output.AppendRadialGradientFieldDefinition(fieldId, colors),

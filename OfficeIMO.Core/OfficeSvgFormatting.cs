@@ -273,7 +273,9 @@ public static partial class OfficeSvgFormatting {
             .Append(FormatNumber(gradient.EndX * 100D))
             .Append("%\" y2=\"")
             .Append(FormatNumber(gradient.EndY * 100D))
-            .Append("%\">");
+            .Append("%\"");
+        if (gradient.ColorInterpolation == OfficeGradientColorInterpolation.LinearRgb) builder.Append(" color-interpolation=\"linearRGB\"");
+        builder.Append('>');
 
         for (int i = 0; i < gradient.Stops.Count; i++) {
             OfficeGradientStop stop = gradient.Stops[i];
@@ -344,6 +346,7 @@ public static partial class OfficeSvgFormatting {
             .Append(unit)
             .Append('"');
 
+        if (gradient.ColorInterpolation == OfficeGradientColorInterpolation.LinearRgb) builder.Append(" color-interpolation=\"linearRGB\"");
         if (userSpace) builder.Append(" gradientUnits=\"userSpaceOnUse\"");
 
         var coordinates = (elliptical ? new OfficeTransform(gradient.EndRadiusX, 0D, 0D, gradient.EndRadiusY, gradient.EndX, gradient.EndY)

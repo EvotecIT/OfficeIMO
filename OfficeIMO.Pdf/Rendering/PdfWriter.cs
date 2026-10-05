@@ -596,14 +596,14 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.R1,
                             shading.Stops,
-                            shadingColorTransform)
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation)
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
                             shading.Stops,
-                            shadingColorTransform);
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
                     int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);

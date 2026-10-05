@@ -115,7 +115,7 @@ public static partial class OfficeSvgDrawingReader {
                         definition.Y1.Value,
                         definition.X2.Value,
                         definition.Y2.Value,
-                        definition.Stops));
+                        definition.Stops).WithColorInterpolation(definition.ColorInterpolation));
                 } else {
                     paint = new SvgResolvedPaint(new OfficeRadialGradient(
                         definition.X1.Value,
@@ -124,7 +124,7 @@ public static partial class OfficeSvgDrawingReader {
                         definition.X2.Value,
                         definition.Y2.Value,
                         definition.Radius2.Value,
-                        definition.Stops));
+                        definition.Stops).WithColorInterpolation(definition.ColorInterpolation));
                 }
                 return true;
             } catch (ArgumentException) {
@@ -174,6 +174,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 if (stops == null) return false;
 
+                var interpolation = ResolveGradientColorInterpolation(element);
                 if (kind == SvgGradientKind.Linear) {
                     SvgGradientCoordinate defaultX1 = inherited?.X1 ?? SvgGradientCoordinate.CreateDefault(0D);
                     SvgGradientCoordinate defaultY1 = inherited?.Y1 ?? SvgGradientCoordinate.CreateDefault(0D);
@@ -185,6 +186,7 @@ public static partial class OfficeSvgDrawingReader {
                         || !TryCoordinate(element, "y2", defaultY2, allowOutsideUnit: true, userSpaceOnUse, out SvgGradientCoordinate y2)
                         || (x1.Equals(x2) && y1.Equals(y2))) return false;
                     definition = SvgGradientDefinition.Linear(x1, y1, x2, y2, stops, userSpaceOnUse, gradientTransform, spreadMode);
+                    definition.ColorInterpolation = interpolation;
                     _resolved[id] = definition;
                     return true;
                 }
@@ -204,6 +206,7 @@ public static partial class OfficeSvgDrawingReader {
                     || (focalX.Equals(centerX) && focalY.Equals(centerY) && focalRadius.Equals(radius))) return false;
                 definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform, spreadMode);
                 definition.UseFirstRadialIntersection = _useFirstRadialIntersection;
+                definition.ColorInterpolation = interpolation;
                 _resolved[id] = definition;
                 return true;
             } finally {
@@ -263,6 +266,17 @@ public static partial class OfficeSvgDrawingReader {
             }
             userSpaceOnUse = false;
             return false;
+        }
+
+        private static OfficeGradientColorInterpolation ResolveGradientColorInterpolation(XElement element) {
+            // This CSS property inherits through ancestors, not through gradient href.
+            foreach (var ancestor in element.AncestorsAndSelf()) {
+                string? value = ReadPresentationProperty(ancestor, "color-interpolation")?.Trim().ToLowerInvariant();
+                if (string.IsNullOrEmpty(value) || value == "inherit" || value == "unset") continue;
+                if (value == "linearrgb") return OfficeGradientColorInterpolation.LinearRgb;
+                if (value == "srgb" || value == "auto" || value == "initial") return OfficeGradientColorInterpolation.Srgb;
+            }
+            return OfficeGradientColorInterpolation.Srgb;
         }
 
         private static bool TryReadStops(XElement gradient, out IReadOnlyList<OfficeGradientStop>? stops) {
@@ -448,6 +462,7 @@ public static partial class OfficeSvgDrawingReader {
         internal bool UserSpaceOnUse { get; private set; }
         internal OfficeTransform GradientTransform { get; private set; }
         internal SvgGradientSpreadMode SpreadMode { get; private set; }
+        internal OfficeGradientColorInterpolation ColorInterpolation { get; set; }
         internal bool UseFirstRadialIntersection { get; set; }
         internal IReadOnlyList<OfficeGradientStop> Stops { get; private set; } = Array.Empty<OfficeGradientStop>();
 
@@ -500,7 +515,9 @@ public static partial class OfficeSvgDrawingReader {
                     }
                     OfficeLinearGradient field = OfficeLinearGradient.CreateImported(
                         first.X, first.Y, second.X, second.Y, Stops).TransformCoordinates(coordinates);
-                    return TryCreateLinearSpread(field.StartX, field.StartY, field.EndX, field.EndY, out linear);
+                    if (!TryCreateLinearSpread(field.StartX, field.StartY, field.EndX, field.EndY, out linear)) return false;
+                    linear = linear!.WithColorInterpolation(ColorInterpolation);
+                    return true;
                 }
                 double diagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
                 double radius1 = ResolveRadius(Radius1, diagonal, UserSpaceOnUse);
@@ -521,7 +538,9 @@ public static partial class OfficeSvgDrawingReader {
                 if (UseFirstRadialIntersection && SpreadMode == SvgGradientSpreadMode.Pad && radial.StartRadiusX == 0D) {
                     radial = radial.WithFirstPadIntersection();
                 }
-                return TryCreateRadialSpread(radial, shape, out radial);
+                if (!TryCreateRadialSpread(radial, shape, out radial)) return false;
+                radial = radial!.WithColorInterpolation(ColorInterpolation);
+                return true;
             } catch (ArgumentException) {
                 return false;
             }
