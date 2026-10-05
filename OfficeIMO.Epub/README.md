@@ -390,6 +390,27 @@ timestamps, compression, XML formatting, and lexical prefixes may differ after e
 edit the retained package. `GetContentXml` / `SetContentXml` support targeted XHTML/SVG
 editing. Instances are mutable and are not thread-safe.
 
+Use the dictionary overload to apply coordinated content edits atomically. For example,
+when changing an anchor ID, include both its document and documents containing incoming
+links in the same batch:
+
+```csharp
+var target = publication.GetContentXml("chapter-1");
+var source = publication.GetContentXml("chapter-2");
+// Edit the target ID and its incoming links in these independent XML copies.
+publication.SetContentXml(new Dictionary<string, XDocument> {
+    ["chapter-1"] = target,
+    ["chapter-2"] = source
+});
+```
+
+The batch validates content identifiers, local ID references and publication links before
+replacing any retained bytes. Duplicate IDs, dangling links, invalid content, retention
+limits or cancellation leave the publication unchanged. Caller-owned XML remains independent.
+This overload requires a structurally valid resulting publication; the single-document
+setter remains available while assembling a book. Export still applies signature,
+encryption and output policies, and independent accessibility and reader checks remain separate.
+
 `EpubWriteReport` identifies preserved, regenerated, and removed entries. Explicit
 resource or signature removal produces omission diagnostics; `RequireNoLoss` rejects
 them. `RemoveResource` blocks structural and cover references, declared rootfiles,

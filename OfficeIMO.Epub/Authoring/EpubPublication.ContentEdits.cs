@@ -3,13 +3,26 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
+    /// <summary>
+    /// Atomically replaces selected XHTML/SVG documents after validating their identifiers and the
+    /// resulting publication references. Use one batch when moving targets or repairing cross-document
+    /// links. A rejected or cancelled batch leaves all retained content unchanged.
+    /// </summary>
+    public void SetContentXml(IReadOnlyDictionary<string, XDocument> documents, CancellationToken cancellationToken = default) {
+        if (documents == null) throw new ArgumentNullException(nameof(documents));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (documents.Count == 0) return;
+        CommitContentEdits(documents, cancellationToken, validatePublication: true);
+    }
+
     // Stage every payload and the combined retention budget before committing any
     // document. This keeps cross-document semantic edits atomic without a ZIP round-trip.
-    private void CommitContentEdits(IReadOnlyDictionary<string, XDocument> documents, CancellationToken token) {
+    private void CommitContentEdits(IReadOnlyDictionary<string, XDocument> documents, CancellationToken token, bool validatePublication = false) {
         var payloads = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         long delta = 0;
         foreach (var pair in documents) {
             token.ThrowIfCancellationRequested();
+            if (pair.Value == null) throw new ArgumentException("Content documents cannot be null.", nameof(documents));
             EpubManifestItem item = RequireManifestItem(pair.Key);
             string path = RequireLocalPath(item);
             EnsureResourceMutationAllowed(path);
@@ -24,6 +37,13 @@ public sealed partial class EpubPublication {
             delta += bytes.LongLength - _entries[path].LongLength;
         }
         EnsurePackageBudget(_package, delta);
+        if (validatePublication) {
+            var proposed = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
+            foreach (var pair in payloads) proposed[pair.Key] = pair.Value;
+            var package = new XDocument(_package);
+            ValidatePublication(package, proposed, new List<OfficeConversionFidelityDiagnostic>(), token, changed: true);
+            EnsurePackageBudget(package, delta);
+        }
         token.ThrowIfCancellationRequested();
         foreach (var pair in payloads) _entries[pair.Key] = pair.Value;
         _retainedBytes += delta;
