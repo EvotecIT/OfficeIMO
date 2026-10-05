@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -129,6 +129,32 @@ the native writer's validation. Project review records are user-owned state, not
 authenticity certificate. Project instances are mutable and not thread-safe.
 Hosts own destination permissions, conflict handling and safe publication; Studio
 uses its existing verified storage owner for those operations.
+
+## Batch book publication
+
+The built-in `book-project-epub` route exports `.oibook` files through `BookProject`
+and the EPUB writer. It uses the same runner, publication guards, conflict policies,
+byte limits and checkpoint recovery as other conversions.
+
+```csharp
+OfficeConversionBatchResult published = await OfficeWorkflow.ConvertDirectory("BookProjects")
+    .ToDirectory("PublishedBooks", ".epub")
+    .SelectExtensions(true, ".oibook")
+    .WithLimits(BookProject.MaximumProjectBytes, 128L * 1024 * 1024)
+    .WithCheckpoint("PublishingState")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+Outputs retain source names, such as `novel.oibook.epub`. Export requires saved author
+acknowledgment of non-fatal import losses; failures always block it. The batch does
+not acknowledge losses automatically. Accepted import findings and writer fidelity
+findings remain structured workflow diagnostics. Only the current publication is
+exported; named revisions and review records stay in the source project. Each staged
+EPUB is reopened and checked by its owner before publication. This native check does
+not replace EPUBCheck, accessibility review or independent-reader qualification.
+
+For an individual in-memory project, `Export(EpubWriteOptions, cancellationToken)`
+applies explicit writer limits while enforcing the same import-review gate.
 
 ## Optional checkpoints
 
@@ -810,7 +836,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Edit | 1 | 0 | 0 | 0 | 0 | 0 |
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 0 | 1 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 3 | 0 | 0 | 0 | 0 |
 | Export | 1 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
