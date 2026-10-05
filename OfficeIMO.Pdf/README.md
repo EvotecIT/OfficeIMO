@@ -67,13 +67,13 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 Paragraphs can use a fallback font size independently of the document default:
 
 ```csharp
-PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 })
-    .Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
-        FontSize = 8,
-        LineSpacing = PdfLineSpacing.Exactly(14),
-        SpacingAfter = 0
-    })
-    .Save("fixed-spacing.pdf");
+var document = PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 });
+document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
+    FontSize = 8,
+    LineSpacing = PdfLineSpacing.Exactly(14),
+    SpacingAfter = 0
+});
+document.Save("fixed-spacing.pdf");
 ```
 
 `PdfLineSpacing.Multiple(1.25)` scales the advance with each line's font size.
