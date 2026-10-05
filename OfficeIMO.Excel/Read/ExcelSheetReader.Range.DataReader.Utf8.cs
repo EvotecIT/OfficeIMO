@@ -115,7 +115,9 @@ namespace OfficeIMO.Excel {
                                 out int firstRow,
                                 out int firstColumn,
                                 out int lastRow,
-                                out int lastColumn)) {
+                                out int lastColumn)
+                            && !candidate.TryInferUndeclaredRange(
+                                ct, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                             candidate.Dispose();
                             return false;
                         }
@@ -123,7 +125,9 @@ namespace OfficeIMO.Excel {
                         int fieldCount = lastColumn - firstColumn + 1;
                         long rowCount = (long)lastRow - firstRow + 1L;
                         long cellCount = rowCount * fieldCount;
-                        if (fieldCount <= 0
+                        if (firstRow <= 0 || lastRow < firstRow || lastRow > A1.MaxRows
+                            || firstColumn <= 0 || lastColumn < firstColumn || lastColumn > A1.MaxColumns
+                            || fieldCount <= 0
                             || fieldCount > owner._opt.MaxDataReaderColumns
                             || cellCount > owner._opt.MaxDataReaderBufferedCells
                             || cellCount > MaximumIndexedCells) {
@@ -337,7 +341,8 @@ namespace OfficeIMO.Excel {
                 firstColumn = _minimumCellColumn;
                 lastRow = _maximumCellRow;
                 lastColumn = _maximumCellColumn;
-                return lastRow > 0 && lastColumn > 0;
+                return firstRow > 0 && lastRow >= firstRow && lastRow <= A1.MaxRows
+                    && firstColumn > 0 && lastColumn >= firstColumn && lastColumn <= A1.MaxColumns;
             }
 
             internal bool IsCellPresent(int ordinal) {

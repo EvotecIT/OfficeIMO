@@ -5,7 +5,7 @@ using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
-/// <summary>Exports short labels and long notes with embedded quotes through public CSV writers.</summary>
+/// <summary>Exports short labels and plain, delimited or quoted text through public CSV writers.</summary>
 [MemoryDiagnoser]
 public class CsvTextWriteBenchmarks {
     private static readonly string[] Headers = ["Id", "Notes"];
@@ -17,10 +17,10 @@ public class CsvTextWriteBenchmarks {
     [Params(CsvQuoteMode.AsNeeded, CsvQuoteMode.Always)]
     public CsvQuoteMode QuoteMode { get; set; }
 
-    [Params(",", "||")]
+    [Params(",", ";", "\t", "||")]
     public string Delimiter { get; set; } = ",";
 
-    [Params("Notes", "Json", "Quotes")]
+    [Params("Plain", "Delimited", "Notes", "Json", "Quotes")]
     public string TextShape { get; set; } = "Notes";
 
     [GlobalSetup]
@@ -28,6 +28,8 @@ public class CsvTextWriteBenchmarks {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         string payload = TextShape switch {
+            "Plain" => new string('n', TextLength),
+            "Delimited" => new string('n', TextLength / 2) + Delimiter + new string('x', TextLength / 2),
             "Notes" => ",\"" + new string('n', TextLength / 2) + "\" Łódź\n" + new string('x', TextLength / 2),
             "Json" => "{" + string.Concat(Enumerable.Repeat("\"key\":\"value\",", Math.Max(1, TextLength / 14))) + "\"last\":null}",
             "Quotes" => new string('"', TextLength),

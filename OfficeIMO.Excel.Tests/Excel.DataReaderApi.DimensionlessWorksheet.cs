@@ -6,6 +6,49 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Theory]
+    [InlineData(2147483647, "A", true)]
+    [InlineData(2147483647, "A", false)]
+    [InlineData(1048577, "A", true)]
+    [InlineData(1, "XFE", true)]
+    public void DataReader_DimensionlessWorksheetRejectsCoordinatesOutsideExcelGrid(
+        int row, string column, bool hasHeaderRow) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            string xml = $$"""
+                <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+                  <row r="{{row}}"><c r="{{column}}{{row}}"><v>42</v></c></row>
+                </sheetData></worksheet>
+                """;
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+            Assert.Throws<ArgumentException>(() => ExcelDocument.OpenDataReader(
+                path, new ExcelReadOptions { HasHeaderRow = hasHeaderRow }));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DataReader_DimensionlessWorksheetReadsLastValidExcelCell() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            string xml = """
+                <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+                  <row r="1048576"><c r="XFD1048576"><v>42</v></c></row>
+                </sheetData></worksheet>
+                """;
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+            using var reader = ExcelDocument.OpenDataReader(
+                path, new ExcelReadOptions { HasHeaderRow = false });
+            Assert.Equal(1, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]

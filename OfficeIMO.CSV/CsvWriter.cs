@@ -10,6 +10,17 @@ internal static partial class CsvWriter
 #if NET8_0_OR_GREATER
     private static readonly System.Buffers.SearchValues<char> DefaultCommaQuoteCharacters =
         System.Buffers.SearchValues.Create(new[] { '"', ',', '\r', '\n' });
+
+    // Initialize these only when a non-comma export needs them.
+    private static class NonCommaQuoteCharacters
+    {
+        static NonCommaQuoteCharacters() { }
+
+        internal static readonly System.Buffers.SearchValues<char> Semicolon =
+            System.Buffers.SearchValues.Create("\";\r\n");
+        internal static readonly System.Buffers.SearchValues<char> Tab =
+            System.Buffers.SearchValues.Create("\"\t\r\n");
+    }
 #endif
 
     internal static bool UsesTextDelimiter(CsvSaveOptions options) =>
