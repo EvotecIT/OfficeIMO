@@ -15,8 +15,10 @@ public partial class Word {
         WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
         Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         Style grid = styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid");
-        grid.Append(new TableStyleProperties(new StyleParagraphProperties(new SpacingBetweenLines { After = "80" }),
-            new StyleRunProperties(new Color { Val = "00FF00" })) { Type = TableStyleOverrideValues.WholeTable });
+        grid.StyleParagraphProperties = new StyleParagraphProperties(new SpacingBetweenLines { After = "80" });
+        grid.StyleRunProperties = new StyleRunProperties(new Color { Val = "00FF00" });
+        grid.Append(new TableStyleProperties(new StyleParagraphProperties(new SpacingBetweenLines { After = "999" }),
+            new StyleRunProperties(new Color { Val = "333333" })) { Type = TableStyleOverrideValues.WholeTable });
         grid.Append(new TableStyleProperties(new StyleParagraphProperties(new SpacingBetweenLines { After = "240" }),
             new StyleRunProperties(new Color { Val = "FF0000" })) { Type = TableStyleOverrideValues.FirstRow });
         if (derived) {
@@ -76,7 +78,7 @@ public partial class Word {
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
-    public void LegacyDoc_TableHierarchy_PreservesDocumentNormalTableDefaults(int tableMode) {
+    public void LegacyDoc_TableHierarchy_MatchesWordIgnoringNormalTableChildProperties(int tableMode) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1, tableMode is 0 or 3 ? WordTableStyle.TableNormal : WordTableStyle.TableGrid);
         Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -96,9 +98,9 @@ public partial class Word {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Inherited defaults";
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
         WordTableCell cell = restored.Tables[0].Rows[0].Cells[0];
-        Assert.Equal("FFFF00", cell.ShadingFillColorHex);
-        Assert.Equal((short)144, cell.MarginTopWidth);
-        Assert.Equal("FF0000", cell.Paragraphs[0].ColorHex);
-        Assert.Equal(180, cell.Paragraphs[0].LineSpacingBefore);
+        Assert.Equal(string.Empty, cell.ShadingFillColorHex);
+        Assert.Null(cell.MarginTopWidth);
+        Assert.Equal(string.Empty, cell.Paragraphs[0].ColorHex);
+        Assert.Equal(0, cell.Paragraphs[0].LineSpacingBefore ?? 0);
     }
 }

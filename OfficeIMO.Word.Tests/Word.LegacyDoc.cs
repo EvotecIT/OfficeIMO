@@ -8042,7 +8042,7 @@ namespace OfficeIMO.Tests {
                     var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
                     style.Append(new StyleName { Val = "Native DOC Palette Shading Table" });
                     style.Append(new BasedOn { Val = "TableNormal" });
-                    style.Append(new StyleTableProperties(
+                    style.Append(new StyleTableCellProperties(
                         new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
@@ -8802,13 +8802,13 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Default sides", row.Cells[0].Paragraphs[0].Text);
                 Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Equal((short)108, row.Cells[0].MarginLeftWidth);
+                Assert.Null(row.Cells[0].MarginLeftWidth);
                 Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Equal((short)108, row.Cells[0].MarginRightWidth);
+                Assert.Null(row.Cells[0].MarginRightWidth);
                 Assert.Equal("Specific sides", row.Cells[1].Paragraphs[0].Text);
-                Assert.Equal((short)0, row.Cells[1].MarginTopWidth);
+                Assert.Null(row.Cells[1].MarginTopWidth);
                 Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-                Assert.Equal((short)0, row.Cells[1].MarginBottomWidth);
+                Assert.Null(row.Cells[1].MarginBottomWidth);
                 Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
             } finally {
                 DeleteIfExists(docPath);
@@ -9259,13 +9259,15 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
 
                     var firstColumnTableProperties = new TableStyleConditionalFormattingTableProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" },
                         new TableBorders(
                             new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U },
                             new BottomBorder { Val = BorderValues.Double, Color = "0000FF", Size = 8U },
                             new RightBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
                             new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00FF00", Size = 6U }));
-                    style.Append(new TableStyleProperties(firstColumnTableProperties) { Type = TableStyleOverrideValues.FirstColumn });
+                    style.Append(new TableStyleProperties(firstColumnTableProperties,
+                        new TableStyleConditionalFormattingTableCellProperties(new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" })) {
+                        Type = TableStyleOverrideValues.FirstColumn
+                    });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
                     WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
@@ -9367,8 +9369,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(untouchedCell.FitText);
                 Assert.True(untouchedCell.WrapText);
                 Assert.False(untouchedCell.HideMark);
-                Assert.Equal((short)0, untouchedCell.MarginTopWidth);
-                Assert.Equal((short)108, untouchedCell.MarginLeftWidth);
+                Assert.Null(untouchedCell.MarginTopWidth);
+                Assert.Null(untouchedCell.MarginLeftWidth);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -10186,7 +10188,7 @@ namespace OfficeIMO.Tests {
                     var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
                     baseStyle.Append(new StyleName { Val = "Native DOC Base Shading Table" });
                     baseStyle.Append(new BasedOn { Val = "TableNormal" });
-                    baseStyle.Append(new StyleTableProperties(
+                    baseStyle.Append(new StyleTableCellProperties(
                         new Shading {
                             Val = ShadingPatternValues.Clear,
                             Fill = "FF0000"

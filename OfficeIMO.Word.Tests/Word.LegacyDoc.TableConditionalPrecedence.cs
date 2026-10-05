@@ -21,6 +21,10 @@ public partial class Word {
         Style grid = styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid");
         TableStyleOverrideValues stronger = regionPair == 0 ? TableStyleOverrideValues.FirstRow : TableStyleOverrideValues.Band1Vertical;
         TableStyleOverrideValues weaker = regionPair == 0 ? TableStyleOverrideValues.FirstColumn : TableStyleOverrideValues.Band1Horizontal;
+        if (regionPair == 1) {
+            grid.GetFirstChild<StyleTableProperties>()!.TableStyleRowBandSize = new TableStyleRowBandSize { Val = 1 };
+            grid.GetFirstChild<StyleTableProperties>()!.TableStyleColumnBandSize = new TableStyleColumnBandSize { Val = 1 };
+        }
         var weakCondition = new TableStyleProperties(
             new StyleParagraphProperties(new SpacingBetweenLines { After = "360" }),
             new StyleRunProperties(new Color { Val = "0000FF" })) { Type = weaker };

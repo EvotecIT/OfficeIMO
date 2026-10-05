@@ -85,7 +85,7 @@ public partial class Word {
         Assert.True(paragraph.Bold);
         Assert.Equal(WordBorderStyle.Double, cell.Borders.TopStyle);
         Assert.Equal("FF0000", cell.Borders.TopColorHex);
-        Assert.Equal("00FF00", cell.ShadingFillColorHex);
+        Assert.Equal(string.Empty, cell.ShadingFillColorHex);
     }
 
     [Theory]
