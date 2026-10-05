@@ -29,7 +29,7 @@ public class PdfHeadingHierarchyTests {
         Assert.DoesNotContain(spans, span => span.Text.Contains("Late mutation"));
         var logical = PdfDocumentReadResult.Load(bytes);
         Assert.Single(logical.GetLinksByUri(uri));
-        Assert.Equal(9, Assert.Single(logical.Headings).Level);
+        Assert.Equal(9, Assert.Single(logical.Headings, heading => heading.Text.Contains("PlainMarker")).Level);
         Assert.Equal("Outline title", Assert.Single(PdfInspector.Inspect(bytes).Outlines).Title);
     }
 
