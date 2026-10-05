@@ -79,8 +79,27 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            // Auto-fit creates individual column definitions. Index that common
+            // case once instead of scanning the growing collection per width.
+            var individualColumns = new Dictionary<uint, Column>();
+            bool allIndividual = true;
+            foreach (Column column in columns.Elements<Column>()) {
+                if (column.Min == null || column.Max == null || column.Min.Value != column.Max.Value
+                    || individualColumns.ContainsKey(column.Min.Value)) {
+                    allIndividual = false;
+                    break;
+                }
+                individualColumns.Add(column.Min.Value, column);
+            }
+
             for (int i = 0; i < columnIndexes.Count; i++) {
-                SetColumnWidthCore(columns, columnIndexes[i], widths[i]);
+                if (allIndividual) {
+                    uint index = (uint)columnIndexes[i];
+                    individualColumns.TryGetValue(index, out Column? column);
+                    SetColumnWidthValue(columns, index, widths[i], column);
+                } else {
+                    SetColumnWidthCore(columns, columnIndexes[i], widths[i]);
+                }
             }
 
             if (columns.Elements<Column>().Any()) {
@@ -99,11 +118,15 @@ namespace OfficeIMO.Excel {
                 column = SplitColumn(columns, column, (uint)columnIndex);
             }
 
+            SetColumnWidthValue(columns, (uint)columnIndex, width, column);
+        }
+
+        private static void SetColumnWidthValue(Columns columns, uint columnIndex, double width, Column? column) {
             width = NormalizeColumnWidth(width);
 
             if (width > 0) {
                 if (column == null) {
-                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                    column = new Column { Min = columnIndex, Max = columnIndex };
                     columns.Append(column);
                 }
                 column.Width = width;

@@ -1207,6 +1207,19 @@ image/PDF projection emits stable diagnostics when extension semantics are
 approximated or omitted; native XLS export rejects extension-only rules rather
 than silently discarding them.
 
+### Set several column widths
+
+Use `SetColumnWidths` to apply positive widths in one worksheet update:
+
+```csharp
+sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 24, [2] = 14, [3] = 18 });
+```
+
+Indexes are 1-based. The method preserves column styles, visibility and outline
+metadata. It validates the complete map before changing widths and clamps widths
+above Excel's 255-character limit. Use `SetColumnWidth` to clear an individual
+custom width with a non-positive value.
+
 ### Tune larger exports
 
 ```csharp
