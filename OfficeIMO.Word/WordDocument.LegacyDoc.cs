@@ -492,6 +492,8 @@ namespace OfficeIMO.Word {
             }
 
             WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableNormal);
+            ApplyLegacyDocTableBorderDefaults(table, tableBlock.Rows.Select(row =>
+                row.TableBorders.WithDefaults(styleSheet.ResolveTableBorders(row.TableStyleIndex))));
             LegacyDocTableAlignment? tableAlignment = tableBlock.Rows
                 .Select(row => row.TableAlignment)
                 .FirstOrDefault(alignment => alignment.HasValue);
@@ -751,6 +753,8 @@ namespace OfficeIMO.Word {
 
         private static BorderValues? MapLegacyDocTableCellBorderStyle(LegacyDocTableCellBorderStyle style) {
             switch (style) {
+                case LegacyDocTableCellBorderStyle.ExplicitNone:
+                    return BorderValues.Nil;
                 case LegacyDocTableCellBorderStyle.Single:
                     return BorderValues.Single;
                 case LegacyDocTableCellBorderStyle.Double:

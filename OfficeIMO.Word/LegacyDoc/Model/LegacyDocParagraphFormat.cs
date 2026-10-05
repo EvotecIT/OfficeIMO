@@ -60,9 +60,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphBorders? paragraphBorders = null,
             byte? outlineLevel = null,
             LegacyDocCharacterFormat? paragraphMarkFormat = null,
-            bool lineSpacingIsMultiple = false) {
+            bool lineSpacingIsMultiple = false,
+            ushort? tableStyleIndex = null,
+            LegacyDocTableBorders tableBorders = default) {
             Alignment = alignment;
             StyleIndex = styleIndex;
+            TableStyleIndex = tableStyleIndex;
+            TableBorders = tableBorders;
             SpacingBeforeTwips = spacingBeforeTwips;
             SpacingAfterTwips = spacingAfterTwips;
             LineSpacingTwips = lineSpacingTwips;
@@ -173,6 +177,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocParagraphAlignment? Alignment { get; }
 
         internal ushort? StyleIndex { get; }
+
+        internal ushort? TableStyleIndex { get; }
+
+        internal LegacyDocTableBorders TableBorders { get; }
 
         internal int? SpacingBeforeTwips { get; }
 
@@ -339,6 +347,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || TableCellMargins.Count > 0
             || TableCellShadings.Count > 0
             || TableCellBorders.Count > 0
+            || TableStyleIndex.HasValue || TableBorders.HasAny
             || DefaultTableCellMargins != null
             || DefaultTableCellSpacingTwips != null
             || HasMergedTableCells
@@ -403,6 +412,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
                 && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
                 && TableCellBordersEqual(TableCellBorders, other.TableCellBorders)
+                && TableStyleIndex == other.TableStyleIndex
+                && TableBorders.Equals(other.TableBorders)
                 && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
                 && DefaultTableCellSpacingTwips == other.DefaultTableCellSpacingTwips
                 && HasMergedTableCells == other.HasMergedTableCells
@@ -423,6 +434,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int hash = 17;
             hash = (hash * 31) + Alignment.GetHashCode();
             hash = (hash * 31) + StyleIndex.GetHashCode();
+            hash = (hash * 31) + TableStyleIndex.GetHashCode();
+            hash = (hash * 31) + TableBorders.GetHashCode();
             hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
             hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
             hash = (hash * 31) + LineSpacingTwips.GetHashCode();
@@ -581,7 +594,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ParagraphBorders,
                 OutlineLevel,
                 paragraphMarkFormat,
-                lineSpacingIsMultiple: LineSpacingIsMultiple);
+                lineSpacingIsMultiple: LineSpacingIsMultiple,
+                tableStyleIndex: TableStyleIndex,
+                tableBorders: TableBorders);
         }
 
         private static bool TableCellWidthsEqual(IReadOnlyList<int> first, IReadOnlyList<int> second) {

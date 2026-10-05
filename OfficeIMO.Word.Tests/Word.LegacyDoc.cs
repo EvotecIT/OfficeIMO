@@ -9161,7 +9161,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("NoTop", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Null(reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal(WordBorderStyle.Nil, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
                 Assert.Equal("Inherited", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].Borders.TopColorHex);

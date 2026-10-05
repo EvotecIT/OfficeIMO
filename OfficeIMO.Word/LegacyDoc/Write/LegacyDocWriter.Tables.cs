@@ -1436,42 +1436,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private readonly struct LegacyDocTableBorders {
-            internal LegacyDocTableBorders(
-                LegacyDocTableCellBorder top,
-                LegacyDocTableCellBorder left,
-                LegacyDocTableCellBorder bottom,
-                LegacyDocTableCellBorder right,
-                LegacyDocTableCellBorder insideHorizontal,
-                LegacyDocTableCellBorder insideVertical) {
-                Top = top;
-                Left = left;
-                Bottom = bottom;
-                Right = right;
-                InsideHorizontal = insideHorizontal;
-                InsideVertical = insideVertical;
-            }
-
-            internal LegacyDocTableCellBorder Top { get; }
-
-            internal LegacyDocTableCellBorder Left { get; }
-
-            internal LegacyDocTableCellBorder Bottom { get; }
-
-            internal LegacyDocTableCellBorder Right { get; }
-
-            internal LegacyDocTableCellBorder InsideHorizontal { get; }
-
-            internal LegacyDocTableCellBorder InsideVertical { get; }
-
-            internal bool HasAny => Top.HasAny
-                || Left.HasAny
-                || Bottom.HasAny
-                || Right.HasAny
-                || InsideHorizontal.HasAny
-                || InsideVertical.HasAny;
-        }
-
         private readonly struct LegacyDocWritableTableCell {
             internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders)
                 : this(sourceCell, widthTwips, horizontalMerge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders, LegacyDocWritableParagraphFormatting.Plain, LegacyDocWritableFormatting.Plain) {

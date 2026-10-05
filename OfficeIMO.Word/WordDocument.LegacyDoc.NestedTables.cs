@@ -61,6 +61,9 @@ namespace OfficeIMO.Word {
 
             int columnCount = rows.Max(row => row.Count);
             WordTable nestedTable = hostCell.AddTable(rows.Count, columnCount, WordTableStyle.TableNormal);
+            ApplyLegacyDocTableBorderDefaults(nestedTable, paragraphs.Skip(startIndex).Take(index - startIndex)
+                .Select(paragraph => paragraph.Format.TableBorders.WithDefaults(
+                    styleSheet.ResolveTableBorders(paragraph.Format.TableStyleIndex))));
             AddPendingBookmarksAroundNestedTable(nestedTable, pendingBookmarks);
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 List<List<LegacyDocTableCellParagraph>> row = rows[rowIndex];

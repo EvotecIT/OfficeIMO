@@ -1188,7 +1188,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.DefaultTableCellSpacingTwips,
                         paragraphFormat.TablePreferredWidth,
                         paragraphFormat.TableAutofit,
-                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
+                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks(),
+                        paragraphFormat.TableStyleIndex,
+                        paragraphFormat.TableBorders));
                     currentTableRow.Clear();
                 }
 
@@ -1233,7 +1235,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.DefaultTableCellSpacingTwips,
                         paragraphFormat.TablePreferredWidth,
                         paragraphFormat.TableAutofit,
-                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
+                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks(),
+                        paragraphFormat.TableStyleIndex,
+                        paragraphFormat.TableBorders));
                     currentTableRow.Clear();
                 }
 

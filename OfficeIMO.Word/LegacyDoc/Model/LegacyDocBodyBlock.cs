@@ -314,7 +314,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? defaultCellSpacingTwips = null,
             LegacyDocTablePreferredWidth? tablePreferredWidth = null,
             bool? tableAutofit = null,
-            IReadOnlyList<LegacyDocBookmark>? bookmarksBefore = null) {
+            IReadOnlyList<LegacyDocBookmark>? bookmarksBefore = null,
+            ushort? tableStyleIndex = null,
+            LegacyDocTableBorders tableBorders = default) {
             Cells = cells;
             BookmarksBefore = bookmarksBefore == null || bookmarksBefore.Count == 0
                 ? Array.Empty<LegacyDocBookmark>()
@@ -366,6 +368,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : null;
             TablePreferredWidth = tablePreferredWidth;
             TableAutofit = tableAutofit;
+            TableStyleIndex = tableStyleIndex;
+            TableBorders = tableBorders;
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
@@ -411,6 +415,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocTablePreferredWidth? TablePreferredWidth { get; }
 
         internal bool? TableAutofit { get; }
+
+        internal ushort? TableStyleIndex { get; }
+
+        internal LegacyDocTableBorders TableBorders { get; }
     }
 
     internal sealed class LegacyDocTableCell {
