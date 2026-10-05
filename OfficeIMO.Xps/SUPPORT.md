@@ -272,7 +272,15 @@ GhostXPS agrees on qualified interior samples but leaves some outside regions
 unpainted; that difference is retained in the evidence. Standalone SVG uses a
 different intersection rule and does not carry native semantics: strict `ToSvg`
 rejects boundary/exterior foci, while partial SVG reports loss. SVG image exports
-and shared Drawing SVG exports reject these fields too. Managed opaque PDF
+and shared Drawing SVG exports preserve these fields through SVG 2 shrinking-circle
+patterns with separately composed color and alpha. These exports retain vector
+paint and require an SVG 2 consumer; the shared SVG importer still rejects the
+shrinking-circle representation. A 20-case browser comparison covers boundary/exterior
+foci, opaque/translucent stops, inset paths, reflected/sheared placement, strokes and
+markers. Full-rectangle pixels differ from managed output by at most 1/255 per
+channel; maximum whole-page mean difference is 0.285/255, with geometry-edge
+rasterization differences retained. Native radial colors and alpha interpolate
+consistently across rectangle, path and stroke rendering. Managed opaque PDF
 readback retains shrinking elliptical fields with a point end. Arbitrary
 photographic or producer coverage and PDF/UA are not qualified by these cases.
 
@@ -295,7 +303,8 @@ fields; both MuPDF and Ghostscript have numerical or raster differences in the
 large-radius stress cases. This evidence qualifies the bounded field and emitted
 vector geometry, not every consumer's raster output or independent native Windows
 behavior. Standalone SVG retains the same explicit loss boundary as native Pad
-exterior fields.
+exterior fields for direct `ToSvg`; Drawing and SVG image exports use the vector
+pattern composition after bounded spread expansion.
 
 Boundary Repeat/Reflect qualification adds 36 generated cases across both dialects,
 fill, stroke, translucent stops, shear and reflection. Managed samples differ from

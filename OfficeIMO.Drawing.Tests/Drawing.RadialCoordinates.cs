@@ -81,13 +81,20 @@ public sealed class DrawingRadialCoordinatesTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SvgRejectsNativeEndpointFieldsInFillAndStroke(bool stroke) {
+    public void SvgComposesNativeEndpointFieldsInFillAndStroke(bool stroke) {
         var field = new OfficeRadialGradient(1, .5, 0, .5, .5, .3,
             new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue)).WithFirstPadIntersection();
         var shape = OfficeShape.Rectangle(100, 100);
         if (stroke) shape.StrokeRadialGradient = field;
         else shape.FillRadialGradient = field;
         var drawing = new OfficeDrawing(100, 100).AddShape(shape, 0, 0);
-        Assert.Throws<NotSupportedException>(() => OfficeDrawingSvgExporter.ToSvg(drawing));
+        var svg = System.Xml.Linq.XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        System.Xml.Linq.XNamespace ns = "http://www.w3.org/2000/svg";
+        Assert.Single(svg.Descendants(ns + "pattern"));
+        Assert.Single(svg.Descendants(ns + "mask"));
+        Assert.Equal(2, System.Linq.Enumerable.Count(svg.Descendants(ns + "radialGradient")));
+        Assert.Empty(svg.Descendants(ns + "image"));
+        // A bare gradient still cannot carry the native outside color by itself.
+        Assert.Throws<NotSupportedException>(() => new System.Text.StringBuilder().AppendRadialGradientDefinition("bare", field));
     }
 }

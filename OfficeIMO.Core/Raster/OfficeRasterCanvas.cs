@@ -725,10 +725,10 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio);
+        return InterpolateGradientStops(gradient.Stops, ratio, gradient.OutsideColor != null);
     }
 
-    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio) {
+    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false) {
         if (ratio <= stops[0].Offset) {
             return stops[0].Color;
         }
@@ -739,7 +739,15 @@ public sealed partial class OfficeRasterCanvas {
                 OfficeGradientStop previous = stops[i - 1];
                 double span = next.Offset - previous.Offset;
                 double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
-                return Interpolate(previous.Color, next.Color, Clamp(localRatio, 0D, 1D));
+                localRatio = Clamp(localRatio, 0D, 1D);
+                // Native XPS radial paint interpolates color and alpha separately,
+                // consistently with paths, strokes, SVG composition and PDF.
+                if (separateAlpha) return OfficeColor.FromRgba(
+                    InterpolateByte(previous.Color.R, next.Color.R, localRatio),
+                    InterpolateByte(previous.Color.G, next.Color.G, localRatio),
+                    InterpolateByte(previous.Color.B, next.Color.B, localRatio),
+                    InterpolateByte(previous.Color.A, next.Color.A, localRatio));
+                return Interpolate(previous.Color, next.Color, localRatio);
             }
         }
 

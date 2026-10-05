@@ -302,12 +302,20 @@ public static partial class OfficeSvgFormatting {
     /// <param name="id">Gradient identifier.</param>
     /// <param name="gradient">Gradient definition.</param>
     /// <returns>The supplied builder for call chaining.</returns>
-    public static StringBuilder AppendRadialGradientDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) {
+    public static StringBuilder AppendRadialGradientDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) =>
+        AppendRadialGradientDefinitionCore(builder, id, gradient, false);
+
+    // Native paint composition supplies the missing outside-cone paint and alpha.
+    // Its fields use explicit user coordinates, independent of each paint rectangle.
+    internal static StringBuilder AppendRadialGradientFieldDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) =>
+        AppendRadialGradientDefinitionCore(builder, id, gradient, true);
+
+    private static StringBuilder AppendRadialGradientDefinitionCore(StringBuilder builder, string id, OfficeRadialGradient gradient, bool userSpace) {
         if (gradient == null) {
             throw new ArgumentNullException(nameof(gradient));
         }
 
-        if (gradient.OutsideColor != null) {
+        if (gradient.OutsideColor != null && !userSpace) {
             throw new NotSupportedException("Native radial boundary/exterior Pad fields cannot be represented by ordinary SVG without loss.");
         }
 
@@ -319,20 +327,24 @@ public static partial class OfficeSvgFormatting {
         double startY = elliptical ? (gradient.StartY - gradient.EndY) / gradient.EndRadiusY : gradient.StartY;
         double startRadius = elliptical ? gradient.StartRadiusX / gradient.EndRadiusX : gradient.StartRadius;
 
+        double multiplier = userSpace ? 1D : 100D;
+        string unit = userSpace ? "" : "%";
         builder.Append("<defs><radialGradient id=\"")
             .Append(Escape(id))
             .Append("\" cx=\"")
-            .Append(FormatPreciseNumber(endX * 100D))
-            .Append("%\" cy=\"")
-            .Append(FormatPreciseNumber(endY * 100D))
-            .Append("%\" r=\"")
-            .Append(FormatPreciseNumber(endRadius * 100D))
-            .Append("%\" fx=\"")
-            .Append(FormatPreciseNumber(startX * 100D))
-            .Append("%\" fy=\"")
-            .Append(FormatPreciseNumber(startY * 100D))
-            .Append('%')
+            .Append(FormatPreciseNumber(endX * multiplier))
+            .Append(unit).Append("\" cy=\"")
+            .Append(FormatPreciseNumber(endY * multiplier))
+            .Append(unit).Append("\" r=\"")
+            .Append(FormatPreciseNumber(endRadius * multiplier))
+            .Append(unit).Append("\" fx=\"")
+            .Append(FormatPreciseNumber(startX * multiplier))
+            .Append(unit).Append("\" fy=\"")
+            .Append(FormatPreciseNumber(startY * multiplier))
+            .Append(unit)
             .Append('"');
+
+        if (userSpace) builder.Append(" gradientUnits=\"userSpaceOnUse\"");
 
         var coordinates = (elliptical ? new OfficeTransform(gradient.EndRadiusX, 0D, 0D, gradient.EndRadiusY, gradient.EndX, gradient.EndY)
             : OfficeTransform.Identity).Then(gradient.CoordinateTransform);
@@ -345,8 +357,8 @@ public static partial class OfficeSvgFormatting {
 
         if (startRadius > 0D) {
             builder.Append(" fr=\"")
-                .Append(FormatPreciseNumber(startRadius * 100D))
-                .Append("%\"");
+                .Append(FormatPreciseNumber(startRadius * multiplier))
+                .Append(unit).Append("\"");
         }
 
         builder.Append('>');

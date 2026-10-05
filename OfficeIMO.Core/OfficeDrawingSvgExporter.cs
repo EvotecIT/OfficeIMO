@@ -150,7 +150,7 @@ public static partial class OfficeDrawingSvgExporter {
                     string? fillGradientId = null;
                     if (drawingShape.Shape.FillRadialGradient != null) {
                         fillGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        sb.AppendRadialGradientDefinition(fillGradientId, drawingShape.Shape.FillRadialGradient);
+                        AppendRadialPaintDefinition(sb, fillGradientId, drawingShape.Shape.FillRadialGradient, drawingShape, cancellationToken);
                     } else if (drawingShape.Shape.FillGradient != null) {
                         fillGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
                         sb.AppendLinearGradientDefinition(fillGradientId, drawingShape.Shape.FillGradient);
@@ -159,7 +159,7 @@ public static partial class OfficeDrawingSvgExporter {
                     string? strokeGradientId = null;
                     if (drawingShape.Shape.StrokeRadialGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        sb.AppendRadialGradientDefinition(strokeGradientId, drawingShape.Shape.StrokeRadialGradient);
+                        AppendRadialPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeRadialGradient, drawingShape, cancellationToken);
                     } else if (drawingShape.Shape.StrokeGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
                         sb.AppendLinearGradientDefinition(strokeGradientId, drawingShape.Shape.StrokeGradient);

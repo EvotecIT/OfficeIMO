@@ -37,8 +37,8 @@ public sealed class XpsRadialBoundaryTests {
         Assert.Single(PdfReadDocument.Open(pdf).Pages);
         Assert.Throws<NotSupportedException>(() => page.ToSvg());
         Assert.Contains("Radial boundary/exterior focus cannot be represented by ordinary SVG without native field semantics", page.ToSvg(true).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => page.ExportImage(OfficeImageExportFormat.Svg));
-        Assert.Throws<NotSupportedException>(() => OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
+        Assert.NotEmpty(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.Contains("<pattern", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
         if (!alpha && !stroke) {
             var readback = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             foreach (var xy in points.Concat(new[] { (100, 100) })) {

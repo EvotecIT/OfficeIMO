@@ -43,7 +43,7 @@ public sealed class XpsRadialExteriorSpreadTests {
             }
         }
         Assert.Throws<NotSupportedException>(() => page.ToSvg());
-        Assert.Throws<NotSupportedException>(() => OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
+        Assert.Contains("<pattern", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
     }
 
     [Fact]
