@@ -87,21 +87,24 @@ public partial class Excel {
 
 public class OpenXmlSmallPartTests {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void PrefixFilteredPartReadsPreserveTheCompleteInput(bool prefetch, bool accept) {
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public void PrefixFilteredPartReadsPreserveTheCompleteInput(bool prefetch, bool accept, bool filterPrefetch) {
         byte[] content = Enumerable.Range(0, 4097).Select(index => (byte)(index % 251)).ToArray();
         using var parts = OpenXmlPackagePartBufferReader.TryOpen(Package("xl/test.xml", content))!;
-        if (prefetch) parts.BeginPrefetch("xl/test.xml", content.Length, default);
         int calls = 0;
+        Func<byte[], int, bool> filter = (prefix, prefixLength) => {
+            calls++;
+            Assert.Equal(content.Take(256), prefix.Take(prefixLength));
+            return accept;
+        };
+        if (prefetch) parts.BeginPrefetch("xl/test.xml", content.Length, default, filterPrefetch ? filter : null);
         bool accepted = parts.TryRead("xl/test.xml", content.Length, default, out byte[]? buffer, out int length,
-            (prefix, prefixLength) => {
-                calls++;
-                Assert.Equal(content.Take(256), prefix.Take(prefixLength));
-                return accept;
-            });
+            filterPrefetch ? null : filter);
         Assert.Equal(1, calls);
         Assert.Equal(accept, accepted);
         try {

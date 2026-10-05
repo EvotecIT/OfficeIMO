@@ -31,6 +31,14 @@ public class ExcelNumericXmlReadBenchmarks {
     [Params(false, true)]
     public bool NumericAsDecimal { get; set; }
 
+    /// <summary>Uses UTF-16 to exercise the XML fallback; false supplies a UTF-8 control.</summary>
+    [Params(true)]
+    public bool Utf16 { get; set; } = true;
+
+    /// <summary>Enables worksheet prefetch for the public data-reader comparison.</summary>
+    [Params(false)]
+    public bool EnableWorksheetPrefetch { get; set; }
+
     [Params(false, true)]
     public bool InferDataTableColumnTypes { get; set; }
 
@@ -75,8 +83,9 @@ public class ExcelNumericXmlReadBenchmarks {
                     xml = System.Text.RegularExpressions.Regex.Replace(xml, "(<row) r=\"[0-9]+\"", "$1");
                 }
                 entry.Delete();
-                using var writer = new StreamWriter(package.CreateEntry(name, CompressionLevel.Fastest).Open(), Encoding.Unicode);
-                writer.Write(xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16"));
+                using var writer = new StreamWriter(package.CreateEntry(name, CompressionLevel.Fastest).Open(),
+                    Utf16 ? Encoding.Unicode : new UTF8Encoding(false));
+                writer.Write(Utf16 ? xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16") : xml);
             }
             Check(ReadCore(validate: true));
         } catch {
@@ -94,7 +103,11 @@ public class ExcelNumericXmlReadBenchmarks {
     }
 
     private long ReadCore(bool validate) {
-        var options = new ExcelReadOptions { NumericAsDecimal = NumericAsDecimal, InferDataTableColumnTypes = InferDataTableColumnTypes };
+        var options = new ExcelReadOptions {
+            NumericAsDecimal = NumericAsDecimal,
+            InferDataTableColumnTypes = InferDataTableColumnTypes,
+            EnableWorksheetPrefetch = EnableWorksheetPrefetch
+        };
         long result = 0;
         int count = 0;
         if (Api == "DataReader" || Api == "TypedDataReader") {

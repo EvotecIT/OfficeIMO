@@ -5,13 +5,13 @@ using System.Threading;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
-        private sealed partial class ExcelUtf8RangeRowSource {
-            // The indexer already rejects NUL bytes in the first 256 bytes. Apply
-            // that same eligibility check before buffering UTF-16/UTF-32 parts.
-            // This is a decline check; complete encoding/XML validation follows.
-            private static bool CanBufferUtf8WorksheetPrefix(byte[] prefix, int length) =>
-                prefix.AsSpan(0, Math.Min(length, 256)).IndexOf((byte)0) < 0;
+        // The indexer already rejects NUL bytes in the first 256 bytes. Share
+        // that eligibility check with worksheet prefetch so both routes decline
+        // UTF-16/UTF-32 before renting a full buffer. Complete validation follows.
+        internal static bool CanBufferUtf8WorksheetPrefix(byte[] prefix, int length) =>
+            prefix.AsSpan(0, Math.Min(length, 256)).IndexOf((byte)0) < 0;
 
+        private sealed partial class ExcelUtf8RangeRowSource {
             private static bool TryReadUtf8WorksheetPrefix(Stream stream, CancellationToken ct,
                 out byte[] prefix, out int length) {
                 prefix = ArrayPool<byte>.Shared.Rent(256);

@@ -44,17 +44,20 @@ public partial class Excel {
                 Assert.Equal(string.Empty, range.GetString(1));
                 Assert.False(range.Read());
             }
-            using var reader = ExcelDocument.OpenDataReader(path);
-            Assert.Equal(2, reader.FieldCount);
-            Assert.Equal("Id", reader.GetName(0));
-            Assert.Equal("Name", reader.GetName(1));
-            Assert.True(reader.Read());
-            Assert.Equal(42, reader.GetInt32(0));
-            Assert.Equal(text, reader.GetString(1));
-            Assert.True(reader.Read());
-            Assert.Equal(43, reader.GetInt32(0));
-            Assert.Equal(string.Empty, reader.GetString(1));
-            Assert.False(reader.Read());
+            foreach (bool prefetch in new[] { false, true }) {
+                using var reader = ExcelDocument.OpenDataReader(path,
+                    new ExcelReadOptions { EnableWorksheetPrefetch = prefetch });
+                Assert.Equal(2, reader.FieldCount);
+                Assert.Equal("Id", reader.GetName(0));
+                Assert.Equal("Name", reader.GetName(1));
+                Assert.True(reader.Read());
+                Assert.Equal(42, reader.GetInt32(0));
+                Assert.Equal(text, reader.GetString(1));
+                Assert.True(reader.Read());
+                Assert.Equal(43, reader.GetInt32(0));
+                Assert.Equal(string.Empty, reader.GetString(1));
+                Assert.False(reader.Read());
+            }
         } finally { File.Delete(path); }
     }
 

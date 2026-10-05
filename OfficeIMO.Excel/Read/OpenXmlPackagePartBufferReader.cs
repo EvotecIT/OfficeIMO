@@ -156,7 +156,8 @@ namespace OfficeIMO.Excel {
         internal void BeginPrefetch(
             string partName,
             int maximumBytes,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            Func<byte[], int, bool>? acceptPrefix = null) {
             string normalizedPartName = NormalizePartName(partName);
             if (_disposed) throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
@@ -176,7 +177,7 @@ namespace OfficeIMO.Excel {
                 _prefetchCancellation = linked;
                 _prefetchPartName = normalizedPartName;
                 _prefetchTask = Task.Run(
-                    () => ReadPart(entry, normalizedPartName, linked.Token),
+                    () => ReadPart(entry, normalizedPartName, linked.Token, acceptPrefix),
                     CancellationToken.None);
             }
         }
