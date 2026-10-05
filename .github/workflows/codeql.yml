@@ -69,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           # The iOS host requires an Apple workload; shared Studio code is built below.
-          $excludedProjects = '[\\\\/](output|bin|obj|OfficeIMO\.Examples|OfficeIMO\.Studio(\.iOS)?|OfficeIMO\.AI(\.IntelligenceX|\.Example)?|OfficeIMO(\..+)?\.Tests|OfficeIMO\.VerifyTests|OfficeIMO(\..+)?\.Benchmarks(\..+)?|Build[\\\\/]PackageSmoke|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
+          $excludedProjects = '[\\\\/](output|bin|obj|OfficeIMO\.Examples|OfficeIMO\.Studio(\.iOS)?|OfficeIMO\.AI(\.IntelligenceX|\.Example)?|OfficeIMO(\..+)?\.Tests|OfficeIMO\.VerifyTests|OfficeIMO(\..+)?\.Benchmarks(\..+)?|Build[\\\\/](PackageSmoke|WebsiteBrowserContract)|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
           $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object {
             $_.FullName -notmatch $excludedProjects
           } | Sort-Object FullName
