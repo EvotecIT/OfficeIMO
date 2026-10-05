@@ -43,6 +43,30 @@ public static class OfficePageSizes {
     /// <summary>JIS B6, 128 x 182 millimeters.</summary>
     public static OfficePageSize B6Jis => OfficePageSize.FromMillimeters(128D, 182D);
 
+    /// <summary>US C sheet, 17 x 22 inches.</summary>
+    public static OfficePageSize CSheet => new OfficePageSize(17D, 22D);
+
+    /// <summary>Number 9 envelope, 3.875 x 8.875 inches.</summary>
+    public static OfficePageSize Envelope9 => new OfficePageSize(3.875D, 8.875D);
+
+    /// <summary>Number 10 envelope, 4.125 x 9.5 inches.</summary>
+    public static OfficePageSize Envelope10 => new OfficePageSize(4.125D, 9.5D);
+
+    /// <summary>DL envelope, 110 x 220 millimeters.</summary>
+    public static OfficePageSize EnvelopeDl => OfficePageSize.FromMillimeters(110D, 220D);
+
+    /// <summary>C5 envelope, 162 x 229 millimeters.</summary>
+    public static OfficePageSize EnvelopeC5 => OfficePageSize.FromMillimeters(162D, 229D);
+
+    /// <summary>C4 envelope, 229 x 324 millimeters.</summary>
+    public static OfficePageSize EnvelopeC4 => OfficePageSize.FromMillimeters(229D, 324D);
+
+    /// <summary>B5 envelope, 176 x 250 millimeters.</summary>
+    public static OfficePageSize EnvelopeB5 => OfficePageSize.FromMillimeters(176D, 250D);
+
+    /// <summary>Monarch envelope, 3.875 x 7.5 inches.</summary>
+    public static OfficePageSize EnvelopeMonarch => new OfficePageSize(3.875D, 7.5D);
+
     /// <summary>Japanese postcard, 100 x 148 millimeters.</summary>
     public static OfficePageSize JapanesePostcard => OfficePageSize.FromMillimeters(100D, 148D);
 
