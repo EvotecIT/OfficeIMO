@@ -212,8 +212,12 @@ ligatures, surrogate pairs, right-to-left advances, sideways glyphs, affine
 transforms, explicit offsets and blank pages. Poppler independently extracts the
 expected text from both dialects; Ghostscript renders the generated vector PDFs
 with a mean channel difference of 0.71/255 from the managed raster on the text
-fixture. Interactive selection/highlighting in independent viewers remains
-unqualified. Text follows source markup order and retains clipped/transparent
+fixture. macOS Preview confirms word and ligature-cluster search with localized
+word highlighting. PDFKit extracts and finds the source text, including a surrogate
+pair, in both dialects with standard, embedded TrueType and embedded CFF fonts.
+Ghostscript and MuPDF render these six searchable-text exports identically to the
+previous vector paint. Wider interactive selection and transformed-text viewer
+coverage remain unqualified. Text follows source markup order and retains clipped/transparent
 source content; this is not a redaction or accessibility reconstruction contract.
 
 Native DocumentStructure edits have generated coverage in both dialects for

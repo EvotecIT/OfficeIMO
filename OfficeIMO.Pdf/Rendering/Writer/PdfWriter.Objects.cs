@@ -137,6 +137,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PdfLayerDefinition> Layers { get; } = new();
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
             public System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; } = new();
+            internal SearchableFontSet SearchableFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
             public int? StructParentIndex { get; set; }

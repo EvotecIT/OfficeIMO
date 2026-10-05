@@ -226,7 +226,6 @@ internal static partial class PdfWriter {
             if (_suppressCanvasActualTextChildren) return;
             EnsurePage();
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
-            string fontResource = GetFontResourceName(font, null, font);
             double baselineY = currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D);
             double baselineX = item.X, textWidth = item.Width, textHeight = item.Height;
             double a = 1D, b = 0D, c = 0D, d = 1D;
@@ -250,7 +249,6 @@ internal static partial class PdfWriter {
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, textHeight)
                 .WordSpacing(0D).TextRise(0D)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)
@@ -262,7 +260,11 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(anchor, textHeight);
+            PdfTextShowCommand space = EncodeBoundedLogicalTextAnchor(font, currentOpts, 1);
+            bool cff = currentOpts.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out var _);
+            foreach (var run in currentPage!.SearchableFonts.Encode(item.Text, space, cff)) {
+                content.Font(run.Bank.Name, textHeight).ShowHexText(run.Hex);
+            }
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 

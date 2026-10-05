@@ -232,6 +232,8 @@ internal static partial class PdfWriter {
             return id;
         }
 
+        var pendingSearchableFonts = new List<(int SourceId, int Id, SearchableFontBank Bank)>();
+
         void MaterializePendingFontObjects() {
             foreach (var pendingFont in pendingFontObjects) {
                 if (pendingFont.Options.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -261,6 +263,7 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(fontProgram, descriptorId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(fontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.FontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
@@ -293,11 +296,13 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(cffFontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descendantId: descendantFontId);
                 } else {
                     int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
                         : 0;
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(pendingFont.Font, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, pendingFont.Font.ToBaseFontName());
                 }
             }
 
@@ -570,6 +575,12 @@ internal static partial class PdfWriter {
             }
             foreach (var kvp in pageNamedFontResources.OrderBy(kvp => kvp.Value, StringComparer.Ordinal)) {
                 fontResources.Add((kvp.Value, EnsureNamedFont(kvp.Key, pageOpts)));
+            }
+
+            foreach (var bank in page.SearchableFonts.Banks) {
+                int id = ReserveObject(objects);
+                pendingSearchableFonts.Add((EnsureFont(normalFont, pageOpts), id, bank));
+                fontResources.Add((bank.Name, id));
             }
 
             var graphicsStates = new List<(string Name, int Id)>();
