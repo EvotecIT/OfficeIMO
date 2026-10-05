@@ -532,13 +532,106 @@
     "status": "Failed; no retry performed",
     "boundary": "Current clean source with footer and workspace, local macOS only. Warm elapsed/allocation/output/cancellation pass; cold elapsed and peak memory fail.",
     "control": {
-      "source": "0295e16e52288e82db2973203b7a58704dd37c95",
-      "worktree": "OfficeIMO-html-contour-workspace-control",
+      "report": {
+        "schemaVersion": 1,
+        "generatedUtc": "2026-10-05T04:23:10.772069+00:00",
+        "environment": {
+          "osFamily": "macOS",
+          "osDescription": "macOS 27.0.1",
+          "osArchitecture": "Arm64",
+          "processArchitecture": "Arm64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "evomini",
+          "processorCount": 10
+        },
+        "source": {
+          "commit": "0295e16e52288e82db2973203b7a58704dd37c95",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "ceiling": {
+          "osFamily": "macOS",
+          "coldProcessElapsedMilliseconds": 8000,
+          "warmIterationElapsedMilliseconds": 3000,
+          "coldManagedAllocatedBytes": 1250000000,
+          "warmManagedAllocatedBytes": 1100000000,
+          "peakWorkingSetBytes": 700000000,
+          "outputBytesPerIteration": 3000000,
+          "cancellationElapsedMilliseconds": 250
+        },
+        "cold": {
+          "mode": "cold",
+          "processElapsedMilliseconds": 7366.6207,
+          "peakWorkingSetBytes": 433553408,
+          "memorySampleCount": 161,
+          "iterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 7276.0861,
+              "managedAllocatedBytes": 1228910728,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            }
+          ],
+          "deterministic": true
+        },
+        "warm": {
+          "mode": "warm",
+          "processElapsedMilliseconds": 15084.2667,
+          "peakWorkingSetBytes": 920453120,
+          "memorySampleCount": 320,
+          "iterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 2448.6775,
+              "managedAllocatedBytes": 991078368,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 2528.3588,
+              "managedAllocatedBytes": 990888472,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 2715.7749,
+              "managedAllocatedBytes": 990949136,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            }
+          ],
+          "deterministic": true
+        },
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 1.92,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "peak working-set bytes 920453120.0 exceeded ceiling 700000000.0."
+        ]
+      },
+      "preservation": "Ignore/MasterConvergenceQualification/contour-workspace-0295e16e5/pre-change-control-0295e16e5",
       "normalBuildWarnings": 0,
       "normalBuildErrors": 0,
-      "measurementExecuted": false,
-      "reason": "ReportCrashService, Spotlight workers and Simulator activity resumed after the control build. No contended control measurement performed."
-    }
+      "measurementExecuted": true
+    },
+    "comparisonBoundary": "Same host/environment, providers, unchanged worker/corpus/ceilings and identical fingerprints. One ordered current/control pair with separate cold/warm workers, not ABBA or portable performance proof. Current fails cold and peak; control fails peak only. No repeat-until-green run or ceiling change.",
+    "ownerReceipt": "Ignore/MasterConvergenceQualification/contour-workspace-0295e16e5/budget-owner-receipts.json"
   },
   "allocationAttribution": {
     "evidence": "Ignore/MasterConvergenceQualification/paired-allocation-e9819e175/sampled-allocation-attribution.json",
@@ -595,5 +688,14 @@
     "initialReviewThreads": 0,
     "initialThreadPages": 1,
     "ciAndDelayedReview": "pending; initial snapshot only; no manual hosted review requested"
+  },
+  "scopedCleanup20261005": {
+    "generatedTargetsRemoved": 92,
+    "generatedBytesRemoved": 2621165702,
+    "allTargetsAbsent": true,
+    "temporaryControlWorktreeRemoved": true,
+    "controlSourceRetainedInHistory": "0295e16e52288e82db2973203b7a58704dd37c95",
+    "controlProofCopiedAndShaVerified": true,
+    "boundary": "Task-generated owner/probe binaries and private expansion caches removed. Current budget runners, original failures, final corpus, fixtures, package feeds and receipts deliberately retained. Shared caches and unrelated worktrees preserved."
   }
 }
