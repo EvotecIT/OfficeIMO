@@ -21,23 +21,32 @@ internal static partial class PdfWriter {
                 ascent = Math.Max(ascent, inline.BaselineOffset + inline.Height);
                 descent = Math.Max(descent, -inline.BaselineOffset);
             } else {
-                double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
-                double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
-                if (spacing?.FontLineBoxMultiplier is double natural) {
-                    OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics = ResolveFontLineMetrics(segment.Font, segment.NamedFont, options);
-                    double fontDescent = metrics.HasValue ? size * metrics.Value.WindowsDescentRatio
-                        : GetDescenderForOptions(segment.Font, segment.NamedFont, size, options);
-                    double naturalAdvance = size * (metrics?.HorizontalAdvanceRatio ?? natural);
-                    ascent = Math.Max(ascent, rise + naturalAdvance - fontDescent);
-                    descent = Math.Max(descent, fontDescent - rise);
-                } else {
-                    ascent = Math.Max(ascent, rise + GetAscenderForOptions(segment.Font, segment.NamedFont, size, options));
-                }
+                GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
+                    options, spacing, out double runAscent, out double runDescent);
+                ascent = Math.Max(ascent, runAscent);
+                descent = Math.Max(descent, runDescent);
             }
         }
         if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
             ascent = Math.Max(ascent, spacing.Value - descent);
         return segments.Count == 0 ? fallbackAscent : ascent;
+    }
+
+    private static void GetRichRunLineMetrics(PdfStandardFont font, PdfNamedFontFace? namedFont,
+        double fontSize, PdfTextBaseline baseline, PdfOptions? options, PdfLineSpacing? spacing,
+        out double ascent, out double descent) {
+        double size = EffectiveRichFontSize(fontSize, baseline);
+        double rise = TextRiseForBaseline(fontSize, baseline);
+        if (spacing?.FontLineBoxMultiplier is double natural) {
+            OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics = ResolveFontLineMetrics(font, namedFont, options);
+            double fontDescent = metrics.HasValue ? size * metrics.Value.WindowsDescentRatio
+                : GetDescenderForOptions(font, namedFont, size, options);
+            ascent = rise + size * (metrics?.HorizontalAdvanceRatio ?? natural) - fontDescent;
+            descent = fontDescent - rise;
+        } else {
+            ascent = rise + GetAscenderForOptions(font, namedFont, size, options);
+            descent = GetDescenderForOptions(font, namedFont, size, options) - rise;
+        }
     }
 
     private static OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? ResolveFontLineMetrics(

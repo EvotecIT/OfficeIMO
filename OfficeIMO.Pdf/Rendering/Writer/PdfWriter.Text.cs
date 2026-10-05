@@ -719,6 +719,12 @@ internal static partial class PdfWriter {
         double currentLineHeight = Math.Max(lineHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
         double currentMinimumWidth = 0;
         PdfNamedFontFace? currentRunNamedFont = null;
+        double currentRunAscent = 0;
+        double currentRunDescent = 0;
+        double currentLineAscent = 0;
+        double currentLineDescent = 0;
+        bool currentRunIsInline = false;
+        bool currentLineHasInline = false;
         PdfColor? currentRunDecorationColor = null;
         OfficeTextFeatureSettings currentRunFeatureSettings = OfficeTextFeatureSettings.Default;
         OfficeIMO.Drawing.OfficeTextDecorationStyle currentRunUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
@@ -729,17 +735,17 @@ internal static partial class PdfWriter {
         double CurrentLineOriginOffset() => currentFrame?.Origin ?? (lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D);
         void RegisterLineHeight(double runFontSize) {
             currentLineHeight = Math.Max(currentLineHeight, RunLineHeight(runFontSize) + (currentFrame?.Gap ?? 0));
+            RegisterLineMetrics();
         }
 
-        void RegisterInlineLineHeight(PdfInlineElement inlineElement) {
+        void RegisterLineMetrics() {
             if (lineSpacing?.IsExact == true) return;
-            double baseAscent = GetAscenderForOptions(baseFont, fontSize, options);
-            double baseDescent = GetDescenderForOptions(baseFont, fontSize, options);
-            double inlineAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
-            double inlineDescent = Math.Max(0D, -inlineElement.BaselineOffset);
-            currentLineHeight = Math.Max(
-                currentLineHeight,
-                Math.Max(baseAscent, inlineAscent) + Math.Max(baseDescent, inlineDescent) + (currentFrame?.Gap ?? 0));
+            currentLineAscent = Math.Max(currentLineAscent, currentRunAscent);
+            currentLineDescent = Math.Max(currentLineDescent, currentRunDescent);
+            currentLineHasInline |= currentRunIsInline;
+            if (currentLineHasInline)
+                currentLineHeight = Math.Max(currentLineHeight,
+                    currentLineAscent + currentLineDescent + (currentFrame?.Gap ?? 0));
         }
 
         void StartNewLine() {
@@ -749,6 +755,9 @@ internal static partial class PdfWriter {
             completedHeight += currentLineHeight;
             lines.Add(new RichLine());
             lineWidth = 0;
+            currentLineAscent = 0;
+            currentLineDescent = 0;
+            currentLineHasInline = false;
             currentContentHeight = lineHeight;
             currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, currentContentHeight, 0);
             currentLineHeight = Math.Max(currentContentHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
@@ -759,6 +768,8 @@ internal static partial class PdfWriter {
         void PrepareLineFrame(double contentHeight, double minimumWidth = 0) {
             if (lineLayout == null) return;
             if (lineSpacing?.IsExact == true) contentHeight = lineHeight;
+            double incomingContentHeight = contentHeight;
+            contentHeight = CombinedContentHeight(contentHeight);
             currentContentHeight = Math.Max(lineHeight, contentHeight);
             double oldHeight = currentLineHeight - (currentFrame?.Gap ?? 0);
             var oldFrame = currentFrame;
@@ -770,7 +781,7 @@ internal static partial class PdfWriter {
                 lineLayout(lines.Count - 1, completedHeight, oldHeight, currentMinimumWidth);
                 currentFrame = oldFrame;
                 StartNewLine();
-                height = Math.Max(lineHeight, contentHeight);
+                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight));
                 requiredWidth = minimumWidth;
                 frame = lineLayout(lines.Count - 1, completedHeight, height, requiredWidth);
             }
@@ -778,6 +789,10 @@ internal static partial class PdfWriter {
             currentMinimumWidth = requiredWidth;
             currentLineHeight = height + frame.Gap;
         }
+
+        double CombinedContentHeight(double contentHeight) => lineSpacing?.IsExact == true || !(currentLineHasInline || currentRunIsInline) ? contentHeight
+            : Math.Max(contentHeight, Math.Max(currentLineAscent, currentRunAscent)
+                + Math.Max(currentLineDescent, currentRunDescent));
 
         PdfTabStop? ResolveNextExplicitTabStop() {
             if (explicitTabStops == null || explicitTabStops.Length == 0) {
@@ -885,9 +900,14 @@ internal static partial class PdfWriter {
                 ? resolvedNamedFont
                 : null;
             double runFontSize = run.FontSize ?? fontSize;
+            currentRunIsInline = run.InlineElement != null;
+            GetRichRunLineMetrics(fontForRun, currentRunNamedFont, runFontSize, baseline, options, lineSpacing,
+                out currentRunAscent, out currentRunDescent);
             double spaceW = MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings);
             if (run.InlineElement != null) {
                 PdfInlineElement inlineElement = run.InlineElement;
+                currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
+                currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
                 double inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset + inlineElement.Height)
                     + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset);
                 PrepareLineFrame(inlineHeight, inlineElement.Width);
@@ -951,7 +971,7 @@ internal static partial class PdfWriter {
                     leadingDecorationFontSize: pendingLeadingDecorationFontSize,
                     leadingDecorationTextRise: pendingLeadingDecorationTextRise));
                 lineWidth += leadingAdvance + inlineElement.Width;
-                RegisterInlineLineHeight(inlineElement);
+                RegisterLineMetrics();
                 ResetPendingLeading();
                 continue;
             }
