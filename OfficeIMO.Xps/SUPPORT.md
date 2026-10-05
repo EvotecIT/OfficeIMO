@@ -310,7 +310,10 @@ linear-light RGB and affine transforms across the tangent. Managed reopening at
 96 dpi has a maximum whole-image mean channel difference of 0.054/255 against
 native XPS sampling. Ghostscript independently renders the vector files; its
 maximum mean difference is 2.218/255, including dense cycle sampling differences.
-These are generated fixtures, not independent-producer or native Windows proof.
+MuPDF 1.28.2 also renders the 32 periodic RGB cases, with a maximum whole-image
+mean channel difference of 3.700/255 against managed PDF readback. Near-tangent
+cycle sampling still differs between renderers. These are generated fixtures,
+not independent-producer or native Windows proof.
 Explicit print-condition conversion reuses the PDF engine's ICC gradient sampler,
 retaining vector CMYK component functions and scalar alpha. Caller-supplied
 profiles, rendering intent and black-preservation settings follow the existing
