@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
             A.HyperlinkType created = mouseOver
                 ? new A.HyperlinkOnMouseOver { Id = string.Empty }
                 : new A.HyperlinkOnClick { Id = string.Empty };
-            properties.Append(created);
+            properties.AddChild(created, true);
             return created;
         }
     }
