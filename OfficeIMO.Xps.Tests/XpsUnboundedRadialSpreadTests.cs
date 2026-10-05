@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Xps.Tests;
@@ -40,6 +41,18 @@ public sealed class XpsUnboundedRadialSpreadTests {
                 Assert.InRange(Math.Abs(pixel.G - 255 * (1 - opacity)), 0, 4);
                 Assert.InRange(Math.Abs(pixel.B - 255 * (Encode(q) * opacity + 1 - opacity)), 0, 4);
             }
+        }
+    }
+    internal static void AssertPdfMatchesNative(XpsDocument document, params (int X, int Y)[] points) {
+        Assert.True(OfficeRasterImageDecoder.TryDecode(document.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var native));
+        var page = PdfReadDocument.Open(document.ToPdf()).Pages[0];
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png,
+            new PdfImageExportOptions { Scale = 4D / 3D }).Bytes, out var reopened));
+        foreach (var point in points) {
+            var expected = native!.GetPixel(point.X, point.Y); var actual = reopened!.GetPixel(point.X, point.Y);
+            Assert.InRange(Math.Abs(actual.R - expected.R), 0, 3);
+            Assert.InRange(Math.Abs(actual.G - expected.G), 0, 3);
+            Assert.InRange(Math.Abs(actual.B - expected.B), 0, 3);
         }
     }
 }

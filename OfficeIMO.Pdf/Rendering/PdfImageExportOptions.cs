@@ -31,9 +31,13 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
 
     internal double ResolveScale(OfficeDrawing drawing) {
         Guard.NotNull(drawing, nameof(drawing));
+        return ResolveScale(drawing.Width, drawing.Height);
+    }
+
+    internal double ResolveScale(double width, double height) {
         double scale = Scale;
         if (ThumbnailMaxDimension.HasValue) {
-            scale = Math.Min(scale, ThumbnailMaxDimension.Value / Math.Max(drawing.Width, drawing.Height));
+            scale = Math.Min(scale, ThumbnailMaxDimension.Value / Math.Max(width, height));
         }
         return scale;
     }

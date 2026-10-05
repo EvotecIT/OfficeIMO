@@ -6,6 +6,28 @@ using Xunit;
 namespace OfficeIMO.Pdf.Tests;
 
 public class PdfRedactionRenderingIdentityTests {
+    [Theory]
+    [InlineData("1 0 0", "0 0 1", "1 0 0 1 0 0", "1 0 0 1 0 0")]
+    [InlineData("1 0 0", "1 0 0", "1 0 0 1 0 0", "2 0 0 1 0 0")]
+    public void AppliedPlanVerificationRejectsChangedFunctionField(string before, string after, string firstMatrix, string secondMatrix) {
+        AssertPlanIdentityChanged(BuildFunctionIdentityPdf(before, firstMatrix), BuildFunctionIdentityPdf(after, secondMatrix));
+    }
+
+    private static byte[] BuildFunctionIdentityPdf(string color, string matrix) {
+        string content = $"q 20 20 80 60 re W n {matrix} cm /S sh Q";
+        string function = $"{{ pop pop {color} }}";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Shading << /S 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /ShadingType 1 /ColorSpace /DeviceRGB /Domain [0 200 0 200] /Function 6 0 R >>", "endobj",
+            "6 0 obj", $"<< /FunctionType 4 /Domain [0 200 0 200] /Range [0 1 0 1 0 1] /Length {function.Length} >>", "stream", function, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
     [Fact]
     public void AppliedPlanVerificationRejectsChangedAffineRadialField() {
         AssertPlanIdentityChanged(BuildRadialIdentityPdf("60 10 20 50 20 20"),

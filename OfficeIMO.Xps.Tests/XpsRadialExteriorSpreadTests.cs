@@ -53,7 +53,7 @@ public sealed class XpsRadialExteriorSpreadTests {
         xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("GradientOrigin", "160.00000001,80");
         page.ReplaceMarkup(xml);
         Assert.NotNull(page.ToDrawing());
-        Assert.Throws<NotSupportedException>(() => doc.ToPdf());
+        XpsUnboundedRadialSpreadTests.AssertPdfMatchesNative(doc, (20, 20), (140, 30), (159, 120), (180, 80));
         Assert.Empty(page.ToSvg().Diagnostics);
     }
 

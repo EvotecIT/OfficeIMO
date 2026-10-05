@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
     private static string GradientAlphaStateName(string shadingName) => "GA_" + shadingName;
 
     private static bool HasGradientAlpha(OfficeShape shape) =>
+        shape.FillRadialGradient is { SpreadMode: not OfficeGradientSpreadMode.Pad } ||
         HasGradientAlpha(shape.FillRadialGradient?.Stops ?? shape.FillGradient?.Stops);
 
     private static bool HasGradientAlpha(IReadOnlyList<OfficeGradientStop>? stops) {
@@ -62,12 +63,13 @@ internal static partial class PdfWriter {
     /// <summary>Preserves stop alpha with a native luminosity mask, retaining vector shading.</summary>
     private static void AddGradientAlphaResources(IList<byte[]> objects, PageShading shading,
         List<(string Name, int Id)> graphicsStates) {
-        if (!HasGradientAlpha(shading.Stops)) return;
-        string maskShading = shading.IsRadial
+        if (!HasGradientAlpha(shading.Stops) && shading.SpreadMode == OfficeGradientSpreadMode.Pad) return;
+        string maskShading = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
             ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(shading.X0, shading.Y0, shading.R0,
                 shading.X1, shading.Y1, shading.R1, shading.Stops, alphaOnly: true)
             : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(shading.X0, shading.Y0, shading.X1, shading.Y1, shading.Stops, alphaOnly: true);
-        int maskShadingId = AddObject(objects, maskShading);
+        int maskShadingId = shading.SpreadMode != OfficeGradientSpreadMode.Pad
+            ? AddRadialSpreadShading(objects, shading, alphaOnly: true) : AddObject(objects, maskShading);
         string entries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [" +
             PdfNumberFormatter.Precise(shading.AlphaLeft) + " " + PdfNumberFormatter.Precise(shading.AlphaBottom) + " " +
             PdfNumberFormatter.Precise(shading.AlphaRight) + " " + PdfNumberFormatter.Precise(shading.AlphaTop) + "]" +

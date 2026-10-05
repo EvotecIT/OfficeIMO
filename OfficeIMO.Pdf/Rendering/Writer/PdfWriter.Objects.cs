@@ -406,6 +406,7 @@ internal static partial class PdfWriter {
         public OfficeGradientColorInterpolation ColorInterpolation { get; set; }
         public string Name { get; set; } = string.Empty;
         public bool IsRadial { get; set; }
+        public OfficeGradientSpreadMode SpreadMode { get; set; }
         public OfficeColor? OutsideColor { get; set; }
         public System.Collections.Generic.IReadOnlyList<OfficeGradientStop> Stops { get; set; } = System.Array.Empty<OfficeGradientStop>();
         public double X0 { get; set; }

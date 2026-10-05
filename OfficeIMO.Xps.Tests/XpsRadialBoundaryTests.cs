@@ -74,13 +74,13 @@ public sealed class XpsRadialBoundaryTests {
     [Theory]
     [InlineData("Repeat")]
     [InlineData("Reflect")]
-    public void UnboundedBoundarySpreadExportsSvgAndDrawingWhilePdfRemainsExplicit(string spread) {
+    public void UnboundedBoundarySpreadExportsSvgDrawingAndPdf(string spread) {
         var document = Create(XpsFormat.OpenXps, 160, "1,0,0,1,0,0", false, false);
         var page = document.Pages[0]; var markup = page.GetMarkup();
         markup.Descendants().Single(element => element.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
         page.ReplaceMarkup(markup);
         Assert.NotNull(page.ToDrawing());
-        Assert.Throws<NotSupportedException>(() => document.ToPdf());
+        XpsUnboundedRadialSpreadTests.AssertPdfMatchesNative(document, (10, 10), (140, 30), (159, 120), (180, 80));
         var result = page.ToSvg();
         Assert.Empty(result.Diagnostics);
         var fields = XElement.Parse(result.Svg).Descendants().Where(e => e.Name.LocalName == "radialGradient").ToArray();
@@ -138,7 +138,7 @@ public sealed class XpsRadialBoundaryTests {
         xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
         page.ReplaceMarkup(xml);
         Assert.NotNull(page.ToDrawing());
-        Assert.Throws<NotSupportedException>(() => doc.ToPdf());
+        XpsUnboundedRadialSpreadTests.AssertPdfMatchesNative(doc, (20, 20), (140, 30), (159, 120));
         var result = page.ToSvg();
         Assert.Empty(result.Diagnostics);
         var fields = XElement.Parse(result.Svg).Descendants().Where(e => e.Name.LocalName == "radialGradient").ToArray();

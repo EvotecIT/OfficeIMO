@@ -55,8 +55,6 @@ internal static partial class PdfWriter {
     private static string EnsureRadialShading(
         System.Collections.Generic.IList<PageShading> shadings,
         OfficeRadialGradient gradient) {
-        if (gradient.SpreadMode != OfficeGradientSpreadMode.Pad)
-            throw new NotSupportedException("PDF radial spread requires finite expansion; an unbounded repeating field cannot be padded without loss.");
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
         // Put the end focus at the coordinate origin. Large native brush maps
         // otherwise subtract nearly equal numbers in a consumer's float matrix,
@@ -69,13 +67,14 @@ internal static partial class PdfWriter {
         double r1 = elliptical ? 1D : gradient.EndRadius;
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
+            if (existing.SpreadMode == gradient.SpreadMode && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
         shadings.Add(new PageShading {
             Name = name,
             IsRadial = true,
+            SpreadMode = gradient.SpreadMode,
             OutsideColor = gradient.OutsideColor,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
             ColorInterpolation = gradient.ColorInterpolation,

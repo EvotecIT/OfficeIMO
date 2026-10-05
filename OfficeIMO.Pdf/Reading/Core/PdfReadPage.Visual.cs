@@ -128,21 +128,21 @@ public sealed partial class PdfReadPage {
         });
     }
 
-    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
+    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
-        return ToDisplayDrawing(cancellationToken, configureDrawing);
+        return ToDisplayDrawing(cancellationToken, configureDrawing, functionShadingScale, maximumFunctionPixels);
     }
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
-    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null) {
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
-        var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken);
+        var pageContentBudget = new PageContentBudget(this, configureDrawing, cancellationToken) { FunctionShadingScale = functionShadingScale, MaximumFunctionPixels = maximumFunctionPixels };
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var invocationTextClippingBudget = new PdfTextClippingBudget();
         var patternTextClippingBudget = new PdfTextClippingBudget();
@@ -608,6 +608,7 @@ public sealed partial class PdfReadPage {
         PdfPageVisualPrimitive primitive,
         PdfTextClippingBudget textClippingBudget,
         bool allowRedundantPageClipRemoval) {
+        if (primitive.FunctionPaint != null) AddFunctionShading(drawing, primitive, textClippingBudget);
         if (primitive.FillTilingPattern != null) {
             AddTilingPatternFill(drawing, primitive, textClippingBudget);
         }
@@ -1647,6 +1648,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null) {
         shading = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
+        if (dictionary != null && TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out var type) ? type : null) == 1)
+            return TryReadFunctionShading(dictionary, renderingIntent, pageContentBudget ?? new PageContentBudget(this), out shading);
         if (dictionary == null ||
             !dictionary.Items.TryGetValue("Coords", out PdfObject? coordsObject)) {
             return false;

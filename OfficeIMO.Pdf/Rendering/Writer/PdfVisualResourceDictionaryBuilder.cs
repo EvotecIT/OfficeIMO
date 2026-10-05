@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static class PdfVisualResourceDictionaryBuilder {
     // Linear-light sRGB primaries and D65 white point. PDF CalRGB applies its
     // matrix after interpolation, preserving the native field without extra stops.
-    private const string LinearRgbColorSpace = "[/CalRGB << /WhitePoint [0.95047 1 1.08883] /Gamma [1 1 1] /Matrix [0.4124564 0.2126729 0.0193339 0.3575761 0.7151522 0.119192 0.1804375 0.072175 0.9503041] >>]";
+    internal const string LinearRgbColorSpace = "[/CalRGB << /WhitePoint [0.95047 1 1.08883] /Gamma [1 1 1] /Matrix [0.4124564 0.2126729 0.0193339 0.3575761 0.7151522 0.119192 0.1804375 0.072175 0.9503041] >>]";
     private const int MaximumGradientStops = 1024;
     private const int MaximumTransformedGradientSamples = 4096;
     private const int MinimumGradientSubdivisionDepth = 2;
@@ -315,7 +315,7 @@ internal static class PdfVisualResourceDictionaryBuilder {
     private static string FormatComponents(double[] components) =>
         string.Join(" ", components.Select(static component => FormatNumber(component)));
 
-    private static void ValidateStops(IReadOnlyList<OfficeGradientStop>? stops) {
+    internal static void ValidateStops(IReadOnlyList<OfficeGradientStop>? stops) {
         if (stops == null || stops.Count < 2) throw new ArgumentException("A PDF shading needs at least two stops.", nameof(stops));
         if (stops.Count > MaximumGradientStops) {
             throw new ArgumentException("A PDF shading exceeds the bounded stop count.", nameof(stops));

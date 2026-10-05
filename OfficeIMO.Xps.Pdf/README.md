@@ -35,6 +35,11 @@ native Unicode clusters for search and copy, including ligatures, surrogate pair
 spaces, right-to-left advances and nested affine transforms. Text inside decorative
 visual brushes is excluded.
 
+Radial Repeat/Reflect brushes remain vector PDF shadings even when tangent
+bounds or high-frequency fields prevent finite stop expansion. Color interpolation,
+stop alpha and native outside-cone endpoint paint are retained. Explicit
+print-condition conversion of these unbounded fields remains unsupported.
+
 Native StoryFragments and DocumentStructure supply paragraph, list, table and figure
 tags. Continued blocks share their logical containers across pages; declared story
 order can differ from physical page order. List markers and table cell spans retain

@@ -20,6 +20,7 @@ internal static partial class PdfPageContentVisualParser {
             out OfficeRadialGradient? radialGradient) {
             linearGradient = null;
             radialGradient = null;
+            if (shading.FunctionShading != null) return;
             double paintWidth = Math.Max(width, 0.0001D);
             double paintHeight = Math.Max(height, 0.0001D);
             if (!shading.IsRadial) {

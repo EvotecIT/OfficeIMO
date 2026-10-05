@@ -587,7 +587,7 @@ internal static partial class PdfWriter {
                     ? GetPrintColorTransform(pageOpts)
                     : null;
                 foreach (var shading in page.Shadings) {
-                    string shadingObject = shading.IsRadial
+                    string shadingObject = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
                         ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
                             shading.X0,
                             shading.Y0,
@@ -604,7 +604,11 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.Stops,
                             shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
-                    int shadingId = AddObject(objects, shadingObject);
+                    int shadingId;
+                    if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
+                        if (shadingColorTransform != null) throw new NotSupportedException("Periodic radial PDF shading does not yet support print-condition conversion.");
+                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false);
+                    } else shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);
                     AddRadialPadResources(objects, shading, shadingId, xobjects, shadingColorTransform, cancellationToken);

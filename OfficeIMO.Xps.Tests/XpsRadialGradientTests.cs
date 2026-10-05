@@ -90,7 +90,7 @@ public sealed class XpsRadialGradientTests {
         double ratio = Math.Sqrt(.5 * .5 + .5 * .5) / .001;
         ratio -= Math.Floor(ratio);
         Assert.InRange(Math.Abs(image!.GetPixel(100, 80).B - 255 * ratio), 0, 2);
-        Assert.Throws<NotSupportedException>(() => doc.ToPdf());
+        XpsUnboundedRadialSpreadTests.AssertPdfMatchesNative(doc, (100, 80), (50, 20), (180, 140));
     }
 
     internal static XpsDocument Create(XpsFormat format, string matrix, bool alpha, string spread = "Pad") {

@@ -527,6 +527,13 @@ public sealed class PdfRedactionPlan {
             AppendIdentityGradient(identity, primitive.StrokeGradient);
             AppendIdentityGradient(identity, primitive.FillRadialGradient);
             AppendIdentityGradient(identity, primitive.StrokeRadialGradient);
+            if (primitive.FunctionPaint is PdfPageFunctionPaint functionPaint) {
+                identity.Append(":function:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, functionPaint.Resource.SourceDictionary, document.Objects);
+                var transform = functionPaint.InverseTransform;
+                AppendIdentityNumbers(identity, new[] { transform.M11, transform.M12, transform.M21,
+                    transform.M22, transform.OffsetX, transform.OffsetY });
+            }
             PdfRedactionImageIdentity.AppendClip(identity, primitive.ClipPath);
             AppendIdentityTilingPattern(identity, primitive.FillTilingPattern);
             AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern);

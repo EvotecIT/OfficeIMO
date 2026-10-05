@@ -160,7 +160,17 @@ Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
 uses the existing bounded CMYK sampling path with the gradient's interpolation
 mode. Alpha masks remain scalar opacity fields.
-Radial gradients with an explicit Repeat or Reflect mode require finite stop expansion before PDF export. Unbounded fields report an unsupported operation rather than changing to endpoint padding.
+Radial gradients with an explicit Repeat or Reflect mode use vector function-based
+shading, including fields with no finite cycle bound. Color and alpha retain the
+same periodic field, within the existing 1,024-stop PDF gradient bound. Explicit print-condition conversion of these fields remains
+unsupported.
+
+The reader renders directly invoked function-based shadings at the requested
+image-export resolution. `ToDrawing()` samples these fields at one pixel per PDF
+point; use image-export or page-render options for a higher resolution.
+`PdfReadLimits.MaxFunctionShadingPixels` bounds aggregate intermediate pixels,
+and `MaxFunctionShadingEvaluationWork` bounds calculator work per page.
+Function-based shading patterns remain unsupported and produce a render diagnostic.
 
 Gradient fills and strokes preserve color-stop alpha through native transparency masks,
 including header and footer shapes. Gradient direction follows the same local coordinates
