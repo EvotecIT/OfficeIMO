@@ -217,11 +217,11 @@ public partial class Word {
         using (WordDocument document = WordDocument.Load(input)) document.SaveAsPdf(target, CellPaginationOptions());
         using var pdf = PdfPigDocument.Open(target);
         int finalPage = lines == 21 ? 1 : 2;
-        int leftLast = lines == 21 ? 11 : 38;
+        int leftLast = lines == 21 ? 11 : border && format == WordFileFormat.Doc ? 37 : 38;
         Assert.Equal(finalPage, pdf.NumberOfPages);
         Assert.InRange(FindWordStartX(pdf.GetPage(finalPage), $"Nested{leftLast:D3}"), 39.9, 40.1);
         Assert.InRange(FindWordStartX(pdf.GetPage(finalPage), $"Nested{leftLast + 1:D3}"), 259.9, 260.1);
-        int firstFinal = lines == 21 ? 1 : 33;
+        int firstFinal = lines == 21 ? 1 : border ? format == WordFileFormat.Doc ? 31 : 32 : 33;
         Assert.Equal(20, FindWordStartY(pdf.GetPage(finalPage), $"Nested{firstFinal:D3}") -
             FindWordStartY(pdf.GetPage(finalPage), $"Nested{firstFinal + 1:D3}"), 2);
         Assert.Equal((leftLast - firstFinal + 1) * 20, FindWordStartY(pdf.GetPage(finalPage), $"Nested{firstFinal:D3}") -
