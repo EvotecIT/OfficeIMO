@@ -33,6 +33,14 @@ and overlapping semantic references reject export. Use
 markup-order search-text contract. Unstructured input retains that behavior by
 default. PDF/UA conformance and figure descriptions are not inferred.
 
+## XPS image color profiles
+
+Unusable associated image profiles fall back to usable embedded profiles. If no
+usable profile remains, strict conversion reports an error. Unprofiled CMYK
+JPEG/TIFF images now require an associated or embedded ICC profile; conversion
+rejects the previous unqualified device-color approximation. Add the intended
+profile to the source rather than treating a partial render as color preservation.
+
 ## XPS structural metadata edits
 
 Use `XpsPage.ReplaceStoryFragmentsMarkup()` and

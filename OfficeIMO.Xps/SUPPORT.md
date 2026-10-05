@@ -31,8 +31,12 @@ PrintTicket color overrides are not interpreted. Image brushes apply associated
 RGB and gray PNG/JPEG/TIFF, including PNG/TIFF alpha, and CMYK JPEG/TIFF device
 channels before ICC conversion. The first image is limited to four million pixels;
 physical dimensions are retained. Malformed, oversized or incompatible profiles
-and unsupported non-ICC color metadata are diagnosed. Default CMYK/SWOP and
-incompatible-profile fallback behavior are not qualified.
+and unsupported non-ICC color metadata are diagnosed. A usable associated profile
+takes precedence; an unusable or channel-incompatible associated profile falls back
+to a usable embedded profile. If no usable profile remains, strict conversion
+reports an error. Unprofiled CMYK JPEG/TIFF images require a usable ICC profile;
+OfficeIMO does not substitute an approximate RGB conversion or a default SWOP
+profile. Profile and decode budgets still apply before fallback.
 
 ## Qualification
 
@@ -125,6 +129,12 @@ PDF swatches match the managed raster exactly when independently rendered at
 with either profile association method; independent PDF/reference images confirm
 placement, with raster interpolation differences at the color boundary. These
 checks are not a broad photographic image corpus.
+
+Fallback checks cover malformed and channel-incompatible associated profiles with
+embedded RGB PNG/JPEG/TIFF and CMYK JPEG/TIFF profiles. They preserve the qualified
+reference colors and keep strict errors when no usable profile remains. Reusing a
+discarded image profile as ContextColor still reports its unsupported color. Both
+dialects reject unprofiled CMYK JPEG/TIFF resources explicitly.
 
 Searchable PDF projection is checked with native Unicode clusters, whitespace,
 ligatures, surrogate pairs, right-to-left advances, sideways glyphs, affine

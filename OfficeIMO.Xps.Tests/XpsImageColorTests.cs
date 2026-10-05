@@ -62,6 +62,54 @@ public sealed class XpsImageColorTests {
         Assert.InRange(pixel.R, 127, 129); Assert.InRange(pixel.G, 63, 65); Assert.InRange(pixel.B, 31, 33);
     }
 
+    [Theory]
+    [InlineData(XpsFormat.Xps, "RGB-png-embedded.png", false)]
+    [InlineData(XpsFormat.OpenXps, "RGB-png-embedded.png", true)]
+    [InlineData(XpsFormat.Xps, "RGB-jpg-embedded.jpg", true)]
+    [InlineData(XpsFormat.OpenXps, "RGB-tif-embedded.tif", false)]
+    [InlineData(XpsFormat.Xps, "CMYK-jpg-embedded.jpg", true)]
+    [InlineData(XpsFormat.OpenXps, "CMYK-tif-embedded.tif", true)]
+    public void UnusableAssociatedProfilesFallBackToUsableEmbeddedProfiles(XpsFormat format, string file, bool incompatible) {
+        var document = XpsDocument.Create(format);
+        string source = document.AddResource("Images/source" + Path.GetExtension(file), File.ReadAllBytes(Path.Combine(Images, file)), Type(file));
+        var page = document.AddPage(16, 16).AddImage(source, 0, 0, 16, 16);
+        OfficeColor expected = Raster(page).GetPixel(8, 8);
+        byte[] associated = incompatible ? Profile(file.StartsWith("CMYK", StringComparison.Ordinal)
+            ? "littlecms-rgb-matrix.icc" : "littlecms-cmyk-lut.icc") : new byte[128];
+        string profile = document.AddResource("Profiles/associated.icc", associated, "application/vnd.ms-color.iccprofile");
+        Source(page, "{ColorConvertedBitmap " + source + " " + profile + "}");
+        page = XpsDocument.Load(document.Save()).Pages[0];
+        Assert.Empty(page.ToSvg().Diagnostics);
+        Assert.Equal(expected, Raster(page).GetPixel(8, 8));
+        Assert.NotEmpty(document.ToPdf());
+    }
+
+    [Theory]
+    [InlineData(XpsFormat.Xps, "CMYK-jpg-associated.jpg")]
+    [InlineData(XpsFormat.OpenXps, "CMYK-jpg-associated.jpg")]
+    [InlineData(XpsFormat.Xps, "CMYK-tif-associated.tif")]
+    [InlineData(XpsFormat.OpenXps, "CMYK-tif-associated.tif")]
+    public void UnprofiledCmykImagesRejectUnqualifiedDeviceColorApproximation(XpsFormat format, string file) {
+        var document = XpsDocument.Create(format);
+        string source = document.AddResource("Images/source" + Path.GetExtension(file), File.ReadAllBytes(Path.Combine(Images, file)), Type(file));
+        var page = document.AddPage(16, 16).AddImage(source, 0, 0, 16, 16);
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        Assert.Contains("CMYK image requires a usable ICC profile", page.ToSvg(true).Diagnostics);
+        Assert.Throws<NotSupportedException>(() => document.ToPdf());
+    }
+
+    [Fact]
+    public void DiscardedImageProfileStillRejectsItsReuseAsAContextColor() {
+        var document = XpsDocument.Create();
+        string source = document.AddResource("Images/source.png", File.ReadAllBytes(Path.Combine(Images, "RGB-png-embedded.png")), "image/png");
+        string profile = document.AddResource("Profiles/unusable.icc", new byte[128], "application/vnd.ms-color.iccprofile");
+        var page = document.AddPage(32, 16).AddImage(source, 0, 0, 16, 16);
+        Source(page, "{ColorConvertedBitmap " + source + " " + profile + "}");
+        page.AddPath("M16,0H32V16H16Z", "ContextColor " + profile + " 1,0,0,0");
+        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        Assert.Contains("Unsupported ICC profile", page.ToSvg(true).Diagnostics);
+    }
+
     [Fact]
     public void ImageProfileFailuresAreReportedAndCancellationIsObserved() {
         var doc = XpsDocument.Create();

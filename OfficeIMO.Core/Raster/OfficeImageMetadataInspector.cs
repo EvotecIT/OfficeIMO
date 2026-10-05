@@ -2,22 +2,6 @@ using System;
 using System.Threading;
 namespace OfficeIMO.Drawing;
 
-internal sealed class OfficeImageMetadataSnapshot {
-    internal OfficeImageMetadataKinds Kinds { get; set; }
-    internal bool HasColorRenderingMetadata { get; set; }
-    internal byte[]? Exif { get; set; }
-    internal byte[]? Xmp { get; set; }
-    internal byte[]? Icc { get; set; }
-    internal bool HasDuplicateJpegExif { get; set; }
-    internal bool HasExtendedJpegXmp { get; set; }
-    internal bool HasDuplicateStandardJpegXmp { get; set; }
-    internal bool ExifContainsResolution { get; set; }
-    internal bool HasPhysicalResolution { get; set; }
-    internal bool HasUnitlessResolution { get; set; }
-    internal double? PhysicalDpiX { get; set; }
-    internal double? PhysicalDpiY { get; set; }
-}
-
 internal static partial class OfficeImageMetadataInspector {
     private static readonly byte[] ExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
     private static readonly byte[] XmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
@@ -104,6 +88,8 @@ internal static partial class OfficeImageMetadataInspector {
             if (length < 2 || offset > data.Length - length) break;
             int payload = offset + 2;
             int count = length - 2;
+            if (OfficeImageReader.IsStartOfFrame((byte)marker) && count == 18 && data[payload + 5] == 4)
+                snapshot.HasDeviceCmyk = true;
             if (marker == 0xE0 && Matches(data, payload, count, "JFIF\0")) {
                 bool physical = count >= 12 && data[payload + 7] >= 1 && data[payload + 7] <= 2;
                 MarkResolution(snapshot, physical);
@@ -329,6 +315,7 @@ internal static partial class OfficeImageMetadataInspector {
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
             }
         }
+        snapshot.HasDeviceCmyk = photometricInterpretation == 5;
         bool hasTiffColorimetry = transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0;
         if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
                 data,

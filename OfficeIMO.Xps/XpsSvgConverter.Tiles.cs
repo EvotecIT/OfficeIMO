@@ -35,33 +35,11 @@ internal sealed partial class XpsSvgConverter {
         if (type != "image/png" && type != "image/jpeg" && type != "image/tiff") { Loss("Image codec: " + type); return; }
         byte[] bytes = _page.Document.Part(name);
         var imageFormat = type == "image/png" ? OfficeIMO.Drawing.OfficeImageFormat.Png : type == "image/jpeg" ? OfficeIMO.Drawing.OfficeImageFormat.Jpeg : OfficeIMO.Drawing.OfficeImageFormat.Tiff;
-        OfficeIMO.Drawing.OfficeIccColorProfile? profile = null;
-        if (reference.Profile != null) {
-            profile = ColorProfile(part, reference.Profile);
-            if (profile == null) return;
-        } else {
-            byte[]? embedded = OfficeIMO.Drawing.OfficeImageMetadataInspector.ReadIccProfile(bytes, imageFormat, 4 * 1024 * 1024, _token, out bool hasProfile);
-            if (hasProfile) {
-                if (embedded == null) { Loss("Unusable embedded ICC profile"); return; }
-                profile = ParseColorProfile("embedded:" + name, embedded);
-                if (profile == null) return;
-            } else {
-                var metadata = OfficeIMO.Drawing.OfficeImageMetadataInspector.Inspect(bytes, imageFormat, _profileAllowance, _token);
-                if (metadata.HasColorRenderingMetadata) { Loss("Image color metadata without a supported ICC profile"); return; }
-            }
-        }
         if (!OfficeIMO.Drawing.OfficeImageReader.TryIdentifyByContent(bytes, null, _token, out var info) || info.Format != imageFormat)
             throw new InvalidDataException("Image resource does not match its declared encoding.");
         double width = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), height = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);
-        if (profile != null || type == "image/tiff") {
-            var options = new OfficeIMO.Drawing.OfficeRasterDecodeOptions {
-                MaximumDecodedPixels = 4_000_000, CancellationToken = _token, RetainedManagedBytes = _profileAllowance
-            };
-            OfficeIMO.Drawing.OfficeRasterImage? raster;
-            bool decoded = profile != null
-                ? OfficeIMO.Drawing.OfficeIccRasterConverter.TryDecodeToSrgb(bytes, profile, options, out raster)
-                : OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecode(bytes, options, out raster, out _);
-            if (!decoded || raster == null) { Loss("Unsupported image encoding or ICC channel configuration"); return; }
+        if (!TryPrepareImageColor(bytes, imageFormat, part, name, reference.Profile, out var raster)) return;
+        if (raster != null) {
             bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png, null, 16 * 1024 * 1024, _token);
             type = "image/png";
         }
