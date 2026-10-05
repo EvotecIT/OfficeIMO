@@ -47,7 +47,8 @@ provenance before entering the maintained corpus.
 The opt-in generator uses the current EPUB owner to create Basic, Prose, and
 Technical publications from one manuscript containing tables, code, long links,
 an accessible SVG, Arabic, and Japanese. It also creates `glossary.epub` with two
-terms, repeated references and localized return links. It has no third-party test dependency and
+terms, repeated references and localized return links, and `bibliography.epub` with
+a formatted entry, repeated citations and return links. It has no third-party test dependency and
 is outside the normal solution and shipped packages.
 
 ```sh

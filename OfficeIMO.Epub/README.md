@@ -520,6 +520,33 @@ All typed publishing operations above require EPUB 3. Use `AddDublinCoreMetadata
 and `SetMetadataProperty` for other declarations; typed records do not infer rights,
 publisher identities, or accessibility claims.
 
+## Bibliographies and citation links
+
+`AddBibliographyEntry(manifestId, listId, entryId, entryXhtml)` appends a formatted
+XHTML entry to an existing `ol` or `ul` directly inside a body `section`. It marks
+the section with `epub:type="bibliography"` and `role="doc-bibliography"`, preserving
+its heading and existing entries. Entries use native `li` semantics and retain
+caller order. Formatting, citation numbering, sorting, and disambiguation remain
+with the publisher or the existing `OfficeIMO.Bibliography` CSL renderer.
+
+```csharp
+publication.AddChapter("references", "EPUB/back/references.xhtml", "References",
+    "<section><h1>References</h1><ol id='entries'/></section>");
+publication.AddBibliographyEntry("references", "entries", "work-one",
+    "Example Author. <em>An illustrative source</em>. 2026.");
+// The chapter already contains a labelled <a id="citation-one">[1]</a>.
+publication.LinkBibliographyEntry("chapter", "citation-one", "references", "work-one",
+    "Return to the citation");
+```
+
+Citation links receive `doc-biblioref` and `epub:type="biblioref"`. Each occurrence
+can link to the same entry with its own optional localized return link. Omit the
+return label to preserve a separate bibliography document's bytes. Links respect
+both documents' effective HTML bases. Existing links, conflicting roles, invalid
+targets, duplicate identifiers and over-budget edits are rejected; cross-document
+changes commit atomically. Full schema, accessibility and reading-system checks
+remain separate from these native content checks.
+
 ## Glossaries
 
 Append entries to an existing definition list, then link any number of occurrences

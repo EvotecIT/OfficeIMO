@@ -53,6 +53,11 @@ byte[] glossaryBytes = GlossaryFixture.Create().Write(new EpubWriteOptions {
 }).Bytes;
 File.WriteAllBytes(Path.Combine(outputDirectory, "glossary.epub"), glossaryBytes);
 evidence.Add(new { fixture = "glossary", epub = "glossary.epub", sha256 = Convert.ToHexString(SHA256.HashData(glossaryBytes)).ToLowerInvariant() });
+byte[] bibliographyBytes = BibliographyFixture.Create().Write(new EpubWriteOptions {
+    ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
+}).Bytes;
+File.WriteAllBytes(Path.Combine(outputDirectory, "bibliography.epub"), bibliographyBytes);
+evidence.Add(new { fixture = "bibliography", epub = "bibliography.epub", sha256 = Convert.ToHexString(SHA256.HashData(bibliographyBytes)).ToLowerInvariant() });
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));
