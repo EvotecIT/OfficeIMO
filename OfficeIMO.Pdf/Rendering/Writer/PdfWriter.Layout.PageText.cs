@@ -436,7 +436,7 @@ internal static partial class PdfWriter {
             ImageBlock block = image.ToImageBlock();
             PdfImageStyle style = block.Style ?? new PdfImageStyle();
             PageImage pageImage = CreatePageImage(block, style, imageX, imageBottomY);
-            GetImageAnnotationBounds(style, pageImage, imageX, imageBottomY, image.Width, image.Height, out double imageLeft, out _, out double imageRight, out _);
+            GetImageAnnotationBounds(pageImage, out double imageLeft, out _, out double imageRight, out _);
             IncludeHorizontalBounds(imageLeft, imageRight, ref visibleLeft, ref visibleRight);
             imageConsumedWidth += image.Width + HeaderFooterInlineGap;
         }

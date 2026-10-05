@@ -1328,6 +1328,20 @@ document.Compose("Members", composer => {
 document.Save();
 ```
 
+## Worksheet print areas
+
+Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+
+```csharp
+document.SetPrintArea(sheet, "B2:D20,F2:H20");
+IReadOnlyList<string> areas = sheet.GetPrintAreas();
+string? definedNameText = sheet.GetPrintArea();
+```
+
+`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+
+Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Auto-fit no longer inflates stored heights by 1.5; existing stored workbook heights remain unchanged when loaded.
+
 ## Managed image export
 
 Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:

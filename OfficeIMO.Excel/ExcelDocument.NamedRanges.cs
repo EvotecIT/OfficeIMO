@@ -71,10 +71,33 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Sets the print area for a given sheet by creating a sheet-local defined name _xlnm.Print_Area.
+        /// Separate areas with commas; commas inside quoted worksheet names are preserved.
         /// </summary>
         public void SetPrintArea(ExcelSheet sheet, string range, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
+
+            string[] areas = ExcelSheet.SplitDefinedNameParts(range).Select(part => {
+                if (part.IndexOf('!') >= 0 &&
+                    (!SheetNameLookup.TryParseSheetQualifiedReference(part, out string sheetName, out _, allowExternalWorkbookReferences: false)
+                     || !string.Equals(sheetName, sheet.Name, StringComparison.OrdinalIgnoreCase))) {
+                    throw new ArgumentException("A worksheet print area must reference the selected worksheet.", nameof(range));
+                }
+                if (ExcelReference.TryParse(part, out ExcelReference? reference) && reference != null) {
+                    string prefix = "'" + EscapeSheetName(sheet.Name) + "'!";
+                    if (reference.Kind == ExcelReferenceKind.WholeColumn) {
+                        return prefix + "$" + A1.ColumnIndexToLetters(Math.Min(reference.Start.Column, reference.End.Column))
+                            + ":$" + A1.ColumnIndexToLetters(Math.Max(reference.Start.Column, reference.End.Column));
+                    }
+                    if (reference.Kind == ExcelReferenceKind.WholeRow) {
+                        return prefix + "$" + Math.Min(reference.Start.Row, reference.End.Row).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                            + ":$" + Math.Max(reference.Start.Row, reference.End.Row).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                }
+                return NormalizeLocalNamedRange(sheet, part, ExcelDefinedNameValidationMode.Sanitize);
+            }).ToArray();
+            if (areas.Length == 0) throw new ArgumentException("At least one print area is required.", nameof(range));
+            string normalized = string.Join(",", areas);
 
             var workbook = WorkbookRoot;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
@@ -86,7 +109,6 @@ namespace OfficeIMO.Excel {
                     dn.Remove();
             }
 
-            string normalized = NormalizeRange($"'{EscapeSheetName(sheet.Name)}'!{range}");
             var printArea = new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = sheetPos, Text = normalized };
             definedNames.Append(printArea);
             MarkPackageDirty();

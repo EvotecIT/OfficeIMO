@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel {
                     builder.Append("<workbookPr date1904=\"1\"/>");
                 }
 
-                builder.Append("<sheets>");
+                builder.Append("<bookViews><workbookView/></bookViews><sheets>");
                 foreach (var sheet in sheets) {
                     builder.Append("<sheet name=\"");
                     AppendEscaped(builder, sheet.SheetName);

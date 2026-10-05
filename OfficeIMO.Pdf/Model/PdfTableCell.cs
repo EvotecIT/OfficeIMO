@@ -50,7 +50,7 @@ public sealed class PdfTableCell {
         Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
     }
 
-    internal PdfTableCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false) {
+    internal PdfTableCell(System.Collections.Generic.IEnumerable<PdfTextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false, PdfTableCellViewport? viewport = null) {
         Guard.NotNull(runs, nameof(runs));
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
         var snapshot = new System.Collections.Generic.List<PdfTextRun>();
@@ -76,7 +76,10 @@ public sealed class PdfTableCell {
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
         Paragraphs = SnapshotParagraphs(paragraphs, nameof(paragraphs));
+        if (viewport != null && (FormFields.Count > 0 || CheckBoxes.Count > 0))
+            throw new System.ArgumentException("A table cell viewport does not support interactive form fields; place them separately.", nameof(viewport));
         NoWrap = noWrap;
+        Viewport = viewport;
     }
 
     /// <summary>Cell text content.</summary>
@@ -111,6 +114,9 @@ public sealed class PdfTableCell {
 
     /// <summary>Images rendered inside this cell.</summary>
     public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
+
+    /// <summary>Optional full-cell geometry used to position cell content within a clipped fragment.</summary>
+    public PdfTableCellViewport? Viewport { get; }
 
     internal System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> Paragraphs { get; }
 
@@ -153,15 +159,18 @@ public sealed class PdfTableCell {
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
-    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap);
+    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap, Viewport);
 
     /// <summary>
     /// Returns a copy that keeps each cell paragraph on one visual line. When the containing
     /// table enables text shrinking, the renderer reduces the font before clipping.
     /// </summary>
-    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap);
+    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap, Viewport);
 
-    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap);
+    /// <summary>Returns a copy that renders the given portion of the full cell, including images. Cells containing check boxes or form fields cannot use a viewport.</summary>
+    public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport);
+
+    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport);
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
         if (columnSpan < 1) {
@@ -267,7 +276,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -297,6 +306,9 @@ internal sealed class PdfTableCellParagraph {
             throw new System.ArgumentOutOfRangeException(nameof(defaultTabStopWidth), "Table cell paragraph default tab stop width must be a positive finite value.");
         }
 
+        if (fontSize.HasValue && (fontSize.Value <= 0D || double.IsNaN(fontSize.Value) || double.IsInfinity(fontSize.Value)))
+            throw new System.ArgumentOutOfRangeException(nameof(fontSize), "Table cell paragraph font size must be a positive finite value.");
+
         var snapshot = new System.Collections.Generic.List<PdfTextRun>();
         foreach (PdfTextRun run in runs) {
             if (run is null) {
@@ -317,6 +329,8 @@ internal sealed class PdfTableCellParagraph {
             }
         }
 
+        FontSize = fontSize;
+        LineSpacing = lineSpacing;
         Runs = snapshot.AsReadOnly();
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
@@ -343,11 +357,15 @@ internal sealed class PdfTableCellParagraph {
 
     public double FirstLineIndent { get; }
 
+    public double? FontSize { get; }
+
+    public PdfLineSpacing? LineSpacing { get; }
+
     public double? LineHeight { get; }
 
     public double? DefaultTabStopWidth { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops);
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing);
 }
