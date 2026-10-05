@@ -752,7 +752,9 @@ internal static partial class PdfSyntax {
         return PdfStringObj.FromParsedBytes(
             bytes,
             value,
-            useTextStringEncoding: !PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken),
+            // The token can be binary (for example an indexed-image palette). Its decoded
+            // view never authorizes changing the original payload during a rewrite.
+            useTextStringEncoding: false,
             encodedTokenLength);
     }
 

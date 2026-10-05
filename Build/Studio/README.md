@@ -136,7 +136,10 @@ The **Update Studio catalogs** Actions workflow accepts a published Studio tag,
 the public delivery release ID and a channel. Its default is preflight; select
 the execute input to submit. It requalifies the signed release assets, restores
 matching progress from a verified dispatch of the same workflow and branch,
-and archives intent before publishing. Without confirmed receipt history,
+and archives intent before publishing. Select `verify-authentication` while
+leaving `execute` false to check publishing credentials and Store API readiness.
+The shared workflow prepares and verifies its catalog tools in task scratch.
+Without confirmed receipt history,
 check both catalogs and select `confirm-no-prior-submission` before executing.
 This includes the first submission of a new version; a preflight alone never
 confirms missing history. A canceled or uncertain run

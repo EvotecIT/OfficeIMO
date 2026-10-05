@@ -118,7 +118,7 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
 
-The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections and shared Reader extraction on macOS arm64 under .NET 8 and 10 using hash-pinned Pages, Numbers and Keynote fixtures. A separate native conversion host requires complete editable DOCX/XLSX/PPTX reconstruction, save/reopen and selected Numbers recalculation on both runtimes. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
+The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned fixtures require complete editable reconstruction, save/reopen and selected Numbers recalculation; the native creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
 
 ## Opt in to an Office destination adapter
 

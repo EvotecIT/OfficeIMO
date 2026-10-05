@@ -65,22 +65,22 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
         }
 
         var fileNames = new HashSet<string>(StringComparer.Ordinal);
-        var sortedFiles = new List<(string FileName, int FileSpecId)>(files.Count);
+        var sortedFiles = new List<(byte[] KeyBytes, int FileSpecId)>(files.Count);
         foreach ((string fileName, int fileSpecId) in files) {
             Guard.NotNullOrWhiteSpace(fileName, nameof(files));
             if (!fileNames.Add(fileName)) {
                 throw new ArgumentException("PDF embedded files name tree names must be unique.", nameof(files));
             }
 
-            sortedFiles.Add((fileName, fileSpecId));
+            sortedFiles.Add((PdfTextString.Encode(fileName), fileSpecId));
         }
 
-        sortedFiles.Sort((left, right) => StringComparer.Ordinal.Compare(left.FileName, right.FileName));
+        sortedFiles.Sort((left, right) => PdfNameTreeKeyComparer.Instance.Compare(left.KeyBytes, right.KeyBytes));
 
         var sb = new StringBuilder();
         sb.Append("<< /Names [");
-        foreach ((string fileName, int fileSpecId) in sortedFiles) {
-            sb.Append(PdfSyntaxEscaper.TextString(fileName))
+        foreach ((byte[] keyBytes, int fileSpecId) in sortedFiles) {
+            sb.Append(PdfSyntaxEscaper.HexString(keyBytes))
                 .Append(' ')
                 .Append(PdfSyntaxEscaper.IndirectReference(fileSpecId))
                 .Append(' ');

@@ -34,7 +34,9 @@ The Apple-saved edit also qualifies the reader's modern solid text-fill preceden
 ## Bounded NativeAOT qualification
 
 `OfficeIMO.Reader.IWork.AotSmoke` publishes and executes the source reader and shared
-Reader handler on macOS arm64 with .NET 8.0.31 and .NET 10.0.12. The host rejects
+Reader handler on macOS arm64, Linux x64 and Windows x64 with .NET 8.0.31 and
+.NET 10.0.12. The [Linux and Windows CI evidence](https://github.com/EvotecIT/OfficeIMO/actions/runs/37224856067)
+retains the native executable hashes, diagnostics and output. The host rejects
 managed execution. Five hash-pinned corpus fixtures exercise Pages body text,
 Numbers sparse typed cells and selected arithmetic/range/string formulas, and
 Keynote slide titles, body text and presenter notes. The native comment fixture
@@ -48,7 +50,7 @@ and configured input byte limits. Fixture provenance and licenses remain in the
 [corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
 
 `OfficeIMO.IWork.AotSmoke` separately exercises editable conversion of four
-hash-pinned fixtures on macOS arm64 under the same two runtimes. It saves and
+hash-pinned fixtures on these three targets under the same two runtimes. It saves and
 reopens DOCX, XLSX and PPTX, checks Pages body text, Numbers typed cells and a
 formula cache, Keynote titles/body text, presenter notes and qualified backgrounds,
 and recalculates the saved Numbers formula after an operand edit. Caller-owned
@@ -58,7 +60,8 @@ reconstruction. Passing the native gate does
 not qualify complete appearance or broader source compatibility.
 
 The same `OfficeIMO.IWork.AotSmoke` host qualifies native Keynote creation on
-macOS arm64 under .NET 8.0.31 and .NET 10.0.12. A three-slide Unicode model emits
+macOS arm64, Linux x64 and Windows x64 under .NET 8.0.31 and .NET 10.0.12. All six
+native executions of the three-slide Unicode model emit
 7,423 bytes with SHA-256 `8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1`,
 identical to the independently decoded, Apple-opened fixture. Byte, caller-stream
 and atomic path saves agree; repeated encoding is deterministic. Native readback
@@ -66,7 +69,7 @@ checks complete content, canvas, backgrounds, Unicode paragraph boundaries and
 text fill. Existing-path protection and pre-cancelled replacement preserve bytes;
 active stream-copy cancellation stops after the first 64 KiB and leaves the
 caller stream open. This does not qualify native encoding or path-staging
-cancellation latency, every writer limit, other hosts or font rendering.
+cancellation latency, every writer limit, additional architectures or font rendering.
 
 Run the coordinated native gate from PowerShell with the pinned SDK and platform
 compiler installed:
