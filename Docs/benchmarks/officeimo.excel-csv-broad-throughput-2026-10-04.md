@@ -978,3 +978,113 @@ Focused correctness passes on both modern runtimes and both hosts contain
 is rejected before full-suite or integration review qualification because its
 buffer adds a demonstrated memory cost and its narrow performance is mixed.
 The conservative integrated typed-reader implementation remains the baseline.
+
+## Worksheet encoding eligibility and first-call memory
+
+The worksheet buffer owner checks the first 256 bytes against the existing
+UTF-8 indexer's eligibility rule before renting a worksheet-sized buffer. A
+declined UTF-16 worksheet retains the XML reader path. Accepted worksheets
+resume the same ZIP stream and retain exact declared-length and trailing-byte
+validation. The same rule applies before background worksheet prefetch rents
+its full buffer. This changes no public option, encoding support or dependency.
+
+The complete native matrix contains 76 cases: all 64 typed combinations of
+1,000/5,000 rows, four/65 physical columns, ordered/reversed rows, UTF-8/UTF-16
+and Automatic/Sequential/Parallel/streaming reads; two fully mapped numeric
+object controls; two public-reader controls; and eight numeric public-reader
+encoding/prefetch combinations. Actual .NET 8 and .NET 10 on Windows and macOS
+retain 608 observations and 7,296 measurements. The policy is 24 warmups,
+12 retained iterations, four invocations, unroll factor one and no outlier
+removal. Every setup validates values, types, schema, row count and the complete
+returned observation. Both sides use identical harness and dependency bytes;
+five Excel C# paths differ, including one new encoding helper.
+
+The [Windows native packet](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-native-windows.json),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-native-macos.json)
+and [complete native summary](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-native-summary.json)
+retain every favorable and unfavorable observation. Timing varies materially:
+the wide ordered UTF-16 Automatic case has After/Before medians of 1.115 on
+Windows .NET 10, 1.850 on Windows .NET 8, 0.879 on macOS .NET 10 and 0.959 on
+macOS .NET 8. These runs do not establish a portable speed improvement.
+
+A second lane rotates Before/After order across 28 cases and runs eight
+identical-build controls on two Windows affinity placements and macOS. It
+retains 216 observations and 5,184 samples, with 24 warmups, 24 retained samples
+and four complete reads per sample. Both hosts use the same fingerprinted
+PowerForge controller payload. The identical-build median ratios span
+0.888–1.089 on Windows mask 65535, 0.885–1.056 on mask 4294901760 and
+0.983–1.147 on macOS. Candidate ratios span 0.860–1.107, 0.817–1.079 and
+0.752–1.171 respectively. The [Windows](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-controls-windows.json),
+[macOS](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-controls-macos.json)
+and [comparison summary](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-controls-summary.json)
+retain the complete reports and controller fingerprints.
+
+Six cases with unresolved timing evidence receive a three-engine diagnostic:
+two independently loaded copies of the baseline plus the candidate, rotated
+within every iteration. Each host retains 18 observations with 48 samples per
+engine/case, 24 warmups and four reads per sample. The public 25,000-row
+candidate median ratios are 0.938 on Windows and 0.974 on macOS, compared with
+identical-baseline control ratios of 0.979 and 0.968. The prior large
+public-reader slowdown does not repeat in this diagnostic. The 1,000-row
+candidate remains slower than Before by 5.95% and 4.16%, while the second
+baseline differs by -5.00% and -8.27%. Small-reader timing remains mixed; these
+controls neither erase the negative measurements nor prove a general speed
+gain. The [Windows diagnostic](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-three-way-windows.json)
+and [macOS diagnostic](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-three-way-macos.json)
+retain all 1,728 samples.
+
+The separate first-call memory lane covers 20 cases, each source version, both
+modern runtimes and both hosts, with three fresh worker processes per
+combination: 480 measured workers. Producers validate every selected field and
+verify identical decoded worksheet/style/shared-string bytes. Actual .NET 8
+also runs 80 separate complete-field validation workers before measurement.
+Measurement workers do not run a benchmark read or setup before their first
+complete operation. Before/After order alternates. All-thread allocation
+includes the sampler and prefetch worker; caller-thread allocation is retained
+separately.
+
+| Wide ordered UTF-16 typed read, 5,000 rows, Automatic | All-thread allocation Before, MB | After, MB | Managed increase after return/GC Before, MB | After, MB |
+|---|---:|---:|---:|---:|
+| Windows .NET 10 | 34.944 | 1.360 | 33.882 | 0.291 |
+| Windows .NET 8 | 35.396 | 1.800 | 34.242 | 0.653 |
+| macOS .NET 10 | 35.376 | 1.763 | 34.233 | 0.562 |
+| macOS .NET 8 | 35.637 | 2.038 | 34.531 | 0.872 |
+
+| Numeric UTF-16 public read, 25,000 rows, prefetch enabled | All-thread allocation Before, MB | After, MB |
+|---|---:|---:|
+| Windows .NET 10 | 6.142 | 1.919 |
+| Windows .NET 8 | 6.504 | 2.276 |
+| macOS .NET 10 | 6.338 | 2.111 |
+| macOS .NET 8 | 6.658 | 2.454 |
+
+MB here means 1,000,000 bytes; values are means of three fresh workers per side.
+The [memory summary](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-summary.json)
+retains every case, range, caller/all-thread allocation, sampled peak and
+after-return figure. Raw packets are retained for [Windows .NET 10](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-windows-net10.json),
+[Windows .NET 8](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-windows-net8.json),
+[macOS .NET 10](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-macos-net10.json)
+and [macOS .NET 8](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-macos-net8.json).
+The fully mapped numeric controls retain their existing approximately 3.6 MB
+caller allocation on .NET 10. The discarded XML-staging experiment's 5.2 MB
+numeric first-call penalty is absent. Not every control improves: macOS
+.NET 10's small UTF-8 numeric/public cases have approximately 67 KB/33 KB higher
+mean caller allocation, with candidate ranges spanning the lower values seen
+on the baseline. Those observations remain in the evidence.
+
+The sampler polls every five milliseconds, so peak figures are observed lower
+bounds. JIT/type initialization and reflection invocation are included; the
+producer warms operating-system file caches. Readers and materialized results
+are released before after-return/GC measurement. These values do not describe
+live-reader retention, a worst-case memory budget or warmed throughput.
+
+The change qualifies as a first-call allocation and retained-memory improvement
+for ineligible buffered worksheets, including enabled prefetch. Timing remains
+mixed across the representative matrix. Correctness passes contain 1,071
+focused and 5,624 full-suite tests on each modern runtime and host, with five
+existing full-suite skips and no failures. Windows .NET Framework passes 1,066
+focused tests; the integrated source builds for .NET Standard 2.0. One full
+read-only review and its targeted prefetch confirmation found no actionable
+defects. The [qualification packet](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-qualification.json)
+records source, test and review boundaries. Large-reader throughput, earlier
+typed-reader regressions, mixed/file CSV performance, Linux and XLSX write gaps
+remain part of the broader performance work.

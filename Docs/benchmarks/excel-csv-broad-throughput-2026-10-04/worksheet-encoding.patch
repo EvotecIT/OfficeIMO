@@ -1,0 +1,456 @@
+diff --git a/OfficeIMO.Excel.Benchmarks/ExcelNumericXmlReadBenchmarks.cs b/OfficeIMO.Excel.Benchmarks/ExcelNumericXmlReadBenchmarks.cs
+index a4a4f8455..f8f0a03ae 100644
+--- a/OfficeIMO.Excel.Benchmarks/ExcelNumericXmlReadBenchmarks.cs
++++ b/OfficeIMO.Excel.Benchmarks/ExcelNumericXmlReadBenchmarks.cs
+@@ -31,6 +31,14 @@ public class ExcelNumericXmlReadBenchmarks {
+     [Params(false, true)]
+     public bool NumericAsDecimal { get; set; }
+ 
++    /// <summary>Uses UTF-16 to exercise the XML fallback; false supplies a UTF-8 control.</summary>
++    [Params(true)]
++    public bool Utf16 { get; set; } = true;
++
++    /// <summary>Enables worksheet prefetch for the public data-reader comparison.</summary>
++    [Params(false)]
++    public bool EnableWorksheetPrefetch { get; set; }
++
+     [Params(false, true)]
+     public bool InferDataTableColumnTypes { get; set; }
+ 
+@@ -75,8 +83,9 @@ public class ExcelNumericXmlReadBenchmarks {
+                     xml = System.Text.RegularExpressions.Regex.Replace(xml, "(<row) r=\"[0-9]+\"", "$1");
+                 }
+                 entry.Delete();
+-                using var writer = new StreamWriter(package.CreateEntry(name, CompressionLevel.Fastest).Open(), Encoding.Unicode);
+-                writer.Write(xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16"));
++                using var writer = new StreamWriter(package.CreateEntry(name, CompressionLevel.Fastest).Open(),
++                    Utf16 ? Encoding.Unicode : new UTF8Encoding(false));
++                writer.Write(Utf16 ? xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16") : xml);
+             }
+             Check(ReadCore(validate: true));
+         } catch {
+@@ -94,7 +103,11 @@ public class ExcelNumericXmlReadBenchmarks {
+     }
+ 
+     private long ReadCore(bool validate) {
+-        var options = new ExcelReadOptions { NumericAsDecimal = NumericAsDecimal, InferDataTableColumnTypes = InferDataTableColumnTypes };
++        var options = new ExcelReadOptions {
++            NumericAsDecimal = NumericAsDecimal,
++            InferDataTableColumnTypes = InferDataTableColumnTypes,
++            EnableWorksheetPrefetch = EnableWorksheetPrefetch
++        };
+         long result = 0;
+         int count = 0;
+         if (Api == "DataReader" || Api == "TypedDataReader") {
+diff --git a/OfficeIMO.Excel.Tests/Excel.DataReaderApi.SmallMetadata.cs b/OfficeIMO.Excel.Tests/Excel.DataReaderApi.SmallMetadata.cs
+index 4ee6dfa78..d9c1e60a3 100644
+--- a/OfficeIMO.Excel.Tests/Excel.DataReaderApi.SmallMetadata.cs
++++ b/OfficeIMO.Excel.Tests/Excel.DataReaderApi.SmallMetadata.cs
+@@ -86,6 +86,44 @@ public partial class Excel {
+ }
+ 
+ public class OpenXmlSmallPartTests {
++    [Theory]
++    [InlineData(false, false, false)]
++    [InlineData(false, true, false)]
++    [InlineData(true, false, false)]
++    [InlineData(true, true, false)]
++    [InlineData(true, false, true)]
++    [InlineData(true, true, true)]
++    public void PrefixFilteredPartReadsPreserveTheCompleteInput(bool prefetch, bool accept, bool filterPrefetch) {
++        byte[] content = Enumerable.Range(0, 4097).Select(index => (byte)(index % 251)).ToArray();
++        using var parts = OpenXmlPackagePartBufferReader.TryOpen(Package("xl/test.xml", content))!;
++        int calls = 0;
++        Func<byte[], int, bool> filter = (prefix, prefixLength) => {
++            calls++;
++            Assert.Equal(content.Take(256), prefix.Take(prefixLength));
++            return accept;
++        };
++        if (prefetch) parts.BeginPrefetch("xl/test.xml", content.Length, default, filterPrefetch ? filter : null);
++        bool accepted = parts.TryRead("xl/test.xml", content.Length, default, out byte[]? buffer, out int length,
++            filterPrefetch ? null : filter);
++        Assert.Equal(1, calls);
++        Assert.Equal(accept, accepted);
++        try {
++            if (accept) {
++                Assert.Equal(content.Length, length);
++                Assert.Equal(content, buffer!.Take(length));
++            } else {
++                Assert.Null(buffer);
++                Assert.Equal(0, length);
++            }
++        } finally {
++            OpenXmlPartBufferPool.Return(buffer);
++        }
++        // A declined read consumes neither the package's lifetime nor future reads.
++        Assert.True(parts.TryRead("xl/test.xml", content.Length, default, out buffer, out length));
++        try { Assert.Equal(content, buffer!.Take(length)); }
++        finally { OpenXmlPartBufferPool.Return(buffer); }
++    }
++
+     [Theory]
+     [InlineData(0)]
+     [InlineData(16)]
+diff --git a/OfficeIMO.Excel.Tests/Excel.Reader.Utf16Prefix.cs b/OfficeIMO.Excel.Tests/Excel.Reader.Utf16Prefix.cs
+new file mode 100644
+index 000000000..df926510b
+--- /dev/null
++++ b/OfficeIMO.Excel.Tests/Excel.Reader.Utf16Prefix.cs
+@@ -0,0 +1,68 @@
++using System.Text;
++using Xunit;
++
++namespace OfficeIMO.Excel.Tests;
++
++public partial class Excel {
++    [Theory]
++    [InlineData(false, false)]
++    [InlineData(false, true)]
++    [InlineData(true, false)]
++    [InlineData(true, true)]
++    public void Reader_Utf16PrefixDeclinePreservesTypedAndTabularValues(bool bigEndian, bool bom) {
++        string path = CreateCompactFastPathWorkbook();
++        var encoding = new UnicodeEncoding(bigEndian, bom);
++        const string text = "Żółć 漢字";
++        string xml = $$"""
++            <?xml version="1.0" encoding="utf-16"?>
++            <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:B3"/><sheetData>
++              <row r="1"><c r="A1" t="str"><v>Id</v></c><c r="B1" t="str"><v>Name</v></c></row>
++              <row r="2"><c r="A2"><v>42</v></c><c r="B2" t="str"><v>{{text}}</v></c></row>
++              <row r="3"><c r="A3"><v>43</v></c><c r="B3" t="str"><v/></c></row>
++            </sheetData></worksheet>
++            """;
++        try {
++            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", encoding.GetPreamble().Concat(encoding.GetBytes(xml)).ToArray());
++            using (var owner = ExcelDocumentReader.Open(path)) {
++                var sheet = owner.GetSheet("Data");
++                foreach (var rows in new[] {
++                    sheet.ReadObjects<Utf16PrefixRow>("A1:B3", ExcelExecutionMode.Sequential).ToArray(),
++                    sheet.ReadObjectsStream<Utf16PrefixRow>("A1:B3").ToArray()
++                }) {
++                    Assert.Equal(2, rows.Length);
++                    Assert.Equal(42, rows[0].Id);
++                    Assert.Equal(text, rows[0].Name);
++                    Assert.Equal(43, rows[1].Id);
++                    Assert.Equal(string.Empty, rows[1].Name);
++                }
++                using var range = sheet.ReadRangeAsDataReader("A1:B3", schemaSampleRows: 0);
++                Assert.True(range.Read());
++                Assert.Equal(42, range.GetInt32(0));
++                Assert.Equal(text, range.GetString(1));
++                Assert.True(range.Read());
++                Assert.Equal(43, range.GetInt32(0));
++                Assert.Equal(string.Empty, range.GetString(1));
++                Assert.False(range.Read());
++            }
++            foreach (bool prefetch in new[] { false, true }) {
++                using var reader = ExcelDocument.OpenDataReader(path,
++                    new ExcelReadOptions { EnableWorksheetPrefetch = prefetch });
++                Assert.Equal(2, reader.FieldCount);
++                Assert.Equal("Id", reader.GetName(0));
++                Assert.Equal("Name", reader.GetName(1));
++                Assert.True(reader.Read());
++                Assert.Equal(42, reader.GetInt32(0));
++                Assert.Equal(text, reader.GetString(1));
++                Assert.True(reader.Read());
++                Assert.Equal(43, reader.GetInt32(0));
++                Assert.Equal(string.Empty, reader.GetString(1));
++                Assert.False(reader.Read());
++            }
++        } finally { File.Delete(path); }
++    }
++
++    public sealed class Utf16PrefixRow {
++        public int Id { get; set; }
++        public string? Name { get; set; }
++    }
++}
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.Encoding.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.Encoding.cs
+new file mode 100644
+index 000000000..4a2853ace
+--- /dev/null
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.Encoding.cs
+@@ -0,0 +1,37 @@
++#nullable enable
++
++using System.Buffers;
++using System.Threading;
++
++namespace OfficeIMO.Excel {
++    internal sealed partial class ExcelSheetReader {
++        // The indexer already rejects NUL bytes in the first 256 bytes. Share
++        // that eligibility check with worksheet prefetch so both routes decline
++        // UTF-16/UTF-32 before renting a full buffer. Complete validation follows.
++        internal static bool CanBufferUtf8WorksheetPrefix(byte[] prefix, int length) =>
++            prefix.AsSpan(0, Math.Min(length, 256)).IndexOf((byte)0) < 0;
++
++        private sealed partial class ExcelUtf8RangeRowSource {
++            private static bool TryReadUtf8WorksheetPrefix(Stream stream, CancellationToken ct,
++                out byte[] prefix, out int length) {
++                prefix = ArrayPool<byte>.Shared.Rent(256);
++                length = 0;
++                bool transferred = false;
++                try {
++                    while (length < 256) {
++                        ct.ThrowIfCancellationRequested();
++                        int read = stream.Read(prefix, length, 256 - length);
++                        if (read == 0) break;
++                        length += read;
++                    }
++                    ct.ThrowIfCancellationRequested();
++                    if (!CanBufferUtf8WorksheetPrefix(prefix, length)) return false;
++                    transferred = true;
++                    return true;
++                } finally {
++                    if (!transferred) ArrayPool<byte>.Shared.Return(prefix, clearArray: true);
++                }
++            }
++        }
++    }
++}
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs
+index 888c1a54b..de8acd0ee 100644
+--- a/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs
+@@ -223,17 +223,17 @@ namespace OfficeIMO.Excel {
+                 // stream. Avoid inflating and growing a buffer only to discard it.
+                 if (owner._partBufferReader != null
+                     && owner._partBufferReader.TryGetLength(owner._worksheetPartName, out long declaredLength)
+-                    && declaredLength > MaximumBufferSize) {
+-                    buffer = null;
+-                    length = 0;
+-                    return false;
+-                }
+-                if (owner.TryReadWorksheetPartBuffer(
+-                        MaximumBufferSize,
+-                        ct,
+-                        out buffer,
+-                        out length)) {
+-                    return true;
++                    && declaredLength >= 0) {
++                    if (declaredLength > MaximumBufferSize) {
++                        buffer = null;
++                        length = 0;
++                        return false;
++                    }
++                    // Reject non-UTF-8 input before renting a worksheet-sized buffer.
++                    // Accepted input continues on the same ZIP stream and still receives
++                    // complete length, XML, and value validation before publication.
++                    return owner._partBufferReader.TryRead(owner._worksheetPartName,
++                        MaximumBufferSize, ct, out buffer, out length, CanBufferUtf8WorksheetPrefix);
+                 }
+ 
+                 owner.RequireSdkWorksheetPart();
+@@ -469,8 +469,16 @@ namespace OfficeIMO.Excel {
+             }
+ 
+             private static bool TryReadWorksheetBuffer(Stream stream, CancellationToken ct, out byte[]? buffer, out int length) {
+-                buffer = OpenXmlPartBufferPool.Rent(InitialBufferSize);
++                buffer = null;
+                 length = 0;
++                if (!TryReadUtf8WorksheetPrefix(stream, ct, out byte[] prefix, out int prefixLength)) return false;
++                try {
++                    buffer = OpenXmlPartBufferPool.Rent(InitialBufferSize);
++                    Buffer.BlockCopy(prefix, 0, buffer, 0, prefixLength);
++                    length = prefixLength;
++                } finally {
++                    ArrayPool<byte>.Shared.Return(prefix, clearArray: true);
++                }
+                 while (true) {
+                     if (ct.CanBeCanceled) {
+                         ct.ThrowIfCancellationRequested();
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.cs
+index 1bd1241ff..5dd612b8f 100644
+--- a/OfficeIMO.Excel/Read/ExcelSheetReader.cs
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.cs
+@@ -82,22 +82,6 @@ namespace OfficeIMO.Excel {
+             _hasWorksheetPartStreamContent = true;
+         }
+ 
+-        private bool TryReadWorksheetPartBuffer(
+-            int maximumBytes,
+-            CancellationToken cancellationToken,
+-            out byte[]? buffer,
+-            out int length) {
+-            buffer = null;
+-            length = 0;
+-            return _partBufferReader != null
+-                && _partBufferReader.TryRead(
+-                _worksheetPartName,
+-                maximumBytes,
+-                cancellationToken,
+-                out buffer,
+-                out length);
+-        }
+-
+         private void RequireSdkWorksheetPart() {
+             if (!_hasSdkWorksheetPart) {
+                 throw new XlsxTabularFastPathNotSupportedException(
+diff --git a/OfficeIMO.Excel/Read/OpenXmlPackagePartBufferReader.cs b/OfficeIMO.Excel/Read/OpenXmlPackagePartBufferReader.cs
+index 95f048c6f..b9976f377 100644
+--- a/OfficeIMO.Excel/Read/OpenXmlPackagePartBufferReader.cs
++++ b/OfficeIMO.Excel/Read/OpenXmlPackagePartBufferReader.cs
+@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
+         private readonly ZipArchive _archive;
+         private readonly Dictionary<string, ZipArchiveEntry> _entries;
+         private readonly object _prefetchSync = new object();
+-        private Task<PrefetchedPartBuffer>? _prefetchTask;
++        private Task<PrefetchedPartBuffer?>? _prefetchTask;
+         private CancellationTokenSource? _prefetchCancellation;
+         private string? _prefetchPartName;
+         private bool _disposed;
+@@ -105,7 +105,8 @@ namespace OfficeIMO.Excel {
+             int maximumBytes,
+             CancellationToken cancellationToken,
+             out byte[]? buffer,
+-            out int length) {
++            out int length,
++            Func<byte[], int, bool>? acceptPrefix = null) {
+             if (_disposed) {
+                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+             }
+@@ -121,7 +122,7 @@ namespace OfficeIMO.Excel {
+                 return false;
+             }
+ 
+-            Task<PrefetchedPartBuffer>? prefetchTask = null;
++            Task<PrefetchedPartBuffer?>? prefetchTask = null;
+             CancellationTokenSource? prefetchCancellation = null;
+             lock (_prefetchSync) {
+                 if (string.Equals(_prefetchPartName, normalizedPartName, StringComparison.OrdinalIgnoreCase)) {
+@@ -141,17 +142,22 @@ namespace OfficeIMO.Excel {
+                     prefetchCancellation?.Dispose();
+                 }
+             } else {
+-                prefetched = ReadPart(entry, normalizedPartName, cancellationToken);
++                prefetched = ReadPart(entry, normalizedPartName, cancellationToken, acceptPrefix);
+             }
+             if (prefetched == null) return false;
+-            prefetched.Detach(out buffer, out length);
+-            return true;
++            using (prefetched) {
++                // Prefetch may already have completed without the caller's prefix filter.
++                if (prefetchTask != null && acceptPrefix != null && !prefetched.AcceptsPrefix(acceptPrefix)) return false;
++                prefetched.Detach(out buffer, out length);
++                return true;
++            }
+         }
+ 
+         internal void BeginPrefetch(
+             string partName,
+             int maximumBytes,
+-            CancellationToken cancellationToken) {
++            CancellationToken cancellationToken,
++            Func<byte[], int, bool>? acceptPrefix = null) {
+             string normalizedPartName = NormalizePartName(partName);
+             if (_disposed) throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+             if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+@@ -171,27 +177,55 @@ namespace OfficeIMO.Excel {
+                 _prefetchCancellation = linked;
+                 _prefetchPartName = normalizedPartName;
+                 _prefetchTask = Task.Run(
+-                    () => ReadPart(entry, normalizedPartName, linked.Token),
++                    () => ReadPart(entry, normalizedPartName, linked.Token, acceptPrefix),
+                     CancellationToken.None);
+             }
+         }
+ 
+-        private static PrefetchedPartBuffer ReadPart(
++        private static PrefetchedPartBuffer? ReadPart(
+             ZipArchiveEntry entry,
+             string normalizedPartName,
+-            CancellationToken cancellationToken) {
++            CancellationToken cancellationToken,
++            Func<byte[], int, bool>? acceptPrefix = null) {
+             int length = checked((int)entry.Length);
+-            byte[] output = OpenXmlPartBufferPool.Rent(length);
++            byte[]? prefix = null;
+             try {
+                 using Stream input = entry.Open();
+-                ReadPartContents(input, output, length, normalizedPartName, cancellationToken);
+-                return new PrefetchedPartBuffer(output, length);
+-            } catch {
+-                OpenXmlPartBufferPool.Return(output);
+-                throw;
++                int prefixLength = acceptPrefix == null ? 0 : Math.Min(length, 256);
++                if (acceptPrefix != null) {
++                    prefix = ArrayPool<byte>.Shared.Rent(Math.Max(1, prefixLength));
++                    ReadPartPrefix(input, prefix, prefixLength, normalizedPartName, cancellationToken);
++                    if (!acceptPrefix(prefix, prefixLength)) return null;
++                }
++                byte[] output = OpenXmlPartBufferPool.Rent(length);
++                try {
++                    if (prefixLength != 0) Buffer.BlockCopy(prefix!, 0, output, 0, prefixLength);
++                    ReadPartContents(input, output, length, normalizedPartName, cancellationToken, prefixLength);
++                    return new PrefetchedPartBuffer(output, length);
++                } catch {
++                    OpenXmlPartBufferPool.Return(output);
++                    throw;
++                }
++            } finally {
++                if (prefix != null) ArrayPool<byte>.Shared.Return(prefix, clearArray: true);
+             }
+         }
+ 
++        private static void ReadPartPrefix(Stream input, byte[] prefix, int length,
++            string normalizedPartName, CancellationToken cancellationToken) {
++            int offset = 0;
++            while (offset < length) {
++                cancellationToken.ThrowIfCancellationRequested();
++                int read = input.Read(prefix, offset, length - offset);
++                if (read == 0) {
++                    throw new EndOfStreamException(
++                        $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended within its {length}-byte prefix.");
++                }
++                offset += read;
++            }
++            cancellationToken.ThrowIfCancellationRequested();
++        }
++
+         internal bool ContainsPart(string partName) {
+             if (_disposed) {
+                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+@@ -250,8 +284,8 @@ namespace OfficeIMO.Excel {
+             byte[] output,
+             int length,
+             string normalizedPartName,
+-            CancellationToken cancellationToken) {
+-            int offset = 0;
++            CancellationToken cancellationToken,
++            int offset = 0) {
+             while (offset < length) {
+                 cancellationToken.ThrowIfCancellationRequested();
+                 int read = input.Read(output, offset, length - offset);
+@@ -359,7 +393,7 @@ namespace OfficeIMO.Excel {
+                 return;
+             }
+             _disposed = true;
+-            Task<PrefetchedPartBuffer>? prefetchTask;
++            Task<PrefetchedPartBuffer?>? prefetchTask;
+             CancellationTokenSource? prefetchCancellation;
+             lock (_prefetchSync) {
+                 prefetchTask = _prefetchTask;
+@@ -390,6 +424,9 @@ namespace OfficeIMO.Excel {
+ 
+             internal int Length { get; }
+ 
++            internal bool AcceptsPrefix(Func<byte[], int, bool> predicate) =>
++                predicate(_buffer ?? throw new ObjectDisposedException(nameof(PrefetchedPartBuffer)), Math.Min(Length, 256));
++
+             internal void Detach(out byte[] buffer, out int length) {
+                 buffer = _buffer ?? throw new ObjectDisposedException(nameof(PrefetchedPartBuffer));
+                 _buffer = null;
+diff --git a/OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs b/OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs
+index bafefa2c3..2ecdeaef4 100644
+--- a/OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs
++++ b/OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs
+@@ -112,7 +112,8 @@ namespace OfficeIMO.Excel {
+                 _prefetchedParts.BeginPrefetch(
+                     _prefetchedSheetPartName,
+                     MaximumPrefetchedWorksheetBytes,
+-                    options.CancellationToken);
++                    options.CancellationToken,
++                    ExcelSheetReader.CanBufferUtf8WorksheetPrefix);
+             }
+             int maximumPartBytes = options.MaxInputBytes > int.MaxValue
+                 ? int.MaxValue
