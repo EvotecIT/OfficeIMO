@@ -510,5 +510,408 @@
         ]
       }
     ]
+  },
+  "pageWindowControls": {
+    "sourceBehaviorChanged": false,
+    "independentProducer": "Published HtmlTinkerX3.0.3 session/GetPagePdfAsync; isolated test only.",
+    "cases": [
+      {
+        "case": "negative-forced-break",
+        "fixtureSha256": "ec7eb96c40e05995a1d9d4768203c935f88ffda288e4eb319ac4fabb2b227a4f",
+        "pdfSha256": "d5abca9a3410664f2dd9d160bb526d821e9ad6264d12ae5b5f58bf7a88957b64",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 12",
+            "rowCount": 12
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 13",
+            "lastRow": "Plain row 18",
+            "rowCount": 6
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 1,
+            "text": "Plain row 12",
+            "topPdfPt": 285.386707,
+            "bottomPdfPt": 298.792956
+          },
+          {
+            "page": 2,
+            "text": "Plain row 13",
+            "topPdfPt": 0.386719,
+            "bottomPdfPt": 13.792968
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 75.386716,
+            "bottomPdfPt": 88.792965
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 150.386712,
+            "bottomPdfPt": 163.792962
+          }
+        ]
+      },
+      {
+        "case": "negative-forced-early",
+        "fixtureSha256": "cd1ef071148078e66361073d72088fb81591cde8271f44eeae65f127b55dc09f",
+        "pdfSha256": "317008683b27a92b04ef524e400240f7cf31a11529843cb437d9a2cd301af072",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 09",
+            "rowCount": 9
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 10",
+            "lastRow": "Plain row 18",
+            "rowCount": 9
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 1,
+            "text": "Plain row 09",
+            "topPdfPt": 285.386707,
+            "bottomPdfPt": 298.792956
+          },
+          {
+            "page": 2,
+            "text": "Plain row 10",
+            "topPdfPt": 0.386719,
+            "bottomPdfPt": 13.792968
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 195.386711,
+            "bottomPdfPt": 208.79296
+          }
+        ]
+      },
+      {
+        "case": "negative-margins",
+        "fixtureSha256": "b799c9ef66ee366addda9caf538c6a865135e3aa5bf97ba191624839e8328687",
+        "pdfSha256": "5b04d2b995f300b5793a39d2ba46e4628fd7029ea21ce9712141921b170039d1",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 08",
+            "rowCount": 8
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 09",
+            "lastRow": "Plain row 18",
+            "rowCount": 10
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 150.386712,
+            "bottomPdfPt": 163.792962
+          },
+          {
+            "page": 1,
+            "text": "Plain row 08",
+            "topPdfPt": 255.386708,
+            "bottomPdfPt": 268.792958
+          },
+          {
+            "page": 2,
+            "text": "Plain row 09",
+            "topPdfPt": 30.386717,
+            "bottomPdfPt": 43.792967
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 165.386712,
+            "bottomPdfPt": 178.792961
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 240.386709,
+            "bottomPdfPt": 253.792958
+          }
+        ]
+      },
+      {
+        "case": "negative-varying-height",
+        "fixtureSha256": "0742e8dea4348c02d76300e4d4b940e871a5ed1178bb33dc8e4581ff733a1744",
+        "pdfSha256": "37de49940472b02393b92469ddcfb159d2488ed367e567ece335740519436549",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            450
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 12",
+            "rowCount": 12
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 13",
+            "lastRow": "Plain row 18",
+            "rowCount": 6
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 1,
+            "text": "Plain row 12",
+            "topPdfPt": 285.386707,
+            "bottomPdfPt": 298.792956
+          },
+          {
+            "page": 2,
+            "text": "Plain row 13",
+            "topPdfPt": 0.386719,
+            "bottomPdfPt": 13.792968
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 75.386716,
+            "bottomPdfPt": 88.792965
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 150.386712,
+            "bottomPdfPt": 163.792962
+          }
+        ]
+      },
+      {
+        "case": "positive-margins",
+        "fixtureSha256": "3ecded7836ffa71323647fea2757d9cec84c6cc06f04f9084a548d2db21b7ce1",
+        "pdfSha256": "9acca6b4a13ef1af408a364adacea58e4c8f9856e216904a479fa636de275840",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": null,
+            "lastRow": null,
+            "rowCount": 0
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 16",
+            "rowCount": 16
+          },
+          {
+            "page": 3,
+            "firstRow": "Plain row 17",
+            "lastRow": "Plain row 18",
+            "rowCount": 2
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 2,
+            "text": "Plain row 01",
+            "topPdfPt": 30.386717,
+            "bottomPdfPt": 43.792967
+          },
+          {
+            "page": 2,
+            "text": "Plain row 16",
+            "topPdfPt": 255.386708,
+            "bottomPdfPt": 268.792958
+          },
+          {
+            "page": 3,
+            "text": "Plain row 17",
+            "topPdfPt": 30.386717,
+            "bottomPdfPt": 43.792967
+          },
+          {
+            "page": 3,
+            "text": "Plain row 18",
+            "topPdfPt": 45.386717,
+            "bottomPdfPt": 58.792966
+          }
+        ]
+      }
+    ],
+    "interpretation": [
+      "A negative offset recovers later normal-flow lines on the preceding physical page; margins and varying content heights define different windows.",
+      "A positive offset can require an extra physical paint page while the following sibling stays at its unshifted flow location and overlaps authored text.",
+      "Forced early break at paragraph6 changes the unused-flow region: page1 paints rows01-09 and page2 rows10-18. The original paragraph9 forced control coincided with the natural boundary and is not decisive.",
+      "Keep source-owned clipping, link/tag identity and normal-flow advancement; resetting relative offsets or mapping paint by consumed flow length alone cannot satisfy these independent observations."
+    ],
+    "retained": "Ignore/MasterConvergenceQualification/relative-fragment-qualification-d79651444/page-window-browser",
+    "implementationStillOpen": true,
+    "fullGeometryReceiptSha256": "8a15ae9c5bbeea27081ef470de241111d3812b43e5f4334a2e554fa90068c1b8",
+    "currentOfficeIMO": {
+      "sourceCommit": "b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+      "cases": [
+        {
+          "case": "negative-forced-early",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 06",
+            "Plain row 07",
+            "Plain row 08",
+            "Plain row 09"
+          ],
+          "duplicate": []
+        },
+        {
+          "case": "negative-margins",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 05",
+            "Plain row 06"
+          ],
+          "duplicate": []
+        },
+        {
+          "case": "negative-varying-height",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 09",
+            "Plain row 10",
+            "Plain row 11",
+            "Plain row 12"
+          ],
+          "duplicate": []
+        },
+        {
+          "case": "positive-margins",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 03",
+            "Plain row 04"
+          ],
+          "duplicate": []
+        }
+      ],
+      "receiptSha256": "30c6357d15e3db038420605330281e8e44c7fe3e3d42b7b5c9430a5fe6d817ff",
+      "scope": "Independent relative-offset reproduction on the qualified grid source; no relative behavior change. Native PDF/scene proof retained."
+    },
+    "nextBoundedImplementation": "Engine-owned relative paint projection must map shifted paint across resolved physical content windows while retaining flow-fragment advancement and unused regions from authored breaks. Start with the simple positive/negative block fixtures, then nested clip/link/semantic ownership and kept-column controls; no post-PDF overlay or offset reset."
   }
 }
