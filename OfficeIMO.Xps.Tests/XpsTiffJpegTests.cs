@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegChroma16", 0, 0)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegChroma16", 0, 0)]
     [InlineData(XpsFormat.Xps, "TiffJpegLossless16", 35, 19)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegLossless16", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegLossless", 35, 19)]
@@ -33,6 +35,7 @@ public sealed class XpsTiffJpegTests {
         bool hasAlphaCorpus = folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || folder == "TiffJpegLossless16";
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
+            if (folder == "TiffJpegChroma16") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); fields[0] += ".tif"; }
             if (folder == "TiffExtraSamples") { width = int.Parse(fields[5]); height = int.Parse(fields[6]); }
             if (folder == "TiffJpegCosited") { width = int.Parse(fields[7]); height = int.Parse(fields[8]); }
             var document = XpsDocument.Create(format);

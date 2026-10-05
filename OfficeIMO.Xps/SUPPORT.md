@@ -150,8 +150,17 @@ sixteen-bit reference TIFFs. LibTIFF 4.7.2 rejects the compressed sixteen-bit
 streams as an unsupported JPEG precision, so full-file independent TIFF decoding
 remains unqualified. Sixteen specification-authored subsampled JPEG edge cases
 also agree with libjpeg-turbo decoding; twelve have compatible TIFF wrappers.
-Those edge cases use constant samples; varying-color sixteen-bit subsampling
-still lacks independent reference evidence.
+The [varying-color corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChroma16/README.md)
+adds 48 specification-authored TIFFs with 2×1/2×2/4×2 subsampling, centered/cosited
+positioning, both byte orders, chunky/separate planes and partial strips/tiles.
+Libjpeg-turbo verifies native samples; Pillow floating-point interpolation provides
+an independent chroma reference. All 11,934 retained JPEG component samples per
+quality mode and 4,848 TIFF pixels agree exactly. This qualifies reconstruction
+against independent decode/interpolation operations, not independent full-file
+TIFF consumption or an independent producer. The 96 XPS/OpenXPS exports cover
+9,696 pixel-center probes per route; MuPDF PDF/SVG output differs by at most
+2/255. GhostXPS opens every file but still differs by up to 255/255, including
+blank output.
 Standalone JPEG output projects components to the public eight-bit raster buffer;
 TIFF retains native words until its color and alpha operations are complete. Both dialects
 produce 1,120 light/dark exports with 744,800 pixel-center probes per route.

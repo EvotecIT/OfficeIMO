@@ -1,0 +1,4 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <jpeglib.h>
+int main(int argc,char**argv){if(argc!=4)return 2;FILE*f=fopen(argv[1],"rb");if(!f)return 3;struct jpeg_decompress_struct d;struct jpeg_error_mgr e;d.err=jpeg_std_error(&e);jpeg_create_decompress(&d);jpeg_stdio_src(&d,f);jpeg_read_header(&d,TRUE);d.jpeg_color_space=JCS_UNKNOWN;d.out_color_space=JCS_UNKNOWN;d.do_fancy_upsampling=atoi(argv[3]);jpeg_start_decompress(&d);FILE*out=fopen(argv[2],"wb");J16SAMPROW row=malloc(d.output_width*d.output_components*sizeof(J16SAMPLE));while(d.output_scanline<d.output_height){jpeg16_read_scanlines(&d,&row,1);for(int i=0;i<d.output_width*d.output_components;i++){fputc(row[i]&255,out);fputc(row[i]>>8,out);}}jpeg_finish_decompress(&d);jpeg_destroy_decompress(&d);free(row);fclose(f);fclose(out);return 0;}
