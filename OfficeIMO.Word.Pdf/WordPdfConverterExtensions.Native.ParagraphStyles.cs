@@ -199,8 +199,11 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphStyleDefaults styleDefaults,
             NativeTableRunStyleDefaults tableRunStyleDefaults = default,
             NativeFontMap? nativeFontMap = null) {
+            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
             double lineHeight = ResolveNativeWordSingleLineHeight(
                 nativeFontMap,
+                ResolveNativeRunFontsFamily(paragraph._document, markFonts),
                 paragraph.FontFamily,
                 paragraph.FontFamilyHighAnsi,
                 paragraph.FontFamilyEastAsia,
@@ -208,7 +211,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults.FontFamily,
                 tableRunStyleDefaults.FontFamily,
                 nativeDefaults.FontFamily);
-            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+            foreach (WordParagraph run in runs) {
                 if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
                     continue;
                 }

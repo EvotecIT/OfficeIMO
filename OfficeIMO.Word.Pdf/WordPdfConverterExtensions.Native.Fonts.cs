@@ -189,6 +189,10 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
+        private static W.RunFonts? GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
+            runs.Any(run => !run.IsImage && !string.IsNullOrWhiteSpace(run.Text))
+                ? null : paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.RunFonts>();
+
         private static void RegisterNativeThemeStyleFonts(
             WordDocument document,
             PdfCore.PdfOptions pdfOptions,

@@ -10,6 +10,39 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_EmptyParagraphUsesItsMarkFontMetrics(bool nativeDoc) {
+        const string markFamily = "OfficeIMO Tall Paragraph Mark";
+        using WordDocument source = WordDocument.Create();
+        var first = source.AddParagraph("A");
+        var blank = source.AddParagraph();
+        var last = source.AddParagraph("B");
+        foreach (var paragraph in new[] { first, blank, last }) {
+            paragraph.LineSpacingPoints = 20;
+            paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            foreach (Run run in paragraph._paragraph.Descendants<Run>())
+                (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
+        }
+        blank._paragraph.RemoveAllChildren<Run>();
+        blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
+            new RunFonts { Ascii = markFamily, HighAnsi = markFamily }, new FontSize { Val = "64" });
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
+        var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        options.EmbedStandardFont(PdfStandardFont.Helvetica,
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Portable-Regular");
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(markFamily, CreateFontWithLineMetrics(1200, -300, ' ')));
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
+        }));
+        var letters = pdf.GetPage(1).Letters;
+        // The visible line advances by 20pt; the 32pt mark uses its own 1.5-em font box (48pt).
+        Assert.Equal(68D, Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y -
+            Assert.Single(letters, letter => letter.Value == "B").StartBaseLine.Y, 3);
+    }
+
+    [Theory]
     [InlineData(false, false, false, 52D)]
     [InlineData(false, false, true, 40D)]
     [InlineData(false, true, false, 52D)]
