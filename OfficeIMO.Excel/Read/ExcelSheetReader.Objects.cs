@@ -52,16 +52,32 @@ namespace OfficeIMO.Excel {
                 policy.ReportDecision("ReadObjectsAs", workload, actual);
                 decisionReported = true;
             }
-            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
-                if (_opt.CellValueConverter == null
-                    && _opt.TypeConverter == null
-                    && ShouldAttemptUtf8Range(r1, r2)
-                    && RangeReachesDeclaredWorksheetEnd(r2)
-                    && TryReadObjectsFromUtf8Materialized<T>(a1Range, r1, c1, r2, c2, cols, ct, out var utf8Rows)) {
-                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
-                    return utf8Rows;
-                }
+            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
+                && _opt.CellValueConverter == null
+                && _opt.TypeConverter == null
+                && RangeReachesDeclaredWorksheetEnd(r2)
+                && TryReadObjectsFromUtf8Materialized<T>(a1Range, r1, c1, r2, c2, cols, ct, out var utf8Rows)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                return utf8Rows;
+            }
 
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Parallel
+                && TryReadObjectsParallelFast<T>(a1Range, ct, out var qualifiedParallelRows)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Parallel);
+                return qualifiedParallelRows;
+            }
+
+            // Qualify row order before invoking converters or property setters.
+            // A later row fragment can replace an earlier value completely.
+            bool ordered = CanUseTypedObjectXmlReader()
+                ? RowsAreSortedWithinRangeXmlFast(r1, r2, ct)
+                : RowsAreSortedWithinRange(r1, r2, ct);
+            if (!ordered) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                return ReadObjectsStreamBufferedIterator<T>(a1Range, r1, c1, r2, c2, cols, ct, enforcePendingLimit: false).ToList();
+            }
+
+            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
                 if (ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
                     && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
                     ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
@@ -157,7 +173,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 var cell = rawCells[i];
-                if (cell.Row <= r1 || cell.TypedValue is null) {
+                if (cell.Row <= r1) {
                     continue;
                 }
 
@@ -172,7 +188,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                object? converted = TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
+                object? converted = cell.TypedValue is null ? null : TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
 
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
@@ -200,13 +216,14 @@ namespace OfficeIMO.Excel {
 
             IDataReader? dataReader = null;
             try {
-                dataReader = ReadRangeAsDataReader(
+                dataReader = ReadRangeAsDataReaderCore(
                     a1Range,
                     headersInFirstRow: true,
                     chunkRows,
                     schemaSampleRows: 0,
                     OfficeIMO.Excel.ExcelExecutionMode.Sequential,
-                    ct);
+                    ct,
+                    trackCellPresence: true);
                 if (dataReader is not DbDataReader dbDataReader) return false;
 
                 string[] headers = new string[dbDataReader.FieldCount];
@@ -242,6 +259,7 @@ namespace OfficeIMO.Excel {
                 if (binding == null) continue;
 
                 object? value = values[ordinal];
+                if (ReferenceEquals(value, MissingTypedCell)) continue;
                 if (value == null || value == DBNull.Value) {
                     if (binding.IsNullable) binding.SetValue(target, null);
                     continue;
@@ -262,10 +280,17 @@ namespace OfficeIMO.Excel {
                 TypedPropertyBinding<T>? binding = bindings[ordinal];
                 if (binding != null) {
                     object? value = DataReaderMappingValue.Read(reader, ordinal, binding.DestinationType);
+                    if ((value == null || value == DBNull.Value) && (reader is ExcelXmlRangeDataReader xml && !xml.IsCellPresent(ordinal)
+                        || reader is ExcelRangeDataReader chunked && !chunked.IsCellPresent(ordinal))) {
+                        values[ordinal] = MissingTypedCell;
+                        continue;
+                    }
                     values[ordinal] = value is DataReaderMappingValue numeric ? numeric.Numeric : value;
                 }
             }
         }
+
+        private static readonly object MissingTypedCell = new object();
 
         private bool TryReadObjectsFromXmlMaterialized<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,

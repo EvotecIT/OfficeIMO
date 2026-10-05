@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel {
             private readonly int _lastColumn;
             private readonly int _fieldCount;
             private readonly long _maximumBufferedCells;
+            private readonly bool _trackCellPresence;
             private readonly CancellationToken _ct;
             private CancellationToken _activeReadCancellationToken;
             private readonly CultureInfo _culture;
@@ -42,6 +43,8 @@ namespace OfficeIMO.Excel {
             private readonly object?[] _blankRow;
             private readonly bool _hasRows;
             private Dictionary<int, object?[]>? _bufferedRows;
+            private Dictionary<int, bool[]>? _bufferedCellPresence;
+            private bool[]? _currentCellPresence;
             private Dictionary<string, int>? _ordinals;
             private object?[]? _currentRow;
             private int _nextLogicalRow;
@@ -70,7 +73,8 @@ namespace OfficeIMO.Excel {
                 ExcelReadOptions options,
                 CancellationToken ct,
                 ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
-                int utf8SourceFirstColumn = 0) {
+                int utf8SourceFirstColumn = 0,
+                bool trackCellPresence = false) {
                 _owner = owner;
                 _firstRow = firstRow;
                 _lastRow = lastRow;
@@ -78,6 +82,7 @@ namespace OfficeIMO.Excel {
                 _lastColumn = lastColumn;
                 _fieldCount = fieldCount;
                 _maximumBufferedCells = options.MaxDataReaderBufferedCells;
+                _trackCellPresence = trackCellPresence;
                 _ct = ct;
                 _activeReadCancellationToken = ct;
                 _culture = options.Culture;
@@ -106,6 +111,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 try {
+                    if (_trackCellPresence && _utf8Source == null) {
+                        _currentCellPresence = new bool[fieldCount];
+                    }
                     // XML rows may recur after a dense prefix. Establish ordering before
                     // publishing any values; unsorted input uses the existing cell budget.
                     if (_utf8Source == null && !owner.RowsAreSortedWithinRangeXmlFast(firstRow, lastRow, ct)) {
@@ -342,6 +350,8 @@ namespace OfficeIMO.Excel {
 
                 _closed = true;
                 _currentRow = null;
+                _currentCellPresence = null;
+                _bufferedCellPresence?.Clear();
                 _utf8Source?.Dispose();
                 _reader?.Dispose();
                 if (!ReferenceEquals(_stream, Stream.Null)) {
@@ -369,6 +379,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 base.Dispose(disposing);
+            }
+
+            internal bool IsCellPresent(int ordinal) {
+                if (_currentRowIsBlank) return false;
+                if (_utf8Source != null) return _utf8Source.IsCellPresent(ordinal + _utf8SourceOrdinalOffset);
+                EnsureCurrentValue(ordinal);
+                return _currentCellPresence == null || _currentCellPresence[ordinal];
             }
 
             private bool TryReadLogicalRow(out object?[] row) {
@@ -462,6 +479,10 @@ namespace OfficeIMO.Excel {
                 if (_bufferedRows != null && _bufferedRows.TryGetValue(_nextLogicalRow, out var bufferedRow)) {
                     row = bufferedRow;
                     _bufferedRows.Remove(_nextLogicalRow);
+                    if (_bufferedCellPresence != null) {
+                        _currentCellPresence = _bufferedCellPresence[_nextLogicalRow];
+                        _bufferedCellPresence.Remove(_nextLogicalRow);
+                    }
                     _currentRowIsBlank = false;
                 } else {
                     row = _blankRow;
@@ -477,6 +498,7 @@ namespace OfficeIMO.Excel {
 
             private void BeginPendingRow() {
                 Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
+                if (_currentCellPresence != null) Array.Clear(_currentCellPresence, 0, _currentCellPresence.Length);
                 _currentRow = _currentValues;
                 _currentRowDepth = _reader.Depth;
                 _currentNextCellColumnIndex = 1;
@@ -574,6 +596,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     string? cellType = ReadXmlCellTypeAttribute(_reader);
+                    if (_currentCellPresence != null) _currentCellPresence[columnOffset] = true;
                     if (columnIndex == targetColumn
                         && targetKind != XmlDataReaderTargetKind.None
                         && _owner.TryReadXmlCellPrimitiveForDataReader(
@@ -650,6 +673,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
+                        if (_currentCellPresence != null) _currentCellPresence[columnOffset] = true;
                         _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, ReadXmlCellTypeAttribute(_reader), preserveDateSerial: true);
                         _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
                         _currentValueLoaded[columnOffset] = true;
@@ -671,8 +695,9 @@ namespace OfficeIMO.Excel {
 
             private void BufferRemainingRows() {
                 _bufferedRows ??= new Dictionary<int, object?[]>();
+                if (_trackCellPresence) _bufferedCellPresence ??= new Dictionary<int, bool[]>();
                 if (_hasPendingRow) {
-                    StoreBufferedRow(_pendingRowIndex, ReadPendingRowValues());
+                    ReadBufferedRowValues(_pendingRowIndex);
                     _hasPendingRow = false;
                 }
 
@@ -699,49 +724,37 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var values = new object?[_fieldCount];
-                    var rowSlot = new[] { values };
-                    _owner.ReadXmlRowIntoChunk(
-                        _reader,
-                        rowSlot,
-                        rowIndex,
-                        rowIndex,
-                        _firstColumn,
-                        _lastColumn,
-                        _activeReadCancellationToken,
-                        preserveDateSerial: true);
-                    StoreBufferedRow(rowIndex, values);
+                    ReadBufferedRowValues(rowIndex);
                 }
             }
 
-            private object?[] ReadPendingRowValues() {
-                var values = new object?[_fieldCount];
-                var rowSlot = new[] { values };
-                _owner.ReadXmlRowIntoChunk(
-                    _reader,
-                    rowSlot,
-                    _pendingRowIndex,
-                    _pendingRowIndex,
-                    _firstColumn,
-                    _lastColumn,
-                    _activeReadCancellationToken,
-                    preserveDateSerial: true);
-                return values;
-            }
-
-            private void StoreBufferedRow(int rowIndex, object?[] values) {
+            private void ReadBufferedRowValues(int rowIndex) {
                 if (rowIndex < _nextLogicalRow || rowIndex > _lastRow) {
+                    SkipXmlElement(_reader, "row");
                     return;
                 }
 
-                if (!_bufferedRows!.ContainsKey(rowIndex) &&
-                    (long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
-                    throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                if (!_bufferedRows!.TryGetValue(rowIndex, out object?[]? values)) {
+                    if ((long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
+                        throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                    }
+                    values = new object?[_fieldCount];
+                    _bufferedRows.Add(rowIndex, values);
+                    _bufferedCellPresence?.Add(rowIndex, new bool[_fieldCount]);
                 }
 
-                var copy = new object?[_fieldCount];
-                Array.Copy(values, copy, Math.Min(values.Length, copy.Length));
-                _bufferedRows![rowIndex] = copy;
+                // Apply only the present cells to the logical row. A new empty
+                // array for every fragment would discard earlier omitted cells.
+                _owner.ReadXmlRowIntoChunk(
+                    _reader,
+                    new[] { values },
+                    rowIndex,
+                    rowIndex,
+                    _firstColumn,
+                    _lastColumn,
+                    _activeReadCancellationToken,
+                    preserveDateSerial: true,
+                    cellPresence: _bufferedCellPresence?[rowIndex]);
             }
 
             private bool IsCurrentStreamingRow => ReferenceEquals(_currentRow, _currentValues);

@@ -340,6 +340,11 @@ namespace OfficeIMO.Excel {
                 return lastRow > 0 && lastColumn > 0;
             }
 
+            internal bool IsCellPresent(int ordinal) {
+                EnsureNotDisposed();
+                return (Utf8CellKind)(_cellKinds![_currentRowOffset + ordinal] & CellKindMask) != Utf8CellKind.Missing;
+            }
+
             internal void ReadValue(
                 int ordinal,
                 XmlDataReaderTargetKind targetKind,

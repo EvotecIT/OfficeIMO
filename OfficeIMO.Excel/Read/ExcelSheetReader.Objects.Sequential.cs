@@ -184,62 +184,8 @@ namespace OfficeIMO.Excel {
             int rows,
             int cols,
             CancellationToken ct) where T : new() {
-            bool canCancel = ct.CanBeCanceled;
-            if (canCancel) {
-                ct.ThrowIfCancellationRequested();
-            }
-
-            TypedPropertyBinding<T>?[]? bindings = null;
-            foreach (var row in EnumerateWorksheetRows(ct)) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                int rowIndex = checked((int)row.RowIndex!.Value);
-                if (rowIndex != r1) {
-                    continue;
-                }
-
-                bindings = CreateTypedHeaderBindingsFromRow<T>(row, a1Range, c1, c2, cols);
-                break;
-            }
-
-            bindings ??= CreateTypedHeaderBindingsFromMissingRow<T>(a1Range, cols);
-
-            int dataRowCount = rows - 1;
-            var result = new List<T>(dataRowCount);
-            for (int r = 0; r < dataRowCount; r++) {
-                if (canCancel && (r & 1023) == 0) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                result.Add(new T());
-            }
-
-            int convertedCells = 0;
-            foreach (var row in EnumerateWorksheetRows(ct)) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                int rowIndex = checked((int)row.RowIndex!.Value);
-                if (rowIndex <= r1) {
-                    continue;
-                }
-
-                if (rowIndex > r2) {
-                    continue;
-                }
-
-                int resultIndex = rowIndex - r1 - 1;
-                if ((uint)resultIndex >= (uint)result.Count) {
-                    continue;
-                }
-
-                FillTypedObjectFromRow(row, c1, c2, bindings, result[resultIndex], ct, ref convertedCells);
-            }
-
-            return result;
+            return ReadObjectsStreamBufferedIterator<T>(
+                a1Range, r1, c1, r2, c2, cols, ct, enforcePendingLimit: false).ToList();
         }
 
         private TypedPropertyBinding<T>?[] CreateTypedHeaderBindingsFromRow<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

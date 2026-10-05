@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range, int r1, int c1, int r2, int c2, int cols, CancellationToken ct, out List<T> results) where T : new() {
             results = [];
-            if (!TryCreateTypedObjectsUtf8Source<T>(a1Range, r1, c1, r2, c2, cols, ct, out var source, out var bindings)) {
+            if (!TryCreateTypedObjectsUtf8Source<T>(a1Range, r1, c1, r2, c2, cols, ct, out var source, out var bindings, allowSmallRange: true)) {
                 return false;
             }
             using (source) {
@@ -43,10 +43,11 @@ namespace OfficeIMO.Excel {
         private bool TryCreateTypedObjectsUtf8Source<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range, int r1, int c1, int r2, int c2, int cols, CancellationToken ct,
-            out ExcelUtf8RangeRowSource? source, out TypedPropertyBinding<T>?[]? bindings) where T : new() {
+            out ExcelUtf8RangeRowSource? source, out TypedPropertyBinding<T>?[]? bindings,
+            bool allowSmallRange = false) where T : new() {
             source = null;
             bindings = null;
-            if (!ShouldAttemptUtf8Range(r1, r2)
+            if ((!allowSmallRange && !ShouldAttemptUtf8Range(r1, r2))
                 || !RangeReachesDeclaredWorksheetEnd(r2)
                 || !ExcelUtf8RangeRowSource.TryCreate(this, r1, r2, c1, cols, ct, out source)) {
                 return false;
@@ -166,6 +167,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (objectValue == null) {
+                if (binding.IsNullable && source.IsCellPresent(columnOffset)) binding.SetValue(target, null);
                 return;
             }
 
