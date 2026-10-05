@@ -41,11 +41,13 @@ Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Rtf`.
 
 Structurally supported ARIA tables become native editable RTF tables, including spans bounded to their row groups. Unsupported structures remain in text flow with an approximation diagnostic. Source-node/depth limits are checked before synthetic native elements are introduced. Active embedded stylesheets and applicable external stylesheet links that the RTF importer does not apply are reported as loss; inline styling remains available.
 
-Unstyled images larger than the effective document or section text area are reduced
+Ordinary HTML tables with unspecified column widths fit their default grid to the page text area or containing table cell. Authored preferred widths and private RTF round-trip boundaries are preserved.
+
+Unstyled images larger than the effective document, section, or table-cell text area are reduced
 proportionally, using embedded image DPI (96 DPI when absent). The default text area
 is 6 inches wide by 9 inches high. Explicit image
-dimensions are preserved. The result reports `HtmlRtfImageFittedToPage` when fitting
-changes an image. Imported HTML table rows stay together; explicit RTF round-trip
+dimensions are preserved. The result reports `HtmlRtfImageFittedToPage` or
+`HtmlRtfImageFittedToCell` when fitting changes an image. Imported HTML table rows stay together; explicit RTF round-trip
 metadata preserves rows that allow splitting, including identifiable older exports.
 Legacy fragments with no RTF metadata or document wrapper follow ordinary HTML row defaults.
 
