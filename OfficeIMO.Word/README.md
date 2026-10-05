@@ -124,6 +124,8 @@ int firstWidth = section.ColumnDefinitions[0].WidthTwips;
 
 The property takes a snapshot and synchronizes the column count. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing. The fluent section builder accepts the same definitions through `Columns(definitions)`.
 
+Omit `SpaceAfterTwips` to use `ColumnsSpace`, or the default 720-twip gap when section spacing is absent. DOCX retains the omitted value. Native DOC writes the effective gap explicitly, preserving its layout after save and reload.
+
 DOCX preserves these settings. Native DOC preserves indexed widths and individual gaps, with up to 44 columns, widths from 718 through 32767 twips and gaps from zero through 32767 twips. Saving a layout outside those native limits fails before creating output. Invalid or incomplete native indexed records produce an import diagnostic. PDF column flow is described separately in the [conversion contract](../OfficeIMO.Word.Pdf/README.md).
 
 ## Paragraph tab stops

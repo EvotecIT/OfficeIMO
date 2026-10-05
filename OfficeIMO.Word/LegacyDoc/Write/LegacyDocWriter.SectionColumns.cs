@@ -21,7 +21,7 @@ internal static partial class LegacyDocWriter {
         var definitions = new List<WordSectionColumn>();
         foreach (Column column in explicitColumns) {
             int width = ReadTwipValue(column.Width, 0, "explicit section column width") ?? 0;
-            int gap = ReadColumnSpacing(column.Space, 0) ?? 0;
+            int gap = ReadColumnSpacing(column.Space, columnSpacing ?? DefaultColumnSpaceTwips) ?? DefaultColumnSpaceTwips;
             if (width < LegacyDocSectionColumns.MinimumWidth || width > LegacyDocSectionColumns.MaximumDimension ||
                 gap > LegacyDocSectionColumns.MaximumDimension)
                 throw new NotSupportedException("Native DOC explicit columns require widths from 718 through 32767 twips and gaps from zero through 32767 twips.");

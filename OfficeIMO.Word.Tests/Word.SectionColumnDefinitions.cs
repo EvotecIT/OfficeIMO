@@ -9,6 +9,27 @@ public partial class Word {
     [Theory]
     [InlineData(".doc")]
     [InlineData(".docx")]
+    public void LegacyDoc_SectionColumnDefinitions_OmittedIndividualGapRetainsItsEffectiveSectionDefault(string extension) {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
+        try {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Unequal columns with inherited gap");
+            document.Sections[0].ColumnsSpace = 720;
+            document.Sections[0].ColumnDefinitions = new[] { new WordSectionColumn(3000), new WordSectionColumn(4000, 0) };
+            document.Save(path);
+            Assert.Null(document.Sections[0].ColumnDefinitions[0].SpaceAfterTwips);
+            using WordDocument reloaded = WordDocument.Load(path);
+            Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
+            Assert.Equal(new[] { 3000, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
+            Assert.Equal(720, reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips ?? reloaded.Sections[0].ColumnsSpace);
+            Assert.Equal(0, reloaded.Sections[0].ColumnDefinitions[1].SpaceAfterTwips);
+            if (extension == ".docx") Assert.Null(reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips);
+        } finally { DeleteIfExists(path); }
+    }
+
+    [Theory]
+    [InlineData(".doc")]
+    [InlineData(".docx")]
     public void SectionColumnDefinitions_SaveAndReloadPreservesWidthsAndIndividualGaps(string extension) {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
         try {
