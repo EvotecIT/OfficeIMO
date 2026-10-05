@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<RichSeg> segments, PdfStandardFont baseFont, double fontSize,
         PdfOptions? options, PdfLineSpacing? spacing) {
         double fallbackAscent = GetAscenderForOptions(baseFont, fontSize, options);
-        if (spacing?.IsExact == true) return fallbackAscent;
+        if (spacing?.IsExact == true) return spacing.FixedLineBoxBaselineOffset ?? fallbackAscent;
 
         double ascent = 0D;
         double descent = 0D;

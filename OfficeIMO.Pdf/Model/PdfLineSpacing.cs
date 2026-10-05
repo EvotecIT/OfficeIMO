@@ -41,8 +41,22 @@ public sealed class PdfLineSpacing {
     // requested multiple, which changes advance but not that initial box.
     internal double? FontLineBoxMultiplier { get; private init; }
 
+    // Some document formats place exact-height text at a fixed point offset
+    // within the authored line box, independent of the visible run sizes.
+    internal double? FixedLineBoxBaselineOffset { get; private init; }
+
+    internal PdfLineSpacing WithFixedLineBoxBaseline(double baselineOffset) {
+        if (!IsExact || baselineOffset < 0D || double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset))
+            throw new System.ArgumentOutOfRangeException(nameof(baselineOffset), "A fixed line-box baseline requires exact spacing and a finite non-negative offset.");
+        return new(Rule, Value, NaturalMultiplier) {
+            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = baselineOffset
+        };
+    }
+
     internal PdfLineSpacing WithFontLineBoxBaseline(double naturalMultiplier) =>
-        new(Rule, Value, NaturalMultiplier) { FontLineBoxMultiplier = naturalMultiplier };
+        new(Rule, Value, NaturalMultiplier) {
+            FontLineBoxMultiplier = naturalMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset
+        };
 
     internal double GetAdvance(double fontSize) => Rule switch {
         PdfLineSpacingRule.Exact => Value,
