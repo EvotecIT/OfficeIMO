@@ -333,6 +333,34 @@ the final publication and review its content in representative readers.
 DOCX and Markdown composition and editable book projects belong to
 [`OfficeIMO.Workflows`](../OfficeIMO.Workflows/README.md#book-publishing).
 
+### Reflowable typography
+
+Choose a reusable baseline when importing a manuscript:
+
+```csharp
+var options = new EpubManuscriptOptions {
+    TypographyProfile = EpubTypographyProfile.Prose
+};
+```
+
+`Basic` preserves the existing minimal manuscript stylesheet. `Prose` adds paragraph
+spacing and indentation, heading break hints, and wrapping table cells. `Technical`
+adds table and code borders that inherit the text color, wrapping code, and relative
+monospace sizing. Both richer profiles use logical spacing and leave body font, body
+font size, text color, and background to the reader or publisher. They do not add
+fonts, fixed page widths, or `!important` declarations. Source CSS follows the baseline
+and remains subject to the normal cascade. `IncludeDefaultStyles = false` omits the
+baseline entirely.
+
+For authored chapters or a book project, reuse the same CSS through
+`EpubTypography.CreateStylesheet(EpubTypographyProfile.Technical)` with
+`AddStylesheet` or `BookProject.SetStylesheet`. These profiles are starting points,
+not guaranteed pagination or reader compatibility. Long table cells can overflow
+with the minimal `Basic` profile; use a richer profile or publisher CSS for those
+documents. Font embedding, vertical writing, and native reader behavior require
+separate qualification. The [opt-in fixture generator](../Build/Epub/README.md#typography-fixtures)
+produces publication bytes and browser previews for checking those boundaries.
+
 ## Edit and preserve a package
 
 ```csharp

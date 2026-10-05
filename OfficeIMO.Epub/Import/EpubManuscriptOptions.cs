@@ -18,6 +18,8 @@ public sealed class EpubManuscriptOptions {
     public EpubPublicationLoadOptions RetentionLimits { get; set; } = new EpubPublicationLoadOptions();
     /// <summary>Adds a small responsive stylesheet for reflowable images, tables and prose.</summary>
     public bool IncludeDefaultStyles { get; set; } = true;
+    /// <summary>Built-in CSS baseline used when IncludeDefaultStyles is true. Imported source styles follow it in cascade order.</summary>
+    public EpubTypographyProfile TypographyProfile { get; set; } = EpubTypographyProfile.Basic;
     /// <summary>Optional application resolver. Import never opens files or contacts the network implicitly.</summary>
     public HtmlRenderResourceResolver? ResourceResolver { get; set; }
     /// <summary>Maximum encoded bytes accepted for one manuscript resource.</summary>
@@ -29,7 +31,7 @@ public sealed class EpubManuscriptOptions {
     /// <summary>Creates an independent configuration snapshot for one publishing operation.</summary>
     public EpubManuscriptOptions Clone() => new EpubManuscriptOptions {
         Title = Title, Language = Language, Identifier = Identifier, Creator = Creator, ChapterHeadingLevel = ChapterHeadingLevel,
-        IncludeDefaultStyles = IncludeDefaultStyles, ResourceResolver = ResourceResolver, MaxResourceBytes = MaxResourceBytes,
+        IncludeDefaultStyles = IncludeDefaultStyles, TypographyProfile = TypographyProfile, ResourceResolver = ResourceResolver, MaxResourceBytes = MaxResourceBytes,
         MaxTotalResourceBytes = MaxTotalResourceBytes, MaxResourceCount = MaxResourceCount,
         RetentionLimits = RetentionLimits == null ? throw new InvalidOperationException("Retention limits are required.") : new EpubPublicationLoadOptions {
             MaxInputBytes = RetentionLimits.MaxInputBytes, MaxExpandedBytes = RetentionLimits.MaxExpandedBytes,

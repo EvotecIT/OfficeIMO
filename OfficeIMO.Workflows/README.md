@@ -63,7 +63,7 @@ var imported = await BookManuscriptImporter.ImportFileAsync("manuscript.md",
 BookProject project = BookProject.FromImport(imported);
 imported.Report.RequireNoLoss();
 project.RenameChapter(0, "Opening chapter");
-project.SetStylesheet("body{font-family:serif;line-height:1.6}");
+project.SetStylesheet(EpubTypography.CreateStylesheet(EpubTypographyProfile.Prose));
 await File.WriteAllBytesAsync("book.oibook", project.ToProjectBytes());
 BookProject reopened = BookProject.LoadProject(await File.ReadAllBytesAsync("book.oibook"));
 await File.WriteAllBytesAsync("book.epub", reopened.Export().Bytes);

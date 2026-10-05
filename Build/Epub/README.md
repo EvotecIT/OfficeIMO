@@ -41,3 +41,32 @@ Use a task-owned output location. Retain compact reports and decisive publicatio
 fixtures deliberately; remove superseded captured publications and downloaded tools
 when they are no longer needed. Source fixtures need producer, version and license
 provenance before entering the maintained corpus.
+
+## Typography fixtures
+
+The opt-in generator uses the current EPUB owner to create Basic, Prose, and
+Technical publications from one manuscript containing tables, code, long links,
+an accessible SVG, Arabic, and Japanese. It has no third-party test dependency and
+is outside the normal solution and shipped packages.
+
+```sh
+dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
+  /path/to/task-evidence/typography
+```
+
+Supply a new directory. The generator writes EPUB files, a manifest with SHA-256
+hashes, and expanded content with standards-mode HTML previews. The previews keep
+the generated content and profile stylesheet but add simulated reader CSS for
+light, dark, and enlarged text. Serve this directory on loopback when inspecting
+the preview paths listed in `manifest.json`; for example:
+
+```sh
+python3 -m http.server 8766 --bind 127.0.0.1 \
+  --directory /path/to/task-evidence/typography
+```
+
+Check narrow and wide widths, wrapping, direction, text enlargement, and inherited
+colors. Run the EPUB files through `validate_epub.py`, and use the same captured
+bytes for native reader checks. Browser previews do not reproduce EPUB pagination,
+reader preferences, font handling, or assistive-technology behavior. Retain their
+results separately from native reading-system acceptance.
