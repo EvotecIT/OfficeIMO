@@ -26,6 +26,9 @@ public class ExcelNumericXmlReadBenchmarks {
     [Params(false, true)]
     public bool NumericAsDecimal { get; set; }
 
+    [Params(false, true)]
+    public bool InferDataTableColumnTypes { get; set; }
+
     [Params("DataReader", "TypedDataReader", "Range", "UsedRange", "DataTable")]
     public string Api { get; set; } = "DataReader";
 
@@ -81,7 +84,7 @@ public class ExcelNumericXmlReadBenchmarks {
     }
 
     private long ReadCore(bool validate) {
-        var options = new ExcelReadOptions { NumericAsDecimal = NumericAsDecimal, InferDataTableColumnTypes = false };
+        var options = new ExcelReadOptions { NumericAsDecimal = NumericAsDecimal, InferDataTableColumnTypes = InferDataTableColumnTypes };
         long result = 0;
         int count = 0;
         if (Api == "DataReader" || Api == "TypedDataReader") {
