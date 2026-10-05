@@ -117,6 +117,17 @@ public partial class Word {
         Assert.Contains("Indexed section columns", result.Document.Paragraphs[0].Text);
     }
 
+    [Fact]
+    public void SectionColumnDefinitions_LoadIgnoresCachedColumnsBeyondTheActiveCount() {
+        using var result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(
+            LegacyDocTestBuilder.CreateIndexedSectionColumnDoc(false, "unused-cache")));
+        Assert.True(result.HasDocument);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "DOC-SEPX-INVALID");
+        Assert.Equal(new[] { 3000, 4000 }, result.Document!.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
+        Assert.Equal(new int?[] { 360, 0 }, result.Document.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfterTwips));
+        Assert.Equal(2, result.Document.Sections[0].ColumnCount);
+    }
+
     private static partial class LegacyDocTestBuilder {
         internal static byte[] CreateIndexedSectionColumnDoc(bool equalWidthOverride, string? fault = null) {
             const string text = "Indexed section columns\r";
@@ -138,6 +149,10 @@ public partial class Word {
             if (equalWidthOverride) grpprl.AddRange(new byte[] { 0x05, 0x30, 1 });
             if (fault == "invalid-index") Indexed(0xF203, 44, 2000);
             if (fault == "truncated") grpprl.AddRange(new byte[] { 0x03, 0xF2, 0, 0xB8 });
+            if (fault == "unused-cache") {
+                Indexed(0xF203, 2, 4000);
+                Indexed(0xF204, 2, 720);
+            }
             byte[] sepx = new byte[grpprl.Count + 2];
             sepx[0] = (byte)grpprl.Count;
             sepx[1] = (byte)(grpprl.Count >> 8);

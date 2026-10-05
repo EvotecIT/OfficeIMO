@@ -40,7 +40,9 @@ internal sealed class LegacyDocSectionColumns {
 
     internal IReadOnlyList<WordSectionColumn>? Build(int? columnCount, out string? warning) {
         int count = columnCount ?? 1;
-        if (!_evenlySpaced && (_widths.Count != count || _widths.Keys.Any(index => index >= count) || _spaces.Keys.Any(index => index >= count)))
+        // Word retains indexed dimensions for inactive columns when the active count changes.
+        // Only active columns need a width; cached dimensions still pass the operand checks above.
+        if (!_evenlySpaced && _warning == null && Enumerable.Range(0, count).Any(index => !_widths.ContainsKey(index)))
             _warning = "The native DOC section does not contain a complete unequal-column layout.";
         warning = _warning;
         if (_evenlySpaced || warning != null) return null;
