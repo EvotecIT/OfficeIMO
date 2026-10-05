@@ -52,6 +52,10 @@ internal static partial class PdfWriter {
                 double widthPercent = 100D / options.ColumnCount;
                 for (int columnIndex = 0; columnIndex < options.ColumnCount; columnIndex++) {
                     var column = new RowColumn(PdfColumnWidth.Percent(widthPercent));
+                    // Whole line boxes need not divide evenly into the balanced target.
+                    // Use the remaining physical capacity for the final column so a
+                    // fitting remainder does not create an otherwise unnecessary page.
+                    double columnTarget = columnIndex == options.ColumnCount - 1 ? availableHeight : target;
                     double consumed = 0D;
                     while (blockIndex < segmentEnd) {
                         IPdfBlock block = pendingBlocks[blockIndex];
@@ -61,7 +65,7 @@ internal static partial class PdfWriter {
                         }
 
                         double blockHeight = MeasureColumnBlock(block, columnWidth);
-                        double remainingTarget = target - consumed;
+                        double remainingTarget = columnTarget - consumed;
                         if (options.BalanceParagraphLines &&
                             block is RichParagraphBlock paragraph &&
                             blockHeight > remainingTarget + 0.001D &&
@@ -72,11 +76,11 @@ internal static partial class PdfWriter {
                             break;
                         }
 
-                        if (column.Blocks.Count > 0 && consumed + blockHeight > target + 0.001D) break;
+                        if (column.Blocks.Count > 0 && consumed + blockHeight > columnTarget + 0.001D) break;
                         column.AddBlock(block);
                         consumed += blockHeight;
                         blockIndex++;
-                        if (consumed >= target - 0.001D) break;
+                        if (consumed >= columnTarget - 0.001D) break;
                     }
                     row.AddColumn(column);
                 }
