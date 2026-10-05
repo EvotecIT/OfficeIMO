@@ -19,7 +19,10 @@ namespace OfficeIMO.Word.Pdf {
                         .WithFontLineBoxBaseline(naturalLineHeight);
                 return Rule == W.LineSpacingRuleValues.AtLeast
                     ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(Value.Value / 20D, naturalLineHeight).WithFontLineBoxBaseline(naturalLineHeight)
-                    : OfficeIMO.Pdf.PdfLineSpacing.Exactly(Value.Value / 20D);
+                    // Word's exact-height baseline is four fifths of the line
+                    // box in body, column and table exports, regardless of font.
+                    : OfficeIMO.Pdf.PdfLineSpacing.Exactly(Value.Value / 20D)
+                        .WithFixedLineBoxBaseline(Value.Value / 20D * .8D);
             }
 
             public double? Resolve(double fontSize, double naturalLineHeight) {
