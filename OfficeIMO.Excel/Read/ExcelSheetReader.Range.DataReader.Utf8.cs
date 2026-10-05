@@ -97,7 +97,8 @@ namespace OfficeIMO.Excel {
                 out int declaredFirstColumn) {
                 source = null;
                 declaredFirstColumn = 0;
-                if (owner._opt.CellValueConverter != null) {
+                if (owner._opt.CellValueConverter != null
+                    || ShouldSkipLargeUsedRangeBuffer(owner, ct)) {
                     return false;
                 }
 
