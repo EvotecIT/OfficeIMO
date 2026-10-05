@@ -95,7 +95,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(estimatedRows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -112,10 +111,6 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -141,10 +136,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
-                    seenRows.MarkSeen(rowIndex - r1);
-                    if (seenRows.AllRowsSeen) {
-                        break;
-                    }
                 }
 
                 if (populatedWindows == 0) {
@@ -205,9 +196,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(estimatedRows);
-                bool orderedRows = true;
-                int orderedRowsSeen = 0;
                 if (canCancel) {
                     while (reader.Read()) {
                         ct.ThrowIfCancellationRequested();
@@ -223,19 +211,12 @@ namespace OfficeIMO.Excel {
 
                         nextRowIndex = rowIndex + 1;
                         if (rowIndex < r1 || rowIndex > r2) {
-                            bool allRowsSeen = orderedRows ? orderedRowsSeen == estimatedRows : seenRows.AllRowsSeen;
-                            if (rowIndex > r2 && allRowsSeen) {
-                                break;
-                            }
-
                             SkipXmlElement(reader, "row");
                             continue;
                         }
 
                         int rowOffset = rowIndex - r1;
-                        int window = orderedRows && rowOffset == orderedRowsSeen
-                            ? orderedRowsSeen / chunkRows
-                            : rowOffset / chunkRows;
+                        int window = rowOffset / chunkRows;
                         if ((uint)window >= (uint)chunks.Length) {
                             SkipXmlElement(reader, "row");
                             continue;
@@ -243,27 +224,6 @@ namespace OfficeIMO.Excel {
 
                         var chunk = chunks[window];
                         ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
-                        if (orderedRows && rowOffset == orderedRowsSeen) {
-                            orderedRowsSeen++;
-                            if (orderedRowsSeen == estimatedRows) {
-                                break;
-                            }
-
-                            continue;
-                        }
-
-                        if (orderedRows) {
-                            for (int row = 0; row < orderedRowsSeen; row++) {
-                                seenRows.MarkSeen(row);
-                            }
-
-                            orderedRows = false;
-                        }
-
-                        seenRows.MarkSeen(rowOffset);
-                        if (seenRows.AllRowsSeen) {
-                            break;
-                        }
                     }
                 } else {
                     while (reader.Read()) {
@@ -278,19 +238,12 @@ namespace OfficeIMO.Excel {
 
                         nextRowIndex = rowIndex + 1;
                         if (rowIndex < r1 || rowIndex > r2) {
-                            bool allRowsSeen = orderedRows ? orderedRowsSeen == estimatedRows : seenRows.AllRowsSeen;
-                            if (rowIndex > r2 && allRowsSeen) {
-                                break;
-                            }
-
                             SkipXmlElement(reader, "row");
                             continue;
                         }
 
                         int rowOffset = rowIndex - r1;
-                        int window = orderedRows && rowOffset == orderedRowsSeen
-                            ? orderedRowsSeen / chunkRows
-                            : rowOffset / chunkRows;
+                        int window = rowOffset / chunkRows;
                         if ((uint)window >= (uint)chunks.Length) {
                             SkipXmlElement(reader, "row");
                             continue;
@@ -298,27 +251,6 @@ namespace OfficeIMO.Excel {
 
                         var chunk = chunks[window];
                         ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, CancellationToken.None);
-                        if (orderedRows && rowOffset == orderedRowsSeen) {
-                            orderedRowsSeen++;
-                            if (orderedRowsSeen == estimatedRows) {
-                                break;
-                            }
-
-                            continue;
-                        }
-
-                        if (orderedRows) {
-                            for (int row = 0; row < orderedRowsSeen; row++) {
-                                seenRows.MarkSeen(row);
-                            }
-
-                            orderedRows = false;
-                        }
-
-                        seenRows.MarkSeen(rowOffset);
-                        if (seenRows.AllRowsSeen) {
-                            break;
-                        }
                     }
                 }
 

@@ -167,7 +167,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -184,10 +183,6 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -198,7 +193,6 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    seenRows.MarkSeen(rowOffset);
                     bool hasColumnCell = TryReadXmlColumnValue(reader, columnIndex, ct, out object? value);
 
                     if (denseValues != null) {
@@ -336,7 +330,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -353,10 +346,6 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -371,7 +360,6 @@ namespace OfficeIMO.Excel {
                         values[rowOffset] = value;
                     }
 
-                    seenRows.MarkSeen(rowOffset);
                 }
 
                 return true;

@@ -75,8 +75,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                int rowCount = r2 - r1 + 1;
-                var seenRows = CreateCompletedRowTracker(rowCount);
                 bool headerRead = !headersInFirstRow;
                 int unresolvedInferredTypes = inferredTypes?.Length ?? 0;
                 while (reader.Read()) {
@@ -95,10 +93,6 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -111,7 +105,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     ReadXmlRowIntoDataTableMetadata(reader, c1, c2, headerValues, inferredTypes, isHeaderRow, inferFromRow, ct, ref unresolvedInferredTypes);
-                    seenRows.MarkSeen(rowIndex - r1);
                     if (isHeaderRow) {
                         headerRead = true;
                     }
@@ -262,7 +255,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(rows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -279,16 +271,11 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
                     if (headersInFirstRow && rowIndex == r1) {
-                        seenRows.MarkSeen(0);
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -303,7 +290,6 @@ namespace OfficeIMO.Excel {
                     if (ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, null, ct)) {
                         completeRowsWithoutNulls![rr] = true;
                     }
-                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);

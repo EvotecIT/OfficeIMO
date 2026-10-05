@@ -290,11 +290,7 @@ namespace OfficeIMO.Excel {
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 int width = result.GetLength(1);
-                int height = result.GetLength(0);
-                var seenRows = CreateCompletedRowTracker(height);
                 object?[]? rowBuffer8 = width == 8 ? new object?[8] : null;
-                bool orderedRows = true;
-                int orderedRowsSeen = 0;
                 if (canCancel) {
                     while (reader.Read()) {
                         ct.ThrowIfCancellationRequested();
@@ -310,37 +306,11 @@ namespace OfficeIMO.Excel {
 
                         nextRowIndex = rowIndex + 1;
                         if (rowIndex < r1 || rowIndex > r2) {
-                            bool allRowsSeen = orderedRows ? orderedRowsSeen == height : seenRows.AllRowsSeen;
-                            if (rowIndex > r2 && allRowsSeen) {
-                                break;
-                            }
-
                             SkipXmlElement(reader, "row");
                             continue;
                         }
 
                         ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, rowBuffer8, ct);
-                        if (orderedRows && rowIndex == r1 + orderedRowsSeen) {
-                            orderedRowsSeen++;
-                            if (orderedRowsSeen == height) {
-                                break;
-                            }
-
-                            continue;
-                        }
-
-                        if (orderedRows) {
-                            for (int row = 0; row < orderedRowsSeen; row++) {
-                                seenRows.MarkSeen(row);
-                            }
-
-                            orderedRows = false;
-                        }
-
-                        seenRows.MarkSeen(rowIndex - r1);
-                        if (seenRows.AllRowsSeen) {
-                            break;
-                        }
                     }
                 } else {
                     while (reader.Read()) {
@@ -355,37 +325,11 @@ namespace OfficeIMO.Excel {
 
                         nextRowIndex = rowIndex + 1;
                         if (rowIndex < r1 || rowIndex > r2) {
-                            bool allRowsSeen = orderedRows ? orderedRowsSeen == height : seenRows.AllRowsSeen;
-                            if (rowIndex > r2 && allRowsSeen) {
-                                break;
-                            }
-
                             SkipXmlElement(reader, "row");
                             continue;
                         }
 
                         ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, rowBuffer8, CancellationToken.None);
-                        if (orderedRows && rowIndex == r1 + orderedRowsSeen) {
-                            orderedRowsSeen++;
-                            if (orderedRowsSeen == height) {
-                                break;
-                            }
-
-                            continue;
-                        }
-
-                        if (orderedRows) {
-                            for (int row = 0; row < orderedRowsSeen; row++) {
-                                seenRows.MarkSeen(row);
-                            }
-
-                            orderedRows = false;
-                        }
-
-                        seenRows.MarkSeen(rowIndex - r1);
-                        if (seenRows.AllRowsSeen) {
-                            break;
-                        }
                     }
                 }
 

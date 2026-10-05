@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
             var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData is null) yield break;
 
-            if (estRows > chunkRows && !RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
+            if (!RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
                 foreach (var chunk in ReadUnsortedRows(sheetData, r1, c1, r2, c2, decided, ct)) {
                     yield return chunk;
                 }

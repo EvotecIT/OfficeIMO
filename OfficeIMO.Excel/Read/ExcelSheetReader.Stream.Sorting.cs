@@ -19,8 +19,6 @@ namespace OfficeIMO.Excel {
                 bool sawRowAfterRange = false;
                 int previous = 0;
                 int nextRowIndex = 1;
-                int rowCount = lastRow - firstRow + 1;
-                int rowsSeen = 0;
 
                 while (reader.Read()) {
                     if (canCancel) {
@@ -43,10 +41,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (rowIndex > lastRow) {
-                        if (rowsSeen == rowCount) {
-                            return true;
-                        }
-
                         sawRowAfterRange = true;
                         SkipXmlElement(reader, "row");
                         continue;
@@ -62,7 +56,6 @@ namespace OfficeIMO.Excel {
 
                     previous = rowIndex;
                     hasPrevious = true;
-                    rowsSeen++;
                     SkipXmlElement(reader, "row");
                 }
 
@@ -83,8 +76,6 @@ namespace OfficeIMO.Excel {
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
-            int rowCount = lastRow - firstRow + 1;
-            int rowsSeen = 0;
 
             foreach (var row in EnumerateRowsWithCoordinates(data.Elements<Row>(), token)) {
                 if (canCancel) {
@@ -94,10 +85,6 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
-                    if (rowsSeen == rowCount) {
-                        return true;
-                    }
-
                     sawRowAfterRange = true;
                     continue;
                 }
@@ -111,7 +98,6 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
-                rowsSeen++;
             }
 
             return true;
@@ -122,8 +108,6 @@ namespace OfficeIMO.Excel {
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
-            int rowCount = lastRow - firstRow + 1;
-            int rowsSeen = 0;
 
             foreach (var row in EnumerateWorksheetRows(token)) {
                 if (canCancel) {
@@ -133,10 +117,6 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
-                    if (rowsSeen == rowCount) {
-                        return true;
-                    }
-
                     sawRowAfterRange = true;
                     continue;
                 }
@@ -150,7 +130,6 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
-                rowsSeen++;
             }
 
             return true;

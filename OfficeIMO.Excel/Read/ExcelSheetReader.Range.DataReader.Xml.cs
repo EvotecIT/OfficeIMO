@@ -53,7 +53,6 @@ namespace OfficeIMO.Excel {
             private bool _currentRowActive;
             private bool _currentRowFinished;
             private bool _currentRowIsBlank;
-            private bool? _rowsAreSorted;
             private bool _closed;
             private bool _disposed;
 
@@ -106,20 +105,33 @@ namespace OfficeIMO.Excel {
                     _reader = OpenWorksheetXmlReader(_stream);
                 }
 
-                object?[]? headerValues = null;
-                if (headersInFirstRow) {
-                    if (TryReadLogicalRow(out headerValues)) {
-                        MaterializeAllCurrentRowValues();
-                        headerValues = _currentRow;
+                try {
+                    // XML rows may recur after a dense prefix. Establish ordering before
+                    // publishing any values; unsorted input uses the existing cell budget.
+                    if (_utf8Source == null && !owner.RowsAreSortedWithinRangeXmlFast(firstRow, lastRow, ct)) {
+                        BufferRemainingRows();
                     }
-                }
 
-                _columnNames = headersInFirstRow
-                    ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
-                    : CreateGeneratedColumnNames(fieldCount);
-                _columnTypes = CreateObjectColumnTypes(fieldCount);
-                _hasRows = _nextLogicalRow <= _lastRow;
-                _currentRow = null;
+                    object?[]? headerValues = null;
+                    if (headersInFirstRow) {
+                        if (TryReadLogicalRow(out headerValues)) {
+                            MaterializeAllCurrentRowValues();
+                            headerValues = _currentRow;
+                        }
+                    }
+
+                    _columnNames = headersInFirstRow
+                        ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
+                        : CreateGeneratedColumnNames(fieldCount);
+                    _columnTypes = CreateObjectColumnTypes(fieldCount);
+                    _hasRows = _nextLogicalRow <= _lastRow;
+                    _currentRow = null;
+                } catch {
+                    _reader?.Dispose();
+                    _stream.Dispose();
+                    _utf8Source?.Dispose();
+                    throw;
+                }
             }
 
             /// <inheritdoc />
@@ -378,6 +390,10 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
+                if (_bufferedRows != null) {
+                    return TryReadBufferedLogicalRow(out row);
+                }
+
                 FinishCurrentRow();
                 EnsurePendingRow();
                 if (_hasPendingRow && _pendingRowIndex == _nextLogicalRow) {
@@ -389,24 +405,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_hasPendingRow && _pendingRowIndex > _nextLogicalRow) {
-                    _rowsAreSorted ??= _owner.RowsAreSortedWithinRangeXmlFast(
-                        _firstRow,
-                        _lastRow,
-                        _activeReadCancellationToken);
-                    if (_rowsAreSorted.Value) {
-                        row = _blankRow;
-                        _currentRow = row;
-                        _currentRowIsBlank = true;
-                        _nextLogicalRow++;
-                        return true;
-                    }
-
-                    BufferRemainingRows();
-                    return TryReadBufferedLogicalRow(out row);
-                }
-
-                if (_bufferedRows != null) {
-                    return TryReadBufferedLogicalRow(out row);
+                    row = _blankRow;
+                    _currentRow = row;
+                    _currentRowIsBlank = true;
+                    _nextLogicalRow++;
+                    return true;
                 }
 
                 row = _blankRow;

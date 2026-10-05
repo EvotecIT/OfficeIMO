@@ -7,8 +7,6 @@ namespace OfficeIMO.Excel {
     /// Range enumeration for <see cref="ExcelSheetReader"/>.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private const int CompletedEnumerateRangeOutsideRowProbeLimit = 16;
-
         /// <summary>
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
@@ -53,8 +51,6 @@ namespace OfficeIMO.Excel {
             bool fillBlanks = _opt.FillBlanksInRanges;
             bool hasCustomConverter = _opt.CellValueConverter != null;
             int nextRowIndex = 1;
-            int outsideRowsAfterCompletedRange = 0;
-            var seenRows = CreateCompletedRowTracker(r2 - r1 + 1);
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -72,18 +68,10 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
-                    if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                        outsideRowsAfterCompletedRange++;
-                        if (outsideRowsAfterCompletedRange >= CompletedEnumerateRangeOutsideRowProbeLimit) {
-                            break;
-                        }
-                    }
-
                     SkipXmlElement(reader, "row");
                     continue;
                 }
 
-                outsideRowsAfterCompletedRange = 0;
                 if (reader.IsEmptyElement) {
                     continue;
                 }
@@ -168,7 +156,6 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                seenRows.MarkSeen(rowIndex - r1);
             }
         }
 

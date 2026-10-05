@@ -60,7 +60,8 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (rowIndex > r2) {
-                        break;
+                        SkipXmlElement(reader, "row");
+                        continue;
                     }
 
                     if (rowIndex == r1) {
@@ -315,7 +316,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(rows);
 
                 while (reader.Read()) {
                     if (canCancel) {
@@ -333,17 +333,12 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
                     if (rowIndex == r1) {
                         ReadXmlRowValuesInto(reader, rowIndex, c1, c2, headerValues, ct);
-                        seenRows.MarkSeen(0);
                         continue;
                     }
 
@@ -360,7 +355,6 @@ namespace OfficeIMO.Excel {
                         MergeRowValues(existing, values);
                     }
 
-                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);

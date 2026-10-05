@@ -56,8 +56,8 @@ namespace OfficeIMO.Excel {
                 if (_opt.CellValueConverter == null
                     && _opt.TypeConverter == null
                     && ShouldAttemptUtf8Range(r1, r2)
-                    && RangeReachesDeclaredWorksheetEnd(r2)) {
-                    var utf8Rows = ReadObjectsStreamUtf8OrXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct).ToList();
+                    && RangeReachesDeclaredWorksheetEnd(r2)
+                    && TryReadObjectsFromUtf8Materialized<T>(a1Range, r1, c1, r2, c2, cols, ct, out var utf8Rows)) {
                     ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                     return utf8Rows;
                 }
@@ -298,9 +298,6 @@ namespace OfficeIMO.Excel {
             ulong mappedColumns = 0;
             int nextRowIndex = 1;
             bool sawRow = false;
-            bool sawHeader = false;
-            bool[]? assignedRows = null;
-            int assignedRowCount = 0;
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -319,10 +316,6 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
-                    if (rowIndex > r2 && sawHeader && assignedRowCount == dataRowCount) {
-                        break;
-                    }
-
                     SkipXmlElement(reader, "row");
                     continue;
                 }
@@ -332,7 +325,6 @@ namespace OfficeIMO.Excel {
                     var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
                     bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
                     canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
-                    sawHeader = true;
                     continue;
                 }
 
@@ -348,15 +340,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, result[resultIndex], ct);
-                if (assignedRows == null && resultIndex == assignedRowCount) {
-                    assignedRowCount++;
-                } else {
-                    assignedRows ??= CreateAssignedRowTracker(assignedRowCount, result.Count);
-                    if (!assignedRows[resultIndex]) {
-                        assignedRows[resultIndex] = true;
-                        assignedRowCount++;
-                    }
-                }
             }
 
             if (!sawRow) {
