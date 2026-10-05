@@ -99,7 +99,15 @@ checks cover repeated document/page references, reference metadata and link-targ
 preservation, atomic rejection at package/page limits, and resource replacement.
 Generated piece fixtures cover interleaved metadata and resources, non-sequential
 ZIP ordering, missing/duplicate/ambiguous pieces, and aggregate part bounds.
-Independent-producer qualification of interleaved storage remains open.
+Microsoft `System.IO.Packaging` 10.0.11 independently rewrites 20 generated
+interleaved packages across both dialects: cross-piece writes, truncation within a
+piece and at a boundary, empty parts, and terminal-piece growth. Inputs include
+empty pieces, 13-piece sequences, reversed ZIP ordering, and uppercase piece
+suffixes. Resource bytes and both pages' SVG output survive loading; every logical
+part survives OfficeIMO normalization and reopening in Microsoft's packaging reader.
+The comparison library is confined to an isolated validation harness. This qualifies
+rewriting of generated piece storage; independently produced interleaved documents
+remain unqualified.
 
 Independent input: [Ecma's published ECMA-388 XPS document](https://ecma-international.org/wp-content/uploads/ECMA-388.xps),
 which uses the Microsoft XPS dialect and contains 494 pages (SHA-256
