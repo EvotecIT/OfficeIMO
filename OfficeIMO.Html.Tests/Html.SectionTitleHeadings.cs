@@ -5,6 +5,22 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Theory]
+    [InlineData(1, "")]
+    [InlineData(1, "<p>Body</p>")]
+    [InlineData(2, "")]
+    [InlineData(2, "<p>Body</p>")]
+    public void SemanticDocument_UsesPromotedHeadingForSectionAndPreflightProvenance(int level, string body) {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse($"<h{level} id='intro'>Title</h{level}>" + body);
+        HtmlSemanticSection section = Assert.Single(document.SemanticDocument.Sections);
+
+        Assert.NotNull(section.TitleHeading!.SourceLocation);
+        Assert.Same(section.TitleHeading.SourceLocation, section.SourceLocation);
+        Assert.Equal("h" + level, section.SourceLocation!.ElementName);
+        Assert.Contains("intro", section.SourceLocation.Selector);
+        Assert.Same(section.SourceLocation, document.AnalyzeFor(HtmlConversionTarget.Word).Get(HtmlSemanticFeature.Sections).FirstSourceLocation);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("<p>Before</p>")]
     public void SemanticDocument_RetainsImageOnlySectionHeading(string before) {

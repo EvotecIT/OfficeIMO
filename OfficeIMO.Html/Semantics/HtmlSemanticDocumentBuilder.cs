@@ -28,7 +28,7 @@ internal static class HtmlSemanticDocumentBuilder {
                 blocks.Add(block);
             }
 
-            HtmlSemanticSourceLocation? location = blocks.FirstOrDefault()?.SourceLocation;
+            HtmlSemanticSourceLocation? location = titleHeading?.SourceLocation ?? blocks.FirstOrDefault()?.SourceLocation;
             sections.Add(new HtmlSemanticSection(
                 projection.Title,
                 projection.TitleSource,
