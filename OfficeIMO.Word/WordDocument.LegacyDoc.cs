@@ -1131,7 +1131,7 @@ namespace OfficeIMO.Word {
                     WordParagraph tabRun = paragraph.AddTab();
                     ApplyLegacyDocRunFormatting(tabRun, legacyRun);
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
-                    AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
+                    AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index), legacyRun);
                 } else if (character == LegacyDocCommentReader.CommentReferenceCharacter) {
                     AddLegacyDocCommentReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
                 } else {
@@ -1157,15 +1157,15 @@ namespace OfficeIMO.Word {
                 : legacyRun.CharacterPositions[legacyRun.CharacterPositions.Count - 1] + 1;
         }
 
-        private static void AddLegacyDocNoteReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition) {
+        private static void AddLegacyDocNoteReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition, LegacyDocTextRun legacyRun) {
             if (characterPosition == null) {
                 return;
             }
 
             if (notes.TryGetFootnote(characterPosition.Value, out LegacyDocFootnote? footnote)) {
-                AddLegacyDocFootnoteReference(paragraph, footnote!, notes.StyleSheet);
+                AddLegacyDocFootnoteReference(paragraph, footnote!, notes.StyleSheet, legacyRun);
             } else if (notes.TryGetEndnote(characterPosition.Value, out LegacyDocEndnote? endnote)) {
-                AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet);
+                AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet, legacyRun);
             }
         }
 
@@ -1204,12 +1204,13 @@ namespace OfficeIMO.Word {
             return wordComment;
         }
 
-        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet, LegacyDocTextRun legacyRun) {
             if (footnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
             WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text);
+            ApplyLegacyDocRunFormatting(reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
@@ -1236,12 +1237,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocStyleSheet styleSheet, LegacyDocTextRun legacyRun) {
             if (endnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
             WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text);
+            ApplyLegacyDocRunFormatting(reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;

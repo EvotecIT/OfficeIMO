@@ -20,12 +20,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting, bool allowHyperlinkRunStyle, LegacyDocWritablePictures? pictures = null, OpenXmlPart? ownerPart = null) {
             if (run.Elements<FootnoteReference>().Any()) {
-                AppendFootnoteReferenceRun(text, runs, footnotes, run);
+                AppendFootnoteReferenceRun(text, runs, footnotes, run, inheritedFormatting);
                 return;
             }
 
             if (run.Elements<EndnoteReference>().Any()) {
-                AppendEndnoteReferenceRun(text, runs, endnotes, run);
+                AppendEndnoteReferenceRun(text, runs, endnotes, run, inheritedFormatting);
                 return;
             }
 
@@ -63,10 +63,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedBreak(text, runs, breakNode, formatting);
                         break;
                     case FootnoteReference footnoteReference:
-                        AppendFootnoteReference(text, runs, footnotes, footnoteReference);
+                        AppendFootnoteReference(text, runs, footnotes, footnoteReference, formatting);
                         break;
                     case EndnoteReference endnoteReference:
-                        AppendEndnoteReference(text, runs, endnotes, endnoteReference);
+                        AppendEndnoteReference(text, runs, endnotes, endnoteReference, formatting);
                         break;
                     case CommentReference:
                         AppendFormattedText(
@@ -94,60 +94,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         throw new NotSupportedException($"Native DOC saving currently supports text, embedded inline pictures, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote/comment references only. Unsupported run element: {child.LocalName}.");
                 }
             }
-        }
-
-        private static void AppendFootnoteReferenceRun(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFootnotes footnotes, Run run) {
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
-                        break;
-                    case LastRenderedPageBreak:
-                        break;
-                    case FootnoteReference footnoteReference:
-                        AppendFootnoteReference(text, runs, footnotes, footnoteReference);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving supports footnote reference runs only when they contain footnote references. Unsupported footnote reference run element: {child.LocalName}.");
-                }
-            }
-        }
-
-        private static void AppendEndnoteReferenceRun(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableEndnotes endnotes, Run run) {
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
-                        break;
-                    case LastRenderedPageBreak:
-                        break;
-                    case EndnoteReference endnoteReference:
-                        AppendEndnoteReference(text, runs, endnotes, endnoteReference);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving supports endnote reference runs only when they contain endnote references. Unsupported endnote reference run element: {child.LocalName}.");
-                }
-            }
-        }
-
-        private static void AppendFootnoteReference(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFootnotes footnotes, FootnoteReference footnoteReference) {
-            long? id = footnoteReference.Id?.Value;
-            if (id == null || id.Value <= 0) {
-                throw new NotSupportedException("Native DOC saving supports footnote references only when they use a positive identifier.");
-            }
-
-            int referencePosition = text.Length;
-            footnotes.AddReference(id.Value, referencePosition);
-            AppendFormattedText(text, runs, LegacyDocFootnoteReader.FootnoteReferenceCharacter.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
-        }
-
-        private static void AppendEndnoteReference(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableEndnotes endnotes, EndnoteReference endnoteReference) {
-            long? id = endnoteReference.Id?.Value;
-            if (id == null || id.Value <= 0) {
-                throw new NotSupportedException("Native DOC saving supports endnote references only when they use a positive identifier.");
-            }
-
-            int referencePosition = text.Length;
-            endnotes.AddReference(id.Value, referencePosition);
-            AppendFormattedText(text, runs, LegacyDocFootnoteReader.FootnoteReferenceCharacter.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
         private static void AppendSupportedBreak(StringBuilder text, List<LegacyDocWritableRun> runs, Break breakNode, LegacyDocWritableFormatting formatting) {
@@ -184,7 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties, bool allowHyperlinkRunStyle) {
+        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties, bool allowHyperlinkRunStyle, bool allowNoteReferenceRunStyle = false) {
             if (runProperties == null || !runProperties.HasChildren) {
                 return LegacyDocWritableFormatting.Plain;
             }
@@ -313,6 +259,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             eastAsiaLanguageId = languageIds.EastAsiaLanguageId;
                         }
 
+                        break;
+                    case RunStyle noteStyle when allowNoteReferenceRunStyle &&
+                        (string.Equals(noteStyle.Val?.Value, "FootnoteReference", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(noteStyle.Val?.Value, "EndnoteReference", StringComparison.OrdinalIgnoreCase)):
                         break;
                     case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
                         break;

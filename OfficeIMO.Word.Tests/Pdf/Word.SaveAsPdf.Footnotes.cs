@@ -10,11 +10,15 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Theory]
-        [InlineData("body")]
-        [InlineData("table")]
-        [InlineData("control")]
-        [InlineData("heading")]
-        public void SaveAsPdf_PreservesFootnoteAndEndnoteWithTheSameDisplayNumber(string context) {
+        [InlineData("body", false)]
+        [InlineData("table", false)]
+        [InlineData("control", false)]
+        [InlineData("heading", false)]
+        [InlineData("body", true)]
+        [InlineData("table", true)]
+        [InlineData("control", true)]
+        [InlineData("heading", true)]
+        public void SaveAsPdf_PreservesFootnoteAndEndnoteWithTheSameDisplayNumber(string context, bool nativeDoc) {
             string path = Path.Combine(_directoryWithFiles, "SameNumberNotes" + context + ".pdf");
             using var document = WordDocument.Create();
             WordParagraph paragraph = context == "table"
@@ -35,7 +39,8 @@ namespace OfficeIMO.Tests {
                 paragraph._paragraph.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.SdtBlock(content));
                 paragraph._paragraph.Remove();
             }
-            document.SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
+            using var imported = nativeDoc ? WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc))) : null;
+            (imported ?? document).SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
             var spans = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
             var marker = Assert.Single(spans, span => span.Text.Contains("SameNumberMarker"));
             Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));

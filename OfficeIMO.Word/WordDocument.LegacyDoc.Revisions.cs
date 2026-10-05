@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
                 if (character == '\t') {
                     AddLegacyDocRevisionElement(paragraph, legacyRun, new TabChar());
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
-                    AddLegacyDocNoteReference(paragraph, notes, markerPosition);
+                    AddLegacyDocNoteReference(paragraph, notes, markerPosition, legacyRun);
                 } else if (character == LegacyDocCommentReader.CommentReferenceCharacter) {
                     AddLegacyDocCommentReference(paragraph, notes, markerPosition);
                 } else {
