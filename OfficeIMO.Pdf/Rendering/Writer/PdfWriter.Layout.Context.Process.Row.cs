@@ -151,6 +151,8 @@ internal static partial class PdfWriter {
                     ResumeColumnGroups(activeGroups, colXs[ci], ref yCol, ref remain, ref consumed);
                     while (idx < items.Count && (remain > 0.1 || items[idx] is ColGroupEnd)) {
                         var it = items[idx];
+                        double closingPadding = GetClosingColumnGroupPadding(items, idx);
+                        double remainingForFinalItem = remain - closingPadding;
                         xCol = colXs[ci] + it.ColumnXOffset;
                         wCol = it.ColumnWidth;
                         if (it is ColGroupStart groupStart) {
@@ -223,7 +225,7 @@ internal static partial class PdfWriter {
                             int take = 0; double hsum = 0;
                             for (int li2 = start; li2 < lines.Count; li2++) {
                                 double hAdd = heights[li2];
-                                if (hsum + hAdd + (li2 == lines.Count - 1 ? spacingAfter : 0) > availableForLines) break;
+                                if (hsum + hAdd + (li2 == lines.Count - 1 ? spacingAfter + closingPadding : 0) > availableForLines) break;
                                 hsum += hAdd; take++;
                             }
 
@@ -276,8 +278,8 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) {
                                 yCol -= spacingBefore;
                                 remain -= spacingBefore;
@@ -306,6 +308,7 @@ internal static partial class PdfWriter {
 
                             AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex, heights);
                             RecordFlowPlacement(yCol);
+                            pageDirty = true;
                             WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont);
                             MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
@@ -360,7 +363,7 @@ internal static partial class PdfWriter {
                             double hsum = 0;
                             for (int li2 = start; li2 < lines.Count; li2++) {
                                 double lineHeight = GetRichLineHeight(listItem.Heights, li2, leading);
-                                if (hsum + lineHeight > availableForLines) break;
+                                if (hsum + lineHeight + (li2 == lines.Count - 1 ? closingPadding : 0D) > availableForLines) break;
                                 hsum += lineHeight;
                                 take++;
                             }
@@ -440,7 +443,7 @@ internal static partial class PdfWriter {
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D),
-                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.PaddingY ?? 0D));
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.PaddingY ?? 0D), closingPadding);
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
                             (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
                             if (!completed) break;
@@ -461,8 +464,8 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double x1 = xCol, x2 = xCol + wCol, yLine = yCol - hr2.Thickness * 0.5;
                             RecordFlowPlacement(yCol);
@@ -475,12 +478,15 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
                             PdfDocument.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                             double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
-                            double imageReservation = activeGroups.Sum(group => group.Style?.InitialFragmentImageReservation ?? 0D);
+                            double imageReservation = activeGroups.Sum(group => group.Style is { } style
+                                ? style.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) + Math.Max(style.PaddingY, style.FragmentBottomInset) : 0D);
                             var imageBox = ResolveImageFlowBox(ib2, imageStyle, wCol, spacingBefore, imageStyle.SpacingAfter, imageReservation);
                             ciimg.Width = imageBox.Width;
                             ciimg.Height = imageBox.Height;
                             double needed = spacingBefore + ciimg.Height + imageStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol, imageReservation);
+                            double continuationImageReservation = activeGroups.Sum(group => group.Style is { } style
+                                ? style.GetFragmentTopPadding(isContinuation: true) + Math.Max(style.PaddingY, style.FragmentBottomInset) : 0D);
+                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol, continuationImageReservation);
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
@@ -492,8 +498,8 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xImg = xCol;
                             if (imageStyle.Align == PdfAlign.Center) xImg = xCol + Math.Max(0, (wCol - ciimg.Width) / 2);
@@ -522,8 +528,8 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             RecordFlowPlacement(yCol);
                             int? structElementIndex = DrawShapeAt(shape, shapeStyle, xCol, wCol, yCol);
@@ -550,8 +556,8 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             RecordFlowPlacement(yCol);
                             int? structElementIndex = DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
@@ -567,8 +573,8 @@ internal static partial class PdfWriter {
                             double spacingAfter = GetFormFieldSpacingAfter(form.Block);
                             double needed = spacingBefore + fieldHeight + spacingAfter;
                             EnsureFixedFlowBlockFits(GetFormFieldBlockName(form.Block), fieldWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xField = GetAlignedObjectX(xCol, wCol, fieldWidth, GetFormFieldAlign(form.Block));
                             AddFormFieldAnnotation(form.Block, xField, yCol);
@@ -585,8 +591,8 @@ internal static partial class PdfWriter {
                             double spacingAfter = GetAnnotationSpacingAfter(annotation.Block);
                             double needed = spacingBefore + annotationHeight + spacingAfter;
                             EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xAnnotation = GetAlignedObjectX(xCol, wCol, annotationWidth, GetAnnotationAlign(annotation.Block));
                             double bottomY = yCol - annotationHeight;
@@ -615,8 +621,8 @@ internal static partial class PdfWriter {
                                 throw new ArgumentException("Spacer height exceeds the available page content height.");
                             }
 
-                            if (needed > remain && consumed > 0) break;
-                            if (needed > remain && consumed == 0) { remain = 0; break; }
+                            if (needed > remainingForFinalItem && consumed > 0) break;
+                            if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             yCol -= needed;
                             remain -= needed;
                             consumed += needed;

@@ -73,7 +73,7 @@ internal static partial class PdfWriter {
                 return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;
             }
             List<ColumnBalanceUnit>? units = MeasureWithContainerPaddingReservation(style, () =>
-                MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(container.Blocks), scope, frame.ContentWidth));
+                MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(container.Blocks), scope, frame.ContentWidth), isContinuation: remainder != null);
             if (units == null) return null;
             double firstHeight = remainder != null || container.Blocks.Count == 0 ? 0D :
                 MeasureWithContainerPaddingReservation(style, () => MeasureNextBlockFirstVisualHeight(

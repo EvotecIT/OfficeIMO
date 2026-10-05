@@ -104,6 +104,8 @@ internal static partial class PdfWriter {
             BeginContainerFragment(scope);
             try {
                 ProcessBlocks(container.Blocks, container);
+                if (!style.RepeatFragmentDecoration && style.PaddingY > y - scope.ParentOptions.MarginBottom + .001D)
+                    throw new ArgumentException("Element closing padding cannot fit within the available page height.");
                 double bottomPadding = Math.Min(style.PaddingY, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
