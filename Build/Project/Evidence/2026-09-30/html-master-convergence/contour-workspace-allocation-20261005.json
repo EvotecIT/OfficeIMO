@@ -429,10 +429,116 @@
     ]
   },
   "budget": {
-    "source": "1b94781713ac0c723e75d5de3b6823a0e250389e",
-    "runnerBuild": "normal build succeeded with zero warnings and errors",
-    "budgetExecuted": false,
-    "reason": "Unrelated Simulator PosterBoard and multiple Spotlight workers were consuming CPU immediately after runner build. No contended retry or ceiling change."
+    "initialBusyHostDeferral": {
+      "source": "1b94781713ac0c723e75d5de3b6823a0e250389e",
+      "runnerBuild": "normal build succeeded with zero warnings and errors",
+      "budgetExecuted": false,
+      "reason": "Unrelated Simulator PosterBoard and multiple Spotlight workers were consuming CPU immediately after runner build. No contended retry or ceiling change."
+    },
+    "cleanSourceAttempt": {
+      "schemaVersion": 1,
+      "generatedUtc": "2026-10-05T04:15:34.455001+00:00",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 27.0.1",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "frameworkDescription": ".NET 10.0.12",
+        "machineName": "evomini",
+        "processorCount": 10
+      },
+      "source": {
+        "commit": "17071d1cbfc2be750df330ac6e26b7450ded9e41",
+        "worktreeClean": true,
+        "corpusId": "officeimo-html-h4-advanced-held-out",
+        "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "caseCount": 8,
+        "outputsPerIteration": 76
+      },
+      "ceiling": {
+        "osFamily": "macOS",
+        "coldProcessElapsedMilliseconds": 8000,
+        "warmIterationElapsedMilliseconds": 3000,
+        "coldManagedAllocatedBytes": 1250000000,
+        "warmManagedAllocatedBytes": 1100000000,
+        "peakWorkingSetBytes": 700000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "cold": {
+        "mode": "cold",
+        "processElapsedMilliseconds": 8079.0675,
+        "peakWorkingSetBytes": 577781760,
+        "memorySampleCount": 163,
+        "iterations": [
+          {
+            "number": 1,
+            "elapsedMilliseconds": 8001.607,
+            "managedAllocatedBytes": 1201969872,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          }
+        ],
+        "deterministic": true
+      },
+      "warm": {
+        "mode": "warm",
+        "processElapsedMilliseconds": 12990.8439,
+        "peakWorkingSetBytes": 714522624,
+        "memorySampleCount": 261,
+        "iterations": [
+          {
+            "number": 1,
+            "elapsedMilliseconds": 2661.8313,
+            "managedAllocatedBytes": 962161568,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          },
+          {
+            "number": 2,
+            "elapsedMilliseconds": 2484.3708,
+            "managedAllocatedBytes": 962567864,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          },
+          {
+            "number": 3,
+            "elapsedMilliseconds": 2422.9404,
+            "managedAllocatedBytes": 962455232,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          }
+        ],
+        "deterministic": true
+      },
+      "cancellation": {
+        "status": "Passed",
+        "elapsedMilliseconds": 1.7771,
+        "detail": "Cancellation propagated through the asynchronous resource boundary."
+      },
+      "failures": [
+        "cold process elapsed milliseconds 8079.1 exceeded ceiling 8000.0.",
+        "peak working-set bytes 714522624.0 exceeded ceiling 700000000.0."
+      ]
+    },
+    "status": "Failed; no retry performed",
+    "boundary": "Current clean source with footer and workspace, local macOS only. Warm elapsed/allocation/output/cancellation pass; cold elapsed and peak memory fail.",
+    "control": {
+      "source": "0295e16e52288e82db2973203b7a58704dd37c95",
+      "worktree": "OfficeIMO-html-contour-workspace-control",
+      "normalBuildWarnings": 0,
+      "normalBuildErrors": 0,
+      "measurementExecuted": false,
+      "reason": "ReportCrashService, Spotlight workers and Simulator activity resumed after the control build. No contended control measurement performed."
+    }
   },
   "allocationAttribution": {
     "evidence": "Ignore/MasterConvergenceQualification/paired-allocation-e9819e175/sampled-allocation-attribution.json",
@@ -469,6 +575,21 @@
         "lib/net10.0/OfficeIMO.Core.dll": "b9113b8b89f4c6ec7f7fbb1e399571d49ce8b9a2af33cc7a31459f745537eb57",
         "lib/net8.0/OfficeIMO.Core.dll": "5930086123c25d1cd1cab1136c8968509d67cc0fbf2063f7e237b2b2dc04f6de",
         "lib/netstandard2.0/OfficeIMO.Core.dll": "c13ddf94d1e4cb8d82b8869c583fd6cbd544dad2ea97cf30887918ce41a43d1a"
+      },
+      "source": "950e1ea5781526bb10964f16a607d49fd2997bf3",
+      "ownerSourceStampCheck": {
+        "lib/net10.0/OfficeIMO.Core.dll": {
+          "sha256": "b9113b8b89f4c6ec7f7fbb1e399571d49ce8b9a2af33cc7a31459f745537eb57",
+          "containsExpectedCommit": true
+        },
+        "lib/net8.0/OfficeIMO.Core.dll": {
+          "sha256": "5930086123c25d1cd1cab1136c8968509d67cc0fbf2063f7e237b2b2dc04f6de",
+          "containsExpectedCommit": true
+        },
+        "lib/netstandard2.0/OfficeIMO.Core.dll": {
+          "sha256": "c13ddf94d1e4cb8d82b8869c583fd6cbd544dad2ea97cf30887918ce41a43d1a",
+          "containsExpectedCommit": true
+        }
       }
     },
     "initialReviewThreads": 0,
