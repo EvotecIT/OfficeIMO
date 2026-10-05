@@ -159,7 +159,7 @@ internal static partial class PdfWriter {
             return startLine == 0 ? Math.Max(segmentHeight, GetTableRowFixedHeight(tableStyle, rowIndex) ?? GetTableRowMinHeight(tableStyle, rowIndex)) : segmentHeight;
         }
 
-        int GetColumnTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available) {
+        int GetColumnTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available, bool requireDefaultFirstFragment = false) {
             int remainingLines = table.RowLineCounts[rowIndex] - startLine;
             int best = 0;
             for (int candidate = 1; candidate <= remainingLines; candidate++) {
@@ -171,7 +171,8 @@ internal static partial class PdfWriter {
                 best = candidate;
             }
 
-            return Math.Max(1, best);
+            return LimitTableRowFragmentToParagraphBoundaries(table.RowLines[rowIndex], GetTableCellLayouts(tbColumn, rowIndex, table.Columns),
+                startLine, best, maxContentHeight, state.Consumed > repeatHeaderHeight + 0.001D, requireDefaultFirstFragment);
         }
 
         bool CanSplitColumnTableRowIntoRemainingSpace(int rowIndex) =>
@@ -179,7 +180,7 @@ internal static partial class PdfWriter {
             !TableRowHasViewport(tbColumn, rowIndex, table.Columns) &&
             GetTableRowAllowBreakAcrossPages(tableStyle, rowIndex) &&
             table.RowLineCounts[rowIndex] > 1 &&
-            MeasureColumnTableRowSegmentHeight(rowIndex, 0, Math.Min(2, table.RowLineCounts[rowIndex]), suppressCellObjects: false) <= state.Remaining + 0.001;
+            GetColumnTableRowSegmentLineCountThatFits(rowIndex, 0, state.Remaining, requireDefaultFirstFragment: true) > 0;
 
         bool ShouldBreakBeforeFinalColumnTableBodyRows(int rowIndex) {
             if (viewportRowGroups[rowIndex] >= rowIndex && !StartsTableViewportRowGroup(viewportRowGroups, rowIndex)) return false;
@@ -542,6 +543,7 @@ internal static partial class PdfWriter {
                 }
 
                 int take = Math.Min(totalLines - rowStartLine, GetColumnTableRowSegmentLineCountThatFits(rowIndex, rowStartLine, state.Remaining));
+                if (take == 0) break;
                 DrawColumnTableRowSegment(rowIndex, renderAsHeader: rowIndex < table.HeaderRowCount && rowStartLine == 0, rowStartLine, take);
                 rowStartLine += take;
 

@@ -567,11 +567,11 @@ public class PdfTableStyle {
             _minimumShrinkFontSize = value;
         }
     }
-    /// <summary>Optional left indentation before table placement, in points.</summary>
+    /// <summary>Left indentation before table placement, in points. Negative values extend the table into the leading margin.</summary>
     public double LeftIndent {
         get => _leftIndent;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(LeftIndent), "Table left indent must be a non-negative finite value.");
+            ValidateFiniteValue(value, nameof(LeftIndent), "Table left indent must be a finite value.");
             _leftIndent = value;
         }
     }

@@ -34,15 +34,22 @@ public sealed class PdfLineSpacingContinuationTests {
     [InlineData(false, true, 32D)]
     [InlineData(true, true, 32D)]
     public void BalancedColumnsRetainStyledBlankLines(bool multiple, bool atBoundary, double expected) {
-        var document = PdfDocument.Create(Options());
+        var options = Options();
+        if (atBoundary) options.PageHeight = 60D + 5D * (multiple ? 8D : 20D);
+        var document = PdfDocument.Create(options);
         document.Content.Columns(columns => columns.Paragraph(p => {
             p.FontSize(8).Text(atBoundary ? "A\nB\nC\nD\n" : "A\n");
             p.FontSize(32).LineBreak();
-            p.FontSize(8).Text(atBoundary ? "E\nF\nG\nH\nI" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
+            p.FontSize(8).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
         }, style: new PdfParagraphStyle {
             FontSize = 8, SpacingBefore = 0, SpacingAfter = 0,
             LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(20, 1)
-        }), new PdfMultiColumnOptions { ColumnCount = 2, Gap = 12, BalanceParagraphLines = true, BalanceLastPage = true });
+        }), new PdfMultiColumnOptions {
+            ColumnCount = 2, Gap = 12, BalanceParagraphLines = true, BalanceLastPage = !atBoundary,
+            ColumnDefinitions = atBoundary ? new[] {
+                new PdfFlowColumn(PdfColumnWidth.Fixed(148)), new PdfFlowColumn(PdfColumnWidth.Fixed(180))
+            } : Array.Empty<PdfFlowColumn>()
+        });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
