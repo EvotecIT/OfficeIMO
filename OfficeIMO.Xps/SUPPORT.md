@@ -116,6 +116,16 @@ loaded and each page is exercised through SVG conversion. Cover, dense text/tabl
 and graphics pages are the representative rendering checks; successful conversion
 is not a pixel-equivalence claim for every page.
 
+Three additional [Microsoft WPF test inputs](../OfficeIMO.Xps.Tests/Fixtures/MicrosoftWpf/SOURCE.md)
+qualify native page insertion/reopening with obfuscated fonts, print tickets and
+thumbnail preservation. The Word/MXDC, document-structure input and printing pages
+render against GhostXPS 10.08.0 at 96 DPI with mean absolute RGB differences of
+3.38/255, 0.34/255 and 0.68/255 respectively. Visual checks retain text, color and
+placement; glyph and edge rasterization differ. GhostXPS renders the original and
+OfficeIMO-saved packages pixel-identically. These are single-page Microsoft
+XPS documents with atomic storage; the structure-test input contains no authored
+structure part. They do not qualify multi-document stories or OpenXPS producers.
+
 Generated OpenXPS sequence, fixed-document, and fixed-page markup is checked against
 [Ecma's OpenXPS schemas](https://ecma-international.org/wp-content/uploads/OpenXPS-WC3-Schemas.zip).
 MuPDF/PyMuPDF 1.26.5 independently opens a generated Microsoft XPS document, extracts
