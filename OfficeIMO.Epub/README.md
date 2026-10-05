@@ -520,6 +520,40 @@ All typed publishing operations above require EPUB 3. Use `AddDublinCoreMetadata
 and `SetMetadataProperty` for other declarations; typed records do not infer rights,
 publisher identities, or accessibility claims.
 
+## Glossaries
+
+Append entries to an existing definition list, then link any number of occurrences
+to a term. Labels and definitions remain publisher-authored; entries retain insertion
+order rather than applying an implicit language-dependent sort.
+
+```csharp
+publication.AddChapter("glossary", "EPUB/back/glossary.xhtml", "Glossary",
+    "<section aria-labelledby='glossary-title'><h1 id='glossary-title'>Glossary</h1>" +
+    "<dl id='terms'/></section>");
+publication.AddGlossaryEntry("glossary", "terms", "reflowable", "Reflowable book",
+    "<p>A book whose text adapts to the reading area and reader settings.</p>");
+// The chapter already contains <a id="term-reference">reflowable book</a>.
+publication.LinkGlossaryTerm("chapter", "term-reference", "glossary", "reflowable",
+    "Return to the passage");
+```
+
+`AddGlossaryEntry` escapes plain term text into `dt/dfn`, appends the well-formed
+XHTML definition in `dd`, marks the containing section as an EPUB
+glossary, and assigns `doc-glossary` to the section. The supported container is a
+`dl` directly inside a body `section`, with complete direct `dt/dd` groups. Existing
+headings, entries, attributes and unrelated content are retained; conflicting
+section roles are rejected. Definition links use the receiving document's effective
+HTML base. This API does not generate a dictionary, translate terms, or infer definitions.
+
+`LinkGlossaryTerm` requires a labelled body anchor without an existing link and a
+target `dt` followed by exactly one `dd` in that semantic glossary. It adds
+`doc-glossref` and `epub:type="glossref"`. The optional localized return label adds
+a `doc-backlink` in the definition; omit it to leave a separate glossary document
+byte-for-byte unchanged. Each linked occurrence can have its own return link.
+Both documents commit atomically with identifier, content, cancellation and retention
+checks. These links use standard navigation; reader-specific popup behavior and
+assistive-technology interaction require independent qualification.
+
 ## Book matter and print-page navigation
 
 `SetDocumentMatter` marks an XHTML document as front, body, or back matter while

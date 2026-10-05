@@ -48,6 +48,11 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
     }
     evidence.Add(new { profile = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), previews = previewPaths });
 }
+byte[] glossaryBytes = GlossaryFixture.Create().Write(new EpubWriteOptions {
+    ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
+}).Bytes;
+File.WriteAllBytes(Path.Combine(outputDirectory, "glossary.epub"), glossaryBytes);
+evidence.Add(new { fixture = "glossary", epub = "glossary.epub", sha256 = Convert.ToHexString(SHA256.HashData(glossaryBytes)).ToLowerInvariant() });
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));

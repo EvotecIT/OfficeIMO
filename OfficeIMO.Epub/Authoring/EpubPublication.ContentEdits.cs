@@ -30,6 +30,12 @@ public sealed partial class EpubPublication {
         MarkChanged();
     }
 
+    private IEnumerable<XNode> ParseAuthoringFragment(string xhtml) {
+        using (var reader = XmlReader.Create(new StringReader("<div xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + xhtml + "</div>"),
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
+            return XElement.Load(reader, LoadOptions.PreserveWhitespace).Nodes().ToArray();
+    }
+
     private XDocument EditableXhtml(string manifestId) {
         EpubManifestItem item = RequireManifestItem(manifestId);
         if (!HasMediaType(item.MediaType, "application/xhtml+xml")) throw new NotSupportedException("Semantic authoring requires XHTML content.");

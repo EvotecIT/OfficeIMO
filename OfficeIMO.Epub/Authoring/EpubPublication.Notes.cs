@@ -53,9 +53,7 @@ public sealed partial class EpubPublication {
             note = new XElement(Html + "li", new XAttribute(Ops + "type", "endnote"));
         }
         note.SetAttributeValue("id", options.NoteId);
-        using (var reader = XmlReader.Create(new StringReader("<div xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + options.BodyXhtml + "</div>"),
-            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
-            note.Add(XElement.Load(reader, LoadOptions.PreserveWhitespace).Nodes());
+        note.Add(ParseAuthoringFragment(options.BodyXhtml));
         string sourceOwner = HtmlContentLinkOwner(source, sourcePath);
         string notesOwner = HtmlContentLinkOwner(notes, notesPath);
         marker.SetAttributeValue("href", RelativeHref(sourceOwner, notesPath) + "#" + Uri.EscapeDataString(options.NoteId));
