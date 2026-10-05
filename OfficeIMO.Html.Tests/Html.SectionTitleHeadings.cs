@@ -5,6 +5,47 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Theory]
+    [InlineData("")]
+    [InlineData("<p>Before</p>")]
+    public void SemanticDocument_RetainsImageOnlySectionHeading(string before) {
+        HtmlSemanticDocument document = HtmlConversionDocument.Parse(
+            "<main>" + before + "<h1 id='brand'><img src='https://example.org/logo.png' alt='Brand'></h1><p>Body</p></main>")
+            .SemanticDocument;
+
+        HtmlSemanticBlock heading = document.Sections.Last().TitleHeading
+            ?? Assert.Single(document.Sections.Last().Blocks, block => block.Kind == HtmlSemanticBlockKind.Heading);
+        Assert.Equal(HtmlSemanticBlockKind.Heading, heading.Kind);
+        Assert.Equal(1, heading.Level);
+        Assert.Equal("h1", heading.SourceLocation!.ElementName);
+        Assert.Equal("Brand", Assert.Single(heading.InlineResources).AlternateText);
+        Assert.Equal("Brand", Assert.Single(document.Resources).AlternateText);
+        Assert.Equal("Body", Assert.Single(document.Sections.Last().Blocks, block => block.Kind == HtmlSemanticBlockKind.Paragraph).Text);
+    }
+
+    [Fact]
+    public void Preflight_ReportsRichLinkedPromotedHeading() {
+        HtmlConversionPreflight preflight = HtmlConversionDocument.Parse(
+            "<h1><a href='https://example.org/'><em>Title</em></a></h1><p>Body</p>")
+            .AnalyzeFor(HtmlConversionTarget.Word);
+
+        foreach (HtmlSemanticFeature feature in new[] { HtmlSemanticFeature.Headings, HtmlSemanticFeature.RichText, HtmlSemanticFeature.Links }) {
+            HtmlFeaturePreflightResult result = preflight.Get(feature);
+            Assert.True(result.IsPresent);
+            Assert.Equal(1, result.OccurrenceCount);
+        }
+    }
+
+    [Fact]
+    public void FidelityScore_DetectsStyleLossInPromotedHeading() {
+        HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(
+            "<h1 style='color:red'><em>Title</em></h1><p>Body</p>",
+            "<h1>Title</h1><p>Body</p>");
+
+        Assert.True(score.Dimensions.ContainsKey("styles"));
+        Assert.True(score.Dimensions["styles"] < 1);
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(2)]
     public void SemanticDocument_RetainsPromotedHeadingFormattingAndSource(int level) {

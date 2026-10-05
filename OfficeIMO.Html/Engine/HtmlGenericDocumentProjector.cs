@@ -93,6 +93,7 @@ internal static class HtmlGenericDocumentProjector {
                 titleSource = hasCapturedHeading
                     ? HtmlSemanticSectionTitleSource.Heading
                     : HtmlSemanticSectionTitleSource.Generated;
+                if (!hasCapturedHeading && HasInlineResource(child)) blocks.Add(child);
                 continue;
             }
 
@@ -103,6 +104,7 @@ internal static class HtmlGenericDocumentProjector {
                 titleSource = hasCapturedHeading
                     ? HtmlSemanticSectionTitleSource.Heading
                     : HtmlSemanticSectionTitleSource.Generated;
+                if (!hasCapturedHeading && HasInlineResource(child)) blocks.Add(child);
                 continue;
             }
             blocks.Add(child);
@@ -116,6 +118,9 @@ internal static class HtmlGenericDocumentProjector {
                 titleHeading));
         }
     }
+
+    private static bool HasInlineResource(IElement element) =>
+        element.QuerySelector("img, video, audio, object, embed") != null;
 
     internal static IReadOnlyList<IElement> SelectRootTables(IHtmlDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));

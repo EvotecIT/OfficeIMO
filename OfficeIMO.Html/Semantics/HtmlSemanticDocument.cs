@@ -130,6 +130,11 @@ public sealed class HtmlSemanticSection {
 
     /// <summary>Source provenance for the section container or first retained block.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
+
+    internal IEnumerable<HtmlSemanticBlock> EnumerateContentBlocks() {
+        if (TitleHeading != null) yield return TitleHeading;
+        foreach (HtmlSemanticBlock block in Blocks) yield return block;
+    }
 }
 
 /// <summary>One typed semantic block with optional list, table, resource, form, and rich-run data.</summary>
