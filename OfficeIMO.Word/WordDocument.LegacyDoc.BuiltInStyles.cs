@@ -200,11 +200,9 @@ namespace OfficeIMO.Word {
                 ResolveLegacyDocToggle(value, property, characterFormat.StyleRelative, characterFormat.StyleInverted, styleToggles);
 
             if (style.StyleRunProperties is StyleRunProperties templateProperties) {
-                // Missing source toggles inherit through basedOn, not through our built-in template.
-                foreach (OnOffType property in templateProperties.Elements<OnOffType>().ToArray()) {
-                    property.Remove();
-                }
-                RemoveStyleProperties<Kern>(templateProperties);
+                // Missing source formatting inherits through basedOn. Authoring
+                // template sizes, fonts, colors and effects must not override it.
+                templateProperties.RemoveAllChildren();
             }
             if (!characterFormat.HasFormatting) {
                 return;
