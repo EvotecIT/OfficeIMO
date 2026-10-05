@@ -111,6 +111,8 @@ public sealed class EpubMediaOverlayContracts {
 
     [Theory]
     [InlineData("01:02:03.5", 3723.5)]
+    [InlineData("0:00:04", 4)]
+    [InlineData("5:34:31.396", 20071.396)]
     [InlineData("02:03.5", 123.5)]
     [InlineData("250ms", 0.25)]
     [InlineData("1.5min", 90)]

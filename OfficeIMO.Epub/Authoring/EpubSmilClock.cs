@@ -15,7 +15,7 @@ internal static class EpubSmilClock {
         if (parts.Length == 2 || parts.Length == 3) {
             string secondPart = parts[parts.Length - 1];
             int secondDigits = secondPart.IndexOf('.') < 0 ? secondPart.Length : secondPart.IndexOf('.');
-            if (secondDigits != 2 || parts[parts.Length - 2].Length != 2 || parts.Length == 3 && parts[0].Length < 2) throw Invalid();
+            if (secondDigits != 2 || parts[parts.Length - 2].Length != 2) throw Invalid();
             decimal tail = Number(parts[parts.Length - 1], fraction: true);
             decimal minutes = Number(parts[parts.Length - 2], fraction: false);
             if (tail >= 60 || minutes >= 60) throw Invalid();

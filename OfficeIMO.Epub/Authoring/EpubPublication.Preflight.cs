@@ -50,6 +50,9 @@ public sealed partial class EpubPublication {
         }
         checks.Add(Result("content-identifiers", contentFindings));
         checks.Add(Result("image-alternative-presence", imageFindings));
+        checks.Add(CheckMediaOverlays(cancellationToken));
+        if (Manifest.Any(item => HasMediaType(item.MediaType, "application/smil+xml")))
+            checks.Add(new EpubPreflightCheck("media-overlay-audio-decoding", EpubPreflightStatus.NotChecked, Array.Empty<EpubDiagnostic>()));
         foreach (string scope in new[] { "epub-schema-conformance", "accessibility-assessment", "reading-system-presentation" })
             checks.Add(new EpubPreflightCheck(scope, EpubPreflightStatus.NotChecked, Array.Empty<EpubDiagnostic>()));
         return new EpubPreflightReport(checks);

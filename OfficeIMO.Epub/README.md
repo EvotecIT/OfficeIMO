@@ -920,7 +920,9 @@ fixed-layout geometry. Independent reader and accessibility qualification still 
 `Preflight` returns structured native checks without writing a destination or invoking
 external tools. It uses the supplied save policy, inspects retained XHTML/SVG identifiers
 and document-local ARIA/table-header references, and checks HTML image alternative
-presence and EPUB 3 accessibility discovery declarations. It also inspects unchanged imported content, even when saving preserves that
+presence and EPUB 3 accessibility discovery declarations. The `media-overlays` check
+verifies retained SMIL text/sequence targets, manifest associations, audio declarations,
+explicit clip intervals and duration sums. It also inspects unchanged imported content, even when saving preserves that
 content byte-for-byte.
 
 ```csharp
@@ -940,6 +942,15 @@ presence does not establish whether the descriptions are useful. Each native che
 retains at most 10,000 findings and reports an error when that bound is reached.
 The report is a snapshot; rerun it after editing. `RequireNoLoss` remains a separate
 conversion/preservation check.
+
+Narration checks accept nested sequences and text-only cues. An omitted `clipEnd`
+or encrypted target leaves the relevant inspection explicitly `NotChecked` unless
+another finding makes it fail. Duration sums tolerate up to one second of rounding.
+The separate `media-overlay-audio-decoding` check remains `NotChecked`: valid clock
+values and matching totals do not prove that offsets fit the encoded audio or that
+speech aligns with text. Full SMIL schema validation and reader playback remain
+independent checks. `Write` preserves its existing save policy; callers use `Preflight`
+and inspect its findings before delivery.
 
 Supply publisher-reviewed discovery claims together with `SetAccessibilityMetadata`:
 
@@ -990,8 +1001,9 @@ type and the EPUB 3 single-cover property. `SetCoverImage` also updates retained
 legacy cover metadata, so replacing a cover keeps both declarations consistent.
 Media-overlay associations require an
 EPUB 3 content document and a SMIL target. `AddMediaOverlay` validates its authored
-cues and calculates durations; save preflight does not revalidate arbitrary retained
-SMIL timing or decode audio. Recheck overlays independently after low-level edits.
+cues and calculates durations. `Preflight` additionally checks retained overlay
+references, explicit timing and duration sums after low-level edits. Saving alone
+does not run those additional checks or decode audio.
 Spine items resolve to XHTML in EPUB 2, or XHTML/SVG in EPUB 3, through any fallback
 chain. EPUB 2 image and stylesheet resources belong inside content documents;
 direct spine references to them are rejected, including SVG with a fallback.
