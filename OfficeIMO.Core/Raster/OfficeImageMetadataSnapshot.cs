@@ -4,6 +4,9 @@ internal sealed class OfficeImageMetadataSnapshot {
     internal OfficeImageMetadataKinds Kinds { get; set; }
     internal bool HasColorRenderingMetadata { get; set; }
     internal bool HasDeviceCmyk { get; set; }
+    internal bool HasOtherPngColorRenderingMetadata { get; set; }
+    internal bool HasNonSrgbPngCalibration { get; set; }
+    internal bool HasPngAnimation { get; set; }
     internal byte[]? Exif { get; set; }
     internal byte[]? Xmp { get; set; }
     internal byte[]? Icc { get; set; }

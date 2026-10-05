@@ -14,7 +14,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Native logical structure | Relationship-owned StoryFragments; named page/Canvas/Path/Glyphs references; DocumentStructure story-reference order; continued paragraphs, sections, lists, figures and tables; StoryBreak boundaries; list markers and cell spans | No inferred structure on unstructured pages; unknown extensions and unresolved content produce diagnostics; missing Unicode is not reconstructed; one million work units and 16 million resolved text characters bound each read |
 | Paths | Abbreviated geometry, fill rules, explicit figures/segments with fill/stroke suppression, dashes with separate endpoint/dash caps, triangle caps, clipped miters and the degenerate-segment limit, matrix transforms and clipping | Extended strokes use bounded adaptive vector outlines; native Windows confirmation remains for degenerate and mixed-segment cap rules where the independent engines disagree with the specification |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
-| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, non-ICC colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
+| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF, native sRGB defaults for PNG gamma/chromaticity declarations, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
 | Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; bounded radial Repeat/Reflect expansion retains vector PDF shading | Radial spread requires a point focus strictly inside the end ellipse and at most 256 expanded stops; boundary/exterior focal behavior is not qualified |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
@@ -215,3 +215,27 @@ all six pages. This proves the representative structure and paint-preservation
 contracts; it does not establish a broader OpenXPS producer corpus or PDF/UA
 conformance. The PDF bridge uses the same native structure limits and rejects
 multiple semantic owners for the same glyph or graphic paint.
+
+## PNG declarations without ICC
+
+Native integer PNG samples without a usable ICC profile use the sRGB defaults
+required by ECMA-388 15.3.7, Table 15-3. `gAMA` and `cHRM` do not override those
+native defaults. Core decodes the channel samples, and the native image path
+re-encodes them before SVG/PDF projection so another consumer cannot apply PNG
+calibration to the resulting paint. A usable associated or embedded ICC profile
+retains the native profile precedence described above.
+
+PNG resources with APNG chunks use the static `IDAT` image, including when it
+differs from animation frame zero. Native SVG/PDF/raster conversion normalizes
+that static image for ordinary, gamma-declared and ICC-managed resources. It
+does not play animation. This normalization uses the same four-million-pixel
+limit as native color conversion; malformed containers and exceeded limits are
+reported instead of selecting an animation frame.
+
+Nine qualified generated PNG inputs cover RGB, grayscale, indexed color and alpha, with gamma-only
+and gamma/chromaticity declarations. Canonical sRGB `cICP` is accepted; non-sRGB
+`cICP`, other unsupported color declarations and noncanonical TIFF colorimetry
+remain diagnosed. The native four-million-pixel decode limit and cancellation
+policy still apply. This does not qualify HDR, general PNG color management,
+a broad photographic corpus or all non-ICC image colorimetry. Raw Core raster
+decoding continues to return channel samples without color calibration.

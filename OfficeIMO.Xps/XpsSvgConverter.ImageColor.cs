@@ -33,7 +33,18 @@ internal sealed partial class XpsSvgConverter {
         var metadata = OfficeImageMetadataInspector.Inspect(bytes, format, _profileAllowance, _token);
         // ECMA-388 permits an explicit error when no usable device profile exists.
         if (metadata.HasDeviceCmyk) { Loss("CMYK image requires a usable ICC profile"); return false; }
-        if (metadata.HasColorRenderingMetadata) { Loss("Image color metadata without a supported ICC profile"); return false; }
+        if (metadata.HasColorRenderingMetadata || metadata.HasNonSrgbPngCalibration) {
+            // ECMA-388 M8.30 defaults integer PNG samples to sRGB without a
+            // usable ICC profile. Decode and re-encode to remove gAMA/cHRM so
+            // downstream SVG/PDF consumers cannot reinterpret those samples.
+            if (format == OfficeImageFormat.Png && !metadata.HasOtherPngColorRenderingMetadata &&
+                OfficeRasterImageDecoder.TryDecodePngDefault(bytes, ImageDecodeOptions(), out raster) && raster != null) return true;
+            Loss("Image color metadata without a supported ICC profile"); return false;
+        }
+        if (format == OfficeImageFormat.Png && metadata.HasPngAnimation &&
+            !OfficeRasterImageDecoder.TryDecodePngDefault(bytes, ImageDecodeOptions(), out raster)) {
+            Loss("PNG static image could not be decoded within the native resource limits"); return false;
+        }
         if (format == OfficeImageFormat.Tiff &&
             (!OfficeRasterImageDecoder.TryDecode(bytes, ImageDecodeOptions(), out raster, out _) || raster == null)) {
             Loss("Unsupported image encoding or ICC channel configuration"); return false;

@@ -26,7 +26,10 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Xps\OfficeIMO.Reader.Xps.csproj" />
   </ItemGroup>
 
-  <ItemGroup><None Update="Fixtures/ColorImages/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures/ColorImages/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/PngColorimetry/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup><ProjectReference Include="..\OfficeIMO.Xps.Pdf\OfficeIMO.Xps.Pdf.csproj" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\IccColorCorpus\*" Link="Fixtures/IccColorCorpus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

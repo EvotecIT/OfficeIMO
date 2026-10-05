@@ -38,7 +38,7 @@ public static partial class OfficeIccRasterConverter {
         bool gray = encoded[25] == 0 || encoded[25] == 4;
         bool rgb = encoded[25] == 2 || encoded[25] == 3 || encoded[25] == 6;
         if (!(gray && profile.ComponentCount == 1 || rgb && profile.ComponentCount == 3)) return false;
-        if (!OfficeRasterImageDecoder.TryDecode(encoded, effective, out var decoded, out _) || decoded == null) return false;
+        if (!OfficeRasterImageDecoder.TryDecodePngDefault(encoded, effective, out var decoded) || decoded == null) return false;
         // The decoder returns straight RGBA; retain alpha and convert the RGB channels in place.
         if (!ConvertImageSamples(decoded.PixelBuffer, 4, decoded.PixelBuffer, profile, effective, true)) return false;
         image = decoded;

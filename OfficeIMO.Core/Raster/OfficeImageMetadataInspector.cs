@@ -172,6 +172,7 @@ internal static partial class OfficeImageMetadataInspector {
     private static void InspectPng(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
         int offset = 8;
         bool hasStandardRgb = false;
+        bool hasCanonicalCicp = false;
         bool hasGamma = false;
         bool hasStandardGamma = false;
         bool hasChromaticities = false;
@@ -181,7 +182,9 @@ internal static partial class OfficeImageMetadataInspector {
             int length = ReadBigEndian(data, offset);
             if (length < 0 || offset > data.Length - 12 - length) break;
             string type = ReadAscii(data, offset + 4, 4);
-            if (type == "eXIf") {
+            if (type == "acTL") {
+                snapshot.HasPngAnimation = true;
+            } else if (type == "eXIf") {
                 InspectExifPayload(data, offset + 8, length, snapshot, cancellationToken);
             } else if (type == "iCCP") {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
@@ -200,6 +203,7 @@ internal static partial class OfficeImageMetadataInspector {
                     data[offset + 9] == 13 &&
                     data[offset + 10] == 0 &&
                     data[offset + 11] == 1;
+                hasCanonicalCicp = canonicalSrgb;
                 if (!canonicalSrgb) snapshot.HasColorRenderingMetadata = true;
             }
             else if (type == "pHYs") {
@@ -218,11 +222,14 @@ internal static partial class OfficeImageMetadataInspector {
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
         }
+        snapshot.HasOtherPngColorRenderingMetadata = snapshot.HasColorRenderingMetadata;
         // Matching gAMA/cHRM values alone do not declare the exact sRGB transfer
         // function. The decoder leaves those chunks unapplied, so classification
         // can only use the original bytes when an sRGB declaration is present.
-        if ((hasGamma || hasChromaticities) &&
-            (!hasStandardRgb || hasGamma && !hasStandardGamma || hasChromaticities && !hasStandardChromaticities)) {
+        // A recognized canonical cICP declaration has precedence over gAMA/cHRM.
+        snapshot.HasNonSrgbPngCalibration = (hasGamma || hasChromaticities) &&
+            (!hasStandardRgb || hasGamma && !hasStandardGamma || hasChromaticities && !hasStandardChromaticities);
+        if (!hasCanonicalCicp && snapshot.HasNonSrgbPngCalibration) {
             snapshot.HasColorRenderingMetadata = true;
         }
     }
