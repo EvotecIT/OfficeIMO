@@ -334,6 +334,44 @@ the final publication and review its content in representative readers.
 DOCX and Markdown composition and editable book projects belong to
 [`OfficeIMO.Workflows`](../OfficeIMO.Workflows/README.md#book-publishing).
 
+### Read-aloud narration
+
+`AddMediaOverlay` adds an EPUB 3 SMIL overlay for one existing XHTML document.
+Add the audio resource first, then supply ordered cues and the measured duration
+of each audio file:
+
+```csharp
+publication.AddChapter("story", "EPUB/story.xhtml", "Story",
+    "<p id='first'>The first sentence.</p><p id='second'>The second sentence.</p>");
+publication.AddResource("voice", "EPUB/voice.mp3", "audio/mpeg", File.ReadAllBytes("voice.mp3"));
+publication.AddMediaOverlay("story", "story-narration", "EPUB/story.smil", new EpubMediaOverlay {
+    AudioDurations = new Dictionary<string, TimeSpan> { ["voice"] = TimeSpan.FromSeconds(8) },
+    Cues = new[] {
+        new EpubMediaOverlayCue("first", "voice", TimeSpan.Zero, TimeSpan.FromSeconds(3)),
+        new EpubMediaOverlayCue("second", "voice", TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(8))
+    }
+});
+```
+
+The operation creates the SMIL resource, manifest association, overlay duration
+and publication duration atomically. Clip durations are summed without floating-point
+rounding. Each clip must satisfy `0 <= begin < end <= audio duration`. Audio durations
+are caller declarations; OfficeIMO does not decode the media to verify them.
+
+This profile accepts 1–10,000 cues and local, nonempty, unencrypted `audio/mpeg`
+or `audio/mp4` resources. Targets use existing unqualified XHTML body element ids,
+are distinct and non-nested, and follow document order. Clips can select different
+files or reuse portions of a file; their list order determines playback. Narration
+may cover only part of a chapter. An existing overlay is never overwritten.
+Other retained SMIL resources need one unambiguous, nonnegative duration each,
+expressible exactly as a `TimeSpan`, before the publication total can be recalculated.
+
+Use `SetMetadataProperty("media:active-class", "narration-active")` with a matching
+CSS class in every narrated document for active-text styling. Validate the final
+EPUB with EPUBCheck and check synchronization, highlighting, seeking and pause/resume
+in target reading systems. General SMIL editing, nested skippable/escapable sequences,
+SVG narration, synthesized speech and playback are outside this authoring profile.
+
 ### Fixed-layout XHTML pages
 
 `SetFixedLayoutPage` configures an existing EPUB 3 XHTML spine document with a
@@ -951,7 +989,9 @@ Cover declarations are checked against the final manifest, including their image
 type and the EPUB 3 single-cover property. `SetCoverImage` also updates retained
 legacy cover metadata, so replacing a cover keeps both declarations consistent.
 Media-overlay associations require an
-EPUB 3 content document and a SMIL target; SMIL timing is outside this validation.
+EPUB 3 content document and a SMIL target. `AddMediaOverlay` validates its authored
+cues and calculates durations; save preflight does not revalidate arbitrary retained
+SMIL timing or decode audio. Recheck overlays independently after low-level edits.
 Spine items resolve to XHTML in EPUB 2, or XHTML/SVG in EPUB 3, through any fallback
 chain. EPUB 2 image and stylesheet resources belong inside content documents;
 direct spine references to them are rejected, including SVG with a fallback.
@@ -1023,7 +1063,7 @@ save policy first, including signature and output-limit checks.
 
 - This package owns EPUB parsing, native authoring, package-preserving editing, and bounded HTML manuscript import.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. Browser layout, scripting, DRM, general encrypted-resource editing, media-overlay authoring, and fixed-page geometry creation are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
+- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. XHTML fixed-page canvases and sequential SMIL narration have the bounded authoring profiles above. Browser layout, scripting, DRM, general encrypted-resource editing and audio playback are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
 
 ## Targets and license
 

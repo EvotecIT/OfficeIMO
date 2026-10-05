@@ -9,6 +9,7 @@
     <IsPublishable>false</IsPublishable>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets/narration.mp3" LogicalName="OfficeIMO.Epub.Fixtures.narration.mp3" />
     <ProjectReference Include="../../../OfficeIMO.Epub/OfficeIMO.Epub.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj" />
   </ItemGroup>
