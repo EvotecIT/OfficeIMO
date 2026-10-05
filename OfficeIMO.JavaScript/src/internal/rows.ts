@@ -6,7 +6,10 @@ export function rowValues(row: unknown, columns: readonly Column[]): readonly un
     return row;
   }
   if (!row || typeof row !== "object" || row instanceof Date) throw new TypeError("A row must be an array or object.");
-  return columns.map(c => (row as Record<string, unknown>)[c.key ?? c.header]);
+  return columns.map(c => {
+    const key = c.key ?? c.header;
+    return Object.prototype.hasOwnProperty.call(row, key) ? (row as Record<string, unknown>)[key] : undefined;
+  });
 }
 
 export function copyColumns(columns: readonly Column[]): Column[] {

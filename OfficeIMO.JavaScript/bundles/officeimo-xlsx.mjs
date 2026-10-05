@@ -1009,7 +1009,10 @@ function rowValues(row, columns) {
     }
     if (!row || typeof row !== "object" || row instanceof Date)
         throw new TypeError("A row must be an array or object.");
-    return columns.map(c => row[c.key ?? c.header]);
+    return columns.map(c => {
+        const key = c.key ?? c.header;
+        return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+    });
 }
 function copyColumns(columns) {
     if (!Array.isArray(columns))

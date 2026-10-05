@@ -171,7 +171,7 @@ _modules.set("88c9bd1627ac07a6d1e491b47ce707782b17029f861f98120c1b6ea907ae92a6",
 return _exports;
 })();
 
-const _m4 = _modules.get("2d47f5dfcd94c4c5981f633c9f90cda28e56d5135e19308a5d0875ffcac57794") ?? (() => {
+const _m4 = _modules.get("106e8382a79b4ecc2a000b5b59d79ee2eb5d1f40478080fe26bb9effb9fa87be") ?? (() => {
 function rowValues(row, columns) {
     if (Array.isArray(row)) {
         if (row.length > columns.length)
@@ -180,7 +180,10 @@ function rowValues(row, columns) {
     }
     if (!row || typeof row !== "object" || row instanceof Date)
         throw new TypeError("A row must be an array or object.");
-    return columns.map(c => row[c.key ?? c.header]);
+    return columns.map(c => {
+        const key = c.key ?? c.header;
+        return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+    });
 }
 function copyColumns(columns) {
     if (!Array.isArray(columns))
@@ -192,7 +195,7 @@ function copyColumns(columns) {
     });
 }
 const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns });
-_modules.set("2d47f5dfcd94c4c5981f633c9f90cda28e56d5135e19308a5d0875ffcac57794", _exports);
+_modules.set("106e8382a79b4ecc2a000b5b59d79ee2eb5d1f40478080fe26bb9effb9fa87be", _exports);
 return _exports;
 })();
 
@@ -241,7 +244,7 @@ _modules.set("bf316b006cecef93fb2fb4cb481e2926ed30014eccf35dddbf146f410ba2d689",
 return _exports;
 })();
 
-const _m0 = _modules.get("d156e9c4284f98467f887e6f6e54e0f2d616d213deb30ec52da063c4fd192180") ?? (() => {
+const _m0 = _modules.get("577f63391957f6cf1d280a34f14ebf563ac0c5f5fb5c867f67d6d13cbfc18b76") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink } = _m2;
@@ -318,7 +321,7 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m5.saveBlob, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("d156e9c4284f98467f887e6f6e54e0f2d616d213deb30ec52da063c4fd192180", _exports);
+_modules.set("577f63391957f6cf1d280a34f14ebf563ac0c5f5fb5c867f67d6d13cbfc18b76", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m5, csv: _m0 });

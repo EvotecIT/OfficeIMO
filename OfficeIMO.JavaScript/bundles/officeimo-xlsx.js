@@ -1017,7 +1017,7 @@ _modules.set("6ddac249ea55b29fa39daa320de1324d595968610cf8baebeeb9cd7e9c09ae20",
 return _exports;
 })();
 
-const _m14 = _modules.get("2d47f5dfcd94c4c5981f633c9f90cda28e56d5135e19308a5d0875ffcac57794") ?? (() => {
+const _m14 = _modules.get("106e8382a79b4ecc2a000b5b59d79ee2eb5d1f40478080fe26bb9effb9fa87be") ?? (() => {
 function rowValues(row, columns) {
     if (Array.isArray(row)) {
         if (row.length > columns.length)
@@ -1026,7 +1026,10 @@ function rowValues(row, columns) {
     }
     if (!row || typeof row !== "object" || row instanceof Date)
         throw new TypeError("A row must be an array or object.");
-    return columns.map(c => row[c.key ?? c.header]);
+    return columns.map(c => {
+        const key = c.key ?? c.header;
+        return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+    });
 }
 function copyColumns(columns) {
     if (!Array.isArray(columns))
@@ -1038,11 +1041,11 @@ function copyColumns(columns) {
     });
 }
 const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns });
-_modules.set("2d47f5dfcd94c4c5981f633c9f90cda28e56d5135e19308a5d0875ffcac57794", _exports);
+_modules.set("106e8382a79b4ecc2a000b5b59d79ee2eb5d1f40478080fe26bb9effb9fa87be", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("3a39b37f238ffaa64db9b7e4560c37d0b085ed01cb60de39f3073f264021e053") ?? (() => {
+const _m13 = _modules.get("5a838aaf6607bcf48cc02156b8c88d7333fa565f7ed871d1d5d7e1df9e5bdbe6") ?? (() => {
 const { checkAbort, inputRows } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m8;
@@ -1235,11 +1238,11 @@ class Worksheet {
     async discard(error) { await this.entry?.discard(error); this.output.discard(); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("3a39b37f238ffaa64db9b7e4560c37d0b085ed01cb60de39f3073f264021e053", _exports);
+_modules.set("5a838aaf6607bcf48cc02156b8c88d7333fa565f7ed871d1d5d7e1df9e5bdbe6", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("ac0a102928d443ad861a643a715da44b0f121ccfe01d67573acce0e325f156e2") ?? (() => {
+const _m1 = _modules.get("fec0a363a01f7c8b76244f3d4227f28b0ca4bfcf7239c06945b200e0747bf466") ?? (() => {
 const { checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -1354,7 +1357,7 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("ac0a102928d443ad861a643a715da44b0f121ccfe01d67573acce0e325f156e2", _exports);
+_modules.set("fec0a363a01f7c8b76244f3d4227f28b0ca4bfcf7239c06945b200e0747bf466", _exports);
 return _exports;
 })();
 
@@ -1403,10 +1406,10 @@ _modules.set("bf316b006cecef93fb2fb4cb481e2926ed30014eccf35dddbf146f410ba2d689",
 return _exports;
 })();
 
-const _m0 = _modules.get("3c19e06c8f38f0e6e766b13cf378a9a40116dc44de3af61f058be121e1c9a08d") ?? (() => {
+const _m0 = _modules.get("daaabfd365c5c317df9946db38191204ba2092d8cd5c1570242316d45dc8c9cd") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m13.Worksheet, Cell: _m12.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, saveBlob: _m15.saveBlob });
-_modules.set("3c19e06c8f38f0e6e766b13cf378a9a40116dc44de3af61f058be121e1c9a08d", _exports);
+_modules.set("daaabfd365c5c317df9946db38191204ba2092d8cd5c1570242316d45dc8c9cd", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m15, zip: _m9, xml: _m7, opc: _m4, xlsx: _m0 });
