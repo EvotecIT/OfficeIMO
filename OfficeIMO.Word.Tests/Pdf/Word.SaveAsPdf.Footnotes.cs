@@ -9,6 +9,29 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData("body")]
+        [InlineData("table")]
+        [InlineData("control")]
+        public void SaveAsPdf_PreservesFootnoteAndEndnoteWithTheSameDisplayNumber(string context) {
+            string path = Path.Combine(_directoryWithFiles, "SameNumberNotes" + context + ".pdf");
+            using var document = WordDocument.Create();
+            WordParagraph paragraph = context == "table"
+                ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
+                : document.AddParagraph("SameNumberMarker");
+            paragraph.AddFootNote("FootnoteBody");
+            paragraph.AddEndNote("EndnoteBody");
+            if (context == "control") {
+                var content = new DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock(paragraph._paragraph!.CloneNode(true));
+                paragraph._paragraph.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.SdtBlock(content));
+                paragraph._paragraph.Remove();
+            }
+            document.SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
+            var spans = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
+            var marker = Assert.Single(spans, span => span.Text.Contains("SameNumberMarker"));
+            Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
+        }
+
         [Fact]
         public void SaveAsPdf_Renders_Footnotes_And_PageNumbers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfFootnotes.docx");
