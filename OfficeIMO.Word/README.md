@@ -170,6 +170,18 @@ paragraph.AddText(" on ");
 paragraph.AddText(DateTime.Today.ToString("yyyy-MM-dd")).Italic = true;
 ```
 
+`KerningMinimumFontSizePoints` controls the minimum font size at which a run uses kerning.
+Set it to `null` to inherit the threshold or `0` to disable kerning. Values from `0` to
+`1638` points round to the nearest half point and persist in DOCX and supported native DOC content.
+The property reads the run's explicit threshold; an inherited value reads as `null`.
+
+```csharp
+var title = document.AddParagraph("AV typography");
+title.FontFamily = "Arial";
+title.FontSizePoints = 24;
+title.KerningMinimumFontSizePoints = 8;
+```
+
 ### Tables with structure
 
 ```csharp
