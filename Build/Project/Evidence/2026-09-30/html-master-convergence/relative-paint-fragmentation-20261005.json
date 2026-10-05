@@ -913,5 +913,1366 @@
       "scope": "Independent relative-offset reproduction on the qualified grid source; no relative behavior change. Native PDF/scene proof retained."
     },
     "nextBoundedImplementation": "Engine-owned relative paint projection must map shifted paint across resolved physical content windows while retaining flow-fragment advancement and unused regions from authored breaks. Start with the simple positive/negative block fixtures, then nested clip/link/semantic ownership and kept-column controls; no post-PDF overlay or offset reset."
+  },
+  "imageWindowControls20261005": {
+    "sourceHead": "ed5b27cd475c4976d27818567c43ba511587638a",
+    "scope": "Independent image/clip contract controls; no relative-position implementation accepted",
+    "retained": "Ignore/MasterConvergenceQualification/relative-fragment-qualification-d79651444/image-window-projection-control",
+    "fixtureRoot": "relative-paint-fixtures-20261005",
+    "cases": [
+      {
+        "case": "image-negative",
+        "controls": [
+          {
+            "route": "image-window-browser",
+            "pages": 4,
+            "sha256": "3991701f0a92f945d1248921913d8173b4bf794db5546acfaece164c2556c357",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      239,
+                      150,
+                      300
+                    ],
+                    "pixels": 9150
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      60.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      60.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 239,
+                    "last": 299,
+                    "pixelCount": 9150
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      0,
+                      150,
+                      165
+                    ],
+                    "pixels": 24750
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 0,
+                    "last": 164,
+                    "pixelCount": 24750
+                  },
+                  "green": {
+                    "first": 165,
+                    "last": 299,
+                    "pixelCount": 20250
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      90,
+                      150,
+                      300
+                    ],
+                    "pixels": 31500
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 89,
+                    "pixelCount": 13500
+                  },
+                  "blue": {
+                    "first": 90,
+                    "last": 299,
+                    "pixelCount": 31500
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Image caption\n\nTrailing label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      150,
+                      15
+                    ],
+                    "pixels": 2250
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 14,
+                    "pixelCount": 2250
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-original",
+            "pages": 4,
+            "sha256": "cfa9e0ca612d2ede0a7f805ccdea7d63cbbbcf640127df5dfa2b872a5b5ce444",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      166
+                    ],
+                    "pixels": 25066
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      166,
+                      151,
+                      300
+                    ],
+                    "pixels": 20234
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 0,
+                    "last": 165,
+                    "pixelCount": 25066
+                  },
+                  "green": {
+                    "first": 166,
+                    "last": 299,
+                    "pixelCount": 20234
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      91
+                    ],
+                    "pixels": 13741
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      91,
+                      151,
+                      300
+                    ],
+                    "pixels": 31559
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 90,
+                    "pixelCount": 13741
+                  },
+                  "blue": {
+                    "first": 91,
+                    "last": 299,
+                    "pixelCount": 31559
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Image caption\n\nTrailing label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      16
+                    ],
+                    "pixels": 2416
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 15,
+                    "pixelCount": 2416
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-projection-control",
+            "pages": 4,
+            "sha256": "cfa9e0ca612d2ede0a7f805ccdea7d63cbbbcf640127df5dfa2b872a5b5ce444",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      166
+                    ],
+                    "pixels": 25066
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      166,
+                      151,
+                      300
+                    ],
+                    "pixels": 20234
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 0,
+                    "last": 165,
+                    "pixelCount": 25066
+                  },
+                  "green": {
+                    "first": 166,
+                    "last": 299,
+                    "pixelCount": 20234
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      91
+                    ],
+                    "pixels": 13741
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      91,
+                      151,
+                      300
+                    ],
+                    "pixels": 31559
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 90,
+                    "pixelCount": 13741
+                  },
+                  "blue": {
+                    "first": 91,
+                    "last": 299,
+                    "pixelCount": 31559
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Image caption\n\nTrailing label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      16
+                    ],
+                    "pixels": 2416
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 15,
+                    "pixelCount": 2416
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "fixtureSha256": "56eecfecbf4a851121959c56305f36a563d9e9ae9216c615072389d02d889d57",
+        "decodedPngSha256": "36d3a3e1836430d21fbf0fad7b2706efae000dea70462e7fb102a283a4f7be15",
+        "sourceColors": [
+          [
+            255,
+            0,
+            0
+          ],
+          [
+            0,
+            255,
+            0
+          ],
+          [
+            0,
+            0,
+            255
+          ]
+        ]
+      },
+      {
+        "case": "image-positive",
+        "controls": [
+          {
+            "route": "image-window-browser",
+            "pages": 4,
+            "sha256": "dd4d85c90fc7563a337271b936ddbeb5591126abbd3e9608174c87b29d42a40e",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      59,
+                      150,
+                      285
+                    ],
+                    "pixels": 33900
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      240.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      240.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 59,
+                    "last": 284,
+                    "pixelCount": 33900
+                  },
+                  "green": {
+                    "first": 285,
+                    "last": 299,
+                    "pixelCount": 2250
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      210,
+                      150,
+                      300
+                    ],
+                    "pixels": 13500
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 209,
+                    "pixelCount": 31500
+                  },
+                  "blue": {
+                    "first": 210,
+                    "last": 299,
+                    "pixelCount": 13500
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Trailing label\n\nImage caption\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      150,
+                      135
+                    ],
+                    "pixels": 20250
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      165.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      165.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 134,
+                    "pixelCount": 20250
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-original",
+            "pages": 4,
+            "sha256": "f6ed713c6fad15ab0e4043bad67429d814ed9b2e6767a76529d5aa20b1bd70b3",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      60,
+                      151,
+                      286
+                    ],
+                    "pixels": 34126
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      286,
+                      151,
+                      300
+                    ],
+                    "pixels": 2114
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      240.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 60,
+                    "last": 285,
+                    "pixelCount": 34126
+                  },
+                  "green": {
+                    "first": 286,
+                    "last": 299,
+                    "pixelCount": 2114
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      211
+                    ],
+                    "pixels": 31861
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      211,
+                      151,
+                      300
+                    ],
+                    "pixels": 13439
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 210,
+                    "pixelCount": 31861
+                  },
+                  "blue": {
+                    "first": 211,
+                    "last": 299,
+                    "pixelCount": 13439
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Trailing label\n\nImage caption\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      75
+                    ],
+                    "pixels": 11325
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      225.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 74,
+                    "pixelCount": 11325
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-projection-control",
+            "pages": 4,
+            "sha256": "f6ed713c6fad15ab0e4043bad67429d814ed9b2e6767a76529d5aa20b1bd70b3",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      60,
+                      151,
+                      286
+                    ],
+                    "pixels": 34126
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      286,
+                      151,
+                      300
+                    ],
+                    "pixels": 2114
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      240.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 60,
+                    "last": 285,
+                    "pixelCount": 34126
+                  },
+                  "green": {
+                    "first": 286,
+                    "last": 299,
+                    "pixelCount": 2114
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      211
+                    ],
+                    "pixels": 31861
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      211,
+                      151,
+                      300
+                    ],
+                    "pixels": 13439
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 210,
+                    "pixelCount": 31861
+                  },
+                  "blue": {
+                    "first": 211,
+                    "last": 299,
+                    "pixelCount": 13439
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Trailing label\n\nImage caption\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      75
+                    ],
+                    "pixels": 11325
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      225.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 74,
+                    "pixelCount": 11325
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "fixtureSha256": "1fb2042b5b34a920e8db7a03bea53461f1a87831ce967984aae9e523207053e9",
+        "decodedPngSha256": "36d3a3e1836430d21fbf0fad7b2706efae000dea70462e7fb102a283a4f7be15",
+        "sourceColors": [
+          [
+            255,
+            0,
+            0
+          ],
+          [
+            0,
+            255,
+            0
+          ],
+          [
+            0,
+            0,
+            255
+          ]
+        ]
+      }
+    ],
+    "method": "72dpi Poppler renders; original exact RGB masks retained. Supplemental dominant-channel tolerance accounts for Chromium PDF color encoding; bounds are diagnostic, not byte/pixel parity.",
+    "diagnosis": [
+      "Negative 80px relative offset loses the first image band portion because flow-fragment clips remain at the unshifted physical page window.",
+      "Positive 80px offset loses the final image band portion; the image caption moves but the image fragment clips do not.",
+      "The text-only reflection experiment preserves these losses and is not usable product code.",
+      "Separate synthesized flow-fragment clips from authored overflow/path clips before physical-window projection; retain each image segment exactly once, link rectangles and normal-flow sibling placement."
+    ],
+    "inspection": [
+      "image-negative-contact.png",
+      "image-positive-contact.png"
+    ]
   }
 }

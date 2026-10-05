@@ -1,0 +1,342 @@
+{
+  "date": "2026-10-05",
+  "codeHead": "2a5a1d2fb",
+  "baseHead": "ed5b27cd475c4976d27818567c43ba511587638a",
+  "scope": "Static HTML/PDF secondary paint preserves one logical extraction owner, Artifact classification and separate link annotations. No relative-position projection implementation or platform budget qualification.",
+  "ownership": {
+    "core": "Internal PdfPageCanvas.SuppressTextExtraction reuses the existing ActualText item/serializer; public ActualText still rejects empty input.",
+    "adapter": "Empty logical groups and already-claimed layer scopes consume the Core primitive.",
+    "projection": "Fixed-canvas snapshot secondary text uses an empty logical group instead of a generic Artifact, preserving interactions.",
+    "publicApiChanged": false,
+    "newRuntimeDependencies": false
+  },
+  "tests": {
+    "full-html-net10-final": {
+      "sha256": "b5140b0f1d3c89ea73ddb9a406c134b2f86b43b2ec95136372a86601daf602d5",
+      "counters": {
+        "total": "4335",
+        "executed": "4335",
+        "passed": "4335",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "full-html-net8-final": {
+      "sha256": "23b2bcd45bd5a14d9fea63cf0fb5964a18418f3805394e1a91088194094262a2",
+      "counters": {
+        "total": "4335",
+        "executed": "4335",
+        "passed": "4335",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "full-pdf-net10-final": {
+      "sha256": "fc4f93bc2f11d0c0d26630d31faa38ace712888cf261fa3b525019370bbe1061",
+      "counters": {
+        "total": "8782",
+        "executed": "8782",
+        "passed": "8782",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focused-pdf-net8-final": {
+      "sha256": "d9c6a77e7e0be299d70642ccb2ea50e3ecc51d9161245b292401c183e099e67a",
+      "counters": {
+        "total": "203",
+        "executed": "203",
+        "passed": "203",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focused-pdf-final": {
+      "sha256": "b77f79e9631c403bd3b9a7ead82c1f8b4478e2b3ef07863c4ac6cfabda24a919",
+      "counters": {
+        "total": "99",
+        "executed": "99",
+        "passed": "99",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focused-html-projector-final": {
+      "sha256": "442b51dd92724159a9bd45a943e5e55b8d75f5806472b9d11e4c04590d5c1ad7",
+      "counters": {
+        "total": "16",
+        "executed": "16",
+        "passed": "16",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  },
+  "normalBuilds": {
+    "netstandard2.0": "OfficeIMO.Html.Pdf normal project graph, zero warnings/errors",
+    "net10.0": "Ordinary owner DLLs built at clean code head. Disposable controls copy those owners and approved AngleSharp provider bytes from the same test output; missing-provider setup failure retained. This is not package-consumer qualification."
+  },
+  "independentProof": {
+    "boundary": "Shared secondary-paint extraction/tagging proof; scene projection is a disposable control and is not the relative-pagination implementation.",
+    "codeHead": "2a5a1d2fb",
+    "cases": [
+      {
+        "case": "positive-margins",
+        "pages": 3,
+        "pdfSha256": "35157e5508e4e8a547007f13cc62c90b55948868a61c0a47d9de94b7ae0054b7",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "footer-negative-link",
+        "pages": 2,
+        "pdfSha256": "e2d6430cdb1b6c67bc2eb1b5951440252f4b136f22b1da401880a5e8d435f91b",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 1,
+        "markedContentIssues": [],
+        "links": [
+          {
+            "page": 1,
+            "uri": "https://example.com/row01",
+            "rect": [
+              15.0,
+              27.0,
+              89.028,
+              42.0
+            ]
+          }
+        ],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "negative-forced-early",
+        "pages": 2,
+        "pdfSha256": "2beb1a46fe7af319c81bfd0444c8d243fcd0b97d19866d05ddc11939f5caf32e",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "footer-negative-clipped",
+        "pages": 2,
+        "pdfSha256": "beba8e306488e016b0d8e1141a3b61e3d03ed823fe50921928cbe8f03ed3068e",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 1,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "plain-positive",
+        "pages": 2,
+        "pdfSha256": "ac80f3b76323a36200a15c297070156b9620d40f63e3e5a060fa78053d2faa42",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "negative-varying-height",
+        "pages": 2,
+        "pdfSha256": "41cc2fca43512062804897c2811ef692e34e18753998a43ba67b2b432e941771",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "footer-negative",
+        "pages": 2,
+        "pdfSha256": "ed517b647b3c6dee5c1cbc1b1c165aea733a2692671d7b56af3ec4b874ed6963",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 1,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "negative-margins",
+        "pages": 2,
+        "pdfSha256": "14eb48c745a30aaf14b760c3547a1108337713ad196a138e782683dbcf6efbad",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "plain-negative",
+        "pages": 2,
+        "pdfSha256": "385efac037039cc6b18e5ff6d97f922e68d9162eb713aade4e0468f647dbb6aa",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      }
+    ],
+    "publicLayerControls": [
+      {
+        "file": "shared-h1-officeimo.pdf",
+        "text": "ALPHA BETA\n\n\f",
+        "alphaCount": 1,
+        "betaCount": 1,
+        "uris": [
+          "https://example.test/beta",
+          "https://example.test/alpha"
+        ],
+        "pdfSha256": "cbabd254b8e4da6a6d7ec946e2fb08afc6db063a2fce45f22445ed554bdf76da"
+      },
+      {
+        "file": "shared-p-officeimo.pdf",
+        "text": "ALPHA BETA\n\n\f",
+        "alphaCount": 1,
+        "betaCount": 1,
+        "uris": [
+          "https://example.test/beta",
+          "https://example.test/alpha"
+        ],
+        "pdfSha256": "e72b3a0f10d4b1497579015890b89caa76d145741c181c7d36f3593897f93e66"
+      }
+    ]
+  },
+  "reviews": {
+    "agent": "pdf_secondary_paint_review",
+    "originalFingerprint": "b871282830b12c4f8202078abe84aaece4525aa4",
+    "finalFingerprint": "b7918e7977c5d978de385f1b62ec69fbd8375c6b",
+    "fullPass": "Read-only findings delivered; finalization interrupted by service capacity error. No claim of a completed full-pass final report.",
+    "targetedConfirmation": "One confirmation found linked MCID paint inside Artifact. Both canvas rich-text entry points now honor existing structure suppression; the final writer separately owns annotation-only Link OBJR.",
+    "closure": "Primary invariant sweep, scalar/TextBox regressions and independent marked-content inspection validate the findings. No further independent confirmation or full pass claimed."
+  },
+  "retainedFailures": [
+    "Initial test setup compilation errors",
+    "Disposable projection input path/setup failures",
+    "Superseded remediation validation interrupted after linked tagging finding; no broad-pass claim for that incomplete run",
+    "Initial unclassified empty-ActualText secondary paint and intermediate linked MCID inside Artifact"
+  ],
+  "retained": "Ignore/MasterConvergenceQualification/paint-only-text-qualification-ed5b27cd4",
+  "remaining": [
+    "Engine-owned relative physical-window projection with synthesized versus authored clips, resolved page geometry and bounded cancellation/visual counts",
+    "Named corpus/native/intent acceptance",
+    "Current-source platform package/budget qualification and long-lived branch convergence"
+  ]
+}

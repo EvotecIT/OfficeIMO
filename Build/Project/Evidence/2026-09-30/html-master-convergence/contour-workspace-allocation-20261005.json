@@ -697,5 +697,17 @@
     "controlSourceRetainedInHistory": "0295e16e52288e82db2973203b7a58704dd37c95",
     "controlProofCopiedAndShaVerified": true,
     "boundary": "Task-generated owner/probe binaries and private expansion caches removed. Current budget runners, original failures, final corpus, fixtures, package feeds and receipts deliberately retained. Shared caches and unrelated worktrees preserved."
+  },
+  "standaloneDelivery": {
+    "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2809",
+    "head": "956e2e55607c2933e041af73fa49313c48cdf4fa",
+    "merge": "dbba3bbadc902dba177246844f25c5a8115f6413",
+    "mergedUtc": "2026-10-05T07:43:18Z",
+    "gate": "99 successful current-head checks and 6 skipped; complete delayed reviews/comments/reactions, zero unresolved threads.",
+    "preserved": "Ignore/MasterConvergenceQualification/merged-raster-contour-dbba3bbad",
+    "preservedFiles": 32,
+    "preservedBytes": 17032072,
+    "cleanup": "Owned worktree and local branch removed after source status, merge ancestry, outside-worktree open-handle and SHA preservation checks.",
+    "remaining": "Current-source platform budgets and deliberate graph convergence remain separate; no HTML/master merge or release."
   }
 }
