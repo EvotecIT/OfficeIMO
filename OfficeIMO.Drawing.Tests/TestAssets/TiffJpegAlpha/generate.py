@@ -1,16 +1,20 @@
 from pathlib import Path
 from PIL import Image
 import hashlib,struct,subprocess,sys
-root=Path(__file__).resolve().parent;exe=Path(sys.argv[1]).resolve();rows=['file,photometric,bigEndian,tiled,shared,planar,subsampling,extra']
+low='--low-alpha' in sys.argv[2:]
+root=Path(__file__).resolve().parent
+if low:root=root.parent/'TiffJpegLowAlpha'
+root.mkdir(exist_ok=True)
+exe=Path(sys.argv[1]).resolve();rows=['file,photometric,bigEndian,tiled,shared,planar,subsampling,extra']
 for photo in (0,1,2,5,6):
  for big in (0,1):
   for tile in (0,1):
    for shared in (0,1):
     for planar in (1,2):
      for sub in ((1,2) if photo==6 else (1,)):
-      for extra in (0,1,2):
+      for extra in ((1,2) if low else (0,1,2)):
        name=f'p{photo}-be{big}-t{tile}-q{shared}-pl{planar}-s{sub}-e{extra}.tif';file=root/name
-       subprocess.run([str(exe),str(file),str(photo),str(big),str(tile),str(shared),str(planar),str(sub),str(extra)],check=True)
+       subprocess.run([str(exe),str(file),str(photo),str(big),str(tile),str(shared),str(planar),str(sub),str(extra),str(int(low))],check=True)
        base=4 if photo==5 else 3 if photo in (2,6) else 1;n=base+1
        if planar==2:
         data=file.with_suffix('.tif.planes').read_bytes();offset=0;planes=[Image.new('L',(35,19)) for _ in range(n)]

@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegLowAlpha", 35, 19)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegLowAlpha", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegAlpha", 35, 19)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegAlpha", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegExtended", 35, 19)]
@@ -28,7 +30,7 @@ public sealed class XpsTiffJpegTests {
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, fields[0])), "image/tiff");
             document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
-            if ((folder == "TiffJpeg" || folder == "TiffJpegExtended" || folder == "TiffJpegAlpha") && fields[1] == "5") {
+            if ((folder == "TiffJpeg" || folder == "TiffJpegExtended" || (folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha")) && fields[1] == "5") {
                 var originalPage = document.Pages[0];
                 Assert.Throws<NotSupportedException>(() => originalPage.ToDrawing());
                 byte[] profile = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IccColorCorpus", "littlecms-cmyk-lut.icc"));
@@ -39,7 +41,7 @@ public sealed class XpsTiffJpegTests {
                 originalPage.ReplaceMarkup(markup);
             }
             var page = XpsDocument.Load(document.Save()).Pages[0];
-            if (folder == "TiffJpegAlpha") {
+            if ((folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha")) {
                 Assert.True(OfficeTiffCodec.TryDecode(File.ReadAllBytes(Path.Combine(corpus, fields[0])), out var source));
                 var transparent = OfficeDrawingRasterRenderer.Render(page.ToDrawing());
                 for (int ay = 0; ay < height; ay++) for (int ax = 0; ax < width; ax++)
@@ -48,16 +50,18 @@ public sealed class XpsTiffJpegTests {
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
-            var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
-            var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
-            var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),
-                scale: 4D / 3D, background: OfficeColor.White);
-            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
-                var expected = native.GetPixel(x * 3 + 1, y * 3 + 1);
-                foreach (var image in new[] { svgImage, pdfImage }) {
-                    var actual = image.GetPixel(x * 3 + 1, y * 3 + 1);
-                    Assert.True(Math.Abs(actual.R - expected.R) <= 1 && Math.Abs(actual.G - expected.G) <= 1 &&
-                        Math.Abs(actual.B - expected.B) <= 1 && actual.A == 255, $"{fields[0]} at {x},{y}");
+            foreach (var background in folder == "TiffJpegLowAlpha" ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
+                var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: background);
+                var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: background);
+                var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),
+                    scale: 4D / 3D, background: background);
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                    var expected = native.GetPixel(x * 3 + 1, y * 3 + 1);
+                    foreach (var image in new[] { svgImage, pdfImage }) {
+                        var actual = image.GetPixel(x * 3 + 1, y * 3 + 1);
+                        Assert.True(Math.Abs(actual.R - expected.R) <= 1 && Math.Abs(actual.G - expected.G) <= 1 &&
+                            Math.Abs(actual.B - expected.B) <= 1 && actual.A == 255, $"{fields[0]} at {x},{y}");
+                    }
                 }
             }
         }

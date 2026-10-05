@@ -31,4 +31,28 @@ public sealed class TiffJpegAlphaTests {
             }
         }
     }
+    [Fact]
+    public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing() {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpegLowAlpha");
+        foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
+            string name = row.Split(',')[0];
+            byte[] expected = File.ReadAllBytes(Path.Combine(corpus, name + ".rgba"));
+            byte[] bytes = File.ReadAllBytes(Path.Combine(corpus, name));
+            Assert.True(OfficeImageReader.TryValidateContent(bytes, name, out _), name + " validation");
+            Assert.True(OfficeTiffCodec.TryDecode(bytes, out var image), name + " decode");
+            Assert.Equal(35, image!.Width);
+            Assert.Equal(19, image.Height);
+            for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) {
+                var actual = image.GetPixel(x, y); int p = (y * image.Width + x) * 4;
+                Assert.Equal(expected[p + 3], actual.A);
+                byte[] channels = { actual.R, actual.G, actual.B };
+                foreach (int background in new[] { 0, 255 }) for (int c = 0; c < 3; c++) {
+                    double visible = (channels[c] * actual.A + background * (255 - actual.A)) / 255D;
+                    double reference = (expected[p + c] * expected[p + 3] + background * (255 - expected[p + 3])) / 255D;
+                    Assert.True(Math.Abs(visible - reference) <= 3, $"{name} {x},{y}: composite {visible} != {reference}");
+                }
+            }
+        }
+    }
+
 }

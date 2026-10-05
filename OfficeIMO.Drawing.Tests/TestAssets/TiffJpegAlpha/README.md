@@ -27,7 +27,8 @@ padding and converts YCbCr to RGB. The Python generator then applies the TIFF
 extra-sample contract to produce `.rgba` references. Tests compare every alpha
 sample and use RGB tolerances of 3/255, or 6/255 for associated alpha because
 unassociation amplifies decoder/color rounding. Encoded alpha spans 96–239;
-these fixtures do not independently qualify near-zero lossy alpha precision.
+the [low-alpha corpus](../TiffJpegLowAlpha/README.md) separately qualifies visible
+compositing across the full alpha range.
 
 `SHA256SUMS` covers the TIFFs and reference bytes. These fixtures establish managed
 component handling and transparent document rendering, not native Windows acceptance.

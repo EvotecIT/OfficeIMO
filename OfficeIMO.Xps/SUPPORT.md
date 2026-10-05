@@ -130,9 +130,16 @@ in the [fixture provenance](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegAlpha/
 Both dialects produce 576 documents with 383,040 pixel-center probes per route.
 Independent MuPDF output differs from managed rendering by at most 3/255 for PDF
 and 2/255 for SVG. Transparent managed rendering preserves source alpha exactly.
-GhostXPS differs by up to 255, including blank or incorrect output. The fixture
-alpha range is 96–239; near-zero lossy alpha precision and native Windows
-acceptance remain unqualified.
+GhostXPS differs by up to 255, including blank or incorrect output. That corpus uses
+source alpha 96–239. A further [192 low-alpha fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLowAlpha/README.md)
+span decoded alpha 0–255 and preserve every independently decoded alpha sample
+exactly across 127,680 pixels. Compositing over black and white differs by at most
+3/255. Straight RGB differences can reach 255/255 near zero alpha because
+unassociation amplifies JPEG/color rounding; this does not establish lossless
+source recovery. The 768 XPS/OpenXPS light/dark exports provide 510,720 pixel-center
+probes per route: independent MuPDF differences are at most 4/255 for PDF and
+2/255 for SVG. GhostXPS still differs by up to 255; native Windows acceptance
+remains unqualified.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,

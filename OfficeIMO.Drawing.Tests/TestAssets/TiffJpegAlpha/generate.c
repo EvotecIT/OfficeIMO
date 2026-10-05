@@ -6,8 +6,9 @@
 /* Independent component encoding/decoding; TIFF owns alpha and color meaning. */
 static void word(FILE*f,unsigned n){for(int i=0;i<4;i++)fputc((n>>(8*i))&255,f);}
 int main(int argc,char**argv){
- if(argc!=9)return 2;
+ if(argc!=9&&argc!=10)return 2;
  int photo=atoi(argv[2]),big=atoi(argv[3]),tile=atoi(argv[4]),shared=atoi(argv[5]),planar=atoi(argv[6]),sub=atoi(argv[7]),extra=atoi(argv[8]);
+ int lowAlpha=argc==10?atoi(argv[9]):0;
  int base=photo==5?4:photo==2||photo==6?3:1,n=base+1,w=35,h=19,sw=tile?16:w,sh=16;
  TIFF*t=TIFFOpen(argv[1],big?"wb":"wl");if(!t)return 3;
  TIFFSetField(t,256,w);TIFFSetField(t,257,h);TIFFSetField(t,258,8);TIFFSetField(t,277,n);TIFFSetField(t,262,photo==6?2:photo);TIFFSetField(t,284,planar);TIFFSetField(t,259,7);
@@ -22,7 +23,8 @@ int main(int argc,char**argv){
   unsigned char pixels[35*16*5];
   for(int yy=0;yy<dh;yy++)for(int xx=0;xx<dw;xx++)for(int cc=0;cc<channels;cc++){
    int ch=planar==2?plane:cc,gx=x+xx*(reduced?sub:1),gy=y+yy*(reduced?sub:1);if(gx>=w)gx=w-1;if(gy>=h)gy=h-1;
-   int alpha=96+(gx+gy*2)%144,value=32+(gx*2+gy*3+ch*41)%160;
+   static const int alphaLevels[]={0,1,2,3,4,8,16,32,64,128,192,254,255};
+   int alpha=lowAlpha?alphaLevels[(gx/3+gy/3)%13]:96+(gx+gy*2)%144,value=32+(gx*2+gy*3+ch*41)%160;
    if(ch==base)value=alpha;
    else if(extra==1){if(photo==6&&ch>0)value=128+(value-128)*alpha/255;else value=value*alpha/255;}
    pixels[(yy*dw+xx)*channels+cc]=value;
