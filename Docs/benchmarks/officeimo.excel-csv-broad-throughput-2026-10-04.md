@@ -774,3 +774,134 @@ and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-nativ
 retain source and binary fingerprints, input qualification and raw observations.
 The first Windows rotated run failed its source-provenance guard and is excluded;
 the qualified replacement runs use the frozen candidate checkout.
+
+## Native index eligibility refinement — 2026-10-05
+
+The V4 refinement limits the native dimension probe to known worksheet parts
+larger than 8 MiB and no larger than the existing 64 MiB index-buffer limit.
+Smaller parts use the original buffer path; known oversized parts decline
+without inflation. Unknown lengths retain the header probe. This private
+eligibility change preserves complete XML qualification and adds no public
+option or dependency. It remains isolated from the integrated reader.
+
+Nine controls cover dimensionless sheets with 1,000, 25,000, 45,000, 55,000,
+250,000 and 1,000,000 rows, plus dimensioned indexable sheets with 1,000,
+25,000 and 100,000 rows. The 45,000- and 55,000-row parts contain 7,310,188
+and 8,951,348 decompressed bytes respectively, straddling the probe boundary.
+Both sides use the same freshly built harness and dependencies; only the
+Excel assembly and its symbols differ. Setup validates every projected field,
+header, row count and the decoded worksheet, style and shared-string parts.
+
+Native .NET 8 and .NET 10 jobs retain twelve measurements per observation on
+Windows group 0 and macOS. Small and oversized native controls no longer show
+the V3 probe's structural allocation cost. The probed controls still add about
+14–15 KB per warmed operation. Timing remains mixed, including the following
+unfavorable observations:
+
+| Host and runtime | Case | V4/Before median ratio |
+|---|---|---:|
+| Windows group 0, .NET 10 | Indexed 100,000 | 1.507 |
+| Windows group 0, .NET 10 | Dimensionless 55,000 | 1.337 |
+| Windows group 0, .NET 10 | Dimensionless 250,000 | 2.056 |
+| Windows group 0, .NET 8 | Dimensionless 45,000 | 1.702 |
+
+Rotated .NET 10 comparisons retain twelve samples per side on each Windows
+processor group and macOS. A separate control compares the identical baseline
+assembly on both sides for the 25,000- and 250,000-row dimensionless cases and
+the 100,000-row indexed case. Identical-build median ratios span 0.896–1.045
+on Windows group 0, 0.942–1.117 on group 1, and 0.992–1.025 on macOS. These
+controls expose timing variation; they do not remove candidate negatives.
+The actual V4 comparison retains several ratios above 1.05 on Windows group 0,
+including 1.267 at 25,000 rows and 1.163 at 250,000 rows. Group 1 has no ratio
+above 1.05. On macOS, the indexed 1,000-row median changes from 7.396 to
+10.571 ms, a ratio of 1.429; the other eight cases stay within 1.05.
+
+Six fresh workers per side and case repeat the first-workbook memory
+measurement, with fixture generation and full-field validation in another
+process. The 250,000-row memory saving remains reproducible:
+
+| Host | Before allocation bytes, mean | V4 allocation bytes, mean | Before held managed bytes, mean | V4 held managed bytes, mean | Before → V4 open/first-row ms, mean |
+|---|---:|---:|---:|---:|---:|
+| Windows group 0 | 43,239,661 | 1,172,339 | 42,527,707 | 449,560 | 772.96 → 756.99 |
+| macOS | 43,229,472 | 1,139,344 | 42,313,480 | 774,560 | 922.49 → 820.66 |
+
+The smaller and indexed controls retain the memory they need, and first-row
+latencies remain mixed. These workers include JIT and engine initialization,
+use a warm operating-system file cache and measure calling-thread allocation
+separately from the sampler. Sampled peaks are lower bounds. Windows reuses
+two process identifiers after their earlier workers exit; all 108 observations
+come from separately launched and awaited worker processes, not reused workers.
+
+Focused correctness passes 927 tests on each modern runtime on both hosts,
+922 on Windows .NET Framework, and the owning library's .NET Standard build.
+The [qualification and source packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-qualification.json)
+and [source delta](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement.patch)
+identify the frozen candidate. The [Windows native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-native-windows.json),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-native-macos.json),
+[Windows rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-rotated-windows.json),
+[macOS rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-rotated-macos.json),
+[Windows fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-cold-windows.json)
+and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-cold-macos.json)
+retain raw observations and fingerprints. The completed comparison does not
+qualify this refinement as a portable default throughput improvement. Its
+memory benefit remains a measured boundary result, and integration is held.
+
+## DataTable normalization shortcut qualification — 2026-10-05
+
+The D13 comparison rebuilds both sides from common integrated source. Before
+restores the unconditional `null`-to-`DBNull` normalization loop; After skips
+that loop when the row parser reports a complete row. The earlier input-buffer
+reuse remains on both sides. Source inventories identify exactly one differing
+C# file, `ExcelSheetReader.Range.DataTableRows.cs`; both snapshots share the
+fresh harness and dependencies, with only the Excel assembly and symbols
+changed. An older D12 compiled row-source checksum is not reconciled with its
+recorded normalized source, so that compiled snapshot is not reused as Before.
+This provenance limitation does not establish corruption or a source defect.
+
+Fourteen cases cover 25,000-row numeric and sales tables, inferred decimal
+columns, dense and sparse 8- and 65-column rows, reverse order, 100-row prefixes,
+typed and range XML streaming, and a DataReader control outside the changed
+row loop. Setup validates every value, its type, schema and row count. Native
+.NET 8 and .NET 10 jobs on Windows group 0 and macOS retain 112 observations
+and 1,344 measurements, with 24 warmups, twelve measurements, four invocations
+per iteration, an unroll factor of one and no outlier removal.
+
+Native timing is mixed, including large changes in controls that do not use
+the modified loop. A .NET 10 PowerForge comparison rotates the matched sides
+within each run on both Windows processor groups and macOS. It uses 24
+warmups and 24 measurements with four workbook reads per sample. Identical
+baseline assemblies on both sides provide four separate control cases. These
+rotated suites retain another 108 observations and 2,592 measurements; retained
+elapsed values describe the four-read batch, while the table below reports
+matched median ratios.
+
+| Case | Windows group 0 After/Before | Windows group 1 After/Before | macOS After/Before |
+|---|---:|---:|---:|
+| Numeric double DataTable, 25,000 rows | 0.957 | 0.968 | 1.069 |
+| Inferred decimal DataTable, 25,000 rows | 1.031 | 0.992 | 1.094 |
+| Sales DataTable, 25,000 rows | 1.052 | 1.028 | 0.989 |
+| Dense 65-column rows, 1,000 rows | 1.151 | 1.145 | 0.992 |
+| DataReader control, 25,000 rows | 1.013 | 1.021 | 1.041 |
+
+The identical-build controls also vary. Their median ratios span 0.935–0.993
+on Windows group 0, 0.891–1.000 on group 1, and 0.877–1.044 on macOS. Neither
+those controls nor selected favorable cases establish a portable speed benefit
+for the shortcut. Native allocation differences are small and inconsistent,
+with no structural allocation saving. The unconditional normalization loop is
+restored; the earlier buffer-reuse implementation remains.
+
+The [Windows native packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-native-windows.json),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-native-macos.json),
+[Windows rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-rotated-windows.json)
+and [macOS rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-rotated-macos.json)
+retain the complete reports, raw measurements, common-source inventories,
+binary fingerprints and output qualification. Unfavorable observations remain
+in these packets. The removed shortcut is not counted as an accepted speed win.
+
+The restored source passes the complete Excel suite on .NET 8 and .NET 10 on
+both hosts: 5,614 passed and five existing skips per run, with no failures.
+Windows also passes 1,038 focused reader and typed-mapping tests on .NET
+Framework. The [restoration qualification packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-qualification.json)
+retains test-result fingerprints and the normalized row-source checksum,
+matching the fresh Before source exactly. Previously integrated typed-presence,
+formula fallback and cancellation fixes remain in this validated source.

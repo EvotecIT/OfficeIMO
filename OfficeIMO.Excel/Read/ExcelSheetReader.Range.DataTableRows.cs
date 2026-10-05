@@ -67,10 +67,8 @@ namespace OfficeIMO.Excel {
                             // Later physical rows replace only the cells they contain.
                             for (int c = 0; c < cols; c++) values[c] = existing[c];
                         }
-                        bool completeRow = ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, null, ct);
-                        if (!completeRow) {
-                            for (int c = 0; c < cols; c++) values[c] ??= DBNull.Value;
-                        }
+                        ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, null, ct);
+                        for (int c = 0; c < cols; c++) values[c] ??= DBNull.Value;
                         if (existing == null) {
                             dt.Rows.Add(values);
                         } else {
