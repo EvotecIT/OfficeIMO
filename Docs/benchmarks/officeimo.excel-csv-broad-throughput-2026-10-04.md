@@ -426,3 +426,72 @@ The [product roadmap](../ROADMAP.md#spreadsheet-and-csv-delivery-order) retains
 the remaining work: large general XLSX read/export throughput, portable
 first-row latency and retained/peak-memory budgets, quieter-host confirmation,
 and native Linux/macOS measurements. These results do not close those targets.
+
+## CSV document text allocation — 2026-10-05
+
+`CsvDocument.ToString()` uses the existing row formatter to append default typed
+values directly to its `StringWriter` buffer. On modern runtimes this avoids
+intermediate scalar strings. Custom date/null formatting, UTC conversion,
+formula escaping, selected quoting and multicharacter delimiters retain their
+existing paths. Public APIs and production dependencies are unchanged.
+
+Windows and macOS native measurements use the same owner source and benchmark
+assembly within each before/after pair, on actual .NET 10 and .NET 8. These
+Windows .NET 10 figures measure managed allocation per complete text result:
+
+| Document | Before | After | Reduction |
+| --- | ---: | ---: | ---: |
+| 25,000 plain rows | 6.83 MiB | 5.13 MiB | 25.0% |
+| 100,000 plain rows | 27.86 MiB | 21.01 MiB | 24.6% |
+| 100,000 quoted Unicode rows | 30.65 MiB | 23.79 MiB | 22.4% |
+| 100,000 mixed JSON rows | 42.12 MiB | 35.26 MiB | 16.3% |
+
+All three 25,000-row shapes save about 1.71 MiB; all three 100,000-row shapes
+save about 6.86 MiB on both platforms and runtimes. The 1,000-row cases save
+about 5.6 KiB. Allocation does not improve everywhere: a one-row document adds
+24 bytes, three long Unicode rows add 72 bytes, and the 64-row long-text delta
+ranges from about 2 KiB lower on Windows .NET 10 to 1.5 KiB higher on .NET 8
+and macOS. Allocation figures do not measure retained or peak memory.
+
+The initial matrix has 14 text cases and five unchanged save/export controls.
+Its three one-row labels share a null Notes field and therefore the same
+payload. They remain in the evidence as null-field controls. A corrected
+fixture retains its text when there is only one row; four additional profiles
+exercise plain text, quoted Unicode, JSON and a long Unicode field. Their
+four output hashes differ and match across both builds, platforms and runtimes.
+Larger fixtures retain their original null-field coverage and payloads.
+
+The packet retains 184 native cases and 9,840 rotated samples, including every
+identical-baseline control and unfavorable measurement. Windows runs separate
+both verified processor groups at Normal priority. macOS uses operating-system
+scheduling on the M4; its CPU domains are not fixed. Native runs use 24 warmups,
+12 measurements and four operations per measurement, with eight operations for
+the corrected one-row profiles. Full rotated runs use 48 warmups, 24 measurements
+and four operations; follow-ups use 64 warmups, 48 measurements and eight
+operations. All outliers remain, and no output validation failed.
+
+The 25,000-row plain-text rotated medians are 0.69 and 0.72 times baseline on
+the Windows groups and 0.61 on macOS. Longer 100,000-row quoted-text follow-ups
+measure 0.69, 0.67 and 0.68 respectively. These are workload-specific observations.
+The 100,000-row mixed-JSON median does not improve on the second Windows group,
+and small/long-text timing is mixed. Identical-baseline and unchanged-control
+variation prevents portable latency budgets or a general throughput claim.
+The change is accepted for its large typed-document allocation reduction.
+
+Correctness passes all 675 CSV tests on Windows .NET 10/.NET 8, 481 on .NET
+Framework 4.7.2, 675 on Linux/WSL .NET 10, and 675 on each macOS runtime. Focused
+literal fixtures cover quoting, Unicode, culture, nulls, custom formatting and
+formatter failures. The .NET Standard 2.0 build passes. Independent read-only
+review reports no actionable defects; its additional formatter-proof gaps are
+covered by the final tests.
+
+The [native measurements](excel-csv-broad-throughput-2026-10-04/csv-text-native.json),
+[rotated samples](excel-csv-broad-throughput-2026-10-04/csv-text-rotated.json),
+[portable output contracts](excel-csv-broad-throughput-2026-10-04/csv-text-output-contracts.json),
+[corrected one-row packet](excel-csv-broad-throughput-2026-10-04/csv-text-one-row.json),
+and [source, binary and execution provenance](excel-csv-broad-throughput-2026-10-04/csv-text-provenance.json)
+retain the full matrix. The provenance records the excluded run whose source
+fingerprint changed during another benchmark edit; it contributes no samples.
+The [writer and DataTable diagnostic profiles](excel-csv-broad-throughput-2026-10-04/writer-datatable-profiles.json)
+retain sampled allocation and CPU attribution. Those traces include setup and
+validation; they are not exact per-operation allocation or peak-memory evidence.

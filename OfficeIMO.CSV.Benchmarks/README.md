@@ -149,6 +149,9 @@ Setup decompresses all eight binary outputs, compares their complete text with a
 CsvHelper reference, checks every field, and verifies that the destination remains
 open. It also compares the complete `ToString()` result with that reference;
 `ToText` reports its UTF-16 character count and performs no compression.
+Snapshot comparisons also exercise one row, 100,000 rows and long Unicode
+fields. A one-row fixture retains its text payload; larger fixtures include
+null Notes fields.
 Compressed bytes may differ while decoded text remains identical. The lane
 uses empty streams and makes no claim about overwriting existing stream content.
 File saves include serialization, file creation or replacement, and disposal. Each

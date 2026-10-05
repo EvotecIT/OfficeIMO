@@ -66,8 +66,9 @@ public class CsvDocumentSaveBenchmarks {
                 _ => "{\"row\":" + index.ToString(CultureInfo.InvariantCulture)
                     + ",\"city\":\"Łódź 🚀 漢字\",\"note\":\"quoted value\"}"
             };
+            // A one-row shape still needs its text payload; larger inputs cover null Notes.
             object?[] row = [index, "row " + index.ToString(CultureInfo.InvariantCulture),
-                index % 11 == 0 ? null : text, (index & 1) == 0, index * 1.25m];
+                RowCount > 1 && index % 11 == 0 ? null : text, (index & 1) == 0, index * 1.25m];
             _rows[index] = row;
             _document.AddRow(row);
         }
