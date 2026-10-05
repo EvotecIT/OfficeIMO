@@ -11,6 +11,41 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, "body")]
+    [InlineData(true, "body")]
+    [InlineData(false, "columns")]
+    [InlineData(true, "columns")]
+    [InlineData(false, "table")]
+    [InlineData(true, "table")]
+    public void SaveAsPdf_EmptyLeadingRunsDoNotEnlargeVisibleFontLineSpacing(bool nativeDoc, string frame) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = frame == "table"
+            ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+        if (frame == "columns") source.Sections[0].ColumnCount = 2;
+        paragraph._paragraph.RemoveAllChildren<Run>();
+        paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = "TallFallback", HighAnsi = "TallFallback" })),
+            TextLine("A", 24, true), TextLine("B", 24, true), TextLine("C", 24, false));
+        paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
+        var options = new PdfOptions();
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("TallFallback",
+            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 100, 300, Enumerable.Range(32, 95).ToArray())));
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
+            PageSize = new OfficeIMO.Pdf.PageSize(300, 300), Margins = PageMargins.Uniform(30)
+        }));
+        var letters = pdf.GetPage(1).Letters;
+        var first = Assert.Single(letters, letter => letter.Value == "A");
+        var second = Assert.Single(letters, letter => letter.Value == "B");
+        var third = Assert.Single(letters, letter => letter.Value == "C");
+        Assert.Equal(28.8D, first.StartBaseLine.Y - second.StartBaseLine.Y, 3);
+        Assert.Equal(28.8D, second.StartBaseLine.Y - third.StartBaseLine.Y, 3);
+        Assert.Equal(new[] { 24D, 24D, 24D }, new[] { first.PointSize, second.PointSize, third.PointSize });
+    }
+
+    [Theory]
     [InlineData(false, "body", false)]
     [InlineData(true, "body", false)]
     [InlineData(false, "columns", false)]

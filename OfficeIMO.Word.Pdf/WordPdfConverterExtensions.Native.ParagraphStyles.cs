@@ -200,17 +200,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeTableRunStyleDefaults tableRunStyleDefaults = default,
             NativeFontMap? nativeFontMap = null) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
-            double lineHeight = ResolveNativeWordSingleLineHeight(
-                nativeFontMap,
-                ResolveNativeRunFontsFamily(paragraph._document, markFonts),
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
-                paragraph.FontFamilyEastAsia,
-                paragraph.FontFamilyComplexScript,
-                styleDefaults.FontFamily,
-                tableRunStyleDefaults.FontFamily,
-                nativeDefaults.FontFamily);
+            double? lineHeight = null;
             foreach (WordParagraph run in runs) {
                 if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
                     continue;
@@ -219,7 +209,7 @@ namespace OfficeIMO.Word.Pdf {
                 NativeCharacterStyleDefaults characterStyle =
                     GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run));
                 lineHeight = Math.Max(
-                    lineHeight,
+                    lineHeight ?? 0D,
                     ResolveNativeWordSingleLineHeight(
                         nativeFontMap,
                         run.FontFamily,
@@ -232,7 +222,18 @@ namespace OfficeIMO.Word.Pdf {
                         nativeDefaults.FontFamily));
             }
 
-            return lineHeight;
+            if (lineHeight.HasValue) return lineHeight.Value;
+            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
+            return ResolveNativeWordSingleLineHeight(
+                nativeFontMap,
+                ResolveNativeRunFontsFamily(paragraph._document, markFonts),
+                paragraph.FontFamily,
+                paragraph.FontFamilyHighAnsi,
+                paragraph.FontFamilyEastAsia,
+                paragraph.FontFamilyComplexScript,
+                styleDefaults.FontFamily,
+                tableRunStyleDefaults.FontFamily,
+                nativeDefaults.FontFamily);
         }
 
         private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {
