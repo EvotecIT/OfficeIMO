@@ -29,6 +29,7 @@ internal static class FixedLayoutFixture {
             Orientation = EpubPageOrientation.Portrait, Spread = EpubPageSpread.None, Side = EpubPageSide.Center,
             Regions = new[] { new EpubFixedLayoutRegion("portrait-main", 40, 40, 520, 720) }
         });
+        DescribeAccessibility(book);
         return book;
     }
 
@@ -45,7 +46,18 @@ internal static class FixedLayoutFixture {
             Spread = EpubPageSpread.None,
             Regions = new[] { new EpubFixedLayoutRegion(actualId, 40.125m, 50.5m, 320.25m, 240.75m) }
         });
+        DescribeAccessibility(book);
         return book;
     }
 
+    private static void DescribeAccessibility(EpubPublication book) => book.SetAccessibilityMetadata(new EpubAccessibilityMetadata {
+        AccessModes = new[] { "textual" },
+        SufficientAccessModes = new IReadOnlyList<string>[] { new[] { "textual" } },
+        Features = new[] { "structuralNavigation", "tableOfContents" },
+        Hazards = new[] { "noFlashingHazard", "noMotionSimulationHazard", "noSoundHazard" },
+        Summary = "Selectable XHTML text, headings and chapter navigation follow document order. " +
+            "Pages use fixed-size canvases and positioned regions; reflow and text enlargement are not guaranteed. " +
+            "Reader spread placement and assistive-technology reading order require independent review. " +
+            "The fixture contains no audio, animation or flashing content."
+    });
 }

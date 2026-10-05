@@ -18,6 +18,14 @@ internal static class MediaOverlayFixture {
             }
         });
         book.SetMetadataProperty("media:active-class", "narration-active");
+        book.SetAccessibilityMetadata(new EpubAccessibilityMetadata {
+            AccessModes = new[] { "textual", "auditory" },
+            SufficientAccessModes = new IReadOnlyList<string>[] { new[] { "textual" } },
+            Features = new[] { "structuralNavigation", "tableOfContents", "synchronizedAudioText" },
+            Hazards = new[] { "unknown" },
+            Summary = "All content is available as text. Two paragraphs have recorded narration and SMIL text associations. " +
+                "The heading is not narrated. Reader playback, synchronization and hazard review are not yet qualified."
+        });
         return book;
     }
 }

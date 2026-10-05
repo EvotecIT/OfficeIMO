@@ -42,6 +42,22 @@ fixtures deliberately; remove superseded captured publications and downloaded to
 when they are no longer needed. Source fixtures need producer, version and license
 provenance before entering the maintained corpus.
 
+## Independent media-overlay source
+
+The W3C EPUB sample collection's
+[Moby-Dick media-overlay source](https://github.com/IDPF/epub3-samples/tree/7651e2002b631e6577fadf7e9e0692fa6efb8746/30/moby-dick-mo)
+provides an independent preservation and narration-inspection case. Pin revision
+`7651e2002b631e6577fadf7e9e0692fa6efb8746`, retain its copyright and licensing notices,
+and package the source with `mimetype` first and uncompressed. Keep the source
+payloads unchanged and record the resulting archive hash with the validation reports.
+
+The checked sample has two overlays. It passes EPUBCheck 5.4.0 and the native
+`media-overlays` preflight check, and unchanged load/save preserves its archive bytes.
+Its package lacks modern accessibility discovery metadata, so the overall native
+preflight reports that gap. These results do not establish audio decoding, reader
+synchronization, assistive-technology behavior or comprehensive accessibility.
+The sample stays outside shipped packages and is not a runtime dependency.
+
 ## ONIX fixtures
 
 The opt-in `OnixFixtureGenerator` exercises the workflow's bibliographic ONIX export
@@ -118,6 +134,13 @@ bytes with EPUBCheck, then inspect spread placement, rotation and scaling in tar
 readers. Extracted XHTML can verify CSS canvas geometry in a browser; it does not
 qualify a reader's spine interpretation or assistive-technology behavior.
 
+`read-aloud.epub` pairs two text paragraphs with recorded narration, explicit SMIL
+clip intervals, package durations and active-text styling. The test-only MP3 and
+its source/encoding notes live in `Fixtures/Assets`. Its accessibility summary
+identifies the unnarrated heading and unqualified reader playback. Verify cue
+synchronization, highlighting, seeking and pause/resume in a media-overlay reader;
+successful decoding and EPUBCheck/Ace results do not establish those behaviors.
+
 `merged-chapters.epub` merges those split reading positions back into one resource,
 retaining both TOC entries and repairing the incoming reference. Check its chapter
 order, section links and return links alongside the split fixture.
@@ -128,7 +151,10 @@ dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
 ```
 
 Supply a new directory. The generator writes EPUB files, a manifest with SHA-256
-hashes, and expanded content with standards-mode HTML previews. The previews keep
+hashes and native preflight results, and expanded content with standards-mode HTML
+previews. A native preflight error fails the run; unchecked scopes remain explicit
+in the manifest. Fixture accessibility metadata describes the actual content and
+known limits without declaring certification. The previews keep
 the generated content and profile stylesheet but add simulated reader CSS for
 light, dark, and enlarged text. Serve this directory on loopback when inspecting
 the preview paths listed in `manifest.json`; for example:

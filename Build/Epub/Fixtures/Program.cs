@@ -46,7 +46,8 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
             "html{font:16px serif;color:#111;background:#fff}body{margin:1em}");
         previewPaths.Add(Path.GetRelativePath(outputDirectory, previewPath).Replace('\\', '/'));
     }
-    evidence.Add(new { profile = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), previews = previewPaths });
+    evidence.Add(new { profile = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), previews = previewPaths,
+        nativePreflight = InspectFixture(imported.Publication) });
 }
 WriteFixture("read-aloud", MediaOverlayFixture.Create());
 WriteFixture("fixed-layout-escaped-id", FixedLayoutFixture.EscapedIdentifier());
@@ -75,7 +76,16 @@ void WriteFixture(string name, EpubPublication publication) {
         ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     }).Bytes;
     File.WriteAllBytes(Path.Combine(outputDirectory, name + ".epub"), bytes);
-    evidence.Add(new { fixture = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() });
+    evidence.Add(new { fixture = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
+        nativePreflight = InspectFixture(publication) });
+}
+
+object InspectFixture(EpubPublication publication) {
+    EpubPreflightReport report = publication.Preflight();
+    if (report.HasErrors) throw new InvalidDataException("Fixture failed native preflight: " + publication.Title + ": " +
+        string.Join("; ", report.Checks.SelectMany(check => check.Diagnostics).Where(d => d.Severity == EpubDiagnosticSeverity.Error).Select(d => d.Message)));
+    return new { report.HasErrors, report.HasUncheckedItems,
+        checks = report.Checks.Select(check => new { check.Code, status = check.Status.ToString(), check.Diagnostics }).ToArray() };
 }
 
 internal static class FixtureContent {
