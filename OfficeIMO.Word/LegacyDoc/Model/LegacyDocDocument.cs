@@ -57,6 +57,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool GutterAtTop { get; private set; }
 
+        internal bool NoColumnBalance { get; private set; }
+
         internal bool RevisionMarkingEnabled { get; private set; }
 
         internal bool LockedRevisionTrackingEnabled { get; private set; }

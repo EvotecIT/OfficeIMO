@@ -179,6 +179,7 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocDocumentOptions(WordDocument document, LegacyDocDocument legacyDocument) {
             document.Settings.MirrorMargins = legacyDocument.MirrorMargins;
             document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
+            document.CompatibilitySettings.DoNotBalanceTextColumns = legacyDocument.NoColumnBalance;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
             }

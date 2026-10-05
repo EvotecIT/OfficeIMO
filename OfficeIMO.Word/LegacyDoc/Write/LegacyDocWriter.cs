@@ -263,6 +263,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 HasEvenAndOddHeaders(mainPart),
                 settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
                 settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
+                settings?.GetFirstChild<Compatibility>()?.Elements<NoColumnBalance>().Any(IsOnOffEnabled) == true,
                 ReadDocumentEndnotePosition(sections),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
