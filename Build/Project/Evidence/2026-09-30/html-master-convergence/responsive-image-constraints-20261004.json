@@ -149,8 +149,16 @@
       }
     },
     "baselineFontFailures": "Six font-selection failures independently reproduced on unchanged parent per framework; no new full-suite failures. They remain outside this image-axis extraction.",
-    "receiptsRoot": "Ignore/HtmlImageAxisQualification in standalone image-axis worktree",
-    "hostedCurrentHeadQualification": "Pending; packed local artifacts do not establish Windows or installed .NET Framework 4.7.2 execution"
+    "receiptsRoot": "Ignore/MasterConvergenceQualification/merged-image-axis-1d5e114d3",
+    "hostedCurrentHeadQualification": "91success3skip on exactdfaa head; delayed complete feedback settled with0unresolved; Windows CI passed. Installed .NET Framework4.7.2 itself is not claimed",
+    "mergedDelivery": {
+      "mergeCommit": "1d5e114d305e67dab3f832dea9baf1174a2756e1",
+      "mergedAtUtc": "2026-10-05T00:12:27Z",
+      "preservationManifestSha256": "915fc4b4a184ed422b278ae90507bb88aadf0d56cf2ce35747839a6148dcf7b2",
+      "worktreeAndLocalBranchRemoved": true,
+      "remoteBranch": "Already absent after repository merge; redundant delete returned ref does not exist",
+      "integration": "Shipping owner recorded; fetched master was not blindly merged into qualification graph"
+    }
   },
   "remainingAcceptance": [
     "Reference chapter responsive width, page-5 flow and footer typography remain open; generic fixture success does not close the named page",

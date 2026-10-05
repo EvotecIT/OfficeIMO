@@ -104,7 +104,6 @@
     },
     "interpretation": "The default routes have different print geometry. The observed horizontal offset matches the OfficeIMO default page margin; page counts and wraps alone cannot classify a renderer defect."
   },
-  "nextBoundedDeliverable": "Trace h-revolution-of-earth margin/break metadata through actual nested parent before proposing another generic fixture or owner change. Body background and simple adjoining-margin hypotheses already rejected; do not repeat or tune thresholds.",
   "retainedRawEvidence": "Ignore/MasterConvergenceQualification/reference-font-diagnosis-5a9de77f6/ (captured fonts, normal API replay, independent structure/character/link checks, classified gradient changes, all nine paired page rasters and contact sheets)",
   "unchangedOpenCriteria": [
     "Named appearance, resource/loss and manual-accessibility criteria",
@@ -164,5 +163,12 @@
     "referenceAllFourPdfsByteIdentical": true,
     "referencePage5Gap": "OPEN",
     "bodyBackgroundAndAdjoiningMarginHypotheses": "Rejected by three independent controls; no extra renderer change"
-  }
+  },
+  "currentHeadingMarginClosure": {
+    "sourceCommit": "b14164286b06eb28191e97ce11712903be0338f6",
+    "evidence": "heading-page-boundaries-20261004.json#bodyBackdropMarginRemediation",
+    "result": "Equivalent zero-margin page5 loses the unwanted40CSSpx spacing;8otherpages retain pixel identity; source text/images/URL targets preserved",
+    "scope": "Prior all-page observations remain dated evidence. Broader appearance/native/platform acceptance stays in Docs/ROADMAP.md"
+  },
+  "openWorkOwner": "Docs/ROADMAP.md#h10-unfamiliar-page-acceptance"
 }
