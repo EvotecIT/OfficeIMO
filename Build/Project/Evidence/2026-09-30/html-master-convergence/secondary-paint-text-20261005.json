@@ -335,8 +335,179 @@
   ],
   "retained": "Ignore/MasterConvergenceQualification/paint-only-text-qualification-ed5b27cd4",
   "remaining": [
-    "Engine-owned relative physical-window projection with synthesized versus authored clips, resolved page geometry and bounded cancellation/visual counts",
     "Named corpus/native/intent acceptance",
+    "Transformed-coordinate ActualText and external selection geometry",
     "Current-source platform package/budget qualification and long-lived branch convergence"
-  ]
+  ],
+  "snapshotCarrierClosure": {
+    "sourceCommit": "04cb30a03579d35d731326af76460cc27e0ba9da",
+    "contract": "Constrain logical carrier rectangles only for genuinely clipped finite page/clip slices. Preserve glyph paint, source-scoped exact-once ownership and authored extraction policy. Fully contained rectangle tuples remain unchanged.",
+    "publicApiChanged": false,
+    "newRuntimeDependencies": false,
+    "independentCases": [
+      {
+        "case": "bottom",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": true,
+        "sceneRastersIdentical": true,
+        "independentPopplerPaintIdentical": true
+      },
+      {
+        "case": "middle",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": true,
+        "sceneRastersIdentical": true,
+        "independentPopplerPaintIdentical": true
+      },
+      {
+        "case": "top",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 1,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker\nTrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": true,
+        "sceneRastersIdentical": true,
+        "independentPopplerPaintIdentical": true
+      },
+      {
+        "case": "bottom-tracked",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": false
+      },
+      {
+        "case": "bottom-standard",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": false
+      }
+    ],
+    "receipt": {
+      "path": "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e/final-independent-observations-04cb30a03.json",
+      "sha256": "cceeaebdda4c741cb78107f2feda8a4994d98108a0288dfc1b2e82b74a480f5d"
+    },
+    "corpusRecovery": [
+      {
+        "case": "reference",
+        "beforeSource": "38ee609814deb04b8dff37f2fab91c84d376090b",
+        "afterSource": "04cb30a03579d35d731326af76460cc27e0ba9da",
+        "addedTokens": 24,
+        "removedTokens": 0,
+        "removedVisibleCharacters": {}
+      },
+      {
+        "case": "planets",
+        "beforeSource": "38ee609814deb04b8dff37f2fab91c84d376090b",
+        "afterSource": "04cb30a03579d35d731326af76460cc27e0ba9da",
+        "addedTokens": 26,
+        "removedTokens": 0,
+        "removedVisibleCharacters": {}
+      },
+      {
+        "case": "chesapeake",
+        "beforeSource": "38ee609814deb04b8dff37f2fab91c84d376090b",
+        "afterSource": "04cb30a03579d35d731326af76460cc27e0ba9da",
+        "addedTokens": 18,
+        "removedTokens": 1,
+        "removedVisibleCharacters": {}
+      }
+    ],
+    "recoveryReceipt": {
+      "path": "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e/corpus-recovered-extraction.json",
+      "sha256": "5b429c4b97ccd2370ed05a2e3dd647620896bde09404307244db85e9cb0387a6"
+    },
+    "rawExtractionLimit": "Chesapeake SearchNationalOceanService becomes three spaced words. Original raw line diffs remain retained; no visible characters removed and no blanket token-equality claim.",
+    "tests": {
+      "net8.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net8.0.trx",
+        "sha256": "b5ae4fa5ea818c54a85cf1bb69e8d7b214f224437b90cdc8f9cd376f5deeee0b",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      "net10.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net10.0.trx",
+        "sha256": "7dc2d7bb8100604881feefdcd3b571f0d8d130d9bb16c5ff79db6590bbdbd4b1",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    },
+    "review": "One fresh read-only full pass and one targeted confirmation, candidate-reviewed; no remaining findings. Transformed-coordinate carriers and external font-envelope containment remain outside this boundary.",
+    "retainedFailures": [
+      "Intermediate4777798ff full run: 4352 passed/9 failed. Floating-point contained-width reconstruction falsely introduced clipped ActualText; original tuples now return unchanged when contained. Focused 36 and both final 4361 suites pass.",
+      "Obsolete contiguous-word bbox observer failed on interleaved overlapping text. Raw exact-once labels retained; established unique-token geometry observer used, failed original observation preserved.",
+      "Original standalone six master-font failures and prior hosted timing failures remain retained."
+    ],
+    "remaining": [
+      "Independent boundary glyph-envelope bbox extends about 1.71 PDF points outside a 300-point page despite a bounded logical carrier; no universal extractor-envelope containment claim.",
+      "Transformed-coordinate ActualText projection remains outside this finite page/clip boundary.",
+      "Hosted current-source package/budget, native/manual acceptance and qualified adoption remain open."
+    ],
+    "retained": "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e"
+  }
 }

@@ -1,7 +1,7 @@
 {
-  "sourceCommit": "d79651444419f045afcfb4ecf04df8d0cc9e65c0",
-  "status": "Reproduced; implementation and combined-source acceptance remain open.",
-  "scope": "Paged relative-position paint across normal-flow fragment boundaries. No source behavior change in this evidence checkpoint.",
+  "sourceCommit": "04cb30a03579d35d731326af76460cc27e0ba9da",
+  "status": "Relative projection, glyph bounds and finite snapshot carrier locally qualified; wider profile/platform acceptance remains open.",
+  "scope": "Physical-page paint projection preserves normal-flow advancement and source-owned clips, logical text and links. Original independent reproductions remain below.",
   "fixturePageCssPixels": [
     400,
     400
@@ -467,28 +467,6 @@
     "Dropping sparse/painted pages hides the defect.",
     "A generic post-export text overlay loses scene/tag/clip/link ownership and cannot qualify the engine."
   ],
-  "nextOwnerDeliverable": {
-    "proposal": "Separate normal-flow fragment assignment from relative paint window projection. Preserve source-owned wrappers and clips; project cross-boundary relative paint to the physical page containing it without changing flow advancement.",
-    "notImplemented": true,
-    "requiredControls": [
-      "all eight frozen fixtures",
-      "normal-flow sibling geometry",
-      "negative and positive offsets",
-      "nested authored clipping",
-      "linked first row and exact annotation rectangle",
-      "source semantic/logical text ownership",
-      "varying page geometry and forced breaks",
-      "bounded cancellation/visual materialization"
-    ],
-    "gates": [
-      "regression fails pre-fix source",
-      "independent artifact geometry and visual check after final patch",
-      "one scoped independent read-only review",
-      "full HTML net8/net10 and normal netstandard build",
-      "clean actual API/Tool frozen-corpus replay with complete content/resources/links",
-      "H4 and unchanged opt-in budgets"
-    ]
-  },
   "retainedEvidence": "Ignore/MasterConvergenceQualification/relative-fragment-qualification-d79651444",
   "linkedFirstRow": {
     "before": [],
@@ -2273,6 +2251,130 @@
     "inspection": [
       "image-negative-contact.png",
       "image-positive-contact.png"
+    ]
+  },
+  "reproductionSourceCommit": "d79651444419f045afcfb4ecf04df8d0cc9e65c0",
+  "qualifiedClosure": {
+    "sourceCommit": "04cb30a03579d35d731326af76460cc27e0ba9da",
+    "normalBuilds": "Html netstandard2.0, API/Tool/zero-margin/fixture/comparison runners: zero warnings and errors; source graph, not package proof.",
+    "fullHtml": {
+      "net8.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net8.0.trx",
+        "sha256": "b5ae4fa5ea818c54a85cf1bb69e8d7b214f224437b90cdc8f9cd376f5deeee0b",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      "net10.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net10.0.trx",
+        "sha256": "7dc2d7bb8100604881feefdcd3b571f0d8d130d9bb16c5ff79db6590bbdbd4b1",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    },
+    "heldOutH4": {
+      "accepted": 8,
+      "cases": 8,
+      "receipt": {
+        "path": "Ignore/MasterConvergenceQualification/h4-relative-clean-04cb30a03/html-corpus-evidence.json",
+        "sha256": "e76532807be13eb1827915bd87c968369808dda9ee79f2cb851b156683bd2f4e"
+      }
+    },
+    "independentRelativeFixtures": {
+      "count": 14,
+      "receipt": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/product-clean-04cb30a03/final-observed-v3/observations.json",
+        "sha256": "581600563e1d0730d61599fecf04ff07beaa06cd4d93ae82a72e7908858cbf2f"
+      },
+      "cases": [
+        "plain-normal",
+        "plain-negative",
+        "plain-positive",
+        "footer-normal",
+        "footer-negative",
+        "footer-positive",
+        "footer-negative-clipped",
+        "footer-negative-link",
+        "negative-margins",
+        "positive-margins",
+        "negative-varying-height",
+        "negative-forced-early",
+        "image-negative",
+        "image-positive"
+      ],
+      "contract": "Every expected raw label once; normal-flow sibling placement retained. Both linked oversized-image controls preserve all three bands and bounded annotations. Margins, varying height, authored clipping and early forced break remain covered."
+    },
+    "actualApiToolReplay": {
+      "pairedRoutes": 9,
+      "additionalZeroMarginApiRoute": 1,
+      "pages": 106,
+      "receipt": {
+        "path": "Ignore/MasterConvergenceQualification/relative-corpus-observations-04cb30a03.json",
+        "sha256": "3d0d1972a18cbc08493751d329e9fcaf094b62c207af7a7d06d87969e95219b1"
+      },
+      "baseline": "83e18a18061fac6e78f8faed3635b7183bec62b3",
+      "allPagePixelEqual72dpi": 106,
+      "sourceBlocksReferenceOrdered": 36,
+      "contract": "All nine API/Tool routes match bytes and independent raw UTF8/LF text; the additional zero-margin API route is observed independently. Full visible-character multisets, decoded rasters, URI targets/geometry, reports and HasLoss match baseline. Raw per-page extraction changes are retained; universal token or PDF byte equality is not claimed."
+    },
+    "reviews": {
+      "relativeProjection": "One scoped read-only full pass and one targeted confirmation; valid findings reproduced and fixed. No remaining findings in that boundary.",
+      "glyphInkClosure": "Existing full owner pass followed by one targeted closure; synthetic-bold allowance and authored-clip bounds findings reproduced and fixed.",
+      "finiteSnapshotCarrier": "One fresh read-only full pass and one targeted confirmation, candidate-reviewed; no remaining findings. Transformed-coordinate carriers and external font-envelope containment remain outside this boundary."
+    },
+    "standaloneDrawing": {
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2817",
+      "head": "18d43803188d0621e462f65fdf388d0a860a2bde",
+      "base": "3472faec6b9eb4bdec147204d3d7319e4fb18f91",
+      "runtimeDependenciesAdded": false,
+      "publicApiChanged": false,
+      "proof": "Drawing 3317/3317; HTML 3231 passed and six font failures on each framework, all six reproduced on the same master base. Standard build clean. Current-head CI/delayed feedback remains required."
+    },
+    "limits": [
+      "Current-source hosted packages/budgets are not qualified by these local suites or artifacts.",
+      "No long-lived branch adoption, full HTML PR, browser/native/manual accessibility parity or release claim.",
+      "Transformed-coordinate ActualText projection and external selection/font-envelope geometry need separate controls."
+    ],
+    "retainedFailures": [
+      "Intermediate4777798ff full run: 4352 passed/9 failed. Floating-point contained-width reconstruction falsely introduced clipped ActualText; original tuples now return unchanged when contained. Focused 36 and both final 4361 suites pass.",
+      "Obsolete contiguous-word bbox observer failed on interleaved overlapping text. Raw exact-once labels retained; established unique-token geometry observer used, failed original observation preserved.",
+      "Original standalone six master-font failures and prior hosted timing failures remain retained."
+    ],
+    "retained": [
+      "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a",
+      "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e",
+      "Ignore/TransformedTextPaintQualification in the standalone worktree"
     ]
   }
 }
