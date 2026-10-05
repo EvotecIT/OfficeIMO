@@ -56,7 +56,7 @@ public static partial class OfficeTiffCodec {
                     int p = start + 6 + 3 * i;
                     ids[i] = data[p];
                     for (int j = 0; j < i; j++) if (ids[j] == ids[i]) return false;
-                    if (data[p + 1] != (i == 0 ? (horizontal << 4) | vertical : 17)) return false;
+                    if (data[p + 1] != (i == 0 || i == 3 ? (horizontal << 4) | vertical : 17)) return false;
                     data[p] = (byte)(i + 1);
                 }
                 frameProcess = marker;

@@ -57,8 +57,11 @@ above the page height, including 0xFFFFFFFF, describe a single strip. Optional u
 extension mode is rejected. Baseline and extended sequential eight-bit JPEG (compression 7) accept shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
 planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
-component order; JPEG application markers cannot override them. Legacy compression
-6, twelve-bit, lossless and arithmetic JPEG processes, and JPEG extra channels remain unsupported. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+component order; JPEG application markers cannot override them. A single extra
+sample supports unspecified data, associated alpha or unassociated alpha for gray,
+RGB, CMYK and YCbCr. Subsampled YCbCr keeps alpha at luma resolution. Chunky
+CMYK/alpha uses five-component frames with separate scans. Legacy compression
+6, twelve-bit, lossless and arithmetic JPEG processes remain unsupported. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -117,6 +120,19 @@ produce 320 documents with 212,800 pixel-center probes per route; independent
 MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
 still differs by up to 255, including blank planar/tiled output. Native Windows
 acceptance and twelve-bit, lossless or arithmetic JPEG remain unqualified.
+
+JPEG extra-sample qualification covers 288 component-encoded fixtures with
+191,520 pixel comparisons. Independently decoded alpha agrees exactly; RGB agrees
+within 3/255, or 6/255 after associated-alpha unassociation. The matrix covers
+byte order, strips/tiles, shared/local tables, chunky/separate storage and centered
+1/1 or 2/2 YCbCr. TIFF metadata and five-component reference handling are documented
+in the [fixture provenance](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegAlpha/README.md).
+Both dialects produce 576 documents with 383,040 pixel-center probes per route.
+Independent MuPDF output differs from managed rendering by at most 3/255 for PDF
+and 2/255 for SVG. Transparent managed rendering preserves source alpha exactly.
+GhostXPS differs by up to 255, including blank or incorrect output. The fixture
+alpha range is 96–239; near-zero lossy alpha precision and native Windows
+acceptance remain unqualified.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,

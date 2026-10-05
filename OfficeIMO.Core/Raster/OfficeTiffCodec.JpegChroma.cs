@@ -7,7 +7,7 @@ public static partial class OfficeTiffCodec {
     // TIFF places chroma at group centers (1) or at the first luma sample (2).
     private static void CopyTiffJpegChroma(byte[] decoded, byte[] source, int plane, int width,
         int left, int top, int columns, int rows, int componentWidth, int componentHeight,
-        int horizontal, int vertical, int positioning, OfficeRasterDecodeOptions options) {
+        int horizontal, int vertical, int positioning, int samples, OfficeRasterDecodeOptions options) {
         int visibleWidth = Math.Min(componentWidth, checked((int)(((long)columns + horizontal - 1) / horizontal)));
         int visibleHeight = Math.Min(componentHeight, checked((int)(((long)rows + vertical - 1) / vertical)));
         for (int y = 0; y < rows; y++) {
@@ -22,12 +22,12 @@ public static partial class OfficeTiffCodec {
                 double dx = fx - x0;
                 double upper = decoded[y0 * componentWidth + x0] * (1 - dx) + decoded[y0 * componentWidth + x1] * dx;
                 double lower = decoded[y1 * componentWidth + x0] * (1 - dx) + decoded[y1 * componentWidth + x1] * dx;
-                source[((top + y) * width + left + x) * 3 + plane] = (byte)Math.Round(upper * (1 - dy) + lower * dy);
+                source[((top + y) * width + left + x) * samples + plane] = (byte)Math.Round(upper * (1 - dy) + lower * dy);
             }
         }
     }
     private static void ReconstructTiffJpegChroma(byte[] pixels, int width, int columns, int rows,
-        int horizontal, int vertical, int positioning, OfficeRasterDecodeOptions options) {
+        int horizontal, int vertical, int positioning, int samples, OfficeRasterDecodeOptions options) {
         if (horizontal == 1 && vertical == 1) return;
         int cw = checked((int)(((long)columns + horizontal - 1) / horizontal));
         int ch = checked((int)(((long)rows + vertical - 1) / vertical));
@@ -40,13 +40,13 @@ public static partial class OfficeTiffCodec {
             options.CancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < cw; x++) {
                 if ((x & 4095) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-                int source = ((y * vertical) * width + x * horizontal) * 3;
+                int source = ((y * vertical) * width + x * horizontal) * samples;
                 cb[y * cw + x] = pixels[source + 1];
                 cr[y * cw + x] = pixels[source + 2];
             }
         }
-        CopyTiffJpegChroma(cb, pixels, 1, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, options);
-        CopyTiffJpegChroma(cr, pixels, 2, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, options);
+        CopyTiffJpegChroma(cb, pixels, 1, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, samples, options);
+        CopyTiffJpegChroma(cr, pixels, 2, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, samples, options);
     }
 
 }

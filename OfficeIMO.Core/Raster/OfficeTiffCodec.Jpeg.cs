@@ -62,7 +62,7 @@ public static partial class OfficeTiffCodec {
             int left = tile % across * sw, top = tile / across * sh;
             int rows = Math.Min(sh, height - top), columns = Math.Min(sw, width - left);
             int decodeWidth = sw, decodeRows = strips ? rows : sh, channels = planar == 2 ? 1 : samples;
-            if (ycc && planar == 2 && plane > 0) {
+            if (ycc && planar == 2 && (plane == 1 || plane == 2)) {
                 decodeWidth = checked((int)(((long)sw + horizontal - 1) / horizontal));
                 decodeRows = checked((int)(((long)decodeRows + vertical - 1) / vertical));
             }
@@ -93,19 +93,19 @@ public static partial class OfficeTiffCodec {
                 retainedManagedBytes: retained + jpeg.Length + chromaScratch) || jw != decodeWidth || jh != decodeRows || jc != channels || decoded.Length != expected) return false;
             if (!retainPixels) continue;
             if (ycc && planar == 1) {
-                if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, options);
-                ConvertTiffJpegYcc(decoded, coefficients, reference, options);
+                if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, samples, options);
+                ConvertTiffJpegYcc(decoded, samples, coefficients, reference, options);
             }
             if (planar == 2) {
-                if (ycc && plane > 0) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
-                    decodeWidth, decodeRows, horizontal, vertical, positioning, options);
+                if (ycc && (plane == 1 || plane == 2)) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
+                    decodeWidth, decodeRows, horizontal, vertical, positioning, samples, options);
                 else if (strips) CopyPlanarRows(decoded, source, plane, samples, 1, width, top, rows, options);
                 else CopyTile(decoded, source, plane, planar, samples, 1, width, height, left, top, sw, sh, options);
             } else for (int row = 0; row < rows; row++)
                 CopyWithCancellation(decoded, row * sw * samples, source, ((top + row) * width + left) * samples,
                     columns * samples, options.CancellationToken);
         }
-        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, coefficients, reference, options);
+        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, samples, coefficients, reference, options);
         return true;
     }
 
@@ -123,9 +123,9 @@ public static partial class OfficeTiffCodec {
         return true;
     }
 
-    private static void ConvertTiffJpegYcc(byte[] pixels, double[] c, double[] r, OfficeRasterDecodeOptions options) {
+    private static void ConvertTiffJpegYcc(byte[] pixels, int samples, double[] c, double[] r, OfficeRasterDecodeOptions options) {
         byte Clamp(double value) => (byte)Math.Round(Math.Max(0, Math.Min(255, value)));
-        for (int i = 0; i < pixels.Length; i += 3) {
+        for (int i = 0; i < pixels.Length; i += samples) {
             if ((i & 4095) == 0) options.CancellationToken.ThrowIfCancellationRequested();
             double y = (pixels[i] - r[0]) * 255 / (r[1] - r[0]);
             double cb = (pixels[i + 1] - r[2]) * 127 / (r[3] - r[2]);

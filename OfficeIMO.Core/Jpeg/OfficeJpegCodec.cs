@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Dependency-free baseline and progressive JPEG decoder plus JPEG encoder.</summary>
+/// <summary>Dependency-free baseline, extended sequential and progressive JPEG decoder plus JPEG encoder.</summary>
 public static partial class OfficeJpegCodec {
     /// <summary>Returns whether the payload starts with the JPEG start-of-image marker.</summary>
     public static bool IsJpeg(byte[]? encodedBytes) =>

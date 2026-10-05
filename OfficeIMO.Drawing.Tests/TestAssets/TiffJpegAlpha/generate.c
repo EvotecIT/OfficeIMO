@@ -1,0 +1,86 @@
+#include <tiffio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <jpeglib.h>
+/* Independent component encoding/decoding; TIFF owns alpha and color meaning. */
+static void word(FILE*f,unsigned n){for(int i=0;i<4;i++)fputc((n>>(8*i))&255,f);}
+int main(int argc,char**argv){
+ if(argc!=9)return 2;
+ int photo=atoi(argv[2]),big=atoi(argv[3]),tile=atoi(argv[4]),shared=atoi(argv[5]),planar=atoi(argv[6]),sub=atoi(argv[7]),extra=atoi(argv[8]);
+ int base=photo==5?4:photo==2||photo==6?3:1,n=base+1,w=35,h=19,sw=tile?16:w,sh=16;
+ TIFF*t=TIFFOpen(argv[1],big?"wb":"wl");if(!t)return 3;
+ TIFFSetField(t,256,w);TIFFSetField(t,257,h);TIFFSetField(t,258,8);TIFFSetField(t,277,n);TIFFSetField(t,262,photo==6?2:photo);TIFFSetField(t,284,planar);TIFFSetField(t,259,7);
+ uint16_t ex=extra;TIFFSetField(t,338,1,&ex);
+ if(photo==6){TIFFSetField(t,530,sub,sub);float ref[6]={0,255,128,255,128,255};TIFFSetField(t,532,ref);}
+ if(tile){TIFFSetField(t,322,sw);TIFFSetField(t,323,sh);}else TIFFSetField(t,278,sh);
+ char planePath[4096];snprintf(planePath,sizeof(planePath),"%s.planes",argv[1]);FILE*planes=fopen(planePath,"wb");if(!planes)return 9;
+ unsigned char output[35*19*5]={0};
+ for(int plane=0;plane<(planar==2?n:1);plane++)for(int y=0;y<h;y+=sh)for(int x=0;x<w;x+=sw){
+  int rows=tile?sh:(h-y<sh?h-y:sh),channels=planar==2?1:n;
+  int reduced=photo==6&&planar==2&&(plane==1||plane==2),dw=reduced?(sw+sub-1)/sub:sw,dh=reduced?(rows+sub-1)/sub:rows;
+  unsigned char pixels[35*16*5];
+  for(int yy=0;yy<dh;yy++)for(int xx=0;xx<dw;xx++)for(int cc=0;cc<channels;cc++){
+   int ch=planar==2?plane:cc,gx=x+xx*(reduced?sub:1),gy=y+yy*(reduced?sub:1);if(gx>=w)gx=w-1;if(gy>=h)gy=h-1;
+   int alpha=96+(gx+gy*2)%144,value=32+(gx*2+gy*3+ch*41)%160;
+   if(ch==base)value=alpha;
+   else if(extra==1){if(photo==6&&ch>0)value=128+(value-128)*alpha/255;else value=value*alpha/255;}
+   pixels[(yy*dw+xx)*channels+cc]=value;
+  }
+  struct jpeg_compress_struct c;struct jpeg_error_mgr err;c.err=jpeg_std_error(&err);jpeg_create_compress(&c);
+  c.image_width=dw;c.image_height=dh;c.input_components=channels;c.in_color_space=JCS_UNKNOWN;jpeg_set_defaults(&c);jpeg_set_quality(&c,95,TRUE);
+  if(photo==6&&planar==1)for(int cc=0;cc<channels;cc++){c.comp_info[cc].h_samp_factor=(cc==0||cc==base)?sub:1;c.comp_info[cc].v_samp_factor=(cc==0||cc==base)?sub:1;}
+  jpeg_scan_info scans[5];memset(scans,0,sizeof(scans));
+  if(channels>4){for(int cc=0;cc<channels;cc++){scans[cc].comps_in_scan=1;scans[cc].component_index[0]=cc;scans[cc].Se=63;}c.scan_info=scans;c.num_scans=channels;}
+  unsigned char*tables=NULL,*encoded=NULL;unsigned long tablesLength=0,encodedLength=0;
+  if(shared){jpeg_mem_dest(&c,&tables,&tablesLength);jpeg_write_tables(&c);if(x==0&&y==0&&plane==0)TIFFSetField(t,347,(uint32_t)tablesLength,tables);}
+  jpeg_mem_dest(&c,&encoded,&encodedLength);jpeg_start_compress(&c,!shared);
+  while(c.next_scanline<c.image_height){JSAMPROW row=pixels+c.next_scanline*dw*channels;jpeg_write_scanlines(&c,&row,1);}
+  jpeg_finish_compress(&c);jpeg_destroy_compress(&c);
+  if((tile?TIFFWriteRawTile(t,TIFFComputeTile(t,x,y,0,plane),encoded,encodedLength):TIFFWriteRawStrip(t,TIFFComputeStrip(t,y,plane),encoded,encodedLength))<0)return 4;
+  unsigned char decoded[35*16*5];
+  for(int channel=0;channel<(channels==5?5:1);channel++){
+  unsigned char*decodeBytes=encoded;unsigned long decodeLength=encodedLength;unsigned char*split=NULL;
+  if(channels==5){
+   unsigned sof=0,firstScan=0,scanStart=0,scanEnd=0,pos=2;int scanIndex=0;
+   while(pos+3<encodedLength){
+    int marker=encoded[pos+1];if(marker==217)break;
+    unsigned len=(encoded[pos+2]<<8)|encoded[pos+3];
+    if(marker==192)sof=pos;
+    if(marker==218){
+     if(!firstScan)firstScan=pos;unsigned end=pos+2+len;
+     while(end+1<encodedLength){if(encoded[end]!=255){end++;continue;}if(encoded[end+1]==0||(encoded[end+1]>=208&&encoded[end+1]<=215)){end+=2;continue;}break;}
+     if(scanIndex++==channel){scanStart=pos;scanEnd=end;break;}pos=end;
+    }else pos+=2+len;
+   }
+   if(!sof||!firstScan||!scanStart)return 8;
+   split=malloc(encodedLength+2);unsigned at=0;memcpy(split,encoded,sof);at=sof;
+   memcpy(split+at,encoded+sof,10);split[at+2]=0;split[at+3]=11;split[at+9]=1;at+=10;
+   memcpy(split+at,encoded+sof+10+channel*3,3);at+=3;
+   unsigned after=sof+2+((encoded[sof+2]<<8)|encoded[sof+3]);memcpy(split+at,encoded+after,firstScan-after);at+=firstScan-after;
+   memcpy(split+at,encoded+scanStart,scanEnd-scanStart);at+=scanEnd-scanStart;split[at++]=255;split[at++]=217;decodeBytes=split;decodeLength=at;
+  }
+  struct jpeg_decompress_struct d;d.err=jpeg_std_error(&err);jpeg_create_decompress(&d);
+  if(shared){jpeg_mem_src(&d,tables,tablesLength);if(jpeg_read_header(&d,FALSE)!=JPEG_HEADER_TABLES_ONLY)return 5;}
+  jpeg_mem_src(&d,decodeBytes,decodeLength);jpeg_read_header(&d,TRUE);d.jpeg_color_space=JCS_UNKNOWN;d.out_color_space=JCS_UNKNOWN;jpeg_start_decompress(&d);
+  while(d.output_scanline<d.output_height){JSAMPROW row=decoded+d.output_scanline*dw*(channels==5?1:channels);jpeg_read_scanlines(&d,&row,1);}
+  jpeg_finish_decompress(&d);jpeg_destroy_decompress(&d);
+  if(channels==5){for(int i=0;i<dw*dh;i++)pixels[i*5+channel]=decoded[i];}else memcpy(pixels,decoded,dw*dh*channels);
+  free(split);
+  }
+  /* Subsampled planar references are stored separately for external interpolation. */
+  if(planar==2){word(planes,plane);word(planes,x);word(planes,y);word(planes,dw);word(planes,dh);fwrite(pixels,1,dw*dh,planes);}
+  if(reduced){free(encoded);free(tables);continue;}
+  for(int yy=0;yy<dh&&y+yy<h;yy++)for(int xx=0;xx<dw&&x+xx<w;xx++)for(int cc=0;cc<channels;cc++)output[((y+yy)*w+x+xx)*n+(planar==2?plane:cc)]=pixels[(yy*dw+xx)*channels+cc];
+  free(encoded);free(tables);
+ }
+ fclose(planes);TIFFClose(t);
+ if(photo==6){
+  FILE*patch=fopen(argv[1],"r+b");unsigned char header[8];fread(header,1,8,patch);
+  unsigned ifd=big?(header[4]<<24)|(header[5]<<16)|(header[6]<<8)|header[7]:header[4]|(header[5]<<8)|(header[6]<<16)|(header[7]<<24);
+  fseek(patch,ifd,SEEK_SET);unsigned char count[2];fread(count,1,2,patch);int entries=big?(count[0]<<8)|count[1]:count[0]|(count[1]<<8);
+  for(int i=0;i<entries;i++){unsigned char entry[12];long at=ifd+2+12*i;fseek(patch,at,SEEK_SET);fread(entry,1,12,patch);int tag=big?(entry[0]<<8)|entry[1]:entry[0]|(entry[1]<<8);if(tag==262){fseek(patch,at+8,SEEK_SET);fputc(big?0:6,patch);fputc(big?6:0,patch);break;}}
+  fclose(patch);
+ }
+ char path[4096];snprintf(path,sizeof(path),"%s.raw",argv[1]);FILE*f=fopen(path,"wb");if(!f)return 7;fwrite(output,1,w*h*n,f);fclose(f);return 0;
+}

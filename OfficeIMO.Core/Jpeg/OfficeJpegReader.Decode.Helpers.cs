@@ -66,7 +66,7 @@ internal static partial class OfficeJpegReader {
         CancellationToken cancellationToken,
         out int componentCount) {
         componentCount = frame.ComponentCount;
-        if (componentCount < 1 || componentCount > 4) {
+        if (componentCount < 1 || componentCount > 5) {
             throw new FormatException("Unsupported JPEG component count.");
         }
         if (outputRgba && componentCount is not (1 or 3 or 4)) {
@@ -77,6 +77,13 @@ internal static partial class OfficeJpegReader {
             : new byte[checked(frame.Width * frame.Height * componentCount)];
         var maxH = frame.MaxH;
         var maxV = frame.MaxV;
+
+        if (!outputRgba && (componentCount == 2 || componentCount == 5 && requestedColorTransform == 0)) {
+            CopyRawComponents(frame, states, highQualityChroma, cancellationToken, components);
+            return components;
+        }
+
+        if (componentCount is 2 or 5) throw new FormatException("A raw component transform is required for this JPEG component count.");
 
         if (frame.ComponentCount == 4) {
             var cIndex = FindComponentIndex(frame.Components, (byte)'C');
@@ -728,7 +735,7 @@ internal static partial class OfficeJpegReader {
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
             throw new FormatException(JpegDimensionsLimitMessage);
         }
-        if (components < 1 || components > 4) {
+        if (components < 1 || components > 5) {
             throw new FormatException("Unsupported JPEG component count.");
         }
         if (data.Length < 6 + components * 3) throw new FormatException("Invalid JPEG SOF segment.");
@@ -780,7 +787,7 @@ internal static partial class OfficeJpegReader {
 
     private static ScanHeader ParseScanHeader(OfficeByteView data, ref JpegFrame frame) {
         var components = data[0];
-        if (components == 0 || components > frame.ComponentCount) throw new FormatException("Invalid JPEG scan component count.");
+        if (components == 0 || components > 4 || components > frame.ComponentCount) throw new FormatException("Invalid JPEG scan component count.");
         if (data.Length < 1 + components * 2 + 3) throw new FormatException("Invalid JPEG scan header.");
 
         var indices = new int[components];
@@ -905,15 +912,17 @@ internal static partial class OfficeJpegReader {
         int width,
         int height,
         int orientation,
-        out long reservedBytes) {
+        out long reservedBytes,
+        int outputComponents = 4) {
         reservedBytes = 0L;
-        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8) {
+        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8 || outputComponents < 1 || outputComponents > 5) {
             return false;
         }
         try {
             long rgbaBytes = checked((long)width * height * 4L);
             reservedBytes = checked(
-                retainedEncodedBytes + rgbaBytes * (orientation > 1 ? 2L : 1L) + 64L * 1024L);
+                retainedEncodedBytes + checked((long)width * height * outputComponents) +
+                (orientation > 1 ? rgbaBytes : 0L) + 64L * 1024L);
             return reservedBytes <= OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {
             reservedBytes = 0L;
@@ -955,7 +964,7 @@ internal static partial class OfficeJpegReader {
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
             var components = new BaselineComponentState[frame.ComponentCount];
             if (!TryInitializeDecodeWorkingSet(
-                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes)) {
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount))) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
@@ -1090,7 +1099,7 @@ internal static partial class OfficeJpegReader {
 
             var components = new ProgressiveComponentState[frame.ComponentCount];
             if (!TryInitializeDecodeWorkingSet(
-                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes)) {
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount))) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
