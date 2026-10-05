@@ -12,8 +12,10 @@ internal static partial class OfficeJpegXrDecoder {
         internal int IccOffset, IccLength;
         internal OfficeImageMetadataKinds MetadataKinds;
         internal bool HasColorRenderingMetadata;
-        internal bool Premultiplied => PixelFormat == 0x10;
-        internal bool HasAlpha => PixelFormat == 0x0F || PixelFormat == 0x10;
+        internal bool Premultiplied => PixelFormat == 0x10 || PixelFormat == 0x17;
+        internal bool Gray => PixelFormat == 0x08 || PixelFormat == 0x0B;
+        internal int BitDepth => PixelFormat == 0x0B || PixelFormat == 0x15 || PixelFormat == 0x16 || PixelFormat == 0x17 ? 2 : 1;
+        internal bool HasAlpha => PixelFormat == 0x0F || PixelFormat == 0x10 || PixelFormat == 0x16 || PixelFormat == 0x17;
         internal FrameHeader Frame = new();
         internal FrameHeader? SeparateAlpha;
     }
@@ -73,8 +75,9 @@ internal static partial class OfficeJpegXrDecoder {
             if (bytes[pixel.Value + i] != formatPrefix[i]) throw new FormatException("JPEG-XR pixel format is unsupported.");
         container.PixelFormat = bytes[pixel.Value + 15];
         if (container.PixelFormat != 0x08 && container.PixelFormat != 0x0C && container.PixelFormat != 0x0D &&
-            container.PixelFormat != 0x0F && container.PixelFormat != 0x10)
-            throw new FormatException("JPEG-XR pixel format is outside the unsigned eight-bit contract.");
+            container.PixelFormat != 0x0F && container.PixelFormat != 0x10 && container.PixelFormat != 0x0B &&
+            container.PixelFormat != 0x15 && container.PixelFormat != 0x16 && container.PixelFormat != 0x17)
+            throw new FormatException("JPEG-XR pixel format is outside the unsigned eight/sixteen-bit contract.");
         if (fields.ContainsKey(0xBC02)) container.Transform = RequiredUnsigned(bytes, fields, 0xBC02);
         if (container.Transform > 7) container.Transform = 0;
         if (container.Transform != 0) container.MetadataKinds |= OfficeImageMetadataKinds.Orientation;
@@ -92,7 +95,7 @@ internal static partial class OfficeJpegXrDecoder {
         if (container.ImageLength == 0) container.ImageLength = bytes.Length - container.ImageOffset;
         ValidateCodestreamRange(bytes, container.ImageOffset, container.ImageLength);
         container.Frame = ReadHeader(bytes, container.ImageOffset, container.ImageLength, cancellation);
-        if ((container.PixelFormat == 0x08 ? 0 : 7) != container.Frame.OutputColor)
+        if ((container.Gray ? 0 : 7) != container.Frame.OutputColor || container.BitDepth != container.Frame.BitDepth)
             throw new FormatException("JPEG-XR pixel format and codestream color/alpha semantics disagree.");
         if (container.Frame.Width != container.Width || container.Frame.Height != container.Height ||
             container.Frame.Alpha && !container.HasAlpha || !alphaOffset && container.HasAlpha != container.Frame.Alpha)
@@ -106,7 +109,8 @@ internal static partial class OfficeJpegXrDecoder {
                 throw new FormatException("JPEG-XR primary and separate alpha ranges overlap.");
             container.SeparateAlpha = ReadHeader(bytes, container.AlphaOffset, container.AlphaLength, cancellation);
             if (container.SeparateAlpha.Width != container.Width || container.SeparateAlpha.Height != container.Height ||
-                container.SeparateAlpha.OutputColor != 0 || container.SeparateAlpha.Alpha)
+                container.SeparateAlpha.OutputColor != 0 || container.SeparateAlpha.Alpha ||
+                container.SeparateAlpha.BitDepth != container.BitDepth)
                 throw new FormatException("JPEG-XR separate alpha frame is inconsistent.");
         }
         // Association is defined by PIXEL_FORMAT. Legacy streams may leave the

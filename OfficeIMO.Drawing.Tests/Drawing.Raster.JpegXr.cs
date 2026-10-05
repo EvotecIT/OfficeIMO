@@ -78,6 +78,17 @@ public class DrawingRasterJpegXrTests {
         Assert.Equal(1, stream.Position); Assert.Equal(19, image!.Width);
     }
 
+    [Theory]
+    [InlineData("rgb-19x13-frequency-overlap2-alpha0", 0x15)]
+    [InlineData("u16-3c-spatial-overlap0-q0-alpha0", 0x0D)]
+    [InlineData("u16-1c-spatial-overlap1-q0-alpha0", 0x08)]
+    public void ContainerAndCodestreamSampleDepthMustAgree(string name, int format) {
+        byte[] guid = { 0x24, 0xC3, 0xDD, 0x6F, 3, 0x4E, 0xFE, 0x4B, 0xB1, 0x85, 0x3D, 0x77, 0x76, 0x8D, 0xC9, (byte)format };
+        byte[] bytes = OfficeIMO.TestAssets.JpegXrTestFixture.WithField(Fixture(name), 0xBC01, 1, guid);
+        Assert.False(OfficeImageReader.TryIdentifyByContent(bytes, null, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
+    }
+
     [Fact]
     public void TruncatedOrCorruptPayloadFailsValidation() {
         byte[] bytes = Fixture();

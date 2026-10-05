@@ -28,3 +28,13 @@ decoded ordinary corpus.
 The test-only helper `OfficeIMO.TestAssets/JpegXrTestFixture.cs` creates orientation
 and embedded-profile variants by appending a replacement directory. It retains
 all original encoded packets and their offsets.
+
+The unsigned-sixteen-bit fixtures use generated gray/RGB/RGBA TIFF samples and
+independent raw sixteen-bit reference decoding. Cases cover both packet orders,
+overlap modes, hard tiles, lossy quantization, separate/interleaved alpha, and
+SHIFT_BITS values of 1, 7, and 15. Shift cases modify the sample-shift header and
+are decoded independently again. PRGBA variants encode known associated samples;
+expected RGBA8 values unassociate at sixteen-bit precision before rounding.
+The corpus also protects agreement between container and codestream sample depth.
+The retained sixteen-bit TIFF source images also check ICC conversion against
+the existing source-precision TIFF path. They are original generated patterns.

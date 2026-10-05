@@ -21,12 +21,13 @@ internal static partial class OfficeJpegXrDecoder {
         catch (OverflowException) { return false; }
     }
 
-    internal static bool TryDecode(byte[] bytes, OfficeRasterDecodeOptions options, out OfficeRasterImage? image) {
+    internal static bool TryDecode(byte[] bytes, OfficeRasterDecodeOptions options, out OfficeRasterImage? image, OfficeIccColorProfile? colorProfile = null) {
         image = null;
         options.CancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length > options.MaximumEncodedBytes || options.FrameIndex != 0) return false;
         try {
             Container container = ReadContainer(bytes, options.CancellationToken);
+            if (colorProfile != null && colorProfile.ComponentCount != (container.Gray ? 1 : 3)) return false;
             if (!OfficeRasterGuards.TryEnsurePixelCount(container.Width, container.Height, options.MaximumDecodedPixels, out int pixels)) return false;
             // Budget the complete pipeline before allocating coefficient/sample arrays.
             // This includes simultaneously retained alpha, prediction scratch, tile
@@ -42,14 +43,7 @@ internal static partial class OfficeJpegXrDecoder {
                 alphaFrame = container.SeparateAlpha;
                 alpha = DecodeFrame(bytes, container.AlphaOffset, container.AlphaLength, alphaFrame, options.CancellationToken, out _);
             }
-            byte[] rgba = FormatRgba(container.Frame, primary, alphaFrame, alpha, options.CancellationToken);
-            if (container.Premultiplied) {
-                for (int i = 0; i < rgba.Length; i += 4) {
-                    if ((i & 16383) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-                    int a = rgba[i + 3];
-                    for (int c = 0; c < 3; c++) rgba[i + c] = a == 0 ? (byte)0 : (byte)Math.Min(255, (rgba[i + c] * 255 + a / 2) / a);
-                }
-            }
+            byte[] rgba = FormatRgba(container.Frame, primary, alphaFrame, alpha, container.Premultiplied, colorProfile, options.CancellationToken);
             int width = container.Width, height = container.Height;
             int orientation = container.Transform switch { 1 => 4, 2 => 2, 3 => 3, 4 => 6, 5 => 7, 6 => 5, 7 => 8, _ => 1 };
             rgba = OfficeRasterOrientation.Apply(rgba, ref width, ref height, orientation, options.CancellationToken,

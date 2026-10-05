@@ -14,12 +14,12 @@ internal static partial class OfficeJpegXrDecoder {
         internal int HeaderEnd;
     }
     internal sealed class PlaneHeader {
-        internal int Color, Components, Bands;
+        internal int Color, Components, Bands, ShiftBits;
         internal bool Scaled;
         internal int[]? DcQuant, LpQuant, HpQuant;
     }
 
-    // T.832 8.3/8.4. This parses the bounded RGB8/gray8 frame contract; pixel
+    // T.832 8.3/8.4. This parses the bounded unsigned RGB/gray frame contract; pixel
     // reconstruction and container dispatch remain separate codec responsibilities.
     internal static FrameHeader ReadHeader(byte[] bytes, int offset, int length, CancellationToken token) {
         var bits = new Bits(bytes, offset, length, token);
@@ -36,8 +36,8 @@ internal static partial class OfficeJpegXrDecoder {
         frame.OutputColor = (int)bits.Read(4); frame.BitDepth = (int)bits.Read(4);
         uint width = bits.Read(shortHeader ? 16 : 32), height = bits.Read(shortHeader ? 16 : 32);
         if (width >= int.MaxValue || height >= int.MaxValue || frame.Overlap == 3 ||
-            frame.BitDepth != 1 || (frame.OutputColor != 0 && frame.OutputColor != 7))
-            throw new FormatException("JPEG-XR frame is outside the eight-bit RGB/gray contract.");
+            (frame.BitDepth != 1 && frame.BitDepth != 2) || (frame.OutputColor != 0 && frame.OutputColor != 7))
+            throw new FormatException("JPEG-XR frame is outside the unsigned eight/sixteen-bit RGB/gray contract.");
         frame.Width = (int)width + 1; frame.Height = (int)height + 1;
         if ((long)frame.Width * frame.Height > 50_000_000L)
             throw new FormatException("JPEG-XR image dimensions exceed the managed limit.");
@@ -70,20 +70,21 @@ internal static partial class OfficeJpegXrDecoder {
             throw new FormatException("JPEG-XR tile/window geometry is invalid.");
         frame.TileWidths[columns - 1] = paddedWidth / 16 - widthSum;
         frame.TileHeights[rows - 1] = paddedHeight / 16 - heightSum;
-        frame.Primary = ReadPlaneHeader(bits, false);
-        if (frame.Alpha) frame.AlphaPlane = ReadPlaneHeader(bits, true);
+        frame.Primary = ReadPlaneHeader(bits, false, frame.BitDepth);
+        if (frame.Alpha) frame.AlphaPlane = ReadPlaneHeader(bits, true, frame.BitDepth);
         if (frame.AlphaPlane != null && frame.AlphaPlane.Bands != frame.Primary.Bands)
             throw new FormatException("JPEG-XR differing interleaved alpha subbands are outside the managed contract.");
         frame.HeaderEnd = bits.ByteOffset;
         return frame;
     }
 
-    private static PlaneHeader ReadPlaneHeader(Bits bits, bool alpha) {
+    private static PlaneHeader ReadPlaneHeader(Bits bits, bool alpha, int bitDepth) {
         var plane = new PlaneHeader { Color = (int)bits.Read(3), Scaled = bits.Flag(), Bands = (int)bits.Read(4) };
         if ((plane.Color != 0 && plane.Color != 3) || alpha && plane.Color != 0 || plane.Bands > 3)
             throw new FormatException("JPEG-XR plane is outside the gray/YUV444 contract.");
         plane.Components = plane.Color == 0 ? 1 : 3;
         if (plane.Color == 3) bits.Read(8); // Reserved fields are ignored.
+        if (bitDepth == 2) plane.ShiftBits = (int)bits.Read(8);
         if (bits.Flag()) plane.DcQuant = ReadQuantization(bits, plane.Components);
         if (plane.Bands != 3) {
             bits.Read(1);

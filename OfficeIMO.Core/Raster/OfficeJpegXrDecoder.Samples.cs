@@ -58,14 +58,16 @@ internal static partial class OfficeJpegXrDecoder {
         return output;
     }
 
-    internal static byte[] FormatRgba(FrameHeader frame, int[][] primary, FrameHeader? alphaFrame, int[][]? alpha,
+    internal static byte[] FormatRgba(FrameHeader frame, int[][] primary, FrameHeader? alphaFrame, int[][]? alpha, bool premultiplied, OfficeIccColorProfile? colorProfile,
             CancellationToken cancellation) {
         int stride = frame.Width + frame.Left + frame.Right, alphaStride = alphaFrame == null ? 0
             : alphaFrame.Width + alphaFrame.Left + alphaFrame.Right;
         var output = new byte[checked(frame.Width * frame.Height * 4)];
+        double[]? channels = colorProfile == null ? null : new double[colorProfile.ComponentCount];
         for (int y = 0; y < frame.Height; y++) {
             cancellation.ThrowIfCancellationRequested();
             for (int x = 0; x < frame.Width; x++) {
+                if ((x & 4095) == 0) cancellation.ThrowIfCancellationRequested();
                 int index = (y + frame.Top) * stride + x + frame.Left, target = (y * frame.Width + x) * 4;
                 long red, green, blue;
                 if (primary.Length == 1) red = green = blue = primary[0][index];
@@ -75,22 +77,51 @@ internal static partial class OfficeJpegXrDecoder {
                     red = chroma + green - (((long)primary[2][index] + 1) >> 1);
                     blue = primary[2][index] + red;
                 }
-                output[target] = ScaleSample(red, frame.Primary.Scaled);
-                output[target + 1] = ScaleSample(green, frame.Primary.Scaled);
-                output[target + 2] = ScaleSample(blue, frame.Primary.Scaled);
-                if (alpha == null) output[target + 3] = 255;
-                else {
+                int maximum = frame.BitDepth == 2 ? 65535 : 255;
+                int r = ScaleSample(red, frame.Primary, frame.BitDepth);
+                int g = ScaleSample(green, frame.Primary, frame.BitDepth);
+                int b = ScaleSample(blue, frame.Primary, frame.BitDepth);
+                int a = maximum;
+                if (alpha != null) {
                     int alphaIndex = (y + alphaFrame!.Top) * alphaStride + x + alphaFrame.Left;
-                    output[target + 3] = ScaleSample(alpha[0][alphaIndex], frame.AlphaPlane?.Scaled ?? alphaFrame.Primary.Scaled);
+                    a = ScaleSample(alpha[0][alphaIndex], frame.AlphaPlane ?? alphaFrame.Primary, alphaFrame.BitDepth);
                 }
+                // Unassociate and apply ICC at source precision before forming RGBA8.
+                if (premultiplied) {
+                    r = Unassociate(r, a, maximum); g = Unassociate(g, a, maximum); b = Unassociate(b, a, maximum);
+                }
+                if (colorProfile != null) {
+                    channels![0] = r / (double)maximum;
+                    if (channels.Length == 3) { channels[1] = g / (double)maximum; channels[2] = b / (double)maximum; }
+                    if (!colorProfile.TryConvert(channels, OfficeIccRenderingIntent.RelativeColorimetric, out var color))
+                        throw new FormatException("JPEG-XR ICC conversion failed.");
+                    output[target] = color.R; output[target + 1] = color.G; output[target + 2] = color.B;
+                } else {
+                    output[target] = ToByte(r, maximum);
+                    output[target + 1] = ToByte(g, maximum);
+                    output[target + 2] = ToByte(b, maximum);
+                }
+                output[target + 3] = ToByte(a, maximum);
             }
         }
         return output;
     }
 
-    private static byte ScaleSample(long value, bool scaled) {
-        value += scaled ? 1024 : 128;
-        if (scaled) value = (value + 3) >> 3;
-        return (byte)Math.Max(0, Math.Min(255, value));
+    private static int ScaleSample(long value, PlaneHeader plane, int bitDepth) {
+        int maximum = bitDepth == 2 ? 65535 : 255;
+        int shift = bitDepth == 2 ? plane.ShiftBits : 0;
+        int bias = shift >= 16 ? 0 : ((maximum + 1) / 2) >> shift;
+        value += (long)bias << (plane.Scaled ? 3 : 0);
+        if (plane.Scaled) value = (value + (bitDepth == 2 ? 4 : 3)) >> 3;
+        if (value <= 0) return 0;
+        // Saturate before shifting, including declared shifts beyond the sample depth.
+        if (shift >= 16 || value > (maximum >> shift)) return maximum;
+        return (int)(value << shift);
     }
+
+    private static int Unassociate(int value, int alpha, int maximum) =>
+        alpha == 0 ? 0 : (int)Math.Min(maximum, ((long)value * maximum + alpha / 2) / alpha);
+
+    private static byte ToByte(int value, int maximum) =>
+        (byte)(((long)value * 255 + maximum / 2) / maximum);
 }

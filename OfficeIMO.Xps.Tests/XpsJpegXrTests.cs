@@ -13,12 +13,19 @@ public sealed class XpsJpegXrTests {
     private static string Corpus => Path.Combine(AppContext.BaseDirectory, "Fixtures", "JpegXr");
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void EmbeddedOrAssociatedProfileUsesTheExistingImageColorPipeline(bool associated) {
-        string id = "rgb-19x13-frequency-overlap2-alpha0";
+    [InlineData(false, "rgb-19x13-frequency-overlap2-alpha0", false)]
+    [InlineData(true, "rgb-19x13-frequency-overlap2-alpha0", false)]
+    [InlineData(false, "u16-3c-spatial-overlap0-q0-alpha0", false)]
+    [InlineData(true, "u16-3c-spatial-overlap0-q0-alpha0", false)]
+    [InlineData(false, "u16-1c-spatial-overlap1-q0-alpha0", true)]
+    [InlineData(true, "u16-1c-spatial-overlap1-q0-alpha0", true)]
+    [InlineData(false, "u16-premultiplied-alpha1", false)]
+    [InlineData(true, "u16-premultiplied-alpha2", false)]
+    public void EmbeddedOrAssociatedProfileUsesTheExistingImageColorPipeline(bool associated, string id, bool gray) {
         byte[] encoded = File.ReadAllBytes(Path.Combine(Corpus, id + ".jxr"));
-        byte[] profile = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IccColorCorpus", "littlecms-rgb-matrix.icc"));
+        byte[] profile = File.ReadAllBytes(gray
+            ? Path.Combine(AppContext.BaseDirectory, "Fixtures", "ColorImages", "gray-gamma18.icc")
+            : Path.Combine(AppContext.BaseDirectory, "Fixtures", "IccColorCorpus", "littlecms-rgb-matrix.icc"));
         Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, out var raw));
         byte[] png = OfficeRasterImageEncoder.Encode(raw!, OfficeImageExportFormat.Png);
         (OfficeRasterImage Raster, byte[] Normalized) Paint(byte[] bytes, string type, bool embed) {
@@ -38,7 +45,9 @@ public sealed class XpsJpegXrTests {
             Assert.True(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(data.Substring(data.IndexOf(',') + 1)), out var normalized));
             return (OfficeDrawingRasterRenderer.Render(page.ToDrawing()), normalized!.GetPixels());
         }
-        var expected = Paint(png, "image/png", false);
+        bool sixteenBit = id.StartsWith("u16-", StringComparison.Ordinal);
+        var expected = Paint(sixteenBit ? File.ReadAllBytes(Path.Combine(Corpus, id + ".tif")) : png,
+            sixteenBit ? "image/tiff" : "image/png", false);
         var actual = Paint(encoded, "image/jxr", !associated);
         Assert.Equal(expected.Normalized, actual.Normalized);
         byte[] expectedPaint = expected.Raster.GetPixels(), actualPaint = actual.Raster.GetPixels();
@@ -53,7 +62,10 @@ public sealed class XpsJpegXrTests {
         foreach (string sourceName in new[] {
             "rgb-19x13-spatial-overlap2-alpha0", "rgb-19x13-frequency-overlap1-alpha0",
             "l-19x13-frequency-overlap2-alpha0", "rgba-19x13-spatial-overlap1-alpha1",
-            "rgba-19x13-frequency-overlap2-alpha2"
+            "rgba-19x13-frequency-overlap2-alpha2",
+            "u16-1c-spatial-overlap1-q0-alpha0", "u16-3c-spatial-overlap0-q0-alpha0",
+            "u16-4c-frequency-overlap2-q0-alpha1", "u16-4c-frequency-overlap2-q0-alpha2",
+            "u16-premultiplied-alpha1", "u16-premultiplied-alpha2"
         }) {
             byte[] encoded = File.ReadAllBytes(Path.Combine(Corpus, sourceName + ".jxr"));
             byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, sourceName + ".rgba"));

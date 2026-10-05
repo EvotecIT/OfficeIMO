@@ -853,5 +853,335 @@
     "metadataChanges": "PBGRA GUID; corrected AlphaByteCount; both original premultiplication flags clear",
     "fixtureSha256": "c6cfa4311c0dddf8891809d04b46cb1e888ecdc09daed987eb651f55e2a03a1c",
     "expectedContract": "same known associated input samples and straight RGBA normalization as rgba-premultiplied"
+  },
+  "unsigned16": {
+    "producer": "ITU T.835 (08/2016)",
+    "source": "Original generated unsigned16 TIFF patterns; reference raw unsigned16 output",
+    "conversion": "Round unsigned16 samples to RGBA8 after source-precision unassociation, when applicable",
+    "separateAlphaCountNormalized": true,
+    "cases": [
+      {
+        "id": "u16-1c-spatial-overlap1-q0-alpha0",
+        "width": 19,
+        "height": 13,
+        "components": 1,
+        "frequency": false,
+        "overlap": 1,
+        "quantizer": 0,
+        "alphaMode": 0,
+        "fixtureSha256": "bededeb294f37e5a00ca3d9a14e2ed04d8fc66d9af40904777ff6475f47661d8",
+        "referenceRgbaSha256": "047a63d3a21346a77eafa4e7d6ea271952b7553a21280dd8a93b5b8209129cb8"
+      },
+      {
+        "id": "u16-1c-frequency-overlap2-q0-alpha0",
+        "width": 19,
+        "height": 13,
+        "components": 1,
+        "frequency": true,
+        "overlap": 2,
+        "quantizer": 0,
+        "alphaMode": 0,
+        "fixtureSha256": "4674ef520d09813b649bd4bbc98131a869192b0cd4752f98fb1c3fe7d68a60ee",
+        "referenceRgbaSha256": "047a63d3a21346a77eafa4e7d6ea271952b7553a21280dd8a93b5b8209129cb8"
+      },
+      {
+        "id": "u16-3c-spatial-overlap0-q0-alpha0",
+        "width": 19,
+        "height": 13,
+        "components": 3,
+        "frequency": false,
+        "overlap": 0,
+        "quantizer": 0,
+        "alphaMode": 0,
+        "fixtureSha256": "fff58bb38d7963d1641bb2ba1ff149276c9f642b7347a23dde9baa2cf1e35aa7",
+        "referenceRgbaSha256": "9e6c4f98e564a254069f832bafbe8a6000f7a3041960f0c111427bc02dc15302"
+      },
+      {
+        "id": "u16-3c-frequency-overlap1-q0-alpha0",
+        "width": 19,
+        "height": 13,
+        "components": 3,
+        "frequency": true,
+        "overlap": 1,
+        "quantizer": 0,
+        "alphaMode": 0,
+        "fixtureSha256": "e5f46c9cc2d920980af72fa79bd15f5767fe1e08ae2c13eea0d74456305013f9",
+        "referenceRgbaSha256": "9e6c4f98e564a254069f832bafbe8a6000f7a3041960f0c111427bc02dc15302"
+      },
+      {
+        "id": "u16-4c-spatial-overlap1-q0-alpha1",
+        "width": 19,
+        "height": 13,
+        "components": 4,
+        "frequency": false,
+        "overlap": 1,
+        "quantizer": 0,
+        "alphaMode": 1,
+        "fixtureSha256": "5f845e209596349b71a057c76549020ec8915bc6facf31d8e7c27bbcfdc7445c",
+        "referenceRgbaSha256": "abce69ef7a18b02cb49dcb4d5da8cbbbbbeffeb64ea683f9073061b92eaa8f04"
+      },
+      {
+        "id": "u16-4c-spatial-overlap1-q0-alpha2",
+        "width": 19,
+        "height": 13,
+        "components": 4,
+        "frequency": false,
+        "overlap": 1,
+        "quantizer": 0,
+        "alphaMode": 2,
+        "fixtureSha256": "521acac91fbdbce6a719b4749b13013a42e90b1e1c7dcdbfec57c643bac4c364",
+        "referenceRgbaSha256": "abce69ef7a18b02cb49dcb4d5da8cbbbbbeffeb64ea683f9073061b92eaa8f04"
+      },
+      {
+        "id": "u16-4c-frequency-overlap2-q0-alpha1",
+        "width": 19,
+        "height": 13,
+        "components": 4,
+        "frequency": true,
+        "overlap": 2,
+        "quantizer": 0,
+        "alphaMode": 1,
+        "fixtureSha256": "ce320c0ad8d986e6325065b30db0cdbda32d44f0b2512252da49301ba16d5fc3",
+        "referenceRgbaSha256": "abce69ef7a18b02cb49dcb4d5da8cbbbbbeffeb64ea683f9073061b92eaa8f04"
+      },
+      {
+        "id": "u16-4c-frequency-overlap2-q0-alpha2",
+        "width": 19,
+        "height": 13,
+        "components": 4,
+        "frequency": true,
+        "overlap": 2,
+        "quantizer": 0,
+        "alphaMode": 2,
+        "fixtureSha256": "dd25e4d12f78145c0d792d9dae990251812dbdab898b25f4d7c1be72a63ae4bc",
+        "referenceRgbaSha256": "abce69ef7a18b02cb49dcb4d5da8cbbbbbeffeb64ea683f9073061b92eaa8f04"
+      },
+      {
+        "id": "u16-1c-shift1",
+        "width": 19,
+        "height": 13,
+        "components": 1,
+        "settings": {
+          "original": "lossless frequency overlap2",
+          "shiftBits": 1,
+          "metadataVariant": true
+        },
+        "fixtureSha256": "8a38c65204c0e47871bd3fb8b61a4ff5f694eaf32f4b9c9f37f706352f309d38",
+        "referenceRgbaSha256": "8a04f506b8c71c7a3a39cdbee4dbca29eef6ac96c812bf3ffa96cc29ffae06b0"
+      },
+      {
+        "id": "u16-1c-shift7",
+        "width": 19,
+        "height": 13,
+        "components": 1,
+        "settings": {
+          "original": "lossless frequency overlap2",
+          "shiftBits": 7,
+          "metadataVariant": true
+        },
+        "fixtureSha256": "848f1dd5467a5e574167b28c418c763954fbbba4feeb94549bbe17aca3b21ac6",
+        "referenceRgbaSha256": "89f6812f351ae6118602733fc55a4787c8a2d38dab7563bef98041f034f52d0a"
+      },
+      {
+        "id": "u16-1c-shift15",
+        "width": 19,
+        "height": 13,
+        "components": 1,
+        "settings": {
+          "original": "lossless frequency overlap2",
+          "shiftBits": 15,
+          "metadataVariant": true
+        },
+        "fixtureSha256": "d18833fcca9098f456dda97f53d5e599027f6f1cba791df44633d035760cba7a",
+        "referenceRgbaSha256": "508229cc254c827c82e6ba362b93964f6ace9a9c89b80a31fa0f9789d00332a2"
+      },
+      {
+        "id": "u16-3c-shift1",
+        "width": 19,
+        "height": 13,
+        "components": 3,
+        "settings": {
+          "original": "lossless frequency overlap2",
+          "shiftBits": 1,
+          "metadataVariant": true
+        },
+        "fixtureSha256": "90818ae6956eab2ce2262d047025c96863b2e59f1e030bdd9d68fd4361a2b51f",
+        "referenceRgbaSha256": "8770161978f0394c84c5c5bbc73a198306fb103bd14a070d484f3dcb24fd3193"
+      },
+      {
+        "id": "u16-3c-shift7",
+        "width": 19,
+        "height": 13,
+        "components": 3,
+        "settings": {
+          "original": "lossless frequency overlap2",
+          "shiftBits": 7,
+          "metadataVariant": true
+        },
+        "fixtureSha256": "ab2d6b23d797d8922e498504e49db6f8fa604061d8e62ce2d064610ae8cc67ba",
+        "referenceRgbaSha256": "b3bce3d7dec20924bdc93e256649778eb3767bcafd6df8205fabfe18b2b06d34"
+      },
+      {
+        "id": "u16-3c-shift15",
+        "width": 19,
+        "height": 13,
+        "components": 3,
+        "settings": {
+          "original": "lossless frequency overlap2",
+          "shiftBits": 15,
+          "metadataVariant": true
+        },
+        "fixtureSha256": "8372d98379058bfeb643652feafa1b35f96624c2e3430731d0039d9b81d42e2d",
+        "referenceRgbaSha256": "35f917001b379ed1ac63e24c23390785d537447b18c78dc2bd32e783acba302c"
+      },
+      {
+        "id": "u16-premultiplied-alpha1",
+        "width": 19,
+        "height": 13,
+        "components": 4,
+        "settings": {
+          "frequency": true,
+          "overlap": 2,
+          "quantizer": 0,
+          "alphaMode": 1,
+          "metadataVariant": "PRGBA GUID, known associated source samples"
+        },
+        "fixtureSha256": "948d2aabfe7dfe434ee22cb918bb8460a4bfbb81823734195485f15d54ca9d9d",
+        "referenceRgbaSha256": "c26dd3e1e356d7d0f4037fae9bbe623bf203ade2e80067649f8be1f468649b94"
+      },
+      {
+        "id": "u16-premultiplied-alpha2",
+        "width": 19,
+        "height": 13,
+        "components": 4,
+        "settings": {
+          "frequency": true,
+          "overlap": 2,
+          "quantizer": 0,
+          "alphaMode": 2,
+          "metadataVariant": "PRGBA GUID, known associated source samples"
+        },
+        "fixtureSha256": "37335902a79e0f51cd26afab4efc557999c359b070b42c7af0ed16840611489c",
+        "referenceRgbaSha256": "c26dd3e1e356d7d0f4037fae9bbe623bf203ade2e80067649f8be1f468649b94"
+      },
+      {
+        "id": "u16-wide-1c-spatial-overlap1-q32-alpha0",
+        "width": 65,
+        "height": 49,
+        "components": 1,
+        "frequency": false,
+        "overlap": 1,
+        "quantizer": 32,
+        "alphaMode": 0,
+        "fixtureSha256": "a5233f6e72296b50d3393074da2c84fc360fe33d1405fc4d0eda8ca3d6a6567b",
+        "referenceRgbaSha256": "fcbee1fe79a60ed2d4ed8e1baad577de8ae01d0095408c165282e701354d4944"
+      },
+      {
+        "id": "u16-wide-1c-frequency-overlap2-q32-alpha0",
+        "width": 65,
+        "height": 49,
+        "components": 1,
+        "frequency": true,
+        "overlap": 2,
+        "quantizer": 32,
+        "alphaMode": 0,
+        "fixtureSha256": "3a2bc42d1f00f8df3e3518736383fc163c02bf6d89b64253d12bcefab20f068f",
+        "referenceRgbaSha256": "d84895e5ccb8beed6ffb1c3f14eb651b18d945f40b56d89d11d7b1f33be6b686"
+      },
+      {
+        "id": "u16-wide-3c-spatial-overlap0-q32-alpha0",
+        "width": 65,
+        "height": 49,
+        "components": 3,
+        "frequency": false,
+        "overlap": 0,
+        "quantizer": 32,
+        "alphaMode": 0,
+        "fixtureSha256": "fbadec9fcfb5aa83de6e63aaf1cf7bb057c04b27c1fb5f1aca040cc8d94cbc75",
+        "referenceRgbaSha256": "f743d961f4d66f6d6bdd78a03dcefe8dbe8d3b278c2414f05c34ae9fbabff149"
+      },
+      {
+        "id": "u16-wide-3c-frequency-overlap1-q32-alpha0",
+        "width": 65,
+        "height": 49,
+        "components": 3,
+        "frequency": true,
+        "overlap": 1,
+        "quantizer": 32,
+        "alphaMode": 0,
+        "fixtureSha256": "eb87a319e79e488fe71f9173bcda6484f0377e47ca132794c48a149a3cd36588",
+        "referenceRgbaSha256": "6375f8f6849796db32ddf5781a5734c119c8c80bf3128a8ee9b9d79dd4691318"
+      },
+      {
+        "id": "u16-wide-4c-spatial-overlap1-q32-alpha1",
+        "width": 65,
+        "height": 49,
+        "components": 4,
+        "frequency": false,
+        "overlap": 1,
+        "quantizer": 32,
+        "alphaMode": 1,
+        "fixtureSha256": "f3d8a51a3a4e0ad26172ae5e10321ba053c5086f82adb5c6f38d83a708a3ca1c",
+        "referenceRgbaSha256": "456a07511d84b11297465d322ab7e2537db10df895169b4984faad01762375a3"
+      },
+      {
+        "id": "u16-wide-4c-spatial-overlap1-q32-alpha2",
+        "width": 65,
+        "height": 49,
+        "components": 4,
+        "frequency": false,
+        "overlap": 1,
+        "quantizer": 32,
+        "alphaMode": 2,
+        "fixtureSha256": "732e65ff19244d785278910e919786b777d2dcfdf88aaae5b959f7106775869d",
+        "referenceRgbaSha256": "456a07511d84b11297465d322ab7e2537db10df895169b4984faad01762375a3"
+      },
+      {
+        "id": "u16-wide-4c-frequency-overlap2-q32-alpha1",
+        "width": 65,
+        "height": 49,
+        "components": 4,
+        "frequency": true,
+        "overlap": 2,
+        "quantizer": 32,
+        "alphaMode": 1,
+        "fixtureSha256": "1ff27e74d060aa00258c72647cf50f8f0914b03c2826fff8a3d7ef9a8b6f938b",
+        "referenceRgbaSha256": "fea1549ad761cff1c4af1e4550e0a3a03b7da300678583bdcdd301b087c4523e"
+      },
+      {
+        "id": "u16-wide-4c-frequency-overlap2-q32-alpha2",
+        "width": 65,
+        "height": 49,
+        "components": 4,
+        "frequency": true,
+        "overlap": 2,
+        "quantizer": 32,
+        "alphaMode": 2,
+        "fixtureSha256": "02b74b2328420a9636222fee1619793e6432f98c95a7bcbdc931bdad2f8369a8",
+        "referenceRgbaSha256": "fea1549ad761cff1c4af1e4550e0a3a03b7da300678583bdcdd301b087c4523e"
+      }
+    ],
+    "tiffComparisonSources": [
+      {
+        "file": "u16-premultiplied-alpha2.tif",
+        "sha256": "84a43fa4d749104cc0501c0079f1d9e39bfd571bcf74413b57fa5f1548fe978e",
+        "alpha": "associated"
+      },
+      {
+        "file": "u16-premultiplied-alpha1.tif",
+        "sha256": "84a43fa4d749104cc0501c0079f1d9e39bfd571bcf74413b57fa5f1548fe978e",
+        "alpha": "associated"
+      },
+      {
+        "file": "u16-1c-spatial-overlap1-q0-alpha0.tif",
+        "sha256": "9d0c349948a82c8c1a821879259d311b68d5f101c23afbd111164d9be508498e",
+        "alpha": "none"
+      },
+      {
+        "file": "u16-3c-spatial-overlap0-q0-alpha0.tif",
+        "sha256": "c535c0028f96dfe6132a4c58b43d1596d2daf487261b6eafc4a71c1032febb18",
+        "alpha": "none"
+      }
+    ]
   }
 }
