@@ -280,7 +280,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports table indentation only as Word 97-2003 signed twip values.");
             }
 
-            return width.Value == 0 ? null : width.Value;
+            // An explicit zero overrides an inherited indent; only omission permits style fallback.
+            return width.Value;
         }
 
         private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableProperties? tableProperties) {
