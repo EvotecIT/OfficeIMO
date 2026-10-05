@@ -534,3 +534,127 @@ The [qualification and complete native-cost packet](excel-csv-broad-throughput-2
 retains the source and binary fingerprints, output proof, test counters, review
 boundary, measurements and unfavorable ratios. Wide unsorted typed-stream
 retained/peak memory and first-row latency remain open measurements.
+
+## Public XLSX readers through retained packages — 2026-10-05
+
+Commit `160bd1049` lets qualified, ordered XLSX worksheets continue through the
+existing XML data reader using the retained package stream when indexing is
+unavailable. Complete worksheet validation establishes row order and used
+bounds before values are exposed. Unsupported culture, options, worksheet
+structures and repeated or unsorted rows retain their existing fallback paths.
+The change introduces no public API or production dependency.
+
+The comparison uses the same benchmark assembly and dependencies on both sides;
+only the Excel library and symbols differ. Setup validates all four fields of
+every row, headers, row count and the aggregate observation. The peer runs also
+require identical decoded worksheet, style and shared-string parts. Rotated
+runs use eight warmups and retain all 12 measurements without removing outliers.
+The PowerShell observations run on .NET 10; separate native jobs qualify .NET 8
+and .NET 10. Windows measurements keep Normal priority and distinguish the two
+processor groups. macOS measurements use the operating system's scheduling.
+
+| Rows | Windows group 0 before → after, median ms | Windows group 1 before → after, median ms | macOS before → after, median ms |
+|---|---:|---:|---:|
+| 25,000 | 95.15 → 83.31 | 58.44 → 55.43 | 53.19 → 49.22 |
+| 250,000 | 790.43 → 845.42 | 678.09 → 671.83 | 503.05 → 470.25 |
+| 1,000,000 | 3,500.83 → 3,233.81 | 2,339.06 → 2,542.56 | 1,870.65 → 1,890.37 |
+
+Managed allocation falls at every size in these rotated comparisons: by about
+203–224 KB per operation. Throughput is mixed. The complete native jobs retain
+additional unfavorable observations: the Windows .NET 8 million-row median is
+3,091.35 → 3,848.71 ms, and macOS .NET 10 is 1,630.07 → 1,859.57 ms. Conversely,
+the macOS .NET 8 million-row median is 3,214.94 → 2,057.28 ms. These observations
+remain part of the evidence; they do not establish a portable throughput win.
+
+The separate held-reader runs open a reader, validate the first row's four
+fields, then measure managed memory after GC while retaining that reader. Each
+size uses six measurements per side in a fresh worker. On Windows, held managed
+increases fall from 60,884 → 23,177 bytes at 25,000 rows and approximately
+69,300 → 30,309 bytes at the larger sizes. Those are increases over a warmed
+baseline that already contains pooled buffers, rather than the total pool
+footprint. Sampled managed and resident peaks are lower bounds. Timings include
+GC and sampling and are not throughput observations.
+
+Equivalent full four-field peer scans still show a material throughput gap:
+
+| Host and rows | OfficeIMO median ms | Sylvan median ms | ExcelReader.NET median ms |
+|---|---:|---:|---:|
+| Windows group 0, 250,000 | 724.08 | 309.32 | 91.82 |
+| Windows group 1, 250,000 | 696.03 | 309.05 | 88.74 |
+| macOS, 250,000 | 778.08 | 366.91 | 113.78 |
+| Windows group 0, 1,000,000 | 3,092.74 | 1,420.00 | 405.64 |
+| Windows group 1, 1,000,000 | 2,970.97 | 1,379.03 | 403.61 |
+| macOS, 1,000,000 | 3,034.51 | 1,363.46 | 419.02 |
+
+These warmed .NET 10 runs use Sylvan 0.5.8 and ExcelReader.NET 5.1.1. Every
+implementation consumes the same four fields and passes complete setup
+validation. First-row methods have different eager-validation contracts and
+are excluded from this peer ranking. The allocation improvements do not close
+the large-scan throughput target.
+
+The [Windows native, memory and peer packet](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-stream-windows.json),
+[macOS packet](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-stream-macos.json),
+[rotated before/after observations](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-stream-rotated.json)
+and [second Windows processor placement](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-peers-second-placement.json)
+retain raw samples, source and binary fingerprints, runtime provenance and
+decoded input proof. Native method order differs from the rotated runs; the
+packets preserve both results.
+
+## Typed reader integration and fallback contracts — 2026-10-05
+
+Typed readers merge later physical row fragments before assigning properties.
+Omitted cells preserve initialized values; present nulls or blanks follow the
+existing conversion rules. Presence metadata remains internal to the typed
+mapper. Ordinary public data readers retain their existing signatures and
+DBNull behavior. DataTable row reuse preserves earlier values when a later
+fragment omits a cell and retains conservative blank normalization for wide
+rows.
+
+Commit `48f77cd75` preserves typed fallback when worksheet indexing encounters
+an uncached shared-formula follower outside the requested columns. The typed
+mapper declines that source before header binding, object construction or
+property assignment. Its existing XML reader handles the narrower projection.
+Invalid styles and shared-string references still fail, and public data readers
+retain their explicit rejection of unresolved shared formulas. Cancellation
+before index ownership transfers returns the candidate's pooled buffers.
+
+The shared-formula regression is reproduced in ten of sixteen small and large
+typed-read cases before the fix. All sixteen pass afterward; four additional
+cases preserve invalid-reference failures. Coverage includes Automatic,
+Sequential, Parallel and streaming APIs and both cached-result options.
+Windows and macOS full Excel suites pass 5,614 tests with five existing opt-in
+skips on each modern runtime. Windows focused validation passes 994 tests on each modern runtime
+and 987 on .NET Framework 4.7.2; the .NET Standard 2.0 build succeeds. A fresh
+read-only integration review and its single targeted confirmation accept the
+corrected ownership and fallback contracts.
+
+The [Windows integration qualification](excel-csv-broad-throughput-2026-10-04/xlsx-reader-integration-windows.json)
+and [macOS qualification](excel-csv-broad-throughput-2026-10-04/xlsx-reader-integration-macos.json)
+retain source fingerprints, test counts, TRX hashes and review scope. Correctness
+qualification does not close the ordered wide UTF-16 typed-read regressions,
+macOS small sequential timing signal, or the remaining DataTable .NET 8 timing
+controls.
+
+## Rejected short quoted-field chunking — 2026-10-05
+
+Routing short dense quoted text through the existing bounded chunk escaper is
+rejected. Its 24 workloads cover 64/4,096-character notes, JSON and dense quotes,
+AsNeeded/Always quoting, comma/multicharacter delimiters and 1,000-row public
+DataReader writes. Setup validates every decoded field and requires identical
+complete text from OfficeIMO and CsvHelper. Both comparison sides use the same
+harness and dependencies.
+
+The full comparison retains 288 native observations and 3,456 measurements:
+.NET 8 and .NET 10, both Windows processor groups, and macOS. Each observation
+uses eight warmups, 12 measurements, a 100 ms iteration target, an unroll factor
+of one and no outlier removal. Short JSON is consistently slower on macOS by
+approximately 18–35%; Windows observations are mostly 8–33% slower, with one
+approximately 2% improvement. Allocation is essentially unchanged. Variation
+in unchanged long-note controls is retained and is not attributed to the source
+change.
+
+The original source is restored on both hosts. The [Windows rejection packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-short-quoted-windows.json)
+and [macOS rejection packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-short-quoted-macos.json)
+retain complete reports, raw measurements and source, harness and dependency
+fingerprints. Current peer comparisons use the restored baseline and the same
+warmed policy before another short-field implementation is selected.
