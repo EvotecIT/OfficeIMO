@@ -518,7 +518,7 @@ _modules.set("02d03d6947d3e27c4c4d459848293a6406e49326beb006d7cca99ffb3a115a89",
 return _exports;
 })();
 
-const _m7 = _modules.get("9fa8a174bde7a4539e4f5c7eb7fe4649d7fb482d28cdd9fe61c6a4946f30a163") ?? (() => {
+const _m7 = _modules.get("2cbfac9428920609a86bbbedbf0f0f7de139faed8a23e348709cf63b3a867ee3") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ChunkedTextSink } = _m3;
@@ -538,6 +538,12 @@ function escapeXml(value, policy = "strip") {
     const escapes = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
         "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
     return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]);
+}
+/** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
+function escapeOoxmlAttribute(value, policy = "strip") {
+    const whitespace = { "\r": "_x000D_", "\n": "_x000A_", "\t": "_x0009_" };
+    const text = cleanXml(value, policy).replace(/_(?=x[0-9a-f]{4}_)|[\r\n\t]/gi, token => token === "_" ? "_x005F_" : whitespace[token]);
+    return escapeXml(text, policy);
 }
 /** Names are schema-owned ASCII QNames; data is accepted only as text or attribute values. */
 function validateXmlName(name) {
@@ -589,8 +595,8 @@ class XmlWriter {
     open() { if (this.closed)
         throw new OfficeIMOError("INVALID_STATE", "XML writer is closed."); }
 }
-const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: cleanXml, escapeXml: escapeXml, validateXmlName: validateXmlName, XmlWriter: XmlWriter });
-_modules.set("9fa8a174bde7a4539e4f5c7eb7fe4649d7fb482d28cdd9fe61c6a4946f30a163", _exports);
+const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: cleanXml, escapeXml: escapeXml, escapeOoxmlAttribute: escapeOoxmlAttribute, validateXmlName: validateXmlName, XmlWriter: XmlWriter });
+_modules.set("2cbfac9428920609a86bbbedbf0f0f7de139faed8a23e348709cf63b3a867ee3", _exports);
 return _exports;
 })();
 
@@ -640,7 +646,7 @@ _modules.set("353898fd34b1d508fd038fa2cfa4050959cbd5297764d0ba60bdafdd088f9ee8",
 return _exports;
 })();
 
-const _m10 = _modules.get("2f8007de08606feb0bc3428b79baa38b39199a5515730291a7abd6e2c873e2b2") ?? (() => {
+const _m10 = _modules.get("2c3c96f212917efd49be5480152523daaa2c70fa44ad4ab0a9bebc156e1af747") ?? (() => {
 const { escapeXml, xmlDeclaration } = _m7;
 
 function corePropertiesXml(properties = {}, policy = "strip") {
@@ -660,11 +666,11 @@ function appPropertiesXml(properties = {}, policy = "strip") {
         '<Application>' + escapeXml(properties.application ?? "OfficeIMO", policy) + '</Application><Company>' + escapeXml(properties.company ?? "", policy) + '</Company></Properties>';
 }
 const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appPropertiesXml: appPropertiesXml });
-_modules.set("2f8007de08606feb0bc3428b79baa38b39199a5515730291a7abd6e2c873e2b2", _exports);
+_modules.set("2c3c96f212917efd49be5480152523daaa2c70fa44ad4ab0a9bebc156e1af747", _exports);
 return _exports;
 })();
 
-const _m8 = _modules.get("354850dcb6d4f4e2070f62a6dd64735d4fe2913dafd070414f9aeb26b46983cd") ?? (() => {
+const _m8 = _modules.get("aa54f24b38828388a2d1eade1346e7e3b0ae20a620f1b24c72d7345209c792ab") ?? (() => {
 
 
 
@@ -841,12 +847,12 @@ class OpcPackage {
     }
 }
 const _exports = Object.freeze({ partUri: _m9.partUri, relationshipPartUri: _m9.relationshipPartUri, relativePartTarget: _m9.relativePartTarget, corePropertiesXml: _m10.corePropertiesXml, appPropertiesXml: _m10.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("354850dcb6d4f4e2070f62a6dd64735d4fe2913dafd070414f9aeb26b46983cd", _exports);
+_modules.set("aa54f24b38828388a2d1eade1346e7e3b0ae20a620f1b24c72d7345209c792ab", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("fdc818d9eb26ba1de84818c0a69efabef5640b81f6648f8a9c4d17bf43a2a0ce") ?? (() => {
-const { escapeXml, cleanXml, xmlDeclaration } = _m7;
+const _m13 = _modules.get("9a60184bbe3ac4768278652a824c286de15d927e51c68728734d304a40ec8cc0") ?? (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m7;
 
 const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
@@ -967,13 +973,13 @@ class StyleRegistry {
     }
     toXml() {
         const fontXml = (f) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + '<sz val="' + f.size + '"/>' +
-            (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeXml(f.name) + '"/></font>';
+            (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeOoxmlAttribute(f.name, this.policy) + '"/></font>';
         const borderXml = (b) => '<border>' + ["left", "right", "top", "bottom"].map(side => {
             const edge = b[side];
             return edge ? '<' + side + ' style="' + edge.style + '">' + (edge.color ? '<color rgb="' + edge.color + '"/>' : "") + '</' + side + '>' : '<' + side + '/>';
         }).join("") + '<diagonal/></border>';
         return xmlDeclaration + '<styleSheet xmlns="' + spreadsheetNamespace + '">' +
-            '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeXml(format) + '"/>').join("") + '</numFmts>' +
+            '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeOoxmlAttribute(format, this.policy) + '"/>').join("") + '</numFmts>' +
             '<fonts count="' + this.fonts.length + '">' + this.fonts.map(fontXml).join("") + '</fonts>' +
             '<fills count="' + this.fills.length + '">' + this.fills.map(f => '<fill><patternFill patternType="' + f.pattern + '">' +
             (f.color ? '<fgColor rgb="' + f.color + '"/><bgColor indexed="64"/>' : "") + '</patternFill></fill>').join("") + '</fills>' +
@@ -988,11 +994,11 @@ class StyleRegistry {
     }
 }
 const _exports = Object.freeze({ spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, colorArgb: colorArgb, StyleRegistry: StyleRegistry });
-_modules.set("fdc818d9eb26ba1de84818c0a69efabef5640b81f6648f8a9c4d17bf43a2a0ce", _exports);
+_modules.set("9a60184bbe3ac4768278652a824c286de15d927e51c68728734d304a40ec8cc0", _exports);
 return _exports;
 })();
 
-const _m14 = _modules.get("6ddac249ea55b29fa39daa320de1324d595968610cf8baebeeb9cd7e9c09ae20") ?? (() => {
+const _m14 = _modules.get("aab9e7d26f9718baf02788d756826f8d7f68c468a45b11cad522b4ca213a40e6") ?? (() => {
 const { cleanXml, escapeXml } = _m7;
 
 /** A typed value plus a workbook-local style index. */
@@ -1031,6 +1037,8 @@ function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-
 function sheetName(requested, names, policy) {
     if (typeof requested !== "string")
         throw new TypeError("Sheet name must be a string.");
+    // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
+    // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
     let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
     if (!base)
         base = "Sheet";
@@ -1058,7 +1066,7 @@ function excelDate(date, mode) {
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
 const _exports = Object.freeze({ Cell: Cell, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("6ddac249ea55b29fa39daa320de1324d595968610cf8baebeeb9cd7e9c09ae20", _exports);
+_modules.set("aab9e7d26f9718baf02788d756826f8d7f68c468a45b11cad522b4ca213a40e6", _exports);
 return _exports;
 })();
 
@@ -1090,7 +1098,7 @@ _modules.set("106e8382a79b4ecc2a000b5b59d79ee2eb5d1f40478080fe26bb9effb9fa87be",
 return _exports;
 })();
 
-const _m15 = _modules.get("5a838aaf6607bcf48cc02156b8c88d7333fa565f7ed871d1d5d7e1df9e5bdbe6") ?? (() => {
+const _m15 = _modules.get("6f88c4cc4c4ec9f0e456de7c9824bdab94bc799c7b090c53f02a5bf6c9006e42") ?? (() => {
 const { checkAbort, inputRows } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -1283,18 +1291,18 @@ class Worksheet {
     async discard(error) { await this.entry?.discard(error); this.output.discard(); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("5a838aaf6607bcf48cc02156b8c88d7333fa565f7ed871d1d5d7e1df9e5bdbe6", _exports);
+_modules.set("6f88c4cc4c4ec9f0e456de7c9824bdab94bc799c7b090c53f02a5bf6c9006e42", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("fec0a363a01f7c8b76244f3d4227f28b0ca4bfcf7239c06945b200e0747bf466") ?? (() => {
+const _m12 = _modules.get("fa09c06d5797978f1e66245b4bea96abb13919e1b4dafae66e364cc6bc7f59ad") ?? (() => {
 const { checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
 
 const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m8;
 
-const { escapeXml, cleanXml, xmlDeclaration } = _m7;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m7;
 
 const { StyleRegistry, spreadsheetNamespace } = _m13;
 
@@ -1378,7 +1386,7 @@ class Workbook {
                     this.package.addPrepared("/xl/worksheets/sheet" + (i + 1) + ".xml", formatType("worksheet"), await this.sheets[i].finish());
                 this.package.addPart({ uri: "/xl/workbook.xml", contentType: formatType("sheet.main"), data: xmlDeclaration +
                         '<workbook xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><workbookPr date1904="0"/><bookViews><workbookView/></bookViews><sheets>' +
-                        this.sheets.map((s, i) => '<sheet name="' + escapeXml(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets></workbook>' });
+                        this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets></workbook>' });
                 this.package.addPart({ uri: "/xl/styles.xml", contentType: formatType("styles"), data: this.styles.toXml() });
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
                 for (let i = 0; i < this.sheets.length; i++)
@@ -1402,14 +1410,14 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("fec0a363a01f7c8b76244f3d4227f28b0ca4bfcf7239c06945b200e0747bf466", _exports);
+_modules.set("fa09c06d5797978f1e66245b4bea96abb13919e1b4dafae66e364cc6bc7f59ad", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("daaabfd365c5c317df9946db38191204ba2092d8cd5c1570242316d45dc8c9cd") ?? (() => {
+const _m11 = _modules.get("41cf88b55b11b2c46eea9a1b4a44efa33a2494016ea4bde801a1da77f1ad971d") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m12.Workbook, createWorkbook: _m12.createWorkbook, Worksheet: _m15.Worksheet, Cell: _m14.Cell, StyleRegistry: _m13.StyleRegistry, NumberFormats: _m13.NumberFormats, saveBlob: _m1.saveBlob });
-_modules.set("daaabfd365c5c317df9946db38191204ba2092d8cd5c1570242316d45dc8c9cd", _exports);
+_modules.set("41cf88b55b11b2c46eea9a1b4a44efa33a2494016ea4bde801a1da77f1ad971d", _exports);
 return _exports;
 })();
 
@@ -1494,10 +1502,10 @@ _modules.set("577f63391957f6cf1d280a34f14ebf563ac0c5f5fb5c867f67d6d13cbfc18b76",
 return _exports;
 })();
 
-const _m0 = _modules.get("c23c5b24db3385d510123f3f840dc7a56962e0c7b0f248d453a180e5c883d482") ?? (() => {
+const _m0 = _modules.get("88b0d164c209fee822d91c71e969152ee1dacb7db5e903220e856a116db21b62") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m5, xml: _m7, opc: _m8, xlsx: _m11, csv: _m17, Workbook: _m11.Workbook, Worksheet: _m11.Worksheet, Cell: _m11.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, createWorkbook: _m11.createWorkbook, writeCsv: _m17.writeCsv, writeCsvTo: _m17.writeCsvTo, saveBlob: _m1.saveBlob });
-_modules.set("c23c5b24db3385d510123f3f840dc7a56962e0c7b0f248d453a180e5c883d482", _exports);
+_modules.set("88b0d164c209fee822d91c71e969152ee1dacb7db5e903220e856a116db21b62", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

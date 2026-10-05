@@ -29,6 +29,8 @@ export function columnName(index: number): string {
 function clipName(text: string, length: number): string { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
 export function sheetName(requested: string, names: Set<string>, policy: InvalidCharacterPolicy): string {
   if (typeof requested !== "string") throw new TypeError("Sheet name must be a string.");
+  // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
+  // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
   let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
   if (!base) base = "Sheet";
   if (base.toLowerCase() === "history") base += "_";

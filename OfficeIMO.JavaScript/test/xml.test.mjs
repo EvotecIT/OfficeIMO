@@ -1,7 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { XmlWriter, cleanXml, escapeXml } from "../dist/xml/index.js";
+import { XmlWriter, cleanXml, escapeXml, escapeOoxmlAttribute } from "../dist/xml/index.js";
 import { BlobByteSink } from "../dist/core/index.js";
+
+test("OOXML attribute encoding protects literal and overlapping tokens in a single pass", () => {
+  const original = '_x0041_ _x003a_ _x005F_x0041_ _x0041_x003A_ _x000D_\r\n\t<&"';
+  const encoded = escapeOoxmlAttribute(original);
+  const xmlDecoded = encoded.replace(/&lt;/g, "<").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+  assert.equal(xmlDecoded.replace(/_x([0-9a-f]{4})_/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16))), original);
+  assert.equal(escapeOoxmlAttribute("strip\u0001"), "strip");
+  assert.throws(() => escapeOoxmlAttribute("reject\u0001", "reject"), { code: "INVALID_XML" });
+});
 
 test("XML writer escapes data, normalizes no whitespace and validates schema-owned names", async () => {
   const sink = new BlobByteSink(), writer = new XmlWriter(sink);

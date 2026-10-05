@@ -1,4 +1,4 @@
-import { escapeXml, cleanXml, xmlDeclaration } from "../xml/index.js";
+import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { Alignment, Column } from "../core/index.js";
 export const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -112,12 +112,12 @@ export class StyleRegistry {
   }
   toXml(): string {
     const fontXml = (f: Font) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + '<sz val="' + f.size + '"/>' +
-      (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeXml(f.name) + '"/></font>';
+      (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeOoxmlAttribute(f.name, this.policy) + '"/></font>';
     const borderXml = (b: Border) => '<border>' + (["left", "right", "top", "bottom"] as const).map(side => {
       const edge = b[side]; return edge ? '<' + side + ' style="' + edge.style + '">' + (edge.color ? '<color rgb="' + edge.color + '"/>' : "") + '</' + side + '>' : '<' + side + '/>';
     }).join("") + '<diagonal/></border>';
     return xmlDeclaration + '<styleSheet xmlns="' + spreadsheetNamespace + '">' +
-      '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeXml(format) + '"/>').join("") + '</numFmts>' +
+      '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeOoxmlAttribute(format, this.policy) + '"/>').join("") + '</numFmts>' +
       '<fonts count="' + this.fonts.length + '">' + this.fonts.map(fontXml).join("") + '</fonts>' +
       '<fills count="' + this.fills.length + '">' + this.fills.map(f => '<fill><patternFill patternType="' + f.pattern + '">' +
         (f.color ? '<fgColor rgb="' + f.color + '"/><bgColor indexed="64"/>' : "") + '</patternFill></fill>').join("") + '</fills>' +

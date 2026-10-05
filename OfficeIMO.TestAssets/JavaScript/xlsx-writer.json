@@ -28,6 +28,16 @@
         "rows": [["1250"], [2500]], "expected": { "A2": 1.25, "A3": 2.5 } }] },
     { "name": "cell-style", "styles": [{ "font": { "bold": true }, "numberFormat": "0.00%" }],
       "sheets": [{ "name": "Cells", "columns": [{ "header": "Value" }], "rows": [[{ "kind": "cell", "value": 0.25, "style": 0 }]], "expected": { "A2": 0.25 } }] },
+    { "name": "ooxml-attributes", "styles": [{ "font": { "name": "Font_x0041_" }, "numberFormat": "\"_x003A_\"0" }],
+      "sheets": [
+        { "name": "_x0041_", "columns": [{ "header": "V", "style": 0 }], "rows": [["literal A escape"]], "expected": { "A2": "literal A escape" } },
+        { "name": "A", "columns": [{ "header": "V" }], "rows": [["plain A"]], "expected": { "A2": "plain A" } },
+        { "name": "_x003A_", "columns": [{ "header": "V" }], "rows": [["literal colon escape"]], "expected": { "A2": "literal colon escape" } },
+        { "name": "_x003a_", "expectedName": "_x003a_ (2)", "columns": [{ "header": "V" }], "rows": [["duplicate literal"]], "expected": { "A2": "duplicate literal" } },
+        { "name": "Bad:Name", "expectedName": "Bad_Name", "columns": [{ "header": "V" }], "rows": [["sanitized"]], "expected": { "A2": "sanitized" } },
+        { "name": "Bad_Name", "expectedName": "Bad_Name (2)", "columns": [{ "header": "V" }], "rows": [["sanitized duplicate"]], "expected": { "A2": "sanitized duplicate" } },
+        { "name": "_x005F_x0041_", "columns": [{ "header": "V" }], "rows": [["literal underscore escape"]], "expected": { "A2": "literal underscore escape" } }
+      ] },
     { "name": "xml-reject-valid", "options": { "invalidCharacterPolicy": "reject" },
       "sheets": [{ "name": "Data", "columns": [{ "header": "Unicode" }], "rows": [["Zażółć gęślą jaźń 🧪\r\n"]], "expected": { "A2": "Zażółć gęślą jaźń 🧪\r\n" } }] }
   ]

@@ -49,6 +49,24 @@ test("empty workbook, one cell, unique names and stored fallback", async () => {
   } finally { globalThis.CompressionStream = original; }
 });
 
+test("OOXML attributes preserve literal escapes and validate the decoded worksheet names", async () => {
+  const book = createWorkbook({ compression: "store" });
+  const requests = ["_x0041_", "A", "_x003A_", "_x003a_", "Bad:Name", "Bad_Name", "_x005F_x0041_"];
+  const expected = ["_x0041_", "A", "_x003A_", "_x003a_ (2)", "Bad_Name", "Bad_Name (2)", "_x005F_x0041_"];
+  for (const name of requests) book.addWorksheet(name);
+  book.styles.add({ font: { name: "Font_x0041_" }, numberFormat: '"_x003A_"0' });
+  const zip = await readZip(await book.toBlob());
+  const decode = text => text.replace(/_x([0-9a-f]{4})_/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  const names = [...zip.get("xl/workbook.xml").content.matchAll(/<sheet name="([^"]+)"/g)].map(match => decode(match[1]));
+  assert.deepEqual(names, expected);
+  assert.deepEqual(book.worksheets.map(sheet => sheet.name), expected);
+  assert.equal(new Set(names.map(name => name.toLowerCase())).size, names.length);
+  assert.ok(names.every(name => name.length <= 31 && !/[\[\]:*?/\\]/.test(name)));
+  const styles = zip.get("xl/styles.xml").content;
+  assert.match(styles, /name val="Font_x005F_x0041_"/);
+  assert.match(styles, /formatCode="&quot;_x005F_x003A_&quot;0"/);
+});
+
 test("XLSX enforces string, width, column, date and declared-type boundaries", async () => {
   const book = createWorkbook();
   assert.throws(() => book.addSheet("Too wide", { columns: Array.from({ length: 16385 }, () => ({ header: "V" })) }), RangeError);

@@ -20,6 +20,14 @@ export function escapeXml(value: unknown, policy: InvalidCharacterPolicy = "stri
   return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]!);
 }
 
+/** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
+export function escapeOoxmlAttribute(value: unknown, policy: InvalidCharacterPolicy = "strip"): string {
+  const whitespace: Record<string, string> = { "\r": "_x000D_", "\n": "_x000A_", "\t": "_x0009_" };
+  const text = cleanXml(value, policy).replace(/_(?=x[0-9a-f]{4}_)|[\r\n\t]/gi,
+    token => token === "_" ? "_x005F_" : whitespace[token]!);
+  return escapeXml(text, policy);
+}
+
 /** Names are schema-owned ASCII QNames; data is accepted only as text or attribute values. */
 export function validateXmlName(name: string): string {
   if (typeof name !== "string" || !/^[A-Za-z_][A-Za-z0-9_.-]*(?::[A-Za-z_][A-Za-z0-9_.-]*)?$/.test(name))

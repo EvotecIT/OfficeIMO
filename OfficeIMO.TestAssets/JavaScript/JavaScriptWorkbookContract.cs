@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -23,10 +24,18 @@ internal static class JavaScriptWorkbookContract {
         var generic = new OfficeDocumentReaderBuilder().AddExcelHandler().Build().ReadDocument(path);
         Require(generic.Kind == ReaderInputKind.Excel && generic.CapabilitiesUsed.Contains("officeimo.reader.excel.rich-v5"), "The generic Excel adapter did not run.");
         if (spec is not JsonElement fixture) return;
+        Sheet[] wireSheets = sdk.WorkbookPart!.Workbook!.Sheets!.Elements<Sheet>().ToArray();
+        string[] decodedNames = wireSheets.Select(s => XmlConvert.DecodeName(s.Name!.Value!)).ToArray();
+        Require(decodedNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() == decodedNames.Length, "Decoded sheet names are not unique.");
+        Require(decodedNames.All(n => n.Length is > 0 and <= 31 && n.IndexOfAny(new[] { '[', ']', ':', '*', '?', '/', '\\' }) < 0), "Decoded sheet name contains forbidden characters.");
+        int sheetIndex = 0;
         foreach (JsonElement sheet in fixture.GetProperty("sheets").EnumerateArray()) {
+            string expectedName = sheet.TryGetProperty("expectedName", out JsonElement renamed) ? renamed.GetString()! : sheet.GetProperty("name").GetString()!;
+            Require(decodedNames[sheetIndex] == expectedName, "Decoded sheet name differs: " + decodedNames[sheetIndex]);
+            string wireName = wireSheets[sheetIndex++].Name!.Value!;
             foreach (JsonProperty expected in sheet.GetProperty("expected").EnumerateObject()) {
                 using var data = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
-                    SheetName = sheet.GetProperty("name").GetString()!, A1Range = expected.Name + ":" + expected.Name, HasHeaderRow = false
+                    SheetName = wireName, A1Range = expected.Name + ":" + expected.Name, HasHeaderRow = false
                 });
                 Require(data.Read(), "Expected cell is absent: " + expected.Name);
                 object value = data.GetValue(0);
@@ -41,6 +50,11 @@ internal static class JavaScriptWorkbookContract {
                 };
                 Require(equal, Path.GetFileName(path) + ": cell " + expected.Name + " differs: " + value);
             }
+        }
+        if (fixture.GetProperty("name").GetString() == "ooxml-attributes") {
+            Stylesheet styles = sdk.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            Require(styles.Fonts!.Elements<Font>().Any(f => XmlConvert.DecodeName(f.FontName?.Val?.Value ?? "") == "Font_x0041_"), "Literal font name differs.");
+            Require(styles.NumberingFormats!.Elements<NumberingFormat>().Any(f => XmlConvert.DecodeName(f.FormatCode?.Value ?? "") == "\"_x003A_\"0"), "Literal number-format code differs.");
         }
         if (fixture.GetProperty("name").GetString() == "styles-custom") {
             WorkbookPart workbook = sdk.WorkbookPart!;

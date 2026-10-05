@@ -527,6 +527,12 @@ function escapeXml(value, policy = "strip") {
         "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
     return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]);
 }
+/** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
+function escapeOoxmlAttribute(value, policy = "strip") {
+    const whitespace = { "\r": "_x000D_", "\n": "_x000A_", "\t": "_x0009_" };
+    const text = cleanXml(value, policy).replace(/_(?=x[0-9a-f]{4}_)|[\r\n\t]/gi, token => token === "_" ? "_x005F_" : whitespace[token]);
+    return escapeXml(text, policy);
+}
 /** Names are schema-owned ASCII QNames; data is accepted only as text or attribute values. */
 function validateXmlName(name) {
     if (typeof name !== "string" || !/^[A-Za-z_][A-Za-z0-9_.-]*(?::[A-Za-z_][A-Za-z0-9_.-]*)?$/.test(name))
@@ -577,7 +583,7 @@ class XmlWriter {
     open() { if (this.closed)
         throw new OfficeIMOError("INVALID_STATE", "XML writer is closed."); }
 }
-const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: cleanXml, escapeXml: escapeXml, validateXmlName: validateXmlName, XmlWriter: XmlWriter });
+const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: cleanXml, escapeXml: escapeXml, escapeOoxmlAttribute: escapeOoxmlAttribute, validateXmlName: validateXmlName, XmlWriter: XmlWriter });
 return _exports;
 })();
 
@@ -830,7 +836,7 @@ return _exports;
 })();
 
 const _m13 = (() => {
-const { escapeXml, cleanXml, xmlDeclaration } = _m7;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m7;
 
 const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
@@ -951,13 +957,13 @@ class StyleRegistry {
     }
     toXml() {
         const fontXml = (f) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + '<sz val="' + f.size + '"/>' +
-            (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeXml(f.name) + '"/></font>';
+            (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeOoxmlAttribute(f.name, this.policy) + '"/></font>';
         const borderXml = (b) => '<border>' + ["left", "right", "top", "bottom"].map(side => {
             const edge = b[side];
             return edge ? '<' + side + ' style="' + edge.style + '">' + (edge.color ? '<color rgb="' + edge.color + '"/>' : "") + '</' + side + '>' : '<' + side + '/>';
         }).join("") + '<diagonal/></border>';
         return xmlDeclaration + '<styleSheet xmlns="' + spreadsheetNamespace + '">' +
-            '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeXml(format) + '"/>').join("") + '</numFmts>' +
+            '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeOoxmlAttribute(format, this.policy) + '"/>').join("") + '</numFmts>' +
             '<fonts count="' + this.fonts.length + '">' + this.fonts.map(fontXml).join("") + '</fonts>' +
             '<fills count="' + this.fills.length + '">' + this.fills.map(f => '<fill><patternFill patternType="' + f.pattern + '">' +
             (f.color ? '<fgColor rgb="' + f.color + '"/><bgColor indexed="64"/>' : "") + '</patternFill></fill>').join("") + '</fills>' +
@@ -1014,6 +1020,8 @@ function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-
 function sheetName(requested, names, policy) {
     if (typeof requested !== "string")
         throw new TypeError("Sheet name must be a string.");
+    // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
+    // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
     let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
     if (!base)
         base = "Sheet";
@@ -1274,7 +1282,7 @@ const { OfficeIMOError } = _m2;
 
 const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m8;
 
-const { escapeXml, cleanXml, xmlDeclaration } = _m7;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m7;
 
 const { StyleRegistry, spreadsheetNamespace } = _m13;
 
@@ -1358,7 +1366,7 @@ class Workbook {
                     this.package.addPrepared("/xl/worksheets/sheet" + (i + 1) + ".xml", formatType("worksheet"), await this.sheets[i].finish());
                 this.package.addPart({ uri: "/xl/workbook.xml", contentType: formatType("sheet.main"), data: xmlDeclaration +
                         '<workbook xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><workbookPr date1904="0"/><bookViews><workbookView/></bookViews><sheets>' +
-                        this.sheets.map((s, i) => '<sheet name="' + escapeXml(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets></workbook>' });
+                        this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets></workbook>' });
                 this.package.addPart({ uri: "/xl/styles.xml", contentType: formatType("styles"), data: this.styles.toXml() });
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
                 for (let i = 0; i < this.sheets.length; i++)
