@@ -34,9 +34,17 @@ public static partial class HtmlComputedStyleEngine {
         return true;
     }
 
-    private static bool IsGapComponentSyntax(string value) =>
-        string.Equals(value.Trim(), "normal", StringComparison.OrdinalIgnoreCase)
-        || IsNonNegativeCssLengthOrPercentage(value.Trim());
+    private static bool IsGapComponentSyntax(string value) {
+        string trimmed = value.Trim();
+        if (string.Equals(trimmed, "normal", StringComparison.OrdinalIgnoreCase)) return true;
+        // Math syntax is validated here; its sign depends on the real font and
+        // containing block. Nonnegative used values are resolved by layout.
+        bool unitlessZero = double.TryParse(trimmed, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out double numeric) && numeric == 0D;
+        return (unitlessZero || HtmlRenderCssValues.HasExplicitLengthSyntax(trimmed, allowPercentage: true, allowUnitlessZero: true))
+            && TryValidateCssLength(trimmed, out double length)
+            && (trimmed.IndexOf('(') >= 0 || length >= 0D);
+    }
 
     private static void ResolveDeferredLayoutLonghands(Dictionary<string, string> properties, IReadOnlyDictionary<string, string> deferred,
         IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset,

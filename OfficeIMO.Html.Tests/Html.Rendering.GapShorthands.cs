@@ -7,6 +7,8 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlGapShorthandTests {
     [Theory]
     [InlineData("gap:0 6px", "0", "6px")]
+    [InlineData("gap:.0 6px", ".0", "6px")]
+    [InlineData("gap:-0.0 6px", "-0.0", "6px")]
     [InlineData("gap:4px", "4px", "4px")]
     [InlineData("column-gap:3px;gap:0 6px", "0", "6px")]
     [InlineData("gap:0 6px;column-gap:3px", "0", "3px")]
@@ -48,6 +50,21 @@ public sealed class HtmlGapShorthandTests {
 }
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("flex", "gap:0 calc(1em - 20px)", 20D)]
+    [InlineData("grid;grid-template-columns:40px 40px", "column-gap:calc(1em - 20px)", 20D)]
+    [InlineData("flex", "--gap:0 calc(1em - 20px);gap:var(--gap)", 20D)]
+    [InlineData("flex", "column-gap:calc(-2px)", 0D)]
+    public void HtmlLayoutGap_ResolvesMathWithTheActualFontMetrics(string display, string declaration, double columnGap) {
+        string html = "<div style='display:" + display + ";width:140px;font-size:40px;" + declaration + "'>"
+            + "<div id='first' style='width:40px;height:20px;background:red'></div>"
+            + "<div id='second' style='width:40px;height:20px;background:blue'></div></div>";
+        HtmlRenderDocument rendered = RenderFlex(html, 180D);
+        HtmlRenderShape first = FindFlexShape(rendered, "div#first");
+        HtmlRenderShape second = FindFlexShape(rendered, "div#second");
+        Assert.Equal(first.X + first.Width + columnGap, second.X, 3);
+    }
+
     [Theory]
     [InlineData("flex;flex-wrap:wrap", "gap:3px 7px", 3D, 7D)]
     [InlineData("grid;grid-template-columns:40px 40px", "gap:3px 7px", 3D, 7D)]

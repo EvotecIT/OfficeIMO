@@ -104,37 +104,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     /// <summary>Collects styled in-flow and generated content for grid and flex intrinsic sizing.</summary>
-    private IReadOnlyList<IntrinsicTextRun> ResolveInFlowIntrinsicTextRuns(FlexItem item, double availableSize) {
+    private IReadOnlyList<IntrinsicTextRun> ResolveInFlowIntrinsicTextRuns(FlexItem item, double availableSize, int depth = 1) {
         var rawRuns = new List<IntrinsicTextRun>();
         if (item.Element == null) {
             rawRuns.Add(new IntrinsicTextRun(item.TextContent, item.Style));
         } else {
-            AppendInFlowIntrinsicTextRuns(item.Element, item.Style, availableSize, 1, rawRuns);
+            AppendInFlowIntrinsicTextRuns(item.Element, item.Style, availableSize, depth, rawRuns);
         }
 
         var normalized = new List<IntrinsicTextRun>();
-        bool pendingWhitespace = false;
+        HtmlRenderBoxStyle? pendingWhitespaceStyle = null;
         foreach (IntrinsicTextRun run in rawRuns) {
             if (run.IsForcedBreak) {
-                pendingWhitespace = false;
+                pendingWhitespaceStyle = null;
                 if (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak) {
                     normalized.Add(run);
                 }
                 continue;
             }
             if (run.IsReplaced) {
-                if (pendingWhitespace) {
-                    AppendNormalizedIntrinsicText(normalized, " ", run.Style);
-                    pendingWhitespace = false;
+                if (pendingWhitespaceStyle != null) {
+                    AppendNormalizedIntrinsicText(normalized, " ", pendingWhitespaceStyle);
+                    pendingWhitespaceStyle = null;
                 }
                 normalized.Add(run);
                 continue;
             }
             string transformed = ApplyTextTransform(run.Text, run.Style);
             if (run.Style.PreserveWhitespace) {
-                if (pendingWhitespace) {
-                    AppendNormalizedIntrinsicText(normalized, " ", run.Style);
-                    pendingWhitespace = false;
+                if (pendingWhitespaceStyle != null) {
+                    AppendNormalizedIntrinsicText(normalized, " ", pendingWhitespaceStyle);
+                    pendingWhitespaceStyle = null;
                 }
 
                 int segmentStart = 0;
@@ -159,12 +159,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var text = new StringBuilder();
             foreach (char current in transformed) {
                 if (char.IsWhiteSpace(current)) {
-                    pendingWhitespace = normalized.Count > 0 || text.Length > 0;
+                    if (pendingWhitespaceStyle == null
+                        && (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak || text.Length > 0)) {
+                        pendingWhitespaceStyle = run.Style;
+                    }
                     continue;
                 }
-                if (pendingWhitespace) {
-                    text.Append(' ');
-                    pendingWhitespace = false;
+                if (pendingWhitespaceStyle != null) {
+                    if (ReferenceEquals(pendingWhitespaceStyle, run.Style)) {
+                        text.Append(' ');
+                    } else {
+                        AppendNormalizedIntrinsicText(normalized, text.ToString(), run.Style);
+                        text.Clear();
+                        AppendNormalizedIntrinsicText(normalized, " ", pendingWhitespaceStyle);
+                    }
+                    pendingWhitespaceStyle = null;
                 }
                 text.Append(current);
             }
@@ -190,6 +199,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableSize,
         int depth,
         ICollection<IntrinsicTextRun> result) {
+        if (parentStyle.Display is "flex" or "inline-flex"
+            && TryCollectFlexItems(parent, availableSize, parentStyle, depth, captureRunningElements: false,
+                out List<FlexItem> items, out _, registerOutOfFlowElements: false)) {
+            bool column = parentStyle.FlexDirection is "column" or "column-reverse";
+            double width = 0D;
+            foreach (FlexItem item in items) {
+                double contribution = column ? ResolveColumnFlexCrossBasis(item, availableSize, depth + 1)
+                    : ClampFlexMainSize(item, ResolveFlexAutoBoxBasis(item, availableSize, depth + 1)
+                        + item.Style.MarginLeft + item.Style.MarginRight, vertical: false);
+                width = column ? Math.Max(width, contribution) : width + contribution;
+            }
+            if (!column) width += parentStyle.ColumnGap * Math.Max(0, items.Count - 1);
+            result.Add(IntrinsicTextRun.Replaced(width, parentStyle));
+            return;
+        }
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             if (node is IText text) {

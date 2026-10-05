@@ -1292,7 +1292,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveGap(string value, double reference, double fontSize, out bool unsupported) {
         unsupported = false;
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return 0D;
-        if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double resolved) && resolved >= 0D) return resolved;
+        if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double resolved)) return Math.Max(0D, resolved);
         unsupported = true;
         return 0D;
     }

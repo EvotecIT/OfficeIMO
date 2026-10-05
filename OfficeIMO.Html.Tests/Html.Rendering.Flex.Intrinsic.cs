@@ -8,6 +8,41 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("row")]
     [InlineData("column")]
+    public void HtmlFlexIntrinsic_PreservesTheOriginatingFontOfCollapsedWhitespace(string direction) {
+        var options = new HtmlRenderOptions { ViewportWidth = 640D, Margins = HtmlRenderMargins.All(0D) };
+        options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf")));
+        string html = "<div style='display:flex;flex-direction:" + direction + ";align-items:flex-start;width:600px;font:40px Pinned'>"
+            + "<span id='item' style='background:#eeeeee'>AAAA <span style='font-size:10px'>BBBB</span></span></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText large = Assert.Single(text, item => item.Text.Trim() == "AAAA");
+        HtmlRenderText small = Assert.Single(text, item => item.Text.Trim() == "BBBB");
+        Assert.True(small.Y + small.Height <= large.Y + large.Height + 0.001D);
+    }
+
+    [Theory]
+    [InlineData("row")]
+    [InlineData("column")]
+    public void HtmlFlexIntrinsic_PreservesNestedRowWidthsAndGaps(string direction) {
+        var options = new HtmlRenderOptions { ViewportWidth = 640D, Margins = HtmlRenderMargins.All(0D) };
+        options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf")));
+        string html = "<div style='display:flex;flex-direction:" + direction + ";align-items:flex-start;width:600px;font:20px Pinned'>"
+            + "<div id='inner' style='display:flex;flex-shrink:0;gap:8px;background:#eeeeee'>"
+            + "<div>AAAA</div><div>BBBB</div></div><span>Tail</span></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderShape inner = FindFlexShape(rendered, "div#inner");
+        Assert.True(options.Fonts.TryMeasureText("AAAA", 20D, "Pinned", OfficeFontStyle.Regular, out double first));
+        Assert.True(options.Fonts.TryMeasureText("BBBB", 20D, "Pinned", OfficeFontStyle.Regular, out double second));
+        Assert.Equal(first + second + 8D, inner.Width, 3);
+        if (direction == "row") {
+            HtmlRenderText tail = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), item => item.Text == "Tail");
+            Assert.True(tail.X >= inner.X + inner.Width - 0.001D);
+        }
+    }
+
+    [Theory]
+    [InlineData("row")]
+    [InlineData("column")]
     public void HtmlFlexIntrinsic_KeepsKernedWordsAtTheirNaturalWidth(string direction) {
         var options = new HtmlRenderOptions { ViewportWidth = 640D, Margins = HtmlRenderMargins.All(0D) };
         options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf")));
