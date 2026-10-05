@@ -79,8 +79,8 @@ internal sealed class HtmlRenderVisualProjector {
             CountVisual();
             HtmlRenderVisual translated = text.TranslatePaint(offsetX, offsetY, 0);
             CountVisual();
-            return new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.Artifact,
+            return new HtmlRenderLogicalTextGroup(
+                string.Empty,
                 translated.X, translated.Y, translated.Width, translated.Height,
                 new[] { translated }, paintOrder, translated.Source,
                 layoutY: translated.LayoutY, layoutHeight: translated.LayoutHeight);

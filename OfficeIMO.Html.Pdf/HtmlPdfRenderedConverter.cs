@@ -556,7 +556,7 @@ internal static partial class HtmlPdfRenderedConverter {
         bool scopedText = group.LogicalScope != null && pagePaint != null;
         if (scopedText) {
             if (pagePaint!.IsClaimed(group.LogicalScope!)) {
-                canvas.Artifact(nested => nested.AddItems(content.Items));
+                canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
                 return;
             }
             // Resolve coverage from all page-local fragments, rather than assuming
@@ -567,7 +567,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 preserveBlockSeparators: group.LogicalScope!.PreserveBlockSeparators);
         }
         if (replacementText.Length == 0) {
-            canvas.Artifact(nested => nested.AddItems(content.Items));
+            // Artifact marking excludes tagged reading order, but independent
+            // extractors still read scalar glyphs. An empty replacement owns the
+            // secondary paint without inventing another text value or hiding links.
+            canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
             return;
         }
         string? logicalText = FilterLogicalPrivateUseGlyphs(replacementText, logicalPaint, webFonts, cancellationToken);
@@ -580,7 +583,7 @@ internal static partial class HtmlPdfRenderedConverter {
             return;
         }
         if (scopedText && !pagePaint!.TryClaim(group.LogicalScope!)) {
-            canvas.Artifact(nested => nested.AddItems(content.Items));
+            canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
             return;
         }
         if (logicalTextOwned) canvas.AddItems(content.Items);
