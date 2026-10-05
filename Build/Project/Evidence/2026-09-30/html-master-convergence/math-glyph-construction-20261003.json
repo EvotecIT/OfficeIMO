@@ -580,7 +580,7 @@
       },
       {
         "requirement": "Framework and packed-consumer qualification",
-        "proof": "Combined HTML 4,367 and PDF 8,788 pass each net8/net10. Normal 44027 feed contains 19 packages across four targets; two canonical consumers and the unchanged public math consumer execute net8/net10 with exact package/DLL/font hashes. Native net472 execution is required from current Windows hosted lane.",
+        "proof": "Combined HTML 4,367 and PDF 8,788 pass each net8/net10. Normal 44027 feed contains 19 packages across four targets; two canonical consumers and the unchanged public math consumer execute net8/net10 with exact package/DLL/font hashes. Native net472 execution is required from current Windows hosted lane. The direct synthetic-font public contract now executes on net8/net10 and cross-compiles net472; the earlier hosted general consumer does not prove native math. A focused package-only native run is required.",
         "status": "net8/net10 execution and four-target packing proven; current hosted/native lane pending"
       },
       {
@@ -867,7 +867,7 @@
         "originReceipt": "Ignore/MasterConvergenceQualification/packages-carrier-clean-44027d598/origin-hash-verification.json",
         "originReceiptSha256": "b5b64e499a37720eabcf9f20312ae06ee9e5870aeacc66b85d5a612118f92bde",
         "originalPublicMathConsumer": "Both frameworks pass with exact fresh packed CoreDLL and original STIX font bytes; radical72.85x97.92 and accent238.28x21.08 match original395 source.",
-        "nativeNet472Execution": "Await current Windows hosted consumer lane; cross-target package build is not native execution."
+        "nativeNet472Execution": "General native consumer proof is separate from MATH execution; direct new packed MATH consumer requires a Windows native result."
       },
       "currentHostedGate": {
         "run": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37315963943",
@@ -899,7 +899,7 @@
         "heldSteps": [
           {
             "step": "Current hosted packages/native consumer qualification and unchanged budgets",
-            "dependency": "Actual artifacts from run 37315963943; recheck at 2026-10-05T14:45:00Z"
+            "dependency": "Current full run 37315963943 artifacts/unchanged budgets plus actual Windows execution of the direct MATH packed consumer (focused package-only run pending dispatch)."
           },
           {
             "step": "Qualified synchronization and final cleanup/completion",
@@ -979,6 +979,14 @@
         "resultReceiptSha256": "15a5710a5c8f64ff4edb277ab4e92a3c8c26e31b60775492c46e5bc1f2c902b8",
         "nextExecution": "Probe source remains; rebuild normally with pinned SDK10.0.112 before subsequent execution. No stale compiled runner is qualification of a different source.",
         "retainedTools": "reference-font-diagnosis tool-venv preserved with its shared-interpreter links; no linked roots or shared caches changed."
+      },
+      "directPackedMathContract": {
+        "receipt": "Ignore/MasterConvergenceQualification/math-native-package-contract/receipt.json",
+        "receiptSha256": "6e23b2deeab9e920c66ad38884951d067bf7ebf88a162071a84e0394a32faef9",
+        "fixtureSha256": "db8334b017a154cd4e80aa048e226dfb308c67fde671b97c1061f649fa203613",
+        "net8AndNet10": "Final consumer executes all declared checks with exact 44027 package-owner DLL hashes.",
+        "nativeNet472": "Pending actual Windows execution of this consumer. Earlier general package lane did not call the mathematical renderer.",
+        "hostedRoute": "Manual html-static-package-probe; existing canonical nineteen-package script, no budget rerun."
       }
     }
   }

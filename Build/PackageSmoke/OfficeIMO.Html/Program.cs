@@ -173,6 +173,7 @@ if (tracedStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || tracedStyle.G
 
 PackedMhtmlContract.Verify(foundationPng);
 PackedSiteBundleContract.Verify(foundationPng);
+PackedMathContract.Verify();
 
 Console.WriteLine("OfficeIMO HTML packed API smoke passed on " +
     System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription + ".");

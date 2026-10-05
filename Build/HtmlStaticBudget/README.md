@@ -48,6 +48,12 @@ The Windows package lane executes net472-targeted consumers on its installed .NE
 package and measurement steps still run after a correctness failure, while the
 failed job remains failed. Reports are retained as workflow artifacts for seven days.
 
+Select `html-static-package-probe` for the same packed consumers on all three
+platforms, including native .NET Framework execution on Windows, without repeating
+correctness suites or budget measurements. The mathematical consumer uses a pinned
+synthetic MATH font to exercise glyph construction and placement without relying on
+an installed system font. This lane does not qualify timing or memory budgets.
+
 The Linux lane installs Noto CJK, Arabic-capable Noto fonts and IPA Gothic for the
 multilingual fixture. IPA Gothic supplies Japanese TrueType outlines accepted by
 the installed multilingual PDF fallback; the Noto CJK package contains CFF

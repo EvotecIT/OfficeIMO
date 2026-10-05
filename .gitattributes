@@ -10,6 +10,7 @@
 *.avif -text -diff
 *.obu -text -diff
 *.bin -text -diff
+Build/PackageSmoke/OfficeIMO.Html/Assets/FixtureMath.ttf -text -diff
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
 # AV1 matrix facts are an embedded byte table; preserve their exact bytes.
