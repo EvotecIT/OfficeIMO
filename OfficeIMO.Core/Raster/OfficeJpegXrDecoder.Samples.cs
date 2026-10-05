@@ -77,6 +77,16 @@ internal static partial class OfficeJpegXrDecoder {
                     red = chroma + green - (((long)primary[2][index] + 1) >> 1);
                     blue = primary[2][index] + red;
                 }
+                if (frame.BitDepth >= 3) {
+                    double rExtended = ScaleExtendedSample(red, frame.Primary, frame.BitDepth);
+                    double gExtended = ScaleExtendedSample(green, frame.Primary, frame.BitDepth);
+                    double bExtended = ScaleExtendedSample(blue, frame.Primary, frame.BitDepth);
+                    double aExtended = alpha == null ? 1D : ScaleExtendedSample(
+                        alpha[0][(y + alphaFrame!.Top) * alphaStride + x + alphaFrame.Left],
+                        frame.AlphaPlane ?? alphaFrame!.Primary, alphaFrame!.BitDepth);
+                    WriteExtendedRgba(output, target, rExtended, gExtended, bExtended, aExtended, premultiplied, colorProfile, channels);
+                    continue;
+                }
                 int maximum = frame.BitDepth == 2 ? 65535 : 255;
                 int r = ScaleSample(red, frame.Primary, frame.BitDepth);
                 int g = ScaleSample(green, frame.Primary, frame.BitDepth);

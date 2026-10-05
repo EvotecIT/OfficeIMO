@@ -14,12 +14,12 @@ internal static partial class OfficeJpegXrDecoder {
         internal int HeaderEnd;
     }
     internal sealed class PlaneHeader {
-        internal int Color, Components, Bands, ShiftBits, CenterX, CenterY;
+        internal int Color, Components, Bands, ShiftBits, CenterX, CenterY, MantissaBits, ExponentBias;
         internal bool Scaled;
         internal int[]? DcQuant, LpQuant, HpQuant;
     }
 
-    // T.832 8.3/8.4. This parses the bounded unsigned RGB/gray frame contract; pixel
+    // T.832 8.3/8.4. This parses the bounded RGB/gray frame contract; pixel
     // reconstruction and container dispatch remain separate codec responsibilities.
     internal static FrameHeader ReadHeader(byte[] bytes, int offset, int length, CancellationToken token) {
         var bits = new Bits(bytes, offset, length, token);
@@ -36,8 +36,8 @@ internal static partial class OfficeJpegXrDecoder {
         frame.OutputColor = (int)bits.Read(4); frame.BitDepth = (int)bits.Read(4);
         uint width = bits.Read(shortHeader ? 16 : 32), height = bits.Read(shortHeader ? 16 : 32);
         if (width >= int.MaxValue || height >= int.MaxValue || frame.Overlap == 3 ||
-            (frame.BitDepth != 1 && frame.BitDepth != 2) || (frame.OutputColor != 0 && frame.OutputColor != 7))
-            throw new FormatException("JPEG-XR frame is outside the unsigned eight/sixteen-bit RGB/gray contract.");
+            (frame.BitDepth < 1 || frame.BitDepth > 7 || frame.BitDepth == 5) || (frame.OutputColor != 0 && frame.OutputColor != 7))
+            throw new FormatException("JPEG-XR frame is outside the RGB/gray sample contract.");
         frame.Width = (int)width + 1; frame.Height = (int)height + 1;
         if ((long)frame.Width * frame.Height > 50_000_000L)
             throw new FormatException("JPEG-XR image dimensions exceed the managed limit.");
@@ -97,7 +97,11 @@ internal static partial class OfficeJpegXrDecoder {
             if (plane.CenterX > 4) plane.CenterX = 0;
             if (plane.CenterY > 4) plane.CenterY = 0;
         }
-        if (bitDepth == 2) plane.ShiftBits = (int)bits.Read(8);
+        if (bitDepth == 2 || bitDepth == 3 || bitDepth == 6) plane.ShiftBits = (int)bits.Read(8);
+        if (bitDepth == 7) {
+            plane.MantissaBits = (int)bits.Read(8); plane.ExponentBias = (int)bits.Read(8);
+            if (plane.MantissaBits > 23) throw new FormatException("JPEG-XR float mantissa exceeds IEEE single precision.");
+        }
         if (bits.Flag()) plane.DcQuant = ReadQuantization(bits, plane.Components);
         if (plane.Bands != 3) {
             bits.Read(1);

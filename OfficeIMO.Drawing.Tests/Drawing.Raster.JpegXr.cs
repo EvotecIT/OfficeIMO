@@ -103,6 +103,17 @@ public class DrawingRasterJpegXrTests {
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
     }
 
+    [Theory]
+    [InlineData("extended-f16-infinity")]
+    [InlineData("extended-f16-nan")]
+    [InlineData("extended-f32-infinity")]
+    [InlineData("extended-f32-nan")]
+    public void NonfiniteSamplesFailWithoutReturningPartialPixels(string name) {
+        Assert.True(OfficeImageReader.TryIdentifyByContent(Fixture(name), null, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(Fixture(name), out var image));
+        Assert.Null(image);
+    }
+
     [Fact]
     public void TruncatedOrCorruptPayloadFailsValidation() {
         byte[] bytes = Fixture();

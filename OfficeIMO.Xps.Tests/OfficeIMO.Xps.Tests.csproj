@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\JpegXrTestFixture.cs" Link="JpegXrTestFixture.cs" />
-    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.jxr;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.rgba;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.tif;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\manifest.csv" Link="Fixtures\JpegXr\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.jxr;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.rgba;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.tif;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.linear;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\manifest.csv" Link="Fixtures\JpegXr\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">

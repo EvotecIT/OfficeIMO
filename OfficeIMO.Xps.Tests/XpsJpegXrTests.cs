@@ -69,7 +69,10 @@ public sealed class XpsJpegXrTests {
             "subsampled-yuv420-spatial-overlap0-q32-alpha0",
             "subsampled-yuv420-frequency-overlap1-q32-alpha1",
             "subsampled-yuv422-spatial-overlap2-q32-alpha2",
-            "subsampled-yuv422-frequency-overlap0-q32-alpha0"
+            "subsampled-yuv422-frequency-overlap0-q32-alpha0",
+            "extended-s16-3c-frequency-q32-alpha0", "extended-s32-3c-frequency-q32-alpha0",
+            "extended-f16-3c-frequency-q32-alpha0", "extended-f32-3c-frequency-q32-alpha0",
+            "extended-f32-premultiplied-4c-frequency-q32-alpha2", "extended-s32-limits-3c-frequency-q32-alpha0"
         }) {
             byte[] encoded = File.ReadAllBytes(Path.Combine(Corpus, sourceName + ".jxr"));
             byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, sourceName + ".rgba"));

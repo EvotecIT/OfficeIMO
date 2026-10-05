@@ -46,3 +46,18 @@ the ITU reference decoder. The wider comparison covers 274 images; the Microsoft
 comparison decoder differs on non-default centering and by at most one alpha
 level on lossy eight-bit interleaved-alpha cases. Those differences are not
 treated as exact agreement between independent consumers.
+
+The extended-sample fixtures cover signed s2.13/s7.24 fixed-point, IEEE half/single
+floating-point, gray/RGB/RGBA, both packet orders, hard tiles, lossy quantization,
+large and small finite values, and premultiplied float alpha. The expected RGBA
+buffers apply scRGB-to-sRGB conversion to independently decoded source samples,
+unassociating before conversion where declared. Selected `.linear` files retain
+those normalized source values as little-endian IEEE doubles for ICC integration
+tests. NaN/infinity fixtures protect rejection without partial pixel output.
+
+The broader extended-sample comparison checks 151 files against raw ITU output
+before RGBA rounding. Microsoft comparison decoding differs on lossy
+interleaved-alpha samples; this is retained as a consumer qualification limit.
+
+Signed endpoint fixtures distinguish sixteen-bit clipping from thirty-two-bit
+output packing when lossy reconstruction crosses a representable endpoint.
