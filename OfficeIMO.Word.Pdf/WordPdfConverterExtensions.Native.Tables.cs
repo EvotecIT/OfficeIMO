@@ -913,7 +913,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return ConvertNativeTwipsToPoints(indentation.Width.Value);
+            return indentation.Width.Value / 20D;
         }
 
         private static double? GetNativeTableHorizontalPositionIndent(W.TablePositionProperties? position) {

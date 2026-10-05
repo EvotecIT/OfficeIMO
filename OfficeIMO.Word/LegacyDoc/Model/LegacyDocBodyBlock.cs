@@ -322,7 +322,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : cellWidthsTwips.ToArray();
-            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value != 0
+                && tableLeftIndentTwips.Value >= short.MinValue && tableLeftIndentTwips.Value <= short.MaxValue
                 ? tableLeftIndentTwips
                 : null;
             RowHeightTwips = rowHeightTwips;

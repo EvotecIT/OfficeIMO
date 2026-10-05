@@ -276,8 +276,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return null;
             }
 
-            if (width.Value < 0 || width.Value > short.MaxValue) {
-                throw new NotSupportedException("Native DOC saving supports table indentation only as nonnegative Word 97-2003 signed twip values.");
+            if (width.Value < short.MinValue || width.Value > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table indentation only as Word 97-2003 signed twip values.");
             }
 
             return width.Value == 0 ? null : width.Value;

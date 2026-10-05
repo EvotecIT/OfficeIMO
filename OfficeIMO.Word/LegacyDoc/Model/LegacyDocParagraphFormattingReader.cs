@@ -863,7 +863,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var hideMarks = new bool[columnCount];
             var borders = new LegacyDocTableCellBorders[columnCount];
             int previousEdge = ReadInt16(bytes, edgesOffset);
-            if (previousEdge > 0) {
+            if (previousEdge != 0) {
                 tableLeftIndentTwips = previousEdge;
             }
 
