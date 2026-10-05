@@ -106,7 +106,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (tableDepth == 1) {
-                text.Append('\r');
                 AppendTrailingTableBoundaryBookmarks(table, bookmarks, text.Length);
             }
         }

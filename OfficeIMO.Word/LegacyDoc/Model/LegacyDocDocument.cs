@@ -791,6 +791,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     if (paragraphFormat.IsInTable == true) {
                         if (paragraphFormat.IsTableTerminatingParagraph == true) {
                             AddCurrentTableRow(paragraphFormat, textCharacter.CharacterPosition + 1);
+                            // The next paragraph's table depth ends a real table.
+                            // Its content, including an empty body paragraph, belongs outside it.
+                            bool followingTableParagraph = characterIndex + 1 < characters.Count &&
+                                GetParagraphFormatForFileOffset(paragraphFormattingRanges, characters[characterIndex + 1].FileOffset).IsInTable == true;
+                            if (!followingTableParagraph) {
+                                FlushTable(LegacyDocParagraphFormat.Default, textCharacter.CharacterPosition + 1);
+                                currentParagraphStartCharacter = textCharacter.CharacterPosition + 1;
+                            }
                         } else {
                             AddCurrentTextAsTableCell(paragraphFormat, allowHeuristicRowTerminator: false);
                         }

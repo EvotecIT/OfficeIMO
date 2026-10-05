@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleParagraphFormatting(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             string? styleId = tableStyle?.Val?.Value;
-            if (IsNoOpTableStyle(styleId) || string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+            if (IsNoOpTableStyle(styleId)) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
@@ -387,8 +387,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleBaseParagraphFormatting(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId)) {
                 return LegacyDocWritableParagraphFormatting.Plain;
+            }
+
+            if (IsTableGridStyle(baseStyleId)) {
+                return ReadSupportedTableStyleOwnParagraphFormatting(WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid));
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)

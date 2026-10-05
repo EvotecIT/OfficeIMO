@@ -220,7 +220,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     "body");
             }
 
-            if (bodyContentCount == 0) {
+            // A final table still needs a body paragraph. A following authored
+            // paragraph already supplies that boundary and must not get an extra blank.
+            if (bodyContentCount == 0 || text[text.Length - 1] == '\a') {
                 text.Append('\r');
             }
 
@@ -476,6 +478,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     break;
                 case Table table:
+                    // Adjacent rows otherwise belong to the same binary DOC table.
+                    if (text.Length > 0 && text[text.Length - 1] == '\a') text.Append('\r');
                     AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
                     bodyContentCount++;
                     break;

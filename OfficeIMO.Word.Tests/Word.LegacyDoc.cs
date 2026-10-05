@@ -8125,7 +8125,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(360, formattedCellParagraph.IndentationBefore);
                 Assert.Equal("Plain", plainCellParagraph.Text);
                 Assert.Null(plainCellParagraph.ParagraphAlignment);
-                Assert.Null(plainCellParagraph.LineSpacingAfter);
+                Assert.Equal(0, plainCellParagraph.LineSpacingAfter);
             } finally {
                 DeleteIfExists(docPath);
             }
