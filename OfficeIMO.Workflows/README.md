@@ -156,6 +156,43 @@ not replace EPUBCheck, accessibility review or independent-reader qualification.
 For an individual in-memory project, `Export(EpubWriteOptions, cancellationToken)`
 applies explicit writer limits while enforcing the same import-review gate.
 
+## Book delivery bundles
+
+`ToDeliveryBytes` packages the current reviewed publication for a local handoff:
+
+```csharp
+byte[] delivery = project.ToDeliveryBytes(
+    new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) },
+    cancellationToken: cancellationToken);
+// The host owns destination permissions, conflict handling and safe file publication.
+```
+
+The ZIP contains exactly `publication.epub`, `package.opf` and `manifest.json`.
+The OPF is copied byte-for-byte from the selected package in the exported EPUB,
+including identifiers, refinements, extensions and the writer's modification time.
+Its resource references remain relative to the original `PackagePath` recorded in
+the manifest; the sidecar is for metadata inspection, not standalone rendering.
+
+The version-1 `OfficeIMO.BookDelivery` JSON manifest records each payload's name,
+media type, byte length and uppercase SHA-256, plus import acknowledgment and
+separate import/writer diagnostics. Diagnostic loss categories are strings.
+Diagnostics can include source locations and author-supplied text. Named revisions,
+undo history and project review files are excluded. Hashes detect payload changes;
+they do not authenticate the sender or protect a manifest that is replaced with
+the payloads.
+
+Delivery uses the same import-review and signature policies as `Export`. The native
+writer check is recorded as `passed`; independent validation and retailer acceptance
+are recorded as `not-performed`. The bundle performs no ONIX conversion, external
+validation, upload or retailer-specific packaging.
+
+The EPUB is limited to 128 MiB, its OPF sidecar to 4 MiB, and the manifest to 1 MiB
+and 10,000 diagnostics per stage. `maximumOutputBytes` can lower the 134 MiB delivery
+ZIP ceiling. Writer limits remain effective and supplied options are not modified.
+Exceeded bounds or cancellation return no bundle and leave the project intact.
+Unchanged content and identical writer options produce identical delivery bytes
+on the same runtime. The API returns bytes and does not write destination files.
+
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.
