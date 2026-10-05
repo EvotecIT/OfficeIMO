@@ -389,6 +389,38 @@ their protection metadata and ciphertext; the writer neither decrypts nor re-key
 Editable loading rejects unreadable, over-budget, or ambiguous encryption declarations
 so protection guards cannot be bypassed by incomplete classification.
 
+## Footnotes and endnotes
+
+`AddNote` connects a labelled XHTML anchor to a note and generates its return link.
+The reference marker has an `id` and no `href`; its text and other attributes are retained.
+The source and notes may be in the same chapter or separate chapters.
+
+```csharp
+publication.AddChapter("chapter", "EPUB/text/chapter.xhtml", "Chapter",
+    "<h1>Chapter</h1><p>A statement <a id='note-ref'>1</a>.</p>");
+publication.AddChapter("notes", "EPUB/back/notes.xhtml", "Endnotes",
+    "<section><h1>Endnotes</h1><ol id='notes-list'/></section>");
+publication.AddNote(new EpubNoteOptions {
+    SourceManifestId = "chapter", ReferenceId = "note-ref",
+    NotesManifestId = "notes", ContainerId = "notes-list",
+    NoteId = "note-1", Kind = EpubNoteKind.Endnote,
+    BodyXhtml = "<p>Supporting detail.</p>",
+    BacklinkText = "Return to reference"
+});
+```
+
+Footnotes use an `aside` with `epub:type="footnote"` and `role="doc-footnote"`,
+appended to the selected `section`, `div`, or `body`. Endnotes use native list items
+inside an `ol` or `ul`; their enclosing section receives endnotes semantics.
+The reference and backlink receive `doc-noteref` and `doc-backlink` roles. Supply
+localized reference and backlink text appropriate to the book.
+
+Both document edits are atomic: duplicate identifiers, unresolved local ARIA references,
+scripts, conflicting roles, encrypted content, and combined retention-limit failures
+leave the publication unchanged. Generated links respect local HTML base URLs;
+external bases are rejected. EPUB 2 note authoring is unsupported. Full save and
+independent accessibility/reader checks still apply; note popup behavior depends on the reader.
+
 ## Publication preflight
 
 `Preflight` returns structured native checks without writing a destination or invoking

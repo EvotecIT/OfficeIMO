@@ -20,7 +20,7 @@ public sealed partial class EpubPublication {
         XElement? newGuide = null;
         if (PackageVersion == "3.0") {
             XElement body = navigation.Root?.Element(Html + "body") ?? throw new InvalidDataException("Navigation has no XHTML body.");
-            string linkOwner = HtmlNavigationLinkOwner(navigation, path);
+            string linkOwner = HtmlContentLinkOwner(navigation, path);
             SetHtmlNavigation(body, "toc", "Contents", toc, linkOwner);
             if (pages != null) SetHtmlNavigation(body, "page-list", "Pages", pages, linkOwner);
             if (guide != null) SetHtmlNavigation(body, "landmarks", "Landmarks", guide, linkOwner);
@@ -119,7 +119,7 @@ public sealed partial class EpubPublication {
         if (PackageVersion == "3.0") {
             XElement nav = navigation.Descendants(Html + "nav").Single(element => HasToken((string?)element.Attribute(Ops + "type"), "toc"));
             XElement list = nav.Element(Html + "ol") ?? throw new InvalidDataException("TOC list is missing.");
-            list.Add(BuildHtmlNodes(new[] { entry }, HtmlNavigationLinkOwner(navigation, path), 0, pendingPath));
+            list.Add(BuildHtmlNodes(new[] { entry }, HtmlContentLinkOwner(navigation, path), 0, pendingPath));
         } else {
             XElement map = navigation.Root?.Element(Ncx + "navMap") ?? throw new InvalidDataException("NCX navMap is missing.");
             int order = map.Descendants(Ncx + "navPoint").Count();
@@ -132,18 +132,18 @@ public sealed partial class EpubPublication {
         if (navigation.Root?.Name != (PackageVersion == "3.0" ? Html + "html" : Ncx + "ncx"))
             throw new InvalidDataException("Navigation root does not match the package generation.");
     }
-    private static string HtmlNavigationLinkOwner(XDocument navigation, string path) {
+    private static string HtmlContentLinkOwner(XDocument navigation, string path) {
         string? baseHref = navigation.Root?.Element(Html + "head")?.Elements(Html + "base")
             .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null);
         if (string.IsNullOrWhiteSpace(baseHref)) return path;
         EpubReference directory = EpubReference.Resolve(path, baseHref, ".");
         if (directory.Kind == EpubReferenceKind.External)
-            throw new NotSupportedException("Container navigation cannot be generated under an external HTML base URL.");
+            throw new NotSupportedException("Container links cannot be generated under an external HTML base URL.");
         if (directory.Kind != EpubReferenceKind.Container || directory.ContainerPath == null)
-            throw new InvalidDataException("Navigation has an invalid HTML base URL.");
+            throw new InvalidDataException("Content has an invalid HTML base URL.");
         // Use the shared resolver to determine the effective directory, including
         // directory/file bases and encoded paths, before computing relative links.
-        return (directory.ContainerPath.Length == 0 ? string.Empty : directory.ContainerPath + "/") + "__officeimo_navigation_base__";
+        return directory.ContainerPath.Length == 0 ? string.Empty : directory.ContainerPath + "/";
     }
     private void SetHtmlNavigation(XElement body, string type, string heading, EpubNavigationEntry[] nodes, string path) {
         XElement? nav = body.Descendants(Html + "nav").FirstOrDefault(element => HasToken((string?)element.Attribute(Ops + "type"), type));
