@@ -117,6 +117,7 @@ public class CsvDataReaderWriterRegressionTests
     [InlineData(true, true, false)]
     [InlineData(true, false, false)]
     [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
     public void WriteDataReader_CancellationKeepsCompletedRowsFromBatchedPaths(bool textDelimiter, bool formatted, bool alwaysQuoted)
     {
         using var cancellation = new CancellationTokenSource();
@@ -148,6 +149,8 @@ public class CsvDataReaderWriterRegressionTests
     [InlineData(true, false, true, false)]
     [InlineData(false, false, false, true)]
     [InlineData(false, false, true, true)]
+    [InlineData(true, false, false, true)]
+    [InlineData(true, false, true, true)]
     public void WriteDataReader_FormattingFailureDoesNotWritePartialBufferedRow(bool textDelimiter, bool formatted, bool supportGetValues, bool alwaysQuoted)
     {
         using var reader = new ThrowingGetValuesDataReader(
@@ -165,7 +168,7 @@ public class CsvDataReaderWriterRegressionTests
             new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n",
                 QuoteMode = alwaysQuoted ? CsvQuoteMode.Always : CsvQuoteMode.AsNeeded }));
 
-        Assert.Equal(alwaysQuoted ? "\"Name\",\"Value\"\n\"Alpha\",\"One\"\n"
+        Assert.Equal(alwaysQuoted ? $"\"Name\"{delimiter}\"Value\"\n\"Alpha\"{delimiter}\"One\"\n"
             : $"Name{delimiter}Value\nAlpha{delimiter}One\n", writer.ToString());
     }
 
@@ -174,6 +177,7 @@ public class CsvDataReaderWriterRegressionTests
     [InlineData(true, true, false)]
     [InlineData(true, false, false)]
     [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
     public void WriteDataReader_CancellationAfterLargeRowKeepsCompletedRow(bool textDelimiter, bool formatted, bool alwaysQuoted)
     {
         using var cancellation = new CancellationTokenSource();
@@ -194,16 +198,19 @@ public class CsvDataReaderWriterRegressionTests
                 QuoteMode = alwaysQuoted ? CsvQuoteMode.Always : CsvQuoteMode.AsNeeded },
             cancellation.Token));
 
-        Assert.Equal(alwaysQuoted ? "\"Name\",\"Value\"\n\"Alpha\",\"One\"\n\"Beta\",\"" + largeValue + "\"\n"
+        Assert.Equal(alwaysQuoted ? $"\"Name\"{delimiter}\"Value\"\n\"Alpha\"{delimiter}\"One\"\n\"Beta\"{delimiter}\"" + largeValue + "\"\n"
             : $"Name{delimiter}Value\nAlpha{delimiter}One\nBeta{delimiter}" + largeValue + "\n", writer.ToString());
     }
 
-    [Fact]
-    public void WriteDataReader_ReusedWriterPreservesExistingTextAndCompletedRowsAfterFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteDataReader_ReusedWriterPreservesExistingTextAndCompletedRowsAfterFailure(bool textDelimiter)
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         writer.Write("existing text\n");
-        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        string delimiter = textDelimiter ? "||" : ",";
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n", DelimiterText = delimiter }, leaveOpen: true);
         string[] headers = { "Name", "Value" };
         using var first = new ThrowingGetValuesDataReader(headers,
             new[] { new object?[] { "First", "Before" } });
@@ -216,7 +223,7 @@ public class CsvDataReaderWriterRegressionTests
         Assert.Throws<InvalidOperationException>(() => csv.WriteDataReader(failed));
         csv.WriteDataReader(last);
 
-        Assert.Equal("existing text\nName,Value\nFirst,Before\nAlpha,One\nLast,After\n", writer.ToString());
+        Assert.Equal($"existing text\nName{delimiter}Value\nFirst{delimiter}Before\nAlpha{delimiter}One\nLast{delimiter}After\n", writer.ToString());
     }
 
     private sealed class CancelingCsvValue

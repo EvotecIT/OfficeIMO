@@ -1185,3 +1185,33 @@ The evidence includes the [runner](excel-csv-broad-throughput-2026-10-04/csv-mix
 and [summary generator](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summarize.ps1).
 Further changes require comparable before/after proof across these workloads,
 including the negative cases.
+
+A separate experiment broadened completed-record batching to unformatted
+multi-character delimiters. It is rejected for integration. Its native matrix
+uses all 14 file cases on both modern runtimes and three placements: 168
+observations and 2,016 retained measurements, with four complete writes per
+sample. The two short-Unicode target cases improve on macOS .NET 10, but their
+macOS .NET 8 median ratios are 1.146 and 2.068. Target allocations increase by
+4,102 bytes per operation on Windows .NET 10 and macOS .NET 8.
+
+The additional .NET 10 controls rotate Before, an identical second baseline,
+and After within each iteration. Six cases on each host yield 36 observations
+and 1,728 retained measurements. Windows target After/Before medians are 1.116
+and 1.081; identical-baseline Control/Before ratios are 1.170 and 1.073. macOS
+target ratios are 0.846 and 0.884, with controls at 0.820 and 0.985. This evidence
+does not establish a portable gain. The production change is backed out on both
+experiment branches and absent from the integration branch. The
+[disposition and qualification](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-disposition.json),
+[native summary](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-summary.json),
+[rotated control summary](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-control-summary.json)
+and [rejected patch](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching.patch)
+retain the candidate boundary and slower cases. Correctness and independent
+review qualify the implementation, but do not establish a performance benefit.
+Raw packets are retained for [Windows mask 65535](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-windows-65535.json),
+[Windows mask 4294901760](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-windows-4294901760.json)
+and [macOS](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-macos.json),
+with rotated controls for [Windows](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-control-windows.json)
+and [macOS](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-control-macos.json).
+The additional cancellation, partial-record and writer-reuse cases remain in
+the correctness suite: all 28 writer regression cases pass against the frozen
+qualified CSV baseline after the experiment is backed out.
