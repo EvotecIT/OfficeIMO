@@ -2454,10 +2454,10 @@ namespace OfficeIMO.Word {
             }
 
             if (characterFormat.Highlight != null && TryMapHighlight(characterFormat.Highlight.Value, out HighlightColorValues highlight)) {
-                properties.AddChild(new Highlight { Val = highlight }, true);
+                properties.Append(new Highlight { Val = highlight });
                 hasProperties = true;
             } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
-                properties.AddChild(new Highlight { Val = HighlightColorValues.None }, true);
+                properties.Append(new Highlight { Val = HighlightColorValues.None });
                 hasProperties = true;
             }
 
