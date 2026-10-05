@@ -1154,25 +1154,34 @@ validation. Mixed exports validate every decoded field; formatting can differ
 when the decoded typed values are equal. File creation, close and flushing to
 the operating system are included; durable media flushing is excluded.
 
-Both actual .NET 8 and .NET 10 run on Windows and macOS, with two fixed Windows
-CPU placements. The captured 936 source/project files match across hosts. Each
+Both actual .NET 8 and .NET 10 run on Windows, macOS and Linux under WSL2, with
+two fixed Windows CPU placements. Linux runs Ubuntu 24.04.3 on the Windows host;
+its results describe that WSL2 environment, with operating-system scheduling.
+The captured 936 source/project files match across all three environments. Each
 case has 24 warmups, 12 retained measurements, four invocations and no outlier
-removal. The matrix contains 276 observations, 3,312 retained measurements and
-156 matched comparisons. Package versions are CsvHelper 33.1.0 and
-Sylvan.Data.Csv 1.4.4.
+removal. The complete matrix contains 368 observations, 4,416 retained
+measurements and 208 matched comparisons. Package versions are CsvHelper
+33.1.0 and Sylvan.Data.Csv 1.4.4.
 
-OfficeIMO has lower medians in 127 of 156 comparisons. File writes allocate less
-in 80 of 84 comparisons; mixed-data writes allocate less in 36 of 72, with small
+OfficeIMO has lower medians in 167 of 208 comparisons. File writes allocate less
+in 108 of 112 comparisons; mixed-data writes allocate less in 48 of 96, with small
 extra allocations in the remaining mixed cases. Negative timings include short
 Unicode file output, some long-note writes and selected mixed/quoted cases.
 The measurements support workload-specific findings and retain the slower
 cases; they do not establish an overall CSV speed or allocation lead.
 
-The [complete summary](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summary.json)
+Linux alone has lower OfficeIMO medians in 40 of 52 comparisons and lower
+allocations in all 28 file-write comparisons. The .NET 8 quoted mixed-data
+sequential write has a 1.877 median ratio, while the .NET 10 parallel counterpart
+has a 1.522 ratio. These negative cases remain in the matrix.
+
+The [complete three-environment summary](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-linux-summary.json)
 contains each timing/allocation pair and source fingerprints. Raw native
 observations are retained for [Windows](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-windows.json)
 and [macOS](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-macos.json),
-with the [runner](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-runner.ps1)
+with the additional [Linux WSL2 packet](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-linux.json)
+and the original [Windows/macOS summary](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summary.json).
+The evidence includes the [runner](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-runner.ps1)
 and [summary generator](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summarize.ps1).
 Further changes require comparable before/after proof across these workloads,
 including the negative cases.
