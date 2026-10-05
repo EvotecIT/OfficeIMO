@@ -163,9 +163,13 @@ before and after an affine transform.
 Drawing export retains bounded vector tiling patterns, isolated group opacity and
 blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and
 nontransparent mask backdrops reject export. Embedded drawing images preserve their
-interpolation setting. When reopening PDFs, the managed reader still flattens ordinary
-transparency groups; overlapping children can therefore render too dark. Exported
-native PDF groups are a separate contract from that reader limitation.
+interpolation setting. When reopening PDFs, the managed reader retains ordinary
+isolated Form groups with implicit or DeviceRGB blending space and no knockout.
+Invocation opacity applies once after overlapping paths, images, text, and nested
+forms are composed. Logical text extraction remains separate from that grouped
+paint. Other group blending spaces, non-isolated groups, and knockout semantics
+remain outside this reader contract. The [Cairo group fixtures](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Transparency/SOURCE.md)
+provide independent-producer coverage for overlapping child alpha and nested groups.
 
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
 the selected shaping provider supplies vertical advances and complete logical

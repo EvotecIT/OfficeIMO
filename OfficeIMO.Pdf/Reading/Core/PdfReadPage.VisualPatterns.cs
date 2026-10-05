@@ -444,6 +444,7 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent renderingIntent,
         out bool consumesInheritedLineState,
         out bool hasMalformedStrictInvocation) {
+        using IDisposable projectionScope = pageContentBudget.BeginTransparencyGroupProjectionScope();
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
         patternTextClippingBudget ??= new PdfTextClippingBudget();
         var drawing = new OfficeDrawing(width, height);

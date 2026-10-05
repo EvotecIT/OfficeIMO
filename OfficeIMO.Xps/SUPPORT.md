@@ -97,7 +97,9 @@ within small rasterization differences. The overlapping visual-brush mask and ma
 with MuPDF's native XPS renderer: OfficeIMO follows ECMA-388 section 18.5's isolated
 composition rule, verified by opacity arithmetic and independently rendered PDF
 output. These checks qualify representative cases, not every combination of native
-brushes, fonts, transforms, and effects.
+brushes, fonts, transforms, and effects. Managed PDF readback retains the qualified
+masked Canvas opacity, including overlapping children; ordinary isolated RGB
+Form groups compose before invocation opacity is applied.
 
 Sideways text follows ECMA-388 §12.1.6 for TrueType outlines: top-center origins,
 vertical advances, run-relative offsets, and rotation before the page transform.
