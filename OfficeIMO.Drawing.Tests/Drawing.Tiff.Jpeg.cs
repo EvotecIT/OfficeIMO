@@ -6,16 +6,19 @@ namespace OfficeIMO.Tests;
 public sealed class TiffJpegTests {
     private static string Corpus => Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpeg");
 
-    [Fact]
-    public void IndependentJpegStripsTilesAndTablesPreserveTiffColors() {
-        foreach (string row in File.ReadLines(Path.Combine(Corpus, "manifest.csv")).Skip(1)) {
+    [Theory]
+    [InlineData("TiffJpeg")]
+    [InlineData("TiffJpegExtended")]
+    public void IndependentJpegStripsTilesAndTablesPreserveTiffColors(string folder) {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
+        foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
             string name = fields[0];
             int photo = int.Parse(fields[1]), samples = photo == 5 ? 4 : photo == 2 || photo == 6 ? 3 : 1;
-            byte[] bytes = File.ReadAllBytes(Path.Combine(Corpus, name));
+            byte[] bytes = File.ReadAllBytes(Path.Combine(corpus, name));
             Assert.True(OfficeImageReader.TryValidateContent(bytes, name, out _), name + " validation");
             Assert.True(OfficeTiffCodec.TryDecode(bytes, out var image), name + " decode");
-            byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, name + ".raw"));
+            byte[] expected = File.ReadAllBytes(Path.Combine(corpus, name + ".raw"));
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
                 int p = (y * 35 + x) * samples;
                 int r, g, b;
@@ -33,9 +36,26 @@ public sealed class TiffJpegTests {
         }
     }
     [Theory]
+    [InlineData("wide-dc.jpg")]
+    [InlineData("wide-ac.jpg")]
+    public void WideQuantizationSaturatesAfterInverseTransform(string name) {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpegExtended", name));
+        Assert.True(OfficeJpegCodec.TryDecode(bytes, out var image));
+        // A single DC coefficient of 65535 produces a uniformly white block.
+        // A single horizontal AC coefficient produces four white then four black columns.
+        for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) {
+            byte expected = name == "wide-dc.jpg" || x < 4 ? (byte)255 : (byte)0;
+            var pixel = image!.GetPixel(x, y);
+            Assert.Equal(expected, pixel.R); Assert.Equal(expected, pixel.G); Assert.Equal(expected, pixel.B);
+            Assert.Equal(255, pixel.A);
+        }
+    }
+
+    [Theory]
     [InlineData(0)] // Segment dimensions disagree with the TIFF strip.
     [InlineData(1)] // Progressive frames are outside TIFF Technical Note 2.
     [InlineData(2)] // Missing end-of-image marker.
+    [InlineData(3)] // Segments mix baseline and extended sequential processes.
     public void MalformedJpegSegmentsFailValidationAndDecode(int fault) {
         byte[] bytes = File.ReadAllBytes(Path.Combine(Corpus, "p2-be0-t0-q0-pl1-s1.tif"));
         var (offsetSlot, lengthSlot) = FirstStripSlots(bytes);
@@ -43,7 +63,8 @@ public sealed class TiffJpegTests {
         int frame = FindMarker(bytes, start, 192);
         if (fault == 0) bytes[frame + 8]++;
         else if (fault == 1) bytes[frame + 1] = 194;
-        else bytes[start + length - 1] = 0;
+        else if (fault == 2) bytes[start + length - 1] = 0;
+        else bytes[frame + 1] = 193;
         Assert.False(OfficeTiffCodec.TryDecode(bytes, out _));
         Assert.False(OfficeImageReader.TryValidateContent(bytes, "malformed.tif", out _));
     }

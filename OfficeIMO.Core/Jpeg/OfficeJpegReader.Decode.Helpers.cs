@@ -440,9 +440,9 @@ internal static partial class OfficeJpegReader {
 
         var t = DecodeHuffman(ref reader, dcTable, useFast: true);
         var diff = t == 0 ? 0 : Extend(reader.ReadBits(t), t);
-        var dc = prevDc + diff;
+        var dc = checked(prevDc + diff);
         prevDc = dc;
-        coeffs[0] = dc * quant[0];
+        coeffs[0] = checked(dc * quant[0]);
 
         var k = 1;
         while (k < 64) {
@@ -462,7 +462,7 @@ internal static partial class OfficeJpegReader {
             if (k >= 64) break;
             var ac = Extend(reader.ReadBits(s), s);
             var zig = ZigZag[k];
-            coeffs[zig] = ac * quant[zig];
+            coeffs[zig] = checked(ac * quant[zig]);
             k++;
         }
 
@@ -511,6 +511,10 @@ internal static partial class OfficeJpegReader {
 
     private static void InverseDct(int[] input, byte[] output, int[] workspace) {
 
+        for (int i = 0; i < 64; i++) {
+            if (input[i] < -8191 || input[i] > 8191) { InverseDctWide(input, output); return; }
+        }
+
         // Pass 1: process columns into the workspace (scaled by Pass1Bits).
         for (var ctr = 0; ctr < 8; ctr++) {
             var c0 = input[ctr];
@@ -556,8 +560,8 @@ internal static partial class OfficeJpegReader {
             tmp2 = z1 + z3 * -Fix1_847759065;
             tmp3 = z1 + z2 * Fix0_765366865;
 
-            tmp0 = (c0 + c4) << ConstBits;
-            tmp1 = (c0 - c4) << ConstBits;
+            tmp0 = ((long)c0 + c4) << ConstBits;
+            tmp1 = ((long)c0 - c4) << ConstBits;
 
             tmp10 = tmp0 + tmp3;
             tmp13 = tmp0 - tmp3;
@@ -650,8 +654,8 @@ internal static partial class OfficeJpegReader {
             tmp2 = z1 + z3 * -Fix1_847759065;
             tmp3 = z1 + z2 * Fix0_765366865;
 
-            tmp0 = (w0 + w4) << ConstBits;
-            tmp1 = (w0 - w4) << ConstBits;
+            tmp0 = ((long)w0 + w4) << ConstBits;
+            tmp1 = ((long)w0 - w4) << ConstBits;
 
             tmp10 = tmp0 + tmp3;
             tmp13 = tmp0 - tmp3;
@@ -1159,7 +1163,7 @@ internal static partial class OfficeJpegReader {
                         var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
                         for (int coefficient = 0; coefficient < 64; coefficient++) {
                             compState.BlockCoeffs[coefficient] =
-                                compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient];
+                                checked(compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient]);
                         }
                         InverseDct(compState.BlockCoeffs, compState.BlockPixels, compState.BlockWorkspace);
                         WriteBlock(compState.Buffer, compState.Stride, bx, by, compState.BlockPixels);

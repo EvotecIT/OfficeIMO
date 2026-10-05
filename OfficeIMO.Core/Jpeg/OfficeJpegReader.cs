@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Decodes baseline and progressive JPEG images to RGBA buffers (SOF0/SOF2, 8-bit, Huffman).
+/// Decodes baseline, extended sequential and progressive JPEG images to RGBA buffers (SOF0/SOF1/SOF2, 8-bit, Huffman).
 /// </summary>
 internal static partial class OfficeJpegReader {
     private static readonly byte[] ZigZag = {
@@ -258,12 +258,15 @@ internal static partial class OfficeJpegReader {
                     var info = data[offset++];
                     var precision = info >> 4;
                     var tableId = info & 0x0F;
-                    if (precision != 0) throw new FormatException("Unsupported JPEG quantization precision.");
+                    if (precision > 1) throw new FormatException("Unsupported JPEG quantization precision.");
                     if (tableId >= quantTables.Length) throw new FormatException("Unsupported JPEG quantization table.");
-                    if (offset + 64 > end) throw new FormatException("Invalid JPEG quantization table.");
+                    if (offset + 64 * (precision + 1) > end) throw new FormatException("Invalid JPEG quantization table.");
                     var table = new int[64];
                     for (var i = 0; i < 64; i++) {
-                        table[ZigZag[i]] = data[offset++];
+                        int value = precision == 0 ? data[offset++] : ReadUInt16BE(data, offset);
+                        if (precision == 1) offset += 2;
+                        if (value == 0) throw new FormatException("Invalid zero JPEG quantization value.");
+                        table[ZigZag[i]] = value;
                     }
                     quantTables[tableId] = table;
                 }
@@ -296,7 +299,7 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
-            if (marker == 0xC0 || marker == 0xC2) {
+            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2) {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");

@@ -8,8 +8,9 @@ public static partial class OfficeTiffCodec {
     // override its orientation, CMYK polarity or photometric tags.
     private static bool TryNormalizeTiffJpeg(byte[] data, bool tablesOnly, int width, int height,
         int samples, int horizontal, int vertical, int inheritedTables, CancellationToken token,
-        out int definedTables) {
+        out int definedTables, out int frameProcess) {
         definedTables = 0;
+        frameProcess = 0;
         if (data.Length < 4 || data[0] != 255 || data[1] != 216) return false;
         int offset = 2;
         int[] ids = new int[samples];
@@ -34,11 +35,11 @@ public static partial class OfficeTiffCodec {
                 int p = start;
                 while (p < end) {
                     int info = data[p++], id = info & 15, kind = info >> 4;
-                    if (id > 3 || (marker == 219 ? kind != 0 : kind > 1)) return false;
+                    if (id > 3 || kind > 1) return false;
                     int mask = 1 << (marker == 219 ? id : 4 + kind * 4 + id);
                     if ((inheritedTables & mask) != 0) return false;
                     definedTables |= mask;
-                    int count = 64;
+                    int count = 64 * (kind + 1);
                     if (marker == 196) {
                         if (end - p < 16) return false;
                         count = 0;
@@ -47,7 +48,7 @@ public static partial class OfficeTiffCodec {
                     if (count > end - p) return false;
                     p += count;
                 }
-            } else if (marker == 192 && !tablesOnly) {
+            } else if ((marker == 192 || marker == 193) && !tablesOnly) {
                 if (frame || length != 8 + samples * 3 || data[start] != 8 ||
                     ((data[start + 1] << 8) | data[start + 2]) != height ||
                     ((data[start + 3] << 8) | data[start + 4]) != width || data[start + 5] != samples) return false;
@@ -58,6 +59,7 @@ public static partial class OfficeTiffCodec {
                     if (data[p + 1] != (i == 0 ? (horizontal << 4) | vertical : 17)) return false;
                     data[p] = (byte)(i + 1);
                 }
+                frameProcess = marker;
                 frame = true;
             } else if (marker == 218 && !tablesOnly) {
                 if (!frame || length < 6) return false;

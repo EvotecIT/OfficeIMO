@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegExtended", 35, 19)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegExtended", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpeg", 35, 19)]
     [InlineData(XpsFormat.OpenXps, "TiffJpeg", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegPlanar", 67, 35)]
@@ -24,7 +26,7 @@ public sealed class XpsTiffJpegTests {
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, fields[0])), "image/tiff");
             document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
-            if (folder == "TiffJpeg" && fields[1] == "5") {
+            if ((folder == "TiffJpeg" || folder == "TiffJpegExtended") && fields[1] == "5") {
                 var originalPage = document.Pages[0];
                 Assert.Throws<NotSupportedException>(() => originalPage.ToDrawing());
                 byte[] profile = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IccColorCorpus", "littlecms-cmyk-lut.icc"));

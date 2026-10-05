@@ -51,10 +51,11 @@ public static partial class OfficeTiffCodec {
             if (!HasBytes(bytes, tableOffset, tableEntry.Count)) return false;
             tables = new byte[tableEntry.Count];
             CopyWithCancellation(bytes, tableOffset, tables, 0, tables.Length, options.CancellationToken);
-            if (!TryNormalizeTiffJpeg(tables, true, 0, 0, 0, 1, 1, 0, options.CancellationToken, out inherited)) return false;
+            if (!TryNormalizeTiffJpeg(tables, true, 0, 0, 0, 1, 1, 0, options.CancellationToken, out inherited, out _)) return false;
             retained += tables.Length;
         }
         if (retainPixels) source = new byte[sourceLength];
+        int frameProcess = 0;
         for (int segment = 0; segment < count; segment++) {
             options.CancellationToken.ThrowIfCancellationRequested();
             int tile = segment % perPlane, plane = segment / perPlane;
@@ -78,7 +79,9 @@ public static partial class OfficeTiffCodec {
             var jpeg = new byte[lengths[segment]];
             CopyWithCancellation(bytes, offsets[segment], jpeg, 0, jpeg.Length, options.CancellationToken);
             if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, ycc && planar == 1 ? horizontal : 1,
-                ycc && planar == 1 ? vertical : 1, inherited, options.CancellationToken, out _)) return false;
+                ycc && planar == 1 ? vertical : 1, inherited, options.CancellationToken, out _, out int segmentProcess)) return false;
+            if (frameProcess != 0 && segmentProcess != frameProcess) return false;
+            frameProcess = segmentProcess;
             byte[] combined = jpeg;
             if (tables.Length > 0) {
                 combined = new byte[combinedLength];

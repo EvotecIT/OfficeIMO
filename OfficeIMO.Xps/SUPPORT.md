@@ -54,11 +54,11 @@ Packed samples require no predictor. Bilevel CCITT decoding supports Modified
 Huffman, Group 3 one/two-dimensional coding with optional fill bits, and Group 4,
 including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
 above the page height, including 0xFFFFFFFF, describe a single strip. Optional uncompressed fax
-extension mode is rejected. Baseline eight-bit JPEG (compression 7) accepts shared
+extension mode is rejected. Baseline and extended sequential eight-bit JPEG (compression 7) accept shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
 planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
 component order; JPEG application markers cannot override them. Legacy compression
-6, non-baseline JPEG processes, JPEG extra channels remain unsupported. Mixed component widths, reversed
+6, twelve-bit, lossless and arithmetic JPEG processes, and JPEG extra channels remain unsupported. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -106,6 +106,17 @@ with all 215,788 Core pixel comparisons within 3/255. Both dialects produce 180
 documents and 431,576 pixel-center probes per route; MuPDF SVG/PDF output differs
 from managed rendering by at most 2/255. GhostXPS differs by up to 255, including
 blank tiled/separate-plane cases. Native Windows acceptance remains unqualified.
+
+Extended sequential JPEG-TIFF qualification covers 160 independent LibTIFF
+fixtures with SOF1 frames and 16-bit quantization tables. The baseline corpus's
+color, storage, byte-order and shared/local-table matrix is repeated at JPEG
+quality 1. All 106,400 Core pixels agree with independent decoding within 3/255.
+Segments must use the same JPEG process; the shared JPEG owner handles wide
+quantization without overflowing its fixed-point transform. Both XPS dialects
+produce 320 documents with 212,800 pixel-center probes per route; independent
+MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
+still differs by up to 255, including blank planar/tiled output. Native Windows
+acceptance and twelve-bit, lossless or arithmetic JPEG remain unqualified.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,
