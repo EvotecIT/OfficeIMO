@@ -462,6 +462,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref LegacyDocSectionFormat finalSectionFormat,
             ref int bodyContentCount,
             string containerDescription) {
+            if (child is BookmarkStart && text.Length > 0 && text[text.Length - 1] == '\a' &&
+                FindFollowingBodyBlock(child) is Table) {
+                // A range starting at the next table excludes its required separator.
+                // Ends closing the preceding table keep their original position.
+                text.Append('\r');
+            }
             switch (child) {
                 case Paragraph paragraph:
                     AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, pictures, styleIndexes, footnotes, endnotes);
