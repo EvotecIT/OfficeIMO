@@ -85,7 +85,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         bool[] eligible = GetLatinDefaultEligibility(scalars, breakBefore, trailingBoundary);
         // Empty input is also used to preflight the font's selected lookups.
         if (glyphs.Count > 0 && !Array.Exists(eligible, value => value)) return true;
-        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? _latinDefaultLookups.Value : BuildLatinDefaultLookups(settings, cancellationToken);
+        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? GetLatinDefaultLookups(cancellationToken) : BuildLatinDefaultLookups(settings, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (lookups == null) return false;
         if (lookups.Length == 0) return true;
@@ -115,7 +115,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             hasLatin |= glyph.Scalar >= 'A' && glyph.Scalar <= 'Z' || glyph.Scalar >= 'a' && glyph.Scalar <= 'z';
         }
         if (!hasLatin) return true;
-        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? _latinDefaultLookups.Value : BuildLatinDefaultLookups(settings, cancellationToken);
+        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? GetLatinDefaultLookups(cancellationToken) : BuildLatinDefaultLookups(settings, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (lookups == null) return false;
         if (lookups.Length == 0) return true;
@@ -131,11 +131,26 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     internal bool CanApplyLatinDefaults(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         try {
-            bool supported = (settings.IsDefault ? _latinDefaultLookups.Value : BuildLatinDefaultLookups(settings, cancellationToken)) != null;
+            bool supported = (settings.IsDefault ? GetLatinDefaultLookups(cancellationToken) : BuildLatinDefaultLookups(settings, cancellationToken)) != null;
             cancellationToken.ThrowIfCancellationRequested();
             return supported;
         } catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
             exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return false; }
+    }
+
+    private KeyValuePair<int, int>[]? GetLatinDefaultLookups(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        LatinDefaultLookupCache? cached = Volatile.Read(ref _latinDefaultLookups);
+        if (cached != null) return cached.Lookups;
+        KeyValuePair<int, int>[]? lookups;
+        try { lookups = BuildLatinDefaultLookups(OfficeTextFeatureSettings.Default, cancellationToken); }
+        catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
+            exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { lookups = null; }
+        cancellationToken.ThrowIfCancellationRequested();
+        var completed = new LatinDefaultLookupCache(lookups);
+        // Publish completed immutable results only. A cancelled caller does not
+        // poison initialization or make another caller wait for its work.
+        return (Interlocked.CompareExchange(ref _latinDefaultLookups, completed, null) ?? completed).Lookups;
     }
 
     private KeyValuePair<int, int>[]? BuildLatinDefaultLookups(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
@@ -155,8 +170,9 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (count > MaximumLookupRecords) return null;
             Ensure(feature + 4, checked(count * 2));
             for (int lookup = 0; lookup < count; lookup++) {
+                if ((lookup & 63) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int lookupIndex = _reader.ReadUInt16(feature + 4 + lookup * 2);
-                if (!CanApplyLookup(lookupIndex, 0, ref inspections)) return null;
+                if (!CanApplyLookup(lookupIndex, 0, ref inspections, cancellationToken)) return null;
                 lookups[lookupIndex] = setting;
             }
         }
