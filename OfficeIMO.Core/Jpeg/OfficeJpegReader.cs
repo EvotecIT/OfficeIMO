@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Decodes baseline, extended sequential and progressive JPEG images to RGBA buffers (SOF0/SOF1/SOF2, 8-bit, Huffman).
+/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (SOF0/SOF1/SOF2/SOF3, 8-bit, Huffman).
 /// </summary>
 internal static partial class OfficeJpegReader {
     private static readonly byte[] ZigZag = {
@@ -181,6 +181,7 @@ internal static partial class OfficeJpegReader {
         var restartInterval = 0;
         var hasFrame = false;
         var progressive = false;
+        var lossless = false;
         var orientation = 1;
         int? adobeTransform = null;
         var frame = default(JpegFrame);
@@ -211,6 +212,15 @@ internal static partial class OfficeJpegReader {
 
                 var scanEnd = FindScanEnd(data, offset, cancellationToken);
                 var scanData = data.Slice(offset, scanEnd - offset);
+
+                if (lossless) {
+                    baselineState ??= BaselineState.Create(
+                        frame, orientation, checked(data.LongLength + retainedManagedBytes));
+                    DecodeLosslessScan(scanData, scan, frame, baselineState, dcTables,
+                        restartInterval, cancellationToken);
+                    offset = scanEnd;
+                    continue;
+                }
 
                 if (!progressive) {
                     ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
@@ -299,7 +309,7 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
-            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2) {
+            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3) {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
@@ -307,6 +317,7 @@ internal static partial class OfficeJpegReader {
                 frame = ParseFrameHeader(data.Slice(offset, segLen - 2));
                 hasFrame = true;
                 progressive = marker == 0xC2;
+                lossless = marker == 0xC3;
                 offset += segLen - 2;
                 continue;
             }

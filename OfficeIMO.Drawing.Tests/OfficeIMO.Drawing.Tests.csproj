@@ -130,4 +130,5 @@
   <ItemGroup><None Update="TestAssets/TiffJpegLowAlpha/*.tif;TestAssets/TiffJpegLowAlpha/*.rgba;TestAssets/TiffJpegLowAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffFaxUncompressed/*.tif;TestAssets/TiffFaxUncompressed/*.rgb;TestAssets/TiffFaxUncompressed/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffExtraSamples/*.tif;TestAssets/TiffExtraSamples/*.rgba;TestAssets/TiffExtraSamples/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLossless/*.tif;TestAssets/TiffJpegLossless/*.rgba;TestAssets/TiffJpegLossless/*.jpg;TestAssets/TiffJpegLossless/*.raw;TestAssets/TiffJpegLossless/manifest.csv;TestAssets/TiffJpegLossless/edges/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

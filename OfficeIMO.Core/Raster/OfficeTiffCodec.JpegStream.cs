@@ -48,7 +48,7 @@ public static partial class OfficeTiffCodec {
                     if (count > end - p) return false;
                     p += count;
                 }
-            } else if ((marker == 192 || marker == 193) && !tablesOnly) {
+            } else if ((marker == 192 || marker == 193 || marker == 195) && !tablesOnly) {
                 if (frame || length != 8 + samples * 3 || data[start] != 8 ||
                     ((data[start + 1] << 8) | data[start + 2]) != height ||
                     ((data[start + 3] << 8) | data[start + 4]) != width || data[start + 5] != samples) return false;

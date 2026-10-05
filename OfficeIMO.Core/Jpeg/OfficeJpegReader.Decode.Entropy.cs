@@ -161,20 +161,24 @@ internal static partial class OfficeJpegReader {
         }
 
 
-        public void ExpectRestartMarker() {
+        public void ExpectRestartMarker(int expectedMarker = -1) {
             _bitBuffer = 0;
             _bitCount = 0;
             while (_pos < _data.Length) {
                 var b = _data[_pos++];
-                if (b != 0xFF) continue;
+                if (b != 0xFF) {
+                    if (expectedMarker >= 0) throw new FormatException("Unexpected JPEG restart data.");
+                    continue;
+                }
                 SkipFillBytes(_data, ref _pos, _cancellationToken);
                 if (_pos >= _data.Length) throw new FormatException("Unexpected JPEG end.");
                 var marker = _data[_pos++];
                 if (marker >= 0xD0 && marker <= 0xD7) {
+                    if (expectedMarker >= 0 && marker != expectedMarker) throw new FormatException("Unexpected JPEG restart sequence.");
                     RestartMarkerSeen = false;
                     return;
                 }
-                if (marker == 0x00) continue;
+                if (marker == 0x00 && expectedMarker < 0) continue;
                 throw new FormatException("Unexpected JPEG marker in scan.");
             }
             throw new FormatException("Missing JPEG restart marker.");
