@@ -656,5 +656,121 @@ change.
 The original source is restored on both hosts. The [Windows rejection packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-short-quoted-windows.json)
 and [macOS rejection packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-short-quoted-macos.json)
 retain complete reports, raw measurements and source, harness and dependency
-fingerprints. Current peer comparisons use the restored baseline and the same
-warmed policy before another short-field implementation is selected.
+fingerprints. The following peer qualification uses the restored baseline and
+the same warmed policy.
+
+## Refreshed quoted-text writer comparison — 2026-10-05
+
+The restored writer is compared with CsvHelper 33.1.0 across the same 24 text
+shapes, lengths, quote modes and delimiters on .NET 8 and .NET 10. Windows runs
+each runtime on both processor groups; macOS uses operating-system scheduling.
+The six suites retain 288 observations and 3,456 measurements. Each observation
+uses eight warmups, twelve measurements, a 100 ms iteration target, Normal
+process priority, an unroll factor of one and no outlier removal. Setup decodes
+every field of all 1,000 rows and requires identical complete output from both
+writers. Full parameter identities, rather than truncated display strings,
+join the matched observations.
+
+OfficeIMO has the lower median in 143 of 144 matched comparisons and lower
+managed allocation in all 144. The remaining comparison is 64-character notes,
+Always quoting and a comma delimiter on Windows .NET 8 group 0: 0.1052 ms versus
+0.0997 ms, a ratio of 1.055. This negative result remains in the retained packet.
+
+| Host and runtime | Lowest OfficeIMO/CsvHelper median ratio | Highest ratio | Cases with higher OfficeIMO allocation |
+|---|---:|---:|---:|
+| Windows group 0, .NET 10 | 0.019 | 0.913 | 0/24 |
+| Windows group 1, .NET 10 | 0.015 | 0.930 | 0/24 |
+| Windows group 0, .NET 8 | 0.011 | 1.055 | 0/24 |
+| Windows group 1, .NET 8 | 0.016 | 0.861 | 0/24 |
+| macOS, .NET 10 | 0.060 | 0.835 | 0/24 |
+| macOS, .NET 8 | 0.045 | 0.981 | 0/24 |
+
+Across the four short-JSON variants, OfficeIMO/CsvHelper median ratios range
+from 0.195 to 0.620. Managed allocation is approximately 197–208 KB per operation
+for OfficeIMO and 633–667 KB for CsvHelper. These measurements supersede the
+earlier short-JSON timing signal for this exact warmed text-writer contract;
+they do not identify the cause of the historical difference or qualify cold
+startup, file output, mixed typed fields, reading, or other platforms.
+
+The [Windows peer packet](excel-csv-broad-throughput-2026-10-04/csv-quoted-text-current-windows.json)
+and [macOS peer packet](excel-csv-broad-throughput-2026-10-04/csv-quoted-text-current-macos.json)
+retain complete reports, raw measurements, actual runtimes, source provenance
+and binary fingerprints. All 91 measured CSV source files also match the
+integrated CSV source. Rejected candidate snapshots are removed after their
+reports, manifests and source patch are retained; baseline snapshots remain
+available for further comparisons.
+
+## Native index eligibility experiment — 2026-10-05
+
+The V3 experiment checks for an early worksheet dimension before renting and
+inflating a native worksheet buffer. A dimensionless 250,000-row, four-column
+sheet exceeds the one-million-cell index boundary, so neither the initial
+used-range index nor the later range index can use that buffer. The experiment
+avoids the discarded allocation while retaining complete XML projection
+validation. It remains an isolated experimental checkpoint; these results do
+not establish performance acceptance for the integrated reader.
+
+Both sides use the same harness and dependencies. Three dimensionless sizes
+(25,000, 250,000 and 1,000,000 rows) and two successful-index controls (1,000 and
+25,000 rows with dimensions) validate every field, header and row count. The
+decoded worksheet, style and shared-string parts match. Rotated .NET 10 runs
+retain twelve measurements per side on each Windows processor group and macOS;
+separate native .NET 8 and .NET 10 jobs retain twelve measurements per side on
+Windows group 0 and macOS.
+
+Warmed allocation increases by approximately 13–30 KB per operation, and
+timing results are mixed. The unfavorable native observations include the
+following successful-index and streaming controls:
+
+| Host and runtime | Case | Before median ms | V3 median ms |
+|---|---|---:|---:|
+| Windows group 0, .NET 10 | Indexed 25,000 | 39.81 | 70.35 |
+| Windows group 0, .NET 10 | Dimensionless 250,000 | 545.00 | 818.61 |
+| Windows group 0, .NET 8 | Dimensionless 1,000,000 | 2,455.47 | 3,327.02 |
+| macOS, .NET 10 | Indexed 25,000 | 21.67 | 46.43 |
+| macOS, .NET 10 | Dimensionless 1,000,000 | 1,732.77 | 1,862.26 |
+
+Rotated runs retain their differing observations: the 250,000-row Windows
+median changes by approximately +12% in group 0 and −9% in group 1, while macOS
+changes by approximately −11%. These measurements do not justify attributing
+all native timing differences to the header probe, discarding the negatives,
+or accepting a portable throughput improvement.
+
+A separate first-workbook measurement makes the discarded buffer visible.
+Six fresh workers per side and case load the frozen assembly and options, then
+perform their first OfficeIMO workbook read. Fixture production happens in
+another process and validates every field; each worker validates the four
+first-row fields before retaining the open reader during a forced-GC memory
+observation. The operating system's file cache is warm. JIT and engine
+initialization may contribute to elapsed time. Calling-thread allocation
+excludes the memory sampler; sampled peaks are lower bounds. These are not
+warmed throughput or equivalent first-row peer rankings.
+
+| Host, dimensionless 250,000 rows | Before allocation bytes, mean | V3 allocation bytes, mean | Before held managed bytes, mean | V3 held managed bytes, mean | Before → V3 open/first-row ms, mean |
+|---|---:|---:|---:|---:|---:|
+| Windows group 0 | 43,238,352 | 1,176,109 | 42,526,315 | 452,177 | 783.65 → 813.41 |
+| macOS | 43,216,905 | 1,137,347 | 42,295,447 | 767,432 | 824.08 → 735.54 |
+
+The 25,000-row case still needs the final range index, so it retains its
+approximately 6.8 MB worksheet/index footprint. The 1,000-row indexed control
+also has no comparable memory benefit. The memory saving at 250,000 rows is
+therefore a distinct boundary result, with the small and indexed costs retained.
+
+A read-only review finds no actionable correctness regression. Its provisional
+ZIP-length hypothesis is withdrawn after the [frozen Before/After reproduction](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-review-reproduction.json) shows both builds reject
+a 42,024,113-byte worksheet whose central-directory length is changed to
+16,384 bytes, with the same truncated-XML error at position 16,385. Inspection
+of the [.NET 8 inflater](https://github.com/dotnet/runtime/blob/v8.0.0/src/libraries/System.IO.Compression/src/System/IO/Compression/DeflateZLib/Inflater.cs#L77-L101)
+and [.NET 10 inflater](https://github.com/dotnet/runtime/blob/v10.0.0/src/libraries/System.IO.Compression/src/System/IO/Compression/DeflateZLib/Inflater.cs#L77-L101) confirms that they limit decompressed
+output to the declared length. This negative reproduction does not justify a
+new stream wrapper.
+
+The [Windows rotated packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-rotated-windows.json),
+[macOS rotated packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-rotated-macos.json),
+[Windows native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-native-windows.json),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-native-macos.json),
+[Windows fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-cold-windows.json)
+and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-cold-macos.json)
+retain source and binary fingerprints, input qualification and raw observations.
+The first Windows rotated run failed its source-provenance guard and is excluded;
+the qualified replacement runs use the frozen candidate checkout.
