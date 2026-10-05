@@ -44,8 +44,13 @@ PNG gamma/chromaticity and JPEG/TIFF non-ICC calibration descriptions do not
 override these defaults. The adapter normalizes these resources so subsequent
 SVG/PDF consumers cannot reinterpret the descriptions. TIFF uses the first IFD,
 ignores the display Orientation tag, and ignores an extra sample declared as
-unspecified. The managed TIFF subset accepts unsigned eight-bit components;
-signed, floating-point and undefined sample encodings are rejected.
+unspecified. The managed TIFF subset accepts unsigned eight- or sixteen-bit gray/RGB/CMYK
+components and eight-bit palette indices in either byte order. Chunky/planar strips
+and tiles use uncompressed, LZW, PackBits or Deflate payloads, including word-based
+horizontal prediction. Sample and associated-alpha precision is retained through
+ICC conversion before eight-bit RGBA projection. Mixed component widths, reversed
+bit order, sixteen-bit palette indices, signed, floating-point and undefined sample
+encodings are rejected.
 
 ## Qualification
 
@@ -56,6 +61,19 @@ pixels and independently rendered SVG/PDF interior samples agree within three ch
 values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
 it changes sample order for unspecified extra channels in two cases. The differing reference output is retained;
 native Windows confirmation and photographic producer coverage remain open.
+
+Unsigned sixteen-bit qualification uses 47 independently encoded LibTIFF fixtures,
+including 32 compression/storage combinations, gray, associated-alpha RGB/CMYK,
+embedded RGB/gray/CMYK profiles and two-page input. LibTIFF verifies the original
+sample words; LittleCMS supplies the ICC reference colors. Core decoding matches
+unprofiled reference pixels exactly and profiled pixels within two channel values.
+The 45 paintable fixtures are placed in both dialects and checked through managed
+raster, standalone SVG and PDF readback. Their 22,230 pixel-center probes retain
+paint within one channel value in managed output and within four in MuPDF PDF/SVG
+output. Four unprofiled CMYK placements reject explicitly. Ghostscript's interpolated
+PDF output differs by up to 65 on this discontinuous sample field; GhostXPS differs
+by up to 255 and omits some TIFF encodings. These consumer differences are retained
+as qualification limits. Native Windows confirmation remains open.
 
 The focused tests exercise both dialects, package reopening and native edits,
 opaque-part preservation, deterministic saves, fonts/glyph positioning, image

@@ -11,6 +11,7 @@ public static partial class OfficeTiffCodec {
         int width,
         int height,
         int samples,
+        int sampleBytes,
         int compression,
         int planarConfiguration,
         int predictor,
@@ -20,7 +21,8 @@ public static partial class OfficeTiffCodec {
         out byte[] source) {
         source = Array.Empty<byte>();
         if (planarConfiguration != 1 && planarConfiguration != 2 ||
-            predictor != 1 && predictor != 2 || samples < 1) return false;
+            predictor != 1 && predictor != 2 || samples < 1 ||
+            (sampleBytes != 1 && sampleBytes != 2)) return false;
 
         bool hasStrips = entries.ContainsKey(273) || entries.ContainsKey(279);
         bool hasTiles = entries.ContainsKey(324) || entries.ContainsKey(325) ||
@@ -28,7 +30,7 @@ public static partial class OfficeTiffCodec {
         if (hasStrips == hasTiles) return false;
 
         int sourceLength = OfficeRasterGuards.EnsureByteCount(
-            (long)width * height * samples,
+            (long)width * height * samples * sampleBytes,
             "TIFF decoded source pixels exceed the managed limit.");
 
         if (hasStrips) {
@@ -38,7 +40,7 @@ public static partial class OfficeTiffCodec {
             int segmentCount = checked(segmentsPerPlane * (planarConfiguration == 2 ? samples : 1));
             int segmentSamples = planarConfiguration == 2 ? 1 : samples;
             int maximumRows = Math.Min(rowsPerStrip, height);
-            int maximumDecodedSegment = checked(maximumRows * width * segmentSamples);
+            int maximumDecodedSegment = checked(maximumRows * width * segmentSamples * sampleBytes);
             int scratchLength = retainPixels && planarConfiguration == 1 ? 0 : maximumDecodedSegment;
             long segmentMetadataBytes = checked((long)segmentCount * 2L * sizeof(int));
             int finalRgbaLength = retainPixels
@@ -70,7 +72,7 @@ public static partial class OfficeTiffCodec {
                 int rowStart = checked(strip * rowsPerStrip);
                 if (rowStart >= height) return false;
                 int rows = Math.Min(rowsPerStrip, height - rowStart);
-                int expected = checked(rows * width * segmentSamples);
+                int expected = checked(rows * width * segmentSamples * sampleBytes);
                 if (validationBudget != null &&
                     !validationBudget.TryReserve(byteCounts[segment], expected)) return false;
                 maximumCompressedSegment = Math.Max(maximumCompressedSegment, byteCounts[segment]);
@@ -95,19 +97,19 @@ public static partial class OfficeTiffCodec {
                 int strip = planarConfiguration == 2 ? segment % segmentsPerPlane : segment;
                 int rowStart = checked(strip * rowsPerStrip);
                 int rows = Math.Min(rowsPerStrip, height - rowStart);
-                int expected = checked(rows * width * segmentSamples);
+                int expected = checked(rows * width * segmentSamples * sampleBytes);
                 byte[] decoded = retainPixels && planarConfiguration == 1
                     ? source
                     : scratch!;
                 int decodedOffset = retainPixels && planarConfiguration == 1
-                    ? checked(rowStart * width * samples)
+                    ? checked(rowStart * width * samples * sampleBytes)
                     : 0;
                 if (!TryDecodeStrip(encodedBytes, offsets[segment], byteCounts[segment], compression,
                         decoded, decodedOffset, expected, options.CancellationToken)) return false;
                 if (predictor == 2) ReverseHorizontalPredictor(decoded, decodedOffset, rows, width,
-                    segmentSamples, options.CancellationToken);
+                    segmentSamples, sampleBytes, littleEndian, options.CancellationToken);
                 if (retainPixels && planarConfiguration == 2) {
-                    CopyPlanarRows(decoded, source, plane, samples, width, rowStart, rows, options);
+                    CopyPlanarRows(decoded, source, plane, samples, sampleBytes, width, rowStart, rows, options);
                 }
             }
             return true;
@@ -122,7 +124,7 @@ public static partial class OfficeTiffCodec {
         int tileSegmentCount = checked(segmentsPerTilePlane * (planarConfiguration == 2 ? samples : 1));
         int tileSamples = planarConfiguration == 2 ? 1 : samples;
         int tileByteLength = OfficeRasterGuards.EnsureByteCount(
-            (long)tileWidth * tileHeight * tileSamples,
+            (long)tileWidth * tileHeight * tileSamples * sampleBytes,
             "TIFF decoded tile exceeds the managed limit.");
         long tileMetadataBytes = checked((long)tileSegmentCount * 2L * sizeof(int));
         int tileFinalRgbaLength = retainPixels
@@ -176,9 +178,9 @@ public static partial class OfficeTiffCodec {
             if (!TryDecodeStrip(encodedBytes, tileOffsets[segment], tileByteCounts[segment], compression,
                     tileDecoded, 0, tileByteLength, options.CancellationToken)) return false;
             if (predictor == 2) ReverseHorizontalPredictor(tileDecoded, 0, tileHeight, tileWidth,
-                tileSamples, options.CancellationToken);
+                tileSamples, sampleBytes, littleEndian, options.CancellationToken);
             if (retainPixels) {
-                CopyTile(tileDecoded, source, plane, planarConfiguration, samples, width, height,
+                CopyTile(tileDecoded, source, plane, planarConfiguration, samples, sampleBytes, width, height,
                     tileX, tileY, tileWidth, tileHeight, options);
             }
         }
@@ -225,17 +227,21 @@ public static partial class OfficeTiffCodec {
         byte[] interleaved,
         int plane,
         int samples,
+        int sampleBytes,
         int width,
         int rowStart,
         int rows,
         OfficeRasterDecodeOptions options) {
         for (int row = 0; row < rows; row++) {
             if ((row & 31) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-            int sourceRow = row * width;
-            int targetRow = checked((rowStart + row) * width * samples + plane);
+            int sourceRow = row * width * sampleBytes;
+            int targetRow = checked(((rowStart + row) * width * samples + plane) * sampleBytes);
             for (int x = 0; x < width; x++) {
                 if ((x & 0xFFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-                interleaved[targetRow + x * samples] = planeBytes[sourceRow + x];
+                int target = targetRow + x * samples * sampleBytes;
+                int input = sourceRow + x * sampleBytes;
+                interleaved[target] = planeBytes[input];
+                if (sampleBytes == 2) interleaved[target + 1] = planeBytes[input + 1];
             }
         }
     }
@@ -246,6 +252,7 @@ public static partial class OfficeTiffCodec {
         int plane,
         int planarConfiguration,
         int samples,
+        int sampleBytes,
         int width,
         int height,
         int tileX,
@@ -258,14 +265,17 @@ public static partial class OfficeTiffCodec {
         int tileSamples = planarConfiguration == 2 ? 1 : samples;
         for (int row = 0; row < copyHeight; row++) {
             if ((row & 31) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-            int sourceRow = row * tileWidth * tileSamples;
-            int targetRow = checked(((tileY + row) * width + tileX) * samples);
+            int sourceRow = row * tileWidth * tileSamples * sampleBytes;
+            int targetRow = checked(((tileY + row) * width + tileX) * samples * sampleBytes);
             if (planarConfiguration == 1) {
-                Buffer.BlockCopy(tile, sourceRow, interleaved, targetRow, copyWidth * samples);
+                Buffer.BlockCopy(tile, sourceRow, interleaved, targetRow, copyWidth * samples * sampleBytes);
             } else {
                 for (int x = 0; x < copyWidth; x++) {
                     if ((x & 0xFFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-                    interleaved[targetRow + x * samples + plane] = tile[sourceRow + x];
+                    int target = targetRow + (x * samples + plane) * sampleBytes;
+                    int input = sourceRow + x * sampleBytes;
+                    interleaved[target] = tile[input];
+                    if (sampleBytes == 2) interleaved[target + 1] = tile[input + 1];
                 }
             }
         }

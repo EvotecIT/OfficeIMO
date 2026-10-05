@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     /// <summary>
-    /// Attempts to decode an unsigned eight-bit classic grayscale, palette, RGB, RGBA, or device-CMYK TIFF using
+    /// Attempts to decode an unsigned eight- or sixteen-bit classic grayscale, RGB, RGBA, or device-CMYK TIFF, or eight-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
     /// Floating-point, JPEG-compressed, and BigTIFF payloads remain optional caller-codec responsibilities.
     /// </summary>
@@ -113,9 +113,7 @@ public static partial class OfficeTiffCodec {
                     return false;
                 }
 
-                if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-                    Array.Exists(bitsPerSample, value => value != 8) ||
-                    !HasUnsignedSamples(encodedBytes, entries, littleEndian, samples)) {
+                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes)) {
                     return false;
                 }
 
@@ -142,7 +140,7 @@ public static partial class OfficeTiffCodec {
                 long maximumDecodeWorkBytes = OfficeRasterGuards.MaximumDecodedBytes - effective.RetainedManagedBytes;
                 if (maximumDecodeWorkBytes < 1L) return false;
                 var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
-                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
+                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes,
                         compression, planarConfiguration, predictor, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;
 
@@ -153,32 +151,33 @@ public static partial class OfficeTiffCodec {
                     if ((y & 31) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
                     for (int x = 0; x < width; x++) {
                         if ((x & 0xFFF) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
-                        int sourcePixel = ((y * width) + x) * samples;
+                        int sourcePixel = ((y * width) + x) * samples * sampleBytes;
                         ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
                         int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
-                        byte alpha = samples == baseSamples + 1 && alphaKind != 0
-                            ? source[sourcePixel + baseSamples]
-                            : (byte)255;
-                        ConvertPixel(
-                            source,
-                            sourcePixel,
-                            photometric,
-                            alphaKind,
-                            alpha,
-                            colorMap,
-                            out byte red,
-                            out byte green,
-                            out byte blue);
-                        if (colorProfile != null) {
-                            if (photometric == 5) {
-                                for (int channel = 0; channel < 4; channel++) {
-                                    byte sample = source[sourcePixel + channel];
-                                    colorComponents![channel] = (alphaKind == 1 ? Unpremultiply(sample, alpha) : sample) / 255D;
+                        byte red, green, blue, alpha;
+                        if (sampleBytes == 2) {
+                            ConvertUnsigned16Pixel(source, sourcePixel, littleEndian, photometric,
+                                samples > baseSamples, alphaKind, colorComponents,
+                                out red, out green, out blue, out alpha);
+                        } else {
+                            alpha = samples == baseSamples + 1 && alphaKind != 0
+                                ? source[sourcePixel + baseSamples]
+                                : (byte)255;
+                            ConvertPixel(source, sourcePixel, photometric, alphaKind, alpha, colorMap,
+                                out red, out green, out blue);
+                            if (colorProfile != null) {
+                                if (photometric == 5) {
+                                    for (int channel = 0; channel < 4; channel++) {
+                                        byte sample = source[sourcePixel + channel];
+                                        colorComponents![channel] = (alphaKind == 1 ? Unpremultiply(sample, alpha) : sample) / 255D;
+                                    }
+                                } else {
+                                    colorComponents![0] = red / 255D;
+                                    if (colorComponents.Length == 3) { colorComponents[1] = green / 255D; colorComponents[2] = blue / 255D; }
                                 }
-                            } else {
-                                colorComponents![0] = red / 255D;
-                                if (colorComponents.Length == 3) { colorComponents[1] = green / 255D; colorComponents[2] = blue / 255D; }
                             }
+                        }
+                        if (colorProfile != null) {
                             if (!colorProfile.TryConvert(colorComponents!, renderingIntent, out OfficeColor converted)) return false;
                             red = converted.R; green = converted.G; blue = converted.B;
                         }

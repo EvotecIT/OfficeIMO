@@ -243,9 +243,7 @@ public static partial class OfficeTiffCodec {
             (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
              orientation < 1 || orientation > 8)) return false;
 
-        if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-            Array.Exists(bitsPerSample, value => value != 8) ||
-            !HasUnsignedSamples(encodedBytes, entries, littleEndian, samples)) return false;
+        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes)) return false;
 
         if (photometric == 5 &&
             (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) || inkSet != 1)) {
@@ -260,7 +258,7 @@ public static partial class OfficeTiffCodec {
             return false;
         }
 
-        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
+        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes,
             compression, planarConfiguration, predictor, options, validationBudget,
             retainPixels: false, out _);
     }

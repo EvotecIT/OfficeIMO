@@ -35,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="TestAssets\TiffUnsigned16\*.tif;TestAssets\TiffUnsigned16\*.rgba;TestAssets\TiffUnsigned16\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />

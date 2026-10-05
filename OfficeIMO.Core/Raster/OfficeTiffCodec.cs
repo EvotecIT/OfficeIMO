@@ -550,15 +550,26 @@ public static partial class OfficeTiffCodec {
         int rows,
         int width,
         int samples,
+        int sampleBytes,
+        bool littleEndian,
         CancellationToken cancellationToken) {
-        int rowBytes = checked(width * samples);
+        int pixelBytes = checked(samples * sampleBytes);
+        int rowBytes = checked(width * pixelBytes);
         for (int row = 0; row < rows; row++) {
             if ((row & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = checked(offset + row * rowBytes);
             int rowEnd = checked(rowOffset + rowBytes);
-            for (int index = rowOffset + samples; index < rowEnd; index++) {
+            for (int index = rowOffset + pixelBytes; index < rowEnd; index += sampleBytes) {
                 if (((index - rowOffset) & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-                pixels[index] = unchecked((byte)(pixels[index] + pixels[index - samples]));
+                if (sampleBytes == 1) {
+                    pixels[index] = unchecked((byte)(pixels[index] + pixels[index - pixelBytes]));
+                } else {
+                    // Horizontal prediction adds complete sample words modulo 65536.
+                    ushort value = unchecked((ushort)(ReadUInt16(pixels, index, littleEndian) +
+                        ReadUInt16(pixels, index - pixelBytes, littleEndian)));
+                    pixels[index] = littleEndian ? (byte)value : (byte)(value >> 8);
+                    pixels[index + 1] = littleEndian ? (byte)(value >> 8) : (byte)value;
+                }
             }
         }
     }
