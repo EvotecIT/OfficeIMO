@@ -9,7 +9,7 @@ public partial class Word {
     [Theory]
     [InlineData(".doc")]
     [InlineData(".docx")]
-    public void LegacyDoc_SectionColumnDefinitions_OmittedIndividualGapRetainsItsEffectiveSectionDefault(string extension) {
+    public void LegacyDoc_SectionColumnDefinitions_OmittedIndividualGapRetainsItsEffectiveZero(string extension) {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
         try {
             using WordDocument document = WordDocument.Create();
@@ -21,7 +21,7 @@ public partial class Word {
             using WordDocument reloaded = WordDocument.Load(path);
             Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
             Assert.Equal(new[] { 3000, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
-            Assert.Equal(720, reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips ?? reloaded.Sections[0].ColumnsSpace);
+            Assert.Equal(0, reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips ?? 0);
             Assert.Equal(0, reloaded.Sections[0].ColumnDefinitions[1].SpaceAfterTwips);
             if (extension == ".docx") Assert.Null(reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips);
         } finally { DeleteIfExists(path); }

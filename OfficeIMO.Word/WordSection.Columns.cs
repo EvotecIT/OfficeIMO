@@ -8,8 +8,8 @@ public partial class WordSection {
     /// Gets or replaces explicit section column widths and individual gaps.
     /// Setting a non-empty list selects unequal-width columns and synchronizes ColumnCount.
     /// An empty list restores equal-width columns while retaining their count and default gap.
-    /// An omitted individual gap uses ColumnsSpace or 720 twips. DOCX preserves its omission;
-    /// native DOC writes the effective gap explicitly.
+    /// An omitted individual gap is zero for unequal columns; ColumnsSpace applies to equal widths.
+    /// DOCX preserves the omission; native DOC writes its effective zero explicitly.
     /// Native DOC saving supports up to 44 columns, widths from 718 through 32767 twips,
     /// and gaps from zero through 32767 twips.
     /// </summary>
