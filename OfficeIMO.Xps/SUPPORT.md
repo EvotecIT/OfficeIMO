@@ -71,7 +71,8 @@ The 45 paintable fixtures are placed in both dialects and checked through manage
 raster, standalone SVG and PDF readback. Their 22,230 pixel-center probes retain
 paint within one channel value in managed output and within four in MuPDF PDF/SVG
 output. Four unprofiled CMYK placements reject explicitly. Ghostscript's interpolated
-PDF output differs by up to 65 on this discontinuous sample field; GhostXPS differs
+PDF output differs by up to 65 on this discontinuous sample field, while disabling
+interpolation preserves pixel-center samples within one channel value. GhostXPS differs
 by up to 255 and omits some TIFF encodings. These consumer differences are retained
 as qualification limits. Native Windows confirmation remains open.
 

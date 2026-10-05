@@ -49,6 +49,14 @@ public sealed class DrawingTiffUnsigned16Tests {
         Assert.Equal(2, info.FrameCount);
         Assert.Equal(1, info.SelectedFrameIndex);
         Assert.Equal((19, 13), (image!.Width, image.Height));
+        byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, "rgb-multipage-be.page1.rgba"));
+        byte[] firstPage = File.ReadAllBytes(Path.Combine(Corpus, "rgb-multipage-be.rgba"));
+        Assert.False(expected.SequenceEqual(firstPage));
+        for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) {
+            int offset = (y * image.Width + x) * 4;
+            Assert.Equal(OfficeColor.FromRgba(expected[offset], expected[offset + 1],
+                expected[offset + 2], expected[offset + 3]), image.GetPixel(x, y));
+        }
         options.FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames;
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, options, out _, out _));
     }

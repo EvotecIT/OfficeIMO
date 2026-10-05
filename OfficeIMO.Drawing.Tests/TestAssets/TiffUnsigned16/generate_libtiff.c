@@ -12,11 +12,12 @@
 #include <math.h>
 #define W 19
 #define H 13
+static int page_index=0;
 static uint16_t sample(int x,int y,int c,int base,int extra) {
     static const uint16_t alphas[]={0,1,129,257,16384,32768,65535};
-    uint16_t a=alphas[(x+2*y)%7];
+    uint16_t a=alphas[(x+2*y+page_index)%7];
     if(c==base) return a;
-    uint16_t v=(uint16_t)((x*4133+y*7907+c*12347+193)%65536);
+    uint16_t v=(uint16_t)((x*4133+y*7907+c*12347+193+page_index*20011)%65536);
     return extra==1 ? (uint16_t)(((uint64_t)v*a+32767)/65535) : v;
 }
 static unsigned char q(double x) { return (unsigned char)floor(fmax(0,fmin(1,x))*255+0.5); }
@@ -55,6 +56,7 @@ static void verify_samples(const char*path,int photo,int extra,int planar,int ti
     TIFF*t=TIFFOpen(path,"r");if(!t)exit(4);
     int base=photo==2?3:photo==5?4:1,samples=base+(extra>=0);
     for(int page=0;page<pages;page++) {
+        page_index=page;
         int planes=planar==2?samples:1,channels=planar==2?1:samples;
         int tw=tiled?16:W,th=tiled?16:4;
         for(int plane=0;plane<planes;plane++)for(int y=0;y<H;y+=th)for(int x=0;x<W;x+=tw){
@@ -75,14 +77,18 @@ static void produce(const char*out,FILE*manifest,const char*name,int big,int pho
     char path[2048];snprintf(path,sizeof(path),"%s/%s.tif",out,name);
     uint32_t pn=0;unsigned char*profile=profile_file?file_bytes(profile_file,&pn):NULL;
     TIFF*t=TIFFOpen(path,big?"wb":"wl");if(!t)exit(2);
-    for(int p=0;p<pages;p++){directory(t,photo,extra,planar,tiled,compression,predictor,profile,pn);if(!TIFFWriteDirectory(t))exit(3);}TIFFClose(t);
+    for(int p=0;p<pages;p++){page_index=p;directory(t,photo,extra,planar,tiled,compression,predictor,profile,pn);if(!TIFFWriteDirectory(t))exit(3);}TIFFClose(t);
     verify_samples(path,photo,extra,planar,tiled,pages);
     cmsHTRANSFORM transform=NULL;cmsHPROFILE input=NULL,target=NULL;
     if(profile){input=cmsOpenProfileFromMem(profile,pn);target=cmsCreate_sRGBProfile();cmsSetProfileVersion(target,2.1);
         uint32_t format=photo==5?TYPE_CMYK_DBL:photo==2?TYPE_RGB_DBL:TYPE_GRAY_DBL;
         transform=cmsCreateTransform(input,format,target,TYPE_RGB_DBL,INTENT_RELATIVE_COLORIMETRIC,cmsFLAGS_NOOPTIMIZE|cmsFLAGS_NOCACHE);
         if(!transform)exit(8);}
-    snprintf(path,sizeof(path),"%s/%s.rgba",out,name);FILE*f=fopen(path,"wb");if(!f)exit(2);
+    for(int p=0;p<pages;p++) {
+    page_index=p;
+    if(p==0)snprintf(path,sizeof(path),"%s/%s.rgba",out,name);
+    else snprintf(path,sizeof(path),"%s/%s.page%d.rgba",out,name,p);
+    FILE*f=fopen(path,"wb");if(!f)exit(2);
     int base=photo==2?3:photo==5?4:1;
     for(int y=0;y<H;y++)for(int x=0;x<W;x++){
         double v[4]={0},rgb[3];uint16_t a=extra>0?sample(x,y,base,base,extra):65535;
@@ -94,6 +100,7 @@ static void produce(const char*out,FILE*manifest,const char*name,int big,int pho
         else rgb[0]=rgb[1]=rgb[2]=v[0];
         unsigned char rgba[]={q(rgb[0]),q(rgb[1]),q(rgb[2]),q(a/65535.0)};fwrite(rgba,1,4,f);
     }fclose(f);
+    }
     if(transform){cmsDeleteTransform(transform);cmsCloseProfile(input);cmsCloseProfile(target);}free(profile);
     fprintf(manifest,"%s.tif,%d,%d,%d,%d,%d,%d\n",name,W,H,photo,extra,profile_file!=NULL,pages);
 }
