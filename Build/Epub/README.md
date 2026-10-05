@@ -48,7 +48,11 @@ The opt-in generator uses the current EPUB owner to create Basic, Prose, and
 Technical publications from one manuscript containing tables, code, long links,
 an accessible SVG, Arabic, and Japanese. It also creates `glossary.epub` with two
 terms, repeated references and localized return links, and `bibliography.epub` with
-a formatted entry, repeated citations and return links. It has no third-party test dependency and
+two entries formatted and title-sorted by `OfficeIMO.Bibliography`, three citations,
+and return links. The bibliography fixture checks that order, escaped title text,
+and italic formatting survive EPUB reopening. Its CSL style is an illustrative
+local style, not a claim of qualification for every publisher's citation style.
+It has no third-party test dependency and
 is outside the normal solution and shipped packages.
 
 ```sh

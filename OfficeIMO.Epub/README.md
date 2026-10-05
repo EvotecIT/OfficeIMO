@@ -547,6 +547,21 @@ targets, duplicate identifiers and over-budget edits are rejected; cross-documen
 changes commit atomically. Full schema, accessibility and reading-system checks
 remain separate from these native content checks.
 
+To consume the managed CSL renderer, request `CslOutputFormat.Html` from
+`OfficeIMO.Bibliography`, then pass each nonempty `rendered.Bibliography` entry's
+`Content` to `AddBibliographyEntry` in the renderer's returned order. Map its citation
+keys to unique XML-compatible content identifiers; arbitrary source keys need not
+be valid EPUB IDs. For single-item citations, retain the rendered citation label
+inside the source anchor before calling `LinkBibliographyEntry`. A citation cluster
+covering several sources needs separate per-source links or publisher-authored
+navigation; one anchor cannot target multiple entries.
+
+The [executable fixture](../Build/Epub/Fixtures/BibliographyFixture.cs) exercises
+escaped text, italic titles, title sorting and repeated single-item citations.
+CSL hanging indents, spacing and second-field alignment still require publisher CSS
+derived from the renderer's layout result and independent presentation checks.
+`OfficeIMO.Epub` does not take a runtime dependency on the citation renderer.
+
 ## Glossaries
 
 Append entries to an existing definition list, then link any number of occurrences

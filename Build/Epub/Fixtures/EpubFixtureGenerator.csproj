@@ -10,5 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../OfficeIMO.Epub/OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="../../../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj" />
   </ItemGroup>
 </Project>
