@@ -48,8 +48,16 @@ namespace OfficeIMO.Excel {
             source = null;
             bindings = null;
             if ((!allowSmallRange && !ShouldAttemptUtf8Range(r1, r2))
-                || !RangeReachesDeclaredWorksheetEnd(r2)
-                || !ExcelUtf8RangeRowSource.TryCreate(this, r1, r2, c1, cols, ct, out source)) {
+                || !RangeReachesDeclaredWorksheetEnd(r2)) {
+                return false;
+            }
+
+            try {
+                if (!ExcelUtf8RangeRowSource.TryCreate(this, r1, r2, c1, cols, ct, out source)) return false;
+            } catch (NotSupportedException) {
+                // Indexing checks every cell, including shared formulas outside the
+                // requested columns. Decline before invoking any user mapping code;
+                // the typed XML reader can handle this narrower projection.
                 return false;
             }
 

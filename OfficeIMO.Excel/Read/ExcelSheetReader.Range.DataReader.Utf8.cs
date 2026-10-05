@@ -198,14 +198,14 @@ namespace OfficeIMO.Excel {
                             candidate.Dispose();
                             return false;
                         }
+
+                        ct.ThrowIfCancellationRequested();
+                        source = candidate;
+                        return true;
                     } catch {
                         candidate.Dispose();
                         throw;
                     }
-
-                    ct.ThrowIfCancellationRequested();
-                    source = candidate;
-                    return true;
                 } finally {
                     if (buffer != null) {
                         OpenXmlPartBufferPool.Return(buffer);
