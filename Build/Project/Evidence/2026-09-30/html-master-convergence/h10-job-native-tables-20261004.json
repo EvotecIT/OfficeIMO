@@ -1872,22 +1872,22 @@
       "proof": "Ignore/MasterConvergenceQualification/native-table-width-12c99503b"
     },
     "candidate": {
-      "worktree": "../OfficeIMO-native-html-table-widths",
       "base": "e0e13a2403444f0d7a8b4d17a78491e3b60835fe",
-      "state": "Published focused PR2827 at exact source; not adopted into convergence.",
+      "state": "Merged into master at b0cdc828399a639a261d4faae0bb565c93e09591; adoption into combined qualification source remains separate.",
       "owner": "Word.Html default grids and typed CSS lengths, Word shared width scope, Html.Rtf logical boundaries and intrinsic cell images; no new public API/runtime dependency.",
       "source": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
-      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2827"
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2827",
+      "recordedWorktree": "../OfficeIMO-native-html-table-widths"
     },
     "review": {
       "initialFingerprint": "805319184fea2d319a7a6de98686b1aa048d577d",
       "full": "One independent read-only pass found3P2, all reproduced: wrapped host scope, sparse trailing rowspan logical boundaries, intrinsic-image refitting.",
       "confirmation": "Initial targeted pass confirmed3original fixes and exposed authored-percent scope. Canonical Word scope owner implemented and independently reviewed.",
-      "remaining": "Exact-head hosted CI and delayed feedback; local net472 package is not native Windows proof.",
+      "remaining": "Standalone exact-head CI and delayed feedback are complete. Combined-source adoption and wider native appearance remain separate gates.",
       "canonicalWordOwner": "One scoped full plus targeted pass exposed shared-story selected section and annotation lifetime defects (resave/move). Both reproduced by3 failing regressions, fixed;18focused net10 and61focused net8 passed.",
       "closure": "One bounded read-only lifetime/inherited-reference closure audit found inherited shared stories. Four before regressions fail, after22 width cases pass; effective per-type inherited references now followed. No unaddressed validated scope finding. No new API/dependency."
     },
-    "nativeEvidence": "../OfficeIMO-native-html-table-widths/Ignore/NativeTableWidthQualification",
+    "nativeEvidence": "Ignore/MasterConvergenceQualification/merged-native-table-widths-b0cdc8283",
     "adjacentTableObservation": {
       "fixture": "Two immediately adjacent table excerpts without separating content save/reopen as one RTF table with all rows retained.",
       "sourceDistinction": "Frozen planetary source has intervening heading/prose/figures; separated two-table controls retain21 independently transcribed rows.",
@@ -1963,6 +1963,23 @@
       "unresolvedThreads": 0,
       "reviewComments": 0,
       "ci": "Queued/running immediately after publication; no failure at that snapshot. Delayed exact-head check remains."
+    },
+    "mergeAndCleanup": {
+      "mergedUtc": "2026-10-05T18:57:51Z",
+      "mergeCommit": "b0cdc828399a639a261d4faae0bb565c93e09591",
+      "exactHead": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
+      "currentHeadChecks": {
+        "success": 91,
+        "skipped": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "completeDelayedFeedback": "All review-thread pages/nested comments, raw comments/reviews and PR reactions checked; no actionable or unresolved feedback. PR text accurate.",
+      "preservationManifest": "Ignore/MasterConvergenceQualification/merged-native-table-widths-b0cdc8283/preservation-manifest.json",
+      "preservationManifestSha256": "09a067f869eff8aa248e2044c28efa280d5f0573754d8dec1e82344296c09e95",
+      "preservedFiles": 878,
+      "preservedBytes": 94462233,
+      "cleanup": "Owned ordinary worktree/local branch removed without force; remote branch auto-deleted; path and registration absence verified. Larger HTML branches and unrelated worktrees unchanged."
     }
   },
   "excelNativeLabelNextSlice20261005": {
