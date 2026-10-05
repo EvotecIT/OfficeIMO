@@ -20,6 +20,11 @@ namespace OfficeIMO.Word.Pdf {
                 ResetSpacingCollapse();
             }
 
+            public void ColumnBreak() {
+                _inner.ColumnBreak();
+                ResetSpacingCollapse();
+            }
+
             public void Spacer(double height) {
                 _inner.Spacer(height);
                 ResetSpacingCollapse();
@@ -62,7 +67,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 _inner.PanelParagraph(build, collapsedStyle, align, defaultColor, paragraphStyle);
-                _pendingSpacingAfter = style?.SpacingAfter;
+                _pendingSpacingAfter = paragraphStyle?.SpacingAfter ?? style?.SpacingAfter;
             }
 
             public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {

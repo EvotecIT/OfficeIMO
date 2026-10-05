@@ -303,10 +303,11 @@ namespace OfficeIMO.Word.Pdf {
                 Background = background,
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,
-                PaddingX = ResolveNativeParagraphPanelPaddingX(borders, 6D),
-                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 4D),
+                PaddingX = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingX(borders, 0D),
+                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 0D),
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = backgroundOnly ? 0D : paragraphStyle.SpacingAfter ?? 6D,
+                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                KeepWithNext = paragraphStyle.KeepWithNext,
                 Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
             };
 

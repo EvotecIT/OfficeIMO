@@ -13,6 +13,41 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData("docx")]
+    [InlineData("doc")]
+    public void SaveAsPdf_Continuous_Sections_With_Equal_Columns_Balance_The_Preceding_Section(string extension) {
+        string source = Path.Combine(_directoryWithFiles, "PdfContinuousSameColumns." + extension);
+        string target = Path.Combine(_directoryWithFiles, "PdfContinuousSameColumns-" + extension + ".pdf");
+        using (WordDocument document = WordDocument.Create(source)) {
+            document.Sections[0].ColumnCount = 2;
+            document.Sections[0].ColumnsSpace = 400;
+            AddLines("FirstSection", 10);
+            var second = document.AddSection(WordSectionBreakType.Continuous);
+            second.ColumnCount = 2;
+            second.ColumnsSpace = 400;
+            AddLines("NextSection", 20);
+            document.Save();
+
+            void AddLines(string prefix, int count) {
+                var paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, count).Select(index => prefix + index.ToString("D3"))));
+                paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+                paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+                paragraph.AvoidWidowAndOrphanOverride = false;
+            }
+        }
+        using (WordDocument document = WordDocument.Load(source)) {
+            document.SaveAsPdf(target, new WordToPdfOptions { IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(500, 400), Margins = PdfCore.PageMargins.Uniform(40) });
+        }
+        using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.InRange(FindWordStartX(pdf.GetPage(1), "FirstSection006"), 259.9, 260.1);
+        Assert.InRange(FindWordStartX(pdf.GetPage(1), "NextSection007"), 39.9, 40.1);
+        Assert.InRange(FindWordStartX(pdf.GetPage(1), "NextSection020"), 259.9, 260.1);
+    }
+
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Word_Section_Columns_To_RowColumn_Flow() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionColumns.docx");
@@ -64,9 +99,11 @@ public partial class Word {
                 new Column { Width = "1440", Space = "720" },
                 new Column { Width = "4320" });
 
-            document.AddParagraph("NarrowColumnMarker starts in the explicitly narrow first Word section column.")
-                .AddBreak(WordBreakType.Column);
-            document.AddParagraph("WideColumnMarker starts in the wider second Word section column.");
+            WordParagraph left = document.AddParagraph("LeftMarker starts in the explicitly narrow first Word section column.");
+            left.FontFamily = "Arial"; left.FontSize = 12;
+            left.AddBreak(WordBreakType.Column);
+            WordParagraph right = document.AddParagraph("RightMarker starts in the wider second Word section column.");
+            right.FontFamily = "Arial"; right.FontSize = 12;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
@@ -79,14 +116,15 @@ public partial class Word {
         byte[] bytes = File.ReadAllBytes(pdfPath);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var page = pdf.GetPage(1);
-        Assert.Contains("NarrowColumnMarker", page.Text);
-        Assert.Contains("WideColumnMarker", page.Text);
+        Assert.Contains("LeftMarker", page.Text);
+        Assert.Contains("RightMarker", page.Text);
 
-        double leftX = FindWordStartX(page, "NarrowColumnMarker");
-        double rightX = FindWordStartX(page, "WideColumnMarker");
+        double leftX = FindWordStartX(page, "LeftMarker");
+        double rightX = FindWordStartX(page, "RightMarker");
 
         Assert.InRange(leftX, 35D, 48D);
-        Assert.InRange(rightX - leftX, 145D, 190D);
+        // Explicit widths are points after twip conversion; unused page width is not redistributed.
+        Assert.InRange(rightX - leftX, 107.9D, 108.1D);
     }
 
     [Fact]
@@ -124,7 +162,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Distributes_Word_Section_Columns_Without_Explicit_Breaks() {
+    public void SaveAsPdf_OfficeIMOEngine_Fills_First_Word_Section_Column_Before_Advancing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAutomaticSectionColumns.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAutomaticSectionColumns.pdf");
 
@@ -154,7 +192,7 @@ public partial class Word {
         double leftX = FindWordStartX(page, "AutoLeftColumnMarker");
         double rightX = FindWordStartX(page, "AutoRightColumnMarker");
         Assert.InRange(leftX, 35D, 48D);
-        Assert.True(rightX > leftX + 250D, $"Expected automatic second Word section column content to render to the right of the first. Left x: {leftX:0.##}, right x: {rightX:0.##}.");
+        Assert.InRange(Math.Abs(rightX - leftX), 0D, 0.1D);
     }
 
     [Fact]
@@ -167,15 +205,22 @@ public partial class Word {
             section.ColumnCount = 2;
             section.ColumnsSpace = 720;
 
-            document.AddParagraph("ColumnKeepPrelude " + string.Join(" ", Enumerable.Range(1, 42).Select(index => "prelude" + index.ToString(System.Globalization.CultureInfo.InvariantCulture))));
-            document.AddParagraph("ColumnKeepHeading").SetStyle(WordParagraphStyles.Heading2);
-            document.AddParagraph("ColumnKeepBody follows the heading and should stay in the same automatic Word section column.");
+            WordParagraph prelude = document.AddParagraph("ColumnKeepPrelude\n" + string.Join("\n", Enumerable.Range(1, 14).Select(index => "Prelude" + index)));
+            WordParagraph heading = document.AddParagraph("ColumnKeepHeading").SetStyle(WordParagraphStyles.Heading2);
+            WordParagraph body = document.AddParagraph("ColumnKeepBody\nSecond body line\nThird body line");
+            foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
+                paragraph.FontSize = 12;
+                paragraph.LineSpacing = 400;
+                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacingBeforePoints = 0;
+                paragraph.LineSpacingAfterPoints = 0;
+            }
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(500, 400),
+                Margins = PdfCore.PageMargins.Uniform(40)
             });
         }
 
@@ -188,7 +233,7 @@ public partial class Word {
         double bodyX = FindWordStartX(page, "ColumnKeepBody");
 
         Assert.InRange(preludeX, 35D, 48D);
-        Assert.True(headingX > preludeX + 250D, $"Expected the kept heading to move into the second automatic column. Prelude x: {preludeX:0.##}, heading x: {headingX:0.##}.");
+        Assert.True(headingX > preludeX + 200D, $"Expected the kept heading to move into the second automatic column. Prelude x: {preludeX:0.##}, heading x: {headingX:0.##}.");
         Assert.InRange(Math.Abs(bodyX - headingX), 0D, 8D);
     }
 
@@ -214,15 +259,22 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            document.AddParagraph("StyledColumnKeepPrelude");
-            document.AddParagraph("StyledColumnKeepHeading").SetStyleId(styleId);
-            document.AddParagraph("StyledColumnKeepBody follows the styled paragraph.");
+            WordParagraph prelude = document.AddParagraph("StyledColumnKeepPrelude\n" + string.Join("\n", Enumerable.Range(1, 14).Select(index => "StyledPrelude" + index)));
+            WordParagraph heading = document.AddParagraph("StyledColumnKeepHeading").SetStyleId(styleId);
+            WordParagraph body = document.AddParagraph("StyledColumnKeepBody\nSecond body line\nThird body line");
+            foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
+                paragraph.FontSize = 12;
+                paragraph.LineSpacing = 400;
+                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacingBeforePoints = 0;
+                paragraph.LineSpacingAfterPoints = 0;
+            }
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(500, 400),
+                Margins = PdfCore.PageMargins.Uniform(40)
             });
         }
 
@@ -235,7 +287,7 @@ public partial class Word {
         double bodyX = FindWordStartX(page, "StyledColumnKeepBody");
 
         Assert.InRange(preludeX, 35D, 48D);
-        Assert.True(headingX > preludeX + 250D, $"Expected the styled keep-next paragraph to move into the second automatic column. Prelude x: {preludeX:0.##}, heading x: {headingX:0.##}.");
+        Assert.True(headingX > preludeX + 200D, $"Expected the styled keep-next paragraph to move into the second automatic column. Prelude x: {preludeX:0.##}, heading x: {headingX:0.##}.");
         Assert.InRange(Math.Abs(bodyX - headingX), 0D, 8D);
     }
 
