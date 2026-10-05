@@ -160,6 +160,8 @@ Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
 uses the existing bounded CMYK sampling path with the gradient's interpolation
 mode. Alpha masks remain scalar opacity fields.
+Radial gradients with an explicit Repeat or Reflect mode require finite stop expansion before PDF export. Unbounded fields report an unsupported operation rather than changing to endpoint padding.
+
 Gradient fills and strokes preserve color-stop alpha through native transparency masks,
 including header and footer shapes. Gradient direction follows the same local coordinates
 before and after an affine transform.

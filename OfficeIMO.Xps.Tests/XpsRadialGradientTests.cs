@@ -82,11 +82,15 @@ public sealed class XpsRadialGradientTests {
     }
 
     [Fact]
-    public void ExcessiveRadialSpreadRejectsLossyConversion() {
+    public void HighFrequencyRadialSpreadSamplesWithoutStopExpansion() {
         var doc = Create(XpsFormat.Xps, "1,0,0,1,0,0", false, "Repeat"); var page = doc.Pages[0];
         var xml = page.GetMarkup(); var brush = xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush");
         brush.SetAttributeValue("RadiusX", ".001"); brush.SetAttributeValue("RadiusY", ".001"); page.ReplaceMarkup(xml);
-        Assert.Throws<NotSupportedException>(() => page.ToDrawing());
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+        double ratio = Math.Sqrt(.5 * .5 + .5 * .5) / .001;
+        ratio -= Math.Floor(ratio);
+        Assert.InRange(Math.Abs(image!.GetPixel(100, 80).B - 255 * ratio), 0, 2);
+        Assert.Throws<NotSupportedException>(() => doc.ToPdf());
     }
 
     internal static XpsDocument Create(XpsFormat format, string matrix, bool alpha, string spread = "Pad") {

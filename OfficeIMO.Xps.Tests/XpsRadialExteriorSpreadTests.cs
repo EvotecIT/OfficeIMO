@@ -47,12 +47,12 @@ public sealed class XpsRadialExteriorSpreadTests {
     }
 
     [Fact]
-    public void NearBoundaryExteriorRejectsExpansionBeyondTheExistingStopBudget() {
+    public void NearBoundaryExteriorBeyondExpansionBudgetUsesExplicitSpread() {
         var doc = Create(XpsFormat.OpenXps, "Repeat", "1,0,0,1,0,0", false, false);
         var page = doc.Pages[0]; var xml = page.GetMarkup();
         xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("GradientOrigin", "160.00000001,80");
         page.ReplaceMarkup(xml);
-        Assert.Throws<NotSupportedException>(() => page.ToDrawing());
+        Assert.NotNull(page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => doc.ToPdf());
         Assert.Empty(page.ToSvg().Diagnostics);
     }

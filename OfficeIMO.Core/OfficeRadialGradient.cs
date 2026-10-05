@@ -50,7 +50,7 @@ public sealed partial class OfficeRadialGradient {
     public OfficeRadialGradient WithColorInterpolation(OfficeGradientColorInterpolation interpolation) {
         if (interpolation != OfficeGradientColorInterpolation.Srgb && interpolation != OfficeGradientColorInterpolation.LinearRgb)
             throw new ArgumentOutOfRangeException(nameof(interpolation));
-        var copy = Clone(); copy.ColorInterpolation = interpolation; return copy;
+        var copy = Clone(); copy.ColorInterpolation = interpolation; copy.RefreshSpreadAverage(); return copy;
     }
 
     /// <summary>Gradient stops in offset order.</summary>

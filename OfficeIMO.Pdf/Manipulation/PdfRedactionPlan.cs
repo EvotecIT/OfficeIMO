@@ -676,6 +676,8 @@ public sealed class PdfRedactionPlan {
             .Append(',').Append(FormatIdentityNumber(transform.M21)).Append(',').Append(FormatIdentityNumber(transform.M22))
             .Append(',').Append(FormatIdentityNumber(transform.OffsetX)).Append(',').Append(FormatIdentityNumber(transform.OffsetY));
         identity.Append(',').Append((int)gradient.ColorInterpolation);
+        identity.Append(',').Append((int)gradient.SpreadMode);
+        AppendIdentityColor(identity, gradient.OutsideColor);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 

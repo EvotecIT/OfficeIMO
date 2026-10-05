@@ -347,6 +347,7 @@ public static partial class OfficeSvgFormatting {
             .Append('"');
 
         if (gradient.ColorInterpolation == OfficeGradientColorInterpolation.LinearRgb) builder.Append(" color-interpolation=\"linearRGB\"");
+        if (gradient.SpreadMode != OfficeGradientSpreadMode.Pad) builder.Append(" spreadMethod=\"").Append(gradient.SpreadMode == OfficeGradientSpreadMode.Repeat ? "repeat" : "reflect").Append('"');
         if (userSpace) builder.Append(" gradientUnits=\"userSpaceOnUse\"");
 
         var coordinates = (elliptical ? new OfficeTransform(gradient.EndRadiusX, 0D, 0D, gradient.EndRadiusY, gradient.EndX, gradient.EndY)

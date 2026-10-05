@@ -68,7 +68,7 @@ public sealed class DrawingRadialCoordinatesTests {
     public void NativePadEndpointPaintTracksStopAlphaThroughCloneAndOpacity() {
         var field = new OfficeRadialGradient(1, .5, 0, 0, .5, .5, .3, .2,
             new[] { new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue) })
-            .WithFirstPadIntersection().Clone().WithStops(new[] {
+            .WithFirstIntersection().Clone().WithStops(new[] {
                 new OfficeGradientStop(0, OfficeColor.FromRgba(0, 0, 255, 64)),
                 new OfficeGradientStop(1, OfficeColor.FromRgba(255, 0, 0, 128)) });
         Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 64), field.OutsideColor);
@@ -83,7 +83,7 @@ public sealed class DrawingRadialCoordinatesTests {
     [InlineData(true)]
     public void SvgComposesNativeEndpointFieldsInFillAndStroke(bool stroke) {
         var field = new OfficeRadialGradient(1, .5, 0, .5, .5, .3,
-            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue)).WithFirstPadIntersection();
+            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue)).WithFirstIntersection();
         var shape = OfficeShape.Rectangle(100, 100);
         if (stroke) shape.StrokeRadialGradient = field;
         else shape.FillRadialGradient = field;

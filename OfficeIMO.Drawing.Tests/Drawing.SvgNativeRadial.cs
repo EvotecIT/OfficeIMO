@@ -68,5 +68,5 @@ public sealed class DrawingSvgNativeRadialTests {
     private static double Number(XElement e, string name) => double.Parse((string)e.Attribute(name)!, CultureInfo.InvariantCulture);
     private static OfficeRadialGradient Field() => new OfficeRadialGradient(1, .5, 0, .5, .5, .3,
         new OfficeGradientStop(0, OfficeColor.FromRgba(255, 0, 0, 64)),
-        new OfficeGradientStop(1, OfficeColor.FromRgba(0, 0, 255, 128))).WithFirstPadIntersection();
+        new OfficeGradientStop(1, OfficeColor.FromRgba(0, 0, 255, 128))).WithFirstIntersection();
 }

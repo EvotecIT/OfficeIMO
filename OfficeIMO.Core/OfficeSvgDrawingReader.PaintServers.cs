@@ -536,7 +536,7 @@ public static partial class OfficeSvgDrawingReader {
                         .TransformCoordinates(radialCoordinates);
                 }
                 if (UseFirstRadialIntersection && SpreadMode == SvgGradientSpreadMode.Pad && radial.StartRadiusX == 0D) {
-                    radial = radial.WithFirstPadIntersection();
+                    radial = radial.WithFirstIntersection();
                 }
                 if (!TryCreateRadialSpread(radial, shape, out radial)) return false;
                 radial = radial!.WithColorInterpolation(ColorInterpolation);

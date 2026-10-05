@@ -18,14 +18,12 @@ public sealed partial class OfficeRadialGradient {
     }
 
     internal OfficeRadialGradient WithStops(IReadOnlyList<OfficeGradientStop> stops) {
-        var copy = Clone(); copy.Stops = ValidateStops(stops); return copy;
+        var copy = Clone(); copy.Stops = ValidateStops(stops); copy.RefreshSpreadAverage(); return copy;
     }
 
     // No physical circle paints an ordinary SVG/PDF field outside its cone.
     // Native XPS adapters explicitly retain their endpoint paint there.
-    private double MissingCircleRatio => _paintOutsideCone ? 0D : double.NaN;
 
-    internal double SampleRatio(double x, double y) => Math.Max(0D, Math.Min(1D, SampleUnboundedRatio(x, y)));
 
     internal double SampleUnboundedRatio(double x, double y) {
         var point = _inverseCoordinates.TransformPoint(new OfficePoint(x, y));
@@ -48,19 +46,19 @@ public sealed partial class OfficeRadialGradient {
         // threshold erases near-boundary fields after a large coordinate map.
         if (a == 0D) {
             if (b == 0D) {
-                if (c != 0D) return MissingCircleRatio;
+                if (c != 0D) return double.NaN;
                 // At the common tangent point every physical circle intersects.
                 // Select the latest one, including the zero-radius point end.
                 return pointEnd ? 1D : dr < 0D ? -startRadius / dr : double.PositiveInfinity;
             }
 
             double linearRatio = -c / b;
-            return startRadius + linearRatio * dr >= 0D ? (pointEnd ? 1D - linearRatio : linearRatio) : MissingCircleRatio;
+            return startRadius + linearRatio * dr >= 0D ? (pointEnd ? 1D - linearRatio : linearRatio) : double.NaN;
         }
 
         double discriminant = (b * b) - (4D * a * c);
         if (discriminant < 0D) {
-            return MissingCircleRatio;
+            return double.NaN;
         }
 
         double sqrt = Math.Sqrt(discriminant);
@@ -73,7 +71,7 @@ public sealed partial class OfficeRadialGradient {
         // Only physical circles contribute; where two exist, the later circle wins.
         bool valid1 = startRadius + t1 * dr >= 0D;
         bool valid2 = startRadius + t2 * dr >= 0D;
-        if (!valid1 && !valid2) return MissingCircleRatio;
+        if (!valid1 && !valid2) return double.NaN;
         double ratio = valid1 ? (valid2 ? (pointEnd ? Math.Min(t1, t2) : Math.Max(t1, t2)) : t1) : t2;
         return pointEnd ? 1D - ratio : ratio;
     }

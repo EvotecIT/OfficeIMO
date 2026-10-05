@@ -55,6 +55,8 @@ internal static partial class PdfWriter {
     private static string EnsureRadialShading(
         System.Collections.Generic.IList<PageShading> shadings,
         OfficeRadialGradient gradient) {
+        if (gradient.SpreadMode != OfficeGradientSpreadMode.Pad)
+            throw new NotSupportedException("PDF radial spread requires finite expansion; an unbounded repeating field cannot be padded without loss.");
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
         // Put the end focus at the coordinate origin. Large native brush maps
         // otherwise subtract nearly equal numbers in a consumer's float matrix,

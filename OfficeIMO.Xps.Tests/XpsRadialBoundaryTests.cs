@@ -74,12 +74,12 @@ public sealed class XpsRadialBoundaryTests {
     [Theory]
     [InlineData("Repeat")]
     [InlineData("Reflect")]
-    public void UnboundedBoundarySpreadExportsSvgWhileDrawingRemainsExplicit(string spread) {
+    public void UnboundedBoundarySpreadExportsSvgAndDrawingWhilePdfRemainsExplicit(string spread) {
         var document = Create(XpsFormat.OpenXps, 160, "1,0,0,1,0,0", false, false);
         var page = document.Pages[0]; var markup = page.GetMarkup();
         markup.Descendants().Single(element => element.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
         page.ReplaceMarkup(markup);
-        Assert.Throws<NotSupportedException>(() => page.ToDrawing());
+        Assert.NotNull(page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => document.ToPdf());
         var result = page.ToSvg();
         Assert.Empty(result.Diagnostics);
@@ -131,13 +131,13 @@ public sealed class XpsRadialBoundaryTests {
     [Theory]
     [InlineData("Repeat")]
     [InlineData("Reflect")]
-    public void BoundedBoundarySpreadStillEnforcesStopBudget(string spread) {
+    public void BoundarySpreadBeyondExpansionBudgetUsesExplicitSpread(string spread) {
         var doc = Create(XpsFormat.OpenXps, 160, "1,0,0,1,0,0", false, false);
         var page = doc.Pages[0]; var xml = page.GetMarkup();
         xml.Descendants().Single(e => e.Name.LocalName == "Path").SetAttributeValue("Data", "M10,10H159.999V150H10Z");
         xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
         page.ReplaceMarkup(xml);
-        Assert.Throws<NotSupportedException>(() => page.ToDrawing());
+        Assert.NotNull(page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => doc.ToPdf());
         var result = page.ToSvg();
         Assert.Empty(result.Diagnostics);
