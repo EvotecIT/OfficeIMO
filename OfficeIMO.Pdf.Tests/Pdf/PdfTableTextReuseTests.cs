@@ -26,8 +26,10 @@ public sealed class PdfTableTextReuseTests {
             style.CellPaddingY = 0;
             style.SpacingBefore = 0;
             style.SpacingAfter = 0;
+            style.ColumnWidthPoints = new List<double?> { 35, null };
             var rows = Enumerable.Range(0, 18).Select(index => new[] {
-                new PdfTableCell(new[] { PdfTextRun.Normal("R" + index.ToString("D3") + " Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau",
+                new PdfTableCell(new[] { PdfTextRun.Normal("R" + index.ToString("D3"), fontSize: explicitSize ? 10 : null) }),
+                new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau",
                     fontSize: explicitSize ? 10 : null) })
             }).ToArray();
             return PdfDocument.Create(options).Columns(content => content.Table(rows, style: style),
@@ -45,7 +47,9 @@ public sealed class PdfTableTextReuseTests {
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(actual);
         var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
         for (int index = 0; index < 18; index++)
-            Assert.Single(words.Where(word => word.Text == "R" + index.ToString("D3")));
+            Assert.Single(words, word => word.Text == "R" + index.ToString("D3"));
+        Assert.Equal(18, words.Count(word => word.Text == "Alpha"));
+        Assert.Equal(18, words.Count(word => word.Text == "tau"));
         Assert.Contains(words, word => word.BoundingBox.Left < 30);
         Assert.Contains(words, word => word.BoundingBox.Left > 130);
     }
