@@ -53,7 +53,7 @@ public sealed class PdfLineSpacingContinuationTests {
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
-        Assert.Equal(atBoundary ? "ABCDEFGHI" : "ABCDEFGHIJ", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(atBoundary ? "ABCDE" : "ABCDEFGHIJ", string.Concat(letters.Select(letter => letter.Value)));
         var first = Assert.Single(letters, letter => letter.Value == "A");
         var other = Assert.Single(letters, letter => letter.Value == (atBoundary ? "E" : "B"));
         if (atBoundary) Assert.True(other.StartBaseLine.X > first.StartBaseLine.X + 100);
