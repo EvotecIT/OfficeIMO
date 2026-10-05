@@ -38,6 +38,9 @@ public class ExcelLargeTypedReadBenchmarks {
     [GlobalSetup(Target = nameof(ExcelReaderNet))]
     public void SetupExcelReaderNet() => Setup(nameof(ExcelReaderNet));
 
+    /// <summary>Produces an ordinary declared dimension from a known-count row array.</summary>
+    public bool DeclareDimension { get; set; }
+
     private void Setup(string engine) {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
@@ -46,8 +49,10 @@ public class ExcelLargeTypedReadBenchmarks {
         _path = Path.Combine(root, $"large-typed-read-{Guid.NewGuid():N}.xlsx");
         try {
             using (Stream output = File.Create(_path)) {
+                var rows = ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount);
+                if (DeclareDimension) rows = rows.ToArray();
                 ExcelDocument.WriteRows(output,
-                    ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers,
+                    rows, Headers,
                     static (writer, row) => writer.Write(row.Id).Write(row.Amount)
                         .Write(row.CreatedOn).Write(row.Active),
                     new ExcelTabularWriteOptions { IncludeCellReferences = true, UseSharedStrings = false });
