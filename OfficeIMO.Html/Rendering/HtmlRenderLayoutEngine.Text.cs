@@ -1556,7 +1556,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int i = 0; i < Segments.Count; i++) {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
-            if (!HasReplacedImage) return Math.Max(0.01D, height);
+            if (!HasReplacedImage) {
+                if (Segments.Count > 0 && HasMixedTextSizes(Segments[0].Run.Style)) {
+                    double textBaseline = 0D;
+                    double textDescent = 0D;
+                    foreach (InlineSegment segment in Segments) {
+                        if (segment.Run.AtomicBlock == null) {
+                            textBaseline = Math.Max(textBaseline, segment.Run.Style.Font.Size);
+                            textDescent = Math.Max(textDescent, segment.Run.Style.LineHeight - segment.Run.Style.Font.Size);
+                        }
+                    }
+                    height = Math.Max(height, textBaseline + textDescent);
+                }
+                return Math.Max(0.01D, height);
+            }
 
             double ascent = 0D;
             double descent = 0D;
@@ -1576,8 +1589,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
 
-        internal double ResolveBaseline(double fallback) {
-            if (!HasReplacedImage) return ResolveLineHeight(fallback);
+        internal bool HasMixedTextSizes(HtmlRenderBoxStyle paragraphStyle) =>
+            Segments.Any(segment => segment.Run.AtomicBlock == null
+                && Math.Abs(segment.Run.Style.Font.Size - paragraphStyle.Font.Size) > 0.000001D);
+
+        internal double ResolveBaseline(HtmlRenderBoxStyle paragraphStyle) {
+            if (!HasReplacedImage) {
+                // Positioned text in the shared drawing model paints its baseline
+                // at Y + the source font size. Keep mixed-size text on that same
+                // baseline, including the containing paragraph's line strut.
+                double baseline = paragraphStyle.Font.Size;
+                foreach (InlineSegment segment in Segments) {
+                    if (segment.Run.AtomicBlock == null) baseline = Math.Max(baseline, segment.Run.Style.Font.Size);
+                }
+                return baseline;
+            }
             double ascent = 0D;
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
