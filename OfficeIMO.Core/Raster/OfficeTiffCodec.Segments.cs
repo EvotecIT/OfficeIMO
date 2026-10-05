@@ -15,14 +15,16 @@ public static partial class OfficeTiffCodec {
         int compression,
         int planarConfiguration,
         int predictor,
+        bool floating,
+        int meaningfulSamples,
         OfficeRasterDecodeOptions options,
         TiffValidationBudget? validationBudget,
         bool retainPixels,
         out byte[] source) {
         source = Array.Empty<byte>();
         if (planarConfiguration != 1 && planarConfiguration != 2 ||
-            predictor != 1 && predictor != 2 || samples < 1 ||
-            (sampleBytes != 1 && sampleBytes != 2)) return false;
+            (predictor < 1 || predictor > 3) || samples < 1 ||
+            (sampleBytes != 1 && sampleBytes != 2 && sampleBytes != 4 && sampleBytes != 8)) return false;
 
         bool hasStrips = entries.ContainsKey(273) || entries.ContainsKey(279);
         bool hasTiles = entries.ContainsKey(324) || entries.ContainsKey(325) ||
@@ -41,6 +43,7 @@ public static partial class OfficeTiffCodec {
             int segmentSamples = planarConfiguration == 2 ? 1 : samples;
             int maximumRows = Math.Min(rowsPerStrip, height);
             int maximumDecodedSegment = checked(maximumRows * width * segmentSamples * sampleBytes);
+            int predictorRowBytes = predictor == 3 ? checked(width * segmentSamples * sampleBytes) : 0;
             int scratchLength = retainPixels && planarConfiguration == 1 ? 0 : maximumDecodedSegment;
             long segmentMetadataBytes = checked((long)segmentCount * 2L * sizeof(int));
             int finalRgbaLength = retainPixels
@@ -58,7 +61,7 @@ public static partial class OfficeTiffCodec {
                     compression,
                     maximumCompressedSegmentLength: 0,
                     maximumDecodedSegment,
-                    options.RetainedManagedBytes)) return false;
+                    checked(options.RetainedManagedBytes + predictorRowBytes))) return false;
             if (!TryReadValues(encodedBytes, entries, 273, littleEndian, segmentCount,
                     options.CancellationToken, out int[] offsets) ||
                 !TryReadValues(encodedBytes, entries, 279, littleEndian, segmentCount,
@@ -87,7 +90,7 @@ public static partial class OfficeTiffCodec {
                     compression,
                     maximumCompressedSegment,
                     maximumDecodedSegment,
-                    options.RetainedManagedBytes)) return false;
+                    checked(options.RetainedManagedBytes + predictorRowBytes))) return false;
             if (retainPixels) source = new byte[sourceLength];
             byte[]? scratch = scratchLength > 0 ? new byte[scratchLength] : null;
 
@@ -108,6 +111,11 @@ public static partial class OfficeTiffCodec {
                         decoded, decodedOffset, expected, options.CancellationToken)) return false;
                 if (predictor == 2) ReverseHorizontalPredictor(decoded, decodedOffset, rows, width,
                     segmentSamples, sampleBytes, littleEndian, options.CancellationToken);
+                if (predictor == 3) ReverseFloatingPredictor(decoded, decodedOffset, rows, width,
+                    segmentSamples, sampleBytes, littleEndian, options.CancellationToken);
+                if (floating && !retainPixels) ValidateFloatingSamples(decoded, decodedOffset, width, width, rows,
+                    segmentSamples, planarConfiguration == 2 ? (plane < meaningfulSamples ? 1 : 0) : meaningfulSamples,
+                    sampleBytes, littleEndian, options.CancellationToken);
                 if (retainPixels && planarConfiguration == 2) {
                     CopyPlanarRows(decoded, source, plane, samples, sampleBytes, width, rowStart, rows, options);
                 }
@@ -126,6 +134,7 @@ public static partial class OfficeTiffCodec {
         int tileByteLength = OfficeRasterGuards.EnsureByteCount(
             (long)tileWidth * tileHeight * tileSamples * sampleBytes,
             "TIFF decoded tile exceeds the managed limit.");
+        int tilePredictorRowBytes = predictor == 3 ? checked(tileWidth * tileSamples * sampleBytes) : 0;
         long tileMetadataBytes = checked((long)tileSegmentCount * 2L * sizeof(int));
         int tileFinalRgbaLength = retainPixels
             ? OfficeRasterGuards.EnsureByteCount(
@@ -142,7 +151,7 @@ public static partial class OfficeTiffCodec {
                 compression,
                 maximumCompressedSegmentLength: 0,
                 tileByteLength,
-                options.RetainedManagedBytes)) return false;
+                checked(options.RetainedManagedBytes + tilePredictorRowBytes))) return false;
         if (!TryReadValues(encodedBytes, entries, 324, littleEndian, tileSegmentCount,
                 options.CancellationToken, out int[] tileOffsets) ||
             !TryReadValues(encodedBytes, entries, 325, littleEndian, tileSegmentCount,
@@ -166,7 +175,7 @@ public static partial class OfficeTiffCodec {
                 compression,
                 maximumCompressedTile,
                 tileByteLength,
-                options.RetainedManagedBytes)) return false;
+                checked(options.RetainedManagedBytes + tilePredictorRowBytes))) return false;
         if (retainPixels) source = new byte[sourceLength];
         var tileDecoded = new byte[tileByteLength];
         for (int segment = 0; segment < tileSegmentCount; segment++) {
@@ -179,6 +188,12 @@ public static partial class OfficeTiffCodec {
                     tileDecoded, 0, tileByteLength, options.CancellationToken)) return false;
             if (predictor == 2) ReverseHorizontalPredictor(tileDecoded, 0, tileHeight, tileWidth,
                 tileSamples, sampleBytes, littleEndian, options.CancellationToken);
+            if (predictor == 3) ReverseFloatingPredictor(tileDecoded, 0, tileHeight, tileWidth,
+                tileSamples, sampleBytes, littleEndian, options.CancellationToken);
+            if (floating && !retainPixels) ValidateFloatingSamples(tileDecoded, 0, tileWidth,
+                Math.Min(tileWidth, width - tileX), Math.Min(tileHeight, height - tileY), tileSamples,
+                planarConfiguration == 2 ? (plane < meaningfulSamples ? 1 : 0) : meaningfulSamples,
+                sampleBytes, littleEndian, options.CancellationToken);
             if (retainPixels) {
                 CopyTile(tileDecoded, source, plane, planarConfiguration, samples, sampleBytes, width, height,
                     tileX, tileY, tileWidth, tileHeight, options);
@@ -240,8 +255,7 @@ public static partial class OfficeTiffCodec {
                 if ((x & 0xFFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
                 int target = targetRow + x * samples * sampleBytes;
                 int input = sourceRow + x * sampleBytes;
-                interleaved[target] = planeBytes[input];
-                if (sampleBytes == 2) interleaved[target + 1] = planeBytes[input + 1];
+                Buffer.BlockCopy(planeBytes, input, interleaved, target, sampleBytes);
             }
         }
     }
@@ -274,8 +288,7 @@ public static partial class OfficeTiffCodec {
                     if ((x & 0xFFF) == 0) options.CancellationToken.ThrowIfCancellationRequested();
                     int target = targetRow + (x * samples + plane) * sampleBytes;
                     int input = sourceRow + x * sampleBytes;
-                    interleaved[target] = tile[input];
-                    if (sampleBytes == 2) interleaved[target + 1] = tile[input + 1];
+                    Buffer.BlockCopy(tile, input, interleaved, target, sampleBytes);
                 }
             }
         }

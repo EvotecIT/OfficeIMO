@@ -231,7 +231,7 @@ public static partial class OfficeTiffCodec {
             !TryGetBaseSampleCount(photometric, out int baseSamples) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples) ||
             (planarConfiguration != 1 && planarConfiguration != 2) ||
-            (predictor != 1 && predictor != 2) ||
+            (predictor < 1 || predictor > 3) ||
             (samples != baseSamples && samples != baseSamples + 1) ||
             (compression != (int)OfficeTiffCompression.None &&
              compression != (int)OfficeTiffCompression.Lzw &&
@@ -243,7 +243,8 @@ public static partial class OfficeTiffCodec {
             (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
              orientation < 1 || orientation > 8)) return false;
 
-        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes)) return false;
+        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating) ||
+                    !IsSupportedSamplePredictor(predictor, floating, compression)) return false;
 
         if (photometric == 5 &&
             (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) || inkSet != 1)) {
@@ -252,14 +253,15 @@ public static partial class OfficeTiffCodec {
         if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out _)) {
             return false;
         }
-        if (samples == baseSamples + 1 &&
-            (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-             (extraSamples[0] < 0 || extraSamples[0] > 2))) {
-            return false;
+        int meaningfulSamples = samples;
+        if (samples == baseSamples + 1) {
+            if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
+                extraSamples[0] < 0 || extraSamples[0] > 2) return false;
+            if (extraSamples[0] == 0) meaningfulSamples = baseSamples;
         }
 
         return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes,
-            compression, planarConfiguration, predictor, options, validationBudget,
+            compression, planarConfiguration, predictor, floating, meaningfulSamples, options, validationBudget,
             retainPixels: false, out _);
     }
 

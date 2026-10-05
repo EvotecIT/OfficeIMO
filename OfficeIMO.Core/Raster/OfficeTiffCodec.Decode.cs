@@ -4,9 +4,9 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     /// <summary>
-    /// Attempts to decode an unsigned eight- or sixteen-bit classic grayscale, RGB, RGBA, or device-CMYK TIFF, or eight-bit palette TIFF using
+    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/32/64-bit samples, or eight-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
-    /// Floating-point, JPEG-compressed, and BigTIFF payloads remain optional caller-codec responsibilities.
+    /// Floating samples are normalized device components; JPEG-compressed and BigTIFF payloads remain caller-codec responsibilities.
     /// </summary>
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
         TryDecodePage(encodedBytes, 0, options: null, out image);
@@ -109,11 +109,12 @@ public static partial class OfficeTiffCodec {
                     (samples != baseSamples && samples != baseSamples + 1) ||
                     rowsPerStrip < 1 ||
                     (planarConfiguration != 1 && planarConfiguration != 2) ||
-                    (predictor != 1 && predictor != 2)) {
+                    (predictor < 1 || predictor > 3)) {
                     return false;
                 }
 
-                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes)) {
+                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating) ||
+                    !IsSupportedSamplePredictor(predictor, floating, compression)) {
                     return false;
                 }
 
@@ -141,7 +142,7 @@ public static partial class OfficeTiffCodec {
                 if (maximumDecodeWorkBytes < 1L) return false;
                 var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
                 if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes,
-                        compression, planarConfiguration, predictor, effective, decodeWorkBudget,
+                        compression, planarConfiguration, predictor, floating, alphaKind == 0 ? baseSamples : samples, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;
 
                 int orientedWidth = orientation >= 5 ? height : width;
@@ -155,7 +156,11 @@ public static partial class OfficeTiffCodec {
                         ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
                         int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
                         byte red, green, blue, alpha;
-                        if (sampleBytes == 2) {
+                        if (floating) {
+                            ConvertFloatingPixel(source, sourcePixel, sampleBytes, littleEndian, photometric,
+                                samples > baseSamples, alphaKind, colorComponents,
+                                out red, out green, out blue, out alpha);
+                        } else if (sampleBytes == 2) {
                             ConvertUnsigned16Pixel(source, sourcePixel, littleEndian, photometric,
                                 samples > baseSamples, alphaKind, colorComponents,
                                 out red, out green, out blue, out alpha);

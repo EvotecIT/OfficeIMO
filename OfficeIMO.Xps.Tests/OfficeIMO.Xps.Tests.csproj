@@ -39,4 +39,5 @@
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\IccColorCorpus\*" Link="Fixtures/IccColorCorpus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\RobotoFlex.ttf" Link="Fixtures/RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/manifest.csv" Link="Fixtures/TiffFloating/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

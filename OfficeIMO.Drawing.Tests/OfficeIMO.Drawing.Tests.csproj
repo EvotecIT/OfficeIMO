@@ -119,4 +119,5 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.rgba" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.yuv16" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffFloating/*.tif;TestAssets/TiffFloating/*.rgba;TestAssets/TiffFloating/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

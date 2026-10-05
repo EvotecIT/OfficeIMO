@@ -4,25 +4,26 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
-    // The managed subset decodes unsigned eight- or sixteen-bit components. Signed, floating
-    // point and undefined component encodings must not be interpreted as RGB bytes.
     private static bool TryGetSampleByteCount(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        bool littleEndian, int samples, int photometric, out int sampleBytes) {
-        sampleBytes = 0;
+        bool littleEndian, int samples, int photometric, out int sampleBytes, out bool floating) {
+        sampleBytes = 0; floating = false;
         if (!TryReadScalarOrDefault(bytes, entries, 266, littleEndian, 1, out int fillOrder) ||
-            fillOrder != 1 ||
-            !TryReadValues(bytes, entries, 258, littleEndian, samples, out int[] bits) ||
-            (bits[0] != 8 && bits[0] != 16) ||
-            Array.Exists(bits, bit => bit != bits[0]) ||
-            (photometric == 3 && bits[0] != 8) ||
-            !HasUnsignedSamples(bytes, entries, littleEndian, samples)) return false;
+            fillOrder != 1 || !TryReadValues(bytes, entries, 258, littleEndian, samples, out int[] bits) ||
+            Array.Exists(bits, bit => bit != bits[0])) return false;
+        int format = 1;
+        if (entries.ContainsKey(339)) {
+            if (!TryReadValues(bytes, entries, 339, littleEndian, samples, out int[] formats) ||
+                Array.Exists(formats, value => value != formats[0])) return false;
+            format = formats[0];
+        }
+        floating = format == 3;
+        if (floating ? (bits[0] != 16 && bits[0] != 32 && bits[0] != 64) || photometric == 3
+            : format != 1 || (bits[0] != 8 && bits[0] != 16) || (photometric == 3 && bits[0] != 8)) return false;
         sampleBytes = bits[0] / 8;
         return true;
     }
 
-    private static bool HasUnsignedSamples(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        bool littleEndian, int samples) =>
-        !entries.ContainsKey(339) ||
-        TryReadValues(bytes, entries, 339, littleEndian, samples, out int[] formats) &&
-        Array.TrueForAll(formats, format => format == 1);
+    private static bool IsSupportedSamplePredictor(int predictor, bool floating, int compression) =>
+        predictor == 1 || !floating && predictor == 2 || floating && predictor == 3 &&
+        (compression == 5 || compression == 8 || compression == 32946);
 }

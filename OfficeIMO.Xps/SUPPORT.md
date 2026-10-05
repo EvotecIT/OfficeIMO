@@ -44,13 +44,17 @@ PNG gamma/chromaticity and JPEG/TIFF non-ICC calibration descriptions do not
 override these defaults. The adapter normalizes these resources so subsequent
 SVG/PDF consumers cannot reinterpret the descriptions. TIFF uses the first IFD,
 ignores the display Orientation tag, and ignores an extra sample declared as
-unspecified. The managed TIFF subset accepts unsigned eight- or sixteen-bit gray/RGB/CMYK
-components and eight-bit palette indices in either byte order. Chunky/planar strips
+unspecified. The managed TIFF subset accepts unsigned eight/sixteen-bit and finite
+floating sixteen/thirty-two/sixty-four-bit gray/RGB/CMYK components and eight-bit palette indices in either byte order. Chunky/planar strips
 and tiles use uncompressed, LZW, PackBits or Deflate payloads, including word-based
-horizontal prediction. Sample and associated-alpha precision is retained through
+horizontal prediction and floating-point prediction for LZW/Deflate. Sample and associated-alpha precision is retained through
 ICC conversion before eight-bit RGBA projection. Mixed component widths, reversed
-bit order, sixteen-bit palette indices, signed, floating-point and undefined sample
-encodings are rejected.
+bit order, sixteen-bit palette indices, signed, twenty-four-bit floating and undefined
+sample encodings are rejected. Floating samples are normalized device components;
+the decoder preserves their precision for ICC conversion and unassociation, then
+clips to SDR output. It does not infer linear scRGB or rescale scientific ranges,
+and non-finite color or alpha samples fail content validation and decoding.
+Unspecified extra channels and tile padding remain ignored.
 
 ## Qualification
 
@@ -61,6 +65,15 @@ pixels and independently rendered SVG/PDF interior samples agree within three ch
 values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
 it changes sample order for unspecified extra channels in two cases. The differing reference output is retained;
 native Windows confirmation and photographic producer coverage remain open.
+
+Floating-point qualification covers 228 independently encoded and decoded LibTIFF
+fixtures: 16/32/64-bit samples, both byte orders, compression/prediction and
+strip/tile layouts, alpha, RGB, grayscale and CMYK. All 282,948 decoded source
+samples match the producer inputs, and managed normalized RGBA pixels match
+exactly. Both XPS dialects exercise raster, SVG and PDF-reader output, including
+explicit-profile CMYK conversion. Low associated alpha retains precision through
+ICC conversion. This does not establish native Windows floating-TIFF acceptance
+or a general HDR/scientific tone-mapping policy.
 
 Unsigned sixteen-bit qualification uses 47 independently encoded LibTIFF fixtures,
 including 32 compression/storage combinations, gray, associated-alpha RGB/CMYK,
