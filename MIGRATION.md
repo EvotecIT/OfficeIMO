@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Long-document AI request budgets
+
+Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
+
 ## OCR review and AI evidence
 
 A single adaptive OCR attempt that passes confidence checks now has `OcrReviewStatus.Unassessed`, emits `adaptive-ocr-unassessed`, and sets `ReviewRecommended` to true. Use `Quality.MeetsThresholds` when you specifically need the old confidence-only signal. Use `new OcrReviewPolicy(OcrRetryMode.CompareAll)` to run every configured variant within the shared deadline. `ChecksPassed` reports agreement and passing checks, not correctness or approval.
