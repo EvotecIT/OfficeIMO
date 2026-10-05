@@ -19,13 +19,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (discardableMargin <= 0.0001D) return start;
 
         double afterMargin = Math.Min(block.Height, start + discardableMargin);
-        bool flexGap = block.InlineBreakProgress.Any(progress => progress.IsFlexGap
-            && Math.Abs(progress.Offset - start) <= 0.0001D
-            && Math.Abs(progress.PageStartDiscardableMargin - discardableMargin) <= 0.0001D);
         if (block.ForcedBreaks.Any(item => item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
             || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)
             || SliceBlockVisuals(block, start, afterMargin).Any(visual =>
-                ContainsPageStartMarginContent(visual, flexGap ? block : null))) {
+                ContainsPageStartMarginContent(visual, block))) {
             return start;
         }
 
@@ -47,22 +44,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return discardableMargin;
     }
 
-    private bool ContainsPageStartMarginContent(HtmlRenderVisual visual, HtmlRenderFlowBlock? flexGapBlock = null) {
+    private bool ContainsPageStartMarginContent(HtmlRenderVisual visual, HtmlRenderFlowBlock spacingBlock) {
         // Print-fitting boxes and empty wrappers measure layout but do not paint.
         // Retain every other leaf, including navigation and bookmark metadata.
         if (visual is HtmlRenderLayoutBox) return false;
-        // A body's continuous background paints through a row gap. Discarding
-        // that gap must not mistake the backdrop for content or discard borders,
+        // A body's continuous background paints through margins and row gaps.
+        // Discarding spacing must not mistake the backdrop for content or discard borders,
         // positioned paint, navigation metadata, or other authored boxes.
-        if (flexGapBlock != null && ReferenceEquals(flexGapBlock.OwnerElement, _document.Body)
+        if (ReferenceEquals(spacingBlock.OwnerElement, _document.Body)
             && visual is HtmlRenderShape shape && !shape.IsAtomicReplacedPlaceholder
-            && shape.Source == flexGapBlock.Source && shape.LinkUri == null
+            && shape.Source == spacingBlock.Source && shape.LinkUri == null
             && shape.InnerShape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Rectangle
             && shape.InnerShape.StrokeWidth <= 0D
-            && shape.Width >= flexGapBlock.Width - 0.0001D
-            && shape.Height >= flexGapBlock.Height - 0.0001D) return false;
+            && shape.Width >= spacingBlock.Width - 0.0001D
+            && shape.Height >= spacingBlock.Height - 0.0001D) return false;
         IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
-        return children == null || children.Any(child => ContainsPageStartMarginContent(child, flexGapBlock));
+        return children == null || children.Any(child => ContainsPageStartMarginContent(child, spacingBlock));
     }
 
     private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null, double fullPageHeight = 0D) {

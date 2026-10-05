@@ -1,16 +1,19 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
-    [InlineData(false, 0, 0D)]
-    [InlineData(true, 0, 0D)]
-    [InlineData(true, 16, 0D)]
-    [InlineData(false, 0, 32D)]
+    [InlineData(false, 0, 0D, false)]
+    [InlineData(true, 0, 0D, false)]
+    [InlineData(true, 16, 0D, false)]
+    [InlineData(false, 0, 32D, false)]
+    [InlineData(true, 16, 0D, true)]
+    [InlineData(true, 0, 32D, true)]
     public void PagedRendererTruncatesUnforcedHeadingMarginsAndPreservesForcedMargins(
-        bool column, int leadMargin, double expectedTargetY) {
+        bool column, int leadMargin, double expectedTargetY, bool layeredBackground) {
         bool forced = expectedTargetY > 0D;
         string leadingLines = string.Join("<br>", Enumerable.Range(1, 17).Select(index => "Leading line " + index));
         string html = "<style>@page{size:400px 400px;margin:0}html,body{margin:0;padding:0}"
@@ -18,6 +21,7 @@ public sealed partial class HtmlRenderingTests {
             + "h3{font:20px/24px Arial;margin:32px 0 16px;break-after:avoid}"
             + (column ? "main{display:flex;flex-direction:column}" : "")
             + (forced ? "#target{break-before:page}" : "")
+            + (layeredBackground ? "html{background:#222}body{background:#fff}" : "")
             + "</style><main><p id='lead'>" + leadingLines + "</p>"
             + "<h3 id='target'>Heading target</h3><p>Following one<br>Following two</p></main>";
 
@@ -33,6 +37,12 @@ public sealed partial class HtmlRenderingTests {
             EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderBookmarkAnchor>(),
             anchor => anchor.Source == "h3#target");
         Assert.Equal(expectedTargetY, target.Y, 3);
+        if (layeredBackground) {
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                Assert.Contains(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderShape>(),
+                    shape => shape.Source == "body" && shape.Shape.FillColor == OfficeColor.White);
+            }
+        }
     }
 
     [Theory]
