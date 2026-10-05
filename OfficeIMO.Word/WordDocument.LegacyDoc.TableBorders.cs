@@ -22,6 +22,11 @@ namespace OfficeIMO.Word {
             AppendLegacyDocTableBorder<InsideHorizontalBorder>(borders, source.InsideHorizontal);
             AppendLegacyDocTableBorder<InsideVerticalBorder>(borders, source.InsideVertical);
             table.StyleDetails!.TableBorders = borders;
+            // A borderless row does not erase the visible edge supplied by its neighbor.
+            LegacyDocTableCellBorder SharedHorizontal(LegacyDocTableCellBorder actual, LegacyDocTableCellBorder adjacent) =>
+                (!actual.HasAny || actual.Style == LegacyDocTableCellBorderStyle.ExplicitNone)
+                    && adjacent.HasAny && adjacent.Style != LegacyDocTableCellBorderStyle.ExplicitNone
+                    ? adjacent : actual;
             for (int row = 0; row < rows.Length && row < table.Rows.Count; row++) {
                 WordTableRow targetRow = table.Rows[row];
                 for (int column = 0; column < targetRow.Cells.Count; column++) {
@@ -31,11 +36,13 @@ namespace OfficeIMO.Word {
                             : new LegacyDocTableCellBorder(LegacyDocTableCellBorderStyle.ExplicitNone, null, 0, 0);
                     }
                     ApplyLegacyDocTableCellBorders(targetRow.Cells[column], new LegacyDocTableCellBorders(
-                        Override(row == 0 ? rows[row].Top : rows[row].InsideHorizontal,
+                        Override(row == 0 ? rows[row].Top
+                            : SharedHorizontal(rows[row].InsideHorizontal, rows[row - 1].InsideHorizontal),
                             row == 0 ? source.Top : source.InsideHorizontal),
                         Override(column == 0 ? rows[row].Left : rows[row].InsideVertical,
                             column == 0 ? source.Left : source.InsideVertical),
-                        Override(row == rows.Length - 1 ? rows[row].Bottom : rows[row].InsideHorizontal,
+                        Override(row == rows.Length - 1 ? rows[row].Bottom
+                            : SharedHorizontal(rows[row].InsideHorizontal, rows[row + 1].InsideHorizontal),
                             row == rows.Length - 1 ? source.Bottom : source.InsideHorizontal),
                         Override(column == targetRow.Cells.Count - 1 ? rows[row].Right : rows[row].InsideVertical,
                             column == targetRow.Cells.Count - 1 ? source.Right : source.InsideVertical)));

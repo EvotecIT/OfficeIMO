@@ -21,11 +21,18 @@ public partial class Word {
             table.StyleDetails!.GetBorderProperties(changedRow == 0 ? WordTableBorderSide.Top : WordTableBorderSide.Bottom).Style);
         Assert.Equal(color, table.StyleDetails!.GetBorderProperties(
             changedRow == 0 ? WordTableBorderSide.Top : WordTableBorderSide.Bottom).ColorHex);
+        if (color == null) {
+            // The first row still owns a visible shared edge above the borderless final row.
+            Assert.Equal(WordBorderStyle.Single, table.Rows[1].Cells[0].Borders.TopStyle);
+        }
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
             new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
         Assert.Equal(table.Rows[changedRow].Cells[0].Borders.LeftStyle,
             restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftStyle);
         Assert.Equal(color, restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftColorHex);
+        if (color == null) {
+            Assert.Equal(WordBorderStyle.Single, restored.Tables[0].Rows[1].Cells[0].Borders.TopStyle);
+        }
     }
 
     [Theory]
