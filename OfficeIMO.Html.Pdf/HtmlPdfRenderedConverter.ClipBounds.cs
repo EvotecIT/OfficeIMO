@@ -34,6 +34,12 @@ internal static partial class HtmlPdfRenderedConverter {
 
         internal (double X, double Y, double Width, double Height) ConstrainLogicalRectangle(
             double x, double y, double width, double height) {
+            // Keep contained carriers byte-for-byte unchanged. Subtracting x from
+            // x + width can otherwise look like clipping through rounding alone.
+            if (x >= Left - 0.0001D && y >= Top - 0.0001D
+                && x + width <= Right + 0.0001D && y + height <= Bottom + 0.0001D) {
+                return (x, y, width, height);
+            }
             double left = Math.Max(x, Left), top = Math.Max(y, Top);
             double right = Math.Min(x + width, Right), bottom = Math.Min(y + height, Bottom);
             // Preserve paint and ownership. Only an intersecting carrier shrinks;

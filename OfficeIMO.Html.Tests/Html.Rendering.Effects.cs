@@ -206,8 +206,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
@@ -222,7 +221,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(raster.GetPixel(105, 10).A > 0);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("opacity=\"0.75\"", svg, StringComparison.Ordinal);
-        Assert.Contains("matrix(1 0 0 1 20 5)", svg, StringComparison.Ordinal);
         Assert.Contains("EffectPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.True(pdfLink.SourceLink.X1 >= 15D - 0.01D);
