@@ -33,5 +33,5 @@ jobs:
       dotnet_version: "10.0.112"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 720a4ed99ab6887abc97a5f1fd69c3a8b7dc0b1d
+      powerforge_ref: 0b764e210236cde8246adec399277834d53ea7ce
       report_artifact_name: powerforge-website-reports
