@@ -62,6 +62,54 @@ public sealed class XpsRadialBoundaryTests {
         Assert.Throws<NotSupportedException>(() => document.ToPdf());
     }
 
+    [Theory]
+    [InlineData(XpsFormat.Xps, "Repeat", false, 140)]
+    [InlineData(XpsFormat.Xps, "Repeat", false, 128)]
+    [InlineData(XpsFormat.OpenXps, "Repeat", true, 140)]
+    [InlineData(XpsFormat.Xps, "Reflect", true, 140)]
+    [InlineData(XpsFormat.OpenXps, "Reflect", false, 140)]
+    [InlineData(XpsFormat.OpenXps, "Reflect", false, 128)]
+    public void BoundedBoundarySpreadRetainsNativeField(XpsFormat format, string spread, bool alpha, int right) {
+        var document = Create(format, 160, "1,0,0,1,0,0", alpha, false);
+        var page = document.Pages[0]; var markup = page.GetMarkup();
+        markup.Descendants().Single(e => e.Name.LocalName == "Path").SetAttributeValue("Data", right == 128 ? "M0,10H128V150H0Z" : "M10,10H140V150H10Z");
+        markup.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
+        page.ReplaceMarkup(markup);
+        var raster = Raster(XpsDocument.Load(document.Save()).Pages[0]);
+        foreach (var xy in new[] { (20, 20), (60, 40), (100, 80), (right - 10, 130) }) {
+            double px = (xy.Item1 + .5 - 160) / 60D, py = (xy.Item2 + .5 - 80) / 25D;
+            double ratio = -(px * px + py * py) / (2 * px);
+            ratio %= spread == "Repeat" ? 1 : 2;
+            if (ratio > 1) ratio = 2 - ratio;
+            double opacity = alpha ? (64 + 64 * ratio) / 255D : 1;
+            var pixel = raster.GetPixel(xy.Item1, xy.Item2);
+            Assert.InRange(Math.Abs(pixel.R - (255 * (1 - ratio) * opacity + 255 * (1 - opacity))), 0, 4);
+            Assert.InRange(Math.Abs(pixel.G - 255 * (1 - opacity)), 0, 4);
+            Assert.InRange(Math.Abs(pixel.B - (255 * ratio * opacity + 255 * (1 - opacity))), 0, 4);
+        }
+        var pdf = PdfReadDocument.Open(document.ToPdf());
+        Assert.Single(pdf.Pages);
+        if (!alpha) {
+            var readback = OfficeDrawingRasterRenderer.Render(pdf.Pages[0].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
+            foreach (var xy in new[] { (20, 20), (60, 40), (100, 80), (right - 10, 130) }) {
+                Assert.InRange(Math.Abs(readback.GetPixel(xy.Item1, xy.Item2).R - raster.GetPixel(xy.Item1, xy.Item2).R), 0, 4);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("Repeat")]
+    [InlineData("Reflect")]
+    public void BoundedBoundarySpreadStillEnforcesStopBudget(string spread) {
+        var doc = Create(XpsFormat.OpenXps, 160, "1,0,0,1,0,0", false, false);
+        var page = doc.Pages[0]; var xml = page.GetMarkup();
+        xml.Descendants().Single(e => e.Name.LocalName == "Path").SetAttributeValue("Data", "M10,10H159.999V150H10Z");
+        xml.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
+        page.ReplaceMarkup(xml);
+        Assert.Throws<NotSupportedException>(() => page.ToDrawing());
+        Assert.Throws<NotSupportedException>(() => doc.ToPdf());
+    }
+
     internal static XpsDocument Create(XpsFormat format, int focus, string matrix, bool alpha, bool stroke) {
         var document = XpsRadialGradientTests.Create(format, matrix, alpha);
         var page = document.Pages[0]; var markup = page.GetMarkup(); var ns = markup.Name.Namespace;

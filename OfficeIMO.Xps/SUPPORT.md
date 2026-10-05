@@ -16,7 +16,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF/JPEG XR, native integer sRGB/gray defaults for non-ICC image descriptions, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry such as non-sRGB PNG cICP, unsupported TIFF and JPEG XR encodings are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
-| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior and exterior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a point focus away from the end ellipse boundary and at most 256 expanded stops; ordinary SVG diagnoses boundary/exterior focal fields; native consumer differences remain below |
+| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior, boundary and exterior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a finite cycle bound and at most 256 expanded stops; boundary foci require painted bounds strictly inside the tangent half-plane; ordinary SVG diagnoses boundary/exterior focal fields; native consumer differences remain below |
 | SVG | Self-contained images and glyph outlines; authored Path/Canvas descriptions retained as title/desc metadata; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
 | PDF | Optional thin bridge retaining vector paint, dimensions, native alpha masks and searchable Unicode clusters; native paragraph/list/table/figure tags with authored figure descriptions, continued cross-page containers, declared story order, list labels and cell spans; header/footer artifacts | Unstructured pages use markup order; unassociated fragments use page order; unknown/unresolved/overlapping semantics reject strict mapping; an explicit paint-only mode retains markup-order text; no inferred figure descriptions, PDF/UA qualification, print-ticket or signature migration; clipped/transparent source text remains searchable |
@@ -261,8 +261,12 @@ photographic or producer coverage and PDF/UA are not qualified by these cases.
 Native exterior Repeat/Reflect uses the same smallest-containing-ellipse rule.
 Core bounds the required cycles over the painted region and retains at most 256
 expanded stops; Reflect uses offset zero outside the cone, while Repeat uses
-offset one. Focus positions exactly on the end ellipse boundary remain unsupported
-for these spread modes because the required cycle count can be unbounded.
+offset one. Focus positions exactly on the end ellipse boundary are supported when the
+conservative painted bounds lie strictly inside the focus tangent half-plane
+and fit the same stop budget. Bounds touching or crossing the tangent remain
+unsupported because the required cycle count can be unbounded. Near-boundary
+exterior fields use an additional finite half-plane bound to avoid excessive
+expansion from coordinate rounding.
 The 36 ordinary generated cases cover both dialects, fill/stroke, affine
 transforms and stop alpha. Managed sampling and Ghostscript PDF rendering track
 the analytic field in these cases, while MuPDF and GhostXPS retain visible
@@ -274,6 +278,16 @@ large-radius stress cases. This evidence qualifies the bounded field and emitted
 vector geometry, not every consumer's raster output or independent native Windows
 behavior. Standalone SVG retains the same explicit loss boundary as native Pad
 exterior fields.
+
+Boundary Repeat/Reflect qualification adds 36 generated cases across both dialects,
+fill, stroke, translucent stops, shear and reflection. Managed samples differ from
+the analytic field by at most 1.09/255; opaque PDF readback differs by at most
+0.51/255. Ghostscript and GhostXPS render the native vector fields, with maximum
+sample differences of 9.16/255 and 14.03/255 respectively at 96 DPI. Raster edge
+and interpolation differences remain; native Windows acceptance is not established.
+The shared renderer preserves radial fill, gradient stroke and marker coordinates
+through shape transforms, including paths inset within a declared canvas. PDF readback accepts up to 256 stitched child functions,
+with its separate recursion, breakpoint and evaluation limits still enforced.
 
 Stroke qualification includes 48 generated XPS/OpenXPS cases and 16 focused rendering
 regressions covering clipped miters,
