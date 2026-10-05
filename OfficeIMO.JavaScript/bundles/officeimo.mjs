@@ -716,6 +716,7 @@ class OpcPackage {
     options;
     types = new ContentTypes();
     parts = new Map();
+    directories = new Set();
     relationships = new Map();
     state = "open";
     result;
@@ -727,11 +728,23 @@ class OpcPackage {
     reserve(uri, type) {
         this.open();
         uri = partUri(uri);
-        if (/\/_rels\//i.test(uri) || uri.toLowerCase() === "/[content_types].xml")
+        if (/\/_rels(?:\/|$)/i.test(uri) || uri.toLowerCase() === "/[content_types].xml")
             throw new TypeError("Package metadata part names are reserved.");
-        if (this.parts.has(uri.toLowerCase()))
+        const key = uri.toLowerCase();
+        if (this.parts.has(key))
             throw new TypeError("Duplicate OPC part: " + uri);
+        if (this.directories.has(key))
+            throw new TypeError("OPC part-name prefix collision: " + uri + " is an ancestor of an existing part.");
+        const ancestors = [];
+        for (let slash = key.lastIndexOf("/"); slash > 0; slash = key.lastIndexOf("/", slash - 1)) {
+            const ancestor = key.slice(0, slash);
+            if (this.parts.has(ancestor))
+                throw new TypeError("OPC part-name prefix collision: " + uri + " descends from " + this.parts.get(ancestor).uri);
+            ancestors.push(ancestor);
+        }
         this.types.addOverride(uri, type);
+        for (const ancestor of ancestors)
+            this.directories.add(ancestor);
         return uri;
     }
     addPart(part) {
@@ -825,6 +838,7 @@ class OpcPackage {
             }
             finally {
                 this.parts.clear();
+                this.directories.clear();
                 this.relationships.clear();
             }
         })();
@@ -1280,6 +1294,8 @@ const { checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
 
+const { ChunkedTextSink } = _m3;
+
 const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m8;
 
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m7;
@@ -1320,6 +1336,20 @@ class Workbook {
         this.package = new OpcPackage({ compression, invalidCharacterPolicy: policy, ...(options.signal ? { signal: options.signal } : {}) });
         // Property dates and app settings are captured before an asynchronous export begins.
         this.package.setProperties(options, options.appProperties);
+        // Register fixed generated parts now; deferred XML sees the final sheets and styles.
+        this.addXmlPart("/xl/workbook.xml", formatType("sheet.main"), () => this.workbookXml());
+        this.addXmlPart("/xl/styles.xml", formatType("styles"), () => this.styles.toXml());
+    }
+    addXmlPart(uri, contentType, xml) {
+        this.package.addPart({ uri, contentType, data: async (sink) => {
+                const text = new ChunkedTextSink(sink, this.settings.signal);
+                await text.write(xml());
+                await text.close();
+            } });
+    }
+    workbookXml() {
+        return xmlDeclaration + '<workbook xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><workbookPr date1904="0"/><bookViews><workbookView/></bookViews><sheets>' +
+            this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets></workbook>';
     }
     /** @internal */
     assertOpen() {
@@ -1364,10 +1394,6 @@ class Workbook {
             try {
                 for (let i = 0; i < this.sheets.length; i++)
                     this.package.addPrepared("/xl/worksheets/sheet" + (i + 1) + ".xml", formatType("worksheet"), await this.sheets[i].finish());
-                this.package.addPart({ uri: "/xl/workbook.xml", contentType: formatType("sheet.main"), data: xmlDeclaration +
-                        '<workbook xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><workbookPr date1904="0"/><bookViews><workbookView/></bookViews><sheets>' +
-                        this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets></workbook>' });
-                this.package.addPart({ uri: "/xl/styles.xml", contentType: formatType("styles"), data: this.styles.toXml() });
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
                 for (let i = 0; i < this.sheets.length; i++)
                     this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });

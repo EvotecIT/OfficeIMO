@@ -32,3 +32,12 @@ test("reserved options fail explicitly and XML reject policy reaches worksheet t
   await assert.rejects(book.toBlob(), { code: "INVALID_XML" });
   assert.throws(() => new StyleRegistry().add({ font: 1 }), RangeError);
 });
+
+test("workbook extensions reject generated part collisions before export begins", async () => {
+  for (const uri of ["/XL", "/xl/workbook.xml", "/XL/WORKBOOK.XML/extension.xml", "/xl/styles.xml/extension.xml"])
+    assert.throws(() => new Workbook().addPart({ uri, contentType: "application/xml", data: "<extension/>" }), /Duplicate|prefix collision/i);
+  const book = new Workbook();
+  book.addWorksheet("Data");
+  book.addPart({ uri: "/xl/worksheets/sheet1.xml/extension.xml", contentType: "application/xml", data: "<extension/>" });
+  await assert.rejects(book.toBlob(), /prefix collision/i);
+});

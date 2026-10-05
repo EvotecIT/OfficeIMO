@@ -68,6 +68,7 @@ export class ContentTypes {
 export class OpcPackage {
   private readonly types = new ContentTypes();
   private readonly parts = new Map<string, PackagePart | { uri: string; prepared: PreparedEntry }>();
+  private readonly directories = new Set<string>();
   private readonly relationships = new Map<string, Relationship[]>();
   private state = "open";
   private result: Promise<Blob> | undefined;
@@ -75,9 +76,19 @@ export class OpcPackage {
   private open(): void { if (this.state !== "open") throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
   private reserve(uri: string, type: string): string {
     this.open(); uri = partUri(uri);
-    if (/\/_rels\//i.test(uri) || uri.toLowerCase() === "/[content_types].xml") throw new TypeError("Package metadata part names are reserved.");
-    if (this.parts.has(uri.toLowerCase())) throw new TypeError("Duplicate OPC part: " + uri);
-    this.types.addOverride(uri, type); return uri;
+    if (/\/_rels(?:\/|$)/i.test(uri) || uri.toLowerCase() === "/[content_types].xml") throw new TypeError("Package metadata part names are reserved.");
+    const key = uri.toLowerCase();
+    if (this.parts.has(key)) throw new TypeError("Duplicate OPC part: " + uri);
+    if (this.directories.has(key)) throw new TypeError("OPC part-name prefix collision: " + uri + " is an ancestor of an existing part.");
+    const ancestors: string[] = [];
+    for (let slash = key.lastIndexOf("/"); slash > 0; slash = key.lastIndexOf("/", slash - 1)) {
+      const ancestor = key.slice(0, slash);
+      if (this.parts.has(ancestor)) throw new TypeError("OPC part-name prefix collision: " + uri + " descends from " + this.parts.get(ancestor)!.uri);
+      ancestors.push(ancestor);
+    }
+    this.types.addOverride(uri, type);
+    for (const ancestor of ancestors) this.directories.add(ancestor);
+    return uri;
   }
   addPart(part: PackagePart): void {
     const uri = this.reserve(part.uri, part.contentType);
@@ -144,7 +155,7 @@ export class OpcPackage {
         await zip.add("[Content_Types].xml", this.source(this.types.toXml()));
         const blob = await zip.toBlob(type); this.state = "complete"; return blob;
       } catch (error) { this.state = "failed"; throw error; }
-      finally { this.parts.clear(); this.relationships.clear(); }
+      finally { this.parts.clear(); this.directories.clear(); this.relationships.clear(); }
     })();
     return this.result;
   }

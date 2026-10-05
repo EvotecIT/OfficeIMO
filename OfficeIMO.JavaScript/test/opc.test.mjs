@@ -48,3 +48,26 @@ test("unreadable Blob parts fail with a typed host error and preserve the native
   await assert.rejects(packageFile.toBlob(), error => error.code === "PLATFORM_UNAVAILABLE" && error.cause?.name === "NotReadableError" && /byte chunks/.test(error.message));
   await assert.rejects(packageFile.toBlob(), { code: "PLATFORM_UNAVAILABLE" });
 });
+
+test("OPC rejects part ancestors and descendants case-insensitively in either registration order", async () => {
+  for (const uris of [["/Data", "/data/child.xml"], ["/DATA/child.xml", "/data"]]) {
+    const packageFile = new OpcPackage({ compression: "store" });
+    packageFile.addPart({ uri: uris[0], contentType: "application/xml", data: "<first/>" });
+    assert.throws(() => packageFile.addPart({ uri: uris[1], contentType: "application/xml", data: "<second/>" }), /prefix collision/i);
+    // A rejected name must not reserve unrelated ancestors or break the existing package.
+    packageFile.addPart({ uri: "/database/child.xml", contentType: "application/xml", data: "<sibling/>" });
+    assert.equal((await readZip(await packageFile.toBlob())).size, 3);
+  }
+});
+
+test("OPC protects generated property and relationship metadata paths", () => {
+  const properties = new OpcPackage(); properties.setProperties();
+  for (const uri of ["/DOCPROPS", "/docProps/core.xml/child.xml", "/docProps/app.xml/child.xml"])
+    assert.throws(() => properties.addPart({ uri, contentType: "application/xml", data: "<data/>" }), /prefix collision/i);
+  const reverse = new OpcPackage(); reverse.addPart({ uri: "/docProps", contentType: "application/xml", data: "<data/>" });
+  assert.throws(() => reverse.setProperties(), /prefix collision/i);
+  for (const uri of ["/_RELS", "/word/_rels", "/word/_RELS/document.xml.rels/child.xml"])
+    assert.throws(() => new OpcPackage().addPart({ uri, contentType: "application/xml", data: "<data/>" }), /reserved/i);
+  for (const uri of ["/[Content_Types].xml", "/[Content_Types].xml/child.xml"])
+    assert.throws(() => new OpcPackage().addPart({ uri, contentType: "application/xml", data: "<data/>" }));
+});
