@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "measuredUtc": "2026-10-03T11:52:17.568454+00:00",
   "scope": "Two static math milestones: font glyph construction and per-glyph placement",
-  "status": "Static math construction/placement, independent rendered artifacts and packed consumers qualified within the declared subset; combined-source platform performance budgets failed and qualified long-lived adoption remains open",
+  "status": "Static math source, independent font/browser artifacts and current packed consumers audited within the declared subset; current hosted package/budget acceptance and qualified long-lived adoption remain open. Historical failed measurements remain retained.",
   "source": {
     "implementationCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
     "baseCommit": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
@@ -408,7 +408,8 @@
     ],
     "outputAllocationsMemoryCancellation": "All retained runs pass these unchanged ceilings; output fingerprint matches the prior qualified constant-metrics baseline.",
     "timingLimit": "Unrelated compiler/simulator activity was observed during earlier runs. Latest cold process passes but all three warm iterations fail. A timing regression is not excluded by unchanged deterministic output or allocation counts.",
-    "nextCheck": "Recheck after a quiet interval. If failure persists without contention, run an equivalent prior-source/package control and investigate before integration; do not repeatedly retry or relax ceilings."
+    "nextCheck": "Inspect current 44027 same-runner candidate/control run 37315963943 at or after 2026-10-05T14:45:00Z. Interpret actual packages/test/budget artifacts; investigate comparable failures without relaxing ceilings or repeating until green.",
+    "historicalScope": "Original 395d5ce48 local attempts; preserved failures. This section is not the current combined-source measurement gate."
   },
   "remainingMathScopes": [
     "Variable-font MATH metrics",
@@ -549,53 +550,53 @@
     "requirements": [
       {
         "requirement": "Bounded variants/assemblies for radicals, fences and large operators",
-        "proof": "Original named-font metadata/oracles and browser fixtures retain exact hashes; construction tests and current public radical/accent consumer pass",
+        "proof": "Original fontTools, STIX/synthetic and sixteen-case browser artifacts rechecked: all 29 recorded artifact hashes exact. All 18 current math-owner blobs match the latest combined audit; three resolver changes match the previously audited numeric-face source. Fresh 44027 public packed radical/accent consumers pass on net8/net10.",
         "status": "proven within declared static subset"
       },
       {
         "requirement": "Italic correction, accent attachment and math kerning",
-        "proof": "Glyph placement/metadata source blobs unchanged; original complete STIX/synthetic tables and 16-case browser proof preserved, current placement tests pass",
+        "proof": "Glyph-placement and metadata blobs retain their original implementations. Named construction/placement/fallback tests and independent font/browser receipts remain preserved; current HTML full suites contain 127 Math-named passing results per framework.",
         "status": "proven within declared static subset"
       },
       {
         "requirement": "One shared Core/font owner, thin HTML and retained providers",
-        "proof": "Core source/nuspec and current static graph inspected; normal four-target Core package has no external runtime dependencies",
+        "proof": "All 19 retained 44027 packages and their included owner DLLs rehashed against origin receipts. Four-target Core nuspec contains zero external runtime dependencies. Retained parser/scripting providers are unchanged by this math work.",
         "status": "proven; no production dependency changed"
       },
       {
         "requirement": "Fallback/opt-out/cancellation/resource bounds",
-        "proof": "Current named construction, placement and cancellation results are retained in the Math-named TRX subset; authored fallback and invalid metadata contracts remain in source",
-        "status": "current managed contracts proven"
+        "proof": "Current authored opt-out, malformed records and cancellation contracts inspected. Original Drawing TRX retains 89 Math-named passing cases/framework; later numeric-face proof is separate. No new production hook or bounds exception added. Current-source hosted Drawing lane remains pending.",
+        "status": "original managed contracts and current integration proven; current hosted lane pending"
       },
       {
         "requirement": "Formula/ActualText/attachment preservation",
-        "proof": "Current combined-source profile machine results, H4 and eighteen-case semantic/decoded attachment checks in master-owner-convergence-20261004.json",
-        "status": "machine/artifact proof; no manual accessibility claim"
+        "proof": "Original machine PDF/A3b and combined UA/A3b receipts hash-exact. Current b40 H4 eight and static eighteen cases preserve full PDF text/formulas/decoded attachments/URI links across 36 PDFs; current combined PDF 8,788 per framework and actual 106-page route paint controls pass. Machine-profile receipts are historical, not a new current-source veraPDF run.",
+        "status": "machine/artifact proof within recorded sources; no manual accessibility claim"
       },
       {
         "requirement": "Risk-appropriate independent review and meaningful regression closure",
-        "proof": "Original math/PDF full+targeted reviews and later convergence font/raster plus bounded-PDF reviews retained; current numeric-face regressions directly exercised",
-        "status": "coverage current for implemented contracts; no new product code in this audit"
+        "proof": "Original math/PDF owner full+targeted review, convergence font/raster and affine/numeric carrier full+targeted closure are retained. All reproduced findings addressed; this reconciliation changes evidence only.",
+        "status": "coverage current for implemented contracts"
       },
       {
         "requirement": "Framework and packed-consumer qualification",
-        "proof": "Current full Drawing/HTML/PDF net8/net10 proof plus fresh exact-origin Core public math consumer on both runtimes; four-target package retained",
-        "status": "net8/net10 execution proven; net472/netstandard remain pack/build scope on this Mac"
+        "proof": "Combined HTML 4,367 and PDF 8,788 pass each net8/net10. Normal 44027 feed contains 19 packages across four targets; two canonical consumers and the unchanged public math consumer execute net8/net10 with exact package/DLL/font hashes. Native net472 execution is required from current Windows hosted lane.",
+        "status": "net8/net10 execution and four-target packing proven; current hosted/native lane pending"
       },
       {
         "requirement": "H4/static rendered output and independent fonts/browser",
-        "proof": "Current exact-code-head H4 eight and static eighteen artifacts revalidated after convergence; original named-font browser receipts hash-verified",
-        "status": "bounded corpus proof; no full browser or variable MATH claim"
+        "proof": "Clean b40 H4 eight acceptance and eighteen static cases pass; 36 PDF semantic checks and 18 source-visible character multisets preserved. Original selected-font browser and metadata receipts rechecked exact. No current browser-parity, variable-MATH or full MathML claim.",
+        "status": "bounded corpus/font proof"
       },
       {
         "requirement": "Unchanged opt-in budgets",
-        "proof": "Settled candidate/control run37203264110 retains equivalent same-host workload, output and package receipts. Mac/Windows/Linux elapsed-time budgets, Mac process memory and Windows cold allocation remain failed. Source864317173; later PDF string correction is unmeasured.",
-        "status": "failed measured combined-source budgets; renderer cost remediation and current-source acceptance required"
+        "proof": "Current 44027 candidate/control run 37315963943 dispatched at 13:19:57 UTC; same-runner control d257cecc1. Twenty-one worker/corpus/ceiling/provider/helper files match the control. Results are not checked before 14:45 UTC; historical elapsed/allocation/memory/deadline failures remain retained.",
+        "status": "pending current-source measurements; prior failures remain unresolved until qualified evidence"
       },
       {
         "requirement": "Committed synchronized clean HTML checkpoints and cleanup",
-        "proof": "Milestone/combined source backed up and clean before this audit; long-lived HTML/H10 still40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
-        "status": "pending qualified long-lived adoption; active milestone worktrees preserved"
+        "proof": "Candidate 467b and both long-lived targets inspected clean. Both targets at 40bfe04b are ancestors of the candidate, so a normal fast-forward is possible after qualification. Older math/static checkpoints retain distinct evidence/docs history and must not be reset or removed before unique proof preservation.",
+        "status": "pending qualified long-lived adoption; local preflight complete"
       }
     ],
     "complete": false,
@@ -876,6 +877,35 @@
         "unchangedInputFilesVerified": 21,
         "initialState": "Registered in_progress; full current-source correctness, packages and unchanged measurements await completion.",
         "localTiming": "No current-source timing run under shared host contention. Prior timing/allocation/deadline failures remain visible."
+      },
+      "completionAudit": {
+        "recordedUtc": "2026-10-05T13:45:13.879493+00:00",
+        "auditedSource": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+        "evidenceCheckpointBeforeAudit": "467b7e91fbd7c192da245c4b1cc1eb136ab9f531",
+        "receiptPath": "Ignore/MasterConvergenceQualification/math-goal-audit/current-criteria-receipt-verification-20261005.json",
+        "receiptSha256": "51d478514e5e93bd23aeb8200e471a2a90b44e03a67a5758425149ddde705155",
+        "originalDecisiveReceiptsChecked": 29,
+        "originalDecisiveReceiptsHashExact": true,
+        "currentMathSourceBlobsChecked": 18,
+        "retainedPackagesAndIncludedDllHashesReverified": 19,
+        "coreExternalRuntimeDependencyCount": 0,
+        "currentHtmlMathNamedPassingResultsEachFramework": 127,
+        "originalDrawingMathNamedPassingResultsEachFramework": 89,
+        "publicMathConsumerOriginFontAndSourceReverified": true,
+        "qualifiedSyncPreflight": "Ignore/MasterConvergenceQualification/math-goal-audit/qualified-sync-preflight-20261005.json",
+        "qualifiedSyncPreflightSha256": "0ce89901a57dbacb8688947c119181d40ca72978ab7e55020ba57a566ccb3685",
+        "longLivedBranchesCleanAndFastForwardable": true,
+        "complete": false,
+        "heldSteps": [
+          {
+            "step": "Current hosted packages/native consumer qualification and unchanged budgets",
+            "dependency": "Actual artifacts from run 37315963943; recheck at 2026-10-05T14:45:00Z"
+          },
+          {
+            "step": "Qualified synchronization and final cleanup/completion",
+            "dependency": "Current platform gate above and fresh clean/local+remote ancestry verification"
+          }
+        ]
       }
     }
   }
