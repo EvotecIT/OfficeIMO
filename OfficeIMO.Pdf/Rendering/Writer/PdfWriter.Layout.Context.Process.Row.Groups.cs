@@ -112,6 +112,8 @@ internal static partial class PdfWriter {
         private void EndColumnGroupFragment(ColumnGroup group, double columnX, ref double cursor, ref double remaining, ref double consumed, bool continues = false) {
             if (group.Style != null) {
                 remaining += group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
+                if (!continues && !group.Style.RepeatFragmentDecoration && group.Style.PaddingY > remaining + .001D)
+                    throw new ArgumentException("Element closing padding cannot fit within the available column height.");
                 ConsumeColumnSpace(Math.Min(group.Style.GetFragmentBottomPadding(continues), Math.Max(0D, remaining)), ref cursor, ref remaining, ref consumed);
                 FinalizeContainerFragment(group.Decoration!, cursor, continues);
             }

@@ -8,11 +8,11 @@ internal static partial class PdfWriter {
 
         // Preflight visits containers before their render scopes exist. Preserve the
         // same image content height while recursively measuring those containers.
-        private T MeasureWithContainerPaddingReservation<T>(PdfPanelStyle style, Func<T> measure) {
+        private T MeasureWithContainerPaddingReservation<T>(PdfPanelStyle style, Func<T> measure, bool isContinuation = false) {
             double saved = imageMeasurementReservedHeight;
             double savedTopPadding = containerMeasurementTopPadding;
             double savedBottomInset = containerMeasurementBottomInset;
-            imageMeasurementReservedHeight += style.InitialFragmentImageReservation;
+            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.PaddingY, style.FragmentBottomInset);
             containerMeasurementTopPadding += style.GetFragmentTopPadding(isContinuation: true);
             containerMeasurementBottomInset += style.FragmentBottomInset;
             try {

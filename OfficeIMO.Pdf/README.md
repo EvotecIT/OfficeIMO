@@ -233,6 +233,9 @@ and widow rules within the padded content height.
 moving the next fragment's first line. Closing padding can occupy that space;
 the default inset is zero. Flow images with `ScaleDownToFit` account for the
 panel's padding and inset when choosing their size.
+Continued images use the space available after the first fragment's top padding.
+Final content retains the full closing padding; intermediate fragments keep
+their normal capacity. Content that cannot leave closing space is rejected.
 
 Use a side border's `PdfPanelBorder.Offset` to move its stroke independently of
 the content frame. Positive point values move it outward and negative values

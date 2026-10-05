@@ -567,6 +567,8 @@ internal static partial class PdfWriter {
             double remaining = height;
             while (remaining > 0.001D) {
                 double available = y - currentOpts.MarginBottom;
+                double closingPadding = GetClosingContainerPadding();
+                if (remaining <= available && remaining + closingPadding > available) available -= closingPadding;
                 if (available <= 0.5D) {
                     NewPage();
                     continue;
