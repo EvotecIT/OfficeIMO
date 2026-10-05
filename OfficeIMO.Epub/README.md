@@ -432,6 +432,34 @@ controls and rootfiles cannot be renamed. All changes are staged and validated b
 commit; rejection leaves the publication unchanged. SMIL reference repair does not
 qualify timing or playback. Export signature policy still applies.
 
+`SplitChapter` divides a reflowable XHTML chapter before an identified block. The
+selected block and following content become the next spine item, with a new manifest
+ID, resource path, title, and sibling TOC entry:
+
+```csharp
+publication.SplitChapter("chapter-1", "second-section", "chapter-2",
+    "EPUB/parts/second.xhtml", "Second section");
+```
+
+The operation clones the head and surrounding `body`, `div`, `section`, `article`,
+and `main` containers. Incoming fragment links follow moved IDs; whole-document
+links continue to target the first chapter. IDs on copied containers remain local
+to each chapter, while incoming links to those shared IDs retain the first target.
+Relative assets and links are rebased. Existing TOC nesting, page-list and landmark
+entries are retained with repaired targets; the operation does not reorganize their
+hierarchy. A primary TOC link that targeted moved content is reset to the first
+chapter, and the new sibling targets the split boundary.
+
+Both chapters must retain content. Cuts inside inline, table or list structures,
+and cuts separating local accessibility, form-control, microdata or image-map
+references, are rejected. Splitting
+requires exactly one spine position for the source and the same inspectable-resource
+profile as renaming. Shared manifest resources, fallbacks, media-overlay chapters,
+and fixed-layout chapters require separate policies and are rejected. Validation,
+retention limits and cancellation apply before any retained state changes. The
+operation preserves markup, but changed chapter boundaries can affect pagination,
+CSS counters and layout; assess the result in the intended reading systems.
+
 `EpubWriteReport` identifies preserved, regenerated, and removed entries. Its
 `RenamedEntries` map distinguishes original paths relocated by the rename API from
 content omissions, so a rename alone does not fail `RequireNoLoss`. Explicit
@@ -747,7 +775,8 @@ Preflight reports missing access modes, features, and hazards as errors; missing
 modes and summary are warnings. EPUB 2 discovery metadata is explicitly unchecked.
 
 Newly authored or rewritten content rejects duplicate IDs and unresolved document-local
-ARIA and table-header references. IDs may repeat in separate content documents.
+ARIA, table-header, form-control and microdata ID references, plus missing local image-map
+names. IDs may repeat in separate content documents.
 Manuscript splitting reports a failure when a relationship crosses the resulting
 chapter boundary; keep the related content in one chapter or repair the source.
 `AddDublinCoreMetadata` accepts the standard Dublin Core element names, with exact

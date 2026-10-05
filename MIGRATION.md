@@ -209,6 +209,11 @@ ODT-to-Word conversion enforces aggregate table expansion limits before allocati
 
 ## EPUB reading positions, text, and completeness
 
+Authoring and rewriting reject unresolved document-local ARIA, table-header,
+form-control and microdata ID references, and missing local image-map names. Repair
+the source relationship or keep both ends in the same chapter before splitting.
+For an image map, retain the matching `map name` alongside its `usemap` reference.
+
 EPUB extraction preserves repeated and empty spine positions. Applications that
 deduplicate or count chapters by resource path should use `SpineIndex` or `Order`
 for reading positions and retain path-based identity only for resources.

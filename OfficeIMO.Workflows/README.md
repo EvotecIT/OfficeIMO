@@ -78,6 +78,8 @@ Typed `ImportWordAsync` and `ImportMarkdownAsync` reuse an already loaded source
 `BookProject` owns validated edits: metadata, chapter insertion/removal/reordering,
 chapter titles and XHTML bodies, resource renaming with reference repair, a project stylesheet, and cover selection.
 `RenameResource(manifestId, containerPath)` delegates to the EPUB owner and retains the same undo/redo behavior as other project edits. Its resource-inspection limits are described in the EPUB README.
+
+`SplitChapter(manifestId, boundaryId, newManifestId, newContainerPath, title)` delegates the atomic chapter split to the EPUB owner. The resulting content, navigation and reading-order changes participate in project undo/redo and persistence. See the EPUB README for supported boundaries and reference-repair limits.
 `ApplyEdits` commits a complete editor draft atomically. Invalid or cancelled edits
 retain the previous publication. Deleting a linked chapter requires repairing its
 remaining links first. A blank creator retains the current creator. Package edits

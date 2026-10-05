@@ -21,5 +21,11 @@ non-link grouping labels, a navigation document in the spine, a hidden page list
 covering source pages 169–260, and retained NCX/CSS/image resources. Metadata-edit
 tests compare every non-package payload byte before and after editing.
 
+The chapter-split contract first checks that the original scripted publication is
+rejected without mutation. It then creates an in-memory static derivative by removing
+the navigation script and revealing hidden navigation entries. The independently
+produced chapter remains unchanged before splitting; the test checks complete body
+text, reading order, print-page targets, and both XHTML and NCX navigation afterward.
+
 These are independent-producer read/edit contracts. They do not establish modern
 accessibility conformance or independent-reader presentation of the sample.

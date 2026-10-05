@@ -6,6 +6,11 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
+    /// <summary>Splits a chapter before a block identifier, with reference repair and one undoable transaction.</summary>
+    public void SplitChapter(string manifestId, string boundaryId, string newManifestId, string newContainerPath,
+        string title, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.SplitChapter(manifestId, boundaryId, newManifestId, newContainerPath, title, cancellationToken), cancellationToken);
+
     /// <summary>Moves a publication resource and repairs its references in an undoable project edit.</summary>
     public void RenameResource(string manifestId, string containerPath, CancellationToken cancellationToken = default) =>
         Mutate(publication => publication.RenameResource(manifestId, containerPath, cancellationToken), cancellationToken);

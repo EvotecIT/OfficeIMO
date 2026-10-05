@@ -6,6 +6,23 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class BookProjectTests {
     [Fact]
+    public void ChapterSplitParticipatesInUndoRedoAndProjectPersistence() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<h1>First</h1><p id='cut'>Second</p>");
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        project.SplitChapter("one", "cut", "two", "EPUB/parts/two.xhtml", "Two");
+        Assert.Equal(new[] { "one", "two" }, project.Publication.Spine.Select(item => item.ManifestId));
+        project.Undo();
+        Assert.Single(project.Publication.Spine);
+        Assert.Contains("Second", project.Publication.GetContentXml("one").ToString());
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Equal("EPUB/parts/two.xhtml", reopened.Publication.Read().TableOfContents[1].Target);
+        Assert.Equal("cut", reopened.Publication.Read().TableOfContents[1].Fragment);
+        Assert.DoesNotContain("Second", reopened.Publication.GetContentXml("one").ToString());
+    }
+
+    [Fact]
     public void ResourceRenameRepairsNavigationAndParticipatesInUndoRedo() {
         var project = BookProject.Create("Book");
         string id = project.Publication.Spine[0].ManifestId;

@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private static bool RewriteMovedXmlStylesheets(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token) {
+    private static bool RewriteMovedXmlStylesheets(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token, ContentReferenceMap? map = null) {
         bool changed = false;
         foreach (XProcessingInstruction instruction in document.DescendantNodes().OfType<XProcessingInstruction>()) {
             token.ThrowIfCancellationRequested();
@@ -17,7 +17,7 @@ public sealed partial class EpubPublication {
                 DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = (long)instruction.Data.Length + 32
             })) attributes = XElement.Load(reader, LoadOptions.PreserveWhitespace);
             string href = (string?)attributes.Attribute("href") ?? throw new InvalidDataException("XML stylesheet instruction has no href.");
-            string replacement = RewriteMovedReference(owner, null, destination, null, href, oldPath, newPath);
+            string replacement = RewriteMovedReference(owner, null, destination, null, href, oldPath, newPath, map);
             if (replacement == href) continue;
             const string pattern = @"(?<name>[^\s=]+)\s*=\s*(?:'(?<single>[^']*)'|""(?<double>[^""]*)"")";
             Match match = Regex.Matches(instruction.Data, pattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1))

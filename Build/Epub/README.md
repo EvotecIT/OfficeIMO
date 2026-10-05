@@ -61,6 +61,11 @@ screen page numbers. `renamed-index.epub` moves both chapters and the navigation
 document into new directories, exercising locator, cross-reference and TOC repair.
 Run both artifacts through the independent validators to compare their conformance.
 
+`split-chapter.epub` divides a sectioned chapter into consecutive reading positions,
+with forward, return and incoming links repaired across the new resource boundary.
+Use it to check TOC order and link destinations in independent readers as well as
+with the automated validators.
+
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
   /path/to/task-evidence/typography

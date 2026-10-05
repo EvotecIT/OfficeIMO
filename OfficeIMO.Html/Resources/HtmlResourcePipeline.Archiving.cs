@@ -23,7 +23,11 @@ public static partial class HtmlResourcePipeline {
     /// <param name="css">Stylesheet or inline declaration source.</param>
     /// <param name="rewrite">Maps a decoded source URI and its resource kind to a replacement URI.</param>
     /// <returns>CSS with resource carriers rewritten through the shared CSS scanner.</returns>
-    public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite) {
+    public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite) =>
+        RewriteCssResourceUrls(css, rewrite, includeFragmentReferences: false);
+
+    /// <summary>Rewrites CSS resource URLs, optionally including local fragment references when relocating document content.</summary>
+    public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite, bool includeFragmentReferences) {
         if (css == null) throw new ArgumentNullException(nameof(css));
         if (rewrite == null) throw new ArgumentNullException(nameof(rewrite));
         string normalized = StripCssCommentsOutsideStrings(css);
@@ -38,11 +42,11 @@ public static partial class HtmlResourcePipeline {
             if (!IsValidCssUrlMatch(normalized, match) || !IsCssFunctionNameAt(normalized, match.Index, "url") ||
                 IsInsideCssString(normalized, match.Index) || imports.Any(import => match.Index >= import.Start && match.Index < import.End)) continue;
             string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
-            if (IsFragmentOnlyReference(source)) continue;
+            if (!includeFragmentReferences && IsFragmentOnlyReference(source)) continue;
             replacements.Add((match.Index, match.Index + match.Length, "url(" + Quote(rewrite(source, ClassifyCssUrl(normalized, match.Index))) + ")"));
         }
         foreach (CssStringUrlReference image in ExtractImageSetStringUrls(normalized)) {
-            if (IsFragmentOnlyReference(image.Source)) continue;
+            if (!includeFragmentReferences && IsFragmentOnlyReference(image.Source)) continue;
             replacements.Add((image.SourceStart - 1, image.End, Quote(rewrite(DecodeCssEscapes(image.Source), HtmlResourceKind.Image))));
         }
         var output = new StringBuilder(normalized);

@@ -4,7 +4,19 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
+    private void VerifyAvailableContainerPath(string newPath, string? excludedPath = null) {
+        string normalizedDestination = newPath.Normalize(NormalizationForm.FormC);
+        if (_entries.Keys.Concat(new[] { PackagePath }).Where(path => path != excludedPath).Any(path => {
+            string existing = path.Normalize(NormalizationForm.FormC);
+            return string.Equals(existing.TrimEnd('/'), normalizedDestination, StringComparison.OrdinalIgnoreCase) ||
+                existing.StartsWith(normalizedDestination + "/", StringComparison.OrdinalIgnoreCase) ||
+                (!existing.EndsWith("/", StringComparison.Ordinal) && normalizedDestination.StartsWith(existing + "/", StringComparison.OrdinalIgnoreCase));
+        }))
+            throw new ArgumentException("The destination collides with an existing container path.", nameof(newPath));
+    }
+
     private readonly Dictionary<string, string> _entryOrigins;
+    private delegate (string Path, string? Fragment) ContentReferenceMap(EpubReference reference);
     /// <summary>
     /// Moves a local resource and repairs standard package, XHTML, SVG, NCX, SMIL and CSS references
     /// atomically. Manifest identifiers and spine positions remain unchanged. Requires one rendition,
@@ -19,14 +31,7 @@ public sealed partial class EpubPublication {
         if (oldPath == newPath) return;
         if (_rootfilePaths.Length != 1 || _encryption.Count != 0)
             throw new NotSupportedException("Resource renaming requires one rendition with no encrypted or obfuscated resources.");
-        string normalizedDestination = newPath.Normalize(NormalizationForm.FormC);
-        if (_entries.Keys.Concat(new[] { PackagePath }).Where(path => path != oldPath).Any(path => {
-            string existing = path.Normalize(NormalizationForm.FormC);
-            return string.Equals(existing.TrimEnd('/'), normalizedDestination, StringComparison.OrdinalIgnoreCase) ||
-                existing.StartsWith(normalizedDestination + "/", StringComparison.OrdinalIgnoreCase) ||
-                (!existing.EndsWith("/", StringComparison.Ordinal) && normalizedDestination.StartsWith(existing + "/", StringComparison.OrdinalIgnoreCase));
-        }))
-            throw new ArgumentException("The destination collides with an existing container path.", nameof(containerPath));
+        VerifyAvailableContainerPath(newPath, oldPath);
         EpubManifestItem[] manifest = Manifest.ToArray();
         if (manifest.Any(item => HasToken(item.Properties, "scripted") || IsScriptMediaType(item.MediaType)))
             throw new NotSupportedException("Scripted publications cannot be renamed safely.");
@@ -52,30 +57,7 @@ public sealed partial class EpubPublication {
             string[] types = group.Select(item => item.MediaType).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             if (types.Length != 1) throw new NotSupportedException("Renaming requires an unambiguous media type for every resource.");
             if (!_entries.TryGetValue(path, out byte[]? payload)) throw new InvalidDataException("Resource is missing: " + path);
-            string type = types[0];
-            byte[] rewritten = payload;
-            if (HasMediaType(type, "text/css")) {
-                if (!HtmlResourcePipeline.TryDecodeStylesheet(payload, "text/css", out string css)) throw new InvalidDataException("Stylesheet cannot be decoded: " + path);
-                string result = RewriteMovedCss(css, value => RewriteMovedReference(path, null, destination, null, value, oldPath, newPath));
-                if (result != css) {
-                    // The shared decoder has consumed any source encoding. Emit matching UTF-8 bytes and declaration.
-                    if (result.TrimStart().StartsWith("@charset", StringComparison.OrdinalIgnoreCase)) {
-                        int end = result.IndexOf(';');
-                        if (end >= 0) result = "@charset \"UTF-8\";" + result.Substring(end + 1);
-                    }
-                    rewritten = new UTF8Encoding(false, true).GetBytes(result);
-                }
-            } else if (IsRenameXml(type)) {
-                XDocument document = ParseXml(payload, _maximumEntryBytes);
-                XName expected = HasMediaType(type, "application/xhtml+xml") ? Html + "html" : HasMediaType(type, "image/svg+xml") ?
-                    XName.Get("svg", "http://www.w3.org/2000/svg") : HasMediaType(type, "application/smil+xml") ?
-                    XName.Get("smil", "http://www.w3.org/ns/SMIL") : Ncx + "ncx";
-                if (document.Root?.Name != expected) throw new InvalidDataException("Resource XML root does not match its media type: " + path);
-                if (RewriteMovedXml(document, path, destination, oldPath, newPath, cancellationToken))
-                    rewritten = SerializeXml(document, _maximumEntryBytes);
-            } else if (!IsRenameLeaf(type)) {
-                throw new NotSupportedException("Resource renaming cannot inspect references in media type: " + type);
-            }
+            byte[] rewritten = RewritePublicationResource(types[0], payload, path, destination, oldPath, newPath, cancellationToken);
             if (rewritten.LongLength > _maximumEntryBytes) throw new InvalidDataException("Renamed content exceeds its entry-byte limit.");
             if (!ReferenceEquals(payload, rewritten)) EnsureResourceMutationAllowed(path);
             entries[destination] = rewritten;
@@ -104,14 +86,19 @@ public sealed partial class EpubPublication {
         "audio/mpeg", "audio/mp4", "audio/ogg", "audio/wav", "video/mp4", "video/webm", "video/ogg", "font/ttf", "font/otf", "font/woff", "font/woff2",
         "application/vnd.ms-opentype", "application/font-sfnt", "application/font-woff", "text/plain" }.Contains(type, StringComparer.OrdinalIgnoreCase);
 
-    private static string RewriteMovedReference(string owner, string? oldBase, string destination, string? newBase, string value, string oldPath, string newPath) {
-        if (string.IsNullOrWhiteSpace(value)) return value;
-        EpubReference original = EpubReference.Resolve(owner, oldBase, value);
+    private static string RewriteMovedReference(string owner, string? oldBase, string destination, string? newBase, string value, string oldPath, string newPath, ContentReferenceMap? map = null, bool allowEmptyDocumentLink = false) {
+        bool empty = string.IsNullOrWhiteSpace(value);
+        if (empty && !allowEmptyDocumentLink) return value;
+        // Empty hyperlink hrefs resolve to the current base document; the general resource
+        // resolver intentionally rejects empty resource declarations. Keep that distinction.
+        string referenceValue = empty ? "#" : value;
+        EpubReference original = EpubReference.Resolve(owner, oldBase, referenceValue);
         if (!original.IsValid) throw new InvalidDataException("Invalid resource URL in " + owner + ": " + value);
         if (original.Kind != EpubReferenceKind.Container) return value;
-        string target = original.ContainerPath == oldPath ? newPath : original.ContainerPath!;
-        EpubReference current = EpubReference.Resolve(destination, newBase, value);
-        if (current.Kind == EpubReferenceKind.Container && current.ContainerPath == target && current.Query == original.Query && current.Fragment == original.Fragment) return value;
+        var mapped = map == null ? (Path: original.ContainerPath == oldPath ? newPath : original.ContainerPath!, Fragment: original.Fragment) : map(original);
+        string target = mapped.Path;
+        EpubReference current = EpubReference.Resolve(destination, newBase, referenceValue);
+        if (current.Kind == EpubReferenceKind.Container && current.ContainerPath == target && current.Query == original.Query && current.Fragment == mapped.Fragment) return value;
         string relativeOwner = destination;
         if (!string.IsNullOrWhiteSpace(newBase)) {
             EpubReference directory = EpubReference.Resolve(destination, newBase, ".");
@@ -119,14 +106,14 @@ public sealed partial class EpubPublication {
             relativeOwner = directory.ContainerPath!.Length == 0 ? string.Empty : directory.ContainerPath + "/";
         }
         return RelativeHref(relativeOwner, target) + (original.Query == null ? string.Empty : "?" + original.Query) +
-            (original.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(original.Fragment));
+            (mapped.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(mapped.Fragment));
     }
 
-    private static string RewriteMovedCss(string css, Func<string, string> rewrite) {
+    private static string RewriteMovedCss(string css, Func<string, string> rewrite, bool includeFragmentReferences = false) {
         bool changed = false;
         string result = HtmlResourcePipeline.RewriteCssResourceUrls(css, (value, _) => {
             string replacement = rewrite(value); changed |= replacement != value; return replacement;
-        });
+        }, includeFragmentReferences);
         return changed ? result : css;
     }
 }
