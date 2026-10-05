@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    { "name": "empty", "sheets": [] },
+    { "name": "typed-values", "sheets": [
+      { "name": "Data", "columns": [
+        { "header": "Text", "width": 28, "wrapText": true, "alignment": "left" },
+        { "header": "Number", "type": "number", "format": "0.00" },
+        { "header": "Date", "type": "date", "format": "yyyy-mm-dd hh:mm" },
+        { "header": "Boolean", "type": "boolean" }, { "header": "Empty" }
+      ], "freezeHeader": true, "autoFilter": true, "headerFill": "#D9E1F2",
+        "rows": [["Łódź 🧪 שלום <>&\"'\r\n\t_x0041_\u0001\ud800", -1.25, { "kind": "date", "value": "1900-02-28T12:00:00Z" }, true, null],
+          ["=literal", 12.5, { "kind": "date", "value": "1900-03-01T00:00:00Z" }, false, null]],
+        "expected": { "A2": "Łódź 🧪 שלום <>&\"'\r\n\t_x0041_", "B2": -1.25, "C2": { "kind": "date", "value": "1900-02-28T12:00:00Z" }, "D2": true,
+          "A3": "=literal", "B3": 12.5, "C3": { "kind": "date", "value": "1900-03-01T00:00:00Z" }, "D3": false } }
+    ] },
+    { "name": "projection", "sheets": [
+      { "name": "Objects", "columns": [{ "header": "Name", "key": "name" }, { "header": "Literal dot", "key": "a.b" }],
+        "rows": [{ "name": "DC01", "a.b": "dot" }, { "name": "DC02" }], "expected": { "A2": "DC01", "B2": "dot", "A3": "DC02" } },
+      { "name": "One", "columns": [{ "header": "V" }], "includeHeader": false, "rows": [["one"]], "expected": { "A1": "one" } }
+    ] },
+    { "name": "styles-custom", "styles": [
+      { "font": { "name": "Calibri", "size": 12, "bold": true, "italic": true, "color": "#123456" }, "fill": { "color": "#ABCDEF" },
+        "border": { "bottom": { "style": "thin", "color": "#123456" } }, "numberFormat": "0.00", "alignment": "right", "wrapText": true }
+    ], "parts": [{ "uri": "/customXml/item1.xml", "contentType": "application/xml", "data": "<data xmlns=\"urn:officeimo:test\">Łódź</data>",
+        "relationship": { "id": "custom", "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" } }],
+      "sheets": [{ "name": "Styles", "columns": [{ "header": "Seconds", "type": "milliseconds", "style": 0, "format": "0.000" }],
+        "rows": [["1250"], [2500]], "expected": { "A2": 1.25, "A3": 2.5 } }] },
+    { "name": "cell-style", "styles": [{ "font": { "bold": true }, "numberFormat": "0.00%" }],
+      "sheets": [{ "name": "Cells", "columns": [{ "header": "Value" }], "rows": [[{ "kind": "cell", "value": 0.25, "style": 0 }]], "expected": { "A2": 0.25 } }] },
+    { "name": "xml-reject-valid", "options": { "invalidCharacterPolicy": "reject" },
+      "sheets": [{ "name": "Data", "columns": [{ "header": "Unicode" }], "rows": [["Zażółć gęślą jaźń 🧪\r\n"]], "expected": { "A2": "Zażółć gęślą jaźń 🧪\r\n" } }] }
+  ]
+}

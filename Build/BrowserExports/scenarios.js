@@ -1,6 +1,8 @@
 // Product assertions; installation, sessions and captures belong to HtmlTinkerX.
 async function emitFixture(name, blob) {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bytes;
+  try { bytes = new Uint8Array(await blob.arrayBuffer()); }
+  catch (error) { throw new Error("Reading fixture " + name + " failed: " + error); }
   let binary = "";
   for (let i = 0; i < bytes.length; i += 16384) binary += String.fromCharCode(...bytes.subarray(i, i + 16384));
   await writeFixture(name, btoa(binary));
@@ -82,7 +84,10 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
     require(consumed === 1048576, "Row limit includes header");
     await rejects(() => book.toBlob(), "RangeError");
   }
-  for (const vector of vectors.cases) await emitFixture(vector.name + ".csv", await writeCsv(vector.rows, vector));
+  for (const vector of vectors.cases) {
+    const rows = vector.rows.map(row => row.map(v => v?.kind === "date" ? new Date(v.value) : v));
+    await emitFixture(vector.name + ".csv", await writeCsv(rows, vector));
+  }
   // The normal classic script also works in a host-owned Blob worker,
   // without introducing a worker-specific product API or another shipped runtime.
   const workerUrl = URL.createObjectURL(new Blob([workerScript, `
@@ -90,9 +95,22 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
     globalThis.onmessage = async ({ data: rows }) => {
       try {
         const columns = [{ header: "Name" }, { header: "Date", type: "date" }, { header: "Value" }, { header: "Healthy" }];
-        const book = createWorkbook({ dateMode: "utc" });
-        await book.addSheet("Worker", { columns }).addRows(rows);
-        postMessage({ xlsx: await book.toBlob(), csv: await writeCsv(rows, { columns }) });
+        async function workbook(data) {
+          const book = createWorkbook({ dateMode: "utc" });
+          await book.addSheet("Worker", { columns }).addRows(rows);
+          book.addPart({ uri: "/customXml/worker.xml", contentType: "application/xml", data,
+            relationship: { id: "workerData", type: OfficeIMO.opc.relationshipTypes.customXml } });
+          return book.toBlob();
+        }
+        const xml = '<data xmlns="urn:worker">Łódź</data>';
+        let xlsx, blobReadError;
+        try { xlsx = await workbook(new Blob([xml])); }
+        catch (error) {
+          if (error.code !== "PLATFORM_UNAVAILABLE" || error.cause?.name !== "NotReadableError") throw error;
+          blobReadError = { code: error.code, cause: error.cause.name, message: error.message };
+          xlsx = await workbook(new TextEncoder().encode(xml));
+        }
+        postMessage({ xlsx, blobReadError, csv: await writeCsv(rows, { columns }) });
       } catch (error) { postMessage({ error: String(error) }); }
     };`], { type: "text/javascript" }));
   const worker = new Worker(workerUrl);
@@ -105,10 +123,13 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
       worker.postMessage([["Łódź", new Date("2026-10-05T12:34:56Z"), -2, true]]);
     });
     require(await data.csv.text() === "Name,Date,Value,Healthy\r\nŁódź,2026-10-05T12:34:56.000Z,-2,True\r\n", "Worker CSV values differ");
+    if (data.blobReadError) require(data.blobReadError.code === "PLATFORM_UNAVAILABLE" && /byte chunks/.test(data.blobReadError.message), "Blocked worker Blob input did not report the host limitation");
+    globalThis.workerBlobReadError = data.blobReadError ?? null;
     await emitFixture("worker.xlsx", data.xlsx);
   } finally { clearTimeout(timeout); worker.terminate(); URL.revokeObjectURL(workerUrl); }
   return { assertions, deflateRaw: (() => { try { return !!new CompressionStream("deflate-raw"); } catch { return false; } })(),
-    rowLimitChecked: !!limits, workerChecked: true, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+    rowLimitChecked: !!limits, workerChecked: true, workerBlobReadError: globalThis.workerBlobReadError,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
 }
 
 async function runScale(format) {

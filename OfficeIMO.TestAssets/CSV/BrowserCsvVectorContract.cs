@@ -22,6 +22,8 @@ internal static class BrowserCsvVectorContract {
             IncludeHeader = !vector.TryGetProperty("includeHeader", out JsonElement header) || header.GetBoolean(),
             Encoding = new UTF8Encoding(vector.TryGetProperty("bom", out JsonElement bom) && bom.GetBoolean()),
             Culture = CultureInfo.InvariantCulture,
+            DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+            UseUtc = true,
             FormulaInjectionPolicy = vector.TryGetProperty("formulaInjectionProtection", out JsonElement protect) && !protect.GetBoolean()
                 ? CsvFormulaInjectionPolicy.Preserve : CsvFormulaInjectionPolicy.Escape
         };
@@ -39,6 +41,8 @@ internal static class BrowserCsvVectorContract {
         JsonValueKind.Number => value.GetDouble(),
         JsonValueKind.True => true,
         JsonValueKind.False => false,
+        JsonValueKind.Object when value.GetProperty("kind").GetString() == "date" =>
+            DateTime.Parse(value.GetProperty("value").GetString()!, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
         _ => throw new InvalidDataException("Unsupported shared CSV vector value.")
     };
 }

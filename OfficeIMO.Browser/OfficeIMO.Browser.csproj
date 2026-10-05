@@ -9,7 +9,7 @@
     <PackageId>OfficeIMO.Browser</PackageId>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>
-    <Description>Embedded dependency-free JavaScript for streaming tabular XLSX and CSV exports in offline reports.</Description>
+    <Description>Embedded classic scripts and standalone modules built from the OfficeIMO TypeScript document libraries.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -19,7 +19,7 @@
     <IsPublishable>true</IsPublishable>
   </PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Assets/*.js;Assets/*.mjs" LogicalName="OfficeIMO.Browser.Assets.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../OfficeIMO.JavaScript/bundles/*.js;../OfficeIMO.JavaScript/bundles/*.mjs" Link="Assets/%(Filename)%(Extension)" LogicalName="OfficeIMO.Browser.Assets.%(Filename)%(Extension)" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

@@ -47,13 +47,14 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - name: Check native JavaScript and embedded assets
+      - name: Check TypeScript, classic bundles and embedded assets
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          node OfficeIMO.Browser/Build/assets.mjs --check
-          node --test OfficeIMO.Browser/tests/*.test.mjs
+          npm ci --ignore-scripts --no-audit --no-fund --prefix OfficeIMO.JavaScript
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh test
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:consumer
           dotnet test OfficeIMO.Browser.Tests/OfficeIMO.Browser.Tests.csproj -c Release --logger trx
       - name: Verify browser workbooks, CSV vectors and offline examples
         shell: pwsh
@@ -61,9 +62,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
-          $example = Join-Path $evidence 'example'
-          dotnet run --project OfficeIMO.Browser.Examples/OfficeIMO.Browser.Examples.csproj -c Release -- $example
-          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'interop') "--example=$example" --limits
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:browser -- (Join-Path $evidence 'browser')
       - name: Verify isolated npm and NuGet consumers
         shell: pwsh
         run: |
@@ -79,7 +78,7 @@ jobs:
         with:
           name: browser-export-contracts
           path: |
-            ${{ runner.temp }}/officeimo-browser-exports/interop
+            ${{ runner.temp }}/officeimo-browser-exports/browser/interop
             ${{ runner.temp }}/officeimo-browser-exports/npm/archive.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/*.tgz
             ${{ runner.temp }}/officeimo-browser-exports/nuget/*.nupkg

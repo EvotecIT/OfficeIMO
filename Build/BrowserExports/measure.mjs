@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { gzipSync, brotliCompressSync, deflateRawSync, constants } from "node:zlib";
-import { createWorkbook } from "../../OfficeIMO.Browser/Assets/officeimo-xlsx.mjs";
-import { readZip } from "../../OfficeIMO.Browser/tests/zip-reader.mjs";
+import { createWorkbook } from "../../OfficeIMO.JavaScript/dist/xlsx/index.js";
+import { readZip } from "../../OfficeIMO.JavaScript/test/zip-reader.mjs";
 
 if (process.argv.length !== 3) throw new Error("Usage: node Build/BrowserExports/measure.mjs <evidence-directory>");
 const output = resolve(process.argv[2]);
@@ -13,7 +13,7 @@ const sizes = [];
 for (const name of ["officeimo-xlsx", "officeimo-csv", "officeimo"]) {
   for (const extension of ["mjs", "js"]) {
     const file = name + "." + extension;
-    const bytes = await readFile(new URL("../../OfficeIMO.Browser/Assets/" + file, import.meta.url));
+    const bytes = await readFile(new URL("../../OfficeIMO.JavaScript/bundles/" + file, import.meta.url));
     sizes.push({ file, bytes: bytes.length, gzip9: gzipSync(bytes, { level: 9 }).length,
       brotli11: brotliCompressSync(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length });
   }

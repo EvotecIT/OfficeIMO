@@ -1,0 +1,66 @@
+#if NET8_0_OR_GREATER
+using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Excel;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Excel;
+
+namespace OfficeIMO.TestAssets;
+
+/// <summary>Shared independent validator for Node and browser-produced TypeScript corpus files.</summary>
+internal static class JavaScriptWorkbookContract {
+    internal static void Verify(string path, JsonElement? spec = null) {
+        using SpreadsheetDocument sdk = SpreadsheetDocument.Open(path, false);
+        string[] errors = new OpenXmlValidator().Validate(sdk).Select(e => e.Description).ToArray();
+        Require(errors.Length == 0, Path.GetFileName(path) + ": " + string.Join("; ", errors));
+        using var model = ExcelDocument.Load(path, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+        var generic = new OfficeDocumentReaderBuilder().AddExcelHandler().Build().ReadDocument(path);
+        Require(generic.Kind == ReaderInputKind.Excel && generic.CapabilitiesUsed.Contains("officeimo.reader.excel.rich-v5"), "The generic Excel adapter did not run.");
+        if (spec is not JsonElement fixture) return;
+        foreach (JsonElement sheet in fixture.GetProperty("sheets").EnumerateArray()) {
+            foreach (JsonProperty expected in sheet.GetProperty("expected").EnumerateObject()) {
+                using var data = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                    SheetName = sheet.GetProperty("name").GetString()!, A1Range = expected.Name + ":" + expected.Name, HasHeaderRow = false
+                });
+                Require(data.Read(), "Expected cell is absent: " + expected.Name);
+                object value = data.GetValue(0);
+                bool equal = expected.Value.ValueKind switch {
+                    JsonValueKind.String => Equals(expected.Value.GetString(), value),
+                    JsonValueKind.Number => Math.Abs(expected.Value.GetDouble() - Convert.ToDouble(value, CultureInfo.InvariantCulture)) < 1e-9,
+                    JsonValueKind.True => Equals(true, value),
+                    JsonValueKind.False => Equals(false, value),
+                    JsonValueKind.Object => Equals(DateTime.SpecifyKind(DateTime.Parse(expected.Value.GetProperty("value").GetString()!, CultureInfo.InvariantCulture,
+                        DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal), DateTimeKind.Unspecified), value),
+                    _ => throw new InvalidDataException("Unsupported expected cell value.")
+                };
+                Require(equal, Path.GetFileName(path) + ": cell " + expected.Name + " differs: " + value);
+            }
+        }
+        if (fixture.GetProperty("name").GetString() == "styles-custom") {
+            WorkbookPart workbook = sdk.WorkbookPart!;
+            Stylesheet styles = workbook.WorkbookStylesPart!.Stylesheet!;
+            Require(styles.Fonts!.Elements<Font>().Any(f => f.Bold is not null && f.Italic is not null && f.Color?.Rgb?.Value == "FF123456"), "Registered font differs.");
+            Require(styles.Borders!.Elements<Border>().Any(b => b.BottomBorder?.Style?.Value == BorderStyleValues.Thin), "Registered border differs.");
+            Require(styles.Fills!.Descendants<ForegroundColor>().Any(f => f.Rgb?.Value == "FFABCDEF"), "Registered fill differs.");
+            Cell cell = workbook.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
+            CellFormat applied = styles.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+            Font font = styles.Fonts.Elements<Font>().ElementAt((int)applied.FontId!.Value);
+            Fill fill = styles.Fills.Elements<Fill>().ElementAt((int)applied.FillId!.Value);
+            Border border = styles.Borders.Elements<Border>().ElementAt((int)applied.BorderId!.Value);
+            Require(font.Bold is not null && font.Italic is not null && font.Color?.Rgb?.Value == "FF123456" &&
+                fill.Descendants<ForegroundColor>().Any(f => f.Rgb?.Value == "FFABCDEF") && border.BottomBorder?.Style?.Value == BorderStyleValues.Thin,
+                "Column style composition lost its font, fill or border.");
+            Require(styles.NumberingFormats!.Elements<NumberingFormat>().Single(f => f.NumberFormatId?.Value == applied.NumberFormatId!.Value).FormatCode?.Value == "0.000",
+                "Column number-format override was not applied.");
+            Require(workbook.CustomXmlParts.Count() == 1, "Custom XML part relationship differs.");
+        }
+    }
+    private static void Require(bool condition, string message) { if (!condition) throw new InvalidDataException(message); }
+}
+#endif

@@ -1,0 +1,133 @@
+import { escapeXml, cleanXml, xmlDeclaration } from "../xml/index.js";
+import type { InvalidCharacterPolicy } from "../xml/index.js";
+import type { Alignment, Column } from "../core/index.js";
+export const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+
+export interface Font { readonly name?: string; readonly size?: number; readonly bold?: boolean; readonly italic?: boolean; readonly color?: string; }
+export interface Fill { readonly pattern?: "none" | "gray125" | "solid"; readonly color?: string; }
+export type BorderLineStyle = "thin" | "medium" | "dashed" | "dotted" | "thick" | "double" | "hair" | "dashDot" | "dashDotDot" | "slantDashDot" | "mediumDashed" | "mediumDashDot" | "mediumDashDotDot";
+export interface BorderEdge { readonly style: BorderLineStyle; readonly color?: string; }
+export interface Border { readonly left?: BorderEdge; readonly right?: BorderEdge; readonly top?: BorderEdge; readonly bottom?: BorderEdge; }
+export interface CellStyle {
+  readonly font?: number | Font;
+  readonly fill?: number | Fill;
+  readonly border?: number | Border;
+  readonly numberFormat?: string | number;
+  readonly wrapText?: boolean;
+  readonly alignment?: Alignment;
+}
+export const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" } as const;
+
+export function colorArgb(value: string): string {
+  if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)) throw new TypeError("Color must be RGB or ARGB hex.");
+  const color = value.replace(/^#/, "").toUpperCase(); return color.length === 6 ? "FF" + color : color;
+}
+function index(value: number, count: number, kind: string): number {
+  if (!Number.isInteger(value) || value < 0 || value >= count) throw new RangeError("Unknown " + kind + " index.");
+  return value;
+}
+function deduplicate<T>(items: T[], item: T): number {
+  const key = JSON.stringify(item), found = items.findIndex(v => JSON.stringify(v) === key);
+  if (found >= 0) return found;
+  items.push(item); return items.length - 1;
+}
+interface RegisteredStyle { font: number; fill: number; border: number; numberFormat: number; wrapText: boolean; alignment: string; }
+
+/** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
+export class StyleRegistry {
+  private readonly fonts: Font[] = [{ name: "Calibri", size: 11, bold: false, italic: false, color: "" }];
+  private readonly fills: Fill[] = [{ pattern: "none", color: "" }, { pattern: "gray125", color: "" }];
+  private readonly borders: Border[] = [{}];
+  private readonly formats = new Map<string, number>();
+  private readonly styles: RegisteredStyle[] = [];
+  private readonly indexes = new Map<string, number>();
+  constructor(private readonly policy: InvalidCharacterPolicy = "strip") { cleanXml("", policy); this.add(); }
+  addFont(font: Font): number {
+    if (font.name !== undefined && typeof font.name !== "string") throw new TypeError("Font name must be a string.");
+    const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
+    if (typeof name !== "string" || !name || name.length > 31) throw new TypeError("Font name must contain 1 through 31 characters.");
+    if (!Number.isFinite(size) || size <= 0 || size > 409) throw new RangeError("Font size must be positive and at most 409.");
+    return deduplicate(this.fonts, { name, size, bold: !!font.bold, italic: !!font.italic, color: font.color ? colorArgb(font.color) : "" });
+  }
+  addFill(fill: Fill): number {
+    const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
+    if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !fill.color) || (pattern !== "solid" && fill.color))
+      throw new TypeError("A solid fill requires a color; none and gray125 have no color.");
+    return deduplicate(this.fills, { pattern, color: fill.color ? colorArgb(fill.color) : "" });
+  }
+  addBorder(border: Border): number {
+    const result: { left?: BorderEdge; right?: BorderEdge; top?: BorderEdge; bottom?: BorderEdge } = {};
+    for (const side of ["left", "right", "top", "bottom"] as const) {
+      const edge = border[side];
+      if (edge) {
+        if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
+          throw new TypeError("Invalid border style.");
+        result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
+      }
+    }
+    return deduplicate(this.borders, result);
+  }
+  addNumberFormat(format: string): number {
+    if (typeof format !== "string" || !format || format.length > 255) throw new TypeError("Number format must contain 1 through 255 characters.");
+    format = cleanXml(format, this.policy);
+    if (!format) throw new TypeError("Number format must contain XML-valid characters.");
+    if (format === "General") return 0;
+    let id = this.formats.get(format);
+    if (id === undefined) {
+      if (this.formats.size >= 65372) throw new RangeError("Too many number formats.");
+      id = this.formats.size + 164; this.formats.set(format, id);
+    }
+    return id;
+  }
+  add(style: CellStyle = {}): number {
+    const font = typeof style.font === "number" ? index(style.font, this.fonts.length, "font") : style.font ? this.addFont(style.font) : 0;
+    const fill = typeof style.fill === "number" ? index(style.fill, this.fills.length, "fill") : style.fill ? this.addFill(style.fill) : 0;
+    const border = typeof style.border === "number" ? index(style.border, this.borders.length, "border") : style.border ? this.addBorder(style.border) : 0;
+    let numberFormat = 0;
+    if (typeof style.numberFormat === "string") numberFormat = this.addNumberFormat(style.numberFormat);
+    else if (style.numberFormat !== undefined) {
+      numberFormat = style.numberFormat;
+      if (!Number.isInteger(numberFormat) || numberFormat < 0 || (numberFormat > 163 && ![...this.formats.values()].includes(numberFormat)))
+        throw new RangeError("Unknown number format index.");
+    }
+    if (style.alignment !== undefined && !["left", "center", "right", "fill", "justify", "distributed"].includes(style.alignment)) throw new TypeError("Invalid horizontal alignment.");
+    const registered = { font, fill, border, numberFormat, wrapText: !!style.wrapText, alignment: style.alignment ?? "" };
+    const key = JSON.stringify(registered), found = this.indexes.get(key);
+    if (found !== undefined) return found;
+    if (this.styles.length >= 64000) throw new RangeError("Workbook exceeds Excel's cell style limit.");
+    const id = this.styles.length; this.styles.push(registered); this.indexes.set(key, id); return id;
+  }
+  validateStyle(id: number): number { return index(id, this.styles.length, "cell style"); }
+  /** @internal Column shorthand and header style composition. */
+  forColumn(column: Column, header = false, fill?: string, date = false): number {
+    const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
+    const format = column.format !== undefined ? column.format || NumberFormats.General : base?.numberFormat || (column.type === "date" || date ? NumberFormats.DateTime : NumberFormats.General);
+    return this.add({
+      ...(base ? { font: base.font, fill: base.fill, border: base.border } : {}),
+      numberFormat: format,
+      wrapText: column.wrapText ?? base?.wrapText ?? false,
+      ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment as Alignment } : {}),
+      ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
+    });
+  }
+  toXml(): string {
+    const fontXml = (f: Font) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + '<sz val="' + f.size + '"/>' +
+      (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeXml(f.name) + '"/></font>';
+    const borderXml = (b: Border) => '<border>' + (["left", "right", "top", "bottom"] as const).map(side => {
+      const edge = b[side]; return edge ? '<' + side + ' style="' + edge.style + '">' + (edge.color ? '<color rgb="' + edge.color + '"/>' : "") + '</' + side + '>' : '<' + side + '/>';
+    }).join("") + '<diagonal/></border>';
+    return xmlDeclaration + '<styleSheet xmlns="' + spreadsheetNamespace + '">' +
+      '<numFmts count="' + this.formats.size + '">' + [...this.formats].map(([format, id]) => '<numFmt numFmtId="' + id + '" formatCode="' + escapeXml(format) + '"/>').join("") + '</numFmts>' +
+      '<fonts count="' + this.fonts.length + '">' + this.fonts.map(fontXml).join("") + '</fonts>' +
+      '<fills count="' + this.fills.length + '">' + this.fills.map(f => '<fill><patternFill patternType="' + f.pattern + '">' +
+        (f.color ? '<fgColor rgb="' + f.color + '"/><bgColor indexed="64"/>' : "") + '</patternFill></fill>').join("") + '</fills>' +
+      '<borders count="' + this.borders.length + '">' + this.borders.map(borderXml).join("") + '</borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="' + this.styles.length + '">' + this.styles.map(s => {
+        const alignment = s.wrapText || s.alignment ? '<alignment' + (s.wrapText ? ' wrapText="1"' : "") + (s.alignment ? ' horizontal="' + s.alignment + '"' : "") + '/>' : "";
+        return '<xf numFmtId="' + s.numberFormat + '" fontId="' + s.font + '" fillId="' + s.fill + '" borderId="' + s.border + '" xfId="0"' +
+          (s.numberFormat ? ' applyNumberFormat="1"' : "") + (s.font ? ' applyFont="1"' : "") + (s.fill ? ' applyFill="1"' : "") +
+          (s.border ? ' applyBorder="1"' : "") + (alignment ? ' applyAlignment="1"' : "") + '>' + alignment + '</xf>';
+      }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  }
+}

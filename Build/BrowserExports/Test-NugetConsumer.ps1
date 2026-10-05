@@ -36,7 +36,7 @@ $packageCache = Join-Path $consumer ('packages/' + [Guid]::NewGuid().ToString('N
 & dotnet restore $consumerProject --source $output --packages $packageCache --force --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Isolated asset package restore failed.' }
 foreach ($framework in 'net8.0','net10.0') {
-    & dotnet run --project $consumerProject -c Release -f $framework --no-restore -- (Join-Path $repository 'OfficeIMO.Browser/Assets')
+    & dotnet run --project $consumerProject -c Release -f $framework --no-restore -- (Join-Path $repository 'OfficeIMO.JavaScript/bundles')
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer failed: $framework" }
 }
 Write-Host "Packed .NET asset consumers passed: OfficeIMO.Browser.$version.nupkg"
