@@ -1970,6 +1970,19 @@
     "sha256": "0a7427ace2ebf512d2921680a7c917e56db6641a0014dda9db7571e3896f65d7",
     "historicalArtifactSource": "fe05c0413",
     "observation": "First-column labels are visibly clipped in the independently rendered five-column XLSX. Saved data is complete; no explicit column widths or wrap flags exist in either table worksheet. Current source owner formats only unspanned two-column generic tables.",
-    "boundary": "Historical native evidence, not current-source acceptance; reproduce a small current public fixture before a patch. Generic worksheet grids do not promise named Excel table objects. Preserve explicit workbook profile metadata and spans separately."
+    "boundary": "Historical native evidence, not current-source acceptance; reproduce a small current public fixture before a patch. Generic worksheet grids do not promise named Excel table objects. Preserve explicit workbook profile metadata and spans separately.",
+    "currentPublicReproduction": {
+      "head": "595767efff0a810dcfb0e90dc1237c266204cf6d",
+      "proof": "Ignore/MasterConvergenceQualification/excel-native-labels-inspection-96d76110c/current-public-native-reproduction.json",
+      "sha256": "4d3da04bdf0909b40606620623daf12c96b1f39e7f7ea6ebb2ae7c63a7b8bf92",
+      "storedCellValues": "Exact after save/reopen, all three fixtures.",
+      "independentAppearance": "Two-column control complete; three/five visibly clip first-column long label against the populated neighbor. No column widths/heights on affected grids; HasLoss false.",
+      "next": "Implement and review bounded default presentation in canonical Excel.Html/Excel sizing owners, then independent before/after native proof. No product sizing code changed in this slice.",
+      "cleanup": {
+        "targets": 15,
+        "bytes": 194891042,
+        "allAbsent": true
+      }
+    }
   }
 }

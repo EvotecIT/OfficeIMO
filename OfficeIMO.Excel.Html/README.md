@@ -5,11 +5,14 @@ First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tabl
 ## Semantic round trips
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Excel.Html;
 
-using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", readOnly: true);
+using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly
+});
 string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
@@ -85,7 +88,7 @@ See the [complete OfficeIMO package map](../README.md) for related formats and c
 
 ## Generic table presentation
 
-Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
+Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Unspanned two-column tables receive content-based widths and wrapped row heights. Other generic grids retain native default widths, so long labels can clip beside populated cells even when their complete values are saved. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
