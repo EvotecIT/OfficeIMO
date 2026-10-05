@@ -66,9 +66,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.GridTemplateRows,
             usesRowSubgrid ? rowTracks.Count + 1 : isRowSubgridOwner ? _activeSubgridRowLineCount : null,
             isRowSubgridOwner ? _activeSubgridRowLineNames : null);
-        int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
-        int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
-        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
+        int explicitColumnCount = Math.Max(columnTracks.Count, areaColumnCount);
+        int explicitRowCount = Math.Max(Math.Max(rowTracks.Count, areaRowCount),
+            isRowSubgridOwner ? Math.Max(0, (_activeSubgridRowLineCount ?? 1) - 1) : 0);
+        columnLineNames = AddGridAreaLineNames(columnLineNames, areas, rows: false);
+        rowLineNames = AddGridAreaLineNames(rowLineNames, areas, rows: true);
+        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, columnLineNames, rowLineNames,
+            out int columnCount, out int rowCount, out int leadingColumnCount, out int leadingRowCount,
+            allowImplicitColumns: !usesColumnSubgrid, allowImplicitRows: !isRowSubgridOwner);
+        PrependImplicitGridTracks(columnTracks, leadingColumnCount, style.GridAutoColumns, contentWidth, true, style, source, "grid-auto-columns");
+        PrependImplicitGridTracks(rowTracks, leadingRowCount, style.GridAutoRows, declaredContentHeight ?? 0D, declaredContentHeight.HasValue, style, source, "grid-auto-rows");
+        columnLineNames = OffsetGridLineNames(columnLineNames, leadingColumnCount);
+        rowLineNames = OffsetGridLineNames(rowLineNames, leadingRowCount);
         if (usesColumnSubgrid) {
             ClampSubgridPlacements(items, columnTracks.Count, rows: false);
             columnCount = columnTracks.Count;
@@ -83,7 +92,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double columnGap = columnCount > 1
             ? usesColumnSubgrid && !style.ColumnGapWasSpecified ? _activeSubgridColumnGap : style.ColumnGap
             : 0D;
-        List<double> columnSizes = ResolveGridTrackSizes(columnTracks, items, contentWidth, columnGap);
+        List<double> columnSizes = ResolveGridTrackSizes(columnTracks, items, contentWidth, columnGap, columnLineNames, rowLineNames, depth);
         GridAxisLayout columns = ResolveGridAxisLayout(columnTracks, columnSizes, contentWidth, columnGap, style.JustifyContent, source, "justify-content");
 
         foreach (GridItem item in items) {
@@ -117,9 +126,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight,
             columns,
             rows,
-            areas,
             columnLineNames,
-            rowLineNames);
+            rowLineNames,
+            explicitColumnCount,
+            explicitRowCount,
+            leadingColumnCount,
+            leadingRowCount);
 
         foreach (GridItem item in items) {
             CheckCancellation();
@@ -376,7 +388,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double deficit = Math.Max(0D, required - current);
             if (deficit <= 0D) continue;
             List<int> flexible = Enumerable.Range(item.Row, item.RowSpan).Where(index => tracks[index].Kind != GridTrackKind.Fixed).ToList();
-            if (flexible.Count == 0) flexible.AddRange(Enumerable.Range(item.Row, item.RowSpan));
+            if (flexible.Count == 0) continue;
             double addition = deficit / flexible.Count;
             foreach (int index in flexible) sizes[index] += addition;
         }

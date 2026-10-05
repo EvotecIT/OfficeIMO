@@ -41,7 +41,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return Math.Min(availableOuterWidth, style.MarginLeft + ResolveBoxWidth(availableBoxWidth, style) + style.MarginRight);
         }
 
-        if (!TryCollectFlexItems(element, availableOuterWidth, style, depth, captureRunningElements: false, out List<FlexItem> formattingItems, out _)) return availableOuterWidth;
+        if (!TryCollectFlexItems(element, availableOuterWidth, style, depth, captureRunningElements: false,
+            out List<FlexItem> formattingItems, out _, registerOutOfFlowElements: false)) return availableOuterWidth;
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         List<GridTrack> tracks = ParseGridTracks(style.GridTemplateColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
         double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
@@ -49,14 +50,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyDictionary<string, GridAreaDefinition> areas = ParseGridTemplateAreas(style.GridTemplateAreas, source, out int areaRowCount, out int areaColumnCount);
         IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(style.GridTemplateColumns);
         IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(style.GridTemplateRows);
-        int explicitColumns = Math.Max(1, Math.Max(tracks.Count, areaColumnCount));
-        int explicitRows = Math.Max(1, Math.Max(rows.Count, areaRowCount));
-        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumns, explicitRows, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out _);
+        int explicitColumns = Math.Max(tracks.Count, areaColumnCount);
+        int explicitRows = Math.Max(rows.Count, areaRowCount);
+        columnLineNames = AddGridAreaLineNames(columnLineNames, areas, rows: false);
+        rowLineNames = AddGridAreaLineNames(rowLineNames, areas, rows: true);
+        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumns, explicitRows, style, source, columnLineNames, rowLineNames,
+            out int columnCount, out _, out int leadingColumnCount, out int leadingRowCount);
+        PrependImplicitGridTracks(tracks, leadingColumnCount, style.GridAutoColumns, availableBoxWidth, true, style, source, "grid-auto-columns");
+        columnLineNames = OffsetGridLineNames(columnLineNames, leadingColumnCount);
+        rowLineNames = OffsetGridLineNames(rowLineNames, leadingRowCount);
         CollapseEmptyAutoFitColumns(style, items, tracks, ref columnCount);
         EnsureGridTrackCount(tracks, columnCount, style.GridAutoColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
         List<double> sizes = ResolveGridIntrinsicTrackBases(
             tracks,
-            items,
+            CollectGridIntrinsicContributions(items, availableBoxWidth, style.ColumnGap, columnLineNames, rowLineNames, depth),
             availableBoxWidth,
             style.ColumnGap,
             includeFractionTracks: true);

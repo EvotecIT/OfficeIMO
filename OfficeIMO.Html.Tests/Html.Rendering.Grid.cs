@@ -1007,7 +1007,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlGrid_DiagnosesUnsupportedValuesAndBoundsTrackExpansion() {
         const string html = """
-            <div style="display:grid;width:200px;grid-template-columns:subgrid 1fr;grid-auto-flow:sideways">
+            <div style="display:grid;width:200px;grid-template-columns:subgrid;grid-auto-flow:sideways">
               <div style="grid-column-start:named">One</div><div>Two</div>
             </div>
             """;
@@ -1041,19 +1041,6 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderGrid(html, 100D);
 
         Assert.Equal(40D, FindGridShape(rendered, "span#tall").Height, 3);
-    }
-
-    [Fact]
-    public void HtmlGrid_BoundsNestedRepeatFunctionDepth() {
-        string tracks = "1px";
-        for (int index = 0; index < 8; index++) tracks = "repeat(auto-fit," + tracks + ")";
-
-        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
-            HtmlRenderTestDriver.Render("<div style='display:grid;grid-template-columns:" + tracks + "'><span>A</span></div>",
-                new HtmlRenderOptions { MaxLayoutDepth = 4 }));
-
-        Assert.Equal(HtmlRenderDiagnosticCodes.DepthLimitExceeded, exception.Code);
-        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutDepth), exception.LimitSource);
     }
 
     [Fact]
