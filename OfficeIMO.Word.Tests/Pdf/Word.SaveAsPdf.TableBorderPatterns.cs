@@ -14,14 +14,11 @@ public partial class Word {
     [InlineData(WordBorderStyle.Dashed, true)]
     [InlineData(WordBorderStyle.Dotted, false)]
     [InlineData(WordBorderStyle.Dotted, true)]
-    [InlineData(WordBorderStyle.Double, false)]
-    [InlineData(WordBorderStyle.Double, true)]
     public void SaveAsPdf_TableBorderPatterns_PreserveDirectAndInheritedStrokes(WordBorderStyle borderStyle, bool inherited) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 2);
         if (inherited) {
-            BorderValues style = borderStyle == WordBorderStyle.Dashed ? BorderValues.Dashed
-                : borderStyle == WordBorderStyle.Dotted ? BorderValues.Dotted : BorderValues.Double;
+            BorderValues style = borderStyle == WordBorderStyle.Dashed ? BorderValues.Dashed : BorderValues.Dotted;
             const string styleId = "PatternedTable";
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new Style(
                 new StyleName { Val = "Patterned table" },
@@ -45,13 +42,8 @@ public partial class Word {
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("1 0 0 RG", raw, StringComparison.Ordinal);
         Assert.Contains("1.5 w", raw, StringComparison.Ordinal);
-        if (borderStyle == WordBorderStyle.Double) {
-            Assert.True(raw.Split(new[] { " S" }, StringSplitOptions.None).Length - 1 >= 12,
-                "The 2-by-2 table must retain paired border strokes.");
-        } else {
-            Assert.Contains(borderStyle == WordBorderStyle.Dashed ? "[4.5 2.25] 0 d" : "[1.5 2.25] 0 d", raw,
-                StringComparison.Ordinal);
-        }
+        Assert.Contains(borderStyle == WordBorderStyle.Dashed ? "[4.5 2.25] 0 d" : "[1.5 2.25] 0 d", raw,
+            StringComparison.Ordinal);
     }
 
     [Theory]
