@@ -668,9 +668,7 @@ internal static partial class PdfWriter {
                 sb.Append(pageImage.InlineDrawToken);
             }
 
-            int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);
-            RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, block.Width, block.Height, item.RotationAngle);
             DrawDebugCanvasItemBox(item.X, bottomY, block.Width, block.Height);
             pageDirty = true;
         }

@@ -119,9 +119,7 @@ namespace OfficeIMO.Excel {
                 requireWorksheetTable: null,
                 metadata => {
                     var baseMetadata = metadata ?? DirectWorksheetMetadata.Empty;
-                    string? sheetViewsXml = topRows == 0 && leftCols == 0
-                        ? null
-                        : CreateFrozenSheetViewsXml(topRows, leftCols, baseMetadata.SheetViewsXml);
+                    string sheetViewsXml = CreateFrozenSheetViewsXml(topRows, leftCols, baseMetadata.SheetViewsXml);
                     return baseMetadata.WithSheetViewsXml(sheetViewsXml);
                 },
                 mergeCapturedMetadata: true);
@@ -219,6 +217,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string CreateFrozenSheetViewsXml(int topRows, int leftCols) {
+            if (topRows == 0 && leftCols == 0) return ExcelSheet.CreateDefaultSheetViews().OuterXml;
             string topLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
             string escapedTopLeftCell = EscapeXmlAttribute(topLeftCell);
             var builder = new StringBuilder(256);
@@ -263,6 +262,7 @@ namespace OfficeIMO.Excel {
         private static void ApplyFrozenPaneToSheetView(SheetView sheetView, int topRows, int leftCols) {
             sheetView.RemoveAllChildren<Pane>();
             sheetView.RemoveAllChildren<Selection>();
+            if (topRows == 0 && leftCols == 0) return;
 
             string topLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
             var pane = new Pane {

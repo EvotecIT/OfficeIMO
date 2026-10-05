@@ -95,7 +95,8 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            GetImageAnnotationBounds(style, pageImage, targetX, targetBottomY, targetWidth, targetHeight, out double x1, out double y1, out double x2, out double y2);
+            GetImageAnnotationBounds(pageImage, out double x1, out double y1, out double x2, out double y2);
+            if (x2 <= x1 || y2 <= y1) return;
 
             currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
         }

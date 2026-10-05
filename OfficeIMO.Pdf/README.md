@@ -62,6 +62,36 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
+## Paragraph font size and line spacing
+
+Paragraphs can use a fallback font size independently of the document default:
+
+```csharp
+var document = PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 });
+document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
+    FontSize = 8,
+    LineSpacing = PdfLineSpacing.Exactly(14),
+    SpacingAfter = 0
+});
+document.Save("fixed-spacing.pdf");
+```
+
+`PdfLineSpacing.Multiple(1.25)` scales the advance with each line's font size.
+`Exactly(14)` keeps a fourteen-point advance even with larger runs or inline
+elements; their painted content can extend beyond the line box. `AtLeast(20,
+naturalMultiplier: 1.2)` uses twenty points for small text and expands when the
+natural text or inline-element height exceeds that minimum. The rule and value
+are readable from the immutable spacing object.
+
+`LineSpacing` overrides the existing `LineHeight` multiplier. Heading and list
+styles accept the same spacing object. Font size and spacing are snapshotted with
+their style and apply consistently to paragraph measurement, pagination and
+rendering in flow, columns and nested frames.
+
+`PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
+on a blank line can expand proportional or minimum spacing; exact spacing keeps
+its fixed advance.
+
 ## Authoring model
 
 `PdfDocumentBuilder` owns document settings and page boundaries.
@@ -625,6 +655,30 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 These recipes compose normal flow, table, and panel primitives. `IPdfContextComponent`
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
+
+### Clipped table-cell fragments
+
+Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a larger cell. The viewport describes the full box, the visible fragment and its offset in one coordinate system. Text wraps and aligns in the full box; the renderer clips it to the fragment. Diagonal borders use the full box too, while ordinary edge borders follow the fragment's configured border style.
+
+```csharp
+var lowerHalf = PdfTableCell.TextCell("Bottom aligned")
+    .WithViewport(new PdfTableCellViewport(
+        contentWidth: 100, contentHeight: 48,
+        width: 100, height: 24, offsetY: 24));
+
+var fragmentStyle = TableStyles.Minimal();
+fragmentStyle.HeaderRowCount = 0;
+fragmentStyle.ColumnWidthPoints = new List<double?> { 100 };
+fragmentStyle.FixedRowHeights = new List<double?> { 24 };
+fragmentStyle.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom };
+
+PdfDocument.Create().Compose(document => document.Page(page =>
+    page.Content(content => content.Item(item =>
+        item.Table(new[] { new[] { lowerHalf } }, style: fragmentStyle)))))
+    .Save("cell-fragment.pdf");
+```
+
+The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Images, data bars and icons retain their full-cell geometry too and clip to each visible fragment. Rotated and cropped images remain visible when their drawn content crosses the fragment, and their links stay inside it. It works in normal flow, column flow and canvas tables. A viewport's complete visible row span must fit on one page; split larger cells into explicit fragments before rendering. A cell with check boxes or form fields rejects a viewport; place interactive fields separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
 
 ### Floating tables
 

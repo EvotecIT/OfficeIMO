@@ -338,70 +338,71 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.GetPageSetup() : null;
                 ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
-                string exportRange = GetExportRange(sheet, workbookSheet, options);
-                string normalizedExportRange = NormalizeA1Range(exportRange);
-                int sourceRows = GetRangeRowCount(normalizedExportRange);
-                string materializedRange = options.MaxRowsPerSheet.HasValue
-                    ? LimitRangeRows(normalizedExportRange, options.MaxRowsPerSheet.Value)
-                    : normalizedExportRange;
-                SheetExportData exportData = ReadSheetExportData(document, sheet, workbookSheet, materializedRange, options, defaultFontFamily);
-                IReadOnlyList<int> manualRowBreaks = options.UseWorksheetPageBreaks && metadataSheet != null
-                    ? metadataSheet.GetManualRowPageBreaks()
-                    : Array.Empty<int>();
-                IReadOnlyList<int> manualColumnBreaks = options.UseWorksheetPageBreaks && metadataSheet != null
-                    ? metadataSheet.GetManualColumnPageBreaks()
-                    : Array.Empty<int>();
-                object?[,] values = exportData.Values;
-                int rows = values.GetLength(0);
-                int columns = values.GetLength(1);
-                bool hasTable = rows > 0 && columns > 0 && HasWorksheetTableContent(exportData);
-                int exportedRows = options.MaxRowsPerSheet.HasValue
-                    ? Math.Min(rows, options.MaxRowsPerSheet.Value)
-                    : rows;
-                if (options.MaxRowsPerSheet.HasValue && sourceRows > exportedRows) {
-                    AddWarning(
-                        options,
-                        sheetName,
-                        "WorksheetRows",
-                        $"Worksheet export was truncated from {sourceRows.ToString(CultureInfo.InvariantCulture)} to {exportedRows.ToString(CultureInfo.InvariantCulture)} rows because MaxRowsPerSheet is set.");
-                }
-                if (boundedRead) {
-                    AddWarning(
-                        options,
-                        sheetName,
-                        "WorksheetBoundedRead",
-                        "The bounded worksheet path preserved values, direct cell styles, and built-in Excel table styles without materializing the full worksheet. Print settings, repeated titles, merges, hyperlinks, conditional formatting, row and column sizing, and worksheet media were not inspected.");
-                }
+                foreach (string exportRange in GetExportRanges(sheet, workbookSheet, options)) {
+                    string normalizedExportRange = NormalizeA1Range(exportRange);
+                    int sourceRows = GetRangeRowCount(normalizedExportRange);
+                    string materializedRange = options.MaxRowsPerSheet.HasValue
+                        ? LimitRangeRows(normalizedExportRange, options.MaxRowsPerSheet.Value)
+                        : normalizedExportRange;
+                    SheetExportData exportData = ReadSheetExportData(document, sheet, workbookSheet, materializedRange, options, defaultFontFamily);
+                    IReadOnlyList<int> manualRowBreaks = options.UseWorksheetPageBreaks && metadataSheet != null
+                        ? metadataSheet.GetManualRowPageBreaks()
+                        : Array.Empty<int>();
+                    IReadOnlyList<int> manualColumnBreaks = options.UseWorksheetPageBreaks && metadataSheet != null
+                        ? metadataSheet.GetManualColumnPageBreaks()
+                        : Array.Empty<int>();
+                    object?[,] values = exportData.Values;
+                    int rows = values.GetLength(0);
+                    int columns = values.GetLength(1);
+                    bool hasTable = rows > 0 && columns > 0 && HasWorksheetTableContent(exportData);
+                    int exportedRows = options.MaxRowsPerSheet.HasValue
+                        ? Math.Min(rows, options.MaxRowsPerSheet.Value)
+                        : rows;
+                    if (options.MaxRowsPerSheet.HasValue && sourceRows > exportedRows) {
+                        AddWarning(
+                            options,
+                            sheetName,
+                            "WorksheetRows",
+                            $"Worksheet export was truncated from {sourceRows.ToString(CultureInfo.InvariantCulture)} to {exportedRows.ToString(CultureInfo.InvariantCulture)} rows because MaxRowsPerSheet is set.");
+                    }
+                    if (boundedRead) {
+                        AddWarning(
+                            options,
+                            sheetName,
+                            "WorksheetBoundedRead",
+                            "The bounded worksheet path preserved values, direct cell styles, and built-in Excel table styles without materializing the full worksheet. Print settings, repeated titles, merges, hyperlinks, conditional formatting, row and column sizing, and worksheet media were not inspected.");
+                    }
 
-                ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
-                bool filterMediaToExportedCells = !boundedRead && HasWorksheetPrintArea(workbookSheet, options) ||
-                                                  options.MaxRowsPerSheet.HasValue ||
-                                                  (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet));
-                IReadOnlyList<WorksheetImageExportData> images = boundedRead
-                    ? Array.Empty<WorksheetImageExportData>()
-                    : FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
-                IReadOnlyList<WorksheetChartExportData> charts = boundedRead
-                    ? Array.Empty<WorksheetChartExportData>()
-                    : FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
-                if (!hasTable && images.Count == 0 && charts.Count == 0) {
-                    continue;
-                }
+                    ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
+                    bool filterMediaToExportedCells = !boundedRead && HasWorksheetPrintArea(workbookSheet, options) ||
+                                                      options.MaxRowsPerSheet.HasValue ||
+                                                      (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet));
+                    IReadOnlyList<WorksheetImageExportData> images = boundedRead
+                        ? Array.Empty<WorksheetImageExportData>()
+                        : FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
+                    IReadOnlyList<WorksheetChartExportData> charts = boundedRead
+                        ? Array.Empty<WorksheetChartExportData>()
+                        : FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
+                    if (!hasTable && images.Count == 0 && charts.Count == 0) {
+                        continue;
+                    }
 
-                bool hasPrintArea = !boundedRead && HasWorksheetPrintArea(workbookSheet, options) && !ContainsMultiplePrintAreas(GetWorksheetPrintArea(workbookSheet, options)!);
-                plans.Add(new WorksheetPdfExportPlan(
-                    sheetName,
-                    pageSetup,
-                    headerFooter,
-                    exportData,
-                    images,
-                    charts,
-                    hasTable,
-                    exportedRows,
-                    manualRowBreaks,
-                    manualColumnBreaks,
-                    CreateSheetBookmarkName(sheetName, plans.Count + 1),
-                    CreateWorksheetGeometry(metadataSheet, normalizedExportRange, options),
-                    hasPrintArea || options.MaxRowsPerSheet.HasValue));
+                    bool hasPrintArea = !boundedRead && HasWorksheetPrintArea(workbookSheet, options);
+                    plans.Add(new WorksheetPdfExportPlan(
+                        sheetName,
+                        pageSetup,
+                        headerFooter,
+                        exportData,
+                        images,
+                        charts,
+                        hasTable,
+                        exportedRows,
+                        manualRowBreaks,
+                        manualColumnBreaks,
+                        CreateSheetBookmarkName(sheetName, plans.Count + 1),
+                        CreateWorksheetGeometry(metadataSheet, normalizedExportRange, options),
+                        hasPrintArea || options.MaxRowsPerSheet.HasValue));
+                }
             }
 
             return plans;
@@ -492,7 +493,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static IReadOnlyDictionary<string, string> BuildSheetDestinationMap(IReadOnlyList<WorksheetPdfExportPlan> exportPlans) {
             var destinations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
-                destinations[plan.SheetName] = plan.BookmarkName;
+                if (!destinations.ContainsKey(plan.SheetName)) destinations.Add(plan.SheetName, plan.BookmarkName);
             }
 
             return destinations;
@@ -521,7 +522,7 @@ namespace OfficeIMO.Excel.Pdf {
                         }
 
                         string key = CreateCellDestinationKey(plan.SheetName, cellReference!);
-                        if (targetCells.Contains(key)) {
+                        if (targetCells.Contains(key) && !destinations.ContainsKey(key)) {
                             destinations[key] = CreateCellBookmarkName(plan.BookmarkName, cellReference!);
                         }
                     }

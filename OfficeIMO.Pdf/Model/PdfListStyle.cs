@@ -6,6 +6,9 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfListStyle {
     private double? _fontSize;
     private double? _lineHeight;
+
+    /// <summary>Explicit line spacing. When set, this overrides <see cref="LineHeight"/>.</summary>
+    public PdfLineSpacing? LineSpacing { get; set; }
     private double _leftIndent;
     private double? _markerGap;
     private double? _markerWidth;
@@ -137,6 +140,7 @@ public sealed class PdfListStyle {
     public PdfListStyle Clone() {
         return new PdfListStyle {
             FontSize = FontSize,
+            LineSpacing = LineSpacing,
             LineHeight = LineHeight,
             LeftIndent = LeftIndent,
             MarkerGap = MarkerGap,
@@ -162,7 +166,7 @@ public sealed class PdfListStyle {
     }
 
     internal double GetLeading(double fontSize) {
-        return fontSize * (LineHeight ?? 1.4D);
+        return LineSpacing?.GetAdvance(fontSize) ?? fontSize * (LineHeight ?? 1.4D);
     }
 
     internal double GetMarkerGap(double defaultGap) {
