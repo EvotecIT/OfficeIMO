@@ -17,7 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var occupancy = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
-            foreach (IElement cell in rows[rowIndex].Children.Where(IsTableCell)) {
+            foreach (IElement cell in EnumerateVisibleTableCells(rows[rowIndex])) {
                 int requestedSpan = ReadSpan(cell.GetAttribute("colspan"), columnCount);
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
@@ -38,7 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ApplyFirstRowAuthoredWidths(IReadOnlyList<IElement> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
         if (rows.Count == 0) return;
         int column = 0;
-        foreach (IElement cell in rows[0].Children.Where(IsTableCell)) {
+        foreach (IElement cell in EnumerateVisibleTableCells(rows[0])) {
             int span = Math.Min(ReadSpan(cell.GetAttribute("colspan"), widths.Length), widths.Length - column);
             if (span <= 0) break;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(cell, contentWidth, tableStyle);

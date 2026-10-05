@@ -200,11 +200,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
-        if (tag == "br") {
-            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
-            return;
-        }
-
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
             // CSS footnote extraction is a paged-media behavior. Continuous output
@@ -214,6 +209,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (tag == "br") {
+            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
+            return;
+        }
         if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }

@@ -555,6 +555,9 @@ public static partial class HtmlComputedStyleEngine {
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
             rules.CustomPropertyRegistrations,
             enforceResolutionLimits: budget.HasDeclarationLimit);
+        // Store the HTML default in the computed snapshot so an explicit
+        // display:inherit can copy a parent's tag default or hidden state.
+        if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
         computed[element] = style;

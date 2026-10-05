@@ -379,7 +379,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computedStyle)) {
             visible = inheritedVisibility;
-            prunesSubtree = false;
+            prunesSubtree = HtmlRenderStyleResolver.ResolveDisplay(element, string.Empty) == "none";
             return true;
         }
 
@@ -389,7 +389,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : visibility == "hidden" || visibility == "collapse"
                 ? false
                 : inheritedVisibility;
-        prunesSubtree = string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
+        prunesSubtree = HtmlRenderStyleResolver.ResolveDisplay(element, computedStyle.GetValue("display")) == "none"
             || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "artifact", StringComparison.OrdinalIgnoreCase)
             || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "none", StringComparison.OrdinalIgnoreCase);
         return true;

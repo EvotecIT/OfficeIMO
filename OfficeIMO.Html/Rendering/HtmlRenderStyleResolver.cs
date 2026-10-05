@@ -149,7 +149,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         OfficeColor color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
-            DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
+            DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
             FontDescriptor = fontDescriptor,
@@ -538,7 +538,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (display == "none" || display == "contents") return false;
         if (display == "block" || display == "table" || display == "list-item" || display == "flex" || display == "grid" || display == "flow-root") return true;
         if (display == "inline" || display == "inline-block" || display == "inline-flex" || display == "inline-grid") return false;
-        return IsDefaultBlockTag(element.TagName);
+        return HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
     }
 
     internal static string DescribeSource(IElement element) {
@@ -637,13 +637,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
-    private static string ResolveDisplay(IElement element, string value) {
+    internal static string ResolveDisplay(IElement element, string value) {
         if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
-        string tag = element.TagName.ToLowerInvariant();
-        if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
-        if (tag == "li") return "list-item";
-        if (tag == "table") return "table";
-        return IsDefaultBlockTag(tag) ? "block" : "inline";
+        return HtmlElementDisplay.GetDefaultValue(element);
     }
 
     private static string ResolvePseudoDisplay(string value) =>
@@ -681,17 +677,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return "none";
     }
 
-    private static bool IsDefaultBlockTag(string tagName) {
-        string tag = tagName.ToLowerInvariant();
-        return tag == "html" || tag == "body" || tag == "address" || tag == "article" || tag == "aside" || tag == "blockquote"
-            || tag == "details" || tag == "dialog" || tag == "div" || tag == "dl" || tag == "dt" || tag == "dd" || tag == "fieldset"
-            || tag == "figcaption" || tag == "figure" || tag == "footer" || tag == "form" || tag == "h1" || tag == "h2" || tag == "h3"
-            || tag == "h4" || tag == "h5" || tag == "h6" || tag == "header" || tag == "hr" || tag == "li" || tag == "main"
-            || tag == "nav" || tag == "ol" || tag == "p" || tag == "pre" || tag == "section" || tag == "summary" || tag == "table"
-            || tag == "ul";
-    }
-
-    internal static bool IsDefaultBlockElement(IElement element) => IsDefaultBlockTag(element.TagName);
+    internal static bool IsDefaultBlockElement(IElement element) => HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
 
     private OfficeColor ResolveColor(IElement element, string value, OfficeColor fallback, bool pseudoElement, string property) {
         string normalized = value.Trim();

@@ -746,7 +746,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool ShouldSkipElement(IElement element) {
         string tag = element.TagName.ToLowerInvariant();
-        if (element.HasAttribute("hidden")) return true;
         if (tag == "input" && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) return true;
         return tag == "head" || tag == "style" || tag == "script" || tag == "template" || tag == "noscript" || tag == "meta" || tag == "link" || tag == "title" || tag == "base";
     }

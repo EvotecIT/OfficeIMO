@@ -150,6 +150,13 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         string trimmed = value.Trim();
+        if (string.Equals(name, "display", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase))) {
+            // Display's CSS initial value is inline, independently of HTML
+            // user-agent defaults. Revert still rolls back to those defaults.
+            return CssKeywordResolution.ForValue("inline");
+        }
         if (string.Equals(trimmed, "inherit", StringComparison.OrdinalIgnoreCase)
             || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && IsInheritedProperty(name, customPropertyRegistrations))) {
             string? inheritedValue;
