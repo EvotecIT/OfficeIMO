@@ -376,6 +376,11 @@ namespace OfficeIMO.Word.Pdf {
             int repeatedHeaderRowCount = GetNativeTableRepeatedHeaderRowCount(table, rowCount);
             style.HeaderRowCount = GetNativeTableVisualHeaderRowCount(table, rowCount, repeatedHeaderRowCount);
             style.RepeatHeaderRowCount = repeatedHeaderRowCount;
+            if (!usesConfiguredDefaultStyle && repeatedHeaderRowCount > 0) {
+                // A repeated source header starts with body content. Removing
+                // presentation row groups must not leave a header by itself.
+                style.MinimumBodyRowsOnFirstPage = 1;
+            }
             if (repeatedHeaderRowCount > 0) {
                 style.PageContinuationSpacingBefore = Math.Max(style.PageContinuationSpacingBefore, NativeTablePageContinuationSpacingBefore);
             }
