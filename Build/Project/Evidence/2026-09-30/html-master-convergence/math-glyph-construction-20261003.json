@@ -570,8 +570,8 @@
       },
       {
         "requirement": "Formula/ActualText/attachment preservation",
-        "proof": "Original machine PDF/A3b and combined UA/A3b receipts hash-exact. Current b40 H4 eight and static eighteen cases preserve full PDF text/formulas/decoded attachments/URI links across 36 PDFs; current combined PDF 8,788 per framework and actual 106-page route paint controls pass. Machine-profile receipts are historical, not a new current-source veraPDF run.",
-        "status": "machine/artifact proof within recorded sources; no manual accessibility claim"
+        "proof": "Current 44027 packed public producer passes four independent veraPDF1.30.2 checks: PDF/A-3b and combined UA1/A3b, linked and unlinked formulas. All six loaded OfficeIMO owner DLLs match the qualified packages. Three pages are pixel-identical to the original395 fixtures; decoded MathML, link geometry and structure roles/descriptions are preserved, formula replacement appears once. Default Poppler geometric text order differs and is explicitly retained as a limitation. H4/static full-content and attachment checks remain qualified.",
+        "status": "current machine/artifact proof; no manual accessibility or global geometric-order claim"
       },
       {
         "requirement": "Risk-appropriate independent review and meaningful regression closure",
@@ -906,6 +906,66 @@
             "dependency": "Current platform gate above and fresh clean/local+remote ancestry verification"
           }
         ]
+      },
+      "currentMachineProfileValidation": {
+        "packageSource": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+        "receipt": "Ignore/MasterConvergenceQualification/math-goal-audit/current-profile-consumer-44027d598/current-profile-receipt.json",
+        "receiptSha256": "1bac343818bab7005754a7176f58cbf425a5087b5c84a32d9a638f0366524083",
+        "validator": "veraPDF1.30.2, isolated existing test tool",
+        "publicProducer": "Original395 named formula/profile producer; owner origin reporting appended only; Release net10 build0warnings/errors",
+        "loadedOwners": 6,
+        "allLoadedOwnerDllsMatchFreshPackageHashes": true,
+        "profiles": [
+          {
+            "file": "PdfA3B.pdf",
+            "sha256": "55d77270be964658c1a78551cfbf45c2403a42cf5bb40f16c098feba7742d06f",
+            "profile": "PDF/A-3b validation profile",
+            "compliant": true,
+            "passedChecks": 2125,
+            "failedChecks": 0
+          },
+          {
+            "file": "PdfUa1WithPdfA3B.pdf",
+            "sha256": "5e702ac456864ef1c88be52616a8adf02a89494187abfa73abb00d85f78d7419",
+            "profile": "PDF/A-3b validation profile",
+            "compliant": true,
+            "passedChecks": 2139,
+            "failedChecks": 0
+          },
+          {
+            "file": "PdfUa1WithPdfA3B.pdf",
+            "sha256": "5e702ac456864ef1c88be52616a8adf02a89494187abfa73abb00d85f78d7419",
+            "profile": "PDF/UA-1 validation profile",
+            "compliant": true,
+            "passedChecks": 553,
+            "failedChecks": 0
+          },
+          {
+            "file": "PdfUa1WithPdfA3BNoLink.pdf",
+            "sha256": "d40e3a0b855213d9c7fe902a62fa573400bfbd8b43c179bc6fac24c8a59113f3",
+            "profile": "PDF/UA-1 validation profile",
+            "compliant": true,
+            "passedChecks": 530,
+            "failedChecks": 0
+          }
+        ],
+        "originalStandaloneUaAttachmentRejectionPreserved": true,
+        "threeProfilePagesPixelIdenticalToOriginal72dpi": true,
+        "threeDecodedAttachmentsLinkGeometryStructureRolesAndDescriptionsPreserved": true,
+        "formulaReplacementExactlyOnceAllProfiles": true,
+        "rawPopplerTextByteIdentical": false,
+        "rawExtractionLimit": "Current title now precedes the formula, but the prefix follows it in default Poppler geometric extraction. Original395 also differed from source order. Full non-whitespace character multisets are equal; no raw/global reading-order or manual-accessibility parity claim. Exact raw texts/diff retained.",
+        "semanticComparisonReceipt": "Ignore/MasterConvergenceQualification/math-goal-audit/current-profile-consumer-44027d598/profile-semantic-comparison.json",
+        "semanticComparisonReceiptSha256": "252ee195ac1237e0e41828635d4fb8cf30e492c39591adaa6958a66dc9a2ba2d",
+        "paintComparisonReceipt": "Ignore/MasterConvergenceQualification/math-goal-audit/current-profile-consumer-44027d598/profile-paint-comparison.json",
+        "paintComparisonReceiptSha256": "23c39d4280f7666cf834e4d9bee54de9a7714fa01f90566355f05d2d0942ae6f",
+        "cleanup": {
+          "generatedTargets": 3,
+          "removedBytes": 139762160,
+          "allAbsent": true,
+          "filesystemExecutionErrorsRecovered": 2,
+          "retainedArtifactBytes": 670890
+        }
       }
     }
   }
