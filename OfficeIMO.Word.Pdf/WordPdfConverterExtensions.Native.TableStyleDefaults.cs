@@ -7,6 +7,9 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
             public NativeLineSpacing LineSpacing { get; init; }
+            // An explicit PDF default supplies missing cell typography while
+            // authored run, paragraph and named table styles retain precedence.
+            public bool UseConfiguredTypography { get; init; }
             public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
@@ -24,12 +27,12 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
             string? styleId = GetNativeTableStyleId(table);
             if (ignoreFallbackTableStyle && IsNativeFallbackTableStyleId(styleId)) {
-                return NativeTableStyleDefaults.Empty;
+                return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = true };
             }
 
             IReadOnlyList<W.Style> styleChain = GetNativeTableStyleChain(table.Document, styleId);
             if (styleChain.Count == 0) {
-                return NativeTableStyleDefaults.Empty;
+                return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = ignoreFallbackTableStyle };
             }
 
             double? marginTop = null;

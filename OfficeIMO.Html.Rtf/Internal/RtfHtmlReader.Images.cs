@@ -15,7 +15,7 @@ internal static partial class RtfHtmlReader {
 
             RtfImage image = EnsureInlineParagraph().AddImage(format, data!);
             image.Description = GetAttribute(token, "alt");
-            ApplyImageSize(token, image);
+            bool intrinsic = ApplyImageSize(token, image);
             var metadata = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-picture"));
             if (metadata.TryGetValue("version", out string? version) && version == "1") {
                 image.SourceWidth = ReadInt(metadata, "SourceWidth");
@@ -28,10 +28,16 @@ internal static partial class RtfHtmlReader {
                 image.CropTopTwips = ReadInt(metadata, "CropTopTwips");
                 image.CropRightTwips = ReadInt(metadata, "CropRightTwips");
                 image.CropBottomTwips = ReadInt(metadata, "CropBottomTwips");
+            } else if (intrinsic && _cell != null) {
+                if (!_intrinsicCellImages.TryGetValue(_cell, out var images)) {
+                    images = new List<(RtfImage Image, IElement Source)>();
+                    _intrinsicCellImages.Add(_cell, images);
+                }
+                images.Add((image, token));
             }
         }
 
-        private void ApplyImageSize(IElement token, RtfImage image) {
+        private bool ApplyImageSize(IElement token, RtfImage image) {
             string? width = GetAttribute(token, "width");
             if (!string.IsNullOrWhiteSpace(width) && HtmlStyleDeclarationParser.TryParseTwips(width!, out int widthTwips)) {
                 image.DesiredWidthTwips = widthTwips;
@@ -59,7 +65,7 @@ internal static partial class RtfHtmlReader {
 
             if (image.DesiredWidthTwips.HasValue || image.DesiredHeightTwips.HasValue ||
                 !OfficeImageReader.TryIdentifyByContent(image.Data, null, out OfficeImageInfo info) ||
-                info.Width <= 0 || info.Height <= 0) return;
+                info.Width <= 0 || info.Height <= 0) return false;
 
             // Resolve the actual section/document text area, using the RTF defaults
             // also materialized by RtfDocument.Merge.Sections for omitted page setup.
@@ -78,7 +84,7 @@ internal static partial class RtfHtmlReader {
             double naturalHeight = info.Height * 1440D / info.DpiY;
             double scale = Math.Min(1D,
                 Math.Min(maxTextWidthTwips / naturalWidth, maxTextHeightTwips / naturalHeight));
-            if (scale >= 1D) return;
+            if (scale >= 1D) return true;
 
             image.SourceWidth = info.Width;
             image.SourceHeight = info.Height;
@@ -87,6 +93,7 @@ internal static partial class RtfHtmlReader {
             _options.AddDiagnostic("HtmlRtfImageFittedToPage",
                 "An unstyled HTML image was proportionally fitted to the RTF page text area.",
                 HtmlRenderStyleResolver.DescribeSource(token), action: RtfConversionAction.Substituted);
+            return true;
         }
 
         private static bool TryParsePositiveInteger(string value, out int result) {

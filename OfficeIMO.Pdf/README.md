@@ -62,6 +62,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
+`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `document.TaggedPdfCatalogMarkers()` to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
+
 ## Paragraph font size and line spacing
 
 Paragraphs can use a fallback font size independently of the document default:
@@ -218,6 +220,23 @@ leave it no positive width. Automatic sizing measures panel text and padding as
 well as ordinary text and fixed-size primitives.
 Columns can contain the normal flow primitives, including rich text, lists,
 tables, images, drawings, form fields, annotations, and `Panel(...)` groups.
+Balanced automatic columns measure nested panels at their child widths and retain
+unfinished semantic and static flow groups with their following siblings. A
+continuing panel repeats its top padding in each column; bottom padding uses the
+space left in that fragment. Lists and table rows use their existing legal breaks,
+including cell keep and widow rules within the padded content height.
+When columns start partway down a page, kept paragraphs, lists, panels and static
+flow groups can move past the partial columns to a full physical page. Headings
+and kept blocks retain their following siblings for final-page balancing.
+`BalanceKeptParagraphLines` allows a kept paragraph longer than a balanced column
+to span columns on one physical page. A kept paragraph that fits the chosen
+column stays whole. This option defaults to `false`; ordinary sequential frames
+retain their keep-together behavior.
+`HonorKeepWithNextWhenBalancing` defaults to `true` and keeps a breakable
+paragraph or list's final line group with the following block while balancing.
+Set it to `false` for source formats whose older layout modes ignore this rule
+in balanced columns. Partial physical pages and ordinary full-height frames
+retain their normal keep-with-next rules.
 Decorated elements, semantic groups, static components, and static flow with
 position capture or keep-together rules work inside rows. Page boundaries,
 sections, layers, automatic multi-column layouts, contextual or conditional flow,
@@ -808,6 +827,45 @@ PdfSaveResult save = PdfDocument.Create(pdf => pdf.Content(content => content
 Console.WriteLine($"Peak page payload: {save.Serialization?.PeakRetainedPageContentBytes}");
 Console.WriteLine($"Object spill used: {save.Serialization?.ObjectBufferSpilled}");
 ```
+
+Equal-width `Columns` balance their final page by default. Set
+`PdfMultiColumnOptions.BalanceTableRowLines = true` to allow a splittable table row
+to continue across balanced columns at legal cell paragraph boundaries. Fragment
+measurement includes cell padding and repeated headers and preserves fitting
+paragraph keep and widow rules. The default balances whole rows; set
+`BalanceLastPage = false` to fill column frames sequentially.
+
+Use `ColumnDefinitions` to give sequential columns different widths and gutters:
+
+```csharp
+var document = PdfDocument.Create().Columns(content =>
+    content.Paragraph(paragraph => paragraph.Text("Text flows through each column in order.")),
+    new PdfMultiColumnOptions {
+        BalanceLastPage = false,
+        Gap = 18,
+        ColumnDefinitions = new[] {
+            new PdfFlowColumn(PdfColumnWidth.Fixed(96), gapAfter: 24),
+            new PdfFlowColumn(PdfColumnWidth.Percent(25)),
+            new PdfFlowColumn(PdfColumnWidth.Relative(1))
+        }
+    });
+document.Save("columns.pdf");
+```
+
+Fixed widths and gutters use points. Percentages use the content width after
+gutters; relative weights divide the remaining width. `GapAfter` overrides `Gap`
+for the following gutter, and the final column has no following gutter. The
+definitions determine `ColumnCount`; an explicitly assigned count must match.
+Widths must leave positive space for every column. Automatic content-sized widths
+are unsupported. Unequal columns fill sequentially; final-page balancing applies
+to equal widths.
+
+When columns begin partway down a page, table keep rules and minimum or fixed row
+heights can move content to the next full page. Kept tables, unsplittable rows and
+complete cell viewports must fit an available physical page. Set
+`FinalColumnSpacingAfter` to add space below the last occupied column after
+balancing. This space preserves the content's column breaks and stops at the
+physical page's bottom margin.
 
 ### Load once and build one semantic read result
 
