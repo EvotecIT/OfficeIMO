@@ -134,6 +134,14 @@ bytes with EPUBCheck, then inspect spread placement, rotation and scaling in tar
 readers. Extracted XHTML can verify CSS canvas geometry in a browser; it does not
 qualify a reader's spine interpretation or assistive-technology behavior.
 
+`fixed-layout-svg.epub` contains an SVG spine page with two linked panels, a title
+and description, and an explicit 800 × 600 viewport. Inspect the actual SVG
+rendering and links; EPUB schema validation does not qualify native reader scaling
+or assistive-technology navigation. Ace 1.4.6 ignores SVG spine documents and can
+report their valid TOC targets as missing (`epub-toc-order`). Retain that result as
+an explicit tool-coverage limitation; do not treat it as an automated accessibility
+pass or remove valid navigation to satisfy the checker.
+
 `read-aloud.epub` pairs two text paragraphs with recorded narration, explicit SMIL
 clip intervals, package durations and active-text styling. The test-only MP3 and
 its source/encoding notes live in `Fixtures/Assets`. Its accessibility summary

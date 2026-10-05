@@ -34,7 +34,7 @@ public enum EpubPageSide {
     Center
 }
 
-/// <summary>EPUB 3 XHTML page canvas and reading-system presentation requests.</summary>
+/// <summary>EPUB 3 XHTML or SVG page canvas and reading-system presentation requests.</summary>
 public sealed class EpubFixedLayoutPage {
     /// <summary>Creates a canvas measured in CSS pixels. Dimensions must be positive.</summary>
     public EpubFixedLayoutPage(int width, int height) { Width = width; Height = height; }
@@ -43,7 +43,7 @@ public sealed class EpubFixedLayoutPage {
     /// <summary>Canvas height in CSS pixels.</summary>
     public int Height { get; }
     /// <summary>
-    /// Complete set of positioned top-level body elements, at most 1024. Empty removes previously
+    /// XHTML-only set of positioned top-level body elements, at most 1024. SVG pages require an empty set. Empty removes previously
     /// generated region rules. Unselected elements retain normal CSS behavior; DOM order is preserved.
     /// </summary>
     public IReadOnlyList<EpubFixedLayoutRegion> Regions { get; set; } = Array.Empty<EpubFixedLayoutRegion>();

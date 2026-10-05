@@ -51,6 +51,7 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
 }
 WriteFixture("read-aloud", MediaOverlayFixture.Create());
 WriteFixture("read-aloud-revised", MediaOverlayFixture.Revised());
+WriteFixture("fixed-layout-svg", SvgPageFixture.Create());
 WriteFixture("fixed-layout-escaped-id", FixedLayoutFixture.EscapedIdentifier());
 WriteFixture("fixed-layout-item-overrides", FixedLayoutFixture.Create(false, false));
 WriteFixture("fixed-layout-ltr", FixedLayoutFixture.Create(false));

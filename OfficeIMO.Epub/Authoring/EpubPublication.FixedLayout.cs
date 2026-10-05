@@ -8,10 +8,11 @@ public sealed partial class EpubPublication {
     private const string FixedLayoutStyleId = "officeimo-fixed-layout-canvas";
 
     /// <summary>
-    /// Atomically configures one EPUB 3 XHTML spine document's viewport, CSS page canvas and
+    /// Atomically configures one EPUB 3 XHTML or SVG spine document's page canvas and
     /// fixed-layout presentation overrides. DOM order, identifiers and semantic relationships remain
     /// unchanged. Existing content CSS may override the canvas rules; verify rendered output in target
-    /// readers. This does not paginate reflowable content or certify accessible reading order.
+    /// readers. SVG replaces width, height and viewBox with a zero-origin viewport without changing
+    /// artwork coordinates; Regions must be empty. This does not paginate reflowable content or certify accessible reading order.
     /// </summary>
     public void SetFixedLayoutPage(string manifestId, EpubFixedLayoutPage page, CancellationToken cancellationToken = default) {
         if (page == null) throw new ArgumentNullException(nameof(page));
@@ -34,7 +35,31 @@ public sealed partial class EpubPublication {
             throw new InvalidDataException("The rendition prefix is mapped to a different vocabulary.");
         XElement[] positions = RequireSection("spine").Elements(Opf + "itemref").Where(item => (string?)item.Attribute("idref") == manifestId).ToArray();
         if (positions.Length != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
-        XDocument document = EditableXhtml(manifestId);
+        EpubManifestItem resource = RequireManifestItem(manifestId);
+        XDocument document;
+        if (HasMediaType(resource.MediaType, "image/svg+xml")) {
+            if (page.Regions == null || page.Regions.Count != 0)
+                throw new NotSupportedException("Positioned XHTML regions do not apply to SVG pages.");
+            document = GetContentXml(manifestId);
+            ValidateContent(document, resource.MediaType);
+            // The requested canvas defines the SVG coordinate viewport. Artwork coordinates,
+            // transforms, preserveAspectRatio and semantic relationships are not rewritten.
+            document.Root!.SetAttributeValue("viewBox", "0 0 " + page.Width.ToString(CultureInfo.InvariantCulture) + " " + page.Height.ToString(CultureInfo.InvariantCulture));
+            document.Root.SetAttributeValue("width", page.Width.ToString(CultureInfo.InvariantCulture));
+            document.Root.SetAttributeValue("height", page.Height.ToString(CultureInfo.InvariantCulture));
+        } else {
+            document = EditableXhtml(manifestId);
+            ConfigureXhtmlCanvas(document, page, cancellationToken);
+        }
+        string[] properties = Tokens((string?)positions[0].Attribute("properties")).Where(token => !IsFixedLayoutOverride(token)).Concat(new[] {
+            "rendition:layout-pre-paginated", "rendition:orientation-" + orientation, "rendition:spread-" + spread
+        }).Concat(side == null ? Array.Empty<string>() : new[] { side }).ToArray();
+        CommitContentEdits(new Dictionary<string, XDocument>(StringComparer.Ordinal) { [manifestId] = document }, cancellationToken,
+            validatePublication: true, packageEdit: root => root.Element(Opf + "spine")!.Elements(Opf + "itemref")
+                .Single(item => (string?)item.Attribute("idref") == manifestId).SetAttributeValue("properties", string.Join(" ", properties)));
+    }
+
+    private void ConfigureXhtmlCanvas(XDocument document, EpubFixedLayoutPage page, CancellationToken cancellationToken) {
         XElement head = document.Root!.Element(Html + "head") ?? throw new InvalidDataException("Content has no XHTML head.");
         if (document.Root.Element(Html + "body") == null) throw new InvalidDataException("Content has no XHTML body.");
         XElement[] viewports = head.Elements(Html + "meta").Where(meta => string.Equals((string?)meta.Attribute("name"), "viewport", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -53,12 +78,6 @@ public sealed partial class EpubPublication {
             FixedLayoutRegionCss(document, page, cancellationToken);
         if (style.Parent != null) style.Remove();
         head.Add(style);
-        string[] properties = Tokens((string?)positions[0].Attribute("properties")).Where(token => !IsFixedLayoutOverride(token)).Concat(new[] {
-            "rendition:layout-pre-paginated", "rendition:orientation-" + orientation, "rendition:spread-" + spread
-        }).Concat(side == null ? Array.Empty<string>() : new[] { side }).ToArray();
-        CommitContentEdits(new Dictionary<string, XDocument>(StringComparer.Ordinal) { [manifestId] = document }, cancellationToken,
-            validatePublication: true, packageEdit: root => root.Element(Opf + "spine")!.Elements(Opf + "itemref")
-                .Single(item => (string?)item.Attribute("idref") == manifestId).SetAttributeValue("properties", string.Join(" ", properties)));
     }
 
     private bool IsFixedLayoutOverride(string token) {

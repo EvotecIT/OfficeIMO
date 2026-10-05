@@ -284,7 +284,7 @@ property; `AddMetadataProperty` adds repeatable values. `AddDublinCoreMetadata` 
 contributors, languages, or other Dublin Core values with optional ids and language.
 EPUB 3 vocabulary prefixes, page progression, and rendition-layout declarations are
 available. `SetRenditionLayout` declares a package default; use
-[`SetFixedLayoutPage`](#fixed-layout-xhtml-pages) for an XHTML page canvas.
+[`SetFixedLayoutPage`](#fixed-layout-xhtml-pages) for an XHTML or SVG page canvas.
 
 Accessibility metadata describes supplied content and does not certify conformance.
 The writer adds SVG and MathML properties discovered in rewritten XHTML and remote-resource
@@ -384,8 +384,8 @@ SVG narration, synthesized speech and playback are outside this authoring profil
 
 ### Fixed-layout XHTML pages
 
-`SetFixedLayoutPage` configures an existing EPUB 3 XHTML spine document with a
-viewport, CSS page canvas and typed presentation overrides:
+`SetFixedLayoutPage` configures an existing EPUB 3 XHTML or SVG spine document.
+For XHTML it creates a viewport, CSS page canvas and typed presentation overrides:
 
 ```csharp
 // For an entirely fixed-layout book, declare the package default too.
@@ -400,6 +400,15 @@ publication.SetFixedLayoutPage("plate", new EpubFixedLayoutPage(800, 600) {
     Regions = new[] { new EpubFixedLayoutRegion("plate-content", 40, 40, 720, 520) }
 });
 ```
+
+For an SVG page, add an `image/svg+xml` resource with `AddResource`, place it in
+reading order with `AddSpineItem`, and include it in `SetNavigation`. The same
+`SetFixedLayoutPage` call sets root `width`, `height` and `viewBox="0 0 width height"`
+and applies the spine overrides. It replaces any prior SVG viewport, including its
+origin; it does not translate or resize the artwork. Child elements, transforms,
+labels, links and `preserveAspectRatio` remain intact. SVG pages require an empty
+`Regions` collection: position artwork with SVG coordinates and transforms.
+Validate scaling, cropping and navigation in the intended reading systems.
 
 Dimensions are positive integer CSS pixels. The method replaces the document's
 single viewport declaration with `width` and `height`, and maintains a dedicated
@@ -445,10 +454,11 @@ of centered alone. Treat mixed layouts and per-page spread overrides as reader-s
 qualification requirements.
 
 Content and spine edits commit together after reference, byte-budget and cancellation
-checks. The API rejects EPUB 2, non-XHTML resources, missing or repeated spine
-positions, multiple viewport declarations, and a conflicting use of its reserved
-`officeimo-fixed-layout-canvas` style identifier. Existing viewport options beyond
-width/height are intentionally replaced. Repeated calls update one canvas stylesheet.
+checks. The API rejects EPUB 2, resources other than XHTML/SVG, and missing or
+repeated spine positions. For XHTML it also rejects multiple viewport declarations
+and a conflicting use of its reserved `officeimo-fixed-layout-canvas` style identifier.
+Existing XHTML viewport options beyond width/height are intentionally replaced.
+Repeated XHTML calls update one canvas stylesheet.
 
 DOM order, identifiers, links and accessibility relationships remain unchanged.
 Supply content in logical reading order; visual coordinates do not establish that
