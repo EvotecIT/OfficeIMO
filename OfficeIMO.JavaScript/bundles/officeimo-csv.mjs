@@ -84,7 +84,7 @@ class BlobByteSink {
         if (this.state !== "open")
             throw new OfficeIMOError("INVALID_STATE", "Byte sink is closed.");
         // A caller may reuse its input buffer as soon as write resolves.
-        this.parts.push(bytes.slice());
+        this.parts.push(new Uint8Array(bytes));
     }
     toBlob(type = "application/octet-stream") {
         if (this.state === "discarded")

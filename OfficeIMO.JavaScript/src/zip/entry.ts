@@ -74,7 +74,7 @@ export class EntryWriter implements ByteSink {
     if (this.closed) throw new OfficeIMOError("INVALID_STATE", "ZIP entry is closed.");
     if (!(bytes instanceof Uint8Array)) throw new TypeError("ZIP chunks must be Uint8Array.");
     this.size = zipSize(this.size + bytes.length); this.crc.update(bytes);
-    if (this.writer) await withAbort(this.writer.write(bytes.slice()), this.signal);
+    if (this.writer) await withAbort(this.writer.write(new Uint8Array(bytes)), this.signal);
     else { await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal); this.compressedSize = this.size; }
   }
   async close(): Promise<EntryInfo> {

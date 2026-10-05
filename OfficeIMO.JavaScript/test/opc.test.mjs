@@ -7,6 +7,9 @@ test("OPC owns content types, relative relationships and core/app property docum
   const packageFile = new OpcPackage({ compression: "store" });
   packageFile.addPart({ uri: "/word/document.xml", contentType: "application/xml", data: "<document/>" });
   packageFile.addPart({ uri: "/customXml/item1.xml", contentType: "application/xml", data: "<custom/>" });
+  const bytes = Buffer.from("<original/>");
+  packageFile.addPart({ uri: "/bytes.xml", contentType: "application/xml", data: bytes });
+  bytes.fill(120);
   packageFile.addRelationship("/", { id: "document", type: relationshipTypes.officeDocument, target: "/word/document.xml" });
   packageFile.addRelationship("/word/document.xml", { id: "custom", type: relationshipTypes.customXml, target: "/customXml/item1.xml" });
   packageFile.setProperties({ creator: "A<&", created: new Date("2026-10-05T00:00:00Z") }, { company: "Evotec" });
@@ -15,6 +18,7 @@ test("OPC owns content types, relative relationships and core/app property docum
   assert.match(zip.get("[Content_Types].xml").content, /PartName="\/word\/document.xml"/);
   assert.match(zip.get("docProps/core.xml").content, /A&lt;&amp;/);
   assert.match(zip.get("docProps/app.xml").content, /Evotec/);
+  assert.equal(zip.get("bytes.xml").content, "<original/>");
   assert.equal(relationshipPartUri("/"), "/_rels/.rels");
   assert.equal(relativePartTarget("/a/b.xml", "/a/c.xml"), "c.xml");
   assert.throws(() => packageFile.addPart({ uri: "/late.xml", contentType: "application/xml", data: "" }), { code: "INVALID_STATE" });

@@ -78,7 +78,7 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("36e87d5e463697cb08888c9075c72e0af272787096fd308fb6891c09c1d3a66e") ?? (() => {
+const _m2 = _modules.get("88c9bd1627ac07a6d1e491b47ce707782b17029f861f98120c1b6ea907ae92a6") ?? (() => {
 const { checkAbort, withAbort, inputRows, pause } = _m1;
 
 const { OfficeIMOError } = _m3;
@@ -92,7 +92,7 @@ class BlobByteSink {
         if (this.state !== "open")
             throw new OfficeIMOError("INVALID_STATE", "Byte sink is closed.");
         // A caller may reuse its input buffer as soon as write resolves.
-        this.parts.push(bytes.slice());
+        this.parts.push(new Uint8Array(bytes));
     }
     toBlob(type = "application/octet-stream") {
         if (this.state === "discarded")
@@ -167,7 +167,7 @@ async function writeBytes(source, sink, signal) {
     }
 }
 const _exports = Object.freeze({ BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("36e87d5e463697cb08888c9075c72e0af272787096fd308fb6891c09c1d3a66e", _exports);
+_modules.set("88c9bd1627ac07a6d1e491b47ce707782b17029f861f98120c1b6ea907ae92a6", _exports);
 return _exports;
 })();
 
@@ -196,7 +196,7 @@ _modules.set("2d47f5dfcd94c4c5981f633c9f90cda28e56d5135e19308a5d0875ffcac57794",
 return _exports;
 })();
 
-const _m5 = _modules.get("063574387ae71580d3955e505b7633d22319f88e6e4762e5082b4899c7318efd") ?? (() => {
+const _m5 = _modules.get("bf316b006cecef93fb2fb4cb481e2926ed30014eccf35dddbf146f410ba2d689") ?? (() => {
 
 
 
@@ -237,11 +237,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("063574387ae71580d3955e505b7633d22319f88e6e4762e5082b4899c7318efd", _exports);
+_modules.set("bf316b006cecef93fb2fb4cb481e2926ed30014eccf35dddbf146f410ba2d689", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("3589e56fd2e33af670cc4fa7d9f2bc78eaba09ae8478038aceed1060dc710d07") ?? (() => {
+const _m0 = _modules.get("d156e9c4284f98467f887e6f6e54e0f2d616d213deb30ec52da063c4fd192180") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink } = _m2;
@@ -318,7 +318,7 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m5.saveBlob, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("3589e56fd2e33af670cc4fa7d9f2bc78eaba09ae8478038aceed1060dc710d07", _exports);
+_modules.set("d156e9c4284f98467f887e6f6e54e0f2d616d213deb30ec52da063c4fd192180", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m5, csv: _m0 });

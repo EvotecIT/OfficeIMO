@@ -9,10 +9,12 @@ test("text sinks preserve Unicode at chunk and append boundaries and await the d
   writer.append("\uddeaשלום"); await writer.close();
   assert.equal(Buffer.concat(chunks).toString("utf8"), "abc🧪שלום");
   assert.ok(chunks.every(c => c.length <= 12));
-  const blob = new BlobByteSink(), bytes = new Uint8Array([1, 2, 3]);
-  await writeBytes(bytes, blob); bytes.fill(0);
-  assert.deepEqual(new Uint8Array(await blob.toBlob().arrayBuffer()), new Uint8Array([1, 2, 3]));
-  assert.throws(() => blob.write(bytes), { code: "INVALID_STATE" });
+  for (const bytes of [new Uint8Array([1, 2, 3]), Buffer.from([1, 2, 3])]) {
+    const blob = new BlobByteSink();
+    await writeBytes(bytes, blob); bytes.fill(0);
+    assert.deepEqual(new Uint8Array(await blob.toBlob().arrayBuffer()), new Uint8Array([1, 2, 3]));
+    assert.throws(() => blob.write(bytes), { code: "INVALID_STATE" });
+  }
 });
 
 test("pending sink cancellation propagates the original reason", async () => {

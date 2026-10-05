@@ -81,7 +81,7 @@ export class OpcPackage {
   }
   addPart(part: PackagePart): void {
     const uri = this.reserve(part.uri, part.contentType);
-    this.parts.set(uri.toLowerCase(), { ...part, uri, data: part.data instanceof Uint8Array ? part.data.slice() : part.data });
+    this.parts.set(uri.toLowerCase(), { ...part, uri, data: part.data instanceof Uint8Array ? new Uint8Array(part.data) : part.data });
   }
   /** @internal */
   addPrepared(uri: string, type: string, prepared: PreparedEntry): void {

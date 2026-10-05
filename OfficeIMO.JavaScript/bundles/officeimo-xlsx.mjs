@@ -129,7 +129,7 @@ class BlobByteSink {
         if (this.state !== "open")
             throw new OfficeIMOError("INVALID_STATE", "Byte sink is closed.");
         // A caller may reuse its input buffer as soon as write resolves.
-        this.parts.push(bytes.slice());
+        this.parts.push(new Uint8Array(bytes));
     }
     toBlob(type = "application/octet-stream") {
         if (this.state === "discarded")
@@ -400,7 +400,7 @@ class EntryWriter {
         this.size = zipSize(this.size + bytes.length);
         this.crc.update(bytes);
         if (this.writer)
-            await withAbort(this.writer.write(bytes.slice()), this.signal);
+            await withAbort(this.writer.write(new Uint8Array(bytes)), this.signal);
         else {
             await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
             this.compressedSize = this.size;
@@ -686,7 +686,7 @@ class OpcPackage {
     }
     addPart(part) {
         const uri = this.reserve(part.uri, part.contentType);
-        this.parts.set(uri.toLowerCase(), { ...part, uri, data: part.data instanceof Uint8Array ? part.data.slice() : part.data });
+        this.parts.set(uri.toLowerCase(), { ...part, uri, data: part.data instanceof Uint8Array ? new Uint8Array(part.data) : part.data });
     }
     /** @internal */
     addPrepared(uri, type, prepared) {
