@@ -18,6 +18,17 @@ public static partial class OfficeIccRasterConverter {
         if (info.Format == OfficeImageFormat.Tiff) {
             return OfficeTiffCodec.TryDecodePage(encoded, effective.FrameIndex, effective, out image, profile, intent);
         }
+        if (info.Format == OfficeImageFormat.JpegXr) {
+            OfficeJpegXrDecoder.Container container;
+            try { container = OfficeJpegXrDecoder.ReadContainer(encoded, effective.CancellationToken); }
+            catch (FormatException) { return false; }
+            catch (OverflowException) { return false; }
+            int channels = container.PixelFormat == 0x08 ? 1 : 3;
+            if (profile.ComponentCount != channels || !OfficeJpegXrDecoder.TryDecode(encoded, effective, out var decodedXr) || decodedXr == null) return false;
+            if (!ConvertImageSamples(decodedXr.PixelBuffer, 4, decodedXr.PixelBuffer, profile, effective, true)) return false;
+            image = decodedXr;
+            return true;
+        }
         if (info.Format == OfficeImageFormat.Jpeg) {
             // Reserve RGBA plus a possible oriented copy while JPEG budgets coefficients and samples.
             if (!OfficeJpegCodec.TryDecodeColorComponents(encoded, null, false, out var samples,

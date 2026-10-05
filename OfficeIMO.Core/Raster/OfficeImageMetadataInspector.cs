@@ -25,6 +25,9 @@ internal static partial class OfficeImageMetadataInspector {
         if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation) &&
             orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
         switch (format) {
+            case OfficeImageFormat.JpegXr:
+                InspectJpegXr(data, snapshot, cancellationToken);
+                break;
             case OfficeImageFormat.Jpeg:
                 InspectJpeg(data, snapshot, retainedManagedBytes, cancellationToken);
                 break;

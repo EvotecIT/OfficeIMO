@@ -32,9 +32,13 @@ internal sealed partial class XpsSvgConverter {
         if (!TileCoordinates(brush, out var source, out var viewport)) { Set(target, attribute, "none"); return; }
         var reference = XpsResourceSyntax.ImageSource((string?)brush.Attribute("ImageSource") ?? throw new InvalidDataException("Missing image source."));
         string name = XpsPackage.Resolve(part, reference.Image), type = _page.Document.ContentType(name);
-        if (type != "image/png" && type != "image/jpeg" && type != "image/tiff") { Loss("Image codec: " + type); return; }
+        if (type != "image/png" && type != "image/jpeg" && type != "image/tiff" && type != "image/jxr" && type != "image/vnd.ms-photo") { Loss("Image codec: " + type); return; }
         byte[] bytes = _page.Document.Part(name);
-        var imageFormat = type == "image/png" ? OfficeIMO.Drawing.OfficeImageFormat.Png : type == "image/jpeg" ? OfficeIMO.Drawing.OfficeImageFormat.Jpeg : OfficeIMO.Drawing.OfficeImageFormat.Tiff;
+        var imageFormat = OfficeIMO.Drawing.OfficeImageInfo.FromMimeType(type);
+        if (imageFormat == OfficeIMO.Drawing.OfficeImageFormat.JpegXr && OfficeIMO.Drawing.OfficeJpegXrDecoder.HasSignature(bytes) &&
+            !OfficeIMO.Drawing.OfficeJpegXrDecoder.TryIdentify(bytes, _token, out _)) {
+            Loss("Unsupported JPEG-XR encoding"); return;
+        }
         if (!OfficeIMO.Drawing.OfficeImageReader.TryIdentifyByContent(bytes, null, _token, out var info, ignoreTiffOrientation: true) || info.Format != imageFormat)
             throw new InvalidDataException("Image resource does not match its declared encoding.");
         double width = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), height = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);

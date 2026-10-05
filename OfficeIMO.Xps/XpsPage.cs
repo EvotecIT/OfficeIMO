@@ -46,13 +46,13 @@ public sealed partial class XpsPage {
             new XAttribute("OriginX", XpsPackage.N(originX)), new XAttribute("OriginY", XpsPackage.N(originY)), new XAttribute("UnicodeString", text.StartsWith("{", StringComparison.Ordinal) ? "{}" + text : text), new XAttribute("Fill", fill)));
         return this;
     }
-    /// <summary>Places an embedded PNG, JPEG or TIFF using an image brush and a rectangular viewport.</summary>
+    /// <summary>Places an embedded PNG, JPEG, TIFF or supported JPEG XR using an image brush and a rectangular viewport.</summary>
     public XpsPage AddImage(string imageUri, double x, double y, double width, double height) {
         ValidateDimension(width); ValidateDimension(height);
         _ = XpsPackage.Number(XpsPackage.N(x)); _ = XpsPackage.Number(XpsPackage.N(y));
         string name = XpsPackage.Resolve(PartName, imageUri);
         string type = Document.ContentType(name);
-        if (type != "image/png" && type != "image/jpeg" && type != "image/tiff") throw new NotSupportedException("The image creation API supports embedded PNG, JPEG and TIFF resources.");
+        if (type != "image/png" && type != "image/jpeg" && type != "image/tiff" && type != "image/jxr" && type != "image/vnd.ms-photo") throw new NotSupportedException("The image creation API supports embedded PNG, JPEG, TIFF and JPEG XR resources.");
         if (!OfficeImageReader.TryIdentifyByContent(Document.Part(name), null, CancellationToken.None, out var info, ignoreTiffOrientation: true))
             throw new NotSupportedException("Image format is not supported.");
         double iw = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), ih = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);

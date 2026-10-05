@@ -521,6 +521,9 @@ if (OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out var page, out v
 
 Set `FrameLossPolicy` to `RejectMultipleFrames` when a static result must not discard animation frames or document pages. Animated WebP pixel composition remains a caller-codec boundary, but its frame inventory is still available for a fail-closed decision.
 
+The managed JPEG XR decoder accepts single-image tagged `.jxr`, `.wdp`, and `.hdp` containers with unsigned eight-bit gray, RGB/BGR, or BGRA pixels. It handles spatial and frequency packet order, lossless and lossy quantization, all three overlap modes, hard and soft tiles, omitted high-frequency bands, trimmed flexbits, and interleaved or separate alpha. Premultiplied alpha becomes straight RGBA, and the container orientation is applied. Encoded bytes, padded coefficient/sample buffers, output, retained caller data, and cancellation share the Core resource limits. Embedded ICC data is available to the color-management layer; ordinary raster decoding returns device channel values. Subsampled chroma, higher bit depths, CMYK/N-channel planes, mixed interleaved alpha subbands, and multiple image directories are outside this decoder contract.
+
+
 ### Optimize encoded images for a placement
 
 `OfficeImageOptimizer` resizes and re-encodes a static raster image for the pixel bounds where it will be used:

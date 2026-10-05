@@ -43,7 +43,7 @@ internal sealed partial class XpsSvgConverter {
             // JPEG and TIFF use the same integer sRGB/gray defaults (M8.30).
             // Decode the supported device samples and remove non-ICC descriptions
             // before an SVG/PDF consumer can apply its own calibration or EXIF rules.
-            if ((format == OfficeImageFormat.Jpeg || format == OfficeImageFormat.Tiff) &&
+            if ((format == OfficeImageFormat.Jpeg || format == OfficeImageFormat.Tiff || format == OfficeImageFormat.JpegXr) &&
                 OfficeRasterImageDecoder.TryDecode(bytes, ImageDecodeOptions(), out raster, out _) && raster != null) return true;
             Loss("Image color metadata without a supported ICC profile"); return false;
         }
@@ -51,7 +51,7 @@ internal sealed partial class XpsSvgConverter {
             !OfficeRasterImageDecoder.TryDecodePngDefault(bytes, ImageDecodeOptions(), out raster)) {
             Loss("PNG static image could not be decoded within the native resource limits"); return false;
         }
-        if (format == OfficeImageFormat.Tiff &&
+        if ((format == OfficeImageFormat.Tiff || format == OfficeImageFormat.JpegXr) &&
             (!OfficeRasterImageDecoder.TryDecode(bytes, ImageDecodeOptions(), out raster, out _) || raster == null)) {
             Loss("Unsupported image encoding or ICC channel configuration"); return false;
         }

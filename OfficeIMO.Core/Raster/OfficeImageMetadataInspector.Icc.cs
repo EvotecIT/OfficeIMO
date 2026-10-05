@@ -14,6 +14,7 @@ internal static partial class OfficeImageMetadataInspector {
         token.ThrowIfCancellationRequested();
         hasProfile = false;
         if (data.Length > OfficeRasterGuards.MaximumEncodedBytes) return null;
+        if (format == OfficeImageFormat.JpegXr) return ReadJpegXrIcc(data, maximumBytes, token, out hasProfile);
         if (format == OfficeImageFormat.Jpeg) {
             var snapshot = new OfficeImageMetadataSnapshot();
             InspectJpeg(data, snapshot, 0, token, maximumBytes);
