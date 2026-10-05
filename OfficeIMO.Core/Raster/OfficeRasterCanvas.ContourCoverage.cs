@@ -51,6 +51,7 @@ public sealed partial class OfficeRasterCanvas {
         int bottom = (int)Math.Min(Height - 1D, Math.Ceiling(maxY) - 1D);
         if (right < left || bottom < top) return;
         int tileLength = Math.Min(right - left + 1, MaximumContourCoverageTileWidth);
+        bool singleTile = right - left + 1 == tileLength;
 #if NET8_0_OR_GREATER
         double[] coverage = ArrayPool<double>.Shared.Rent(tileLength);
 #else
@@ -87,6 +88,7 @@ public sealed partial class OfficeRasterCanvas {
                 if (unionContours != null) AddContourRowEdges(unionContours, y, ref rowEdges, ref rowEdgeCount, true);
                 scanlines.Clear();
                 rowCrossings.Clear();
+                if (singleTile) Array.Clear(coverage, 0, tileLength);
                 int retainedCrossings = 0;
                 for (int index = 1; index < rowBoundaries.Count; index++) {
                     double low = rowBoundaries[index - 1], high = rowBoundaries[index];
@@ -99,16 +101,26 @@ public sealed partial class OfficeRasterCanvas {
                             throw new InvalidOperationException("Contour coverage intersections exceed the rasterization limit.");
                         }
                         retainedCrossings += crossings.Count;
-                        scanlines.Add((high - low, rowCrossings.Count, crossings.Count));
-                        rowCrossings.AddRange(crossings);
+                        // Ordinary glyphs fit one tile. Accumulate in the same
+                        // scanline order without retaining every sample's crossings;
+                        // wide shapes still need those samples for subsequent tiles.
+                        if (singleTile) {
+                            AccumulateContourIntervals(crossings, 0, crossings.Count, fillRule,
+                                left, right, high - low, coverage);
+                        } else {
+                            scanlines.Add((high - low, rowCrossings.Count, crossings.Count));
+                            rowCrossings.AddRange(crossings);
+                        }
                     }
                 }
                 for (int tileLeft = left; tileLeft <= right; tileLeft += tileLength) {
                     int tileRight = Math.Min(right, tileLeft + tileLength - 1);
                     int count = tileRight - tileLeft + 1;
-                    Array.Clear(coverage, 0, count);
-                    foreach ((double weight, int start, int length) in scanlines) {
-                        AccumulateContourIntervals(rowCrossings, start, length, fillRule, tileLeft, tileRight, weight, coverage);
+                    if (!singleTile) {
+                        Array.Clear(coverage, 0, count);
+                        foreach ((double weight, int start, int length) in scanlines) {
+                            AccumulateContourIntervals(rowCrossings, start, length, fillRule, tileLeft, tileRight, weight, coverage);
+                        }
                     }
                     for (int x = tileLeft; x <= tileRight; x++) {
                         double value = coverage[x - tileLeft];
