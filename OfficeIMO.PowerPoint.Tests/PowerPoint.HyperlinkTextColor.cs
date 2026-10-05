@@ -61,6 +61,10 @@ public class PowerPointHyperlinkTextColorTests {
         run.SetHyperlink("https://example.test/replaced");
         Assert.True(run.HyperlinkUsesTextColor);
         run.Color = "FFFFFF";
+        run.Color = null;
+        Assert.Null(run.Color);
+        Assert.True(run.HyperlinkUsesTextColor);
+        run.Color = "FFFFFF";
         run.HyperlinkUsesTextColor = false;
         run.SetHyperlink("https://example.test/theme");
         Assert.False(run.HyperlinkUsesTextColor);
