@@ -51,12 +51,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId)) {
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 return;
             }
 

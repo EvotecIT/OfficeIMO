@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write bookmark end id '{id}' because the matching bookmark start was not found in the same supported story.");
                 }
 
-                if (precedingTableEnd.HasValue && start.StartCharacter < precedingTableEnd.Value) {
+                if (precedingTableEnd.HasValue && start.StartCharacter <= precedingTableEnd.Value) {
                     endCharacter = precedingTableEnd.Value;
                 }
 

@@ -26,11 +26,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (IsTableGridStyle(styleId)) {
-                return ReadSupportedTableGridBorders();
-            }
-
-            if (string.IsNullOrWhiteSpace(styleId) || !tableStyleDefinitions.TryGetValue(styleId!, out Style? style)) {
+            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out Style? style)) {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
@@ -47,13 +43,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (IsTableGridStyle(styleId)) {
-                Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
-                Shading? shading = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
-                return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
-            }
-
-            if (string.IsNullOrWhiteSpace(styleId) || !tableStyleDefinitions.TryGetValue(styleId!, out Style? style)) {
+            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out Style? style)) {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
@@ -134,7 +124,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableFormatting ReadSupportedTableStyleRunFormatting(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             string? styleId = tableStyle?.Val?.Value;
-            if (IsNoOpTableStyle(styleId) || string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+            if (IsNoOpTableStyle(styleId)) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
@@ -154,16 +144,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return null;
             }
 
-            if (IsTableGridStyle(styleId)) {
-                return WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
-            }
-
-            if (string.IsNullOrWhiteSpace(styleId) || !tableStyleDefinitions.TryGetValue(styleId!, out Style? style)) {
+            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out Style? style)) {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
             ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
             return style;
+        }
+
+        private static bool TryResolveTableStyleDefinition(string styleId, IReadOnlyDictionary<string, Style> tableStyleDefinitions, out Style style) {
+            // The document owns authored built-in definitions; library defaults fill only a missing definition.
+            if (tableStyleDefinitions.TryGetValue(styleId, out style!)) {
+                return true;
+            }
+            if (IsTableGridStyle(styleId)) {
+                style = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+                return true;
+            }
+            style = null!;
+            return false;
         }
 
         private static bool IsNoOpTableStyle(string? styleId) {
@@ -236,12 +235,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void ThrowIfUnsupportedTableStyleBase(string styleId, BasedOn basedOn, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
             string? baseStyleId = basedOn.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId)) {
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when its base style can be resolved to supported table-level formatting.");
             }
 
@@ -302,12 +301,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (IsTableGridStyle(baseStyleId)) {
-                return ReadSupportedTableGridBorders();
-            }
-
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 return default;
             }
 
@@ -328,12 +323,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (IsTableGridStyle(baseStyleId)) {
-                return ReadSupportedTableGridShading();
-            }
-
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 return default;
             }
 
@@ -391,12 +382,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            if (IsTableGridStyle(baseStyleId)) {
-                return ReadSupportedTableStyleOwnParagraphFormatting(WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid));
-            }
-
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
@@ -413,12 +400,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableFormatting ReadSupportedTableStyleBaseRunFormatting(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId)) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
@@ -441,12 +428,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Func<T?, T?, T?>? merge = null)
             where T : struct {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId)) {
                 return null;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
                 return null;
             }
 
@@ -611,18 +598,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static OpenXmlCompositeElement? GetSupportedTableStyleRunProperties(Style style) {
             OpenXmlCompositeElement? runProperties = style.StyleRunProperties;
             return runProperties ?? style.GetFirstChild<RunPropertiesBaseStyle>();
-        }
-
-        private static LegacyDocTableBorders ReadSupportedTableGridBorders() {
-            Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
-            TableBorders? borders = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
-            return borders == null ? default : ReadSupportedTableBorders(borders);
-        }
-
-        private static LegacyDocTableCellShading ReadSupportedTableGridShading() {
-            Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
-            Shading? shading = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
-            return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
         }
 
         private static LegacyDocTableBorders MergeSupportedTableBorders(LegacyDocTableBorders ownBorders, LegacyDocTableBorders inheritedBorders) {
