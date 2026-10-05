@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "measuredUtc": "2026-10-03T11:52:17.568454+00:00",
   "scope": "Two static math milestones: font glyph construction and per-glyph placement",
-  "status": "Static math source, independent font/browser artifacts and current packed consumers audited within the declared subset; current hosted package/budget acceptance and qualified long-lived adoption remain open. Historical failed measurements remain retained.",
+  "status": "Static math implementation, independent font/browser proof, current machine profiles and hosted correctness/packages are proven within the declared subset; direct native mathematical execution, unchanged resource budgets and qualified long-lived adoption remain open. Current hosted measurements failed and a bounded raster optimization is under review.",
   "source": {
     "implementationCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
     "baseCommit": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
@@ -876,7 +876,16 @@
         "sameRunnerControl": "d257cecc1651abe58c06740ff29b517d3a3821e1",
         "unchangedInputFilesVerified": 21,
         "initialState": "Registered in_progress; full current-source correctness, packages and unchanged measurements await completion.",
-        "localTiming": "No current-source timing run under shared host contention. Prior timing/allocation/deadline failures remain visible."
+        "localTiming": "No current-source timing run under shared host contention. Prior timing/allocation/deadline failures remain visible.",
+        "completedUtc": "2026-10-05T13:50:15Z",
+        "conclusion": "failure",
+        "correctness": "HTML4367 each net8/net10, installed-font28 each framework, installed math accounting1 each framework and full PDF8788 net10 pass on all three platforms; all21 named TRX scopes inspected, no failed/skipped/zero-test gaps.",
+        "packageProof": "Ignore/MasterConvergenceQualification/platform-44027-20261005/package-origin-receipt.json",
+        "packageProofSha256": "2b34ca4f6220628b46f943ec57ee2a6e9f6e6216f93b943f6c39a7a075472a9e",
+        "packageResult": "Nineteen normal four-target feeds each platform, actual public consumer owner DLLs match their freshly built packages and installed origins are the fresh feed. Both Windows general consumers run .NET Framework4.8.9345.0. Direct MATH was absent from these consumers and is now covered by a separately dispatched probe.",
+        "budgetProof": "Ignore/MasterConvergenceQualification/platform-44027-20261005/receipt.json",
+        "budgetProofSha256": "9913fd14287456204e35e905bf9f7827edfafa692e4296214c2d709e061658d7",
+        "budgetResult": "Current budgets fail all3OS. Linux prior control passes; Windows/macOS controls fail timing too. Current warm allocation adds118-148MB vs same-runner prior-source control. No ceiling changes, retries-until-green or performance acceptance."
       },
       "completionAudit": {
         "recordedUtc": "2026-10-05T13:45:13.879493+00:00",
@@ -898,12 +907,16 @@
         "complete": false,
         "heldSteps": [
           {
-            "step": "Current hosted packages/native consumer qualification and unchanged budgets",
-            "dependency": "Current full run 37315963943 artifacts/unchanged budgets plus actual Windows execution of the direct MATH packed consumer (focused package-only run pending dispatch)."
+            "step": "Direct native packed MATH contract",
+            "dependency": "Actual Windows log and retained origins from focused run37327795720; first delayed check16:00UTC."
           },
           {
-            "step": "Qualified synchronization and final cleanup/completion",
-            "dependency": "Current platform gate above and fresh clean/local+remote ancestry verification"
+            "step": "Unchanged current-source opt-in budgets",
+            "dependency": "Current44027 fails; active bounded contour candidate must finish review/validation, then measure without ceilings/workarounds."
+          },
+          {
+            "step": "Qualified long-lived synchronization/cleanup/completion",
+            "dependency": "Both acceptance gates above and fresh clean/local+remote ancestry proof."
           }
         ]
       },
@@ -982,11 +995,42 @@
       },
       "directPackedMathContract": {
         "receipt": "Ignore/MasterConvergenceQualification/math-native-package-contract/receipt.json",
-        "receiptSha256": "6e23b2deeab9e920c66ad38884951d067bf7ebf88a162071a84e0394a32faef9",
+        "receiptSha256": "7ed46f3367e15f2fc816bbe6a125dc1da209b2173fd08bca9de087ef7e761956",
         "fixtureSha256": "db8334b017a154cd4e80aa048e226dfb308c67fde671b97c1061f649fa203613",
         "net8AndNet10": "Final consumer executes all declared checks with exact 44027 package-owner DLL hashes.",
         "nativeNet472": "Pending actual Windows execution of this consumer. Earlier general package lane did not call the mathematical renderer.",
-        "hostedRoute": "Manual html-static-package-probe; existing canonical nineteen-package script, no budget rerun."
+        "hostedRoute": "Manual html-static-package-probe; existing canonical nineteen-package script, no budget rerun.",
+        "hostedProbe": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37327795720",
+        "workflowAndSource": "a0e10b21b9c96190d4e563c4d09fb59a5229f8cd",
+        "dispatchUtc": "2026-10-05T14:49:10Z",
+        "initialState": "queued, verified once; no budget steps in this focused run.",
+        "localCleanup": "Three generated outputs/cache paths absent; two actual native hidden/read-only filesystem errors recovered through guarded helper.",
+        "setupFailures": "Incorrect dispatch-source SHA and incomplete package-artifact condition were cancelled and corrected before final dispatch; retained in the receipt."
+      },
+      "mergedLogicalAnchorPrecision": {
+        "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2820",
+        "head": "2cf8efe86385eb1f595415f798683a5e360e2162",
+        "merge": "e0e13a2403444f0d7a8b4d17a78491e3b60835fe",
+        "mergedUtc": "2026-10-05T14:48:40Z",
+        "gates": "91success3skipped, exact head, complete paginated delayed feedback, automatic reviews complete/THUMBS_UP, accurate PR text, MERGEABLE/CLEAN; no manual hosted request.",
+        "preservedEvidence": "Ignore/MasterConvergenceQualification/merged-logical-anchor-e0e13a240",
+        "preservedFiles": 64,
+        "preservedBytes": 70704570,
+        "allHashesExact": true,
+        "worktreeAndLocalBranchRemoved": true,
+        "runtimeIntegration": "The shared numeric-owner fix is already in the qualified44027 graph; fetched master only to verify merged ancestry, no advancing master merge."
+      },
+      "singleTileContourCandidate": {
+        "scope": "Direct scanline accumulation for contours fitting a single tile; existing tiled route, work/intersection ceilings and public API preserved.",
+        "diagnosis": "An ordinary44character STIX line expands RowCrossings capacity40960 and discards its otherwise reusable workspace. Prior per-case PNG allocation attribution remains applicable; no timing causation claim.",
+        "diff": "9703eb2febbe46b9617ed6f83d4ec8a57a705020",
+        "proof": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/inspection-comparison.json",
+        "focused": "39net10pass; same3pixel hashes and resource rejections; single-call normal-line allocation1878560 to428296 bytes, diagnostic only.",
+        "review": "Fresh read-only full contour_single_tile_review found no actionable P0-P3; current boundary, targeted confirmation unused. No API/dependency gap. Full Drawing3438 passes on both net8/net10; remaining HTML/artifact/framework/package/budget proof remains open.",
+        "pending": "Full HTML net8/net10, H4/static rendered equivalence, current clean packages and unchanged opt-in budget acceptance.",
+        "reviewReceipt": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/local-review.json",
+        "reviewReceiptSha256": "a2ed1c9b0d719c24d612334b8a2beeba07c918a11d4791398fa0722c66962b84",
+        "frameworkProof": "Drawing3438/3438 on net8 and net10; normal Core netstandard2.0 build zero warnings/errors."
       }
     }
   }
