@@ -394,6 +394,11 @@ namespace OfficeIMO.Word.Pdf {
             bool allowSystemFontEmbedding,
             NativeFontMap nativeFontMap) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
+            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
+            if (markFonts != null) {
+                RegisterNativeFontCandidate(ResolveNativeRunFontsFamily(paragraph._document, markFonts),
+                    pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            }
             if (runs.Count == 0) {
                 RegisterNativeEffectiveParagraphFont(
                     paragraph,
