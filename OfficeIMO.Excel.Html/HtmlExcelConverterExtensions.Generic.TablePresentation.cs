@@ -82,13 +82,15 @@ public static partial class HtmlExcelConverterExtensions {
             // columns below the readable minimum. Only surplus width is shared.
             double extraBudget = Math.Max(75D, minimumTotal) - minimumTotal;
             double scale = extraTotal > 0D ? Math.Min(1D, extraBudget / extraTotal) : 1D;
+            var fittedWidths = new Dictionary<int, double>();
             foreach (ExcelColumnSnapshot column in columns) {
                 double width = minimumWidth
                     + (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth) * scale;
                 for (int index = column.StartIndex; index <= column.EndIndex; index++) {
-                    sheet.SetColumnWidth(index, width);
+                    fittedWidths.Add(index, width);
                 }
             }
+            sheet.SetColumnWidths(fittedWidths);
         }
 
         foreach (ExcelCellValueInfo cell in importedCells) {
