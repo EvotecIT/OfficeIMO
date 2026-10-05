@@ -209,9 +209,12 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false) {
+    public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false, bool preserveLogicalPrecision = false) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));
-        _sb.Append('/').Append(resourceName).Append(' ').Append(F(size)).Append(" Tf\n");
+        _sb.Append('/').Append(resourceName).Append(' ');
+        if (preserveLogicalPrecision) _sb.Append(MatrixNumber(size));
+        else _sb.Append(F(size));
+        _sb.Append(" Tf\n");
         if (_syntheticOblique != syntheticOblique) {
             double previousShear = _syntheticOblique ? SyntheticObliqueShear : 0D;
             _syntheticOblique = syntheticOblique;

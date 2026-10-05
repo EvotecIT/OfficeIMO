@@ -596,10 +596,14 @@ internal static partial class HtmlPdfRenderedConverter {
             transform.M22,
             transform.OffsetX * PointsPerCssPixel,
             transform.OffsetY * PointsPerCssPixel);
+        ClipBounds currentWindow = activeClip.HasValue && !activeClip.Value.ConstrainToSurface
+            ? activeClip.Value
+            : ClipBounds.Intersect(activeClip, new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight));
+        ClipBounds logicalWindow = currentWindow.InEffectCoordinateSpace(transform);
         canvas.Effect(scaled, group.Opacity, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, ClipBounds.TransformedCoordinateSpace, logicalTextOwned, pagePaint);
+                AddVisual(nested, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, logicalWindow, logicalTextOwned, pagePaint);
             }
         });
     }

@@ -148,7 +148,12 @@ internal static partial class HtmlPdfRenderedConverter {
         double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
         var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X, visual.Y, logicalWidth, logicalHeight)
             ?? (X: visual.X, Y: visual.Y, Width: logicalWidth, Height: logicalHeight);
-        if (!logicalTextOwned && (carrier.X != visual.X || carrier.Y != visual.Y
+        // Native text already carries transform-aware glyph geometry. Project
+        // only page-space clipped native text; transformed logical/outlined
+        // groups retain their own replacement carriers without changing the
+        // native reader's existing partially-visible text policy.
+        if (!logicalTextOwned && (!logicalClip.HasValue || logicalClip.Value.ConstrainToSurface)
+            && (carrier.X != visual.X || carrier.Y != visual.Y
             || carrier.Width != logicalWidth || carrier.Height != logicalHeight)) {
             canvas.ActualText(pdfText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
                 carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel, Paint);
