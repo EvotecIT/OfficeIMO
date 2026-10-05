@@ -12,11 +12,13 @@ namespace OfficeIMO.Word.Pdf {
                 Value.HasValue ? this : inherited;
 
             public OfficeIMO.Pdf.PdfLineSpacing? ToPdfLineSpacing(double naturalLineHeight) {
-                if (!Value.HasValue) return null;
+                if (!Value.HasValue) return OfficeIMO.Pdf.PdfLineSpacing.Multiple(naturalLineHeight)
+                    .WithFontLineBoxBaseline(naturalLineHeight);
                 if (Rule == null || Rule == W.LineSpacingRuleValues.Auto)
-                    return OfficeIMO.Pdf.PdfLineSpacing.Multiple(Math.Max(0.01D, naturalLineHeight * Value.Value / 240D));
+                    return OfficeIMO.Pdf.PdfLineSpacing.Multiple(Math.Max(0.01D, naturalLineHeight * Value.Value / 240D))
+                        .WithFontLineBoxBaseline(naturalLineHeight);
                 return Rule == W.LineSpacingRuleValues.AtLeast
-                    ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(Value.Value / 20D, naturalLineHeight)
+                    ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(Value.Value / 20D, naturalLineHeight).WithFontLineBoxBaseline(naturalLineHeight)
                     : OfficeIMO.Pdf.PdfLineSpacing.Exactly(Value.Value / 20D);
             }
 

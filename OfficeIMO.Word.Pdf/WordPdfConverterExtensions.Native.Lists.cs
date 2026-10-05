@@ -368,7 +368,8 @@ namespace OfficeIMO.Word.Pdf {
         private static bool NativeLineSpacingsEquivalent(PdfCore.PdfLineSpacing? left, PdfCore.PdfLineSpacing? right) =>
             ReferenceEquals(left, right) || left != null && right != null &&
             left.Rule == right.Rule && DoubleEquals(left.Value, right.Value) &&
-            DoubleEquals(left.NaturalMultiplier, right.NaturalMultiplier);
+            DoubleEquals(left.NaturalMultiplier, right.NaturalMultiplier) &&
+            NullableDoubleEquals(left.FontLineBoxMultiplier, right.FontLineBoxMultiplier);
 
         private static bool NullableDoubleEquals(double? left, double? right) {
             if (left.HasValue != right.HasValue) {
