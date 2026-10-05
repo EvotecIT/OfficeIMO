@@ -9,6 +9,45 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_TableTextKeepsTheCellClipWithNegativeIndents(bool nativeDoc, bool columns) {
+        using WordDocument source = WordDocument.Create();
+        if (columns) source.Sections[0].ColumnCount = 2;
+        WordTable table = source.AddTable(1, 1);
+        table.LayoutMode = WordTableLayoutMode.Fixed;
+        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = columns ? 2040 : 4800;
+        WordTableCell cell = table.Rows[0].Cells[0];
+        cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = table.Width;
+        cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+        cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
+        WordParagraph paragraph = cell.Paragraphs[0];
+        paragraph._paragraph.RemoveAllChildren<Run>();
+        paragraph._paragraph.Append(TextLine("A", 48, true), TextLine("B", 48, true), TextLine("C", 48, false));
+        paragraph.LineSpacingPoints = 6D;
+        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.IndentationBeforePoints = -30;
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
+        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
+            PageSize = new OfficeIMO.Pdf.PageSize(300, 300), Margins = PageMargins.Uniform(30),
+            PdfOptions = new PdfOptions { CompressContentStreams = false }
+        });
+        // Word retains the authored negative glyph positions in the PDF but
+        // clips their painting to the cell, even with exact-height overlap.
+        string content = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains(columns ? "30 252 102 18 re W n" : "30 252 240 18 re W n", content);
+        using var pdf = PdfPigDocument.Open(bytes);
+        var first = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A");
+        Assert.Equal(0D, first.StartBaseLine.X, 3);
+        Assert.Equal(265.2D, first.StartBaseLine.Y, 3);
+    }
+
+    [Theory]
     [InlineData(false, "body", 6D)]
     [InlineData(true, "body", 6D)]
     [InlineData(false, "columns", 6D)]
