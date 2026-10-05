@@ -51,7 +51,7 @@ function createWorkbook(options = {}) {
       if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
       if (type === "date") value = excelDate(value, dateMode);
       if (value == null) return prefix + '/>';
-      if (type === "string") return prefix + ' t="inlineStr"><is><t xml:space="preserve">' + cellText(value) + '</t></is></c>';
+      if (type === "string") return prefix + ' t="inlineStr"><is>' + inlineText(value) + '</is></c>';
       if (type === "boolean") return prefix + ' t="b"><v>' + (value ? 1 : 0) + '</v></c>';
       if (type !== "number" && type !== "date") throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
       return prefix + '><v>' + value + '</v></c>';

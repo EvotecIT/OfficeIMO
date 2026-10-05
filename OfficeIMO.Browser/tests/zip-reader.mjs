@@ -19,6 +19,13 @@ export async function readZip(blob) {
     const payload = bytes.subarray(start, start + compressed);
     const content = method === 8 ? inflateRawSync(payload) : payload;
     assert.equal(content.length, bytes.readUInt32LE(offset + 24));
+    let crc = 0xffffffff;
+    for (const byte of content) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+    assert.equal((crc ^ 0xffffffff) >>> 0, bytes.readUInt32LE(offset + 16), "ZIP CRC-32 differs");
+    assert.equal(bytes.readUInt32LE(local + 14), bytes.readUInt32LE(offset + 16));
     entries.set(name, { method, content: content.toString("utf8"), bytes: content });
     offset += 46 + length + bytes.readUInt16LE(offset + 30) + bytes.readUInt16LE(offset + 32);
   }

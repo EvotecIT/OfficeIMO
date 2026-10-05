@@ -34,7 +34,6 @@ async function* inputRows(input, signal) {
   } finally {
     if (!done && iterator.return) {
       const returned = iterator.return();
-      // I/O-bound producers must also observe the signal.
       if (signal?.aborted) Promise.resolve(returned).catch(() => {});
       else await returned;
     }
@@ -87,7 +86,7 @@ function saveBlob(blob, fileName) {
   }
 }
 
-// Match OfficeIMO.CSV's ASCII-space/trigger rule.
+// OfficeIMO.CSV formula rule.
 function csvField(value, delimiter, protect) {
   let text;
   if (value == null) text = "";

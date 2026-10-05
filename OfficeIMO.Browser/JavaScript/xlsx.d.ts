@@ -1,4 +1,4 @@
-import type { Column, Rows, StreamOptions } from "./common.js";
+import type { CellValue, Column, Rows, StreamOptions } from "./common.js";
 export { saveBlob } from "./common.js";
 export type { CellValue, Column, Row, Rows, ExportProgress, StreamOptions } from "./common.js";
 
@@ -29,6 +29,8 @@ export interface Sheet {
   readonly name: string;
   /** Consume once. Await before appending again or finalizing. A failed append invalidates the sheet. */
   addRows(rows: Rows): Promise<void>;
+  /** Typed object records need no string index signature; every declared property must be a cell value. */
+  addRows<T extends { readonly [K in keyof T]: CellValue }>(rows: Iterable<T> | AsyncIterable<T>): Promise<void>;
 }
 
 export interface Workbook {

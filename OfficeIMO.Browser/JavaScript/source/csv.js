@@ -1,4 +1,4 @@
-// Match OfficeIMO.CSV's ASCII-space/trigger rule.
+// OfficeIMO.CSV formula rule.
 function csvField(value, delimiter, protect) {
   let text;
   if (value == null) text = "";

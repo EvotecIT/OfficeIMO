@@ -20,7 +20,7 @@ test("typed workbook stores literal text, date serials and styles with valid ZIP
   const blob = await book.toBlob(), zip = await readZip(blob);
   assert.equal(await book.toBlob(), blob);
   const xml = zip.get("xl/worksheets/sheet1.xml").content;
-  assert.match(xml, /&#13;&#10;&#9;🧪שלום_x005F_x0041_/);
+  assert.match(xml, /&#13;&#10;&#9;🧪שלום_<\/t><\/r><r><t xml:space="preserve">x0041_/);
   assert.match(xml, /ySplit="1"/); assert.match(xml, /autoFilter ref="A1:E4"/);
   assert.match(xml, /width="28"/); assert.match(xml, /<v>1<\/v>/);
   assert.match(xml, /<v>59.5<\/v>/); assert.match(xml, /<v>61<\/v>/);
@@ -36,14 +36,14 @@ test("empty workbook, one cell, unique names and stored fallback", async () => {
   try {
     globalThis.CompressionStream = undefined;
     const book = createWorkbook();
-    const names = [book.addSheet("  ").name, book.addSheet("sheet").name,
+    const names = [book.addSheet("  ").name, book.addSheet("sheet").name, book.addSheet("'  '").name,
       book.addSheet("History").name, book.addSheet("a".repeat(30) + "🧪").name];
-    assert.deepEqual(names, ["Sheet", "sheet (2)", "History_", "a".repeat(30)]);
+    assert.deepEqual(names, ["Sheet", "sheet (2)", "Sheet (3)", "History_", "a".repeat(30)]);
     const one = book.addSheet("One", { columns: [{ header: "V" }], includeHeader: false });
     await one.addRows([["🧪"]]);
     const zip = await readZip(await book.toBlob());
     assert.ok([...zip.values()].every(e => e.method === 0));
-    assert.match(zip.get("xl/worksheets/sheet5.xml").content, /r="A1"/);
+    assert.match(zip.get("xl/worksheets/sheet6.xml").content, /r="A1"/);
     const empty = await readZip(await createWorkbook().toBlob());
     assert.match(empty.get("xl/worksheets/sheet1.xml").content, /<sheetData><\/sheetData>/);
   } finally { globalThis.CompressionStream = original; }
@@ -107,4 +107,14 @@ test("classic scripts compose in either order without a module loader", async ()
     assert.equal(typeof context.OfficeIMO.writeCsv, "function");
     assert.equal(typeof context.OfficeIMO.saveBlob, "function");
   }
+});
+
+test("an installed CompressionStream without deflate-raw support falls back to stored ZIP", async () => {
+  const original = globalThis.CompressionStream;
+  try {
+    globalThis.CompressionStream = class { constructor() { throw new TypeError("No raw deflate support"); } };
+    const book = createWorkbook();
+    await book.addSheet("Stored", { columns: [{ header: "V" }] }).addRows([["fallback"]]);
+    assert.ok([...(await readZip(await book.toBlob())).values()].every(e => e.method === 0));
+  } finally { globalThis.CompressionStream = original; }
 });

@@ -4,7 +4,7 @@
   "description": "Dependency-free, streaming tabular XLSX and CSV exports for portable reports.",
   "type": "module",
   "license": "MIT",
-  "sideEffects": false,
+  "sideEffects": ["./Assets/*.js"],
   "exports": {
     ".": { "types": "./JavaScript/index.d.ts", "import": "./Assets/officeimo.mjs" },
     "./xlsx": { "types": "./JavaScript/xlsx.d.ts", "import": "./Assets/officeimo-xlsx.mjs" },

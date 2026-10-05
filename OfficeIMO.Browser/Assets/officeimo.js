@@ -34,7 +34,6 @@ async function* inputRows(input, signal) {
   } finally {
     if (!done && iterator.return) {
       const returned = iterator.return();
-      // I/O-bound producers must also observe the signal.
       if (signal?.aborted) Promise.resolve(returned).catch(() => {});
       else await returned;
     }
@@ -87,7 +86,7 @@ function saveBlob(blob, fileName) {
   }
 }
 
-// Match OfficeIMO.CSV's ASCII-space/trigger rule.
+// OfficeIMO.CSV formula rule.
 function csvField(value, delimiter, protect) {
   let text;
   if (value == null) text = "";
@@ -148,8 +147,17 @@ function xml(value) {
 function cellText(value) {
   const text = cleanXml(value);
   if (text.length > 32767) throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
-  // Protect literal OOXML escape sequences from Excel's string decoder.
-  return xml(text.replace(/_x[0-9a-f]{4}_/gi, match => "_x005F_" + match.slice(1)));
+  return text;
+}
+
+function inlineText(value) {
+  const text = cellText(value);
+  const node = part => '<t xml:space="preserve">' + xml(part) + '</t>';
+  // Escape sequences are decoded per text run. Split their initial underscore so
+  // consumers with and without an OOXML escape decoder read the same literal text.
+  if (/_x[0-9a-f]{4}_/i.test(text))
+    return text.split(/(?<=_)(?=x[0-9a-f]{4}_)/gi).map(part => '<r>' + node(part) + '</r>').join("");
+  return node(text);
 }
 
 function columnName(index) {
@@ -162,7 +170,7 @@ function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-
 
 function sheetName(requested, names) {
   if (typeof requested !== "string") throw new TypeError("Sheet name must be a string.");
-  let base = cleanXml(requested).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "");
+  let base = cleanXml(requested).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
   if (!base) base = "Sheet";
   if (base.toLowerCase() === "history") base += "_";
   base = clipName(base, 31);
@@ -402,7 +410,7 @@ function createWorkbook(options = {}) {
       if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
       if (type === "date") value = excelDate(value, dateMode);
       if (value == null) return prefix + '/>';
-      if (type === "string") return prefix + ' t="inlineStr"><is><t xml:space="preserve">' + cellText(value) + '</t></is></c>';
+      if (type === "string") return prefix + ' t="inlineStr"><is>' + inlineText(value) + '</is></c>';
       if (type === "boolean") return prefix + ' t="b"><v>' + (value ? 1 : 0) + '</v></c>';
       if (type !== "number" && type !== "date") throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
       return prefix + '><v>' + value + '</v></c>';

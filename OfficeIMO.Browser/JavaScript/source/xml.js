@@ -18,8 +18,17 @@ function xml(value) {
 function cellText(value) {
   const text = cleanXml(value);
   if (text.length > 32767) throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
-  // Protect literal OOXML escape sequences from Excel's string decoder.
-  return xml(text.replace(/_x[0-9a-f]{4}_/gi, match => "_x005F_" + match.slice(1)));
+  return text;
+}
+
+function inlineText(value) {
+  const text = cellText(value);
+  const node = part => '<t xml:space="preserve">' + xml(part) + '</t>';
+  // Escape sequences are decoded per text run. Split their initial underscore so
+  // consumers with and without an OOXML escape decoder read the same literal text.
+  if (/_x[0-9a-f]{4}_/i.test(text))
+    return text.split(/(?<=_)(?=x[0-9a-f]{4}_)/gi).map(part => '<r>' + node(part) + '</r>').join("");
+  return node(text);
 }
 
 function columnName(index) {
@@ -32,7 +41,7 @@ function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-
 
 function sheetName(requested, names) {
   if (typeof requested !== "string") throw new TypeError("Sheet name must be a string.");
-  let base = cleanXml(requested).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "");
+  let base = cleanXml(requested).replace(/[\[\]:*?/\\]/g, "_").trim().replace(/^'+|'+$/g, "").trim();
   if (!base) base = "Sheet";
   if (base.toLowerCase() === "history") base += "_";
   base = clipName(base, 31);

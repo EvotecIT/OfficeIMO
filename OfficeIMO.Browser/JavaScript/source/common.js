@@ -31,7 +31,6 @@ async function* inputRows(input, signal) {
   } finally {
     if (!done && iterator.return) {
       const returned = iterator.return();
-      // I/O-bound producers must also observe the signal.
       if (signal?.aborted) Promise.resolve(returned).catch(() => {});
       else await returned;
     }
