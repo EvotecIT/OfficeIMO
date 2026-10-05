@@ -28,7 +28,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? eastAsiaLanguage = null,
             LegacyDocPicture? picture = null,
             LegacyDocRevision revision = default,
-            int? kerningMinimumFontSizeHalfPoints = null)
+            int? kerningMinimumFontSizeHalfPoints = null,
+            LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None)
             : this(
                 text,
                 bold,
@@ -59,7 +61,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 eastAsiaLanguage: eastAsiaLanguage,
                 picture: picture,
                 revision: revision,
-                kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints) {
+                kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints,
+                styleRelative: styleRelative,
+                styleInverted: styleInverted) {
         }
 
         internal LegacyDocTextRun(
@@ -92,7 +96,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? eastAsiaLanguage = null,
             LegacyDocPicture? picture = null,
             LegacyDocRevision revision = default,
-            int? kerningMinimumFontSizeHalfPoints = null) {
+            int? kerningMinimumFontSizeHalfPoints = null,
+            LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -126,6 +132,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
             Specified = specified;
+            StyleRelative = styleRelative;
+            StyleInverted = styleInverted;
             Revision = revision;
         }
 
@@ -186,6 +194,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FieldInstruction { get; }
 
         internal LegacyDocCharacterFormatProperties Specified { get; }
+
+        // DOC ToggleOperand 0x80 matches the current style; 0x81 inverts it.
+        internal LegacyDocCharacterFormatProperties StyleRelative { get; }
+
+        internal LegacyDocCharacterFormatProperties StyleInverted { get; }
 
         internal LegacyDocRevision Revision { get; }
 

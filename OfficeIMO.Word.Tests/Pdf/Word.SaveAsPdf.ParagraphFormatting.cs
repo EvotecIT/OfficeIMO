@@ -1747,14 +1747,14 @@ namespace OfficeIMO.Tests {
                 exact.LineSpacingPoints = 6;
                 exact.LineSpacingRule = WordLineSpacingRule.Exact;
                 exact.AddBreak();
-                exact.AddText("ExactSmallSecond");
+                exact.AddText("ExactSmallSecond").FontSize = 24;
 
                 WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
                 atLeast.FontSize = 24;
                 atLeast.LineSpacingPoints = 6;
                 atLeast.LineSpacingRule = WordLineSpacingRule.AtLeast;
                 atLeast.AddBreak();
-                atLeast.AddText("AtLeastSecond");
+                atLeast.AddText("AtLeastSecond").FontSize = 24;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordToPdfOptions {

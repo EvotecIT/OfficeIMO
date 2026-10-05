@@ -355,6 +355,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTableStyle? wordStyle = ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle);
             bool usesConfiguredDefaultStyle = wordStyle == null && hasExplicitDefaultTableStyle;
             PdfCore.PdfTableStyle style = wordStyle ?? CreateNativeDefaultTableStyle(options);
+            style.ClipTextToCellBounds = true;
             if (!usesConfiguredDefaultStyle) {
                 style.FontSize ??= nativeDefaults.FontSize;
                 double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)

@@ -50,7 +50,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
             int? pictureDataOffset = null,
             LegacyDocRevision revision = default,
-            int? kerningMinimumFontSizeHalfPoints = null) {
+            int? kerningMinimumFontSizeHalfPoints = null,
+            LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
@@ -75,6 +77,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
             Specified = specified;
+            StyleRelative = styleRelative;
+            StyleInverted = styleInverted;
             PictureDataOffset = pictureDataOffset;
             Revision = revision;
         }
@@ -127,6 +131,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocCharacterFormatProperties Specified { get; }
 
+        // DOC ToggleOperand 0x80 matches the current style; 0x81 inverts it.
+        internal LegacyDocCharacterFormatProperties StyleRelative { get; }
+
+        internal LegacyDocCharacterFormatProperties StyleInverted { get; }
+
         internal bool HasFormatting =>
             Bold
             || Italic
@@ -163,7 +172,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             new LegacyDocCharacterFormat(Bold, Italic, Strike, DoubleStrike, Outline, Shadow, Emboss, Imprint,
                 Hidden, NoProof, Caps, VerticalPosition, Underline, Highlight, FontSizeHalfPoints, ColorHex,
                 fontFamily, CharacterSpacingTwips, Language, EastAsiaLanguage,
-                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision, KerningMinimumFontSizeHalfPoints);
+                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision, KerningMinimumFontSizeHalfPoints, StyleRelative, StyleInverted);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
@@ -189,7 +198,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && string.Equals(EastAsiaLanguage, other.EastAsiaLanguage, StringComparison.OrdinalIgnoreCase)
                 && PictureDataOffset == other.PictureDataOffset
                 && Revision.Equals(other.Revision)
-                && Specified == other.Specified;
+                && Specified == other.Specified
+                && StyleRelative == other.StyleRelative
+                && StyleInverted == other.StyleInverted;
         }
 
         public override bool Equals(object? obj) {
@@ -222,6 +233,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + PictureDataOffset.GetHashCode();
             hash = (hash * 31) + Revision.GetHashCode();
             hash = (hash * 31) + Specified.GetHashCode();
+            hash = (hash * 31) + StyleRelative.GetHashCode();
+            hash = (hash * 31) + StyleInverted.GetHashCode();
             return hash;
         }
     }
