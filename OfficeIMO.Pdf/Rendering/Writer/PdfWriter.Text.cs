@@ -853,15 +853,8 @@ internal static partial class PdfWriter {
             pendingLeadingIsTab = true;
         }
 
-        void MarkCurrentLineHardBreak() {
-            var currentLine = lines[lines.Count - 1];
-            if (currentLine.Count == 0) {
-                return;
-            }
-
-            var lastSegment = currentLine[currentLine.Count - 1];
-            currentLine[currentLine.Count - 1] = lastSegment.WithEndsWithHardBreak();
-        }
+        void MarkCurrentLineHardBreak(RichSeg breakSegment) =>
+            lines[lines.Count - 1].Add(breakSegment);
 
         foreach (var run in effectiveRuns) {
             string text = (run.Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
@@ -1006,7 +999,7 @@ internal static partial class PdfWriter {
                     ResetPendingLeading();
                     if (TryAppendSoftLineBreakLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
-                            MarkCurrentLineHardBreak();
+                            MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
                         } else if (nextWs != -1) {
@@ -1018,7 +1011,7 @@ internal static partial class PdfWriter {
 
                     if (TryAppendDelimitedLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
-                            MarkCurrentLineHardBreak();
+                            MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
                         } else if (nextWs != -1) {
@@ -1030,7 +1023,7 @@ internal static partial class PdfWriter {
 
                     if (TryAppendHyphenatedLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
-                            MarkCurrentLineHardBreak();
+                            MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
                         } else if (nextWs != -1) {
@@ -1042,7 +1035,7 @@ internal static partial class PdfWriter {
 
                     if (TryAppendMultilingualLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
-                            MarkCurrentLineHardBreak();
+                            MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
                         } else if (nextWs != -1) {
@@ -1087,7 +1080,7 @@ internal static partial class PdfWriter {
                         if (pos < token.Length) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     }
                     if (hadNewline) {
-                        MarkCurrentLineHardBreak();
+                        MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                         StartNewLine();
                         ResetPendingLeading();
                     } else if (nextWs != -1) {
@@ -1131,7 +1124,7 @@ internal static partial class PdfWriter {
                 if (hadNewline) {
                     PrepareLineFrame(RunLineHeight(runFontSize));
                     RegisterLineHeight(runFontSize);
-                    MarkCurrentLineHardBreak();
+                    MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                     StartNewLine();
                     ResetPendingLeading();
                 } else if (nextWs != -1) {

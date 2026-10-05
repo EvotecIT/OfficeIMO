@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
                         CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle?.Color),
                         headingSize);
                 case RichParagraphBlock paragraph:
-                    return MeasureRunsPreferredWidth(paragraph.Runs);
+                    return MeasureRunsPreferredWidth(paragraph.Runs, EffectiveParagraphStyle(paragraph)?.FontSize);
                 case PdfListBlock list:
                     return MeasureListPreferredWidth(list);
                 case ImageBlock image:
