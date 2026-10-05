@@ -221,10 +221,33 @@ well as ordinary text and fixed-size primitives.
 Columns can contain the normal flow primitives, including rich text, lists,
 tables, images, drawings, form fields, annotations, and `Panel(...)` groups.
 Balanced automatic columns measure nested panels at their child widths and retain
-unfinished semantic and static flow groups with their following siblings. A
-continuing panel repeats its top padding in each column; bottom padding uses the
-space left in that fragment. Lists and table rows use their existing legal breaks,
-including cell keep and widow rules within the padded content height.
+unfinished semantic and static flow groups with their following siblings.
+`PdfPanelStyle.RepeatFragmentDecoration` defaults to `true`: each page or column
+fragment repeats its vertical padding and top/bottom borders. Set it to `false`
+for a continuous panel whose top belongs to its first fragment and whose bottom
+belongs to its final fragment. Side borders and background continue across the
+fragments. Lists and table rows retain their legal breaks, including cell keep
+and widow rules within the padded content height.
+
+`FragmentBottomInset` reserves space at the bottom of each fragment without
+moving the next fragment's first line. Closing padding can occupy that space;
+the default inset is zero. Flow images with `ScaleDownToFit` account for the
+panel's padding and inset when choosing their size.
+
+Use a side border's `PdfPanelBorder.Offset` to move its stroke independently of
+the content frame. Positive point values move it outward and negative values
+move it inward. Offsets preserve text wrapping and padding:
+
+```csharp
+var document = PdfDocument.Create()
+    .Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
+        new PdfPanelStyle {
+            RepeatFragmentDecoration = false,
+            PaddingY = 4,
+            LeftBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 },
+            RightBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 }
+        });
+```
 When columns start partway down a page, kept paragraphs, lists, panels and static
 flow groups can move past the partial columns to a full physical page. Headings
 and kept blocks retain their following siblings for final-page balancing.
