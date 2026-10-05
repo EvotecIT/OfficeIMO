@@ -82,7 +82,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
             fill.FillColor = style.BackgroundColor;
             fill.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription));
+            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
+                canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
         }
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);

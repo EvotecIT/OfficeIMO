@@ -208,7 +208,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         y += continuationHeight;
                     }
 
-                    IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd);
+                    IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd,
+                        fragmentEnd < block.Height - 0.0001D ? blockOffset + available : null);
                     AddTranslatedVisuals(visuals, fragment, pageGeometry.Margins.Left, y, block);
                     RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;

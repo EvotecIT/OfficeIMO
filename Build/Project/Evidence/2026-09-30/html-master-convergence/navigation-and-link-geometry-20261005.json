@@ -1216,7 +1216,18 @@
         "bytesEqual": true
       }
     ],
-    "scope": "Existing manual html-static suite on Windows/Linux/macOS; current full correctness/packages and unchanged budgets, followed by same-runner prior-source budgets; no acceptance until actual artifacts inspected"
+    "scope": "Existing manual html-static suite on Windows/Linux/macOS; current full correctness/packages and unchanged budgets, followed by same-runner prior-source budgets; no acceptance until actual artifacts inspected",
+    "dispatchedRun": {
+      "runId": 37254233692,
+      "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37254233692",
+      "workflowAndSource": "e9819e175a326d6ae17f796418d931a0c7eb7fca",
+      "controlSource": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+      "createdAtUtc": "2026-10-05T02:09:01Z",
+      "verifiedImmediateStatus": "queued",
+      "suite": "html-static",
+      "scope": "Full current-source correctness/packages and unchanged budgets on three platforms; same-runner control budgets. No source acceptance from queued state.",
+      "priorFailuresRetained": "Existing contour qualification at4bc99 has macOS and Windows budget failures; Windows short serialization-deadline setup was corrected afterward. All artifacts remain in static-delivery-platform-control-20261003.json. Current run does not erase prior failures."
+    }
   },
   "nextAppearanceSlice": {
     "evidence": "Ignore/MasterConvergenceQualification/reference-card-footer-inspection-b592f4752",
