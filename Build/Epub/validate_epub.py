@@ -3,7 +3,9 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 
@@ -14,6 +16,78 @@ def digest(path):
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             value.update(chunk)
     return value.hexdigest()
+
+
+def posix_processes():
+    result = subprocess.run(["ps", "-axo", "pid=,ppid=,pgid=,lstart="], capture_output=True,
+                            text=True, timeout=5, check=True)
+    processes = {}
+    for line in result.stdout.splitlines():
+        fields = line.split(None, 3)
+        if len(fields) == 4:
+            processes[int(fields[0])] = (int(fields[1]), int(fields[2]), fields[3])
+    return processes
+
+
+def terminate_posix_tree(process):
+    # Puppeteer detaches Chromium into another process group. Capture descendants
+    # before signaling Ace, while their parent relationships are still observable.
+    original = posix_processes()
+    owned = {process.pid}
+    while True:
+        expanded = owned | {pid for pid, info in original.items() if info[0] in owned}
+        if expanded == owned:
+            break
+        owned = expanded
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    current = posix_processes()
+    # Match observed birth times before targeting a captured process.
+    survivors = {pid for pid in owned if pid in current and pid in original and current[pid][2] == original[pid][2]}
+    groups = {original[pid][1] for pid in owned if pid in original and original[pid][1] in owned}
+    for group in groups:
+        # A surviving original member also proves that a group whose leader has
+        # exited has not been recycled. Group kill includes newly spawned renderers.
+        if any(current[pid][1] == group for pid in survivors):
+            try:
+                os.killpg(group, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    for pid in survivors:
+        if current[pid][1] not in groups:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+def run_browser_audit(command, log, timeout):
+    # Ace owns a browser tree. Keep its processes separate from the invoking shell
+    # so an outer timeout or interruption cannot leave a browser writing evidence.
+    options = {"start_new_session": True} if os.name == "posix" else {
+        "creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    with subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, **options) as process:
+        try:
+            return process.wait(timeout=timeout)
+        except BaseException:
+            try:
+                if os.name == "posix":
+                    terminate_posix_tree(process)
+                else:
+                    # taskkill is the Windows process-tree operation; the retained
+                    # Popen process handle prevents reuse of the parent process id.
+                    subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                   stdout=log, stderr=subprocess.STDOUT, timeout=20, check=True)
+            finally:
+                process.kill()
+                process.wait(timeout=20)
+            raise
 
 
 def main():
@@ -84,10 +158,10 @@ def main():
             if ace:
                 automated = record["automatedAccessibility"] = {"status": "failed"}
                 with (folder / "ace.log").open("w", encoding="utf-8") as log:
-                    result = subprocess.run([str(ace), "--exiterror2", "--timeout", str(args.timeout * 1000),
+                    exit_code = run_browser_audit([str(ace), "--exiterror2", "--timeout", str(args.timeout * 1000),
                                              "--outdir", str(folder / "ace"), "--tempdir", str(folder / "ace-temp"), str(snapshot)],
-                                            stdout=log, stderr=subprocess.STDOUT, timeout=args.timeout, check=False)
-                automated["exitCode"] = result.returncode
+                                                 log, args.timeout)
+                automated["exitCode"] = exit_code
                 report_path = folder / "ace" / "report.json"
                 automated["report"] = str(report_path.relative_to(output))
                 if report_path.is_file():
@@ -95,7 +169,7 @@ def main():
                     result_node = report.get("earl:result") if isinstance(report, dict) else None
                     outcome = result_node.get("earl:outcome") if isinstance(result_node, dict) else None
                     automated["outcome"] = outcome
-                    if result.returncode == 0 and outcome == "pass":
+                    if exit_code == 0 and outcome == "pass":
                         automated["status"] = "passed"
                 failed |= automated["status"] != "passed"
     except (OSError, ValueError, subprocess.SubprocessError) as error:

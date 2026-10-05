@@ -26,6 +26,10 @@ Its browser runtime must already be available. The runner records its version, l
 JSON report, exit code, and reported outcome for the same captured EPUB bytes. Missing,
 malformed, failing, or timed-out evidence produces a nonzero exit. Without `--ace`,
 automated accessibility is recorded as unchecked.
+On interruption or timeout, the runner terminates Ace's process tree, including detached
+browser groups on POSIX. Cleanup has a bounded grace period beyond the requested audit
+timeout. Run the POSIX timeout contract with
+`python3 -m unittest discover -s Build/Epub`; it exercises ordinary and detached children.
 
 A passing result establishes only the checks performed by the recorded tool versions.
 Review warnings and retain the versions with the evidence. The summary explicitly
