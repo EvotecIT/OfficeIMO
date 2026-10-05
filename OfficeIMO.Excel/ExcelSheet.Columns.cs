@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void SetColumnWidthsCore(IReadOnlyList<int> columnIndexes, double[] widths) {
+        private void SetColumnWidthsCore(IReadOnlyList<int> columnIndexes, double[] widths, bool bestFit = true) {
             var worksheet = WorksheetRoot;
             var columns = worksheet.GetFirstChild<Columns>();
             if (columns == null) {
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
                         Max = (uint)columnIndexes[i],
                         Width = width,
                         CustomWidth = true,
-                        BestFit = true
+                        BestFit = bestFit ? true : (bool?)null
                     });
                     appendedColumn = true;
                 }
@@ -96,9 +96,9 @@ namespace OfficeIMO.Excel {
                 if (allIndividual) {
                     uint index = (uint)columnIndexes[i];
                     individualColumns.TryGetValue(index, out Column? column);
-                    SetColumnWidthValue(columns, index, widths[i], column);
+                    SetColumnWidthValue(columns, index, widths[i], column, bestFit);
                 } else {
-                    SetColumnWidthCore(columns, columnIndexes[i], widths[i]);
+                    SetColumnWidthCore(columns, columnIndexes[i], widths[i], bestFit);
                 }
             }
 
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
         }
 
 
-        private static void SetColumnWidthCore(Columns columns, int columnIndex, double width) {
+        private static void SetColumnWidthCore(Columns columns, int columnIndex, double width, bool bestFit = true) {
             Column? column = columns.Elements<Column>()
                 .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
 
@@ -118,10 +118,10 @@ namespace OfficeIMO.Excel {
                 column = SplitColumn(columns, column, (uint)columnIndex);
             }
 
-            SetColumnWidthValue(columns, (uint)columnIndex, width, column);
+            SetColumnWidthValue(columns, (uint)columnIndex, width, column, bestFit);
         }
 
-        private static void SetColumnWidthValue(Columns columns, uint columnIndex, double width, Column? column) {
+        private static void SetColumnWidthValue(Columns columns, uint columnIndex, double width, Column? column, bool bestFit = true) {
             width = NormalizeColumnWidth(width);
 
             if (width > 0) {
@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
                 }
                 column.Width = width;
                 column.CustomWidth = true;
-                column.BestFit = true;
+                column.BestFit = bestFit ? true : (bool?)null;
             } else if (column != null) {
                 column.Remove();
             }
@@ -207,15 +207,19 @@ namespace OfficeIMO.Excel {
                 if (column == null) {
                     column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
                     columns.Append(column);
+                } else {
+                    column = SplitColumn(columns, column, (uint)columnIndex);
                 }
                 if (width > 0) {
                     column.Width = width;
                     column.CustomWidth = true;
+                    column.BestFit = null;
                 } else {
                     column.Width = null;
                     column.CustomWidth = false;
                     column.BestFit = null;
                 }
+                ReorderColumns(columns);
                 worksheet.Save();
             });
         }

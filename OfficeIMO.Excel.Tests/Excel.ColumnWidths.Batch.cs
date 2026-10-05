@@ -10,6 +10,67 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
+        [InlineData(12D)]
+        [InlineData(0D)]
+        public void Test_SetColumnWidth_SplitsRangeWithoutChangingNeighborWidthsOrFitMetadata(double width) {
+            string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.SingleRange." + width + ".xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 2, "A label that must grow beyond twelve characters when fitted");
+                var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                worksheet.InsertAt(new Columns(new Column {
+                    Min = 1, Max = 3, Width = 30D, CustomWidth = true, BestFit = true,
+                    Hidden = true, OutlineLevel = 2
+                }), 0);
+                sheet.SetColumnWidth(2, width);
+                var columns = worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
+                Assert.Equal(new uint[] { 1, 2, 3 }, columns.Select(column => column.Min!.Value));
+                Assert.Equal(new double?[] { 30D, width > 0D ? width : null, 30D }, columns.Select(column => column.Width?.Value));
+                Assert.True(columns[0].BestFit!.Value && columns[2].BestFit!.Value);
+                Assert.NotEqual(true, columns[1].BestFit?.Value);
+                Assert.All(columns, column => {
+                    Assert.True(column.Hidden!.Value);
+                    Assert.Equal((byte)2, column.OutlineLevel!.Value);
+                });
+                document.Save();
+            }
+            using var reopened = ExcelDocument.Load(filePath);
+            reopened.Sheets[0].AutoFitColumnsFor(new[] { 2 });
+            var saved = reopened.Sheets[0].GetColumnDefinitions().ToArray();
+            Assert.Equal(30D, saved[0].Width);
+            Assert.True(saved[1].Width > 12D);
+            Assert.Equal(30D, saved[2].Width);
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void Test_ManualColumnWidths_DoNotPreventAutoFitAfterReopening(bool batch, bool previouslyFitted) {
+            string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Refit." + batch + "." + previouslyFitted + ".xlsx");
+            const string label = "A long label whose content needs more than twelve characters of column width";
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, label);
+                if (previouslyFitted) sheet.AutoFitColumns();
+                if (batch) sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 12D });
+                else sheet.SetColumnWidth(1, 12D);
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets[0];
+                Assert.Equal(12D, Assert.Single(sheet.GetColumnDefinitions()).Width);
+                sheet.AutoFitColumnsFor(new[] { 1 });
+                Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width > 12D);
+                document.Save();
+            }
+            using var reopened = ExcelDocument.Load(filePath);
+            Assert.Equal(label, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width > 12D);
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void Test_SetColumnWidths_SavesOnceAndPreservesColumnMetadata(bool withRange) {
