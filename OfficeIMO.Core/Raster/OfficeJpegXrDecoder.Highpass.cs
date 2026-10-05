@@ -5,14 +5,14 @@ namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegXrDecoder {
     private sealed class HpContext {
-        private readonly int _components;
+        private readonly int _components, _color;
         private readonly CoefficientModel _model;
         private readonly BlockContext _blocks = new();
         private readonly BlockPatterns _patterns;
         private readonly AdaptiveScan _horizontal = new(), _vertical = new(true);
 
-        internal HpContext(int components) {
-            _components = components; _model = new CoefficientModel(2, components); _patterns = new BlockPatterns(components);
+        internal HpContext(int components, int color = 0) {
+            _components = components; _color = color; _model = new CoefficientModel(2, components, color); _patterns = new BlockPatterns(components, color);
         }
 
         internal void Read(Bits bits, int[] output, int offset, int[] patterns, int patternOffset,
@@ -24,8 +24,9 @@ internal static partial class OfficeJpegXrDecoder {
             AdaptiveScan scan = highpassMode == 1 ? _vertical : _horizontal;
             for (int c = 0; c < _components; c++) {
                 int mask = patterns[patternOffset + c], refinement = _model.Bits[c == 0 ? 0 : 1];
-                for (int b = 0; b < 16; b++) {
-                    int block = offset + c * 256 + HierarchicalScan[b] * 16;
+                int blocks = ComponentBlocks(_color, c);
+                for (int b = 0; b < blocks; b++) {
+                    int block = offset + c * 256 + (blocks == 16 ? HierarchicalScan[b] : b) * 16;
                     if ((mask & (1 << b)) != 0) {
                         int count = _blocks.Read(bits, c != 0), position = 1;
                         if (c == 0) lumaCount += count; else chromaCount += count;
@@ -71,7 +72,7 @@ internal static partial class OfficeJpegXrDecoder {
                 bool reuseAlphaLp = false;
                 if (frame.AlphaPlane != null)
                     result.AlphaQuantizers[tile] = ReadHpQuantization(bits, frame.AlphaPlane, lp.AlphaQuantizers[tile], out reuseAlphaLp);
-                var primary = new HpContext(components); HpContext? alpha = frame.Alpha ? new HpContext(1) : null;
+                var primary = new HpContext(components, frame.Primary.Color); HpContext? alpha = frame.Alpha ? new HpContext(1) : null;
                 for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                     int mb = (top + y) * columns + left + x; bool adapt = x == width - 1 || x % 16 == 0;
                     result.QuantizerIndices[mb] = reuseLp ? lp.QuantizerIndices[mb] : ReadQuantizerIndex(bits, result.Quantizers[tile].Length);

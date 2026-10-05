@@ -14,7 +14,7 @@ internal static partial class OfficeJpegXrDecoder {
         internal int HeaderEnd;
     }
     internal sealed class PlaneHeader {
-        internal int Color, Components, Bands, ShiftBits;
+        internal int Color, Components, Bands, ShiftBits, CenterX, CenterY;
         internal bool Scaled;
         internal int[]? DcQuant, LpQuant, HpQuant;
     }
@@ -71,6 +71,11 @@ internal static partial class OfficeJpegXrDecoder {
         frame.TileWidths[columns - 1] = paddedWidth / 16 - widthSum;
         frame.TileHeights[rows - 1] = paddedHeight / 16 - heightSum;
         frame.Primary = ReadPlaneHeader(bits, false, frame.BitDepth);
+        if (frame.Overlap == 2 && (frame.Primary.Color == 1 || frame.Primary.Color == 2)) {
+            if (paddedWidth < 32) throw new FormatException("JPEG-XR subsampled overlap requires two macroblock columns.");
+            if (frame.HardTiles) foreach (int tileWidth in frame.TileWidths)
+                if (tileWidth < 2) throw new FormatException("JPEG-XR subsampled overlap requires two columns per hard tile.");
+        }
         if (frame.Alpha) frame.AlphaPlane = ReadPlaneHeader(bits, true, frame.BitDepth);
         if (frame.AlphaPlane != null && frame.AlphaPlane.Bands != frame.Primary.Bands)
             throw new FormatException("JPEG-XR differing interleaved alpha subbands are outside the managed contract.");
@@ -80,10 +85,18 @@ internal static partial class OfficeJpegXrDecoder {
 
     private static PlaneHeader ReadPlaneHeader(Bits bits, bool alpha, int bitDepth) {
         var plane = new PlaneHeader { Color = (int)bits.Read(3), Scaled = bits.Flag(), Bands = (int)bits.Read(4) };
-        if ((plane.Color != 0 && plane.Color != 3) || alpha && plane.Color != 0 || plane.Bands > 3)
-            throw new FormatException("JPEG-XR plane is outside the gray/YUV444 contract.");
+        if ((plane.Color < 0 || plane.Color > 3) || alpha && plane.Color != 0 || plane.Bands > 3)
+            throw new FormatException("JPEG-XR plane is outside the gray/YUV contract.");
         plane.Components = plane.Color == 0 ? 1 : 3;
-        if (plane.Color == 3) bits.Read(8); // Reserved fields are ignored.
+        if (plane.Color != 0) {
+            bits.Read(1); plane.CenterX = (int)bits.Read(3);
+            bits.Read(1); plane.CenterY = (int)bits.Read(3);
+            if (plane.Color == 3) plane.CenterX = 0;
+            if (plane.Color != 1) plane.CenterY = 0;
+            // Reserved or unspecified positions use the default interpolation grid.
+            if (plane.CenterX > 4) plane.CenterX = 0;
+            if (plane.CenterY > 4) plane.CenterY = 0;
+        }
         if (bitDepth == 2) plane.ShiftBits = (int)bits.Read(8);
         if (bits.Flag()) plane.DcQuant = ReadQuantization(bits, plane.Components);
         if (plane.Bands != 3) {

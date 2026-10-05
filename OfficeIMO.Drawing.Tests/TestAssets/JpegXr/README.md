@@ -38,3 +38,11 @@ expected RGBA8 values unassociate at sixteen-bit precision before rounding.
 The corpus also protects agreement between container and codestream sample depth.
 The retained sixteen-bit TIFF source images also check ICC conversion against
 the existing source-precision TIFF path. They are original generated patterns.
+
+The subsampled fixtures cover 4:2:0 and 4:2:2 chroma, both packet orders,
+eight/sixteen-bit samples, overlap, hard/soft tiles, reduced bands, trimmed
+flexbits, and non-default sampling-grid centering. Expected pixels come from
+the ITU reference decoder. The wider comparison covers 274 images; the Microsoft
+comparison decoder differs on non-default centering and by at most one alpha
+level on lossy eight-bit interleaved-alpha cases. Those differences are not
+treated as exact agreement between independent consumers.

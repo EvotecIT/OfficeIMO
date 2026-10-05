@@ -7,14 +7,14 @@ internal static partial class OfficeJpegXrDecoder {
     // and interior post-filter regions. Soft tiles share the raster boundary;
     // hard tiles apply the same partition to each tile independently.
     private static void ApplyOverlap(FrameHeader frame, int[] samples, int width, int height,
-            int tileScale, long[] work, CancellationToken cancellation) {
+            int tileScale, long[] work, CancellationToken cancellation, int tileScaleY = 0) {
         if (!frame.HardTiles) {
             FilterRegion(samples, width, 0, 0, width, height, work, cancellation);
             return;
         }
         int top = 0;
         foreach (int tileHeight in frame.TileHeights) {
-            int left = 0, bottom = top + tileHeight * tileScale;
+            int left = 0, bottom = top + tileHeight * (tileScaleY == 0 ? tileScale : tileScaleY);
             foreach (int tileWidth in frame.TileWidths) {
                 int right = left + tileWidth * tileScale;
                 FilterRegion(samples, width, left, top, right, bottom, work, cancellation);

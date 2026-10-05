@@ -22,6 +22,20 @@ public class DrawingRasterJpegXrTests {
         }
     }
 
+    [Fact]
+    public void SubsampledFirstLevelOverlapRejectsAnUndersizedImage() {
+        byte[] bytes = Fixture("subsampled-yuv420-tiny-frequency-overlap0-q32-alpha0");
+        int directory = Read32(bytes, 4), count = bytes[directory] | bytes[directory + 1] << 8;
+        for (int i = 0; i < count; i++) {
+            int entry = directory + 2 + i * 12;
+            if ((bytes[entry] | bytes[entry + 1] << 8) != 0xBCC0) continue;
+            int frame = Read32(bytes, entry + 8);
+            bytes[frame + 9] = (byte)((bytes[frame + 9] & 0xFC) | 2);
+        }
+        Assert.False(OfficeImageReader.TryIdentifyByContent(bytes, null, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
+    }
+
     [Theory]
     [InlineData("rgba-premultiplied", false)]
     [InlineData("rgba-premultiplied-separate", false)]

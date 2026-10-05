@@ -38,8 +38,8 @@ internal static partial class OfficeJpegXrDecoder {
             LpQuant = ReadLpQuantization(bits, Header, DcQuant);
             HpQuant = ReadHpQuantization(bits, Header, LpQuant, out ReuseLp);
             DcReader = new DcContext(Header.Components);
-            LpReader = Header.Bands < 3 ? new LpContext(Header.Components) : null;
-            HpReader = Header.Bands < 2 ? new HpContext(Header.Components) : null;
+            LpReader = Header.Bands < 3 ? new LpContext(Header.Components, Header.Color) : null;
+            HpReader = Header.Bands < 2 ? new HpContext(Header.Components, Header.Color) : null;
         }
 
         internal void Read(Bits bits, int columns, int mb, int x, int y, int tileWidth, int trim) {

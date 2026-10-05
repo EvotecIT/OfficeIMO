@@ -49,42 +49,64 @@ internal static partial class OfficeJpegXrDecoder {
             bool topEdge, int[] rawDc, int[] predicted, int[]? lpIndices, int[] dcQuant, int[]? lpQuant, DclpPlane result) {
         int components = plane.Components, start = mb * components * 16;
         int leftStart = start - components * 16, topStart = start - columns * components * 16;
-        int mode = leftEdge ? topEdge ? 3 : 1 : topEdge ? 0 : DcPredictionMode(predicted, components, leftStart, topStart, topStart - components * 16);
+        int mode = leftEdge ? topEdge ? 3 : 1 : topEdge ? 0 : DcPredictionMode(predicted, plane, leftStart, topStart, topStart - components * 16);
         int lpMode = lpIndices == null ? 2 : mode == 0 && lpIndices[mb] == lpIndices[mb - 1] ? 0
             : mode == 1 && lpIndices[mb] == lpIndices[mb - columns] ? 1 : 2;
         for (int c = 0; c < components; c++) {
             int channel = start + c * 16, l = leftStart + c * 16, t = topStart + c * 16;
             long prediction = mode == 0 ? predicted[l] : mode == 1 ? predicted[t]
-                : mode == 2 ? ((long)predicted[l] + predicted[t]) >> 1 : 0;
+                : mode == 2 ? ((long)predicted[l] + predicted[t] + (c != 0 && (plane.Color == 1 || plane.Color == 2) ? 1 : 0)) >> 1 : 0;
             predicted[channel] = CheckedCoefficient(rawDc[mb * components + c] + prediction);
-            if (lpMode == 0) for (int k = 4; k <= 12; k += 4)
-                predicted[channel + k] = CheckedCoefficient((long)predicted[channel + k] + predicted[l + k]);
-            else if (lpMode == 1) for (int k = 1; k <= 3; k++)
-                predicted[channel + k] = CheckedCoefficient((long)predicted[channel + k] + predicted[t + k]);
+            if (c != 0 && plane.Color == 1) {
+                if (lpMode == 0) AddPrediction(predicted, channel + 2, l + 2);
+                else if (lpMode == 1) AddPrediction(predicted, channel + 1, t + 1);
+            } else if (c != 0 && plane.Color == 2) {
+                if (lpMode == 0) {
+                    AddPrediction(predicted, channel + 4, l + 4);
+                    AddPrediction(predicted, channel + 2, l + 2);
+                    AddPrediction(predicted, channel + 6, l + 6);
+                } else if (lpMode == 1) {
+                    AddPrediction(predicted, channel + 4, t + 4);
+                    AddPrediction(predicted, channel + 1, t + 5);
+                    AddPrediction(predicted, channel + 5, channel + 1);
+                } else if (mode == 1) AddPrediction(predicted, channel + 5, channel + 1);
+            } else {
+                if (lpMode == 0) for (int k = 4; k <= 12; k += 4) AddPrediction(predicted, channel + k, l + k);
+                else if (lpMode == 1) for (int k = 1; k <= 3; k++) AddPrediction(predicted, channel + k, t + k);
+            }
             int dcScale = QuantMap(dcQuant[c], c == 0 ? 1 : 0, plane.Scaled);
             int lpScale = lpQuant == null ? 1 : QuantMap(lpQuant[c], c == 0 ? 1 : 0, plane.Scaled);
             result.Coefficients[channel] = CheckedCoefficient((long)predicted[channel] * dcScale);
             for (int k = 1; k < 16; k++) result.Coefficients[channel + k] = CheckedCoefficient((long)predicted[channel + k] * lpScale);
         }
-        result.HighpassModes[mb] = HighpassPredictionMode(predicted, start, components);
+        result.HighpassModes[mb] = HighpassPredictionMode(predicted, start, plane);
     }
 
-    private static int DcPredictionMode(int[] values, int components, int left, int top, int diagonal) {
+    private static void AddPrediction(int[] values, int target, int source) =>
+        values[target] = CheckedCoefficient((long)values[target] + values[source]);
+
+    private static int DcPredictionMode(int[] values, PlaneHeader plane, int left, int top, int diagonal) {
+        int components = plane.Components;
         long horizontal = 0, vertical = 0;
         for (int c = 0; c < components; c++) {
-            int offset = c * 16, weight = c == 0 && components == 3 ? 2 : 1;
+            int offset = c * 16, weight = c == 0 && components == 3 ? (plane.Color == 1 ? 8 : plane.Color == 2 ? 4 : 2) : 1;
             horizontal += Math.Abs((long)values[diagonal + offset] - values[left + offset]) * weight;
             vertical += Math.Abs((long)values[diagonal + offset] - values[top + offset]) * weight;
         }
         return horizontal * 4 < vertical ? 1 : vertical * 4 < horizontal ? 0 : 2;
     }
 
-    private static byte HighpassPredictionMode(int[] values, int start, int components) {
+    private static byte HighpassPredictionMode(int[] values, int start, PlaneHeader plane) {
+        int components = plane.Components;
         long horizontal = Math.Abs((long)values[start + 1]) + Math.Abs((long)values[start + 2]) + Math.Abs((long)values[start + 3]);
         long vertical = Math.Abs((long)values[start + 4]) + Math.Abs((long)values[start + 8]) + Math.Abs((long)values[start + 12]);
         for (int c = 1; c < components; c++) {
             horizontal += Math.Abs((long)values[start + c * 16 + 1]);
-            vertical += Math.Abs((long)values[start + c * 16 + 4]);
+            vertical += Math.Abs((long)values[start + c * 16 + (plane.Color == 1 || plane.Color == 2 ? 2 : 4)]);
+            if (plane.Color == 2) {
+                horizontal += Math.Abs((long)values[start + c * 16 + 5]);
+                vertical += Math.Abs((long)values[start + c * 16 + 6]);
+            }
         }
         return horizontal * 4 < vertical ? (byte)0 : vertical * 4 < horizontal ? (byte)1 : (byte)2;
     }

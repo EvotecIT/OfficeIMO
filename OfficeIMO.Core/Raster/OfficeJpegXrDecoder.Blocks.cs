@@ -41,14 +41,14 @@ internal static partial class OfficeJpegXrDecoder {
         internal readonly int[] Runs = new int[15], Levels = new int[15];
 
         // T.832 8.7.18.5. Run/level lists contain at most fifteen AC coefficients.
-        internal int Read(Bits bits, bool chroma) {
+        internal int Read(Bits bits, bool chroma, int initialLocation = 1) {
             int channel = chroma ? 1 : 0, first = _first[channel].Read(bits);
             bool negative = bits.Flag();
             int preceding = first & 1, following = first >> 2, context = preceding & following;
             Levels[0] = (first & 2) != 0 ? _absolute[context].ReadAbsolute(bits) : 1;
             if (negative) Levels[0] = -Levels[0];
-            Runs[0] = preceding == 0 ? ReadRun(bits, 14) : 0;
-            int location = Runs[0] + 2, count = 1;
+            Runs[0] = preceding == 0 ? ReadRun(bits, 15 - initialLocation) : 0;
+            int location = Runs[0] + initialLocation + 1, count = 1;
             while (following != 0) {
                 if (count == 15 || location >= 16) throw new FormatException("JPEG-XR AC run exceeds its block.");
                 Runs[count] = (following & 1) == 0 ? ReadRun(bits, 15 - location) : 0;

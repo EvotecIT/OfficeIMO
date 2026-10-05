@@ -23,7 +23,7 @@ internal static partial class OfficeJpegXrDecoder {
                 for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                     int mb = (top + y) * columns + left + x;
                     ReadMacroblockFlex(bits, result.Primary, mb * frame.Primary.Components * 256, frame.Primary.Components,
-                        highpass.ModelBits, mb * 2, trim);
+                        highpass.ModelBits, mb * 2, trim, frame.Primary.Color);
                     if (frame.AlphaPlane != null && frame.AlphaPlane.Bands == 0) {
                         ReadMacroblockFlex(bits, result.Alpha, mb * 256, 1, highpass.AlphaModelBits, mb * 2, trim);
                     }
@@ -36,12 +36,16 @@ internal static partial class OfficeJpegXrDecoder {
     }
 
     private static void ReadMacroblockFlex(Bits bits, int[] coefficients, int offset, int components,
-            byte[] modelBits, int modelOffset, int trim) {
+            byte[] modelBits, int modelOffset, int trim, int color = 0) {
         for (int c = 0; c < components; c++) {
             int model = modelBits[modelOffset + (c == 0 ? 0 : 1)];
-            for (int b = 0; b < 16; b++) ReadBlockFlex(bits, coefficients, offset + c * 256 + HierarchicalScan[b] * 16, model, trim);
+            int blocks = ComponentBlocks(color, c);
+            for (int b = 0; b < blocks; b++) ReadBlockFlex(bits, coefficients, offset + c * 256 + (blocks == 16 ? HierarchicalScan[b] : b) * 16, model, trim);
         }
     }
+
+    private static int ComponentBlocks(int color, int component) => component == 0 ? 16
+        : color == 1 ? 4 : color == 2 ? 8 : 16;
 
     private static void ReadBlockFlex(Bits bits, int[] coefficients, int offset, int model, int trim) {
         int remaining = Math.Max(0, model - trim);
@@ -78,12 +82,13 @@ internal static partial class OfficeJpegXrDecoder {
     private static void ReconstructMacroblockHp(int[] coefficients, int offset, PlaneHeader plane, int[] quantizers, byte mode) {
         for (int c = 0; c < plane.Components; c++) {
             int start = offset + c * 256, scale = QuantMap(quantizers[c], 1, plane.Scaled);
-            for (int b = 0; b < 16; b++) for (int k = 1; k < 16; k++)
+            int blocks = ComponentBlocks(plane.Color, c), width = blocks == 16 ? 4 : 2;
+            for (int b = 0; b < blocks; b++) for (int k = 1; k < 16; k++)
                 coefficients[start + b * 16 + k] = CheckedCoefficient((long)coefficients[start + b * 16 + k] * scale);
             if (mode == 2) continue;
-            for (int b = mode == 0 ? 1 : 4; b < 16; b++) {
-                if (mode == 0 && b % 4 == 0) continue;
-                int neighbour = mode == 0 ? b - 1 : b - 4;
+            for (int b = mode == 0 ? 1 : width; b < blocks; b++) {
+                if (mode == 0 && b % width == 0) continue;
+                int neighbour = mode == 0 ? b - 1 : b - width;
                 for (int k = mode == 0 ? 4 : 1; k <= (mode == 0 ? 12 : 3); k += mode == 0 ? 4 : 1) {
                     int index = start + b * 16 + k;
                     coefficients[index] = CheckedCoefficient((long)coefficients[index] + coefficients[start + neighbour * 16 + k]);

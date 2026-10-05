@@ -19,26 +19,32 @@ internal static partial class OfficeJpegXrDecoder {
         }
     }
 
-    private sealed class LpContext {
-        private readonly int _components;
+    private sealed partial class LpContext {
+        private readonly int _components, _color;
         private readonly CoefficientModel _model;
         private readonly BlockContext _blocks = new();
         private readonly AdaptiveScan _scan = new();
         private int _zeroCount = 1, _maximumCount = 1;
-        internal LpContext(int components) { _components = components; _model = new CoefficientModel(1, components); }
+        internal LpContext(int components, int color = 0) { _components = components; _color = color; _model = new CoefficientModel(1, components, color); }
 
         internal void Read(Bits bits, int[] output, int offset, bool resetScan, bool adapt) {
             if (resetScan) _scan.Reset();
+            bool reduced = _color == 1 || _color == 2;
+            int maximum = reduced ? 3 : 7;
             int presence;
             if (_components == 1) presence = (int)bits.Read(1);
             else {
-                presence = _zeroCount <= 0 || _maximumCount < 0 ? LowpassPresence.Read(bits) : (int)bits.Read(3);
-                if ((_zeroCount <= 0 || _maximumCount < 0) && _maximumCount < _zeroCount) presence = 7 - presence;
+                presence = _zeroCount <= 0 || _maximumCount < 0 ? (reduced ? SubsampledLowpassPresence : LowpassPresence).Read(bits) : (int)bits.Read(reduced ? 2 : 3);
+                if ((_zeroCount <= 0 || _maximumCount < 0) && _maximumCount < _zeroCount) presence = maximum - presence;
                 _zeroCount = Math.Max(-8, Math.Min(7, _zeroCount + 1 - (presence == 0 ? 4 : 0)));
-                _maximumCount = Math.Max(-8, Math.Min(7, _maximumCount + 1 - (presence == 7 ? 4 : 0)));
+                _maximumCount = Math.Max(-8, Math.Min(7, _maximumCount + 1 - (presence == maximum ? 4 : 0)));
             }
             int lumaCount = 0, chromaCount = 0;
-            for (int channel = 0; channel < _components; channel++) {
+            for (int channel = 0; channel < (reduced ? 2 : _components); channel++) {
+                if (reduced && channel == 1) {
+                    chromaCount = ReadReducedChroma(bits, output, offset, (presence & 2) != 0);
+                    continue;
+                }
                 int start = offset + channel * 16, nonzero = 0;
                 if ((presence & (1 << channel)) != 0) {
                     nonzero = _blocks.Read(bits, channel != 0);
@@ -64,6 +70,8 @@ internal static partial class OfficeJpegXrDecoder {
         }
     }
 
+    private static readonly Codebook SubsampledLowpassPresence = new("0", "10", "110", "111");
+
     internal static BandData ReadFrequencyLp(byte[] bytes, FrameHeader frame, PacketMap packets, BandData dc,
             CancellationToken cancellation) {
         if (!frame.Frequency || frame.Primary.Bands == 3) throw new FormatException("JPEG-XR independent LP parsing requires an LP packet.");
@@ -88,7 +96,7 @@ internal static partial class OfficeJpegXrDecoder {
                 result.Quantizers[tile] = ReadLpQuantization(bits, frame.Primary, dc.Quantizers[tile][0]);
                 if (frame.AlphaPlane != null)
                     result.AlphaQuantizers[tile] = ReadLpQuantization(bits, frame.AlphaPlane, dc.AlphaQuantizers[tile][0]);
-                var primary = new LpContext(components); LpContext? alpha = frame.Alpha ? new LpContext(1) : null;
+                var primary = new LpContext(components, frame.Primary.Color); LpContext? alpha = frame.Alpha ? new LpContext(1) : null;
                 for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                     int macroblock = (top + y) * columns + left + x; bool adapt = x == width - 1 || x % 16 == 0;
                     result.QuantizerIndices[macroblock] = ReadQuantizerIndex(bits, result.Quantizers[tile].Length);

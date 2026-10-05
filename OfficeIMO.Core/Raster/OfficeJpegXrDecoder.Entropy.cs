@@ -69,20 +69,23 @@ internal static partial class OfficeJpegXrDecoder {
     private sealed class CoefficientModel {
         internal readonly int[] Bits = new int[2];
         private readonly int[] _state = new int[2];
-        private readonly int _band, _components;
+        private readonly int _band, _components, _color;
         private static readonly int[] LumaWeights = { 240, 12, 1 };
         private static readonly int[,] ChromaWeights = { { 0, 240, 120 }, { 0, 12, 6 }, { 0, 16, 8 } };
 
-        internal CoefficientModel(int band, int components) {
-            _band = band; _components = components;
+        internal CoefficientModel(int band, int components, int color = 0) {
+            _band = band; _components = components; _color = color;
             Bits[0] = Bits[1] = (2 - band) * 4;
         }
 
         internal void Update(int lumaCount, int chromaCount) {
-            // This model serves YONLY and YUV444; subsampled planes need their own weights.
+            // T.832 Table 112 gives separate normalization weights for reduced chroma planes.
             for (int i = 0; i < (_components == 1 ? 1 : 2); i++) {
-                int weighted = i == 0 ? lumaCount * LumaWeights[_band] : chromaCount * ChromaWeights[_band, _components - 1];
-                if (i == 1 && _band == 2) weighted >>= 4;
+                int chromaWeight = _color == 1 ? (_band == 0 ? 120 : _band == 1 ? 37 : 2)
+                    : _color == 2 ? (_band == 0 ? 120 : _band == 1 ? 18 : 1)
+                    : ChromaWeights[_band, _components - 1];
+                int weighted = i == 0 ? lumaCount * LumaWeights[_band] : chromaCount * chromaWeight;
+                if (i == 1 && _band == 2 && _color != 1 && _color != 2) weighted >>= 4;
                 int delta = (weighted - 70) >> 2;
                 if (delta <= -8) {
                     _state[i] += Math.Max(-16, delta + 4);

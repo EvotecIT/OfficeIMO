@@ -7,54 +7,54 @@ internal static partial class OfficeJpegXrDecoder {
     internal static int[][] ReconstructSamples(FrameHeader frame, PlaneHeader plane, DclpPlane dclp,
             int[]? highpass, CancellationToken cancellation) {
         int columns = (frame.Width + frame.Left + frame.Right) / 16, rows = (frame.Height + frame.Top + frame.Bottom) / 16;
-        int width = checked(columns * 16), height = checked(rows * 16), pixels = checked(width * height);
         var output = new int[plane.Components][];
-        for (int c = 0; c < output.Length; c++) output[c] = new int[pixels];
         var work = new long[16]; var block = new int[16];
-        for (int mb = 0; mb < columns * rows; mb++) {
-            cancellation.ThrowIfCancellationRequested();
-            for (int c = 0; c < plane.Components; c++) {
+        for (int c = 0; c < plane.Components; c++) {
+            bool reduced = c != 0 && (plane.Color == 1 || plane.Color == 2);
+            int blocksX = reduced ? 2 : 4, blocksY = reduced && plane.Color == 1 ? 2 : 4;
+            int count = blocksX * blocksY, lowWidth = columns * blocksX, lowHeight = rows * blocksY;
+            int width = lowWidth * 4, height = lowHeight * 4;
+            output[c] = new int[checked(width * height)];
+            for (int mb = 0; mb < columns * rows; mb++) {
+                cancellation.ThrowIfCancellationRequested();
                 int start = (mb * plane.Components + c) * 16;
-                InverseTransform(dclp.Coefficients, start, work);
-                if (plane.Scaled && c != 0) for (int b = 0; b < 16; b++)
+                if (reduced) InverseReducedTransform(dclp.Coefficients, start, plane.Color, work);
+                else InverseTransform(dclp.Coefficients, start, work);
+                if (plane.Scaled && c != 0) for (int b = 0; b < count; b++)
                     dclp.Coefficients[start + b] = CheckedCoefficient((long)dclp.Coefficients[start + b] * 2);
             }
-        }
-        if (frame.Overlap == 2) {
-            int lowWidth = columns * 4, lowHeight = rows * 4;
-            var lowpass = new int[checked(lowWidth * lowHeight)];
-            for (int c = 0; c < plane.Components; c++) {
+            if (frame.Overlap == 2) {
+                var lowpass = new int[checked(lowWidth * lowHeight)];
                 for (int y = 0; y < lowHeight; y++) {
                     cancellation.ThrowIfCancellationRequested();
                     for (int x = 0; x < lowWidth; x++)
-                        lowpass[y * lowWidth + x] = dclp.Coefficients[((y / 4 * columns + x / 4) * plane.Components + c) * 16 + y % 4 * 4 + x % 4];
+                        lowpass[y * lowWidth + x] = dclp.Coefficients[((y / blocksY * columns + x / blocksX) * plane.Components + c) * 16 + y % blocksY * blocksX + x % blocksX];
                 }
-                ApplyOverlap(frame, lowpass, lowWidth, lowHeight, 4, work, cancellation);
+                if (reduced) ApplyReducedOverlap(frame, lowpass, lowWidth, lowHeight, blocksY, cancellation);
+                else ApplyOverlap(frame, lowpass, lowWidth, lowHeight, 4, work, cancellation);
                 for (int y = 0; y < lowHeight; y++) {
                     cancellation.ThrowIfCancellationRequested();
                     for (int x = 0; x < lowWidth; x++)
-                        dclp.Coefficients[((y / 4 * columns + x / 4) * plane.Components + c) * 16 + y % 4 * 4 + x % 4] = lowpass[y * lowWidth + x];
+                        dclp.Coefficients[((y / blocksY * columns + x / blocksX) * plane.Components + c) * 16 + y % blocksY * blocksX + x % blocksX] = lowpass[y * lowWidth + x];
                 }
             }
-        }
-        for (int y = 0; y < rows; y++) for (int x = 0; x < columns; x++) {
-            cancellation.ThrowIfCancellationRequested();
-            int mb = y * columns + x;
-            for (int c = 0; c < plane.Components; c++) {
-                int start = (mb * plane.Components + c) * 16;
-                for (int b = 0; b < 16; b++) {
+            for (int y = 0; y < rows; y++) for (int x = 0; x < columns; x++) {
+                cancellation.ThrowIfCancellationRequested();
+                int mb = y * columns + x, start = (mb * plane.Components + c) * 16;
+                for (int b = 0; b < count; b++) {
                     if (highpass == null) Array.Clear(block, 0, block.Length);
                     else Array.Copy(highpass, (mb * plane.Components + c) * 256 + b * 16, block, 0, 16);
                     block[0] = dclp.Coefficients[start + b];
                     InverseTransform(block, 0, work);
-                    int blockX = x * 16 + b % 4 * 4, blockY = y * 16 + b / 4 * 4;
+                    int blockX = (x * blocksX + b % blocksX) * 4, blockY = (y * blocksY + b / blocksX) * 4;
                     for (int py = 0; py < 4; py++) for (int px = 0; px < 4; px++)
                         output[c][(blockY + py) * width + blockX + px] = block[py * 4 + px];
                 }
             }
+            if (frame.Overlap != 0)
+                ApplyOverlap(frame, output[c], width, height, blocksX * 4, work, cancellation, blocksY * 4);
+            if (reduced) output[c] = UpsampleChroma(output[c], width, height, plane, cancellation);
         }
-        if (frame.Overlap != 0) for (int c = 0; c < output.Length; c++)
-            ApplyOverlap(frame, output[c], width, height, 16, work, cancellation);
         return output;
     }
 
