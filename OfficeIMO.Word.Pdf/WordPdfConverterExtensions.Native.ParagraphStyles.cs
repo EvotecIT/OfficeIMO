@@ -626,6 +626,10 @@ namespace OfficeIMO.Word.Pdf {
                 size = new PdfCore.PageSize(
                     section.PageSettings.Width.GetValueOrDefault() / 20D,
                     section.PageSettings.Height.GetValueOrDefault() / 20D);
+                // The stored physical dimensions already describe the page, even when
+                // the optional orientation flag is absent. Only an export override
+                // should normalize these dimensions into another orientation.
+                if (options?.Orientation == null && options?.DefaultOrientation == null) return size;
             } else if (section.PageSettings.PageSize.HasValue) {
                 size = MapNativePageSize(section.PageSettings.PageSize.Value);
             } else if (options?.DefaultPageSize.HasValue == true) {
@@ -649,18 +653,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PageSize MapNativePageSize(WordPageSize pageSize) =>
-            pageSize switch {
-                WordPageSize.Letter => PdfCore.PageSizes.Letter,
-                WordPageSize.Legal => PdfCore.PageSizes.Legal,
-                WordPageSize.A3 => new PdfCore.PageSize(842, 1191),
-                WordPageSize.A4 => PdfCore.PageSizes.A4,
-                WordPageSize.A5 => PdfCore.PageSizes.A5,
-                WordPageSize.A6 => new PdfCore.PageSize(298, 420),
-                WordPageSize.B5 => new PdfCore.PageSize(499, 709),
-                WordPageSize.Executive => new PdfCore.PageSize(522, 756),
-                WordPageSize.Statement => new PdfCore.PageSize(396, 612),
-                _ => PdfCore.PageSizes.A4
-            };
+            WordPageSizes.GetDefinition(pageSize) is { } definition
+                ? new PdfCore.PageSize(definition.WidthTwips / 20D, definition.HeightTwips / 20D)
+                : PdfCore.PageSizes.A4;
 
         private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options) {
             return GetNativeMargins(section, options, GetNativeHeaderFooterMarginExpansion(section, options));
