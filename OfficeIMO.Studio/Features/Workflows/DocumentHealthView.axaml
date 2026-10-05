@@ -141,7 +141,7 @@
             <StackPanel Spacing="6"><TextBlock Text="{Binding DocumentHealth.Status}" Foreground="{DynamicResource StudioSuccessBrush}" FontWeight="SemiBold" /><TextBlock Text="{Binding DocumentHealth.Summary}" TextWrapping="Wrap" /><TextBlock Text="{Binding DocumentHealth.OutputPath, Converter={x:Static infra:StudioConverters.FileName}}" ToolTip.Tip="{Binding DocumentHealth.OutputPath}" IsVisible="{Binding DocumentHealth.HasOutput}" TextTrimming="CharacterEllipsis" FontWeight="Medium" />
             <WrapPanel ItemSpacing="6" LineSpacing="6" IsVisible="{Binding DocumentHealth.HasOutput}">
               <Button Classes="primary" Content="{loc:Loc Output.Open}" Command="{Binding OutputActions.OpenCommand}" CommandParameter="{Binding DocumentHealth.OutputPath}" />
-              <Button Classes="tool" Content="{loc:Loc Jobs.ShowInFolder}" Command="{Binding OutputActions.RevealCommand}" CommandParameter="{Binding DocumentHealth.OutputPath}" />
+              <Button Classes="tool" IsVisible="{Binding OutputActions.SupportsFolderNavigation}" Content="{loc:Loc Jobs.ShowInFolder}" Command="{Binding OutputActions.RevealCommand}" CommandParameter="{Binding DocumentHealth.OutputPath}" />
             </WrapPanel></StackPanel>
           </Border>
           <Border IsVisible="{Binding DocumentHealth.IsResultCancelled}" Background="{DynamicResource StudioWarningSoftBrush}" BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="1" CornerRadius="8" Padding="16">

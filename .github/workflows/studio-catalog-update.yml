@@ -1,0 +1,56 @@
+name: Update Studio catalogs
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Published signed Studio release, for example Studio-v0.1.9767.
+        required: true
+        type: string
+      delivery-release-id:
+        description: Existing public immutable release ID on downloads.officeimo.com.
+        required: true
+        type: string
+      channel:
+        required: true
+        type: choice
+        options: [all, winget, store]
+        default: all
+      execute:
+        description: Submit after preflight; false only prepares and verifies the update.
+        required: true
+        type: boolean
+        default: false
+      verify-authentication:
+        description: Check publishing credentials and Store API readiness without submitting.
+        required: true
+        type: boolean
+        default: false
+      confirm-no-prior-submission:
+        description: I checked both catalogs; this release has no prior submission (required without retained history).
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  catalog:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@371daf0d7106b37657b5be7971e52fdaba7110ae
+    with:
+      environment-name: studio-catalog
+      profile-path: Build/Studio/powerforge.catalog.json
+      release-tag: ${{ inputs.release-tag }}
+      delivery-release-id: ${{ inputs.delivery-release-id }}
+      manifest-name: windows-release-manifest.json
+      checksums-name: windows-SHA256SUMS.txt
+      channel: ${{ inputs.channel }}
+      execute: ${{ inputs.execute }}
+      verify-authentication: ${{ inputs.verify-authentication }}
+      confirm-no-prior-submission: ${{ inputs.confirm-no-prior-submission }}
+    secrets:
+      WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+      PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}
+      PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
+      PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}

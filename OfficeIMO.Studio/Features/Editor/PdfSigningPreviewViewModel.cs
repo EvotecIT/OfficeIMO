@@ -10,7 +10,7 @@ namespace OfficeIMO.Studio.Features.Editor;
 public sealed partial class PdfSigningPreviewViewModel : ObservableObject, IDisposable {
     private readonly IStudioLocalizer _localizer;
     private readonly Func<string, Task> _open;
-    private readonly Func<string, Task> _reveal;
+    private readonly Func<string, Task>? _reveal;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title))]
     [NotifyPropertyChangedFor(nameof(IsPreview))]
@@ -22,7 +22,7 @@ public sealed partial class PdfSigningPreviewViewModel : ObservableObject, IDisp
     [ObservableProperty] private string? _verification;
     [ObservableProperty] private IReadOnlyList<string> _findings = [];
     internal PdfSigningPreviewViewModel(PdfSigningSettings settings, int pages, string destination, bool provider,
-        byte[]? image, IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task> reveal) {
+        byte[]? image, IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task>? reveal) {
         _localizer = localizer; _open = open; _reveal = reveal; Destination = destination;
         Details = [localizer.Format("Protection.Pages", pages),
             localizer.Get(settings.Certification is null ? "Signing.ApprovalPreview" : "Signing.CertificationPreview"),
@@ -50,7 +50,7 @@ public sealed partial class PdfSigningPreviewViewModel : ObservableObject, IDisp
     public bool HasPreviewImage => PreviewImage is not null;
     public bool IsPreview => !HasResult;
     public bool CanOpenOutput => HasResult && OutputPath is not null;
-    public bool CanRevealOutput => CanOpenOutput && OfficeStorageIdentity.GetLocalPath(OutputPath!) is not null;
+    public bool CanRevealOutput => _reveal is not null && CanOpenOutput && OfficeStorageIdentity.GetLocalPath(OutputPath!) is not null;
     internal void Complete(OfficeWorkflowResult result) {
         Summary = result.Summary; OutputPath = result.Succeeded ? result.OutputPath : null;
         HasRecovery = result.Recovery is not null; HasResult = true;
@@ -73,7 +73,7 @@ public sealed partial class PdfSigningPreviewViewModel : ObservableObject, IDisp
     }
     [RelayCommand] private async Task RevealOutputAsync() {
         if (!CanRevealOutput) return;
-        try { await _reveal(OutputPath!); } catch (Exception error) { ErrorMessage = error.Message; }
+        try { await _reveal!(OutputPath!); } catch (Exception error) { ErrorMessage = error.Message; }
     }
     public void Dispose() => PreviewImage?.Dispose();
 }

@@ -282,9 +282,10 @@ internal static partial class PdfMerger {
         if (destinations.Count == 0) return;
         if (names == null) { names = new PdfDictionary(); catalog.Items["Names"] = names; }
         var values = new PdfArray();
-        foreach (MergedNamedDestination destination in destinations.OrderBy(static item => item.Name, StringComparer.Ordinal)) {
-            values.Items.Add(new PdfStringObj(destination.Name, true));
-            values.Items.Add(BuildDestinationArray(document, destination));
+        foreach (var entry in destinations.Select(static item => (Destination: item, KeyBytes: PdfTextString.Encode(item.Name)))
+            .OrderBy(static item => item.KeyBytes, PdfNameTreeKeyComparer.Instance)) {
+            values.Items.Add(new PdfStringObj(entry.KeyBytes));
+            values.Items.Add(BuildDestinationArray(document, entry.Destination));
         }
         var tree = new PdfDictionary(); tree.Items["Names"] = values; names.Items["Dests"] = tree;
     }

@@ -276,7 +276,7 @@ internal static partial class PdfPageExtractor {
                 cloned = new PdfName(name.Name);
                 return true;
             case PdfStringObj text:
-                cloned = new PdfStringObj(text.Value);
+                cloned = new PdfStringObj(text.RawBytes, text.UseTextStringEncoding);
                 return true;
             case PdfNull:
                 cloned = PdfNull.Instance;

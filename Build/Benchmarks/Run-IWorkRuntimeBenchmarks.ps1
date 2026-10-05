@@ -4,15 +4,16 @@ param(
     [string] $ModulePath = 'PSPublishModule',
     [ValidateSet('Small', 'Medium', 'Large', 'Native')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
     [ValidateSet('Pages', 'Numbers', 'Keynote')] [string[]] $Kind = @('Pages', 'Numbers', 'Keynote'),
-    [ValidateSet('LoadProject', 'ConvertSave')] [string[]] $Operation = @('LoadProject', 'ConvertSave'),
+    [ValidateSet('LoadProject', 'ConvertSave', 'CancelDuringLoad', 'CancelDuringConvert', 'CancelDuringNativeCopy')] [string[]] $Operation = @('LoadProject', 'ConvertSave'),
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,
     [ValidateRange(1, 100)] [int] $IterationCount = 5,
+    [ValidateRange(0, 1000)] [int] $MemorySamplingIntervalMilliseconds = 0,
     [switch] $MeasureRetainedMemory,
     [switch] $Plan
 )
 $ErrorActionPreference = 'Stop'
-if ('Native' -in $Scale -and 'Keynote' -in $Kind) {
-    throw 'Native runtime cases support Pages and Numbers. Select -Kind Pages,Numbers for -Scale Native.'
+if ('CancelDuringNativeCopy' -in $Operation -and ($Operation.Count -ne 1 -or $Kind.Count -ne 1 -or $Kind[0] -ne 'Keynote' -or $Scale.Count -ne 1 -or $Scale[0] -ne 'Native')) {
+    throw 'CancelDuringNativeCopy requires only -Scale Native -Kind Keynote -Operation CancelDuringNativeCopy.'
 }
 $BinaryRoot = (Resolve-Path -LiteralPath $BinaryRoot).Path
 # Bind the candidate's core before the runner can load another OfficeIMO version.
@@ -21,8 +22,10 @@ Import-Module $ModulePath -ErrorAction Stop
 $caseNames = @(foreach ($size in $Scale) { foreach ($family in $Kind) { "$family-$size" } })
 $factors = @(foreach ($size in $Scale) { switch ($size) { Small { 1 } Medium { 10 } Large { 100 } Native { 0 } } })
 $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'iwork-runtime.benchmark.ps1') `
-    -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Factors = $factors; MeasureRetainedMemory = [bool]$MeasureRetainedMemory } `
-    -Case $caseNames -Operation $Operation -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
+    -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Factors = $factors; NativeCopyCase = ('CancelDuringNativeCopy' -in $Operation); MeasureRetainedMemory = [bool]$MeasureRetainedMemory } `
+    -Case $caseNames -Operation $Operation -WarmupCount $WarmupCount -IterationCount $IterationCount `
+    -MemorySamplingIntervalMilliseconds $MemorySamplingIntervalMilliseconds `
+    -RunMode $(if ($MemorySamplingIntervalMilliseconds -gt 0) { "memory-$MemorySamplingIntervalMilliseconds-ms" } else { 'standard' }) -Plan:$Plan
 $result
 if (-not $Plan -and @($result.Samples | Where-Object Status -ne 'Succeeded').Count -gt 0) {
     throw 'iWork runtime qualification failed. Inspect the retained benchmark artifacts.'
@@ -35,4 +38,11 @@ if (-not $Plan -and $MeasureRetainedMemory -and @($result.Samples | Where-Object
     -not $_.Metrics.ContainsKey('RetainedManagedDeltaBytes')
 }).Count -gt 0) {
     throw 'The requested collected managed-heap observation is missing.'
+}
+
+if (-not $Plan -and $MemorySamplingIntervalMilliseconds -gt 0 -and @($result.Samples | Where-Object {
+    -not $_.Metrics.ContainsKey('MemorySampleCount') -or $_.Metrics['MemorySampleCount'] -lt 2 -or
+    $_.Metrics['MemorySamplingFailed'] -ne 0 -or $_.Metrics['MemorySamplingIntervalMs'] -ne $MemorySamplingIntervalMilliseconds
+}).Count -gt 0) {
+    throw 'The requested operation memory observations are missing or invalid.'
 }

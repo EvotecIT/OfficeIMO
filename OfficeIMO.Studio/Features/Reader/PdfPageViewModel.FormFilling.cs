@@ -4,59 +4,53 @@ using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Reader;
 
-/// <summary>Fills the selected form field directly on the page, over the field's own widget.</summary>
+/// <summary>Places shared field drafts over their visible widgets using the PDF engine's page geometry.</summary>
 public sealed partial class PdfPageViewModel {
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasInlineFormEditor))]
-    private PdfFormFieldViewModel? _inlineFormField;
-
-    [ObservableProperty] private double _inlineFormLeft;
-    [ObservableProperty] private double _inlineFormTop;
-    [ObservableProperty] private double _inlineFormWidth;
-    [ObservableProperty] private double _inlineFormHeight;
-    [ObservableProperty] private double _inlineFormFontSize = 12D;
+    private PdfPageInteractionMap? _inlineFormMap;
+    private IReadOnlyList<PdfFormFieldViewModel> _inlineFormFields = [];
+    [ObservableProperty] private PdfFormFieldViewModel? _inlineFormField;
+    [ObservableProperty] private int? _formAnchorObjectNumber;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasInlineFormEditor))]
-    private bool _hasInlineFormBounds;
+    private IReadOnlyList<PdfInlineFormWidgetViewModel> _inlineFormWidgets = [];
 
-    public bool HasInlineFormEditor => InlineFormField is not null && HasInlineFormBounds;
-
-    /// <summary>Set when the editor should take keyboard focus as soon as it appears (page click or Tab).</summary>
+    public bool HasInlineFormEditor => InlineFormWidgets.Count > 0;
+    /// <summary>Set when a page click or Tab should focus the selected widget after layout.</summary>
     internal bool FocusInlineFormEditorRequested { get; set; }
-
-    /// <summary>Raised by Tab (+1) and Shift+Tab (-1) inside the on-page editor.</summary>
+    /// <summary>Raised by Tab (+1) and Shift+Tab (-1) inside an on-page editor.</summary>
     internal event Action<int>? InlineFormNavigationRequested;
-
     internal void RequestInlineFormNavigation(int direction) => InlineFormNavigationRequested?.Invoke(direction);
 
-    internal void ShowInlineFormField(PdfFormFieldViewModel? field, bool focus) {
-        // A pending focus request survives repeated refreshes until the view consumes it.
+    internal void ShowInlineFormFields(IReadOnlyList<PdfFormFieldViewModel> fields, PdfFormFieldViewModel? field, bool focus) {
         if (field is null) FocusInlineFormEditorRequested = false;
         else if (focus) FocusInlineFormEditorRequested = true;
-        if (!ReferenceEquals(InlineFormField, field)) InlineFormField = field;
+        if (!ReferenceEquals(InlineFormField, field)) {
+            InlineFormField = field;
+            FormAnchorObjectNumber = null;
+        }
+        if (!_inlineFormFields.SequenceEqual(fields)) {
+            _inlineFormFields = fields;
+            _inlineFormMap = null;
+        }
         UpdateInlineFormBounds();
         if (field is not null && focus) OnPropertyChanged(nameof(FocusInlineFormEditorRequested));
     }
 
     private void UpdateInlineFormBounds() {
-        if (InlineFormField is not { } field || Scene is not { Interactions: { } map } scene) {
-            HasInlineFormBounds = false;
+        if (_inlineFormFields.Count == 0 || Scene is not { Interactions: { } map } scene) {
+            InlineFormWidgets = [];
+            _inlineFormMap = null;
             return;
         }
-        PdfPageInteractionRegion? region = map.Regions.FirstOrDefault(candidate =>
-            candidate.Kind == PdfInteractionKind.FormWidget && candidate.FieldName == field.Name);
-        if (region is null) {
-            HasInlineFormBounds = false;
-            return;
+        if (!ReferenceEquals(_inlineFormMap, map)) {
+            var fields = _inlineFormFields.ToDictionary(field => field.Name, StringComparer.Ordinal);
+            InlineFormWidgets = map.Regions.Where(region => region.Kind == PdfInteractionKind.FormWidget)
+                .Select(region => region.FieldName is not null && fields.TryGetValue(region.FieldName, out var field)
+                    ? PdfInlineFormWidgetViewModel.Create(this, field, region) : null)
+                .OfType<PdfInlineFormWidgetViewModel>().ToArray();
+            _inlineFormMap = map;
         }
-        double scaleX = DisplayWidth / Math.Max(1D, scene.Drawing.Width);
-        double scaleY = DisplayHeight / Math.Max(1D, scene.Drawing.Height);
-        InlineFormLeft = region.Quad.Left * scaleX;
-        InlineFormTop = region.Quad.Top * scaleY;
-        InlineFormWidth = Math.Max(field.IsCheckBoxEditor ? 18D : 60D, region.Quad.Width * scaleX);
-        InlineFormHeight = Math.Max(field.IsCheckBoxEditor ? 18D : 22D, region.Quad.Height * scaleY);
-        InlineFormFontSize = Math.Clamp(InlineFormHeight * (field.IsMultiline ? 0.3D : 0.55D), 9D, 16D);
-        HasInlineFormBounds = true;
+        foreach (var widget in InlineFormWidgets) widget.UpdateBounds(CanvasWidth / Math.Max(1D, scene.Drawing.Width), CanvasHeight / Math.Max(1D, scene.Drawing.Height));
     }
 }

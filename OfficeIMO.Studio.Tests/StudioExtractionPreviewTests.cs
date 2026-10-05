@@ -42,9 +42,10 @@ public sealed class StudioExtractionPreviewTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ReviewUsesEditedWorkspaceAndRejectsStaleApproval(bool stale) {
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task ReviewUsesEditedWorkspaceAndRejectsStaleApproval(bool stale, bool folderNavigation) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -54,7 +55,7 @@ public sealed class StudioExtractionPreviewTests {
             byte[] original = File.ReadAllBytes(source);
             MainWindowViewModel? model = null;
             PageExtractionPreviewViewModel? completed = null;
-            using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
+            using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services, supportsFolderNavigation: folderNavigation,
                 pickSavePdf: _ => { model!.ClearPageSelectionCommand.Execute(null); return Task.FromResult<string?>(output); },
                 reviewPageExtraction: async preview => {
                     Assert.Equal(new[] { 1, 2 }, preview.SelectedPages);
@@ -77,7 +78,7 @@ public sealed class StudioExtractionPreviewTests {
                     Assert.NotNull(model.ErrorMessage); Assert.Null(completed); Assert.Empty(services.Jobs.Entries);
                     Assert.False(File.Exists(output));
                 } else {
-                    Assert.Null(model.ErrorMessage); Assert.NotNull(completed); Assert.True(completed.CanOpenOutput);
+                    Assert.Null(model.ErrorMessage); Assert.NotNull(completed); Assert.True(completed.CanOpenOutput); Assert.Equal(folderNavigation, completed.CanRevealOutput);
                     Assert.Equal(new[] { 220D, 200D, 220D }, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().Pages.Select(page => page.Width));
                     var job = Assert.Single(services.Jobs.Entries); Assert.False(job.IsActive); Assert.True(job.HasOutput);
                     await model.UndoCommand.ExecuteAsync(null);

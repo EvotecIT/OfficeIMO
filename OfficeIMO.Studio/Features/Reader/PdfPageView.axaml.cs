@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Reader;
@@ -96,6 +97,7 @@ public sealed partial class PdfPageView : UserControl {
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
         if (e.PropertyName != nameof(PdfPageViewModel.HasInlineFormEditor) &&
             e.PropertyName != nameof(PdfPageViewModel.InlineFormField) &&
+            e.PropertyName != nameof(PdfPageViewModel.InlineFormWidgets) &&
             e.PropertyName != nameof(PdfPageViewModel.FocusInlineFormEditorRequested)) return;
         FocusPendingInlineFormEditor();
     }
@@ -106,17 +108,14 @@ public sealed partial class PdfPageView : UserControl {
         this.Dispatcher.Post(() => {
             if (!_attached || !ReferenceEquals(_viewModel, model) || !model.HasInlineFormEditor ||
                 !model.FocusInlineFormEditorRequested) return;
-            Control? editor = InlineFormText.IsVisible ? InlineFormText : InlineFormEditableChoice.IsVisible ? InlineFormEditableChoice : InlineFormCheck.IsVisible ? InlineFormCheck : InlineFormChoice.IsVisible ? InlineFormChoice : null;
-            if (editor is null || !editor.Focus(NavigationMethod.Tab)) return;
+            var editors = InlineFormEditors.GetVisualDescendants().OfType<PdfInlineFormWidgetView>()
+                .Where(view => view.DataContext is PdfInlineFormWidgetViewModel widget && ReferenceEquals(widget.Field, model.InlineFormField)).ToArray();
+            var editor = editors.FirstOrDefault(view => view.DataContext is PdfInlineFormWidgetViewModel widget && widget.ObjectNumber == model.FormAnchorObjectNumber)
+                ?? editors.FirstOrDefault(view => view.DataContext is PdfInlineFormWidgetViewModel { RadioChoice.IsSelected: true })
+                ?? editors.FirstOrDefault();
+            if (editor is null || !editor.FocusEditor()) return;
             model.FocusInlineFormEditorRequested = false;
-            if (editor is TextBox text) text.SelectAll();
         }, Avalonia.Threading.DispatcherPriority.Loaded);
-    }
-
-    private void OnInlineFormKeyDown(object? sender, KeyEventArgs e) {
-        if (_viewModel is null || e.Key != Key.Tab) return;
-        e.Handled = true;
-        _viewModel.RequestInlineFormNavigation(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e) {

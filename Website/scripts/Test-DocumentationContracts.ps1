@@ -469,6 +469,7 @@ $expectedAotClassifications = [ordered]@{
     nativeBuildAnalyzerCount = 'native-build-analyzer'
     managedCrossPlatformProjectCount = 'managed-cross-platform'
     managedWindowsProjectCount = 'managed-windows'
+    iosHostUnqualifiedProjectCount = 'ios-host-unqualified'
 }
 foreach ($classification in $expectedAotClassifications.GetEnumerator()) {
     $expected = @($aotMatrix.components | Where-Object classification -eq $classification.Value).Count
