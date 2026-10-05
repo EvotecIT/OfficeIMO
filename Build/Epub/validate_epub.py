@@ -18,6 +18,38 @@ def digest(path):
     return value.hexdigest()
 
 
+def ace_evidence(report, exit_code):
+    """Keep validator outcomes separate from the content the validator can inspect."""
+    evidence = {"status": "failed", "exitCode": exit_code}
+    report = report if isinstance(report, dict) else {}
+    result = report.get("earl:result")
+    outcome = result.get("earl:outcome") if isinstance(result, dict) else None
+    evidence["outcome"] = outcome
+    if exit_code == 0 and outcome == "pass":
+        evidence["status"] = "passed"
+    properties = report.get("properties")
+    has_svg = properties.get("hasSVGContentDocuments") if isinstance(properties, dict) else None
+    software = report.get("earl:assertedBy")
+    release = software.get("doap:release") if isinstance(software, dict) else None
+    version = release.get("doap:revision") if isinstance(release, dict) else None
+    coverage = {"scope": "automated-checks-only", "svgContentDocuments": "not-established", "limitations": []}
+    if has_svg is False:
+        coverage["svgContentDocuments"] = "not-applicable"
+    elif has_svg is True and version == "1.4.6":
+        coverage["svgContentDocuments"] = "not-checked"
+        coverage["limitations"].append({
+            "code": "ace-svg-content-not-checked",
+            "message": "Ace 1.4.6 ignores SVG spine documents. TOC findings for their targets may result from this coverage gap; retain and review the findings."
+        })
+    else:
+        coverage["limitations"].append({
+            "code": "ace-svg-coverage-not-established",
+            "message": "This report does not establish SVG content coverage. Confirm the validator version and supported content before making coverage claims."
+        })
+    evidence["coverage"] = coverage
+    return evidence
+
+
 def posix_processes():
     result = subprocess.run(["ps", "-axo", "pid=,ppid=,pgid=,lstart="], capture_output=True,
                             text=True, timeout=5, check=True)
@@ -166,11 +198,7 @@ def main():
                 automated["report"] = str(report_path.relative_to(output))
                 if report_path.is_file():
                     report = json.loads(report_path.read_text(encoding="utf-8"))
-                    result_node = report.get("earl:result") if isinstance(report, dict) else None
-                    outcome = result_node.get("earl:outcome") if isinstance(result_node, dict) else None
-                    automated["outcome"] = outcome
-                    if exit_code == 0 and outcome == "pass":
-                        automated["status"] = "passed"
+                    automated.update(ace_evidence(report, exit_code))
                 failed |= automated["status"] != "passed"
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         summary["failure"] = str(error)

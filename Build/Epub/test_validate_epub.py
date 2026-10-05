@@ -1,4 +1,4 @@
-"""Opt-in process-lifetime contracts: python3 -m unittest discover -s Build/Epub."""
+"""Opt-in validator evidence and process-lifetime contracts: python3 -m unittest discover -s Build/Epub."""
 import os
 from pathlib import Path
 import subprocess
@@ -7,7 +7,40 @@ import tempfile
 import time
 import unittest
 
-from validate_epub import run_browser_audit
+from validate_epub import ace_evidence, run_browser_audit
+
+
+class AccessibilityEvidence(unittest.TestCase):
+    def report(self, outcome, svg=True, version="1.4.6"):
+        return {"earl:result": {"earl:outcome": outcome},
+                "properties": {"hasSVGContentDocuments": svg},
+                "earl:assertedBy": {"doap:release": {"doap:revision": version}}}
+
+    def test_svg_limitation_never_overrides_a_failed_validator(self):
+        for outcome, code in (("fail", 2), ("fail", 0), ("pass", 2)):
+            with self.subTest(outcome=outcome, code=code):
+                result = ace_evidence(self.report(outcome), code)
+                self.assertEqual("failed", result["status"])
+                self.assertEqual(outcome, result["outcome"])
+                self.assertEqual(code, result["exitCode"])
+                self.assertEqual("not-checked", result["coverage"]["svgContentDocuments"])
+
+    def test_automated_pass_and_svg_coverage_are_independent(self):
+        result = ace_evidence(self.report("pass"), 0)
+        self.assertEqual("passed", result["status"])
+        self.assertEqual("not-checked", result["coverage"]["svgContentDocuments"])
+        self.assertEqual("ace-svg-content-not-checked", result["coverage"]["limitations"][0]["code"])
+        result = ace_evidence(self.report("pass", svg=False), 0)
+        self.assertEqual("passed", result["status"])
+        self.assertEqual("not-applicable", result["coverage"]["svgContentDocuments"])
+
+    def test_unknown_versions_and_missing_reports_do_not_inherit_known_coverage(self):
+        for report in (self.report("pass", version="9.0.0"), {}, [], None):
+            with self.subTest(report=report):
+                result = ace_evidence(report, 0)
+                self.assertEqual("not-established", result["coverage"]["svgContentDocuments"])
+                if not isinstance(report, dict) or not report:
+                    self.assertEqual("failed", result["status"])
 
 
 class BrowserAuditLifetime(unittest.TestCase):

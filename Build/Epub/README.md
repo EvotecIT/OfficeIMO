@@ -26,6 +26,11 @@ Its browser runtime must already be available. The runner records its version, l
 JSON report, exit code, and reported outcome for the same captured EPUB bytes. Missing,
 malformed, failing, or timed-out evidence produces a nonzero exit. Without `--ace`,
 automated accessibility is recorded as unchecked.
+The `automatedAccessibility.coverage` object separately records SVG coverage and
+known limitations. Ace 1.4.6 reports containing SVG spine documents are marked
+`not-checked` for that content; other versions remain `not-established` until their
+coverage is verified. Coverage annotations never change the validator outcome or
+turn a failing run into a pass.
 On interruption or timeout, the runner terminates Ace's process tree, including detached
 browser groups on POSIX. Cleanup has a bounded grace period beyond the requested audit
 timeout. Run the POSIX timeout contract with
