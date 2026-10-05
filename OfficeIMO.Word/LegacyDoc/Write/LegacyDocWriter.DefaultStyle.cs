@@ -42,6 +42,37 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? ResolveDefaultThemeFont(scheme, selector) ?? name
                 : ResolveDefaultThemeFont(scheme, inheritedSelector) ?? inheritedName;
 
+        private static void MaterializeDocumentDefaultSpacing(Dictionary<string, Style> paragraphStyles, Styles? styles) {
+            SpacingBetweenLines? defaults = styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.SpacingBetweenLines;
+            if (defaults == null) return;
+            // DOC has no docDefaults record. Put the defaults on roots of the style
+            // hierarchy; derived styles continue to inherit their base's overrides.
+            foreach (string styleId in paragraphStyles.Keys.ToArray()) {
+                Style original = paragraphStyles[styleId];
+                string? baseId = original.BasedOn?.Val?.Value;
+                if (!string.IsNullOrWhiteSpace(baseId) && paragraphStyles.ContainsKey(baseId!)) continue;
+                Style style = (Style)original.CloneNode(true);
+                StyleParagraphProperties properties = style.StyleParagraphProperties ??= new StyleParagraphProperties();
+                SpacingBetweenLines spacing = properties.SpacingBetweenLines ??= new SpacingBetweenLines();
+                bool authoredLine = !string.IsNullOrWhiteSpace(spacing.Line?.Value);
+                if (!authoredLine && !string.IsNullOrWhiteSpace(defaults.Line?.Value)) {
+                    // Word inherits the numeric value and its interpretation
+                    // together. A rule without a local value is not an override.
+                    spacing.Line = defaults.Line!.Value;
+                    spacing.LineRule = defaults.LineRule?.Value ?? LineSpacingRuleValues.Auto;
+                }
+                foreach (var attribute in defaults.GetAttributes()) {
+                    // The line/rule pair is handled above. An authored line
+                    // without a rule means automatic spacing.
+                    if (attribute.LocalName is "line" or "lineRule") continue;
+                    if (!spacing.GetAttributes().Any(existing => existing.LocalName == attribute.LocalName && existing.NamespaceUri == attribute.NamespaceUri)) {
+                        spacing.SetAttribute(attribute);
+                    }
+                }
+                paragraphStyles[styleId] = style;
+            }
+        }
+
         private static string? ResolveDefaultThemeFont(A.FontScheme? scheme, ThemeFontValues? selector) {
             if (scheme == null || selector == null) return null;
             string? family = selector.Value switch {

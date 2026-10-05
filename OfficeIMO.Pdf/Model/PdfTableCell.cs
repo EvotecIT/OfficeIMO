@@ -276,7 +276,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -331,6 +331,9 @@ internal sealed class PdfTableCellParagraph {
 
         FontSize = fontSize;
         LineSpacing = lineSpacing;
+        WidowControl = widowControl;
+        KeepTogether = keepTogether;
+        KeepWithNext = keepWithNext;
         Runs = snapshot.AsReadOnly();
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
@@ -361,11 +364,20 @@ internal sealed class PdfTableCellParagraph {
 
     public PdfLineSpacing? LineSpacing { get; }
 
+    /// <summary>Resolved widow/orphan policy; null retains the shared table's default first-fragment rule.</summary>
+    public bool? WidowControl { get; }
+
+    /// <summary>Keeps a fitting cell paragraph in one frame.</summary>
+    public bool KeepTogether { get; }
+
+    /// <summary>Keeps the paragraph's last line with the next cell paragraph's first line.</summary>
+    public bool KeepWithNext { get; }
+
     public double? LineHeight { get; }
 
     public double? DefaultTabStopWidth { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing);
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext);
 }

@@ -113,10 +113,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return LegacyDocSectionFormat.Default;
             }
 
-            return ReadSepxGrpprl(wordDocumentStream, fcSepx + 2, cb);
+            return ReadSepxGrpprl(wordDocumentStream, fcSepx + 2, cb, out warning);
         }
 
-        private static LegacyDocSectionFormat ReadSepxGrpprl(byte[] bytes, int offset, int count) {
+        private static LegacyDocSectionFormat ReadSepxGrpprl(byte[] bytes, int offset, int count, out string? warning) {
             int end = offset + count;
             int? pageWidth = null;
             int? pageHeight = null;
@@ -131,6 +131,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool differentFirstPage = false;
             int? columnCount = null;
             int? columnSpacing = null;
+            var indexedColumns = new LegacyDocSectionColumns();
             bool hasColumnSeparator = false;
             bool restartPageNumbering = false;
             int? pageNumberStart = null;
@@ -157,6 +158,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
+                if (indexedColumns.TryRead(sprm, bytes, offset, end, out int columnOperandLength)) {
+                    offset += 2 + columnOperandLength;
+                    continue;
+                }
                 if (sprm == SprmSBkc) {
                     if (offset + 3 > end) {
                         break;
@@ -343,7 +348,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             footerDistance = value;
                             break;
                         case SprmSCcolumns:
-                            columnCount = value + 1;
+                            if (value < LegacyDocSectionColumns.MaximumCount) columnCount = value + 1;
+                            else indexedColumns.InvalidCount();
                             break;
                         case SprmSDxaColumns:
                             columnSpacing = value;
@@ -424,6 +430,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
+            IReadOnlyList<WordSectionColumn>? columnDefinitions = indexedColumns.Build(columnCount, out warning);
             return new LegacyDocSectionFormat(
                 sectionBreakType,
                 pageWidth,
@@ -456,7 +463,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 endnoteRestart,
                 endnoteStart,
                 endnoteNumberFormat,
-                new LegacyDocParagraphBorders(pageTopBorder, pageLeftBorder, pageBottomBorder, pageRightBorder, default, pageBorderOptions));
+                new LegacyDocParagraphBorders(pageTopBorder, pageLeftBorder, pageBottomBorder, pageRightBorder, default, pageBorderOptions),
+                columnDefinitions);
         }
 
         private static FootnotePositionValues? ReadFootnotePosition(byte value) {

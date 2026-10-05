@@ -1742,7 +1742,9 @@ internal static partial class PdfWriter {
         int parentTreeNextKey = parentTreeEntries.Count == 0
             ? 0
             : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
-        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey));
+        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(
+            new[] { documentStructElementId }, parentTreeId, parentTreeNextKey,
+            pages.SelectMany(page => page.StructElements).Select(element => element.StructureType)));
     }
 
     private static int? FindMarkedContentStreamObjectId(LayoutResult.Page page, int markedContentId) {

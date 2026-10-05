@@ -76,7 +76,7 @@ public sealed partial class OfficeRasterCanvas {
         void Include(List<List<OfficePoint>> contours) {
             if (Math.Abs(scaleX - 1D) > .0001D) ScaleContoursX(contours, textX, scaleX);
             if ((simulated & OfficeFontStyle.Italic) != 0) SlantContours(contours, textTop, size);
-            double boldOffset = (simulated & OfficeFontStyle.Bold) != 0 ? .45D : 0D;
+            double boldOffset = (simulated & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D;
             foreach (List<OfficePoint> contour in contours) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 hasInk |= contour.Count > 0;

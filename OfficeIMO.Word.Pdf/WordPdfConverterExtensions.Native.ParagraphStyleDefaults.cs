@@ -35,6 +35,7 @@ namespace OfficeIMO.Word.Pdf {
             string? ShadingFillColorHex,
             NativeParagraphBorders Borders) {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
+            public NativeLineSpacing LineSpacing { get; init; }
             public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
         }
 
@@ -94,6 +95,7 @@ namespace OfficeIMO.Word.Pdf {
             double? lineHeight = null;
             double? lineSpacingPoints = null;
             W.LineSpacingRuleValues? lineSpacingRule = null;
+            NativeLineSpacing authoredLineSpacing = default;
             double? spacingBefore = null;
             double? spacingAfter = null;
             double? leftIndent = null;
@@ -127,6 +129,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (paragraphProperties != null) {
                     W.SpacingBetweenLines? spacing = paragraphProperties.GetFirstChild<W.SpacingBetweenLines>();
                     if (spacing != null) {
+                        authoredLineSpacing = ReadNativeLineSpacing(spacing).Inherit(authoredLineSpacing);
                         double? styleLineHeight = GetNativeStyleParagraphLineHeight(
                             spacing,
                             fontFamily,
@@ -198,7 +201,7 @@ namespace OfficeIMO.Word.Pdf {
                 widowControl,
                 contextualSpacing,
                 shadingFillColorHex,
-                borders) { ComplexScript = complexScript };
+                borders) { ComplexScript = complexScript, LineSpacing = authoredLineSpacing };
             if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 cache.ParagraphDefaults[resolvedStyleId!] = result;
             }

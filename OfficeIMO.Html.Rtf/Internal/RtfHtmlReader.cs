@@ -17,6 +17,8 @@ internal static partial class RtfHtmlReader {
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
         private readonly Stack<RtfRevisionScope> _revisions = new Stack<RtfRevisionScope>();
         private readonly Stack<TableReadState> _tableStates = new Stack<TableReadState>();
+        private readonly HashSet<RtfTable> _automaticWidthTables = new HashSet<RtfTable>();
+        private readonly Dictionary<RtfTableCell, List<(RtfImage Image, IElement Source)>> _intrinsicCellImages = new();
         private readonly List<RowSpanState> _rowSpans = new List<RowSpanState>();
         private readonly Dictionary<IElement, bool> _legacyMetadataOnAncestor = new Dictionary<IElement, bool>();
         private RtfParagraph? _paragraph;
@@ -173,7 +175,7 @@ internal static partial class RtfHtmlReader {
                     ApplyParagraphStyle(style);
                     break;
                 case "table":
-                    StartTable();
+                    StartTable(token, style);
                     break;
                 case "tr":
                     StartRow(token, style);

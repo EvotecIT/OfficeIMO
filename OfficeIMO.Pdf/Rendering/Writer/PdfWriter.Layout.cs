@@ -62,7 +62,7 @@ internal static partial class PdfWriter {
     private sealed class ColTable : ColItem { public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<PdfTextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
     private sealed class TableColumnLayout { public double[] Widths = null!; public double Width; }
     private sealed class TableCellTextLayout {
-        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null) {
+        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null, System.Collections.Generic.List<TableCellParagraphRange>? paragraphRanges = null) {
             Lines = lines;
             LineHeights = lineHeights;
             LineHeightPrefix = new double[lineHeights.Count + 1];
@@ -73,6 +73,7 @@ internal static partial class PdfWriter {
             LineXOffsets = lineXOffsets;
             LineWidths = lineWidths;
             TopSpacing = topSpacing;
+            ParagraphRanges = paragraphRanges;
         }
 
         public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines { get; }
@@ -83,8 +84,10 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.List<double>? LineXOffsets { get; }
         public System.Collections.Generic.List<double>? LineWidths { get; }
         public double TopSpacing { get; }
+        public System.Collections.Generic.List<TableCellParagraphRange>? ParagraphRanges { get; }
         public int LineCount => System.Math.Max(1, Lines.Count);
     }
+    private readonly record struct TableCellParagraphRange(PdfTableCellParagraph Paragraph, int StartLine, int LineCount);
     private readonly struct TableCellLayout {
         public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap, PdfTableCellViewport? viewport) {
             Column = column;

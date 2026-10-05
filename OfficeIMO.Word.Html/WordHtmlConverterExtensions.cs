@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.Html {
             var header = GetOrCreateHeader(doc, targetSection, headers, type.Value.ToOpenXml());
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToHeaderAsync(doc, header, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToHeaderAsync(doc, targetSection, header, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -220,7 +220,7 @@ namespace OfficeIMO.Word.Html {
             var footer = GetOrCreateFooter(doc, targetSection, footers, footerType.ToOpenXml());
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToFooterAsync(doc, footer, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToFooterAsync(doc, targetSection, footer, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 

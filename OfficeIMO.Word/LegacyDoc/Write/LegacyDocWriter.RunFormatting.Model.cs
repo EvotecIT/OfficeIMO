@@ -141,6 +141,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     kerningMinimumFontSizeHalfPoints: IsSpecified(LegacyDocWritableFormattingProperties.Kerning) ? KerningMinimumFontSizeHalfPoints : inherited.KerningMinimumFontSizeHalfPoints);
             }
 
+            // Note reference characters retain source typography as well as the
+            // binary special-character flag used to identify their marker.
+            internal LegacyDocWritableFormatting WithSpecialCharacter() => new(
+                Bold, Italic, Strike, DoubleStrike, Outline, Shadow, Emboss, Imprint, Hidden, NoProof,
+                true, Caps, VerticalPosition, Underline, Highlight, FontSizeHalfPoints, ColorHex, FontFamily,
+                Specified | LegacyDocWritableFormattingProperties.Special, CharacterSpacingTwips,
+                LanguageId, EastAsiaLanguageId, Revision, KerningMinimumFontSizeHalfPoints);
+
             internal LegacyDocWritableFormatting WithRevision(LegacyDocRevision revision) {
                 return new LegacyDocWritableFormatting(
                     Bold,

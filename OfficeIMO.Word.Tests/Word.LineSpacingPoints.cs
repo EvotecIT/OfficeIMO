@@ -42,6 +42,7 @@ namespace OfficeIMO.Tests {
                 p.LineSpacingAfterPoints = 12;
 
                 Assert.Equal(360, p.LineSpacing);
+                Assert.Equal(WordLineSpacingRule.Exact, p.LineSpacingRule);
                 Assert.Equal(200, p.LineSpacingBefore);
                 Assert.Equal(240, p.LineSpacingAfter);
 
@@ -54,9 +55,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(10, p.LineSpacingBeforePoints);
                 Assert.Equal(12, p.LineSpacingAfterPoints);
                 Assert.Equal(360, p.LineSpacing);
+                Assert.Equal(WordLineSpacingRule.Exact, p.LineSpacingRule);
                 Assert.Equal(200, p.LineSpacingBefore);
                 Assert.Equal(240, p.LineSpacingAfter);
             }
+        }
+
+        [Fact]
+        public void LineSpacingPointsKeepsAnExplicitMinimumRuleAndClearsTheValue() {
+            using WordDocument document = WordDocument.Create();
+            var paragraph = document.AddParagraph("Minimum line spacing");
+            paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacingPoints = 18;
+            Assert.Equal(WordLineSpacingRule.AtLeast, paragraph.LineSpacingRule);
+            Assert.Equal(360, paragraph.LineSpacing);
+            paragraph.LineSpacingPoints = null;
+            Assert.Null(paragraph.LineSpacing);
+            Assert.Null(paragraph.LineSpacingPoints);
+            Assert.Equal(WordLineSpacingRule.AtLeast, paragraph.LineSpacingRule);
+            using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()));
+            Assert.Null(reopened.Paragraphs[0].LineSpacing);
+            Assert.Equal(WordLineSpacingRule.AtLeast, reopened.Paragraphs[0].LineSpacingRule);
         }
     }
 }

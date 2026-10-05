@@ -152,36 +152,27 @@ namespace OfficeIMO.Word {
 
             ApplyLegacyDocDocumentOptions(document, legacyDocument);
             AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
-            AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, notes);
+            AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, legacyDocument.StyleSheet, notes);
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
             return document;
         }
 
-        private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories, LegacyDocNoteProjection notes) {
+        private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories,
+            LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
             foreach (LegacyDocTextBoxStory story in textBoxStories) {
-                if (story.IsHeaderFooterTextBox) {
-                    continue;
-                }
-
+                if (story.IsHeaderFooterTextBox) continue;
                 WordTextBox textBox = document.AddTextBox(story.Text);
-                if (story.Runs.Count == 0 && story.Bookmarks.Count == 0) {
-                    continue;
-                }
-
                 TextBoxContent? content = textBox.Content;
-                Paragraph? paragraph = content?.Elements<Paragraph>().FirstOrDefault();
-                if (paragraph == null) {
-                    continue;
+                if (content == null || story.Paragraphs.Count == 0) continue;
+                content.RemoveAllChildren<Paragraph>();
+                foreach (LegacyDocNoteParagraph source in story.Paragraphs) {
+                    var paragraph = content.AppendChild(new Paragraph());
+                    var target = new WordParagraph(document, paragraph, newRun: false);
+                    ApplyLegacyDocParagraphFormatting(target, source.Format, styleSheet);
+                    LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(source.Bookmarks, source.StartCharacter, source.EndCharacter);
+                    AddLegacyDocRuns(target, source.Runs, notes, bookmarks);
+                    bookmarks.EmitRemaining(paragraph);
                 }
-
-                foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties).ToArray()) {
-                    child.Remove();
-                }
-
-                var textBoxParagraph = new WordParagraph(document, paragraph, newRun: false);
-                LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(story.Bookmarks, story.StartCharacter, story.EndCharacter);
-                AddLegacyDocRuns(textBoxParagraph, story.Runs, notes, bookmarks);
-                bookmarks.EmitRemaining(paragraph);
             }
         }
 
@@ -338,6 +329,10 @@ namespace OfficeIMO.Word {
 
             if (sectionFormat.ColumnSpacingTwips != null) {
                 section.ColumnsSpace = sectionFormat.ColumnSpacingTwips.Value;
+            }
+
+            if (sectionFormat.ColumnDefinitions != null) {
+                section.ColumnDefinitions = sectionFormat.ColumnDefinitions;
             }
 
             if (sectionFormat.HasColumnSeparator) {
@@ -942,11 +937,11 @@ namespace OfficeIMO.Word {
                 remainingRunStartIndex = 0;
             } else {
                 paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: removeExistingParagraphs);
-                ApplyLegacyDocRunFormatting(paragraph, firstRun);
                 remainingRunStartIndex = 1;
             }
 
             ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
+            if (remainingRunStartIndex == 1) ApplyLegacyDocRunFormatting(paragraph, firstRun);
             AddLegacyDocRuns(paragraph, sourceParagraph.Runs, remainingRunStartIndex, notes);
         }
 
@@ -1136,9 +1131,9 @@ namespace OfficeIMO.Word {
                     WordParagraph tabRun = paragraph.AddTab();
                     ApplyLegacyDocRunFormatting(tabRun, legacyRun);
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
-                    AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
+                    AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index), legacyRun);
                 } else if (character == LegacyDocCommentReader.CommentReferenceCharacter) {
-                    AddLegacyDocCommentReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
+                    AddLegacyDocCommentReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index), legacyRun);
                 } else {
                     AddLegacyDocBreak(paragraph, legacyRun, GetLegacyDocBreakType(character));
                 }
@@ -1162,19 +1157,19 @@ namespace OfficeIMO.Word {
                 : legacyRun.CharacterPositions[legacyRun.CharacterPositions.Count - 1] + 1;
         }
 
-        private static void AddLegacyDocNoteReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition) {
+        private static void AddLegacyDocNoteReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition, LegacyDocTextRun legacyRun) {
             if (characterPosition == null) {
                 return;
             }
 
             if (notes.TryGetFootnote(characterPosition.Value, out LegacyDocFootnote? footnote)) {
-                AddLegacyDocFootnoteReference(paragraph, footnote!, notes.StyleSheet);
+                AddLegacyDocFootnoteReference(paragraph, footnote!, notes.StyleSheet, legacyRun);
             } else if (notes.TryGetEndnote(characterPosition.Value, out LegacyDocEndnote? endnote)) {
-                AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet);
+                AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet, legacyRun);
             }
         }
 
-        private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition) {
+        private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition, LegacyDocTextRun legacyRun) {
             if (characterPosition == null
                 || !notes.TryGetComment(characterPosition.Value, out LegacyDocComment? comment)
                 || comment!.Paragraphs.Count == 0) {
@@ -1182,11 +1177,17 @@ namespace OfficeIMO.Word {
             }
 
             WordComment wordComment = CreateLegacyDocComment(paragraph._document, comment, notes.StyleSheet);
-            Run anchorRun = paragraph._paragraph.Elements<Run>().LastOrDefault()
+            // Revisions and fields wrap their runs; use the preceding content element
+            // so the reconstructed range and marker retain their source stream position.
+            OpenXmlElement anchor = paragraph._paragraph.ChildElements.LastOrDefault(element =>
+                element is not ParagraphProperties
+                && element is not BookmarkStart && element is not BookmarkEnd
+                && element is not CommentRangeStart && element is not CommentRangeEnd)
                 ?? paragraph._paragraph.AppendChild(new Run());
-            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchorRun);
-            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchorRun);
-            paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
+            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchor);
+            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchor);
+            Run reference = paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
+            ApplyLegacyDocReferenceFormatting(paragraph, new WordParagraph(paragraph._document, paragraph._paragraph, reference), legacyRun);
         }
 
         private static WordComment CreateLegacyDocComment(WordDocument document, LegacyDocComment comment, LegacyDocStyleSheet styleSheet) {
@@ -1197,79 +1198,81 @@ namespace OfficeIMO.Word {
             for (int index = 0; index < comment.ParagraphRuns.Count; index++) {
                 LegacyDocNoteParagraph sourceParagraph = comment.ParagraphRuns[index];
                 WordParagraph wrapper = wordComment.Paragraphs[index];
+                ApplyLegacyDocParagraphFormatting(wrapper, sourceParagraph.Format, styleSheet);
                 ReplaceLegacyDocNoteParagraphRuns(
                     wrapper,
                     sourceParagraph,
                     keepNoteReferenceMark: false,
                     LegacyDocNoteProjection.Empty,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
-                ApplyLegacyDocParagraphFormatting(wrapper, sourceParagraph.Format, styleSheet);
             }
 
             return wordComment;
         }
 
-        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet, LegacyDocTextRun legacyRun) {
             if (footnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
             WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text);
+            ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
             }
 
+            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], footnote.ParagraphRuns[0].Format, styleSheet);
             ReplaceLegacyDocNoteParagraphRuns(
                 noteParagraphs[0],
                 footnote.ParagraphRuns[0],
                 keepNoteReferenceMark: true,
                 LegacyDocNoteProjection.Empty,
                 LegacyDocBookmarkProjection.Create(footnote.ParagraphRuns[0].Bookmarks, footnote.ParagraphRuns[0].StartCharacter, footnote.ParagraphRuns[0].EndCharacter));
-            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], footnote.ParagraphRuns[0].Format, styleSheet);
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < footnote.ParagraphRuns.Count; index++) {
                 LegacyDocNoteParagraph sourceParagraph = footnote.ParagraphRuns[index];
                 lastParagraph = lastParagraph.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
+                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
                 ReplaceLegacyDocNoteParagraphRuns(
                     lastParagraph,
                     sourceParagraph,
                     keepNoteReferenceMark: false,
                     LegacyDocNoteProjection.Empty,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
-                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
             }
         }
 
-        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocStyleSheet styleSheet) {
+        private static void AddLegacyDocEndnoteReference(WordParagraph paragraph, LegacyDocEndnote endnote, LegacyDocStyleSheet styleSheet, LegacyDocTextRun legacyRun) {
             if (endnote.ParagraphRuns.Count == 0) {
                 return;
             }
 
             WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text);
+            ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
             }
 
+            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], endnote.ParagraphRuns[0].Format, styleSheet);
             ReplaceLegacyDocNoteParagraphRuns(
                 noteParagraphs[0],
                 endnote.ParagraphRuns[0],
                 keepNoteReferenceMark: true,
                 LegacyDocNoteProjection.Empty,
                 LegacyDocBookmarkProjection.Create(endnote.ParagraphRuns[0].Bookmarks, endnote.ParagraphRuns[0].StartCharacter, endnote.ParagraphRuns[0].EndCharacter));
-            ApplyLegacyDocParagraphFormatting(noteParagraphs[0], endnote.ParagraphRuns[0].Format, styleSheet);
             WordParagraph lastParagraph = noteParagraphs[0];
             for (int index = 1; index < endnote.ParagraphRuns.Count; index++) {
                 LegacyDocNoteParagraph sourceParagraph = endnote.ParagraphRuns[index];
                 lastParagraph = lastParagraph.AddParagraph(sourceParagraph.Bookmarks.Count == 0 ? sourceParagraph.Text : string.Empty);
+                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
                 ReplaceLegacyDocNoteParagraphRuns(
                     lastParagraph,
                     sourceParagraph,
                     keepNoteReferenceMark: false,
                     LegacyDocNoteProjection.Empty,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
-                ApplyLegacyDocParagraphFormatting(lastParagraph, sourceParagraph.Format, styleSheet);
             }
         }
 
@@ -1432,6 +1435,8 @@ namespace OfficeIMO.Word {
                 fieldKind: source.FieldKind,
                 fieldInstruction: source.FieldInstruction,
                 specified: source.Specified,
+                styleRelative: source.StyleRelative,
+                styleInverted: source.StyleInverted,
                 characterSpacingTwips: source.CharacterSpacingTwips,
                 kerningMinimumFontSizeHalfPoints: source.KerningMinimumFontSizeHalfPoints,
                 language: source.Language,
@@ -1828,7 +1833,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocParagraphMarkRunFormatting(WordParagraph paragraph, LegacyDocCharacterFormat characterFormat) {
-            StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(characterFormat);
+            StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(characterFormat, GetLegacyDocStyleToggles(paragraph));
             if (styleRunProperties == null) {
                 return;
             }
@@ -2128,7 +2133,7 @@ namespace OfficeIMO.Word {
                     customStyle.Append(styleParagraphProperties);
                 }
 
-                StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(legacyStyle.CharacterFormat);
+                StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(legacyStyle.CharacterFormat, GetLegacyDocParentStyleToggles(legacyStyle, styleSheet));
                 if (styleRunProperties != null) {
                     customStyle.Append(styleRunProperties);
                 }
@@ -2402,7 +2407,10 @@ namespace OfficeIMO.Word {
             return tabs.HasChildren ? tabs : null;
         }
 
-        private static StyleRunProperties? CreateLegacyDocStyleRunProperties(LegacyDocCharacterFormat characterFormat) {
+        private static StyleRunProperties? CreateLegacyDocStyleRunProperties(LegacyDocCharacterFormat characterFormat, LegacyDocCharacterFormatProperties styleToggles = LegacyDocCharacterFormatProperties.None) {
+            bool Resolve(bool value, LegacyDocCharacterFormatProperties property) =>
+                ResolveLegacyDocToggle(value, property, characterFormat.StyleRelative, characterFormat.StyleInverted, styleToggles);
+
             var properties = new StyleRunProperties();
             bool hasProperties = false;
 
@@ -2421,20 +2429,20 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Bold>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<BoldComplexScript>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Italic>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<ItalicComplexScript>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Strike>(properties, characterFormat.Strike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<DoubleStrike>(properties, characterFormat.DoubleStrike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Outline>(properties, characterFormat.Outline, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Shadow>(properties, characterFormat.Shadow, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Emboss>(properties, characterFormat.Emboss, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Imprint>(properties, characterFormat.Imprint, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Vanish>(properties, characterFormat.Hidden, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<NoProof>(properties, characterFormat.NoProof, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Caps>(properties, characterFormat.Caps == LegacyDocCapsKind.Caps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
-            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<SmallCaps>(properties, characterFormat.Caps == LegacyDocCapsKind.SmallCaps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Bold>(properties, Resolve(characterFormat.Bold, LegacyDocCharacterFormatProperties.Bold), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<BoldComplexScript>(properties, Resolve(characterFormat.Bold, LegacyDocCharacterFormatProperties.Bold), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Italic>(properties, Resolve(characterFormat.Italic, LegacyDocCharacterFormatProperties.Italic), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<ItalicComplexScript>(properties, Resolve(characterFormat.Italic, LegacyDocCharacterFormatProperties.Italic), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Strike>(properties, Resolve(characterFormat.Strike, LegacyDocCharacterFormatProperties.Strike), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<DoubleStrike>(properties, Resolve(characterFormat.DoubleStrike, LegacyDocCharacterFormatProperties.DoubleStrike), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Outline>(properties, Resolve(characterFormat.Outline, LegacyDocCharacterFormatProperties.Outline), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Shadow>(properties, Resolve(characterFormat.Shadow, LegacyDocCharacterFormatProperties.Shadow), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Emboss>(properties, Resolve(characterFormat.Emboss, LegacyDocCharacterFormatProperties.Emboss), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Imprint>(properties, Resolve(characterFormat.Imprint, LegacyDocCharacterFormatProperties.Imprint), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Vanish>(properties, Resolve(characterFormat.Hidden, LegacyDocCharacterFormatProperties.Hidden), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<NoProof>(properties, Resolve(characterFormat.NoProof, LegacyDocCharacterFormatProperties.NoProof), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Caps>(properties, Resolve(characterFormat.Caps == LegacyDocCapsKind.Caps, LegacyDocCharacterFormatProperties.Caps), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<SmallCaps>(properties, Resolve(characterFormat.Caps == LegacyDocCapsKind.SmallCaps, LegacyDocCharacterFormatProperties.SmallCaps), characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
                 properties.AddChild(new Color { Val = characterFormat.ColorHex! }, true);
@@ -2499,23 +2507,6 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static void ApplyLegacyDocRunOnOffProperty<T>(WordParagraph run, bool enabled, bool specified) where T : OnOffType, new() {
-            if (!enabled && !specified) {
-                return;
-            }
-
-            RunProperties runProperties = run._runProperties ?? new RunProperties();
-            run._runProperties = runProperties;
-            runProperties.RemoveAllChildren<T>();
-
-            var property = new T();
-            if (!enabled) {
-                property.Val = false;
-            }
-
-            runProperties.AddChild(property, true);
-        }
-
         private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {
             switch (styleIndex) {
                 case 0:
@@ -2551,75 +2542,6 @@ namespace OfficeIMO.Word {
                 default:
                     style = default;
                     return false;
-            }
-        }
-
-        private static void ApplyLegacyDocRunFormatting(WordParagraph run, LegacyDocTextRun legacyRun) {
-            ApplyLegacyDocRunOnOffProperty<Bold>(run, legacyRun.Bold, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            ApplyLegacyDocRunOnOffProperty<BoldComplexScript>(run, legacyRun.Bold, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
-            ApplyLegacyDocRunOnOffProperty<Italic>(run, legacyRun.Italic, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            ApplyLegacyDocRunOnOffProperty<ItalicComplexScript>(run, legacyRun.Italic, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
-            ApplyLegacyDocRunOnOffProperty<Strike>(run, legacyRun.Strike, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
-            ApplyLegacyDocRunOnOffProperty<DoubleStrike>(run, legacyRun.DoubleStrike, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
-            ApplyLegacyDocRunOnOffProperty<Outline>(run, legacyRun.Outline, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
-            ApplyLegacyDocRunOnOffProperty<Shadow>(run, legacyRun.Shadow, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
-            ApplyLegacyDocRunOnOffProperty<Emboss>(run, legacyRun.Emboss, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
-            ApplyLegacyDocRunOnOffProperty<Imprint>(run, legacyRun.Imprint, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
-            ApplyLegacyDocRunOnOffProperty<Vanish>(run, legacyRun.Hidden, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
-            ApplyLegacyDocRunOnOffProperty<NoProof>(run, legacyRun.NoProof, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
-            ApplyLegacyDocRunOnOffProperty<Caps>(run, legacyRun.Caps == LegacyDocCapsKind.Caps, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
-            ApplyLegacyDocRunOnOffProperty<SmallCaps>(run, legacyRun.Caps == LegacyDocCapsKind.SmallCaps, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
-
-            if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
-                run.VerticalTextAlignment = verticalPosition.ToOfficeEnum();
-            } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.VerticalPosition)) {
-                run.VerticalTextAlignment = WordVerticalTextPosition.Baseline;
-            }
-
-            if (legacyRun.Underline != null && TryMapUnderline(legacyRun.Underline.Value, out UnderlineValues underline)) {
-                run.Underline = underline.ToOfficeEnum();
-            } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Underline)) {
-                run.Underline = WordUnderlineStyle.None;
-            }
-
-            if (legacyRun.Highlight != null && TryMapHighlight(legacyRun.Highlight.Value, out HighlightColorValues highlight)) {
-                run.Highlight = highlight.ToOfficeEnum();
-            } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
-                run.Highlight = WordHighlightColor.None;
-            }
-
-            if (legacyRun.FontSizeHalfPoints != null) {
-                string fontSize = legacyRun.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.FontSize = new FontSize {
-                    Val = fontSize
-                };
-                runProperties.FontSizeComplexScript = new FontSizeComplexScript {
-                    Val = fontSize
-                };
-            }
-
-            if (!string.IsNullOrEmpty(legacyRun.ColorHex)) {
-                run.ColorHex = legacyRun.ColorHex!;
-            }
-
-            if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {
-                run.SetFontFamily(legacyRun.FontFamily!);
-            }
-
-            if (legacyRun.KerningMinimumFontSizeHalfPoints.HasValue) {
-                run.KerningMinimumFontSizePoints = legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D;
-            }
-
-            if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
-                run.Spacing = legacyRun.CharacterSpacingTwips ?? 0;
-            }
-
-            if (!string.IsNullOrEmpty(legacyRun.Language) || !string.IsNullOrEmpty(legacyRun.EastAsiaLanguage)) {
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.Languages = CreateLegacyDocLanguages(legacyRun.Language, legacyRun.EastAsiaLanguage);
             }
         }
 
