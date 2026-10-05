@@ -1,0 +1,556 @@
+{
+  "AllocationSamples": 0,
+  "SampledAllocationBytes": 0,
+  "CpuSamples": 8586,
+  "CpuLeaves": [
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+      "Value": 6403
+    },
+    {
+      "Key": "",
+      "Value": 1210
+    },
+    {
+      "Key": "System.IO.Compression.SubReadStream.Read(unsigned int8[],int32,int32)",
+      "Value": 174
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributes()",
+      "Value": 91
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElement()",
+      "Value": 90
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 71
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.Read()",
+      "Value": 70
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlReferenceAttribute(class System.Xml.XmlReader)",
+      "Value": 67
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseEndElement()",
+      "Value": 62
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 56
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)",
+      "Value": 54
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.Decimal\u0026,class System.Object\u0026)",
+      "Value": 46
+    },
+    {
+      "Key": "System.Number.TryParseNumber(!!0*\u0026,!!0*,value class System.Globalization.NumberStyles,value class NumberBuffer\u0026,class System.Globalization.NumberFormatInfo)",
+      "Value": 42
+    },
+    {
+      "Key": "System.SpanHelpers.Memmove(unsigned int8\u0026,unsigned int8\u0026,unsigned int)",
+      "Value": 22
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlCellTypeAttribute(class System.Xml.XmlReader)",
+      "Value": 21
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryConvertExcelNumberToDecimal(float64,value class System.Decimal\u0026)",
+      "Value": 17
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlBooleanPrimitiveForDataReader(class System.Xml.XmlReader,value class XmlDataReaderPrimitiveKind\u0026,bool\u0026,class System.Object\u0026)",
+      "Value": 10
+    },
+    {
+      "Key": "System.SpanHelpers.SequenceEqual(unsigned int8\u0026,unsigned int8\u0026,unsigned int)",
+      "Value": 9
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 8
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElementContent()",
+      "Value": 7
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 7
+    },
+    {
+      "Key": "System.Text.Unicode.Utf8Utility.TranscodeToUtf16(unsigned int8*,int32,wchar*,int32,unsigned int8*\u0026,wchar*\u0026)",
+      "Value": 6
+    },
+    {
+      "Key": "System.Xml.XmlNamespaceManager.PopScope()",
+      "Value": 5
+    },
+    {
+      "Key": "System.Number.DigitsToUInt64(unsigned int8*,int32)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 4
+    },
+    {
+      "Key": "OfficeIMO.Excel.OpenXmlReadNameTable.Get(class System.String)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.SharedReadOnlyFileSnapshot\u002BView.Read(value class System.Span\u00601\u003Cunsigned int8\u003E)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryGetExpectedSingleLetterColumnIndex(value class System.ReadOnlySpan\u00601\u003Cwchar\u003E,int32,int32\u0026)",
+      "Value": 3
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.FinishReadValueChunk()",
+      "Value": 2
+    },
+    {
+      "Key": "System.Number.TryParseFloat(value class System.ReadOnlySpan\u00601\u003C!!0\u003E,value class System.Globalization.NumberStyles,class System.Globalization.NumberFormatInfo,!!1\u0026)",
+      "Value": 2
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 2
+    },
+    {
+      "Key": "System.Number.NumberToFloatingPointBits(value class NumberBuffer\u0026)",
+      "Value": 2
+    },
+    {
+      "Key": "System.Decimal\u002BDecCalc.VarDecMul(value class DecCalc\u0026,value class DecCalc\u0026)",
+      "Value": 2
+    },
+    {
+      "Key": "System.SpanHelpers.NonPackedContainsValueType(!!0\u0026,!!0,int32)",
+      "Value": 1
+    }
+  ],
+  "CpuInclusive": [
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)",
+      "Value": 8586
+    },
+    {
+      "Key": "dynamicClass.lambda_method1(pMT: 0x1116f6778)",
+      "Value": 8586
+    },
+    {
+      "Key": "SnapshotProbe\u002B\u003C\u003Ec__DisplayClass16_0.\u003CLoad\u003Eb__0()",
+      "Value": 8586
+    },
+    {
+      "Key": "SnapshotProbe.Run()",
+      "Value": 8586
+    },
+    {
+      "Key": "Program\u002B\u003C\u003CMain\u003E$\u003Ed__0.MoveNext()",
+      "Value": 8586
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start(!!0\u0026)",
+      "Value": 8586
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start(!!0\u0026)",
+      "Value": 8586
+    },
+    {
+      "Key": "Program.\u003CMain\u003E$(class System.String[])",
+      "Value": 8586
+    },
+    {
+      "Key": "Program.\u003CMain\u003E(class System.String[])",
+      "Value": 8586
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ReadData()",
+      "Value": 7795
+    },
+    {
+      "Key": "System.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)",
+      "Value": 7787
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElementContent()",
+      "Value": 6648
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+      "Value": 6403
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 4918
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 4243
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElement()",
+      "Value": 4030
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXml(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3668
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3668
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Open(class System.String)",
+      "Value": 3668
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.CreateNativeOpenXml(class OfficeIMO.Excel.XlsxTabularWorkbook,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 3664
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributes()",
+      "Value": 3375
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)",
+      "Value": 2044
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.Decimal\u0026,class System.Object\u0026)",
+      "Value": 1777
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)",
+      "Value": 1515
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)",
+      "Value": 1364
+    },
+    {
+      "Key": "",
+      "Value": 1210
+    },
+    {
+      "Key": "System.IO.Compression.Inflater.Inflate(value class FlushCode)",
+      "Value": 1210
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)",
+      "Value": 983
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)",
+      "Value": 968
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 934
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseEndElement()",
+      "Value": 908
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseQName(bool,int32,int32\u0026)",
+      "Value": 894
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ReadValueChunk(wchar[],int32,int32)",
+      "Value": 844
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.Read()",
+      "Value": 714
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 663
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.SkipPartialTextValue()",
+      "Value": 637
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 435
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlBooleanPrimitiveForDataReader(class System.Xml.XmlReader,value class XmlDataReaderPrimitiveKind\u0026,bool\u0026,class System.Object\u0026)",
+      "Value": 352
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.EatWhitespaces(class System.Text.StringBuilder)",
+      "Value": 287
+    }
+  ],
+  "CpuStacks": [
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 688
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader.CreateNativeOpenXml(class OfficeIMO.Excel.XlsxTabularWorkbook,class OfficeIMO.Excel.ExcelReadOptions)\nOfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXml(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 608
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.SkipPartialTextValue()\nSystem.Xml.XmlTextReaderImpl.Read()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 474
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.ReadValueChunk(wchar[],int32,int32)\nOfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.Decimal\u0026,class System.Object\u0026)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)\nSnapshotProbe\u002B\u003C\u003Ec__DisplayClass16_0.\u003CLoad\u003Eb__0()",
+      "Value": 366
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseEndElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader.CreateNativeOpenXml(class OfficeIMO.Excel.XlsxTabularWorkbook,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 301
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)",
+      "Value": 244
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)",
+      "Value": 219
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 216
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseQName(bool,int32,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 203
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)",
+      "Value": 197
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)",
+      "Value": 173
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.ReadValueChunk(wchar[],int32,int32)\nOfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.Decimal\u0026,class System.Object\u0026)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)\nSnapshotProbe\u002B\u003C\u003Ec__DisplayClass16_0.\u003CLoad\u003Eb__0()",
+      "Value": 167
+    },
+    {
+      "Key": "\nSystem.IO.Compression.Inflater.Inflate(value class FlushCode)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)",
+      "Value": 165
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.TryReadXmlBooleanPrimitiveForDataReader(class System.Xml.XmlReader,value class XmlDataReaderPrimitiveKind\u0026,bool\u0026,class System.Object\u0026)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)\nSnapshotProbe\u002B\u003C\u003Ec__DisplayClass16_0.\u003CLoad\u003Eb__0()\nSnapshotProbe.Run()",
+      "Value": 136
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)",
+      "Value": 134
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseQName(bool,int32,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 126
+    },
+    {
+      "Key": "\nSystem.IO.Compression.Inflater.Inflate(value class FlushCode)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.SkipPartialTextValue()\nSystem.Xml.XmlTextReaderImpl.Read()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 125
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)\nSystem.Xml.XmlTextReaderImpl.ReadValueChunk(wchar[],int32,int32)\nOfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.Decimal\u0026,class System.Object\u0026)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)\nOfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)\nOfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)\ndynamicClass.lambda_method1(pMT: 0x1116f6778)\nSnapshotProbe\u002B\u003C\u003Ec__DisplayClass16_0.\u003CLoad\u003Eb__0()",
+      "Value": 121
+    },
+    {
+      "Key": "\nSystem.IO.Compression.Inflater.Inflate(value class FlushCode)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader.CreateNativeOpenXml(class OfficeIMO.Excel.XlsxTabularWorkbook,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 114
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)\nSystem.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)\nSystem.Xml.XmlTextReaderImpl.ReadData()\nSystem.Xml.XmlTextReaderImpl.EatWhitespaces(class System.Text.StringBuilder)\nSystem.Xml.XmlTextReaderImpl.ParseAttributes()\nSystem.Xml.XmlTextReaderImpl.ParseElement()\nSystem.Xml.XmlTextReaderImpl.ParseElementContent()\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)\nOfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 112
+    }
+  ],
+  "OfficeFrames": [
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)",
+      "Value": 8586
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 4918
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 4243
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXml(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3668
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3668
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Open(class System.String)",
+      "Value": 3668
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.OpenTable(class System.String,bool,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass50_0.\u003CCreateNativeOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.CreateNativeOpenXml(class OfficeIMO.Excel.XlsxTabularWorkbook,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3665
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 3664
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.Decimal\u0026,class System.Object\u0026)",
+      "Value": 1777
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)",
+      "Value": 1364
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)",
+      "Value": 983
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)",
+      "Value": 968
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 934
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 663
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 435
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlBooleanPrimitiveForDataReader(class System.Xml.XmlReader,value class XmlDataReaderPrimitiveKind\u0026,bool\u0026,class System.Object\u0026)",
+      "Value": 352
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlReferenceAttribute(class System.Xml.XmlReader)",
+      "Value": 70
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlCellTypeAttribute(class System.Xml.XmlReader)",
+      "Value": 26
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryConvertExcelNumberToDecimal(float64,value class System.Decimal\u0026)",
+      "Value": 17
+    },
+    {
+      "Key": "OfficeIMO.Excel.OpenXmlReadNameTable.Get(class System.String)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.SharedReadOnlyFileSnapshot\u002BView.Read(value class System.Span\u00601\u003Cunsigned int8\u003E)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.OpenXmlPackagePartBufferReader.OpenPart(class System.String,int32,value class System.Threading.CancellationToken)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.Open(class System.String,class OfficeIMO.Excel.ExcelReadOptions,bool)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.Open(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryGetExpectedSingleLetterColumnIndex(value class System.ReadOnlySpan\u00601\u003Cwchar\u003E,int32,int32\u0026)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.ReadXmlPart(class System.String,int32,class System.Func\u00602\u003Cclass System.Xml.XmlReader,!!0\u003E)",
+      "Value": 2
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.ReadContentTypes()",
+      "Value": 2
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook..ctor(class OfficeIMO.Excel.OpenXmlPackagePartBufferReader,class OfficeIMO.Excel.OpenXmlPackagePartBufferReader,class System.IDisposable,class OfficeIMO.Excel.ExcelReadOptions,bool)",
+      "Value": 2
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.GetInt32(int32)",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.SharedReadOnlyFileSnapshot.Open(class System.String)",
+      "Value": 1
+    }
+  ],
+  "Types": [],
+  "FirstOfficeFrame": [],
+  "InclusiveFrames": []
+}

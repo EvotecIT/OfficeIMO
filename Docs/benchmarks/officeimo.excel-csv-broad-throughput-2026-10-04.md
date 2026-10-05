@@ -1088,3 +1088,91 @@ defects. The [qualification packet](excel-csv-broad-throughput-2026-10-04/worksh
 records source, test and review boundaries. Large-reader throughput, earlier
 typed-reader regressions, mixed/file CSV performance, Linux and XLSX write gaps
 remain part of the broader performance work.
+
+## Current public typed Excel reads
+
+The refreshed .NET 10 comparison consumes every field of every row through the
+public APIs. It covers 1,000, 25,000, 250,000 and 1,000,000 data rows with integer,
+decimal, date and Boolean columns. Setup checks every header and typed value;
+decoded worksheet, style and shared-string bytes match across engines. Each of
+the three engines has 16 warmups and 24 retained samples in rotated order, with
+one complete read per sample and no outlier removal. Windows uses two fixed CPU
+placements; macOS uses operating-system scheduling. There are 36 observations
+and 864 retained measurements.
+
+The OfficeIMO source matches the locally integrated worksheet encoding change.
+Comparison packages are Sylvan.Data.Excel 0.5.8 and ExcelReader.NET 5.1.1, with
+their exact package license evidence retained. These are isolated benchmark
+dependencies. This lane measures complete-read throughput, without an
+allocation or first-row comparison claim.
+
+| Million-row placement | OfficeIMO median | Sylvan median | ExcelReader.NET median | OfficeIMO / Sylvan | OfficeIMO / ExcelReader.NET |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Windows, mask 65535 | 2,031.3 ms | 831.0 ms | 243.8 ms | 2.44 | 8.33 |
+| Windows, mask 4294901760 | 2,072.9 ms | 833.3 ms | 251.1 ms | 2.49 | 8.25 |
+| macOS | 1,756.7 ms | 799.8 ms | 258.5 ms | 2.20 | 6.80 |
+
+The large-reader throughput gap remains material on both hosts. Smaller scans
+also remain slower in this lane. The [complete summary](excel-csv-broad-throughput-2026-10-04/public-reader-current-summary.json)
+retains every size and placement; raw observations are available for
+[Windows mask 65535](excel-csv-broad-throughput-2026-10-04/public-reader-current-windows-65535.json),
+[Windows mask 4294901760](excel-csv-broad-throughput-2026-10-04/public-reader-current-windows-4294901760.json)
+and [macOS](excel-csv-broad-throughput-2026-10-04/public-reader-current-macos.json).
+The [runner](excel-csv-broad-throughput-2026-10-04/public-reader-current-runner.ps1),
+[case definitions](excel-csv-broad-throughput-2026-10-04/public-reader-current-cases.json)
+and [package license fingerprints](excel-csv-broad-throughput-2026-10-04/public-reader-current-licenses.json)
+record the comparison boundary.
+
+Profiles of five complete million-row reads show worksheet validation and value
+access on the decompression path. Their source predates the encoding change;
+the measured input is UTF-8. The [Windows profile summary](excel-csv-broad-throughput-2026-10-04/public-reader-profile-windows.json)
+contains sampled allocation events, while the [macOS summary](excel-csv-broad-throughput-2026-10-04/public-reader-profile-macos.json)
+contains thread-time samples without allocation events. These are profiler
+observations, rather than exact allocation totals or a proven contention cost.
+
+A separate 64 KiB stream-buffering experiment was rejected. Its .NET 10 screen
+includes six cases on each host, 24 observations and 288 retained measurements.
+The million-row After/Before median ratios are 1.003 on Windows and 1.028 on
+macOS, while the 1,000-row control adds 65,736 allocated bytes per operation on
+both hosts. It does not improve the principal target and adds a portable
+allocation cost. The [disposition](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen-disposition.json),
+[Windows observations](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen-windows.json),
+[macOS observations](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen-macos.json)
+and [rejected patch](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen.patch)
+are retained. The change is removed from both experiment branches and is absent
+from the integration branch.
+
+## Mixed-data and file CSV writes
+
+The current CSV matrix covers nullable mixed typed inputs at 25,000 and 100,000
+rows, with ordinary, quoted and multiline fields. It compares sequential and
+parallel OfficeIMO DataReader writes with Sylvan.Data.Csv. File writes cover
+seven shapes in both quoting modes: short ASCII, short Unicode, dense JSON,
+quote runs, long notes, typed values and 25,000-row mixed JSON. They compare with
+CsvHelper using identical stream buffers, output bytes and complete field
+validation. Mixed exports validate every decoded field; formatting can differ
+when the decoded typed values are equal. File creation, close and flushing to
+the operating system are included; durable media flushing is excluded.
+
+Both actual .NET 8 and .NET 10 run on Windows and macOS, with two fixed Windows
+CPU placements. The captured 936 source/project files match across hosts. Each
+case has 24 warmups, 12 retained measurements, four invocations and no outlier
+removal. The matrix contains 276 observations, 3,312 retained measurements and
+156 matched comparisons. Package versions are CsvHelper 33.1.0 and
+Sylvan.Data.Csv 1.4.4.
+
+OfficeIMO has lower medians in 127 of 156 comparisons. File writes allocate less
+in 80 of 84 comparisons; mixed-data writes allocate less in 36 of 72, with small
+extra allocations in the remaining mixed cases. Negative timings include short
+Unicode file output, some long-note writes and selected mixed/quoted cases.
+The measurements support workload-specific findings and retain the slower
+cases; they do not establish an overall CSV speed or allocation lead.
+
+The [complete summary](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summary.json)
+contains each timing/allocation pair and source fingerprints. Raw native
+observations are retained for [Windows](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-windows.json)
+and [macOS](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-macos.json),
+with the [runner](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-runner.ps1)
+and [summary generator](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summarize.ps1).
+Further changes require comparable before/after proof across these workloads,
+including the negative cases.
