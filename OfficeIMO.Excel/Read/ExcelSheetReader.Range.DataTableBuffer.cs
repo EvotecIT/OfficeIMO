@@ -134,7 +134,9 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                while (reader.Read()) {
+                bool advanceReader = true;
+                while (!advanceReader || reader.Read()) {
+                    advanceReader = true;
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
@@ -150,7 +152,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        SkipXmlElement(reader, "row");
+                        reader.Skip();
+                        advanceReader = false;
                         continue;
                     }
 

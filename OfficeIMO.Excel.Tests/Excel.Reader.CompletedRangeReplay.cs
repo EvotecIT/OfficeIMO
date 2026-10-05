@@ -18,7 +18,7 @@ public partial class Excel {
     public void Reader_CompletedRangeStillReadsLaterPhysicalRows(string api, bool utf16, bool cancellable) {
         string path = CreateCompactFastPathWorkbook();
         string encodingName = utf16 ? "utf-16" : "utf-8";
-        string outsideRows = string.Concat(Enumerable.Range(4, 17).Select(row => $"<row r=\"{row}\"><c r=\"A{row}\" t=\"str\"><v>outside</v></c></row>"));
+        string outsideRows = string.Concat(Enumerable.Range(4, 17).Select(row => $"<row r=\"{row}\"><c r=\"A{row}\" t=\"str\"><v>outside</v></c></row>")) + "<row r=\"21\"/>";
         string xml = $$"""
             <?xml version="1.0" encoding="{{encodingName}}"?>
             <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>

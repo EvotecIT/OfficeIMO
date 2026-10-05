@@ -19,9 +19,14 @@ public class ExcelNumericXmlReadBenchmarks {
     private string _range = string.Empty;
     private string _tableRange = string.Empty;
     private long _expected;
+    private int _readRowCount;
 
     [Params(2500, 25000)]
     public int RowCount { get; set; }
+
+    /// <summary>Number of data rows selected from the workbook; zero selects every row.</summary>
+    [Params(0)]
+    public int ReadRowCount { get; set; }
 
     [Params(false, true)]
     public bool NumericAsDecimal { get; set; }
@@ -29,7 +34,7 @@ public class ExcelNumericXmlReadBenchmarks {
     [Params(false, true)]
     public bool InferDataTableColumnTypes { get; set; }
 
-    [Params("DataReader", "TypedDataReader", "Range", "UsedRange", "DataTable")]
+    [Params("DataReader", "TypedDataReader", "Range", "RangeStream", "UsedRange", "DataTable", "Objects", "ObjectsStream")]
     public string Api { get; set; } = "DataReader";
 
     [Params("Explicit", "ImplicitRows", "ImplicitRowsAndCells")]
@@ -39,14 +44,19 @@ public class ExcelNumericXmlReadBenchmarks {
     public void Setup() {
         if (Coordinates is not ("Explicit" or "ImplicitRows" or "ImplicitRowsAndCells"))
             throw new ArgumentOutOfRangeException(nameof(Coordinates));
+        if (ReadRowCount < 0 || ReadRowCount > RowCount)
+            throw new ArgumentOutOfRangeException(nameof(ReadRowCount));
+        _readRowCount = ReadRowCount == 0 ? RowCount : ReadRowCount;
+        if (Api == "UsedRange" && _readRowCount != RowCount)
+            throw new InvalidOperationException("UsedRange always selects the full worksheet.");
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         string root = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_DATA") ?? Path.GetTempPath();
         Directory.CreateDirectory(root);
         _path = Path.Combine(root, $"numeric-xml-read-{Guid.NewGuid():N}.xlsx");
-        _range = $"A2:B{RowCount + 1}";
-        _tableRange = $"A1:B{RowCount + 1}";
-        _expected = RowCount * (RowCount + 1L) / 2L + 125L * RowCount * (RowCount - 1L) / 2L;
+        _range = $"A2:B{_readRowCount + 1}";
+        _tableRange = $"A1:B{_readRowCount + 1}";
+        _expected = _readRowCount * (_readRowCount + 1L) / 2L + 125L * _readRowCount * (_readRowCount - 1L) / 2L;
         try {
             using (Stream output = File.Create(_path)) {
                 ExcelDocument.WriteRows(output,
@@ -88,6 +98,8 @@ public class ExcelNumericXmlReadBenchmarks {
         long result = 0;
         int count = 0;
         if (Api == "DataReader" || Api == "TypedDataReader") {
+            if (_readRowCount != RowCount)
+                throw new InvalidOperationException("DataReader benchmarks select every data row.");
             using var reader = ExcelDocument.OpenDataReader(_path, options);
             if (reader.FieldCount != 2 || reader.GetName(0) != Headers[0] || reader.GetName(1) != Headers[1]) {
                 throw new InvalidDataException("Reader headers differ.");
@@ -110,7 +122,23 @@ public class ExcelNumericXmlReadBenchmarks {
         } else {
             using var owner = ExcelDocumentReader.Open(_path, options);
             var sheet = owner.GetSheet("Data");
-            if (Api == "Range" || Api == "UsedRange") {
+            if (Api == "Objects" || Api == "ObjectsStream") {
+                IEnumerable<NumericObjectRow> values = Api == "Objects"
+                    ? sheet.ReadObjects<NumericObjectRow>(_tableRange, ExcelExecutionMode.Sequential)
+                    : sheet.ReadObjectsStream<NumericObjectRow>(_tableRange);
+                foreach (NumericObjectRow row in values) {
+                    if (validate && (row.Id != count + 1 || row.Amount != count * 1.25m))
+                        throw new InvalidDataException($"Mapped numeric values differ at row {count + 2}.");
+                    result = unchecked(result + row.Id + (long)(row.Amount * 100));
+                    count++;
+                }
+            } else if (Api == "RangeStream") {
+                foreach (var chunk in sheet.ReadRangeStream(_range, chunkRows: 1024, mode: ExcelExecutionMode.Sequential)) {
+                    if (chunk.StartRow != count + 2 || chunk.StartCol != 1 || chunk.ColCount != 2)
+                        throw new InvalidDataException("Range chunk coordinates differ.");
+                    foreach (object?[] row in chunk.Rows) Add(ref result, row[0], row[1], count++, validate);
+                }
+            } else if (Api == "Range" || Api == "UsedRange") {
                 bool discoverRange = Api == "UsedRange";
                 if (validate && !discoverRange) {
                     var headers = sheet.ReadRange("A1:B1", ExcelExecutionMode.Sequential);
@@ -136,7 +164,7 @@ public class ExcelNumericXmlReadBenchmarks {
                 throw new InvalidOperationException($"Unknown API '{Api}'.");
             }
         }
-        if (count != RowCount) throw new InvalidDataException("Row count differs.");
+        if (count != _readRowCount) throw new InvalidDataException("Row count differs.");
         return result;
     }
 
@@ -155,4 +183,12 @@ public class ExcelNumericXmlReadBenchmarks {
 
     private long Check(long result) => result == _expected
         ? result : throw new InvalidDataException("Numeric observation differs.");
+
+    /// <summary>Typed projection of the two-column numeric fixture.</summary>
+    public sealed class NumericObjectRow {
+        /// <summary>One-based identifier.</summary>
+        public int Id { get; set; }
+        /// <summary>Decimal amount, increasing by 1.25 per data row.</summary>
+        public decimal Amount { get; set; }
+    }
 }

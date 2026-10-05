@@ -77,7 +77,9 @@ namespace OfficeIMO.Excel {
                 int nextRowIndex = 1;
                 bool headerRead = !headersInFirstRow;
                 int unresolvedInferredTypes = inferredTypes?.Length ?? 0;
-                while (reader.Read()) {
+                bool advanceReader = true;
+                while (!advanceReader || reader.Read()) {
+                    advanceReader = true;
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
@@ -93,7 +95,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        SkipXmlElement(reader, "row");
+                        reader.Skip();
+                        advanceReader = false;
                         continue;
                     }
 
@@ -246,6 +249,15 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (!_opt.InferDataTableColumnTypes) {
+                if (TryFillObjectDataTableRowsXml(dt, r1, c1, r2, c2, dataRowCount, cols, headersInFirstRow, ct, out bool requiresBuffering)) {
+                    return true;
+                }
+                if (!requiresBuffering) {
+                    return false;
+                }
+            }
+
             var rowValues = new object?[dataRowCount][];
             var completeRowsWithoutNulls = cols <= 64 ? new bool[dataRowCount] : null;
 
@@ -255,7 +267,9 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                while (reader.Read()) {
+                bool advanceReader = true;
+                while (!advanceReader || reader.Read()) {
+                    advanceReader = true;
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
@@ -271,7 +285,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        SkipXmlElement(reader, "row");
+                        reader.Skip();
+                        advanceReader = false;
                         continue;
                     }
 

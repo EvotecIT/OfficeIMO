@@ -20,7 +20,9 @@ namespace OfficeIMO.Excel {
                 int previous = 0;
                 int nextRowIndex = 1;
 
-                while (reader.Read()) {
+                bool advanceReader = true;
+                while (!advanceReader || reader.Read()) {
+                    advanceReader = true;
                     if (canCancel) {
                         token.ThrowIfCancellationRequested();
                     }
@@ -35,14 +37,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     nextRowIndex = rowIndex + 1;
-                    if (rowIndex < firstRow) {
-                        SkipXmlElement(reader, "row");
-                        continue;
-                    }
-
-                    if (rowIndex > lastRow) {
-                        sawRowAfterRange = true;
-                        SkipXmlElement(reader, "row");
+                    if (rowIndex < firstRow || rowIndex > lastRow) {
+                        if (rowIndex > lastRow) sawRowAfterRange = true;
+                        reader.Skip();
+                        advanceReader = false;
                         continue;
                     }
 
@@ -56,7 +54,8 @@ namespace OfficeIMO.Excel {
 
                     previous = rowIndex;
                     hasPrevious = true;
-                    SkipXmlElement(reader, "row");
+                    reader.Skip();
+                    advanceReader = false;
                 }
 
                 return true;

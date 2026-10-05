@@ -70,7 +70,8 @@ allocation and sampled process memory separate.
 ## Numeric XML result shapes
 
 `ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader
-object values, DataReader typed getters, rectangular arrays, and DataTable. It uses 2,500 and 25,000 rows with both
+object values, DataReader typed getters, rectangular arrays and chunks, DataTable,
+and materialized or streamed typed objects. It uses 2,500 and 25,000 rows with both
 `NumericAsDecimal` settings. The worksheet uses UTF-16 so the streaming XML
 fallback can be measured independently of the indexed reader's size boundary.
 The `Coordinates` parameter covers explicit references, omitted row indices,
@@ -78,6 +79,22 @@ and omitted row and cell indices using the same numeric values.
 Setup checks every header, value, row count, and numeric result type. Each timed
 operation opens, consumes, and disposes its result, checking the row count and
 aggregate value. Generated fixtures are deleted during cleanup.
+Typed-object lanes validate every integer ID and decimal amount after mapping;
+range chunks also validate their starting coordinates and width. Compare builds
+within one lane because these APIs construct different result objects.
+
+`ReadRowCount` selects a prefix for arrays, chunks, tables, and typed-object
+projections; zero selects every data row. This distinguishes full-sheet reads
+from small selections that must scan later physical rows for replacements.
+`ExcelReadBenchmarks` also returns checked DataTable row counts for its mixed
+sales fixture through the `DataTableCount` category. Setup validates every field
+and header before these measurements, and each operation materializes and
+disposes the complete table.
+
+`ExcelDataTableRowShapeBenchmarks` reads 1,000-row object-column tables at widths
+8 and 65. It covers mixed numeric, Boolean and text cells, missing rows and
+cells, reversed physical row order, and a later row that replaces an earlier row. Setup checks every
+value, scalar type and column name; timed reads check the complete table shape.
 
 The `TypedDataReader` lane consumes integer IDs and decimal amounts without
 boxing them in the timed loop. Setup also checks object values after typed access

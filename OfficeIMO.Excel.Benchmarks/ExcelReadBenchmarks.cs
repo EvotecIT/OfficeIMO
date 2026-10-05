@@ -46,6 +46,18 @@ public class ExcelReadBenchmarks {
         return reader.GetSheet("Data").ReadRangeAsDataTable(_range, headersInFirstRow: true);
     }
 
+    [Benchmark(Baseline = true), BenchmarkCategory("DataTableCount")]
+    public int OfficeIMO_Read_DataTableCount() {
+        using DataTable table = OfficeIMO_Read_DataTable();
+        return CheckTableShape(table);
+    }
+
+    [Benchmark, BenchmarkCategory("DataTableCount")]
+    public int ClosedXML_Read_DataTableCount() {
+        using DataTable table = ClosedXML_Read_DataTable();
+        return CheckTableShape(table);
+    }
+
     [Benchmark, BenchmarkCategory("Dictionaries")]
     public List<Dictionary<string, object?>> ClosedXML_Read_Objects() {
         using var stream = new MemoryStream(_workbookBytes, writable: false);
@@ -89,6 +101,10 @@ public class ExcelReadBenchmarks {
     private static string[] ReadHeaders(IXLWorksheet worksheet) =>
         Enumerable.Range(1, ExcelBenchmarkScenarioFactory.SalesColumnNames.Length)
             .Select(column => worksheet.Cell(1, column).GetString()).ToArray();
+
+    private int CheckTableShape(DataTable table) =>
+        table.Rows.Count == RowCount && table.Columns.Count == ExcelBenchmarkScenarioFactory.SalesColumnNames.Length
+            ? table.Rows.Count : throw new InvalidDataException("DataTable shape differs from the validated fixture.");
 
     private static object? ReadValue(IXLCell cell) => cell.DataType switch {
         XLDataType.Blank => null,
