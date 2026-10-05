@@ -396,7 +396,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     byte level = bytes[offset + 2];
-                    if (level <= 8) {
+                    if (level <= 9) {
                         outlineLevel = level;
                     }
 
@@ -1252,7 +1252,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static bool? ReadBoolOperand(byte value) {
-            return value == 0 ? null : true;
+            return value != 0;
         }
 
         private static LegacyDocParagraphAlignment? MapAlignment(byte value) {

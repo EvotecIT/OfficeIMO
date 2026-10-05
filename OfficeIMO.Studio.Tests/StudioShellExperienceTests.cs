@@ -151,20 +151,24 @@ public sealed class StudioShellExperienceTests {
         PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)
             .Content(content => content.Text("Highlight this sentence from the reader.")))).Save(path);
         try {
-            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
-            await viewModel.OpenDocumentAsync(path);
-            Assert.Equal(StudioDocumentMode.View, viewModel.DocumentMode);
-            Assert.False(viewModel.CanUndo);
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+                await viewModel.OpenDocumentAsync(path);
+                Assert.Equal(StudioDocumentMode.View, viewModel.DocumentMode);
+                Assert.False(viewModel.CanUndo);
 
-            viewModel.Pages[0].RequestMarkup(PdfEditorTool.Highlight, new PdfEditorGesture(1, 36D, 40D, 320D, 70D,
-                [new PdfEditorVisualPoint(36D, 40D), new PdfEditorVisualPoint(320D, 70D)]));
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            while (!viewModel.CanUndo) await Task.Delay(10, timeout.Token);
+                viewModel.Pages[0].RequestMarkup(PdfEditorTool.Highlight, new PdfEditorGesture(1, 36D, 40D, 320D, 70D,
+                    [new PdfEditorVisualPoint(36D, 40D), new PdfEditorVisualPoint(320D, 70D)]));
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                while (!viewModel.CanUndo || viewModel.IsWorkspaceBusy) await Task.Delay(10, timeout.Token);
 
-            Assert.Equal(StudioDocumentMode.Annotate, viewModel.DocumentMode);
-            Assert.Equal(PdfEditorTool.Highlight, viewModel.ActiveEditorTool);
-            Assert.False(viewModel.HasError, viewModel.ErrorMessage);
-            Assert.True(viewModel.IsDirty);
+                Assert.Equal(StudioDocumentMode.Annotate, viewModel.DocumentMode);
+                Assert.Equal(PdfEditorTool.Highlight, viewModel.ActiveEditorTool);
+                Assert.False(viewModel.HasError, viewModel.ErrorMessage);
+                Assert.True(viewModel.IsDirty);
+                return true;
+            }, CancellationToken.None);
         } finally {
             Directory.Delete(root, recursive: true);
         }

@@ -40,7 +40,7 @@ internal static class PdfTextString {
             return PdfEncoding.DecodeCancellable(Encoding.UTF8, bytes, 3, bytes.Length - 3, cancellationToken);
         }
 
-        return PdfWinAnsiEncoding.Decode(bytes, int.MaxValue, cancellationToken);
+        return PdfDocEncoding.Decode(bytes, cancellationToken);
     }
 
     public static byte[] Encode(string value) {
@@ -48,8 +48,8 @@ internal static class PdfTextString {
             return Array.Empty<byte>();
         }
 
-        if (PdfWinAnsiEncoding.CanEncode(value, out _)) {
-            return PdfWinAnsiEncoding.Encode(value);
+        if (PdfDocEncoding.CanEncode(value)) {
+            return PdfDocEncoding.Encode(value);
         }
 
         var result = new byte[2 + (value.Length * 2)];
