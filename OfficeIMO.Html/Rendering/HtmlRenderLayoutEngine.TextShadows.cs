@@ -66,7 +66,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sampleGroups,
                 rootVisuals.Count,
                 layerSource);
-            AddInlineOwnedVisual(rootVisuals, ownedVisuals, artifact, run.OwnerElement, formattingContainer);
+            AddInlineOwnedVisual(rootVisuals, ownedVisuals,
+                artifact.TranslateRelativePaint(run.PaintOffsetX, run.PaintOffsetY, artifact.PaintOrder),
+                run.OwnerElement, formattingContainer);
         }
     }
 

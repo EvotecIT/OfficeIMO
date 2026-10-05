@@ -57,7 +57,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRelativePosition_PaginationUsesNormalFlowCoordinates() {
+    public void HtmlRelativePosition_PreservesFlowSlotsAndProjectsPaintIntoFollowingPages() {
         string children = string.Concat(Enumerable.Range(1, 6)
             .Select(index => "<div style='height:30px;margin:0'>Marker" + index + "</div>"));
         string baselineHtml = "<section>" + children + "</section>";
@@ -72,14 +72,20 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
         HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
 
-        Assert.Equal(baseline.Pages.Count, positioned.Pages.Count);
+        Assert.Equal(2, baseline.Pages.Count);
+        Assert.Equal(3, positioned.Pages.Count);
         for (int index = 1; index <= 6; index++) {
             string marker = "Marker" + index;
             (int BaselinePage, HtmlRenderText BaselineText) = FindTextWithPage(baseline, marker);
-            (int PositionedPage, HtmlRenderText PositionedText) = FindTextWithPage(positioned, marker);
-            Assert.Equal(BaselinePage, PositionedPage);
-            Assert.Equal(BaselineText.X, PositionedText.X, 3);
-            Assert.Equal(BaselineText.Y + 40D, PositionedText.Y, 3);
+            var placements = RelativeTextPlacements(positioned, marker).ToList();
+            Assert.NotEmpty(placements);
+            // The text can paint on both sides of a page edge. Its physical
+            // coordinate still equals the unchanged flow slot plus the inset.
+            double expected = (BaselinePage - 1) * 100D + BaselineText.Y + 40D;
+            Assert.All(placements, placement => {
+                Assert.Equal(BaselineText.X, placement.Text.X, 3);
+                Assert.Equal(expected, (placement.Page.PageNumber - 1) * 100D + placement.Text.Y, 3);
+            });
         }
     }
 

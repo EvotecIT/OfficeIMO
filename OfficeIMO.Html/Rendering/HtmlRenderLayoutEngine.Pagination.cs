@@ -269,7 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             BeginPage(currentPageName);
             CommitPage(pages, visuals, pageGeometry, currentPageName);
         }
-        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
+        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(ProjectRelativePagedPaint(pages)), _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
     }
 
 }

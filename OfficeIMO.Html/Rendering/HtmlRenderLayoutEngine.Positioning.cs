@@ -58,7 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ResolvePositionPaintOffset(style, containingWidth, containingHeight, source, out double offsetX, out double offsetY);
         return Math.Abs(offsetX) <= 0.0001D && Math.Abs(offsetY) <= 0.0001D
             ? block
-            : block.TranslatePaint(offsetX, offsetY);
+            : block.TranslateRelativePaint(offsetX, offsetY);
     }
 
     private void ResolvePositionPaintOffset(
@@ -96,6 +96,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         offsetX = ResolvePositionAxis(style.Left, style.Right, containingWidth, style, source, "left", "right");
         offsetY = ResolvePositionAxis(style.Top, style.Bottom, containingHeight, style, source, "top", "bottom");
+        if (Math.Abs(offsetY) > 0.0001D) _hasRelativePagedPaint = true;
     }
 
     private int ResolvePositionedZIndex(IElement element, HtmlRenderBoxStyle style) {

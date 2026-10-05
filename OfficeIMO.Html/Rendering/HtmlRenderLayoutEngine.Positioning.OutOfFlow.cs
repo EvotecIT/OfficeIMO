@@ -195,7 +195,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double requestOriginY = hasRect ? rect!.Y : 0D;
         PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-            visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count));
+            visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count).IdentifyOutOfFlowPaint());
         }
         foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
             runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
@@ -300,7 +300,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
             int fallback = band == PositionedPaintBand.Negative ? -1000000000 : _paintOrder++;
             int paintOrder = ResolveRootStackingPaintOrder(placement.Request.SourceOrder, fallback);
-            visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder));
+            visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder).IdentifyOutOfFlowPaint());
         }
     }
 

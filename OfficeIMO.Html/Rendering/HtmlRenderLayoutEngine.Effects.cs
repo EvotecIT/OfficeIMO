@@ -281,10 +281,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle fragmentStyle = CreateInlineFragmentPaintStyle(style, includeStartEdge, includeEndEdge);
             InlineFragmentRect borderBox = ExpandInlineFragmentToBorderBox(
                 fragment, fragmentStyle, includeStartEdge, includeEndEdge);
+            int backgroundStart = backgroundsAndBorders.Count;
+            int outlineStart = outlines.Count;
             AddBoxPaint(backgroundsAndBorders, fragmentStyle,
                 borderBox.X, borderBox.Y, borderBox.Width, borderBox.Height, element);
             AddBoxOutlinePaint(outlines, fragmentStyle,
                 borderBox.X, borderBox.Y, borderBox.Width, borderBox.Height, element);
+            if (Math.Abs(borderBox.RelativePaintOffsetY) > 0.0001D) {
+                RestoreRelativeFlowCoordinates(backgroundsAndBorders, backgroundStart, borderBox.RelativePaintOffsetY);
+                RestoreRelativeFlowCoordinates(outlines, outlineStart, borderBox.RelativePaintOffsetY);
+            }
         }
 
         var decorated = new List<HtmlRenderVisual>(backgroundsAndBorders.Count + content.Count + outlines.Count);
@@ -307,7 +313,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             fragment.X - leftInset,
             fragment.Y - topInset,
             fragment.Width + leftInset + rightInset,
-            fragment.Height + topInset + bottomInset);
+            fragment.Height + topInset + bottomInset, fragment.RelativePaintOffsetY);
+    }
+
+    private static void RestoreRelativeFlowCoordinates(List<HtmlRenderVisual> visuals, int start, double offsetY) {
+        for (int index = start; index < visuals.Count; index++) {
+            // Inline decoration bounds already include the run's inset. Rebase
+            // only its flow origin, then apply that explicit paint displacement.
+            visuals[index] = visuals[index].Translate(0D, -offsetY, visuals[index].PaintOrder)
+                .TranslateRelativePaint(0D, offsetY, visuals[index].PaintOrder);
+        }
     }
 
     private static HtmlRenderBoxStyle CreateInlineFragmentPaintStyle(

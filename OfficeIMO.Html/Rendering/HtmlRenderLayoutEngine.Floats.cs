@@ -523,7 +523,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         AddInlineOwnedVisual(
                             visuals,
                             ownedVisuals,
-                            leaderVisual,
+                            leaderVisual.TranslateRelativePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, leaderVisual.PaintOrder),
                             segment.Run.OwnerElement,
                             formattingContainer);
                     }
@@ -543,7 +543,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         foreach (HtmlRenderVisual visual in atomic.Visuals) {
                             HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
                             if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
-                                translated = translated.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                                translated = translated.TranslateRelativePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
                             }
                             AddInlineOwnedVisual(visuals, ownedVisuals, ApplyInlineElementSemantics(translated, segment.Run), segment.Run.OwnerElement, formattingContainer);
                         }
@@ -556,12 +556,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 new HtmlRenderBookmarkAnchor(
                                     segment.Run.SemanticNodeId.Value,
                                     segment.Run.BookmarkAnchorText!,
-                                    x + segment.Run.PaintOffsetX,
-                                    atomicY + segment.Run.PaintOffsetY,
+                                    x,
+                                    atomicY,
                                     Math.Max(0.01D, segment.Width),
                                     Math.Max(0.01D, atomic.Height),
                                     visuals.Count,
-                                    segment.Run.Source),
+                                    segment.Run.Source).TranslateRelativePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
                                 segment.Run.OwnerElement,
                                 formattingContainer);
                         }
@@ -571,7 +571,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             linkArea.StrokeWidth = 0D;
                             HtmlRenderVisual linkVisual = new HtmlRenderShape(linkArea, x, atomicY, visuals.Count, segment.Run.LinkUri, segment.Run.Source);
                             if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
-                                linkVisual = linkVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                                linkVisual = linkVisual.TranslateRelativePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
                             }
                             AddInlineOwnedVisual(visuals, ownedVisuals, ApplyInlineElementSemantics(linkVisual, segment.Run), segment.Run.OwnerElement, formattingContainer);
                         }
@@ -665,7 +665,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     AddInlineOwnedVisual(
                         visuals,
                         ownedVisuals,
-                        ApplyInlineElementSemantics(textVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count), segment.Run),
+                        ApplyInlineElementSemantics(textVisual.TranslateRelativePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count), segment.Run),
                         segment.Run.OwnerElement,
                         formattingContainer);
                 }

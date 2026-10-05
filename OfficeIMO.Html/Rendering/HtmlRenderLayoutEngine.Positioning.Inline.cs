@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     x + run.PaintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, width),
-                    Math.Max(0.01D, height));
+                    Math.Max(0.01D, height), run.PaintOffsetY);
             }
             if (ReferenceEquals(current, formattingContainer)) break;
         }
@@ -80,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     x + run.PaintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, width),
-                    Math.Max(0.01D, height));
+                    Math.Max(0.01D, height), run.PaintOffsetY);
                 return;
             }
             if (ReferenceEquals(current, formattingContainer)) break;
@@ -113,8 +113,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ownedVisuals,
                     new HtmlRenderAnchorFragment(nodeId, entry.Value.LinkUri,
                         ResolveAnchorLinkContents(anchor),
-                        fragment.X, fragment.Y, fragment.Width, fragment.Height,
-                        visuals.Count, source),
+                        fragment.X, fragment.Y - fragment.RelativePaintOffsetY, fragment.Width, fragment.Height,
+                        visuals.Count, source).TranslateRelativePaint(0D, fragment.RelativePaintOffsetY, visuals.Count),
                     anchor,
                     formattingContainer);
             }
@@ -196,7 +196,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlinePositionedPlacement placement in positionedPlacements) {
             PositionedLayer positioned = placement.Request.Resolve(this, placement.Rect.Width, placement.Rect.Height);
             var positionedVisuals = positioned.Block.Visuals
-                .Select((visual, index) => visual.Translate(placement.Rect.X + positioned.X, placement.Rect.Y + positioned.Y, index))
+                .Select((visual, index) => visual.Translate(placement.Rect.X + positioned.X, placement.Rect.Y + positioned.Y, index).IdentifyOutOfFlowPaint())
                 .ToList();
             var layer = new InlinePaintLayer(placement.Request.ZIndex, placement.Request.SourceOrder, positionedVisuals);
             IElement? ownerElement = FindNearestInlineStackingElement(placement.Request.ContainingBlock, formattingContainer);
@@ -259,15 +259,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal IReadOnlyList<InlineFragmentRect> Fragments => _fragments;
 
-        internal void Include(double x, double y, double width, double height) {
+        internal void Include(double x, double y, double width, double height, double relativePaintOffsetY = 0D) {
             _left = Math.Min(_left, x);
             _top = Math.Min(_top, y);
             _right = Math.Max(_right, x + width);
             _bottom = Math.Max(_bottom, y + height);
-            IncludeFragment(x, y, width, height);
+            IncludeFragment(x, y, width, height, relativePaintOffsetY);
         }
 
-        private void IncludeFragment(double x, double y, double width, double height) {
+        private void IncludeFragment(double x, double y, double width, double height, double relativePaintOffsetY) {
             const double tolerance = 0.01D;
             long line = (long)Math.Floor(y / tolerance);
             for (int offset = -1; offset <= 1; offset++) {
@@ -277,14 +277,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     _owner.ChargeLayoutOperation("positioned inline fragment lookup");
                     int index = indexes[item];
                     InlineFragmentRect fragment = _fragments[index];
-                    if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;
+                    if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance
+                        || Math.Abs(fragment.RelativePaintOffsetY - relativePaintOffsetY) > tolerance) continue;
                     double right = x + width;
                     if (right < fragment.X - tolerance || x > fragment.Right + tolerance) continue;
                     var merged = new InlineFragmentRect(
                         Math.Min(fragment.X, x),
                         Math.Min(fragment.Y, y),
                         Math.Max(fragment.Right, right) - Math.Min(fragment.X, x),
-                        Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y));
+                        Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y), relativePaintOffsetY);
                     _fragments[index] = merged;
                     long mergedLine = (long)Math.Floor(merged.Y / tolerance);
                     if (mergedLine != candidate) {
@@ -303,7 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _fragmentsByLine.Add(line, lineIndexes);
             }
             lineIndexes.Add(_fragments.Count);
-            _fragments.Add(new InlineFragmentRect(x, y, width, height));
+            _fragments.Add(new InlineFragmentRect(x, y, width, height, relativePaintOffsetY));
         }
 
         internal InlineContainingRect ToRect(IElement formattingContainer, bool isContinuation) =>
@@ -318,16 +319,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly struct InlineFragmentRect {
-        internal InlineFragmentRect(double x, double y, double width, double height) {
+        internal InlineFragmentRect(double x, double y, double width, double height, double relativePaintOffsetY = 0D) {
             X = x;
             Y = y;
             Width = Math.Max(0.01D, width);
             Height = Math.Max(0.01D, height);
+            RelativePaintOffsetY = relativePaintOffsetY;
         }
         internal double X { get; }
         internal double Y { get; }
         internal double Width { get; }
         internal double Height { get; }
+        internal double RelativePaintOffsetY { get; }
         internal double Right => X + Width;
         internal double Bottom => Y + Height;
     }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Immutable positioned visual emitted by the shared HTML layout engine.
 /// </summary>
-public abstract class HtmlRenderVisual {
+public abstract partial class HtmlRenderVisual {
     internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null, double? layoutHeight = null) {
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
@@ -77,6 +77,8 @@ public abstract class HtmlRenderVisual {
     internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
         result.StackingContext = StackingContext;
         result.PaintProjectionIdentity = PaintProjectionIdentity;
+        result.RelativePaintOffsetY = RelativePaintOffsetY;
+        result.IsOutOfFlowPaint = IsOutOfFlowPaint;
         return result;
     }
 

@@ -77,7 +77,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             fragment.Count,
                             clipGroup.Source,
                             Math.Max(start, clipGroup.LayoutY) - start,
-                            clipGroup.IsViewportOverflow));
+                            clipGroup.IsViewportOverflow, clipGroup.IsFlowFragment));
                     }
                     continue;
                 }
@@ -229,10 +229,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.VisualFragmentUnsupported, "A visual crossing a forced page boundary could not be represented safely in the current fragment.", HtmlDiagnosticSeverity.Warning, visual.Source, visual.Kind.ToString());
             } finally {
-                if (visual.StackingContext != null) {
-                    for (int index = firstFragment; index < fragment.Count; index++) {
-                        visual.CopyStackingContextTo(fragment[index]);
-                    }
+                for (int index = firstFragment; index < fragment.Count; index++) {
+                    visual.CopyStackingContextTo(fragment[index]);
                 }
             }
         }
@@ -265,7 +263,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             new[] { visual.Translate(0D, -fragmentStart, 0) },
             paintOrder,
             visual.Source,
-            clipY);
+            clipY, isFlowFragment: true);
     }
 
 }

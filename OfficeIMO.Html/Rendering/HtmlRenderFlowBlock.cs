@@ -194,11 +194,11 @@ internal sealed class HtmlRenderFlowBlock {
             avoidBreakRanges: AvoidBreakRanges,
             pagedPaintExtent: PagedPaintExtent);
 
-    internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
+    internal HtmlRenderFlowBlock TranslateRelativePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
             Width,
             Height,
-            Visuals.Select(visual => visual.TranslatePaint(offsetX, offsetY, visual.PaintOrder)),
+            Visuals.Select(visual => visual.TranslateRelativePaint(offsetX, offsetY, visual.PaintOrder)),
             BreakBefore,
             BreakAfter,
             AvoidBreakInside,
@@ -548,7 +548,7 @@ internal sealed class HtmlRenderContinuationGroup {
             StartsAfter,
             EndsAt,
             Height,
-            Visuals.Select(visual => visual.TranslatePaint(offsetX, offsetY, visual.PaintOrder)));
+            Visuals.Select(visual => visual.TranslateRelativePaint(offsetX, offsetY, visual.PaintOrder)));
 }
 
 internal sealed class HtmlRenderTrailingGroup {
@@ -585,7 +585,7 @@ internal sealed class HtmlRenderTrailingGroup {
             ContentEndsAt,
             SourceEndsAt,
             Height,
-            Visuals.Select(visual => visual.TranslatePaint(offsetX, offsetY, visual.PaintOrder)));
+            Visuals.Select(visual => visual.TranslateRelativePaint(offsetX, offsetY, visual.PaintOrder)));
 }
 
 internal sealed class HtmlRenderLineBreakGroup {

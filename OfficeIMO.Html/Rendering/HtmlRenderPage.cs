@@ -122,6 +122,17 @@ public sealed class HtmlRenderPage {
         if (visual is HtmlRenderShape shape) {
             AddShape(drawing, shape, surfaceWidth, surfaceHeight, fonts);
         } else if (visual is HtmlRenderText text && text.Text.Length > 0) {
+            // Positioned overlays can sit outside the page while normal flow
+            // stays unchanged. Drawing's public text API requires containment;
+            // retain partial paint through a viewport clip and omit paint that
+            // cannot intersect it instead of rejecting a valid HTML snapshot.
+            if (text.X >= surfaceWidth || text.X + Math.Max(text.Width, text.TextPaintWidth ?? text.Width) <= 0D
+                || text.Y - text.PaintTopOverflow >= surfaceHeight || text.Y + text.Height <= 0D) return;
+            if (text.X < 0D || text.Y < 0D || text.X + text.Width > surfaceWidth || text.Y + text.Height > surfaceHeight) {
+                AddClipGroup(drawing, new HtmlRenderClipGroup(0D, 0D, surfaceWidth, surfaceHeight,
+                    true, true, new[] { text }, text.PaintOrder, text.Source), surfaceWidth, surfaceHeight, fonts, cancellationToken);
+                return;
+            }
             string drawingText = text.BidiVisualOrderResolved
                 ? "\u202D" + text.Text + "\u202C"
                 : text.Text;
