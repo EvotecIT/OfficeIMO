@@ -13,6 +13,7 @@ namespace OfficeIMO.Tests {
         [InlineData("body")]
         [InlineData("table")]
         [InlineData("control")]
+        [InlineData("heading")]
         public void SaveAsPdf_PreservesFootnoteAndEndnoteWithTheSameDisplayNumber(string context) {
             string path = Path.Combine(_directoryWithFiles, "SameNumberNotes" + context + ".pdf");
             using var document = WordDocument.Create();
@@ -21,6 +22,14 @@ namespace OfficeIMO.Tests {
                 : document.AddParagraph("SameNumberMarker");
             paragraph.AddFootNote("FootnoteBody");
             paragraph.AddEndNote("EndnoteBody");
+            if (context == "heading") paragraph.Style = WordParagraphStyles.Heading7;
+            foreach (var run in paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Run>()) {
+                int size = run.Elements<DocumentFormat.OpenXml.Wordprocessing.FootnoteReference>().Any() ? 14 :
+                    run.Elements<DocumentFormat.OpenXml.Wordprocessing.EndnoteReference>().Any() ? 16 : 0;
+                if (size == 0) continue;
+                run.RunProperties ??= new DocumentFormat.OpenXml.Wordprocessing.RunProperties();
+                run.RunProperties.FontSize = new DocumentFormat.OpenXml.Wordprocessing.FontSize { Val = (size * 2).ToString() };
+            }
             if (context == "control") {
                 var content = new DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock(paragraph._paragraph!.CloneNode(true));
                 paragraph._paragraph.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.SdtBlock(content));
@@ -30,6 +39,10 @@ namespace OfficeIMO.Tests {
             var spans = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
             var marker = Assert.Single(spans, span => span.Text.Contains("SameNumberMarker"));
             Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
+            var references = spans.Where(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize)
+                .OrderBy(span => span.FontSize).ToArray();
+            Assert.Equal(14D * .65D, references[0].FontSize, precision: 3);
+            Assert.Equal(16D * .65D, references[1].FontSize, precision: 3);
         }
 
         [Fact]

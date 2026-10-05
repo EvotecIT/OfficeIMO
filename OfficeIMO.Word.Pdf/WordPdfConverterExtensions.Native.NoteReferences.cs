@@ -11,13 +11,15 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph, IReadOnlyList<int> numbers, Dictionary<long, int> numbersById,
             NativeDocumentDefaults defaults, NativeFontMap? fontMap,
             NativeTableRunStyleDefaults tableDefaults = default, bool useConfiguredTypography = false) {
+            var sourceKeys = new HashSet<long>();
             foreach (int number in numbers) {
+                bool Matches(long key) => numbersById.TryGetValue(key, out int value) && value == number && sourceKeys.Add(key);
                 WordParagraph? source = null;
                 foreach (W.Run run in paragraph._paragraph.Descendants<W.Run>()) {
                     bool matches = run.Elements<W.FootnoteReference>().Any(reference =>
-                        reference.Id?.Value is long id && numbersById.TryGetValue(GetNativeFootnoteKey(id), out int value) && value == number) ||
+                        reference.Id?.Value is long id && Matches(GetNativeFootnoteKey(id))) ||
                         run.Elements<W.EndnoteReference>().Any(reference =>
-                        reference.Id?.Value is long id && numbersById.TryGetValue(GetNativeEndnoteKey(id), out int value) && value == number);
+                        reference.Id?.Value is long id && Matches(GetNativeEndnoteKey(id)));
                     if (matches) {
                         source = new WordParagraph(paragraph._document, paragraph._paragraph, run);
                         break;
