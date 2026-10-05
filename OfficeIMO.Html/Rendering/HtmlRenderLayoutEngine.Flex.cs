@@ -192,7 +192,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(0D, boxBasis + style.MarginLeft + style.MarginRight);
     }
 
-    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth, int intrinsicDepth = 1) {
+    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth, int intrinsicDepth = 1, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
@@ -201,7 +201,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (tag == "table") return availableWidth;
-        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, availableWidth, intrinsicDepth);
+        IReadOnlyList<IntrinsicTextRun> runs = resolvedRuns ?? ResolveInFlowIntrinsicTextRuns(item, availableWidth, intrinsicDepth);
         double measured = runs.Count == 0 ? 0D : MeasureMaxContentRuns(runs);
         return Math.Min(availableWidth, measured + style.HorizontalInsets);
     }

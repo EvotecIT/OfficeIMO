@@ -517,6 +517,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double textY = current.HasReplacedImage
                         ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
                         : lineY + (alignTextBaseline ? Math.Max(0D, baseline - segment.Run.Style.Font.Size) : 0D);
+                    if (alignTextBaseline && !current.HasReplacedImage) {
+                        textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - (textY - lineY)));
+                    }
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), textLineHeight, inlineBounds);
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;

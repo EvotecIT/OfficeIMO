@@ -142,7 +142,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth, int intrinsicDepth = 1) {
+    private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth, int intrinsicDepth = 1, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) {
@@ -152,7 +152,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.ExplicitWidth.HasValue) return ResolveColumnFlexOuterWidth(style, contentWidth);
         if (tag == "table") return contentWidth;
         double boxBasis;
-        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, contentWidth, intrinsicDepth);
+        IReadOnlyList<IntrinsicTextRun> runs = resolvedRuns ?? ResolveInFlowIntrinsicTextRuns(item, contentWidth, intrinsicDepth);
         double measured = runs.Count == 0 ? 1D : MeasureMaxContentRuns(runs);
         boxBasis = measured + style.HorizontalInsets;
 

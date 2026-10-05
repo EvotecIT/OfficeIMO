@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (run.IsReplaced) {
-                current += run.ReplacedWidth;
+                current += run.MinimumReplacedWidth;
                 maximum = Math.Max(maximum, current);
                 if (!run.Style.PreventTextWrapping) current = 0D;
                 continue;
@@ -185,7 +185,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static void AppendNormalizedIntrinsicText(List<IntrinsicTextRun> runs, string text, HtmlRenderBoxStyle style) {
         if (text.Length == 0) return;
-        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
+        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak && !runs[runs.Count - 1].IsReplaced
+            && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
             IntrinsicTextRun previous = runs[runs.Count - 1];
             runs[runs.Count - 1] = new IntrinsicTextRun(previous.Text + text, style);
         } else {
@@ -204,14 +205,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 out List<FlexItem> items, out _, registerOutOfFlowElements: false)) {
             bool column = parentStyle.FlexDirection is "column" or "column-reverse";
             double width = 0D;
+            double minimumWidth = 0D;
             foreach (FlexItem item in items) {
-                double contribution = column ? ResolveColumnFlexCrossBasis(item, availableSize, depth + 1)
-                    : ClampFlexMainSize(item, ResolveFlexAutoBoxBasis(item, availableSize, depth + 1)
+                // Resolve the child's content once for both contributions. Recursive
+                // flex containers must not duplicate that traversal at every level.
+                bool definite = TryResolveDefiniteGridContribution(item, availableSize, out double minimumContribution);
+                IReadOnlyList<IntrinsicTextRun>? childRuns = definite ? null : ResolveInFlowIntrinsicTextRuns(item, availableSize, depth + 1);
+                double contribution = column ? ResolveColumnFlexCrossBasis(item, availableSize, depth + 1, childRuns)
+                    : ClampFlexMainSize(item, ResolveFlexAutoBoxBasis(item, availableSize, depth + 1, childRuns)
                         + item.Style.MarginLeft + item.Style.MarginRight, vertical: false);
+                if (!definite) minimumContribution = ResolveGridMeasuredContribution(item.Style, MeasureMinContentRuns(childRuns!));
+                if (!column && item.Style.FlexShrink == 0D) minimumContribution = Math.Max(minimumContribution, contribution);
                 width = column ? Math.Max(width, contribution) : width + contribution;
+                minimumWidth = column || parentStyle.FlexWrap != "nowrap"
+                    ? Math.Max(minimumWidth, minimumContribution) : minimumWidth + minimumContribution;
             }
             if (!column) width += parentStyle.ColumnGap * Math.Max(0, items.Count - 1);
-            result.Add(IntrinsicTextRun.Replaced(width, parentStyle));
+            if (!column && parentStyle.FlexWrap == "nowrap") minimumWidth += parentStyle.ColumnGap * Math.Max(0, items.Count - 1);
+            result.Add(IntrinsicTextRun.Replaced(width, parentStyle, minimumWidth));
             return;
         }
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
@@ -260,22 +271,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class IntrinsicTextRun {
-        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D) {
+        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? minimumReplacedWidth = null) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
             IsReplaced = isReplaced;
             ReplacedWidth = replacedWidth;
+            MinimumReplacedWidth = minimumReplacedWidth ?? replacedWidth;
         }
 
         internal static IntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
-        internal static IntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
+        internal static IntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style, double? minimumWidth = null) =>
+            new(string.Empty, style, isReplaced: true, replacedWidth: width, minimumReplacedWidth: minimumWidth);
 
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsReplaced { get; }
         internal double ReplacedWidth { get; }
+        internal double MinimumReplacedWidth { get; }
     }
 
 }

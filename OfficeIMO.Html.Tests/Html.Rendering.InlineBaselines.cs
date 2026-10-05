@@ -7,6 +7,22 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlInlineText_SmallerDescendantsStayInsideTheirContainingLine() {
+        const string html = "<div style='font-size:40px;line-height:48px;margin:0'>"
+            + "<span id='small' style='font-size:10px;background:red'>Small</span></div>"
+            + "<div style='margin:0'>Next block</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText small = Assert.Single(text, item => item.Text == "Small");
+        HtmlRenderText next = Assert.Single(text, item => item.Text.Contains("Next", StringComparison.Ordinal));
+        var background = FindGridShape(rendered, "span#small");
+        Assert.True(small.Y + small.Height <= next.Y + 0.001D);
+        Assert.True(background.Y + background.Height <= next.Y + 0.001D);
+    }
+
     [Theory]
     [InlineData("display:block")]
     [InlineData("display:flex;flex-direction:row;align-items:flex-start")]
