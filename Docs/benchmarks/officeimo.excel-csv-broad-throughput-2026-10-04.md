@@ -1215,3 +1215,120 @@ and [macOS](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-co
 The additional cancellation, partial-record and writer-reuse cases remain in
 the correctness suite: all 28 writer regression cases pass against the frozen
 qualified CSV baseline after the experiment is backed out.
+
+## Undimensioned worksheet indexing
+
+The indexed reader can infer a bounded proposal from the first populated row
+and the final explicit row when the worksheet omits `dimension`. It qualifies
+the complete XML, cells, grid coordinates and actual used bounds before exposing
+rows. UTF-16, unsupported prefixes, later wider cells and proposals above the
+existing cell or byte budgets retain their established paths. The private
+optimization adds no public options or runtime dependencies.
+
+The native matrix covers twelve cases on Windows and macOS, on actual .NET 8
+and .NET 10: 96 observations and 1,152 retained measurements. It includes four
+public sizes from 1,000 to 1,000,000 rows, UTF-8 and UTF-16 numeric data, prefetch,
+and wide Automatic/Sequential reads. The additional eight-case controls rotate
+Before, an identical second baseline, and After within each iteration. Four
+host/runtime packets contain 96 observations and 2,304 retained measurements,
+with 24 warmups and 24 retained samples per engine. Every setup validates all
+selected fields and matching decoded worksheet, style and shared-string bytes.
+
+| Public read, 25,000 rows | After/Before median | Identical-baseline Control/Before |
+| --- | ---: | ---: |
+| Windows .NET 10 | 0.547 | 0.998 |
+| macOS .NET 10 | 0.538 | 1.065 |
+| Windows .NET 8 | 0.471 | 0.968 |
+| macOS .NET 8 | 0.540 | 1.001 |
+
+These controls support a portable improvement for eligible medium worksheets.
+They do not establish a large-sheet throughput improvement. Native negative
+cases remain visible, including wide Sequential UTF-8 ratios of approximately
+4.58 on Windows .NET 10 and 4.02 on macOS .NET 8. The rotated Windows .NET 10
+wide Sequential ratio is 1.096, and macOS .NET 10 UTF-16 numeric reads have a
+1.137 ratio. Large public scans have mixed ratios around their baselines.
+The [native summary](excel-csv-broad-throughput-2026-10-04/dimensionless-index-native-summary.json)
+and [rotated summary](excel-csv-broad-throughput-2026-10-04/dimensionless-index-control-summary.json)
+retain every case and the corresponding raw packet fingerprints.
+
+Fresh-process memory evidence contains 144 measured workers and 24 additional
+.NET 8 complete-field validation workers. Three workers per side cover four
+public sizes and the UTF-8/UTF-16 numeric controls. The 250,000-row case still
+allocates approximately 42.8 MB on the calling thread on Windows .NET 10 and
+retains approximately 42.3 MB after return/GC in both builds. Its 250,001 rows,
+including the header, span 1,000,004 cells and exceed the existing index budget;
+the full worksheet buffer is acquired before that proposal is declined.
+This change leaves that allocation gap open. The
+[memory summary](excel-csv-broad-throughput-2026-10-04/dimensionless-index-memory-summary.json)
+retains caller/all-thread allocations, after-return figures and sampled peaks.
+Small and medium controls have modest allocation reductions, with overlapping
+ranges and some higher individual or mean figures retained. The five-millisecond
+sampler provides peak lower bounds; this is first-complete-operation evidence,
+including initialization and pool retention, rather than a warmed speed claim.
+
+Native .NET 8 uses 8.0.31 on Windows and 8.0.23 on macOS. The actual .NET 8
+PowerShell controls use 8.0.21 on both hosts; .NET 10 uses 10.0.12. Runtime patch
+versions are recorded rather than treating these as identical environments.
+Raw native, rotated and memory packets and their captured runner scripts are
+retained beside the summaries. The qualification source is `1b0c3b146`; its
+normalized Excel source is integrated at `b57455a0c`.
+
+## Semicolon and tab quote-character searches
+
+CSV writers use the existing vectorized character-search mechanism for
+semicolon and tab separators on .NET 8 and later. Both string and span paths
+preserve the earliest delimiter, quote, CR or LF position. The two search sets
+initialize once on first use. Older targets retain their existing scalar scan.
+This changes private implementation only and preserves quoting and output bytes.
+
+The native matrix covers 38 cases on both modern runtimes, two Windows CPU
+placements and macOS: 456 observations, 5,472 retained measurements and 228
+Before/After pairs. Cases include seven complete-file shapes in both quoting
+modes, long and short semicolon/tab text, and comma/multicharacter controls.
+Every implementation produces equivalent text or bytes and validates every
+decoded field. Warmed allocation is exactly equal in all 228 matched pairs.
+This evidence does not measure the cold allocation of the search sets.
+
+Ten-case rotated controls on both runtimes and hosts add 120 observations and
+5,760 retained measurements. They use 24 warmups, 48 retained samples and four
+complete writes per sample. Before and Control load identical baseline bytes.
+
+| Long text, AsNeeded quoting | Windows .NET 10 After/Before | macOS .NET 10 | Windows .NET 8 | macOS .NET 8 |
+| --- | ---: | ---: | ---: | ---: |
+| Semicolon, plain | 0.459 | 0.531 | 0.509 | 0.548 |
+| Semicolon, containing delimiter | 0.680 | 0.677 | 0.641 | 0.775 |
+| Tab, plain | 0.447 | 0.546 | 0.487 | 0.517 |
+| Tab, containing delimiter | 0.797 | 0.667 | 0.658 | 0.688 |
+
+The target cases improve in all four rotated packets. The native matrix also
+retains slower observations, including semicolon targets in selected runs and
+short Unicode complete-file output. Forward rotated macOS Unicode ratios are
+1.12 on .NET 10 and 1.13 on .NET 8. That file case uses a multicharacter separator
+and does not reach the changed search paths. A three-case reversed-role check
+loads candidate bytes for Before/Control and baseline bytes for After; its four
+packets contain 36 observations and 1,728 retained measurements. Candidate over
+baseline Unicode ratios become 1.016 on macOS .NET 10 and 0.929 on .NET 8.
+Identical-copy ratios also vary. The role reversal does not reproduce a stable
+Unicode slowdown; all slower observations remain in the evidence. It does not
+prove that every unchanged workload has zero regression.
+
+The [native summary](excel-csv-broad-throughput-2026-10-04/csv-delimiter-search-native-summary.json),
+[rotated summary](excel-csv-broad-throughput-2026-10-04/csv-delimiter-search-control-summary.json)
+and [reversed-role summary](excel-csv-broad-throughput-2026-10-04/csv-delimiter-search-reversed-summary.json)
+retain all cases. Their raw packets preserve full source, assembly and measurement
+provenance. One discarded forward Windows run failed the source-provenance guard
+because it was launched from a changing checkout; it supplies no qualified
+measurements. The stable rerun is the retained Windows .NET 10 packet.
+The qualification source is `0bed96b2a`; its normalized CSV source is integrated
+at `b57455a0c`. Linux qualification of this change remains open.
+
+The combined source passes 5,629 Excel tests with five existing skips and 681
+CSV tests on each modern runtime and host. Windows .NET Framework passes 938
+reader-focused Excel tests and all 487 CSV tests. Both owners build for .NET
+Standard 2.0 with zero warnings or errors. The
+[integration qualification](excel-csv-broad-throughput-2026-10-04/index-and-delimiter-integration-qualification.json)
+records source equality, exact test fingerprints and independent review scope.
+The index review reproduced and closed an introduced grid-coordinate defect;
+the delimiter-search review found no actionable defects. These are local source
+and correctness findings. The remaining large-reader, memory, writer and CSV
+read comparisons remain part of the broad performance investigation.
