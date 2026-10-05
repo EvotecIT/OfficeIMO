@@ -1177,10 +1177,15 @@ namespace OfficeIMO.Word {
             }
 
             WordComment wordComment = CreateLegacyDocComment(paragraph._document, comment, notes.StyleSheet);
-            Run anchorRun = paragraph._paragraph.Elements<Run>().LastOrDefault()
+            // Revisions and fields wrap their runs; use the preceding content element
+            // so the reconstructed range and marker retain their source stream position.
+            OpenXmlElement anchor = paragraph._paragraph.ChildElements.LastOrDefault(element =>
+                element is not ParagraphProperties
+                && element is not BookmarkStart && element is not BookmarkEnd
+                && element is not CommentRangeStart && element is not CommentRangeEnd)
                 ?? paragraph._paragraph.AppendChild(new Run());
-            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchorRun);
-            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchorRun);
+            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchor);
+            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchor);
             Run reference = paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
             ApplyLegacyDocReferenceFormatting(paragraph, new WordParagraph(paragraph._document, paragraph._paragraph, reference), legacyRun);
         }
