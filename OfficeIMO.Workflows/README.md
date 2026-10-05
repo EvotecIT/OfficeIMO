@@ -193,6 +193,59 @@ Exceeded bounds or cancellation return no bundle and leave the project intact.
 Unchanged content and identical writer options produce identical delivery bytes
 on the same runtime. The API returns bytes and does not write destination files.
 
+## ONIX bibliographic export
+
+`ExportOnix` creates one ONIX 3.1 reference-tag product record for a single EPUB
+digital download. It takes the primary title and an explicitly selected ISBN-13
+from the exported package. Supply the message identity, notification intent,
+language, publisher and credits explicitly:
+
+```csharp
+// schemas is a compiled XmlSchemaSet loaded from vetted ONIX 3.1 reference XSD files.
+BookOnixExportResult record = project.ExportOnix(new BookOnixExportOptions {
+    SenderName = "Example Press", RecordReference = "digital-edition-42",
+    SentAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero),
+    Notification = BookOnixNotification.Confirmed,
+    IdentifierId = "digital-isbn", LanguageCode = "eng", PublisherName = "Example Press",
+    PublicationDate = new DateOnly(2026, 10, 5),
+    Contributors = [new("Alice Example", BookOnixContributorRole.Author),
+                    new("Example Studio", BookOnixContributorRole.Illustrator, IsOrganization: true)]
+}, schemas, cancellationToken: cancellationToken);
+// record.Bytes is ONIX XML; record.Publication contains the exact EPUB and its writer report.
+```
+
+The selected `dc:identifier` must exist and contain a valid ISBN-13. The shared
+ISBN validator checks spelling, prefix and checksum; it does not verify registration
+or that an ISBN was allocated to this digital edition. Language codes use ONIX list
+74 (`eng`, `pol`, `fre`), not BCP 47 tags. The supplied schema checks code membership.
+Credits distinguish people from organizations and support author, editor,
+translator, illustrator and other creative responsibility. Supply 1–100 credits,
+or explicitly set `NoContributors = true` with an empty list. Missing EPUB credits
+are not interpreted as an assertion that there are no contributors.
+
+Early, advance and confirmed notifications are **complete-record replacements**.
+This bibliographic profile has no supply, price, sales-rights, availability,
+accessibility-discovery, series, subject, description or retailer-specific blocks.
+Do not use it to update an existing richer trade record unless replacing that record
+with this profile is intended. Subtitle and publication date are optional explicit
+values; all other EPUB metadata stays in the EPUB and is not automatically mapped.
+Block updates, deletion records and multi-product messages are outside this profile.
+
+The host supplies and owns the provenance of a compiled `XmlSchemaSet` declaring
+`ONIXMessage` in `http://ns.editeur.org/onix/3.1/reference`. OfficeIMO ships no ONIX
+schema files and fetches none during export. The [opt-in evidence runner](../Build/Epub/README.md#onix-fixtures)
+shows loading with a resolver restricted to three local schema files. The exporter
+enforces that schema and rejects validation findings; schema validation alone does
+not establish business-rule completeness or recipient acceptance.
+
+The same import-review and EPUB signature gates apply as for `Export`. Results retain
+import findings, acknowledgment, writer findings and an EPUB SHA-256 captured at
+export time. They perform no upload or independent EPUB validation. Options do not
+change project metadata or history. Text fields are limited to 4,096 characters,
+the inspected OPF to 4 MiB and ONIX XML to 1 MiB. EPUB writer limits and signature
+policy can be supplied separately through `epubOptions`. Project instances, input
+credit lists and schema sets must not be mutated concurrently with export.
+
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.

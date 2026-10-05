@@ -42,6 +42,38 @@ fixtures deliberately; remove superseded captured publications and downloaded to
 when they are no longer needed. Source fixtures need producer, version and license
 provenance before entering the maintained corpus.
 
+## ONIX fixtures
+
+The opt-in `OnixFixtureGenerator` exercises the workflow's bibliographic ONIX export
+with early, advance and confirmed notifications, person and organization credits,
+explicit no-contributor metadata, a subtitle, publication date and English, Polish
+and French language codes. It writes each ONIX record with its exact EPUB, records
+their hashes and the three schema hashes, and checks that the schema rejects an
+invalid language code. It is outside normal builds and shipped packages.
+
+Obtain the ONIX 3.1 reference XSD from [EDItEUR](https://www.editeur.org/93/Release-3.0-and-3.1-Downloads/)
+and retain its unchanged adjacent code-list and XHTML schemas and their license
+notices. The local schema directory must contain `ONIX_BookProduct_3.1_reference.xsd`,
+`ONIX_BookProduct_CodeLists.xsd` and `ONIX_XHTML_Subset.xsd`. The runner's resolver
+permits only those local files; it does not fetch network dependencies.
+
+```sh
+dotnet run --project Build/Epub/Onix/OnixFixtureGenerator.csproj -- \
+  /path/to/onix-schema /path/to/new-onix-evidence
+xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_reference.xsd \
+  /path/to/new-onix-evidence/early.onix \
+  /path/to/new-onix-evidence/advance.onix \
+  /path/to/new-onix-evidence/confirmed.onix
+```
+
+Retain the independent validator version, exit code and log alongside `evidence.json`.
+The generator records independent validation and retailer acceptance as unperformed;
+its own successful schema check does not stand in for either. Run the generated EPUBs
+through the EPUB validation runner separately. ONIX schema conformance is narrower
+than trade business-rule validation or recipient acceptance. When schema files come
+from a mirror, retain its immutable revision and the original schema headers and
+distinguish that provenance from a fresh official download.
+
 ## Typography fixtures
 
 The opt-in generator uses the current EPUB owner to create Basic, Prose, and

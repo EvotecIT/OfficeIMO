@@ -1,0 +1,61 @@
+namespace OfficeIMO.Workflows;
+
+/// <summary>Complete-record notification types supported by the bibliographic ONIX export profile.</summary>
+public enum BookOnixNotification {
+    /// <summary>Early notification (ONIX 01).</summary>
+    Early,
+    /// <summary>Advance notification with confirmed information (ONIX 02).</summary>
+    Advance,
+    /// <summary>Complete record confirmed at or after publication (ONIX 03).</summary>
+    Confirmed
+}
+
+/// <summary>Contributor roles supported by the ONIX export profile.</summary>
+public enum BookOnixContributorRole {
+    /// <summary>Author of the text (A01).</summary>
+    Author,
+    /// <summary>Editor (B01).</summary>
+    Editor,
+    /// <summary>Translator (B06).</summary>
+    Translator,
+    /// <summary>Illustrator (A12).</summary>
+    Illustrator,
+    /// <summary>Other creative responsibility (Z99).</summary>
+    Other
+}
+
+/// <summary>An explicitly classified ONIX credit; names are not parsed or inferred from EPUB creator text.</summary>
+/// <param name="Name">Full credited name.</param>
+/// <param name="Role">Creative responsibility.</param>
+/// <param name="IsOrganization">Writes CorporateName instead of PersonName when true.</param>
+public sealed record BookOnixContributor(string Name, BookOnixContributorRole Role, bool IsOrganization = false);
+
+/// <summary>
+/// Publisher-supplied assertions for a single-product ONIX 3.1 bibliographic record.
+/// Only the primary title and selected ISBN are taken from the EPUB. Other EPUB metadata is not projected.
+/// This profile does not represent prices, territorial rights, availability or retailer submission.
+/// </summary>
+public sealed record BookOnixExportOptions {
+    /// <summary>Organization sending the ONIX message.</summary>
+    public required string SenderName { get; init; }
+    /// <summary>Stable sender-owned record reference, independent of transmission time.</summary>
+    public required string RecordReference { get; init; }
+    /// <summary>Explicit message timestamp, serialized in UTC.</summary>
+    public required DateTimeOffset SentAt { get; init; }
+    /// <summary>Complete-record notification intent; block updates and deletion are not supported.</summary>
+    public required BookOnixNotification Notification { get; init; }
+    /// <summary>OPF id of the dc:identifier containing this digital edition's ISBN-13.</summary>
+    public required string IdentifierId { get; init; }
+    /// <summary>ONIX list 74 language code, such as eng, pol or fre. The supplied schema checks membership.</summary>
+    public required string LanguageCode { get; init; }
+    /// <summary>Publisher of this edition; not inferred from arbitrary Dublin Core dates or rights statements.</summary>
+    public required string PublisherName { get; init; }
+    /// <summary>Optional subtitle for the ONIX product-level title.</summary>
+    public string? Subtitle { get; init; }
+    /// <summary>Explicit publication date, when known.</summary>
+    public DateOnly? PublicationDate { get; init; }
+    /// <summary>Ordered credits, at most 100. Mutually exclusive with NoContributors.</summary>
+    public IReadOnlyList<BookOnixContributor> Contributors { get; init; } = [];
+    /// <summary>Explicit assertion that the product has no credited contributors. Missing EPUB credits do not imply this.</summary>
+    public bool NoContributors { get; init; }
+}
