@@ -79,6 +79,8 @@ Each named profile uses the shared responsive OfficeIMO document shell and accep
 - Stylesheets, inline CSS, local/remote resources, image policies, resource limits, and diagnostics through explicit options.
 - Document language metadata between HTML `lang` and Word settings.
 
+Imported tables use a default column grid that fits the section text area or containing table cell. Authored table, column, and cell widths retain their native preferred-width meaning.
+
 ## Import profiles
 
 ```csharp
