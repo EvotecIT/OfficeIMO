@@ -33,7 +33,7 @@ public sealed record BookOnixContributor(string Name, BookOnixContributorRole Ro
 /// <summary>
 /// Publisher-supplied assertions for a single-product ONIX 3.1 bibliographic record.
 /// Only the primary title and selected ISBN are taken from the EPUB. Other EPUB metadata is not projected.
-/// This profile does not represent prices, territorial rights, availability or retailer submission.
+/// Commercial metadata is explicit and optional. This profile does not perform retailer submission.
 /// </summary>
 public sealed record BookOnixExportOptions {
     /// <summary>Organization sending the ONIX message.</summary>
@@ -58,4 +58,6 @@ public sealed record BookOnixExportOptions {
     public IReadOnlyList<BookOnixContributor> Contributors { get; init; } = [];
     /// <summary>Explicit assertion that the product has no credited contributors. Missing EPUB credits do not imply this.</summary>
     public bool NoContributors { get; init; }
+    /// <summary>Optional explicit publishing status, territorial rights, supplier availability and pricing.</summary>
+    public BookOnixCommercialMetadata? Commercial { get; init; }
 }

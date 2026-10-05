@@ -20,10 +20,13 @@ var evidence = new List<object>();
 var timestamp = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero);
 foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Notification: BookOnixNotification.Early),
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
-    (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed) }) {
+    (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
+    (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
+    (Name: "withdrawn", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed) }) {
     var project = BookProject.Create("Publishing & metadata — " + profile.Name, profile.Language);
     project.Publication.Identifier = "urn:officeimo:fixture:onix:" + profile.Name;
     project.Publication.AddIdentifier("digital-isbn", new EpubIdentifierMetadata { Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13 });
+    BookOnixCommercialMetadata commercial = CommercialFixtures.Create(profile.Name);
     var options = new BookOnixExportOptions {
         SenderName = "Example Press", PublisherName = "Example Press", RecordReference = "fixture-" + profile.Name,
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
@@ -32,7 +35,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         Contributors = profile.Name == "early" ? [] : [
             new("Alice Example", BookOnixContributorRole.Author), new("Jan Kowalski", BookOnixContributorRole.Translator),
             new("Example Studio", BookOnixContributorRole.Illustrator, true), new("Anne Editor", BookOnixContributorRole.Editor),
-            new("Other Creator", BookOnixContributorRole.Other)]
+            new("Other Creator", BookOnixContributorRole.Other)],
+        Commercial = commercial
     };
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);
@@ -41,8 +45,25 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     try { project.ExportOnix(options with { LanguageCode = "zzz" }, schemas); }
     catch (InvalidDataException error) when (error.Message.StartsWith("ONIX schema validation failed:", StringComparison.Ordinal)) { invalidCodeRejected = true; }
     if (!invalidCodeRejected) throw new InvalidDataException("The supplied schema did not reject an invalid list 74 value.");
+    bool invalidCountryRejected = false;
+    try { project.ExportOnix(options with { Commercial = commercial with {
+        SalesRights = [new(BookOnixSalesRightsKind.Exclusive, new() { Countries = ["QQ"] })], Supplies = []
+    } }, schemas); }
+    catch (InvalidDataException error) when (error.Message.StartsWith("ONIX schema validation failed:", StringComparison.Ordinal)) { invalidCountryRejected = true; }
+    if (!invalidCountryRejected) throw new InvalidDataException("The supplied schema did not reject an invalid list 91 value.");
+    bool? invalidCurrencyRejected = null;
+    BookOnixSupply? pricedSupply = commercial.Supplies.FirstOrDefault(supply => supply.Prices.Count != 0);
+    if (pricedSupply != null) {
+        invalidCurrencyRejected = false;
+        try { project.ExportOnix(options with { Commercial = commercial with {
+            Supplies = [pricedSupply with { Prices = [pricedSupply.Prices[0] with { CurrencyCode = "ZZZ" }] }]
+        } }, schemas); }
+        catch (InvalidDataException error) when (error.Message.StartsWith("ONIX schema validation failed:", StringComparison.Ordinal)) { invalidCurrencyRejected = true; }
+        if (invalidCurrencyRejected != true) throw new InvalidDataException("The supplied schema did not reject an invalid list 96 value.");
+    }
     evidence.Add(new { profile = profile.Name, onixSha256 = Convert.ToHexString(SHA256.HashData(result.Bytes)),
-        epubSha256 = result.PublicationSha256, schemaValidation = "passed", invalidLanguageCode = "rejected" });
+        epubSha256 = result.PublicationSha256, schemaValidation = "passed", invalidLanguageCode = "rejected",
+        invalidCountryRejected, invalidCurrencyRejected });
 }
 File.WriteAllText(Path.Combine(outputDirectory, "evidence.json"), JsonSerializer.Serialize(new {
     schemaFiles = schemaFiles.Select(path => new { name = Path.GetFileName(path), sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) }),

@@ -102,19 +102,19 @@ public sealed class BookOnixTests {
         Assert.Equal(before, project.ToProjectBytes());
     }
 
-    private static BookProject Project() {
+    internal static BookProject Project() {
         var project = BookProject.Create("Book & title");
         project.Publication.AddIdentifier("isbn", new EpubIdentifierMetadata { Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13 });
         return project;
     }
-    private static BookOnixExportOptions Options() => new() {
+    internal static BookOnixExportOptions Options() => new() {
         SenderName = "Example Press", RecordReference = "digital-edition-1", IdentifierId = "isbn", LanguageCode = "eng",
         PublisherName = "Example Press", SentAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.FromHours(2)),
         Notification = BookOnixNotification.Confirmed, Contributors = [new("Author", BookOnixContributorRole.Author)]
     };
     // This test double proves schema enforcement, not ONIX conformance. The opt-in Onix fixture runner
     // validates authored products with the unchanged EDItEUR schema and an independent XML validator.
-    private static XmlSchemaSet TestSchema(bool rejectChildren = false) {
+    internal static XmlSchemaSet TestSchema(bool rejectChildren = false) {
         string content = rejectChildren ? "" : "<xs:sequence><xs:any minOccurs='0' maxOccurs='unbounded' processContents='skip'/></xs:sequence>";
         using var input = new StringReader($"<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema' targetNamespace='{BookProject.OnixNamespace}' elementFormDefault='qualified'><xs:element name='ONIXMessage'><xs:complexType>{content}<xs:attribute name='release' type='xs:string'/></xs:complexType></xs:element></xs:schema>");
         using var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });

@@ -49,7 +49,11 @@ with early, advance and confirmed notifications, person and organization credits
 explicit no-contributor metadata, a subtitle, publication date and English, Polish
 and French language codes. It writes each ONIX record with its exact EPUB, records
 their hashes and the three schema hashes, and checks that the schema rejects an
-invalid language code. It is outside normal builds and shipped packages.
+invalid language code. Commercial fixtures cover worldwide exclusions, distinct
+Polish and British markets, all seven supported price bases, decimal scale, effective
+dates, free and unannounced pricing, an unknown supply date, and withdrawal after
+rights are lost. The schema must also reject unknown country and currency codes.
+It is outside normal builds and shipped packages.
 
 Obtain the ONIX 3.1 reference XSD from [EDItEUR](https://www.editeur.org/93/Release-3.0-and-3.1-Downloads/)
 and retain its unchanged adjacent code-list and XHTML schemas and their license
@@ -63,7 +67,9 @@ dotnet run --project Build/Epub/Onix/OnixFixtureGenerator.csproj -- \
 xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_reference.xsd \
   /path/to/new-onix-evidence/early.onix \
   /path/to/new-onix-evidence/advance.onix \
-  /path/to/new-onix-evidence/confirmed.onix
+  /path/to/new-onix-evidence/confirmed.onix \
+  /path/to/new-onix-evidence/priced.onix \
+  /path/to/new-onix-evidence/withdrawn.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

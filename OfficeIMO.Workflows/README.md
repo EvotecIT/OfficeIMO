@@ -202,7 +202,7 @@ language, publisher and credits explicitly:
 
 ```csharp
 // schemas is a compiled XmlSchemaSet loaded from vetted ONIX 3.1 reference XSD files.
-BookOnixExportResult record = project.ExportOnix(new BookOnixExportOptions {
+var options = new BookOnixExportOptions {
     SenderName = "Example Press", RecordReference = "digital-edition-42",
     SentAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero),
     Notification = BookOnixNotification.Confirmed,
@@ -210,7 +210,8 @@ BookOnixExportResult record = project.ExportOnix(new BookOnixExportOptions {
     PublicationDate = new DateOnly(2026, 10, 5),
     Contributors = [new("Alice Example", BookOnixContributorRole.Author),
                     new("Example Studio", BookOnixContributorRole.Illustrator, IsOrganization: true)]
-}, schemas, cancellationToken: cancellationToken);
+};
+BookOnixExportResult record = project.ExportOnix(options, schemas, cancellationToken: cancellationToken);
 // record.Bytes is ONIX XML; record.Publication contains the exact EPUB and its writer report.
 ```
 
@@ -224,12 +225,59 @@ or explicitly set `NoContributors = true` with an empty list. Missing EPUB credi
 are not interpreted as an assertion that there are no contributors.
 
 Early, advance and confirmed notifications are **complete-record replacements**.
-This bibliographic profile has no supply, price, sales-rights, availability,
+Commercial blocks are emitted only when supplied. This profile has no
 accessibility-discovery, series, subject, description or retailer-specific blocks.
 Do not use it to update an existing richer trade record unless replacing that record
 with this profile is intended. Subtitle and publication date are optional explicit
 values; all other EPUB metadata stays in the EPUB and is not automatically mapped.
 Block updates, deletion records and multi-product messages are outside this profile.
+
+Add explicit commercial metadata when the record must describe a market offer:
+
+```csharp
+var uk = new BookOnixTerritory { Countries = ["GB"] };
+record = project.ExportOnix(options with {
+    Commercial = new BookOnixCommercialMetadata {
+        PublishingStatus = BookOnixPublishingStatus.Active,
+        SalesRights = [new(BookOnixSalesRightsKind.Exclusive, uk)],
+        Supplies = [new() {
+            Territory = uk, SupplierName = "Example Press",
+            SupplierRole = BookOnixSupplierRole.PublisherToCustomers,
+            Availability = BookOnixAvailability.Available,
+            Prices = [new() { Kind = BookOnixPriceKind.RecommendedIncludingTax,
+                             Amount = 9.99m, CurrencyCode = "GBP" }]
+        }]
+    }
+}, schemas, cancellationToken: cancellationToken);
+```
+
+Territories use explicit country lists or `Worldwide = true` with optional
+`ExcludedCountries`. Codes are uppercase ONIX list 91 values and the supplied schema
+checks membership. Rights territories cannot overlap in this profile. Available,
+forthcoming or temporarily unavailable supply must fit the union of declared
+for-sale rights; no finite country list is treated as worldwide permission.
+Unavailable or withdrawn supply can be reported after rights are lost. Undeclared
+territories remain unstated, and OfficeIMO does not verify rights ownership.
+
+Each supply requires prices or an explicit `Unpriced` reason: `Free`,
+`ToBeAnnounced` or `ContactSupplier`. A zero price does not mean free. Prices preserve
+positive decimal amounts without rounding or currency conversion and distinguish
+recommended, fixed, supplier-net and publisher agency price bases and tax inclusion.
+Currency codes use ONIX list 96. Price territories default to the declared supply
+market and may narrow it; they cannot broaden it. Optional `ValidFrom` and `ValidUntil`
+dates preserve the supplied effective period and reject a reversed interval.
+Tax breakdowns, discounts, overlapping-offer resolution and jurisdiction-specific
+business rules are not calculated or qualified by this profile.
+
+Forthcoming publishing status requires `PublicationDate`; cancelled or indefinitely
+postponed status forbids it. Supplier availability has its own date: not-yet-available
+or temporarily unavailable supply requires `ExpectedSupplyDate`, or the explicit
+`ExpectedSupplyDateUnknown` exception when no date is known. Other availability states
+do not accept that expected-date declaration. Product publishing status and supplier
+availability are separate assertions.
+
+Commercial metadata is bounded to 32 rights declarations, 32 supplies, 16 prices per
+supply and 250 unique codes per country list. The total XML byte limit still applies.
 
 The host supplies and owns the provenance of a compiled `XmlSchemaSet` declaring
 `ONIXMessage` in `http://ns.editeur.org/onix/3.1/reference`. OfficeIMO ships no ONIX
@@ -244,7 +292,7 @@ export time. They perform no upload or independent EPUB validation. Options do n
 change project metadata or history. Text fields are limited to 4,096 characters,
 the inspected OPF to 4 MiB and ONIX XML to 1 MiB. EPUB writer limits and signature
 policy can be supplied separately through `epubOptions`. Project instances, input
-credit lists and schema sets must not be mutated concurrently with export.
+credit/commercial lists and schema sets must not be mutated concurrently with export.
 
 ## Optional checkpoints
 

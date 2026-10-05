@@ -19,7 +19,7 @@ public sealed partial class BookProject {
     /// compiled schema set. The schema must declare ONIXMessage in the ONIX 3.1 reference namespace.
     /// Callers own schema provenance and must not mutate the schema set during export.
     /// The result retains the exact validated EPUB from which the title and selected ISBN were obtained.
-    /// This is a complete-record notification, not a block update; unsupported commercial blocks are absent.
+    /// This is a complete-record notification, not a block update; commercial fields require explicit caller assertions.
     /// </summary>
     public BookOnixExportResult ExportOnix(BookOnixExportOptions options, XmlSchemaSet schemas,
         EpubWriteOptions? epubOptions = null, CancellationToken cancellationToken = default) {
@@ -61,6 +61,7 @@ public sealed partial class BookProject {
                 new XElement(onix + (credit.IsOrganization ? "CorporateName" : "PersonName"), credit.Name)));
         }
 
+        OnixCommercialParts commercial = BuildOnixCommercial(options.Commercial, options.PublicationDate, cancellationToken);
         EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;
@@ -94,16 +95,18 @@ public sealed partial class BookProject {
             new XElement(onix + "LanguageCode", options.LanguageCode)));
         var publishing = new XElement(onix + "PublishingDetail", new XElement(onix + "Publisher",
             new XElement(onix + "PublishingRole", "01"), new XElement(onix + "PublisherName", options.PublisherName)));
+        if (commercial.Status != null) publishing.Add(commercial.Status);
         if (options.PublicationDate is { } date) publishing.Add(new XElement(onix + "PublishingDate",
             new XElement(onix + "PublishingDateRole", "01"),
             new XElement(onix + "Date", new XAttribute("dateformat", "00"), date.ToString("yyyyMMdd", CultureInfo.InvariantCulture))));
+        publishing.Add(commercial.Rights);
         var message = new XDocument(new XElement(onix + "ONIXMessage", new XAttribute("release", "3.1"),
             new XElement(onix + "Header", new XElement(onix + "Sender", new XElement(onix + "SenderName", options.SenderName)),
                 new XElement(onix + "SentDateTime", options.SentAt.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture))),
             new XElement(onix + "Product", new XElement(onix + "RecordReference", options.RecordReference),
                 new XElement(onix + "NotificationType", notification),
                 new XElement(onix + "ProductIdentifier", new XElement(onix + "ProductIDType", "15"), new XElement(onix + "IDValue", isbn)),
-                descriptive, publishing)));
+                descriptive, publishing, commercial.Supplies)));
         message.Validate(schemas, (_, args) => {
             cancellationToken.ThrowIfCancellationRequested();
             throw new InvalidDataException("ONIX schema validation failed: " + args.Message, args.Exception);
