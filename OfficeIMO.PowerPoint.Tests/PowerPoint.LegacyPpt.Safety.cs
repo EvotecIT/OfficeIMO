@@ -796,6 +796,9 @@ namespace OfficeIMO.Tests {
                 routeException.Message, StringComparison.OrdinalIgnoreCase);
         }
 
+#if POWERPOINT_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+#endif
         [Fact]
         public void CompoundWriterLayoutScalesAcrossManySiblingStorages() {
             const int storageCount = 10_000;
@@ -805,12 +808,15 @@ namespace OfficeIMO.Tests {
                     Array.Empty<byte>()))
                 .ToArray();
 
+#if POWERPOINT_PERFORMANCE_EVIDENCE
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
-            stopwatch.Stop();
-
             Assert.Equal(storageCount, layout.Streams.Count);
+#if POWERPOINT_PERFORMANCE_EVIDENCE
+            stopwatch.Stop();
             Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+#endif
         }
 
         [Fact]
