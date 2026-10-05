@@ -78,6 +78,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool relative = false;
             if (visual.PaintChildren is { } children) {
                 if (visual is HtmlRenderEffectGroup effect) transform = effect.Transform.Then(transform);
+                // A singular effect has no two-dimensional paint support. Keep
+                // its existing source representation; it cannot supply an
+                // invertible physical-window clip or require overflow pages.
+                if (!transform.TryInvert(out _)) return false;
                 foreach (HtmlRenderVisual child in children) {
                     relative |= Inspect(child, source, clipTop, clipBottom, transform, ref maximum);
                 }
@@ -101,6 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Constrain(visual, transform, ref clipTop, ref clipBottom);
             if (visual.PaintChildren is { } children) {
                 OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect ? effect.Transform.Then(transform) : transform;
+                if (!childTransform.TryInvert(out _)) return AtSource(visual, source);
                 var groups = new Dictionary<int, List<HtmlRenderVisual>>();
                 foreach (HtmlRenderVisual child in children) {
                     foreach (KeyValuePair<int, HtmlRenderVisual> item in Route(child, source, clipTop, clipBottom, childTransform)) {
@@ -188,8 +193,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        private static HtmlRenderRectangle PaintBounds(HtmlRenderVisual visual, OfficeTransform transform) =>
-            HtmlRenderRectangle.Transform(transform, new HtmlRenderRectangle(visual.X, visual.Y, visual.Width, visual.Height));
+        private static HtmlRenderRectangle PaintBounds(HtmlRenderVisual visual, OfficeTransform transform) {
+            double overhang = visual is HtmlRenderText text ? text.PaintTopOverflow : 0D;
+            double width = visual is HtmlRenderText measured ? Math.Max(measured.Width, measured.TextPaintWidth ?? measured.Width) : visual.Width;
+            return HtmlRenderRectangle.Transform(transform,
+                new HtmlRenderRectangle(visual.X, visual.Y - overhang, width, visual.Height + overhang));
+        }
 
         private static HtmlRenderVisual ClipToPhysicalWindow(HtmlRenderVisual visual, double left, double right,
             double top, double bottom, OfficeTransform transform, double dx, double dy) {

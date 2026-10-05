@@ -153,6 +153,46 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, last.GetPixel(100, finalBottom + 10));
     }
 
+    [Fact]
+    public void RelativePagePaint_RasterKeepsTextMadeVisibleByItsEnclosingEffect() {
+        string html = "<style>@page{size:400px 400px;margin:0}body{margin:0;font:16px Arial}</style>"
+            + "<div style='position:relative;top:-80px;transform:translateY(80px);transform-origin:0 0'>VisibleEffectMarker</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.Contains(Enumerable.Range(0, 24), y => Enumerable.Range(0, 200)
+            .Any(x => raster.GetPixel(x, y) != OfficeColor.White));
+    }
+
+    [Fact]
+    public void RelativePagePaint_SingularEffectDoesNotCreateOverflowPagesOrRejectTheDocument() {
+        string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style><div style='height:400px'></div>"
+            + "<div style='position:relative;top:-80px;transform:matrix(1,1,1,1,0,0);transform-origin:0 0;"
+            + "width:200px;height:200px;background:red'></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        Assert.Equal(2, rendered.Pages.Count);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+            Assert.Equal(OfficeColor.White, raster.GetPixel(100, 100));
+        }
+    }
+
+    [Fact]
+    public void RelativePagePaint_ProjectsNamedFontAscentAndItsShadowAboveTheFrame() {
+        byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
+        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
+        string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style><div style='height:400px'></div>"
+            + "<div style='position:relative;top:50px;font:20px/20px Arial'>"
+            + "<span style='font-size:100px;text-shadow:0 0 red'>A</span></div>";
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderDocument rendered = result.RenderResult!.Document;
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(RelativeTextPlacements(rendered, "A"), placement => placement.Page.PageNumber == 1);
+        Assert.Contains(RelativeTextPlacements(rendered, "A"), placement => placement.Page.PageNumber == 2);
+        Assert.Equal("A", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
+    }
+
     private static IEnumerable<(HtmlRenderPage Page, HtmlRenderText Text)> RelativeTextPlacements(HtmlRenderDocument document, string marker) {
         foreach (HtmlRenderPage page in document.Pages) {
             foreach (HtmlRenderVisual visual in Leaves(page.Scene)) {
