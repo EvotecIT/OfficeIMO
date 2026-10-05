@@ -161,7 +161,7 @@ internal static partial class PdfPageExtractor {
                     ? CountHexStringBytes(text.RawBytes.LongLength, maximumBytes)
                     : text.UseTextStringEncoding
                         ? CountTextStringBytes(text.Value, maximumBytes, context.CancellationToken)
-                        : CountLiteralStringBytes(text.Value, maximumBytes, context.CancellationToken);
+                        : CountLiteralStringBytes(text.RawBytes, maximumBytes, context.CancellationToken);
             case PdfNull:
                 return 4L;
             case PdfReference reference:
@@ -247,11 +247,7 @@ internal static partial class PdfPageExtractor {
         return AddCounted(total, MultiplyCounted(encodedNonAsciiBytes, 3L, maximumBytes), maximumBytes);
     }
 
-    private static long CountLiteralStringBytes(string value, long maximumBytes, CancellationToken cancellationToken) {
-        foreach (char character in value) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (character > byte.MaxValue) return CountTextStringBytes(value, maximumBytes, cancellationToken);
-        }
+    private static long CountLiteralStringBytes(byte[] value, long maximumBytes, CancellationToken cancellationToken) {
         long total = 2L;
         foreach (char character in value) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -266,7 +262,7 @@ internal static partial class PdfPageExtractor {
 
     private static long CountTextStringBytes(string value, long maximumBytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        long encodedBytes = PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)
+        long encodedBytes = PdfDocEncoding.CanEncode(value, cancellationToken)
             ? value.Length
             : AddCounted(2L, MultiplyCounted(value.Length, 2L, maximumBytes), maximumBytes);
         cancellationToken.ThrowIfCancellationRequested();
@@ -343,7 +339,7 @@ internal static partial class PdfPageExtractor {
                 } else if (text.UseTextStringEncoding) {
                     PdfSyntaxEscaper.AppendTextStringCancellable(sb, text.Value, context.CancellationToken);
                 } else {
-                    PdfSyntaxEscaper.AppendLiteralStringCancellable(sb, text.Value, context.CancellationToken);
+                    PdfSyntaxEscaper.AppendLiteralBytesCancellable(sb, text.RawBytes, context.CancellationToken);
                 }
                 break;
             case PdfNull:

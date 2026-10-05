@@ -1,5 +1,6 @@
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 
@@ -37,8 +38,6 @@ public sealed class StudioAccessibilityContractTests {
     }
 
     private static Button[] GetButtons(Window window) {
-        var root = Assert.IsType<StackPanel>(window.Content);
-        var actions = Assert.IsType<StackPanel>(root.Children[^1]);
-        return actions.Children.OfType<Button>().ToArray();
+        return window.GetLogicalDescendants().OfType<Button>().ToArray();
     }
 }

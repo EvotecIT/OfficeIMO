@@ -7,8 +7,11 @@
    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Provenance.Description}" />
    <Border Classes="card"><StackPanel Spacing="8">
     <TextBlock Text="{loc:Loc Provenance.Source}" FontWeight="SemiBold" />
-    <TextBox Text="{Binding ProvenanceWorkbench.InputPath}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" PlaceholderText="{loc:Loc Provenance.LocalPath}" />
-    <WrapPanel><Button Content="{loc:Loc Provenance.ChooseFile}" Command="{Binding ProvenanceWorkbench.ChooseInputCommand}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" Margin="0,0,8,0" />
+    <TextBlock IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.InputName}" TextWrapping="Wrap" />
+    <TextBlock IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Provenance.WorkingCopyHint}" />
+    <TextBox IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.InputPath}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" PlaceholderText="{loc:Loc Provenance.LocalPath}" />
+    <WrapPanel><Button IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Content="{loc:Loc Provenance.ImportFile}" Command="{Binding ProvenanceWorkbench.ChooseInputCommand}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" Margin="0,0,8,0" />
+     <Button IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Content="{loc:Loc Provenance.ChooseFile}" Command="{Binding ProvenanceWorkbench.ChooseInputCommand}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" Margin="0,0,8,0" />
      <Button Classes="accent" Content="{loc:Loc Provenance.Assess}" Command="{Binding ProvenanceWorkbench.AssessCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanAssess}" /></WrapPanel>
    </StackPanel></Border>
    <TextBlock Text="{Binding ProvenanceWorkbench.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
@@ -25,15 +28,17 @@
     <CheckBox Content="{loc:Loc Provenance.Manifests}" IsChecked="{Binding ProvenanceWorkbench.RemoveManifests}" />
     <CheckBox Content="{loc:Loc Provenance.References}" IsChecked="{Binding ProvenanceWorkbench.RemoveReferences}" />
     <CheckBox Content="{loc:Loc Provenance.Declarations}" IsChecked="{Binding ProvenanceWorkbench.RemoveDeclarations}" />
-    <TextBox Text="{Binding ProvenanceWorkbench.OutputFolder}" PlaceholderText="{loc:Loc Provenance.OutputFolder}" />
-    <WrapPanel><Button Content="{loc:Loc Provenance.ChooseFolder}" Command="{Binding ProvenanceWorkbench.ChooseFolderCommand}" Margin="0,0,8,8" />
+    <TextBox IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.OutputFolder}" PlaceholderText="{loc:Loc Provenance.OutputFolder}" />
+    <WrapPanel><Button IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Content="{loc:Loc Provenance.ChooseFolder}" Command="{Binding ProvenanceWorkbench.ChooseFolderCommand}" Margin="0,0,8,8" />
      <Button Content="{loc:Loc Provenance.CreateCopy}" Command="{Binding ProvenanceWorkbench.CreateCopyCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanCreateCopy}" Margin="0,0,8,8" />
      <Button Content="{loc:Loc Provenance.Export}" Command="{Binding ProvenanceWorkbench.ExportReportCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanExportReport}" Margin="0,0,8,8" /></WrapPanel>
    </StackPanel></Border>
    <Button Content="{loc:Loc Provenance.Cancel}" Command="{Binding ProvenanceWorkbench.CancelCommand}" IsVisible="{Binding ProvenanceWorkbench.IsBusy}" HorizontalAlignment="Left" />
-   <TextBlock Text="{Binding ProvenanceWorkbench.OutputPath, StringFormat='Copy: {0}'}" TextWrapping="Wrap" />
+   <TextBlock IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.OutputName, StringFormat='Copy: {0}'}" TextWrapping="Wrap" />
+   <TextBlock IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.OutputPath, StringFormat='Copy: {0}'}" TextWrapping="Wrap" />
    <TextBlock Text="{Binding ProvenanceWorkbench.OutputHash, StringFormat='Output SHA-256: {0}'}" TextWrapping="Wrap" />
-   <TextBlock Text="{Binding ProvenanceWorkbench.ReportPath, StringFormat='Report: {0}'}" TextWrapping="Wrap" />
+   <TextBlock IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.ReportName, StringFormat='Report: {0}'}" TextWrapping="Wrap" />
+   <TextBlock IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.ReportPath, StringFormat='Report: {0}'}" TextWrapping="Wrap" />
    <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Changes}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
    <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Diagnostics}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Classes="muted" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
   </StackPanel>

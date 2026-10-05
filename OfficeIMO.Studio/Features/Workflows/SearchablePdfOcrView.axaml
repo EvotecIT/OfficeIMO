@@ -13,6 +13,7 @@
         <StackPanel Spacing="4">
           <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RecognizeText}" Classes="pageTitle" />
           <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe}" Classes="muted" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding OcrWorkbench.RecognitionUnavailableReason}" IsVisible="{Binding !OcrWorkbench.IsRecognitionAvailable}" Foreground="{DynamicResource StudioWarningBrush}"/>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding !OcrWorkbench.HasReview}">
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Cancel}" Content="{loc:Loc SearchablePdfOcr.Cancel}"
@@ -137,7 +138,7 @@
                   CornerRadius="8" Padding="16">
             <StackPanel Spacing="5">
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
-              <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}"
+              <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}" IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}"
                          Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
           </Border>

@@ -8,26 +8,40 @@
   <StackPanel Spacing="8">
     <TextBlock Text="{loc:Loc DocumentWorkspace.FillFields}" FontSize="15" FontWeight="SemiBold" />
     <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="{loc:Loc DocumentWorkspace.ThisPDFHasNoNamedFormFieldsYet}" TextWrapping="Wrap" />
-    <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}">
-      <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldViewModel"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}"
+              AutomationProperties.Name="{loc:Loc Forms.ChooseField}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldViewModel"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>
     <StackPanel IsVisible="{Binding HasFormFields}" Spacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Button Classes="tool" MinWidth="44" MinHeight="44" Command="{Binding Commands[PreviousFormField]}"
+                AutomationProperties.Name="{loc:Loc Forms.PreviousField}" ToolTip.Tip="{loc:Loc Forms.PreviousField}">
+          <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14" />
+        </Button>
+        <TextBlock Grid.Column="1" Text="{Binding FormFieldPosition}" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <Button Grid.Column="2" Classes="tool" MinWidth="44" MinHeight="44" Command="{Binding Commands[NextFormField]}"
+                AutomationProperties.Name="{loc:Loc Forms.NextField}" ToolTip.Tip="{loc:Loc Forms.NextField}">
+          <PathIcon Data="{StaticResource IconChevronRight}" Width="14" Height="14" />
+        </Button>
+      </Grid>
       <TextBlock Text="{Binding SelectedFormField.PageLabel}" Classes="muted" FontSize="12" />
       <Button Classes="tool" Content="{loc:Loc Forms.ShowField}" Command="{Binding ShowSelectedFormFieldCommand}" />
       <TextBlock Text="{Binding SelectedFormField.FieldState}" Classes="muted" TextWrapping="Wrap" />
       <StackPanel Spacing="8" IsEnabled="{Binding SelectedFormField.CanFill}">
       <TextBox IsVisible="{Binding SelectedFormField.IsPlainTextEditor}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
-               AcceptsReturn="{Binding SelectedFormField.IsMultiline}" MinHeight="34" TextWrapping="Wrap" />
+               AcceptsReturn="{Binding SelectedFormField.IsMultiline}" MinHeight="34" TextWrapping="Wrap"
+               AutomationProperties.Name="{Binding SelectedFormField.DisplayName}" />
       <TextBox IsVisible="{Binding SelectedFormField.IsPassword}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
-               PasswordChar="●" />
+               PasswordChar="●" AutomationProperties.Name="{Binding SelectedFormField.DisplayName}" />
       <CheckBox IsVisible="{Binding SelectedFormField.IsCheckBoxEditor}" IsChecked="{Binding SelectedFormField.IsChecked, Mode=TwoWay}"
-                Content="{loc:Loc DocumentWorkspace.Checked}" />
+                Content="{loc:Loc DocumentWorkspace.Checked}" AutomationProperties.Name="{Binding SelectedFormField.DisplayName}" />
       <ComboBox IsVisible="{Binding SelectedFormField.IsSingleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}"
-                SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=TwoWay}">
+                SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=OneWay}" SelectionChanged="OnChoiceSelectionChanged"
+                AutomationProperties.Name="{Binding SelectedFormField.DisplayName}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
       <TextBox IsVisible="{Binding SelectedFormField.IsEditableChoice}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
-               PlaceholderText="{loc:Loc DocumentWorkspace.CustomValue}" />
+               PlaceholderText="{loc:Loc DocumentWorkspace.CustomValue}" AutomationProperties.Name="{Binding SelectedFormField.DisplayName}" />
       <ItemsControl IsVisible="{Binding SelectedFormField.IsMultipleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}">
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="editor:PdfFormChoiceViewModel">

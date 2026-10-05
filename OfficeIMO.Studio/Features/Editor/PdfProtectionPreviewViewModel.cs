@@ -10,7 +10,7 @@ namespace OfficeIMO.Studio.Features.Editor;
 public sealed partial class PdfProtectionPreviewViewModel : ObservableObject {
     private readonly IStudioLocalizer _localizer;
     private readonly Func<string, Task> _open;
-    private readonly Func<string, Task> _reveal;
+    private readonly Func<string, Task>? _reveal;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title))]
     private bool _hasResult;
@@ -20,7 +20,7 @@ public sealed partial class PdfProtectionPreviewViewModel : ObservableObject {
     [ObservableProperty] private bool _hasRecovery;
     [ObservableProperty] private string? _verification;
     internal PdfProtectionPreviewViewModel(int pageCount, string destination, bool provider,
-        PdfStandardEncryptionOptions? encryption, IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task> reveal) {
+        PdfStandardEncryptionOptions? encryption, IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task>? reveal) {
         Destination = destination; _localizer = localizer; _open = open; _reveal = reveal;
         ReviewTitle = localizer.Get(encryption is null ? "Protection.RemoveTitle" : "Protection.Title");
         DestinationHint = localizer.Get(provider ? "Protection.ProviderHint" : "Protection.LocalHint");
@@ -53,7 +53,7 @@ public sealed partial class PdfProtectionPreviewViewModel : ObservableObject {
     public IReadOnlyList<string> Details { get; }
     public bool IsPreview => !HasResult;
     public bool CanOpenOutput => HasResult && OutputPath is not null;
-    public bool CanRevealOutput => CanOpenOutput && OfficeStorageIdentity.GetLocalPath(OutputPath!) is not null;
+    public bool CanRevealOutput => _reveal is not null && CanOpenOutput && OfficeStorageIdentity.GetLocalPath(OutputPath!) is not null;
     internal void Complete(OfficeWorkflowResult result) {
         Summary = result.Summary; OutputPath = result.Succeeded ? result.OutputPath : null;
         HasRecovery = result.Recovery is not null; HasResult = true;
@@ -73,7 +73,7 @@ public sealed partial class PdfProtectionPreviewViewModel : ObservableObject {
     [RelayCommand(CanExecute = nameof(CanRevealOutput))]
     private async Task RevealOutputAsync() {
         if (!CanRevealOutput) return;
-        try { await _reveal(OfficeStorageIdentity.GetLocalPath(OutputPath!)!).ConfigureAwait(true); }
+        try { await _reveal!(OfficeStorageIdentity.GetLocalPath(OutputPath!)!).ConfigureAwait(true); }
         catch (Exception error) { ErrorMessage = error.Message; }
     }
 }

@@ -22,7 +22,9 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private StudioJobRecord? _selectedJob;
     [ObservableProperty]
     private string? _actionError;
-    private bool CanOpen(StudioJobRecord? job) => job?.CanOpenOutput == true;
+    /// <summary>Whether the host exposes desktop folder navigation.</summary>
+    public bool SupportsFolderNavigation => _revealFolder is not null;
+    private bool CanOpen(StudioJobRecord? job) => job?.CanOpenOutput == true && (!job.IsDirectoryOutput || SupportsFolderNavigation);
 
     private bool CanReveal(StudioJobRecord? job) => _revealFolder is not null && job?.HasOutput == true &&
         OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(job.OutputPath!) is not null;

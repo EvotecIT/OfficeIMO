@@ -46,7 +46,7 @@
     </MenuFlyout>
   </UserControl.Resources>
   <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
-    <Border Width="{Binding DisplayWidth}"
+    <Border x:Name="PagePaper" Width="{Binding DisplayWidth}"
             Height="{Binding DisplayHeight}"
             Background="White"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}"
@@ -65,6 +65,7 @@
                               SelectedObject="{Binding SelectedObject}"
                               CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"
                               FormAnchorFieldName="{Binding FormAnchorFieldName}"
+                              FormAnchorObjectNumber="{Binding FormAnchorObjectNumber}"
                               SelectionMode="{Binding SelectionMode}"
                               PendingRedactionAreas="{Binding PendingRedactionAreas}"
                               FallbackImage="{Binding PageImage}"
@@ -75,29 +76,16 @@
                 Background="White"
                 RenderOptions.BitmapBlendingMode="Difference" />
 
-        <!-- Fill the selected form field in place; Tab and Shift+Tab move between fields. -->
-        <Canvas IsVisible="{Binding HasInlineFormEditor}">
-          <Border x:Name="InlineFormHost" Classes="inlineFormField" Canvas.Left="{Binding InlineFormLeft}" Canvas.Top="{Binding InlineFormTop}"
-                  Width="{Binding InlineFormWidth}" Height="{Binding InlineFormHeight}" KeyDown="OnInlineFormKeyDown">
-            <Panel DataContext="{Binding InlineFormField}" x:DataType="editor:PdfFormFieldViewModel">
-              <TextBox x:Name="InlineFormText" Classes="inlineForm" IsVisible="{Binding IsTextEditor}" Text="{Binding TextValue, Mode=TwoWay}"
-                       AcceptsReturn="{Binding IsMultiline}" TextWrapping="{Binding IsMultiline, Converter={x:Static reader:PdfPageView.WrapWhenMultiline}}"
-                       PasswordChar="{Binding DraftPasswordChar}" IsReadOnly="{Binding !CanFill}"
-                       FontSize="{Binding $parent[UserControl].((reader:PdfPageViewModel)DataContext).InlineFormFontSize}"
-                       AutomationProperties.Name="{Binding DisplayName}" ToolTip.Tip="{Binding ValidationSummary}" />
-              <CheckBox x:Name="InlineFormCheck" IsVisible="{Binding IsCheckBoxEditor}" IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanFill}"
-                        HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" MinHeight="0" Padding="0"
-                        AutomationProperties.Name="{Binding DisplayName}" />
-              <ComboBox x:Name="InlineFormChoice" IsVisible="{Binding IsFixedSingleChoiceEditor}" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
-                        IsEnabled="{Binding CanFill}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="0" Padding="6,0"
-                        AutomationProperties.Name="{Binding DisplayName}">
-                <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
-              </ComboBox>
-              <TextBox x:Name="InlineFormEditableChoice" Classes="inlineForm" IsVisible="{Binding IsEditableChoice}" Text="{Binding TextValue, Mode=TwoWay}"
-                       IsReadOnly="{Binding !CanFill}" AutomationProperties.Name="{Binding DisplayName}" ToolTip.Tip="{Binding ValidationSummary}" />
-            </Panel>
-          </Border>
-        </Canvas>
+        <!-- Repeated widgets bind to one field draft; each editor keeps its own page location. -->
+        <ItemsControl x:Name="InlineFormEditors" ItemsSource="{Binding InlineFormWidgets}" IsVisible="{Binding HasInlineFormEditor}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemContainerTheme>
+            <ControlTheme TargetType="ContentPresenter" x:DataType="reader:PdfInlineFormWidgetViewModel">
+              <Setter Property="Canvas.Left" Value="{Binding Left}" /><Setter Property="Canvas.Top" Value="{Binding Top}" />
+            </ControlTheme>
+          </ItemsControl.ItemContainerTheme>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="reader:PdfInlineFormWidgetViewModel"><reader:PdfInlineFormWidgetView /></DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <Canvas IsVisible="{Binding HasInlineTextDraft}" ClipToBounds="True">
           <Border Canvas.Left="{Binding InlineEditorLeft}" Canvas.Top="{Binding InlineEditorTop}" Width="{Binding InlineEditorWidth}">
@@ -137,7 +125,7 @@
       </Grid>
     </Border>
 
-    <Grid ColumnDefinitions="*,Auto,*" MinHeight="22">
+    <Grid Classes="pageCaption" ColumnDefinitions="*,Auto,*" MinHeight="22">
       <TextBlock Grid.Column="1"
                  Text="{Binding PageLabel}"
                  Foreground="{DynamicResource StudioMutedTextBrush}"
