@@ -104,11 +104,13 @@ public sealed class HtmlSemanticSection {
         string title,
         HtmlSemanticSectionTitleSource titleSource,
         IReadOnlyList<HtmlSemanticBlock> blocks,
-        HtmlSemanticSourceLocation? sourceLocation) {
+        HtmlSemanticSourceLocation? sourceLocation,
+        HtmlSemanticBlock? titleHeading = null) {
         Title = title;
         TitleSource = titleSource;
         Blocks = Array.AsReadOnly((blocks ?? throw new ArgumentNullException(nameof(blocks))).ToArray());
         SourceLocation = sourceLocation;
+        TitleHeading = titleHeading;
     }
 
     /// <summary>Section title selected by shared heading, label, id, and document-title rules.</summary>
@@ -116,6 +118,12 @@ public sealed class HtmlSemanticSection {
 
     /// <summary>Source used to select <see cref="Title"/>.</summary>
     public HtmlSemanticSectionTitleSource TitleSource { get; }
+
+    /// <summary>
+    /// Heading promoted to an implicit section title instead of retained in <see cref="Blocks"/>.
+    /// Null when the title comes from another source or its heading already remains in the section body.
+    /// </summary>
+    public HtmlSemanticBlock? TitleHeading { get; }
 
     /// <summary>Ordered blocks contained by this section.</summary>
     public IReadOnlyList<HtmlSemanticBlock> Blocks { get; }

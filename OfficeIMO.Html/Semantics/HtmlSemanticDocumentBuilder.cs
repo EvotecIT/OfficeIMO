@@ -19,6 +19,9 @@ internal static class HtmlSemanticDocumentBuilder {
         var sections = new List<HtmlSemanticSection>();
         var resources = new List<HtmlSemanticResource>();
         foreach (HtmlGenericSectionProjection projection in HtmlGenericDocumentProjector.CreateSections(document)) {
+            HtmlSemanticBlock? titleHeading = projection.TitleHeading == null
+                ? null
+                : BuildBlock(document, projection.TitleHeading, styles, resources, null);
             var blocks = new List<HtmlSemanticBlock>();
             foreach (IElement element in HtmlGenericDocumentProjector.EnumerateBlocks(projection)) {
                 HtmlSemanticBlock block = BuildBlock(document, element, styles, resources, null);
@@ -30,7 +33,8 @@ internal static class HtmlSemanticDocumentBuilder {
                 projection.Title,
                 projection.TitleSource,
                 blocks.AsReadOnly(),
-                location));
+                location,
+                titleHeading));
         }
         IReadOnlyList<HtmlSemanticResource> resourceOccurrences = resources.ToList().AsReadOnly();
 
