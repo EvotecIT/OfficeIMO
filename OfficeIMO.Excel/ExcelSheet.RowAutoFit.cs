@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
 
                 if (wrap) {
                     // Available width in pixels for this cell (span-aware)
-                    double availPx = GetAvailableWidthPx(cell);
+                    double availPx = GetAvailableWidthPx(cell) / AutoFitTextWidthSafetyFactor;
                     if (availPx > 0) {
                         int linesCount = 0;
                         foreach (var hard in hardLines) {

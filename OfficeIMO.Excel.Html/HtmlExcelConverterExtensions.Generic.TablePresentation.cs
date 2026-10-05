@@ -70,7 +70,7 @@ public static partial class HtmlExcelConverterExtensions {
             // Preserve the established printable term/definition presentation.
             FormatTwoColumnGenericTableSheet(sheet, importedCells);
         } else {
-            // Use Excel's font-aware sizing rather than a separate HTML text
+            // Use Excel's existing sizing rather than a separate HTML text
             // estimator. Bound long columns and fit rows after enabling wrapping.
             sheet.AutoFitColumnsFor(importedCells.Select(cell => cell.Column));
             ExcelColumnSnapshot[] columns = sheet.GetColumnDefinitions().ToArray();
