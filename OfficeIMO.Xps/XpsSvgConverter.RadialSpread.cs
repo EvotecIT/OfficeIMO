@@ -24,8 +24,11 @@ internal sealed partial class XpsSvgConverter {
                 region = IntersectRegion(region, new BrushRegion(box.X - margin, box.Y - margin, box.Width + 2 * margin, box.Height + 2 * margin));
             }
             if (!ExpandNativeRadialSpread(gradient, region, spread)) {
-                Loss("Radial boundary/exterior spread exceeds finite native field bounds or stop budget");
-                Set(target, attribute, "none"); return;
+                // SVG 2 can repeat the reversed shrinking-circle field directly,
+                // including infinitely many cycles at a tangent boundary. Keep
+                // finite expansion when available for shared Drawing import.
+                NativeRadialPad(gradient, target, attribute, region, spread == "Reflect");
+                return;
             }
         }
         NativeRadialPad(gradient, target, attribute, region);

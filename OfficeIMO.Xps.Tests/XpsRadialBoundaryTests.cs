@@ -74,14 +74,21 @@ public sealed class XpsRadialBoundaryTests {
     [Theory]
     [InlineData("Repeat")]
     [InlineData("Reflect")]
-    public void UnboundedBoundarySpreadRetainsExplicitLossBoundary(string spread) {
+    public void UnboundedBoundarySpreadExportsSvgWhileDrawingRemainsExplicit(string spread) {
         var document = Create(XpsFormat.OpenXps, 160, "1,0,0,1,0,0", false, false);
         var page = document.Pages[0]; var markup = page.GetMarkup();
         markup.Descendants().Single(element => element.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
         page.ReplaceMarkup(markup);
         Assert.Throws<NotSupportedException>(() => page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => document.ToPdf());
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        var result = page.ToSvg();
+        Assert.Empty(result.Diagnostics);
+        var fields = XElement.Parse(result.Svg).Descendants().Where(e => e.Name.LocalName == "radialGradient").ToArray();
+        Assert.Equal(2, fields.Length);
+        Assert.All(fields, field => {
+            Assert.Equal(spread.ToLowerInvariant(), (string?)field.Attribute("spreadMethod"));
+            Assert.Equal("0", (string?)field.Attribute("r"));
+        });
     }
 
     [Theory]
@@ -132,7 +139,14 @@ public sealed class XpsRadialBoundaryTests {
         page.ReplaceMarkup(xml);
         Assert.Throws<NotSupportedException>(() => page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => doc.ToPdf());
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        var result = page.ToSvg();
+        Assert.Empty(result.Diagnostics);
+        var fields = XElement.Parse(result.Svg).Descendants().Where(e => e.Name.LocalName == "radialGradient").ToArray();
+        Assert.Equal(2, fields.Length);
+        Assert.All(fields, field => {
+            Assert.Equal(spread.ToLowerInvariant(), (string?)field.Attribute("spreadMethod"));
+            Assert.Equal("0", (string?)field.Attribute("r"));
+        });
     }
 
     internal static XpsDocument Create(XpsFormat format, int focus, string matrix, bool alpha, bool stroke) {

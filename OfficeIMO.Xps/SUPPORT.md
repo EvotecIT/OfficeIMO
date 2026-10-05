@@ -16,7 +16,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF/JPEG XR, native integer sRGB/gray defaults for non-ICC image descriptions, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry such as non-sRGB PNG cICP, unsupported TIFF and JPEG XR encodings are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
-| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior, boundary and exterior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a finite cycle bound and at most 256 expanded stops; boundary foci require painted bounds strictly inside the tangent half-plane; direct SVG preserves Pad and bounded boundary/exterior Repeat/Reflect fields; native consumer differences remain below |
+| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior, boundary and exterior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a finite cycle bound and at most 256 expanded stops; boundary foci require painted bounds strictly inside the tangent half-plane; direct SVG preserves Pad and boundary/exterior Repeat/Reflect fields, including unbounded tangent regions; native consumer differences remain below |
 | SVG | Self-contained images and glyph outlines; authored Path/Canvas descriptions retained as title/desc metadata; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
 | PDF | Optional thin bridge retaining vector paint, dimensions, native alpha masks and searchable Unicode clusters; native paragraph/list/table/figure tags with authored figure descriptions, continued cross-page containers, declared story order, list labels and cell spans; header/footer artifacts | Unstructured pages use markup order; unassociated fragments use page order; unknown/unresolved/overlapping semantics reject strict mapping; an explicit paint-only mode retains markup-order text; no inferred figure descriptions, PDF/UA qualification, print-ticket or signature migration; clipped/transparent source text remains searchable |
@@ -299,8 +299,8 @@ Core bounds the required cycles over the painted region and retains at most 256
 expanded stops; Reflect uses offset zero outside the cone, while Repeat uses
 offset one. Focus positions exactly on the end ellipse boundary are supported when the
 conservative painted bounds lie strictly inside the focus tangent half-plane
-and fit the same stop budget. Bounds touching or crossing the tangent remain
-unsupported because the required cycle count can be unbounded. Near-boundary
+and fit the same stop budget. Drawing, raster and PDF conversion still reject
+bounds touching or crossing the tangent because the required cycle count can be unbounded. Near-boundary
 exterior fields use an additional finite half-plane bound to avoid excessive
 expansion from coordinate rounding.
 The 36 ordinary generated cases cover both dialects, fill/stroke, affine
@@ -315,7 +315,15 @@ vector geometry, not every consumer's raster output or independent native Window
 behavior. Direct `ToSvg`, Drawing and SVG image exports use vector pattern
 composition after bounded spread expansion. The direct route shares Core's cycle
 bounds, preserves authored color interpolation, and caps expanded stops at 256.
-Unbounded tangent regions and excessive expansion retain explicit diagnostics.
+When finite expansion is unavailable, direct `ToSvg` uses SVG 2 repeating
+shrinking-circle fields without expanding stops. Separate color and alpha fields
+retain the native outside-cone endpoint for both Repeat and Reflect. A 32-case
+browser comparison covers both dialects, both spread modes, stop alpha,
+linearRGB and affine transforms across the tangent boundary. The maximum mean
+channel difference against the analytical native field is 0.139/255; maximum
+channel difference is 6/255 at high-frequency transformed cycle edges. This
+qualifies direct SVG output; shared SVG import, Drawing, raster and PDF still
+require bounded expansion, and native Windows qualification remains open.
 
 An 84-case direct-SVG browser comparison covers 36 boundary fields and 48 exterior
 fields across both dialects, Repeat/Reflect, stop alpha, transforms, strokes and

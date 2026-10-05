@@ -54,7 +54,7 @@ public sealed class XpsRadialExteriorSpreadTests {
         page.ReplaceMarkup(xml);
         Assert.Throws<NotSupportedException>(() => page.ToDrawing());
         Assert.Throws<NotSupportedException>(() => doc.ToPdf());
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        Assert.Empty(page.ToSvg().Diagnostics);
     }
 
     [Theory]

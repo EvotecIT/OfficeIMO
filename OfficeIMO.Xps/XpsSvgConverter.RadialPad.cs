@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
-    private void NativeRadialPad(XElement gradient, XElement target, string attribute, BrushRegion region) {
+    private void NativeRadialPad(XElement gradient, XElement target, string attribute, BrushRegion region, bool outsideFromLastStop = false) {
         if (region.Width <= 0 || region.Height <= 0) { Set(target, attribute, "none"); return; }
         string id = (string)gradient.Attribute("id")!;
         string cx = (string)gradient.Attribute("cx")!, cy = (string)gradient.Attribute("cy")!, radius = (string)gradient.Attribute("r")!;
@@ -29,9 +29,13 @@ internal sealed partial class XpsSvgConverter {
             stop.Attribute("stop-opacity")?.Remove();
         }
         foreach (var stop in gradient.Elements()) stop.Attribute("stop-opacity")?.Remove();
+        // Native Reflect uses the original first stop outside the cone; after
+        // reversal this is the last stop. Repeat and Pad use the original last.
+        var outsideColor = outsideFromLastStop ? gradient.Elements().Last() : gradient.Elements().First();
+        var outsideAlpha = outsideFromLastStop ? alpha.Elements().Last() : alpha.Elements().First();
         var markup = new StringBuilder();
         markup.AppendNativeRadialPatternDefinition(id, region.X, region.Y, region.Width, region.Height,
-            (string)gradient.Elements().First().Attribute("stop-color")!, (string)alpha.Elements().First().Attribute("stop-color")!,
+            (string)outsideColor.Attribute("stop-color")!, (string)outsideAlpha.Attribute("stop-color")!,
             (output, fieldId) => { Set(gradient, "id", fieldId); output.Append(gradient.ToString(SaveOptions.DisableFormatting)); },
             (output, fieldId) => { Set(alpha, "id", fieldId); output.Append(alpha.ToString(SaveOptions.DisableFormatting)); });
         EnsureOutputCapacity(markup.Length);
