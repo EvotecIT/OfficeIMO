@@ -53,8 +53,8 @@ ICC conversion before eight-bit RGBA projection. Packed rows retain byte alignme
 Packed samples require no predictor. Bilevel CCITT decoding supports Modified
 Huffman, Group 3 one/two-dimensional coding with optional fill bits, and Group 4,
 including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
-above the page height, including 0xFFFFFFFF, describe a single strip. Optional uncompressed fax
-extension mode is rejected. Baseline and extended sequential eight-bit JPEG (compression 7) accept shared
+above the page height, including 0xFFFFFFFF, describe a single strip. T.4/T.6 uncompressed fax extension mode supports literal
+pixels, five-zero stuffing and exit-color resumption within a row. Baseline and extended sequential eight-bit JPEG (compression 7) accept shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
 planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
 component order; JPEG application markers cannot override them. A single extra
@@ -159,7 +159,18 @@ single-strip cases use the unsigned RowsPerStrip sentinel. Both dialects produce
 match exactly; MuPDF SVG/PDF output differs by at most 3/255 per channel.
 GhostXPS returns success but differs by up to 255 and leaves some mixed/tiled
 cases blank. Its output is retained as a consumer difference; native Windows
-acceptance and the optional uncompressed fax extension remain unqualified.
+acceptance remains unqualified.
+
+The optional uncompressed fax extension has 80 specification-authored fixtures,
+covering T.4/T.6, both byte/bit orders and polarities, strips/tiles, literal exits
+and ordinary-run resumption. Core comparisons cover 30,720 pixels exactly.
+The [fixture provenance](../OfficeIMO.Drawing.Tests/TestAssets/TiffFaxUncompressed/README.md)
+separates this coverage from independent producer/decoder acceptance, which remains
+unqualified. Both dialects produce 160 documents and 61,440 pixel-center probes
+per rendering route; independent MuPDF PDF/SVG output differs by at most 2/255.
+GhostXPS still differs by up to 255. PDF filter checks also cover exit consumption
+before end markers.
+
 
 Floating-point qualification covers 304 independently encoded and decoded LibTIFF
 fixtures: 16/24/32/64-bit samples, both byte orders, compression/prediction and

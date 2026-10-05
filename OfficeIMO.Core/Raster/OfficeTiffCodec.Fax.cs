@@ -16,10 +16,10 @@ public static partial class OfficeTiffCodec {
             (fillOrder != 1 && fillOrder != 2)) return false;
         if (compression == 3) {
             if (!TryReadScalarOrDefault(bytes, entries, 292, littleEndian, 0, out int options) ||
-                (options & ~5) != 0) return false; // Uncompressed extension mode is not supported.
+                (options & ~7) != 0) return false;
             k = (options & 1) != 0 ? 1 : 0;
         } else if (compression == 4) {
-            if (!TryReadScalarOrDefault(bytes, entries, 293, littleEndian, 0, out int options) || options != 0) return false;
+            if (!TryReadScalarOrDefault(bytes, entries, 293, littleEndian, 0, out int options) || (options & ~2) != 0) return false;
             k = -1;
         }
         return true;
