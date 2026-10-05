@@ -38,6 +38,7 @@ public sealed class LongDocumentTests {
         Assert.True(initialDrafts > 2);
         Assert.Equal(initialDrafts, stalledDrafts);
         Assert.Equal(initialDrafts, result.Claims.Count);
+        Assert.Contains("synthesis-no-progress", result.Diagnostics);
         Assert.All(result.Claims, claim => Assert.NotEmpty(claim.Citations));
         Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
         Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
@@ -147,6 +148,43 @@ public sealed class LongDocumentTests {
         Assert.Equal(2, result.RequestCount);
         Assert.Equal(2, result.Claims.Count);
         Assert.Empty(result.OmittedEvidenceIds);
+        Assert.Contains("synthesis-request-budget-exceeded", result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(OfficeAiOperation.Ask)]
+    [InlineData(OfficeAiOperation.Explain)]
+    [InlineData(OfficeAiOperation.Summarize)]
+    public async Task DefaultReserveCombinesProcessedEvidenceAndDisclosesUnseenRemainder(OfficeAiOperation operation) {
+        var executor = new Executor();
+        var result = await new OfficeAiEngine(executor).RunAsync(
+            Document(new string('a', 30000), new string('b', 30000), new string('c', 30000)),
+            Request() with { Operation = operation, Limits = new() { MaxRequests = 3 } });
+        Assert.Equal(OfficeAiSynthesisStatus.Completed, result.SynthesisStatus);
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        Assert.Equal(3, result.RequestCount);
+        Assert.Equal(new[] { "e1", "e2" }, result.ProcessedEvidenceIds);
+        Assert.Equal(new[] { "e3" }, result.OmittedEvidenceIds);
+        Assert.Contains("evidence-budget-exceeded", result.Diagnostics);
+        using var synthesis = JsonDocument.Parse(executor.Requests[^1].InputJson);
+        var coverage = synthesis.RootElement.GetProperty("coverage");
+        Assert.Equal(1, coverage.GetProperty("omittedEvidenceCount").GetInt32());
+        Assert.Empty(coverage.GetProperty("emptyPages").EnumerateArray());
+        Assert.False(coverage.GetProperty("sourceReaderDiagnostics").GetBoolean());
+        Assert.Equal(new[] { "e1", "e2" }, Assert.Single(result.Claims).Citations.Select(c => c.EvidenceId));
+    }
+
+    [Fact]
+    public async Task CallerCanPreferEvidenceCoverageOverSynthesisReservation() {
+        var executor = new Executor();
+        var result = await new OfficeAiEngine(executor).RunAsync(
+            Document(new string('a', 30000), new string('b', 30000), new string('c', 30000)),
+            Request() with { Limits = new() { MaxRequests = 3, ReservedSynthesisRequests = 0 } });
+        Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
+        Assert.Equal(3, result.RequestCount);
+        Assert.Empty(result.OmittedEvidenceIds);
+        Assert.Equal(3, result.Claims.Count);
+        Assert.Contains("synthesis-request-budget-exceeded", result.Diagnostics);
     }
 
     [Fact]

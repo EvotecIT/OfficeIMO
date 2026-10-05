@@ -28,6 +28,11 @@ public static partial class OfficeAiArtifacts {
                 text.Append("Source: ").Append(citation.EvidenceId);
                 if (citation.Page.HasValue) text.Append("; page ").Append(citation.Page.Value);
                 text.AppendLine();
+                if (citation.Recognition is { } recognition) {
+                    text.Append("Recognition: ").Append(recognition.Provider ?? "unknown provider");
+                    if (recognition.Model is not null) text.Append("; model ").Append(recognition.Model);
+                    text.Append("; review ").AppendLine(recognition.ReviewRecommended switch { true => "recommended", false => "checks passed, not approval", _ => "not assessed" });
+                }
                 if (!string.IsNullOrWhiteSpace(citation.Quote)) text.Append("Quote: ").AppendLine(citation.Quote);
             }
         }

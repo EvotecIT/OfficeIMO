@@ -62,7 +62,7 @@ Engine identifiers are stable, non-empty provenance values and are limited to 25
 
 ## Retry weak recognition evidence
 
-`AdaptiveOcrEngine` wraps one through four caller-configured engines. It runs the first variant, then tries later variants only when the selected evidence fails the configured checks. All variants receive isolated copies of the same raster and coordinate frame. Segmentation and language can vary; image cleanup and coordinate transforms remain with the scanning or format owner.
+`AdaptiveOcrEngine` wraps one through four caller-configured engines. By default it runs the first variant, then tries later variants only when the selected evidence fails the configured checks. `CompareAll` runs every configured variant within the shared deadline. All variants receive isolated copies of the same raster and coordinate frame. Segmentation and language can vary; image cleanup and coordinate transforms remain with the scanning or format owner.
 
 ```csharp
 var adaptive = new AdaptiveOcrEngine(
@@ -80,11 +80,26 @@ Console.WriteLine(recognition.Result.Text);
 Console.WriteLine($"Review recommended: {recognition.ReviewRecommended}");
 ```
 
-`baselineEngine`, `alternateEngine`, and `request` are your configured providers and raster request. See the [Tesseract example](../OfficeIMO.Ocr.Tesseract/README.md#bounded-segmentation-retries) for a concrete setup. Pass `adaptive` anywhere an `IOcrEngine` is accepted, including Reader and PDF OCR. Its normal result carries a content-free `adaptive-ocr-review-recommended` warning or `adaptive-ocr-thresholds-met` information diagnostic. `RecognizeWithReviewAsync` additionally returns attempt outcomes and selected word-level evidence.
+`baselineEngine`, `alternateEngine`, and `request` are your configured providers and raster request. See the [Tesseract example](../OfficeIMO.Ocr.Tesseract/README.md#bounded-segmentation-retries) for a concrete setup. Pass `adaptive` anywhere an `IOcrEngine` is accepted, including Reader and PDF OCR. Its normal result carries a content-free `adaptive-ocr-review-recommended` or `adaptive-ocr-unassessed` warning, or an `adaptive-ocr-thresholds-met` information diagnostic. `RecognizeWithReviewAsync` additionally returns attempt outcomes and selected word-level evidence.
 
 The default checks require at least one word span, confidence of at least 0.8 for at least 90% of words, and no warning/error diagnostics or omitted spans. Unknown or invalid confidence counts as uncertain. A retry can replace the baseline only if it retains at least 90% of the baseline word count, has usable evidence, and improves uncertainty or repairs missing evidence. This count check cannot prove that the same facts survived. Overall confidence never ranks results. Text disagreement, after Unicode and whitespace normalization, and failed or timed-out retries recommend review even when the selected confidence checks pass.
 
 Limits default to one minute across attempts, 25 MiB of input, 100,000 retained spans, and one million characters including span text per attempt. Caller cancellation propagates; a failed retry retains the baseline. Orientation detection delegates to the baseline with the same input, result, and timeout bounds and copying rules. Engines remain caller-owned, and shared runner gates retain their normal lifetime rules.
+
+A single passing attempt has `Review.Status = OcrReviewStatus.Unassessed` and recommends review. `ChecksPassed` requires at least two completed variants with identical NFC/whitespace-normalized text, passing selected confidence checks, and no failed comparison. Agreement can reproduce the same mistake; it is not independent proof or human approval. `OcrResult.Review` preserves these immutable checks through the shared runner. Retention loss marks the comparison incomplete.
+
+For difficult pages or critical extraction, run every configured variant within the same deadline:
+
+```csharp
+var policy = new OcrReviewPolicy(OcrRetryMode.CompareAll,
+    minimumWordConfidence: 0.8, maximumUncertainWordFraction: 0.1);
+var compared = new AdaptiveOcrEngine("document-ocr", attempts, policy,
+    timeout: TimeSpan.FromSeconds(45));
+AdaptiveOcrResult result = await compared.RecognizeWithReviewAsync(request);
+Console.WriteLine(result.Review.Status);
+```
+
+`attempts` contains your configured `OcrRecognitionAttempt` instances. The default `WhenUncertain` strategy retains its fast early exit. `CompareAll` also runs variants after a confidence pass, exposing high-confidence disagreement; it does not select a different output merely because more variants agree.
 
 These thresholds are starting settings, not calibrated correctness probabilities or human approval. The [native quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) measures confidence false passes against independent gold text. In particular, high-confidence output can still omit text or misorder columns.
 
