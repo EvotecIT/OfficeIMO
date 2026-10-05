@@ -22,6 +22,8 @@ public sealed class DrawingTiffFloatingTests {
     [Theory]
     [InlineData(16, 0x7C00UL)]
     [InlineData(16, 0x7E00UL)]
+    [InlineData(24, 0x7F0000UL)]
+    [InlineData(24, 0x7F8000UL)]
     [InlineData(32, 0x7F800000UL)]
     [InlineData(32, 0x7FC00000UL)]
     [InlineData(64, 0x7FF0000000000000UL)]
@@ -66,6 +68,7 @@ public sealed class DrawingTiffFloatingTests {
 
     [Theory]
     [InlineData(16, 0x7C00UL)]
+    [InlineData(24, 0x7F8000UL)]
     [InlineData(32, 0x7FC00000UL)]
     [InlineData(64, 0x7FF0000000000000UL)]
     public void UnspecifiedExtrasAndTilePaddingAreIgnoredEvenWhenNonfinite(int bits, ulong value) {
@@ -90,6 +93,24 @@ public sealed class DrawingTiffFloatingTests {
             for (int i = 3; i < expected.Length; i += 4) expected[i] = 255;
             Assert.Equal(expected, image!.GetPixels());
         }
+    }
+
+    [Theory]
+    [InlineData(0x3E0000, 0x3F0000, 128)] // .5 / 1: exponent bias and normalized fraction.
+    [InlineData(0x3DFFFF, 0x3F0000, 127)] // Adjacent representable value below the .5 rounding boundary.
+    [InlineData(1, 2, 128)] // Smallest subnormal / twice that subnormal.
+    [InlineData(0xFFFF, 0x10000, 255)] // Largest subnormal / smallest normal.
+    [InlineData(0x800001, 2, 0)] // Negative subnormal clips only after unassociation.
+    public void Float24NormalAndSubnormalSamplesKeepTheirScale(int color, int alpha, int expected) {
+        byte[] bytes = Fixture(24, 1);
+        int offset = FirstStrip(bytes);
+        foreach (var pair in new[] { (0, color), (1, color), (2, color), (3, alpha) })
+            for (int b = 0; b < 3; b++) bytes[offset + pair.Item1 * 3 + b] = (byte)(pair.Item2 >> (b * 8));
+        Assert.True(OfficeImageReader.TryValidateContent(bytes, "float24.tif", out _));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(bytes, out var image));
+        var pixel = image!.GetPixel(0, 0);
+        Assert.Equal(expected, pixel.R); Assert.Equal(expected, pixel.G); Assert.Equal(expected, pixel.B);
+        Assert.Equal(alpha == 0x3F0000 ? 255 : 0, pixel.A);
     }
 
     [Theory]

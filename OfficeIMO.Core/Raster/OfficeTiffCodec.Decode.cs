@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     /// <summary>
-    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/32/64-bit samples, or eight-bit palette TIFF using
+    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/24/32/64-bit samples, or eight-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
     /// Floating samples are normalized device components; JPEG-compressed and BigTIFF payloads remain caller-codec responsibilities.
     /// </summary>

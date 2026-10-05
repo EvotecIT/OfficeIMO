@@ -24,7 +24,7 @@ public static partial class OfficeTiffCodec {
         source = Array.Empty<byte>();
         if (planarConfiguration != 1 && planarConfiguration != 2 ||
             (predictor < 1 || predictor > 3) || samples < 1 ||
-            (sampleBytes != 1 && sampleBytes != 2 && sampleBytes != 4 && sampleBytes != 8)) return false;
+            (sampleBytes != 1 && sampleBytes != 2 && sampleBytes != 3 && sampleBytes != 4 && sampleBytes != 8)) return false;
 
         bool hasStrips = entries.ContainsKey(273) || entries.ContainsKey(279);
         bool hasTiles = entries.ContainsKey(324) || entries.ContainsKey(325) ||

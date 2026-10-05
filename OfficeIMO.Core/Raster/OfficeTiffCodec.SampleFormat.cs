@@ -17,7 +17,7 @@ public static partial class OfficeTiffCodec {
             format = formats[0];
         }
         floating = format == 3;
-        if (floating ? (bits[0] != 16 && bits[0] != 32 && bits[0] != 64) || photometric == 3
+        if (floating ? (bits[0] != 16 && bits[0] != 24 && bits[0] != 32 && bits[0] != 64) || photometric == 3
             : format != 1 || (bits[0] != 8 && bits[0] != 16) || (photometric == 3 && bits[0] != 8)) return false;
         sampleBytes = bits[0] / 8;
         return true;

@@ -49,8 +49,11 @@ public static partial class OfficeTiffCodec {
         double value;
         if (sampleBytes == 8) value = BitConverter.Int64BitsToDouble(unchecked((long)bits));
         else {
-            int mantissaBits = sampleBytes == 2 ? 10 : 23, bias = sampleBytes == 2 ? 15 : 127;
-            int exponentMask = sampleBytes == 2 ? 31 : 255;
+            // TN3 float24 has one sign, seven exponent and sixteen fraction bits.
+            // 0x3F0000 is 1 and 0x000001 is 2^-78.
+            int mantissaBits = sampleBytes == 2 ? 10 : sampleBytes == 3 ? 16 : 23;
+            int bias = sampleBytes == 2 ? 15 : sampleBytes == 3 ? 63 : 127;
+            int exponentMask = sampleBytes == 2 ? 31 : sampleBytes == 3 ? 127 : 255;
             int exponent = (int)(bits >> mantissaBits) & exponentMask;
             if (exponent == exponentMask) throw new FormatException("Non-finite TIFF samples cannot form SDR pixels.");
             ulong mantissa = bits & ((1UL << mantissaBits) - 1);
