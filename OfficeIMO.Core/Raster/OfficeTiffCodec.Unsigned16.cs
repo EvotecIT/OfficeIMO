@@ -25,7 +25,7 @@ public static partial class OfficeTiffCodec {
             if (photometric == 0) gray = 1D - gray;
             if (colorComponents != null) colorComponents[0] = gray;
             red = green = blue = QuantizeUnsigned16Component(gray);
-        } else if (photometric == 2) {
+        } else if (photometric == 2 || photometric == 6) {
             double r = Component(0), g = Component(1), b = Component(2);
             if (colorComponents != null) {
                 colorComponents[0] = r; colorComponents[1] = g; colorComponents[2] = b;

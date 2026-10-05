@@ -246,7 +246,7 @@ public static partial class OfficeTiffCodec {
         if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
                     (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
                     (photometric == 6 && compression != 7) ||
-                    (compression == 7 && (sampleBytes != 1 || floating || packedBits != 0 || predictor != 1 ||
+                    (compression == 7 && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||
                         photometric == 3)) ||
                     (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) return false;
 

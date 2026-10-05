@@ -61,7 +61,7 @@ component order; JPEG application markers cannot override them. Extra samples su
 unassociated alpha channel at any extra-channel position for gray, RGB, CMYK and
 YCbCr; multiple declared alpha channels are rejected. Subsampled YCbCr keeps alpha at luma resolution. Chunky JPEG frames with more than four components use separate scans;
 raw component decoding retains frame order without inventing a standalone color space. Legacy compression
-6, higher-precision and arithmetic JPEG processes remain unsupported. Eight-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+6, twelve-bit DCT and arithmetic JPEG processes remain unsupported. Eight/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -119,7 +119,7 @@ quantization without overflowing its fixed-point transform. Both XPS dialects
 produce 320 documents with 212,800 pixel-center probes per route; independent
 MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
 still differs by up to 255, including blank planar/tiled output. Native Windows
-acceptance and twelve-bit, lossless or arithmetic JPEG remain unqualified.
+acceptance and twelve-bit or arithmetic JPEG remain unqualified.
 
 Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
 with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
@@ -138,6 +138,27 @@ interleaved scans. Twelve compatible TIFF wrappers produce 48 XPS/OpenXPS
 light/dark exports; MuPDF PDF/SVG pixels agree exactly with managed rendering.
 GhostXPS still differs by up to 128/255. These edge cases supply independent-decoder
 evidence, not an independent producer corpus.
+
+Sixteen-bit Huffman lossless JPEG preserves native words through TIFF alpha
+unassociation, YCbCr reconstruction and ICC conversion. The
+[280-fixture corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/README.md)
+covers all seven predictors, point transforms 0/1/8/15, both byte orders,
+chunky/planar strips/tiles, gray/RGB/CMYK/YCbCr and low associated/unassociated
+alpha. All 239,904 independently decoded JPEG component samples and 186,200 TIFF
+RGBA pixels agree exactly. ICC output agrees with corresponding uncompressed
+sixteen-bit reference TIFFs. LibTIFF 4.7.2 rejects the compressed sixteen-bit
+streams as an unsupported JPEG precision, so full-file independent TIFF decoding
+remains unqualified. Sixteen specification-authored subsampled JPEG edge cases
+also agree with libjpeg-turbo decoding; twelve have compatible TIFF wrappers.
+Those edge cases use constant samples; varying-color sixteen-bit subsampling
+still lacks independent reference evidence.
+Standalone JPEG output projects components to the public eight-bit raster buffer;
+TIFF retains native words until its color and alpha operations are complete. Both dialects
+produce 1,120 light/dark exports with 744,800 pixel-center probes per route.
+Independent MuPDF output differs by at most 4/255 for PDF and 2/255 for SVG;
+GhostXPS opens every export without a process failure but differs by up to
+255/255, including blank output. These comparisons do not establish native
+Windows acceptance.
 
 JPEG extra-sample qualification covers 288 component-encoded fixtures with
 191,520 pixel comparisons. Independently decoded alpha agrees exactly; RGB agrees

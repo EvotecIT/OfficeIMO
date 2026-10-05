@@ -7,7 +7,7 @@ public static partial class OfficeTiffCodec {
     // TIFF owns component order and color interpretation. APP metadata must not
     // override its orientation, CMYK polarity or photometric tags.
     private static bool TryNormalizeTiffJpeg(byte[] data, bool tablesOnly, int width, int height,
-        int samples, int horizontal, int vertical, int inheritedTables, CancellationToken token,
+        int samples, int precision, int horizontal, int vertical, int inheritedTables, CancellationToken token,
         out int definedTables, out int frameProcess) {
         definedTables = 0;
         frameProcess = 0;
@@ -49,7 +49,8 @@ public static partial class OfficeTiffCodec {
                     p += count;
                 }
             } else if ((marker == 192 || marker == 193 || marker == 195) && !tablesOnly) {
-                if (frame || length != 8 + samples * 3 || data[start] != 8 ||
+                if (frame || length != 8 + samples * 3 || data[start] != precision ||
+                    (precision != 8 && (precision != 16 || marker != 195)) ||
                     ((data[start + 1] << 8) | data[start + 2]) != height ||
                     ((data[start + 3] << 8) | data[start + 4]) != width || data[start + 5] != samples) return false;
                 for (int i = 0; i < samples; i++) {

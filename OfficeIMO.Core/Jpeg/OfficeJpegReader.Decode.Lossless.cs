@@ -5,12 +5,12 @@ namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegReader {
     // T.81 Annex H: sample prediction, without DCT or quantization. The current
-    // byte-plane renderer accepts eight-bit frames; point transforms retain the
+    // sample-plane renderer accepts eight/sixteen-bit frames; point transforms retain the
     // original sample scale, with the discarded low bits restored as zero.
     private static void DecodeLosslessScan(OfficeByteView data, ScanHeader scan,
         JpegFrame frame, BaselineState state, HuffmanTable[] dcTables,
         int restartInterval, CancellationToken token) {
-        if (scan.Ss < 1 || scan.Ss > 7 || scan.Se != 0 || scan.Ah != 0 || scan.Al >= 8)
+        if (scan.Ss < 1 || scan.Ss > 7 || scan.Se != 0 || scan.Ah != 0 || scan.Al >= frame.Precision)
             throw new FormatException("Invalid lossless JPEG scan parameters.");
         foreach (int index in scan.ComponentIndices) {
             var component = frame.Components[index];
@@ -30,7 +30,7 @@ internal static partial class OfficeJpegReader {
 
         var reader = new JpegBitReader(data, allowTruncated: false, token);
         int mcu = 0, restartRow = 0, restartNumber = 0;
-        int shift = scan.Al, mask = (1 << (8 - shift)) - 1, initial = 1 << (7 - shift);
+        int shift = scan.Al, mask = (1 << (frame.Precision - shift)) - 1, initial = 1 << (frame.Precision - 1 - shift);
         for (int my = 0; my < rows; my++) {
             token.ThrowIfCancellationRequested();
             for (int mx = 0; mx < columns; mx++, mcu++) {
@@ -47,13 +47,13 @@ internal static partial class OfficeJpegReader {
                         int x = mx * h + dx, y = my * v + dy, at = y * pixels.Stride + x;
                         int prediction;
                         if (y == restartRow * v) {
-                            prediction = x == 0 ? initial : pixels.Buffer[at - 1] >> shift;
+                            prediction = x == 0 ? initial : pixels.ReadSample(at - 1) >> shift;
                         } else if (x == 0) {
-                            prediction = pixels.Buffer[at - pixels.Stride] >> shift;
+                            prediction = pixels.ReadSample(at - pixels.Stride) >> shift;
                         } else {
-                            int a = pixels.Buffer[at - 1] >> shift;
-                            int b = pixels.Buffer[at - pixels.Stride] >> shift;
-                            int c = pixels.Buffer[at - pixels.Stride - 1] >> shift;
+                            int a = pixels.ReadSample(at - 1) >> shift;
+                            int b = pixels.ReadSample(at - pixels.Stride) >> shift;
+                            int c = pixels.ReadSample(at - pixels.Stride - 1) >> shift;
                             prediction = scan.Ss switch {
                                 1 => a, 2 => b, 3 => c, 4 => a + b - c,
                                 5 => a + ((b - c) >> 1), 6 => b + ((a - c) >> 1),
@@ -66,7 +66,7 @@ internal static partial class OfficeJpegReader {
                         int difference = category == 16 ? -32768 : category == 0 ? 0 :
                             Extend(reader.ReadBits(category), category);
                         if (reader.RestartMarkerSeen) throw new FormatException("Unexpected lossless JPEG restart marker.");
-                        pixels.Buffer[at] = (byte)(((prediction + difference) & mask) << shift);
+                        pixels.WriteSample(at, ((prediction + difference) & mask) << shift);
                     }
                 }
             }
@@ -84,12 +84,12 @@ internal static partial class OfficeJpegReader {
         for (int y = 0; y < height; y++) {
             token.ThrowIfCancellationRequested();
             int row = y * state.Stride;
-            byte edge = state.Buffer[row + width - 1];
-            for (int x = width; x < state.Stride; x++) state.Buffer[row + x] = edge;
+            int edge = state.ReadSample(row + width - 1);
+            for (int x = width; x < state.Stride; x++) state.WriteSample(row + x, edge);
         }
-        for (int y = height; y < state.Buffer.Length / state.Stride; y++) {
+        for (int y = height; y < state.SampleCount / state.Stride; y++) {
             token.ThrowIfCancellationRequested();
-            Buffer.BlockCopy(state.Buffer, (height - 1) * state.Stride, state.Buffer, y * state.Stride, state.Stride);
+            state.CopySamples((height - 1) * state.Stride, y * state.Stride, state.Stride);
         }
     }
 

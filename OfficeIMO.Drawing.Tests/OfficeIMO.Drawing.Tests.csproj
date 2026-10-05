@@ -131,4 +131,5 @@
   <ItemGroup><None Update="TestAssets/TiffFaxUncompressed/*.tif;TestAssets/TiffFaxUncompressed/*.rgb;TestAssets/TiffFaxUncompressed/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffExtraSamples/*.tif;TestAssets/TiffExtraSamples/*.rgba;TestAssets/TiffExtraSamples/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegLossless/*.tif;TestAssets/TiffJpegLossless/*.rgba;TestAssets/TiffJpegLossless/*.jpg;TestAssets/TiffJpegLossless/*.raw;TestAssets/TiffJpegLossless/manifest.csv;TestAssets/TiffJpegLossless/edges/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLossless16/*.tif;TestAssets/TiffJpegLossless16/*.rgba;TestAssets/TiffJpegLossless16/*.jpg;TestAssets/TiffJpegLossless16/*.raw;TestAssets/TiffJpegLossless16/manifest.csv;TestAssets/TiffJpegLossless16/edges/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

@@ -14,6 +14,7 @@ internal static partial class OfficeJpegReader {
     }
 
     private struct JpegFrame {
+        public int Precision;
         public int Width;
         public int Height;
         public int ComponentCount;
@@ -36,15 +37,15 @@ internal static partial class OfficeJpegReader {
         int height,
         int orientation,
         out long reservedBytes,
-        int outputComponents = 4) {
+        int outputComponents = 4, int outputSampleBytes = 1) {
         reservedBytes = 0L;
-        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8 || outputComponents < 1 || outputComponents > 255) {
+        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8 || outputComponents < 1 || outputComponents > 255 || outputSampleBytes < 1 || outputSampleBytes > 2) {
             return false;
         }
         try {
             long rgbaBytes = checked((long)width * height * 4L);
             reservedBytes = checked(
-                retainedEncodedBytes + checked((long)width * height * outputComponents) +
+                retainedEncodedBytes + checked((long)width * height * outputComponents * outputSampleBytes) +
                 (orientation > 1 ? rgbaBytes : 0L) + 64L * 1024L);
             return reservedBytes <= OfficeRasterGuards.MaximumDecodedBytes;
         } catch (OverflowException) {
@@ -80,21 +81,21 @@ internal static partial class OfficeJpegReader {
         private long _reservedBytes;
         private bool _orientationCanvasReserved;
 
-        public static BaselineState Create(JpegFrame frame, int orientation, long retainedEncodedBytes) {
+        public static BaselineState Create(JpegFrame frame, int orientation, long retainedEncodedBytes, bool preserveRaw16 = false) {
             var mcuWidth = frame.MaxH * 8;
             var mcuHeight = frame.MaxV * 8;
             var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
             var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
             var components = new BaselineComponentState[frame.ComponentCount];
             if (!TryInitializeDecodeWorkingSet(
-                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount))) {
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount), preserveRaw16 ? 2 : 1)) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
                 var component = frame.Components[i];
                 var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * component.H, JpegDimensionsLimitMessage);
                 var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * component.V, JpegDimensionsLimitMessage);
-                components[i] = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes);
+                components[i] = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, frame.Precision);
             }
 
             return new BaselineState {
@@ -154,6 +155,16 @@ internal static partial class OfficeJpegReader {
     private sealed class BaselineComponentState {
         public Component Component;
         public byte[] Buffer;
+        public ushort[]? WideBuffer;
+        public int SampleCount => WideBuffer?.Length ?? Buffer.Length;
+        public int ReadSample(int index) => WideBuffer == null ? Buffer[index] : WideBuffer[index];
+        public void WriteSample(int index, int value) {
+            if (WideBuffer == null) Buffer[index] = (byte)value; else WideBuffer[index] = (ushort)value;
+        }
+        public void CopySamples(int from, int to, int count) {
+            if (WideBuffer == null) Array.Copy(Buffer, from, Buffer, to, count);
+            else Array.Copy(WideBuffer, from, WideBuffer, to, count);
+        }
         public int[] BlockCoeffs;
         public byte[] BlockPixels;
         public int[] BlockWorkspace;
@@ -162,13 +173,15 @@ internal static partial class OfficeJpegReader {
         public int BlocksPerCol;
         public int PrevDc;
 
-        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes) {
+        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes, int precision = 8) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
-            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
-            Buffer = new byte[bufferLength];
+            int sampleBytes = precision == 16 ? 2 : 1;
+            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8 * sampleBytes, ref aggregateBytes, JpegDimensionsLimitMessage);
+            Buffer = sampleBytes == 1 ? new byte[bufferLength] : Array.Empty<byte>();
+            WideBuffer = sampleBytes == 2 ? new ushort[bufferLength / 2] : null;
             BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];

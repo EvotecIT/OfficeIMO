@@ -55,9 +55,11 @@ public sealed class JpegLosslessTests {
             jpeg, 0, false, out _, out _, out _, out _, cancellationToken: canceled.Token); });
     }
 
-    [Fact]
-    public void SubsampledLosslessEdgesRetainConstantSamplesThroughHighQualityInterpolation() {
-        string corpus = Path.Combine(Corpus, "edges");
+    [Theory]
+    [InlineData("TiffJpegLossless")]
+    [InlineData("TiffJpegLossless16")]
+    public void SubsampledLosslessEdgesRetainConstantSamplesThroughHighQualityInterpolation(string folder) {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder, "edges");
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] f = row.Split(','); int width = int.Parse(f[1]), height = int.Parse(f[2]);
             byte[] jpeg = File.ReadAllBytes(Path.Combine(corpus, f[0] + ".jpg"));

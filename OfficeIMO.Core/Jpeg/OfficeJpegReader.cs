@@ -140,7 +140,8 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         OfficeJpegDecodeOptions options = default,
         CancellationToken cancellationToken = default,
-        long retainedManagedBytes = 0L) {
+        long retainedManagedBytes = 0L,
+        bool preserveRaw16 = false, bool samplesLittleEndian = true) {
         if (requestedColorTransform.HasValue && requestedColorTransform.Value is not (0 or 1)) {
             throw new ArgumentOutOfRangeException(nameof(requestedColorTransform));
         }
@@ -155,7 +156,7 @@ internal static partial class OfficeJpegReader {
             usePdfColorTransformDefault,
             returnColorComponents: true,
             cancellationToken,
-            retainedManagedBytes);
+            retainedManagedBytes, preserveRaw16, samplesLittleEndian);
     }
 
     private static byte[] Decode(
@@ -168,7 +169,8 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         bool returnColorComponents,
         CancellationToken cancellationToken,
-        long retainedManagedBytes) {
+        long retainedManagedBytes,
+        bool preserveRaw16 = false, bool samplesLittleEndian = true) {
         componentCount = 0;
         if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         cancellationToken.ThrowIfCancellationRequested();
@@ -215,7 +217,7 @@ internal static partial class OfficeJpegReader {
 
                 if (lossless) {
                     baselineState ??= BaselineState.Create(
-                        frame, orientation, checked(data.LongLength + retainedManagedBytes));
+                        frame, orientation, checked(data.LongLength + retainedManagedBytes), preserveRaw16);
                     DecodeLosslessScan(scanData, scan, frame, baselineState, dcTables,
                         restartInterval, cancellationToken);
                     offset = scanEnd;
@@ -314,7 +316,10 @@ internal static partial class OfficeJpegReader {
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
-                frame = ParseFrameHeader(data.Slice(offset, segLen - 2));
+                frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker == 0xC3);
+                if (preserveRaw16 && (marker != 0xC3 || frame.Precision != 16 ||
+                    requestedColorTransform != 0 || !returnColorComponents))
+                    throw new FormatException("Raw sixteen-bit samples require a sixteen-bit lossless JPEG frame.");
                 hasFrame = true;
                 progressive = marker == 0xC2;
                 lossless = marker == 0xC3;
@@ -375,6 +380,10 @@ internal static partial class OfficeJpegReader {
         if (!progressive && hasFrame && baselineState is not null) {
             width = frame.Width;
             height = frame.Height;
+            if (preserveRaw16) {
+                componentCount = frame.ComponentCount;
+                return CopyRawSamples16(frame, baselineState, samplesLittleEndian, options.HighQualityChroma, cancellationToken);
+            }
             if (returnColorComponents) {
                 return baselineState.RenderColorComponents(
                     frame,

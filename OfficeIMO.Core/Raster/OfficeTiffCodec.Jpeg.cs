@@ -5,12 +5,13 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     private static bool TryDecodeJpegSegments(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        bool littleEndian, int width, int height, int samples, int photometric, int planar,
+        bool littleEndian, int width, int height, int samples, int sampleBytes, int photometric, int planar,
         OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source) {
         source = Array.Empty<byte>();
         bool ycc = photometric == 6;
         int horizontal = 1, vertical = 1, positioning = 1;
-        double[] coefficients = { .299, .587, .114 }, reference = { 0, 255, 128, 255, 128, 255 };
+        int maximum = sampleBytes == 1 ? 255 : 65535, midpoint = (maximum + 1) / 2;
+        double[] coefficients = { .299, .587, .114 }, reference = { 0, maximum, midpoint, maximum, midpoint, maximum };
         if (ycc) {
             if (!TryReadScalarOrDefault(bytes, entries, 531, littleEndian, 1, out positioning) || (positioning != 1 && positioning != 2)) return false;
             if (entries.ContainsKey(530)) {
@@ -37,7 +38,7 @@ public static partial class OfficeTiffCodec {
         int across = checked((int)(((long)width + sw - 1) / sw));
         int down = checked((int)(((long)height + sh - 1) / sh));
         int perPlane = checked(across * down), count = checked(perPlane * (planar == 2 ? samples : 1));
-        int sourceLength = OfficeRasterGuards.EnsureByteCount((long)width * height * samples, "TIFF JPEG pixels exceed the managed limit.");
+        int sourceLength = OfficeRasterGuards.EnsureByteCount((long)width * height * samples * sampleBytes, "TIFF JPEG pixels exceed the managed limit.");
         long retained = checked(options.RetainedManagedBytes + bytes.LongLength + (long)count * 8 +
             (retainPixels ? sourceLength + (long)width * height * 4 : 0) + 65536);
         if (retained > OfficeRasterGuards.MaximumDecodedBytes ||
@@ -51,7 +52,7 @@ public static partial class OfficeTiffCodec {
             if (!HasBytes(bytes, tableOffset, tableEntry.Count)) return false;
             tables = new byte[tableEntry.Count];
             CopyWithCancellation(bytes, tableOffset, tables, 0, tables.Length, options.CancellationToken);
-            if (!TryNormalizeTiffJpeg(tables, true, 0, 0, 0, 1, 1, 0, options.CancellationToken, out inherited, out _)) return false;
+            if (!TryNormalizeTiffJpeg(tables, true, 0, 0, 0, sampleBytes * 8, 1, 1, 0, options.CancellationToken, out inherited, out _)) return false;
             retained += tables.Length;
         }
         if (retainPixels) source = new byte[sourceLength];
@@ -66,7 +67,7 @@ public static partial class OfficeTiffCodec {
                 decodeWidth = checked((int)(((long)sw + horizontal - 1) / horizontal));
                 decodeRows = checked((int)(((long)decodeRows + vertical - 1) / vertical));
             }
-            int expected = OfficeRasterGuards.EnsureByteCount((long)decodeWidth * decodeRows * channels, "TIFF JPEG segment exceeds the managed limit.");
+            int expected = OfficeRasterGuards.EnsureByteCount((long)decodeWidth * decodeRows * channels * sampleBytes, "TIFF JPEG segment exceeds the managed limit.");
             if (!HasSegment(bytes, offsets[segment], lengths[segment]) || lengths[segment] < 4 ||
                 budget != null && !budget.TryReserve(checked(lengths[segment] + tables.Length), expected)) return false;
             int combinedLength = checked(lengths[segment] + (tables.Length == 0 ? 0 : tables.Length - 4));
@@ -78,7 +79,7 @@ public static partial class OfficeTiffCodec {
             if (retained + lengths[segment] + combinedLength + expected + chromaScratch > OfficeRasterGuards.MaximumDecodedBytes) return false;
             var jpeg = new byte[lengths[segment]];
             CopyWithCancellation(bytes, offsets[segment], jpeg, 0, jpeg.Length, options.CancellationToken);
-            if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, ycc && planar == 1 ? horizontal : 1,
+            if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, sampleBytes * 8, ycc && planar == 1 ? horizontal : 1,
                 ycc && planar == 1 ? vertical : 1, inherited, options.CancellationToken, out _, out int segmentProcess)) return false;
             if (frameProcess != 0 && segmentProcess != frameProcess) return false;
             frameProcess = segmentProcess;
@@ -90,22 +91,22 @@ public static partial class OfficeTiffCodec {
             }
             if (!OfficeJpegCodec.TryDecodeColorComponents(combined, 0, false, out byte[] decoded,
                 out int jw, out int jh, out int jc, options: new OfficeJpegDecodeOptions(highQualityChroma: ycc && !reconstructChroma), cancellationToken: options.CancellationToken,
-                retainedManagedBytes: retained + jpeg.Length + chromaScratch) || jw != decodeWidth || jh != decodeRows || jc != channels || decoded.Length != expected) return false;
+                retainedManagedBytes: retained + jpeg.Length + chromaScratch, preserveRaw16: sampleBytes == 2, samplesLittleEndian: littleEndian) || jw != decodeWidth || jh != decodeRows || jc != channels || decoded.Length != expected) return false;
             if (!retainPixels) continue;
             if (ycc && planar == 1) {
-                if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, samples, options);
-                ConvertTiffJpegYcc(decoded, samples, coefficients, reference, options);
+                if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
+                ConvertTiffJpegYcc(decoded, samples, sampleBytes, littleEndian, coefficients, reference, options);
             }
             if (planar == 2) {
                 if (ycc && (plane == 1 || plane == 2)) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
-                    decodeWidth, decodeRows, horizontal, vertical, positioning, samples, options);
-                else if (strips) CopyPlanarRows(decoded, source, plane, samples, 1, width, top, rows, options);
-                else CopyTile(decoded, source, plane, planar, samples, 1, width, height, left, top, sw, sh, options);
+                    decodeWidth, decodeRows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
+                else if (strips) CopyPlanarRows(decoded, source, plane, samples, sampleBytes, width, top, rows, options);
+                else CopyTile(decoded, source, plane, planar, samples, sampleBytes, width, height, left, top, sw, sh, options);
             } else for (int row = 0; row < rows; row++)
-                CopyWithCancellation(decoded, row * sw * samples, source, ((top + row) * width + left) * samples,
-                    columns * samples, options.CancellationToken);
+                CopyWithCancellation(decoded, row * sw * samples * sampleBytes, source, ((top + row) * width + left) * samples * sampleBytes,
+                    columns * samples * sampleBytes, options.CancellationToken);
         }
-        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, samples, coefficients, reference, options);
+        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, samples, sampleBytes, littleEndian, coefficients, reference, options);
         return true;
     }
 
@@ -123,15 +124,4 @@ public static partial class OfficeTiffCodec {
         return true;
     }
 
-    private static void ConvertTiffJpegYcc(byte[] pixels, int samples, double[] c, double[] r, OfficeRasterDecodeOptions options) {
-        byte Clamp(double value) => (byte)Math.Round(Math.Max(0, Math.Min(255, value)));
-        for (int i = 0; i < pixels.Length; i += samples) {
-            if ((i & 4095) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-            double y = (pixels[i] - r[0]) * 255 / (r[1] - r[0]);
-            double cb = (pixels[i + 1] - r[2]) * 127 / (r[3] - r[2]);
-            double cr = (pixels[i + 2] - r[4]) * 127 / (r[5] - r[4]);
-            double red = y + cr * (2 - 2 * c[0]), blue = y + cb * (2 - 2 * c[2]);
-            pixels[i] = Clamp(red); pixels[i + 1] = Clamp((y - c[0] * red - c[2] * blue) / c[1]); pixels[i + 2] = Clamp(blue);
-        }
-    }
 }

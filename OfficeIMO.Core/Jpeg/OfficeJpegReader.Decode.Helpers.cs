@@ -289,9 +289,9 @@ internal static partial class OfficeJpegReader {
             int thirdXAccumulator = 0;
 
             for (int x = 0; x < width; x++) {
-                byte firstValue = first.Buffer[firstRow + firstX];
-                byte secondValue = second.Buffer[secondRow + secondX];
-                byte thirdValue = third.Buffer[thirdRow + thirdX];
+                byte firstValue = ProjectSampleToByte(first, first.ReadSample(firstRow + firstX));
+                byte secondValue = ProjectSampleToByte(second, second.ReadSample(secondRow + secondX));
+                byte thirdValue = ProjectSampleToByte(third, third.ReadSample(thirdRow + thirdX));
                 if (transformYccToRgb) {
                     int red = firstValue + CrToR[thirdValue];
                     int green = firstValue - CbToG[secondValue] - CrToG[thirdValue];
@@ -390,22 +390,28 @@ internal static partial class OfficeJpegReader {
         int maxH,
         int maxV,
         int fallback,
-        bool highQualityChroma) {
+        bool highQualityChroma,
+        bool preserveRaw16 = false) {
         if (index < 0 || index >= states.Length) return fallback;
         var state = states[index];
         if (!highQualityChroma || (state.Component.H == maxH && state.Component.V == maxV)) {
             var sx = x * state.Component.H / maxH;
             var sy = y * state.Component.V / maxV;
             var stride = state.Stride;
-            return state.Buffer[sy * stride + sx];
+            int sample = state.ReadSample(sy * stride + sx);
+            return preserveRaw16 ? sample : ProjectSampleToByte(state, sample);
         }
 
-        return SampleComponentBilinear(state, x, y, maxH, maxV);
+        int interpolated = SampleComponentBilinear(state, x, y, maxH, maxV);
+        return preserveRaw16 ? interpolated : ProjectSampleToByte(state, interpolated);
     }
+
+    private static byte ProjectSampleToByte(BaselineComponentState state, int sample) =>
+        state.WideBuffer == null ? (byte)sample : (byte)((sample * 255L + 32767) / 65535);
 
     private static int SampleComponentBilinear(BaselineComponentState state, int x, int y, int maxH, int maxV) {
         var stride = state.Stride;
-        var height = state.Buffer.Length / stride;
+        var height = state.SampleCount / stride;
 
         var fx = (x + 0.5) * state.Component.H / maxH - 0.5;
         var fy = (y + 0.5) * state.Component.V / maxV - 0.5;
@@ -423,10 +429,10 @@ internal static partial class OfficeJpegReader {
         var dx = fx - x0;
         var dy = fy - y0;
 
-        var p00 = state.Buffer[y0 * stride + x0];
-        var p10 = state.Buffer[y0 * stride + x1];
-        var p01 = state.Buffer[y1 * stride + x0];
-        var p11 = state.Buffer[y1 * stride + x1];
+        var p00 = state.ReadSample(y0 * stride + x0);
+        var p10 = state.ReadSample(y0 * stride + x1);
+        var p01 = state.ReadSample(y1 * stride + x0);
+        var p11 = state.ReadSample(y1 * stride + x1);
 
         var top = p00 + (p10 - p00) * dx;
         var bottom = p01 + (p11 - p01) * dx;
