@@ -9,7 +9,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int DefaultPageMarginTwips = 1440;
         private const int DefaultHeaderFooterMarginTwips = 720;
         private const int DefaultColumnSpaceTwips = 720;
-        private const int MaxLegacySectionColumns = 45;
         private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSCcolumns = 0x500B;
         private const ushort SprmSDxaColumns = 0x900C;
@@ -61,6 +60,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool differentFirstPage = false;
             int? columnCount = null;
             int? columnSpacing = null;
+            IReadOnlyList<WordSectionColumn>? columnDefinitions = null;
             bool hasColumnSeparator = false;
             int? pageNumberStart = null;
             NumberFormatValues? pageNumberFormat = null;
@@ -114,7 +114,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Columns columns:
-                        ReadSupportedColumns(columns, out columnCount, out columnSpacing, out hasColumnSeparator);
+                        columnDefinitions = ReadSupportedColumns(columns, out columnCount, out columnSpacing, out hasColumnSeparator);
                         break;
                     case PageNumberType pageNumberType:
                         pageNumberStart = ReadPageNumberStart(pageNumberType.Start);
@@ -175,17 +175,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 endnoteRestart,
                 endnoteStart,
                 endnoteNumberFormat,
-                pageBorders);
-        }
-
-        private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
-            if ((columns.EqualWidth != null && !columns.EqualWidth.Value) || columns.Elements<Column>().Any()) {
-                throw new NotSupportedException("Native DOC saving supports equal-width section columns only.");
-            }
-
-            columnCount = ReadColumnCount(columns.ColumnCount);
-            columnSpacing = ReadColumnSpacing(columns.Space, columnCount != null ? DefaultColumnSpaceTwips : null);
-            hasColumnSeparator = columns.Separator?.Value ?? false;
+                pageBorders,
+                columnDefinitions);
         }
 
         private static LegacyDocParagraphBorders ReadSupportedSectionPageBorders(PageBorders pageBorders) {
@@ -427,34 +418,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual == defaultValue ? null : actual;
         }
 
-        private static int? ReadColumnCount(OpenXmlSimpleType? value) {
-            if (value == null) {
-                return null;
-            }
-
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
-                || actual < 1
-                || actual > MaxLegacySectionColumns) {
-                throw new NotSupportedException($"Native DOC saving supports section column counts from 1 through {MaxLegacySectionColumns}.");
-            }
-
-            return actual;
-        }
-
-        private static int? ReadColumnSpacing(OpenXmlSimpleType? value, int? defaultValue) {
-            if (value == null) {
-                return defaultValue;
-            }
-
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
-                || actual < 0
-                || actual > ushort.MaxValue) {
-                throw new NotSupportedException("Native DOC saving supports section column spacing only within the Word 97-2003 unsigned twip range.");
-            }
-
-            return actual;
-        }
-
         private static int? ReadPageNumberStart(OpenXmlSimpleType? value) {
             if (value == null) {
                 return null;
@@ -613,6 +576,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (sectionFormat.ColumnSpacingTwips != null) {
                 AddUInt16Sprm(grpprl, SprmSDxaColumns, sectionFormat.ColumnSpacingTwips.Value);
             }
+
+            AddSectionColumnDefinitions(grpprl, sectionFormat.ColumnDefinitions);
 
             if (sectionFormat.HasColumnSeparator) {
                 AddSingleByteSprm(grpprl, SprmSLBetween, 1);

@@ -340,6 +340,10 @@ namespace OfficeIMO.Word {
                 section.ColumnsSpace = sectionFormat.ColumnSpacingTwips.Value;
             }
 
+            if (sectionFormat.ColumnDefinitions != null) {
+                section.ColumnDefinitions = sectionFormat.ColumnDefinitions;
+            }
+
             if (sectionFormat.HasColumnSeparator) {
                 section.HasColumnSeparator = true;
             }
