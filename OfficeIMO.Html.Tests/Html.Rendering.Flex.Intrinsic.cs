@@ -7,6 +7,65 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("min-width:50%", false, 0D)]
+    [InlineData("min-width:calc(50% + 40px)", false, 0D)]
+    [InlineData("max-width:10%", false, 0D)]
+    [InlineData("min-width:50%", true, 0D)]
+    [InlineData("min-width:200px", false, 228D)]
+    [InlineData("min-width:calc(50% + 200px)", false, 228D)]
+    [InlineData("max-width:40px", false, 68D)]
+    public void HtmlInlineFlex_IntrinsicConstraintsUseAnIndefinitePercentageReference(
+        string constraints, bool nested, double expectedWidth) {
+        string Html(string childConstraints) => "<style>body{margin:0;font:20px/20px Arial}</style>"
+            + "<a id='target' style='display:inline-flex;background:#dddddd'>"
+            + (nested ? "<div style='display:flex'>" : "")
+            + "<span style='margin-right:8px;" + childConstraints + "'>Next Page</span>"
+            + "<svg width='20' height='20' viewBox='0 0 20 20' style='flex-shrink:0'"
+            + " xmlns='http://www.w3.org/2000/svg'><circle cx='10' cy='10' r='10' fill='red'/></svg>"
+            + (nested ? "</div>" : "") + "</a>";
+
+        HtmlRenderDocument rendered = RenderFlex(Html(constraints), 400D);
+        double width = expectedWidth > 0D ? expectedWidth
+            : FindFlexShape(RenderFlex(Html(""), 400D), "a#target").Width;
+        Assert.Equal(width, FindFlexShape(rendered, "a#target").Width, 3);
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal("Next Page", string.Join(" ", rendered.Pages[0].Visuals
+            .OfType<HtmlRenderText>().Select(text => text.Text)));
+    }
+
+    [Theory]
+    [InlineData("inline-flex", "", true)]
+    [InlineData("flex", "", false)]
+    [InlineData("inline-flex", "width:400px;", false)]
+    public void HtmlInlineFlex_CyclicLabelWidthKeepsIconBesideIntrinsicText(
+        string display, string width, bool intrinsic) {
+        string Html(string labelWidth) => "<style>body{margin:0;font:20px/20px Arial}</style>"
+            + "<main style='width:400px'><a id='target' href='https://example.com/next' style='display:"
+            + display + ";" + width + "align-items:center;background:#dddddd'>"
+            + "<span style='width:" + labelWidth + ";margin-right:8px'>Next Page</span>"
+            + "<svg id='icon' width='20' height='20' viewBox='0 0 20 20' style='flex-shrink:0'"
+            + " xmlns='http://www.w3.org/2000/svg'><circle cx='10' cy='10' r='10' fill='red'/></svg></a></main>";
+
+        HtmlRenderDocument rendered = RenderFlex(Html("calc(100% - 20px)"), 400D);
+        HtmlRenderShape anchor = FindFlexShape(rendered, "a#target");
+        HtmlRenderDrawing icon = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        HtmlRenderText label = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
+        Assert.Equal("Next Page", label.Text);
+        Assert.Equal(20D, icon.Width, 3);
+        Assert.Equal(anchor.X + anchor.Width - icon.Width, icon.X, 3);
+        if (intrinsic) {
+            HtmlRenderDocument control = RenderFlex(Html("auto"), 400D);
+            Assert.Equal(FindFlexShape(control, "a#target").Width, anchor.Width, 3);
+            Assert.Equal(label.X + label.Width + 8D, icon.X, 3);
+        } else {
+            Assert.Equal(400D, anchor.Width, 3);
+        }
+        HtmlRenderAnchorFragment link = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderAnchorFragment>());
+        Assert.Equal(anchor.X, link.X, 3);
+        Assert.Equal(anchor.Width, link.Width, 3);
+    }
+
     [Fact]
     public void HtmlInlineFlex_MaxContentWidthFitsTextMeasuredByTokens() {
         const string labelText = "Page Last Updated:";

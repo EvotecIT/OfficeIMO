@@ -30,7 +30,9 @@ internal sealed class HtmlPdfAnchorLinkMap {
         visual is not HtmlRenderAnchorFragment
         && visual.LinkUri != null
         && _byUri.TryGetValue(visual.LinkUri, out LinkRegionSet? regions)
-        && regions.Overlaps(visual);
+        && regions.Contains(visual is HtmlRenderText text && text.LinkBounds.HasValue
+            ? text.LinkBounds.Value
+            : new HtmlRenderRectangle(visual.X, visual.Y, visual.Width, visual.Height));
 
     private static void Collect(IEnumerable<HtmlRenderVisual> visuals,
         IDictionary<string, List<HtmlRenderAnchorFragment>> grouped,
@@ -69,8 +71,9 @@ internal sealed class HtmlPdfAnchorLinkMap {
             }
         }
 
-        internal bool Overlaps(HtmlRenderVisual visual) {
-            const double edgeTolerance = 1D;
+        internal bool Contains(HtmlRenderRectangle visual) {
+            // Only accommodate floating-point arithmetic; authored fractional overflow remains linked.
+            const double edgeTolerance = 0.0000001D;
             double top = visual.Y - edgeTolerance;
             double bottom = visual.Y + visual.Height + edgeTolerance;
             int low = 0;
@@ -82,8 +85,10 @@ internal sealed class HtmlPdfAnchorLinkMap {
             }
             for (int index = low; index < _fragments.Length && _fragments[index].Y <= bottom; index++) {
                 HtmlRenderAnchorFragment fragment = _fragments[index];
-                if (fragment.X <= visual.X + visual.Width + edgeTolerance
-                    && fragment.X + fragment.Width >= visual.X - edgeTolerance) return true;
+                if (fragment.Y <= visual.Y + edgeTolerance
+                    && fragment.Y + fragment.Height >= visual.Y + visual.Height - edgeTolerance
+                    && fragment.X <= visual.X + edgeTolerance
+                    && fragment.X + fragment.Width >= visual.X + visual.Width - edgeTolerance) return true;
             }
             return false;
         }

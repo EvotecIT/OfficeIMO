@@ -565,7 +565,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 segment.Run.OwnerElement,
                                 formattingContainer);
                         }
-                        if (segment.Run.LinkUri != null) {
+                        if (segment.Run.LinkUri != null && !AtomicRunOwnsAnchorFragment(segment.Run, atomic)) {
                             OfficeShape linkArea = OfficeShape.Rectangle(Math.Max(0.01D, segment.Width), Math.Max(0.01D, atomic.Height));
                             linkArea.FillColor = null;
                             linkArea.StrokeWidth = 0D;
@@ -584,9 +584,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
+                    double anchorY = lineY;
+                    double anchorHeight = lineHeight;
                     if (segment.Run.LinkUri != null && !string.IsNullOrWhiteSpace(segment.Text)) {
-                        double anchorY = lineY;
-                        double anchorHeight = lineHeight;
                         if (!current.HasReplacedImage) {
                             ResolveInlineAnchorTextVerticalBounds(segment, lineY, lineHeight,
                                 out anchorY, out anchorHeight);
@@ -635,7 +635,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             fontPalette: segment.Run.Style.FontPalette,
                             layoutHeight: textLineHeight,
                             fontDescriptor: segment.Run.Style.FontDescriptor,
-                            paintTopOverflow: paintTopOverflow));
+                            paintTopOverflow: paintTopOverflow,
+                            linkBounds: segment.Run.LinkUri == null ? null : new HtmlRenderRectangle(
+                                paintSegment.X, anchorY, Math.Max(0.01D, Math.Max(paintSegment.Width, paintSegment.Advance)), anchorHeight)));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||

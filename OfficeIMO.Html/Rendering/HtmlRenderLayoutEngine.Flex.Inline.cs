@@ -48,8 +48,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.FlexDirection == "column" || style.FlexDirection == "column-reverse") {
             intrinsicContentWidth = ordered.Count == 0 ? 1D : ordered.Max(item => ResolveColumnFlexCrossBasis(item, availableBoxWidth));
         } else {
-            foreach (FlexItem item in ordered) item.Basis = ResolveFlexBasis(item, availableBoxWidth);
-            intrinsicContentWidth = ordered.Sum(item => item.Basis) + style.ColumnGap * Math.Max(0, ordered.Count - 1);
+            intrinsicContentWidth = ordered.Sum(item => ResolveFlexIntrinsicItemWidth(item, availableBoxWidth, 0))
+                + style.ColumnGap * Math.Max(0, ordered.Count - 1);
         }
 
         double intrinsicBoxWidth = intrinsicContentWidth + style.HorizontalInsets;

@@ -47,6 +47,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    private bool AtomicRunOwnsAnchorFragment(HtmlInlineRun run, HtmlRenderFlowBlock atomic) {
+        IElement? owner = run.OwnerElement;
+        if (owner == null || !string.Equals(owner.LocalName, "a", StringComparison.OrdinalIgnoreCase)) return false;
+        int nodeId = GetSemanticNodeId(owner);
+        // A laid-out anchor already owns its positioned/effected hit area. A second
+        // synthetic rectangle at the unpositioned inline slot would create an orphan link.
+        return EnumeratePageFloatVisuals(atomic.Visuals).OfType<HtmlRenderAnchorFragment>()
+            .Any(fragment => fragment.AnchorNodeId == nodeId);
+    }
+
     private void RecordInlineAnchorGeometry(
         HtmlInlineRun run,
         IElement? formattingContainer,

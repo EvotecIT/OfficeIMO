@@ -6,6 +6,78 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("min-width:calc(50% + 40px)", false)]
+    public void HtmlPdf_InlineFlexRetainsLinkAcrossOverflowingIcon(string constraints, bool contained) {
+        const string uri = "https://example.test/next";
+        string html = "<style>body{margin:0;font:20px/20px Arial}</style>"
+            + "<a href='" + uri + "' style='display:inline-flex;align-items:center'>"
+            + "<span style='margin-right:8px;" + constraints + "'>Next Page</span>"
+            + "<svg id='icon' width='20' height='20' viewBox='0 0 20 20' style='flex-shrink:0'"
+            + " xmlns='http://www.w3.org/2000/svg'><circle cx='10' cy='10' r='10' fill='red'/></svg></a>";
+        var options = new HtmlToPdfOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) };
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
+        HtmlRenderDocument rendered = result.RenderResult.Document;
+        HtmlRenderDrawing icon = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        byte[] pdf = result.ToBytes();
+        IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
+
+        if (contained) Assert.Single(links);
+        Assert.Contains(links, link => link.X1 <= icon.X * .75D + .01D
+            && link.X2 >= (icon.X + icon.Width) * .75D - .01D);
+    }
+
+    [Theory]
+    [InlineData(19.5D, 20D)]
+    [InlineData(20D, 19.5D)]
+    public void HtmlPdf_FractionalSvgOverflowRetainsClickablePaint(double anchorWidth, double anchorHeight) {
+        const string uri = "https://example.test/fractional";
+        string html = $"<style>body{{margin:0}}</style><a href='{uri}' "
+            + $"style='display:inline-block;width:{anchorWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)}px;"
+            + $"height:{anchorHeight.ToString(System.Globalization.CultureInfo.InvariantCulture)}px'>"
+            + "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
+            + "<rect width='20' height='20' fill='red'/></svg></a>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
+        Assert.Contains(links, link => link.Width >= 14.99D && link.Height >= 14.99D);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("position:relative;left:30px;top:40px")]
+    public void HtmlPdf_TextOverflowKeepsLinkBeyondTheAnchorBox(string position) {
+        const string uri = "https://example.test/text-overflow";
+        byte[] pdf = HtmlConversionDocument.Parse("<style>body{margin:0;font:24px/32px Arial}</style>"
+            + "<a href='" + uri + "' style='display:inline-block;width:20px;" + position + "'>NORTHWIND</a>")
+            .ToPdfBytes(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) });
+        using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var letters = parsed.GetPage(1).Letters;
+        Assert.Equal("NORTHWIND", string.Concat(letters.Select(letter => letter.Value)));
+        IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
+        Assert.Contains(links, link => link.X1 <= letters[0].StartBaseLine.X + .01D
+            && link.X2 >= letters[letters.Count - 1].EndBaseLine.X - .01D);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("position:relative;left:30px;top:40px")]
+    public void HtmlPdf_NegativeLetterSpacingRetainsPaintedGlyphAndPositionedLinks(string position) {
+        const string uri = "https://example.test/negative-spacing";
+        byte[] pdf = HtmlConversionDocument.Parse("<style>body{margin:0;font:24px/32px Arial}</style>"
+            + "<a href='" + uri + "' style='display:inline-block;width:10px;letter-spacing:-12px;" + position + "'>A</a>")
+            .ToPdfBytes(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) });
+        using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var letter = Assert.Single(parsed.GetPage(1).Letters);
+        IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
+        Assert.Contains(links, link => link.X1 <= letter.StartBaseLine.X + .01D
+            && link.X2 >= letter.EndBaseLine.X - .01D);
+        Assert.All(links, link => Assert.True(link.X1 >= letter.StartBaseLine.X - .01D));
+    }
+
     [Fact]
     public void HtmlPdf_OuterLinkCoversInlineSvgViewport() {
         const string html = "<a href='https://example.test/logo'><svg xmlns='http://www.w3.org/2000/svg' "
@@ -132,5 +204,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(19D, fragment.Height, 3);
         Assert.Equal(text.Y, fragment.Y, 3);
+        byte[] pdf = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlToPdfOptions(options),
+            System.Threading.CancellationToken.None).Document.ToBytes();
+        Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.test/inline"));
     }
 }
