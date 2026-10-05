@@ -2,246 +2,6 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderMultiColumnBlock(MultiColumnBlock columns) {
-            PdfMultiColumnOptions options = columns.Options;
-            double totalGap = options.Gap * (options.ColumnCount - 1);
-            if (totalGap >= width) throw new ArgumentException("Multi-column gaps must leave positive column widths.");
-            double columnWidth = (width - totalGap) / options.ColumnCount;
-            ValidateMultiColumnBlocks(columns.Blocks);
-            var pendingBlocks = columns.Blocks.ToList();
-            int blockIndex = 0;
-            while (blockIndex < pendingBlocks.Count) {
-                if (pendingBlocks[blockIndex] is PageBreakBlock pageBreak) {
-                    pendingFloatingBookmarks.Clear();
-                    NewPage(pageBreak.PreserveEmptyPage);
-                    blockIndex++;
-                    continue;
-                }
-                int segmentEnd = blockIndex;
-                bool hasColumnBreak = false;
-                while (segmentEnd < pendingBlocks.Count && pendingBlocks[segmentEnd] is not PageBreakBlock) {
-                    hasColumnBreak |= pendingBlocks[segmentEnd] is ColumnBreakBlock;
-                    segmentEnd++;
-                }
-                // Columns are assigned using the space remaining after float clearance.
-                // Their row may span the available frame, so reserve that frame before
-                // choosing which source blocks belong to each column.
-                if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, y - currentOpts.MarginBottom));
-                double availableHeight = y - currentOpts.MarginBottom;
-                if (availableHeight < currentOpts.DefaultFontSize * 1.4D) {
-                    NewPage();
-                    availableHeight = y - currentOpts.MarginBottom;
-                }
-
-                double remainingHeight = 0D;
-                for (int i = blockIndex; i < segmentEnd; i++) {
-                    if (pendingBlocks[i] is not ColumnBreakBlock) remainingHeight += MeasureColumnBlock(pendingBlocks[i], columnWidth);
-                }
-                double target = options.BalanceLastPage && segmentEnd == pendingBlocks.Count &&
-                    !hasColumnBreak && remainingHeight <= availableHeight * options.ColumnCount
-                    ? Math.Max(currentOpts.DefaultFontSize * 1.4D, remainingHeight / options.ColumnCount)
-                    : availableHeight;
-
-                var row = new RowBlock();
-                row.SetGap(options.Gap);
-                row.SetStyle(new PdfRowStyle {
-                    Gap = options.Gap,
-                    ColumnSeparatorColor = options.SeparatorColor,
-                    ColumnSeparatorWidth = options.SeparatorWidth
-                });
-                double widthPercent = 100D / options.ColumnCount;
-                for (int columnIndex = 0; columnIndex < options.ColumnCount; columnIndex++) {
-                    var column = new RowColumn(PdfColumnWidth.Percent(widthPercent));
-                    // Whole line boxes need not divide evenly into the balanced target.
-                    // Use the remaining physical capacity for the final column so a
-                    // fitting remainder does not create an otherwise unnecessary page.
-                    double columnTarget = columnIndex == options.ColumnCount - 1 ? availableHeight : target;
-                    double consumed = 0D;
-                    while (blockIndex < segmentEnd) {
-                        IPdfBlock block = pendingBlocks[blockIndex];
-                        if (block is ColumnBreakBlock) {
-                            blockIndex++;
-                            break;
-                        }
-
-                        double blockHeight = MeasureColumnBlock(block, columnWidth);
-                        double remainingTarget = columnTarget - consumed;
-                        if (options.BalanceParagraphLines &&
-                            block is RichParagraphBlock paragraph &&
-                            blockHeight > remainingTarget + 0.001D &&
-                            TrySplitColumnParagraph(paragraph, columnWidth, remainingTarget, out RichParagraphBlock? first, out RichParagraphBlock? remainder)) {
-                            column.AddBlock(first!);
-                            consumed += MeasureColumnBlock(first!, columnWidth);
-                            pendingBlocks[blockIndex] = remainder!;
-                            break;
-                        }
-
-                        if (column.Blocks.Count > 0 && consumed + blockHeight > columnTarget + 0.001D) break;
-                        column.AddBlock(block);
-                        consumed += blockHeight;
-                        blockIndex++;
-                        if (consumed >= columnTarget - 0.001D) break;
-                    }
-                    row.AddColumn(column);
-                }
-
-                RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0);
-                if (blockIndex < segmentEnd) NewPage();
-            }
-        }
-
-        private bool TrySplitColumnParagraph(
-            RichParagraphBlock paragraph,
-            double columnWidth,
-            double availableHeight,
-            out RichParagraphBlock? first,
-            out RichParagraphBlock? remainder) {
-            first = null;
-            remainder = null;
-            PdfParagraphStyle? sourceStyle = EffectiveParagraphStyle(paragraph);
-            if (availableHeight <= 0.001D ||
-                sourceStyle?.KeepTogether == true ||
-                paragraph.Runs.Any(run => run.Text.Contains('\t'))) {
-                return false;
-            }
-
-            double fontSize = sourceStyle?.FontSize ?? currentOpts.DefaultFontSize;
-            double leading = GetParagraphLeading(sourceStyle, fontSize);
-            var textFrame = GetParagraphTextFrame(sourceStyle, currentOpts.MarginLeft, columnWidth);
-            var wrapped = WrapRichRunsCoreWithFirstLineOrigin(
-                paragraph.Runs,
-                textFrame.Width,
-                fontSize,
-                ChooseNormal(currentOpts.DefaultFont),
-                leading,
-                textFrame.FirstLineWidth,
-                textFrame.FirstLineX - textFrame.X,
-                GetParagraphTabStopWidth(sourceStyle),
-                currentOpts,
-                GetParagraphTabStops(sourceStyle), lineSpacing: sourceStyle?.LineSpacing);
-            if (wrapped.Lines.Count < 2) {
-                return false;
-            }
-
-            double remainingHeight = Math.Max(0D, availableHeight - GetParagraphSpacingBefore(sourceStyle));
-            int take = 0;
-            double height = 0D;
-            for (int index = 0; index < wrapped.LineHeights.Count; index++) {
-                if (height + wrapped.LineHeights[index] > remainingHeight + 0.001D) {
-                    break;
-                }
-
-                height += wrapped.LineHeights[index];
-                take++;
-            }
-
-            int minimumOrphanLines = ResolveMinimumOrphanLines(sourceStyle ?? new PdfParagraphStyle());
-            int minimumWidowLines = ResolveMinimumWidowLines(sourceStyle ?? new PdfParagraphStyle());
-            if (take < Math.Max(1, minimumOrphanLines) || wrapped.Lines.Count - take < Math.Max(1, minimumWidowLines)) {
-                return false;
-            }
-
-            PdfParagraphStyle firstStyle = sourceStyle?.Clone() ?? new PdfParagraphStyle();
-            firstStyle.KeepTogether = false;
-            firstStyle.KeepWithNext = false;
-            firstStyle.WidowControl = false;
-            firstStyle.MinimumOrphanLines = 0;
-            firstStyle.MinimumWidowLines = 0;
-            firstStyle.SpacingAfter = 0D;
-
-            PdfParagraphStyle remainderStyle = sourceStyle?.Clone() ?? new PdfParagraphStyle();
-            remainderStyle.AnchoredCanvas = null;
-            remainderStyle.KeepTogether = false;
-            remainderStyle.WidowControl = false;
-            remainderStyle.MinimumOrphanLines = 0;
-            remainderStyle.MinimumWidowLines = 0;
-            remainderStyle.SpacingBefore = 0D;
-            remainderStyle.FirstLineIndent = 0D;
-
-            first = new RichParagraphBlock(BuildTextRunsFromWrappedLines(wrapped.Lines, 0, take), paragraph.Align, paragraph.DefaultColor, firstStyle);
-            remainder = new RichParagraphBlock(BuildTextRunsFromWrappedLines(wrapped.Lines, take, wrapped.Lines.Count - take), paragraph.Align, paragraph.DefaultColor, remainderStyle);
-            return true;
-        }
-
-        private static List<PdfTextRun> BuildTextRunsFromWrappedLines(
-            IReadOnlyList<List<RichSeg>> lines,
-            int start,
-            int count) {
-            var runs = new List<PdfTextRun>();
-            for (int lineIndex = 0; lineIndex < count; lineIndex++) {
-                IReadOnlyList<RichSeg> line = lines[start + lineIndex];
-                for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
-                    RichSeg segment = line[segmentIndex];
-                    if (segment.InlineElement != null) {
-                        if (segment.LeadingSpace) {
-                            runs.Add(BuildTextRunFromWrappedSegment(" ", segment));
-                        }
-
-                        runs.Add(PdfTextRun.Inline(segment.InlineElement));
-                        continue;
-                    }
-
-                    string text = (segment.LeadingSpace ? " " : string.Empty) + segment.Text;
-                    if (text.Length == 0) {
-                        continue;
-                    }
-
-                    runs.Add(BuildTextRunFromWrappedSegment(text, segment));
-                }
-
-                if (line.Count > 0 && line[line.Count - 1].EndsWithHardBreak) {
-                    runs.Add(BuildTextRunFromWrappedSegment("\n", line[line.Count - 1]));
-                } else if (lineIndex + 1 < count) {
-                    if (line.Count == 0) {
-                        runs.Add(PdfTextRun.LineBreak());
-                    } else if (line[line.Count - 1].EndsWithTextSeparator) {
-                        runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
-                    }
-                }
-            }
-
-            return runs;
-        }
-
-        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) {
-            var run = new PdfTextRun(
-                text,
-                segment.Bold,
-                segment.Underline,
-                segment.Color,
-                segment.Italic,
-                segment.Strike,
-                segment.FontSize,
-                segment.Font,
-                segment.Uri,
-                segment.Contents,
-                segment.Baseline,
-                segment.DestinationName,
-                backgroundColor: segment.BackgroundColor,
-                fontFamily: segment.NamedFont?.FamilyName,
-                underlineStyle: segment.UnderlineStyle,
-                strikeStyle: segment.StrikeStyle,
-                decorationColor: segment.DecorationColor);
-            if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
-                run = run.WithFeatureSettings(segment.FeatureSettings);
-            if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)
-                run = run.WithTextDirection(segment.TextDirection);
-            return run;
-        }
-
-        private double MeasureColumnBlock(IPdfBlock block, double columnWidth) =>
-            MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, columnWidth, currentOpts.DefaultFontSize);
-
-        private static void ValidateMultiColumnBlocks(IReadOnlyList<IPdfBlock> blocks) {
-            foreach (IPdfBlock block in blocks) {
-                if (PdfFlowNestingRules.IsColumnFlowPrimitive(block) || block is ColumnBreakBlock or PageBreakBlock) {
-                    continue;
-                }
-
-                throw new NotSupportedException("Automatic multi-column flow does not support nested block type " + block.GetType().Name + ". Use separate Columns blocks around that content.");
-            }
-        }
-
         private PdfPanelStyle ResolveContainerStyle(ContainerBlock container) =>
             container.UseDefaultPanelStyle ? currentOpts.DefaultPanelStyleSnapshot ?? container.Style : container.Style;
 
@@ -261,15 +21,22 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double firstVisualHeight = container.Blocks.Count == 0
                 ? 0D
-                : MeasureWithImageHeightReservation(style.PaddingY * 2D, () =>
-                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize));
+                : MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
             double minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
-            if (style.PaddingY * 2D + firstVisualHeight > GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D) {
+            if (style.PaddingY * 2D + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
-            if (y < GetCurrentFramePageStartY() - 0.001D && y - minimumStartHeight < currentOpts.MarginBottom) {
-                NewPage();
+            while (ShouldAdvanceForBlockHeight(minimumStartHeight)) {
+                NewBlockFrame();
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                parentLeft = currentOpts.MarginLeft; parentWidth = width;
+                frame = ResolveContainerFrame(style, parentLeft, parentWidth);
+                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
+                minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
+                if (style.PaddingY * 2D + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
+                    throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
 
             if (style.KeepTogether) {
@@ -279,14 +46,18 @@ internal static partial class PdfWriter {
                     throw new NotSupportedException("KeepTogether requires element content whose height can be determined before rendering. Remove KeepTogether or move dynamic, multi-column, deferred-table, table-of-contents, or explicit page-boundary content outside the element.");
                 }
 
-                double fullPageHeight = GetCurrentFramePageStartY() - currentOpts.MarginBottom;
+                double fullPageHeight = GetMaximumBlockContinuationHeight();
                 if (fullPageKeepHeight.Value > fullPageHeight + 0.001D) {
                     throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }
 
-                if (y < GetCurrentFramePageStartY() - 0.001D && y - keepHeight.Value < currentOpts.MarginBottom) {
-                    NewPage();
+                while (ShouldAdvanceForBlockHeight(keepHeight.Value)) {
+                    NewBlockFrame();
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                    parentLeft = currentOpts.MarginLeft; parentWidth = width;
+                    keepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
+                    if (!keepHeight.HasValue || keepHeight.Value > GetMaximumBlockContinuationHeight() + .001D)
+                        throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }
             } else if (style.KeepWithNext && nextBlock != null) {
                 double? elementHeight = MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
@@ -294,12 +65,18 @@ internal static partial class PdfWriter {
                     throw new NotSupportedException("KeepWithNext requires element content whose height can be determined before rendering. Remove KeepWithNext or move dynamic, multi-column, deferred-table, table-of-contents, canvas, or explicit page-boundary content outside the element.");
                 }
 
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
+                double nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
                 double keepHeight = elementHeight.Value + nextHeight;
-                double fullPageHeight = GetCurrentFramePageStartY() - currentOpts.MarginBottom;
-                if (nextHeight > 0.001D && keepHeight <= fullPageHeight + 0.001D && y < GetCurrentFramePageStartY() - 0.001D && y - keepHeight < currentOpts.MarginBottom) {
-                    NewPage();
+                double fullPageHeight = GetMaximumBlockContinuationHeight();
+                while (nextHeight > 0.001D && keepHeight <= fullPageHeight + 0.001D && ShouldAdvanceForBlockHeight(keepHeight)) {
+                    NewBlockFrame();
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                    parentLeft = currentOpts.MarginLeft; parentWidth = width;
+                    elementHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
+                    if (!elementHeight.HasValue) break;
+                    nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
+                    keepHeight = elementHeight.Value + nextHeight;
+                    fullPageHeight = GetMaximumBlockContinuationHeight();
                 }
             }
 
@@ -309,7 +86,11 @@ internal static partial class PdfWriter {
             PdfOptions parentOptions = currentOpts;
             double parentYStart = yStart;
             PdfOptions pageOptions = currentPage!.Options;
-            outerX = ResolveContainerFrame(style, currentOpts.MarginLeft, parentWidth).X;
+            parentWidth = width;
+            frame = ResolveContainerFrame(style, currentOpts.MarginLeft, parentWidth);
+            outerX = frame.X;
+            outerWidth = frame.Width;
+            contentWidth = frame.ContentWidth;
             var nestedOptions = currentOpts.Clone();
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
@@ -321,7 +102,7 @@ internal static partial class PdfWriter {
             width = contentWidth;
             BeginContainerFragment(scope);
             try {
-                ProcessBlocks(container.Blocks);
+                ProcessBlocks(container.Blocks, container);
                 double bottomPadding = Math.Min(style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
@@ -331,8 +112,8 @@ internal static partial class PdfWriter {
             } finally {
                 activeContainerScopes.RemoveAt(activeContainerScopes.Count - 1);
                 currentOpts = scope.ParentOptions;
-                width = parentWidth;
-                yStart = parentYStart;
+                width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                yStart = activeColumnFlow?.Top ?? parentYStart;
                 if (currentPage != null) {
                     currentPage.Options = scope.PageOptions;
                 }
@@ -356,12 +137,12 @@ internal static partial class PdfWriter {
             return (outerX, outerWidth, contentWidth);
         }
 
-        private void PrepareActiveContainerScopesForPageBreak() {
+        private void PrepareActiveContainerScopesForPageBreak(int firstIndex = 0, int? endIndex = null) {
             if (activeContainerScopes.Count == 0 || currentPage == null) {
                 return;
             }
 
-            for (int index = activeContainerScopes.Count - 1; index >= 0; index--) {
+            for (int index = (endIndex ?? activeContainerScopes.Count) - 1; index >= firstIndex; index--) {
                 ContainerRenderScope scope = activeContainerScopes[index];
                 double bottomPadding = Math.Min(scope.Style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
@@ -370,20 +151,23 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void ResumeActiveContainerScopesOnNewPage() {
+        private void ResumeActiveContainerScopesOnNewPage(int firstIndex = 0, int? endIndex = null) {
             if (activeContainerScopes.Count == 0 || currentPage == null) {
                 return;
             }
 
-            double marginShift = currentOpts.MarginLeft - activeContainerScopes[0].PageOptions.MarginLeft;
-            for (int index = 0; index < activeContainerScopes.Count; index++) {
+            for (int index = firstIndex; index < (endIndex ?? activeContainerScopes.Count); index++) {
                 ContainerRenderScope scope = activeContainerScopes[index];
                 scope.PageOptions = currentPage.Options;
                 scope.ParentOptions = currentOpts;
-                scope.OuterX += marginShift;
+                var frame = ResolveContainerFrame(scope.Style, currentOpts.MarginLeft, width);
+                scope.OuterX = frame.X;
+                scope.OuterWidth = frame.Width;
                 // Only the frame changes during continuation. Reuse child options
                 // and their accumulated font usage instead of copying assets per page.
                 scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
+                scope.NestedOptions.MarginTop = currentOpts.MarginTop;
+                scope.NestedOptions.MarginBottom = currentOpts.MarginBottom;
                 scope.NestedOptions.MarginRight = currentOpts.PageWidth -
                     (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);
                 currentOpts = scope.NestedOptions;
@@ -437,7 +221,7 @@ internal static partial class PdfWriter {
 
             public PdfPanelStyle Style { get; }
             public double OuterX { get; set; }
-            public double OuterWidth { get; }
+            public double OuterWidth { get; set; }
             public PdfOptions PageOptions { get; set; }
             public PdfOptions ParentOptions { get; set; }
             public PdfOptions NestedOptions { get; set; }

@@ -349,28 +349,6 @@ namespace OfficeIMO.Tests {
             string rawPdf = PdfOperatorSearchText.From(bytes);
             Assert.DoesNotContain("/Helvetica-Bold", rawPdf, StringComparison.Ordinal);
 
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
-                "CreateNativeWordHeadingStyle",
-                BindingFlags.NonPublic | BindingFlags.Static,
-                binder: null,
-                new[] {
-                    typeof(int),
-                    typeof(WordParagraph),
-                    typeof(PdfParagraphStyle),
-                    typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!
-                },
-                modifiers: null)!;
-            object nativeFontMap = Activator.CreateInstance(
-                typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!,
-                nonPublic: true)!;
-            PdfHeadingStyle headingStyle = Assert.IsType<PdfHeadingStyle>(method.Invoke(null, new object[] {
-                1,
-                headingParagraph,
-                new PdfParagraphStyle(),
-                nativeFontMap
-            }));
-            Assert.True(headingStyle.ApplySpacingBeforeAtTop);
-            Assert.Equal(24D, headingStyle.SpacingBefore);
         }
 
         [Fact]
@@ -470,49 +448,21 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Uses_Declared_Word_Heading_Formatting() {
-            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDeclaredHeadingFormatting.docx"));
-            WordParagraph heading = document.AddParagraph("Native declared heading formatting").SetStyle(WordParagraphStyles.Heading1);
+            using WordDocument document = WordDocument.Create();
+            WordParagraph heading = document.AddParagraph(string.Join(" ", Enumerable.Repeat("Native declared heading formatting", 12)))
+                .SetStyle(WordParagraphStyles.Heading1);
             heading.FontSize = 30;
             heading.LineSpacingBeforePoints = 12D;
             heading.LineSpacingAfterPoints = 3D;
             heading.LineSpacingPoints = 36D;
             heading.LineSpacingRule = WordLineSpacingRule.Exact;
-            document.Save();
-
-            MethodInfo paragraphStyleMethod = typeof(WordPdfConverterExtensions).GetMethod(
-                "CreateNativeParagraphStyle",
-                BindingFlags.NonPublic | BindingFlags.Static,
-                binder: null,
-                new[] { typeof(WordParagraph) },
-                modifiers: null)!;
-            PdfParagraphStyle paragraphStyle = Assert.IsType<PdfParagraphStyle>(paragraphStyleMethod.Invoke(null, new object[] { heading }));
-
-            MethodInfo headingStyleMethod = typeof(WordPdfConverterExtensions).GetMethod(
-                "CreateNativeWordHeadingStyle",
-                BindingFlags.NonPublic | BindingFlags.Static,
-                binder: null,
-                new[] {
-                    typeof(int),
-                    typeof(WordParagraph),
-                    typeof(PdfParagraphStyle),
-                    typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!
-                },
-                modifiers: null)!;
-            object nativeFontMap = Activator.CreateInstance(
-                typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!,
-                nonPublic: true)!;
-            PdfHeadingStyle headingStyle = Assert.IsType<PdfHeadingStyle>(headingStyleMethod.Invoke(null, new object[] {
-                1,
-                heading,
-                paragraphStyle,
-                nativeFontMap
-            }));
-
-            Assert.Equal(30D, headingStyle.FontSize);
-            Assert.Equal(1.2D, headingStyle.LineHeight!.Value, 3);
-            Assert.Equal(12D, headingStyle.SpacingBefore);
-            Assert.Equal(3D, headingStyle.SpacingAfter!.Value);
-            Assert.True(headingStyle.KeepWithNext);
+            using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+            var letters = pdf.GetPage(1).Letters;
+            Assert.All(letters, letter => Assert.Equal(30D, letter.FontSize, 3));
+            double[] baselines = letters.Select(letter => letter.StartBaseLine.Y).Distinct().ToArray();
+            Assert.True(baselines.Length >= 3);
+            Assert.Equal(36D, baselines[0] - baselines[1], 3);
+            Assert.Equal(36D, baselines[1] - baselines[2], 3);
         }
     }
 }

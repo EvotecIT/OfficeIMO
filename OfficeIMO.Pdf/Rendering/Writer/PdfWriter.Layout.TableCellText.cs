@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
                 paragraph.DefaultTabStopWidth,
                 paragraph.TabStops,
                 ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
-                paragraph.LineSpacing));
+                paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext));
         }
 
         return scaledParagraphs.AsReadOnly();
@@ -102,6 +102,7 @@ internal static partial class PdfWriter {
         var lineXOffsets = new System.Collections.Generic.List<double>();
         var lineWidths = new System.Collections.Generic.List<double>();
         var lineBoxHeights = new System.Collections.Generic.List<double>();
+        var paragraphRanges = new System.Collections.Generic.List<TableCellParagraphRange>();
         double topSpacing = 0D;
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
@@ -142,6 +143,7 @@ internal static partial class PdfWriter {
             }
 
             lines.AddRange(wrap.Lines);
+            paragraphRanges.Add(new TableCellParagraphRange(paragraph, firstNewLineIndex, wrap.Lines.Count));
             lineHeights.AddRange(wrap.LineHeights);
             lineBoxHeights.AddRange(wrap.LineHeights);
             for (int lineIndex = firstNewLineIndex; lineIndex < lines.Count; lineIndex++) {
@@ -170,7 +172,7 @@ internal static partial class PdfWriter {
             lineWidths.Add(wrapWidth);
         }
 
-        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths, topSpacing, lineBoxHeights);
+        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths, topSpacing, lineBoxHeights, paragraphRanges);
     }
 
     private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph, double availableWidth) {

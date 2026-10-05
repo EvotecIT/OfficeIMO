@@ -100,6 +100,8 @@ Both system-font and document-font embedding must be allowed. This setting retai
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
+Line spacing follows document defaults, table styles, paragraph styles and direct formatting, including built-in headings. Automatic spacing uses the effective paragraph and run fonts after substitution or embedding; exact and minimum spacing retain their point units. Rich body and table paragraphs use their own font size during measurement and pagination. A large run on another line or a large paragraph mark does not impose a minimum font size on every rich line. Authored line breaks retain their run formatting, so larger blank lines can expand minimum spacing. Exact spacing keeps a fixed advance; minimum spacing can expand for larger runs or inline elements. An authored line value without a rule uses automatic spacing. A rule without a numeric line value inherits the complete spacing pair. Font substitution can still change line advances. First-baseline placement, baseline offsets between mixed-size lines, clipping within exact-height lines and exact Word pagination remain limited.
+
 ### Export to bytes or streams
 
 ```csharp
@@ -210,7 +212,7 @@ pdf.SaveAsWord(
 
 ## What it exports
 
-- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents.
+- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents. Built-in Word heading levels 1–9 use the same level mapping as the table of contents in body and column flow. Set `WordToPdfOptions.PdfOptions.TaggedStructureMode` to `PdfTaggedStructureMode.CatalogMarkers` to retain explicit numeric levels during PDF reading and editable Word import, including skipped levels. Tagged PDF uses standard-compatible role mappings for levels 7–9. Untagged output retains the bookmark hierarchy, whose nesting depth cannot identify skipped numeric levels.
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.

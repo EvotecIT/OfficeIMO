@@ -15,8 +15,8 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveTableFrameWidth(PdfTableStyle style, double containerWidth) {
-        if (style.LeftIndent < 0 || double.IsNaN(style.LeftIndent) || double.IsInfinity(style.LeftIndent)) {
-            throw new ArgumentException("Table left indent must be a non-negative finite value.");
+        if (double.IsNaN(style.LeftIndent) || double.IsInfinity(style.LeftIndent)) {
+            throw new ArgumentException("Table left indent must be a finite value.");
         }
 
         double frameWidth = containerWidth - style.LeftIndent;

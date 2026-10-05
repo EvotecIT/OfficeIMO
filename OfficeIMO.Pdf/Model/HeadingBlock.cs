@@ -9,7 +9,9 @@ internal sealed class HeadingBlock : IPdfBlock {
     public string? LinkDestinationName { get; }
     public string? LinkContents { get; }
     public PdfHeadingStyle? Style { get; }
-    public HeadingBlock(int level, string text, PdfAlign align, PdfColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    public System.Collections.Generic.IReadOnlyList<PdfTextRun>? Runs { get; }
+    public HeadingBlock(int level, string text, PdfAlign align, PdfColor? color, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null, System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null) {
+        if (level < 1 || level > 9) throw new System.ArgumentOutOfRangeException(nameof(level), level, "Heading level must be between 1 and 9.");
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         Guard.LeftCenterRightAlign(align, nameof(align), "Heading");
         if (linkUri != null && linkDestinationName != null) {
@@ -34,5 +36,6 @@ internal sealed class HeadingBlock : IPdfBlock {
         }
 
         Level = level; Text = text; Align = align; Color = color; LinkUri = linkUri; LinkDestinationName = linkDestinationName; LinkContents = hasLinkTarget ? linkContents ?? text : null; Style = style?.Clone();
+        Runs = runs == null ? null : new System.Collections.Generic.List<PdfTextRun>(runs).AsReadOnly();
     }
 }

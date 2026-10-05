@@ -9,6 +9,7 @@ on:
       - "global.json"
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
+      - "Build/WebsiteBrowserContract/**"
       - ".github/workflows/website-ci.yml"
   workflow_dispatch:
 

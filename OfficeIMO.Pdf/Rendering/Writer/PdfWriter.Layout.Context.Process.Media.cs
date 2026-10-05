@@ -9,9 +9,7 @@ internal static partial class PdfWriter {
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(hr, currentOpts);
             ValidateHorizontalRule(ruleStyle);
             if (ruleStyle.KeepWithNext && nextBlock != null) {
-                double needed = ruleStyle.SpacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                KeepFixedBlockWithNext(needed, nextHeight);
+                KeepFixedBlockWithNext(0D, ruleStyle.Thickness, ruleStyle.SpacingBefore, ruleStyle.SpacingAfter, blockList, blockIndex);
             }
 
             RenderHorizontalRuleBlock(hr, currentOpts.MarginLeft, width);
@@ -21,9 +19,7 @@ internal static partial class PdfWriter {
             PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
             PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
             if (shapeStyle.KeepWithNext && nextBlock != null) {
-                double needed = shapeStyle.SpacingBefore + sbk.Shape.Height + shapeStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                KeepFixedBlockWithNext(needed, nextHeight);
+                KeepFixedBlockWithNext(sbk.Shape.Width, sbk.Shape.Height, shapeStyle.SpacingBefore, shapeStyle.SpacingAfter, blockList, blockIndex);
             }
 
             RenderShapeBlock(sbk, currentOpts.MarginLeft, width);
@@ -33,9 +29,7 @@ internal static partial class PdfWriter {
             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(dbk, currentOpts);
             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
             if (drawingStyle.KeepWithNext && nextBlock != null) {
-                double needed = drawingStyle.SpacingBefore + dbk.Drawing.Height + drawingStyle.SpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                KeepFixedBlockWithNext(needed, nextHeight);
+                KeepFixedBlockWithNext(dbk.Drawing.Width, dbk.Drawing.Height, drawingStyle.SpacingBefore, drawingStyle.SpacingAfter, blockList, blockIndex);
             }
 
             RenderDrawingBlock(dbk, currentOpts.MarginLeft, width);
@@ -49,22 +43,20 @@ internal static partial class PdfWriter {
             double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore);
             var imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
             double needed = imageSpacingBefore + imageBox.Height + imageStyle.SpacingAfter;
-            EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, contentWidth);
-            if (imageStyle.KeepWithNext && nextBlock != null) {
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                double keepHeight = needed + nextHeight;
-                double availableHeight = GetFullPageContentHeight();
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
-                    NewPage();
-                    imageSpacingBefore = 0D;
-                    imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
-                    needed = imageBox.Height + imageStyle.SpacingAfter;
+            EnsureFixedFlowBlockFits("Image", imageBox.Width, imageBox.Height + imageStyle.SpacingAfter, GetMaximumFixedFlowWidth(contentWidth));
+            while (true) {
+                bool advance = imageBox.Width > contentWidth + .001D || y - needed < currentOpts.MarginBottom - .001D;
+                if (!advance && imageStyle.KeepWithNext && nextBlock != null) {
+                    double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                    double keepHeight = needed + nextHeight;
+                    advance = nextHeight > .001D && keepHeight <= GetMaximumBlockContinuationHeight() + .001D && ShouldAdvanceForBlockHeight(keepHeight);
                 }
-            }
-
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
+                if (!advance) break;
+                AdvanceFixedFlowFrame(ref contentWidth);
                 imageSpacingBefore = 0D;
+                imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
+                needed = imageBox.Height + imageStyle.SpacingAfter;
+                EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, GetMaximumFixedFlowWidth(contentWidth));
             }
             if (imageSpacingBefore > 0) y -= imageSpacingBefore;
             EnsurePage();
