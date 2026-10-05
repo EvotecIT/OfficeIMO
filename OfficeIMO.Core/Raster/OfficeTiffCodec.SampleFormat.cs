@@ -4,6 +4,23 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
+    private static bool TryGetAlphaSample(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
+        bool littleEndian, int samples, int baseSamples, out int alphaIndex, out int alphaKind) {
+        alphaIndex = -1; alphaKind = 0;
+        if (samples < baseSamples || samples > ushort.MaxValue) return false;
+        if (samples == baseSamples) return true;
+        if (!TryReadValues(bytes, entries, 338, littleEndian, samples - baseSamples, out int[] extras)) return false;
+        for (int i = 0; i < extras.Length; i++) {
+            if (extras[i] < 0 || extras[i] > 2) return false;
+            if (extras[i] == 0) continue;
+            // A single RGBA result cannot resolve multiple independent alpha channels.
+            if (alphaIndex >= 0) return false;
+            alphaIndex = baseSamples + i;
+            alphaKind = extras[i];
+        }
+        return true;
+    }
+
     private static bool TryGetSampleByteCount(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
         bool littleEndian, int samples, int photometric, out int sampleBytes, out bool floating, out int packedBits) {
         sampleBytes = 0; floating = false; packedBits = 0;

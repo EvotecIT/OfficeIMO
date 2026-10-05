@@ -5,11 +5,10 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeTiffCodec {
     private static void ConvertUnsigned16Pixel(
         byte[] source, int offset, bool littleEndian, int photometric,
-        bool hasExtraSample, int alphaKind, double[]? colorComponents,
+        int alphaIndex, int alphaKind, double[]? colorComponents,
         out byte red, out byte green, out byte blue, out byte alpha) {
-        int baseSamples = photometric == 2 ? 3 : photometric == 5 ? 4 : 1;
-        int alphaSample = hasExtraSample && alphaKind != 0
-            ? ReadUInt16(source, offset + baseSamples * 2, littleEndian)
+        int alphaSample = alphaIndex >= 0
+            ? ReadUInt16(source, offset + alphaIndex * 2, littleEndian)
             : ushort.MaxValue;
         alpha = ColorMapByte(alphaSample);
 

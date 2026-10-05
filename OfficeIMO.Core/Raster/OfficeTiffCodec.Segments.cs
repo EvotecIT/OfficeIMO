@@ -18,7 +18,8 @@ public static partial class OfficeTiffCodec {
         int planarConfiguration,
         int predictor,
         bool floating,
-        int meaningfulSamples,
+        int baseSamples,
+        int alphaIndex,
         OfficeRasterDecodeOptions options,
         TiffValidationBudget? validationBudget,
         bool retainPixels,
@@ -120,7 +121,8 @@ public static partial class OfficeTiffCodec {
                 if (predictor == 3) ReverseFloatingPredictor(decoded, decodedOffset, rows, width,
                     segmentSamples, sampleBytes, littleEndian, options.CancellationToken);
                 if (floating && !retainPixels) ValidateFloatingSamples(decoded, decodedOffset, width, width, rows,
-                    segmentSamples, planarConfiguration == 2 ? (plane < meaningfulSamples ? 1 : 0) : meaningfulSamples,
+                    segmentSamples, planarConfiguration == 2 ? (plane < baseSamples ? 1 : 0) : baseSamples,
+                    planarConfiguration == 2 ? (plane == alphaIndex ? 0 : -1) : alphaIndex,
                     sampleBytes, littleEndian, options.CancellationToken);
                 if (retainPixels && planarConfiguration == 2) {
                     CopyPlanarRows(decoded, source, plane, samples, sampleBytes, width, rowStart, rows, options);
@@ -198,7 +200,8 @@ public static partial class OfficeTiffCodec {
                 tileSamples, sampleBytes, littleEndian, options.CancellationToken);
             if (floating && !retainPixels) ValidateFloatingSamples(tileDecoded, 0, tileWidth,
                 Math.Min(tileWidth, width - tileX), Math.Min(tileHeight, height - tileY), tileSamples,
-                planarConfiguration == 2 ? (plane < meaningfulSamples ? 1 : 0) : meaningfulSamples,
+                planarConfiguration == 2 ? (plane < baseSamples ? 1 : 0) : baseSamples,
+                    planarConfiguration == 2 ? (plane == alphaIndex ? 0 : -1) : alphaIndex,
                 sampleBytes, littleEndian, options.CancellationToken);
             if (retainPixels) {
                 CopyTile(tileDecoded, source, plane, planarConfiguration, samples, sampleBytes, width, height,

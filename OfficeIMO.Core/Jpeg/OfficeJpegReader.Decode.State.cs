@@ -1,0 +1,356 @@
+using System;
+using System.Threading;
+
+namespace OfficeIMO.Drawing;
+
+internal static partial class OfficeJpegReader {
+    private struct Component {
+        public byte Id;
+        public int H;
+        public int V;
+        public byte QuantId;
+        public byte DcTable;
+        public byte AcTable;
+    }
+
+    private struct JpegFrame {
+        public int Width;
+        public int Height;
+        public int ComponentCount;
+        public Component[] Components;
+        public int MaxH;
+        public int MaxV;
+    }
+
+    private struct ScanHeader {
+        public int[] ComponentIndices;
+        public byte Ss;
+        public byte Se;
+        public byte Ah;
+        public byte Al;
+    }
+
+    internal static bool TryInitializeDecodeWorkingSet(
+        long retainedEncodedBytes,
+        int width,
+        int height,
+        int orientation,
+        out long reservedBytes,
+        int outputComponents = 4) {
+        reservedBytes = 0L;
+        if (retainedEncodedBytes < 0L || width < 1 || height < 1 || orientation < 1 || orientation > 8 || outputComponents < 1 || outputComponents > 255) {
+            return false;
+        }
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            reservedBytes = checked(
+                retainedEncodedBytes + checked((long)width * height * outputComponents) +
+                (orientation > 1 ? rgbaBytes : 0L) + 64L * 1024L);
+            return reservedBytes <= OfficeRasterGuards.MaximumDecodedBytes;
+        } catch (OverflowException) {
+            reservedBytes = 0L;
+            return false;
+        }
+    }
+
+    internal static bool TryReserveOrientationCanvas(
+        int width,
+        int height,
+        ref long reservedBytes,
+        ref bool orientationCanvasReserved) {
+        if (orientationCanvasReserved) return true;
+        if (width < 1 || height < 1 || reservedBytes < 0L) return false;
+        try {
+            long rgbaBytes = checked((long)width * height * 4L);
+            long updatedBytes = checked(reservedBytes + rgbaBytes);
+            if (updatedBytes > OfficeRasterGuards.MaximumDecodedBytes) return false;
+            reservedBytes = updatedBytes;
+            orientationCanvasReserved = true;
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
+    }
+
+    private sealed class BaselineState {
+        public BaselineComponentState[] Components = Array.Empty<BaselineComponentState>();
+        public bool[] DecodedComponents = Array.Empty<bool>();
+        public int McuCols;
+        public int McuRows;
+        private long _reservedBytes;
+        private bool _orientationCanvasReserved;
+
+        public static BaselineState Create(JpegFrame frame, int orientation, long retainedEncodedBytes) {
+            var mcuWidth = frame.MaxH * 8;
+            var mcuHeight = frame.MaxV * 8;
+            var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
+            var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
+            var components = new BaselineComponentState[frame.ComponentCount];
+            if (!TryInitializeDecodeWorkingSet(
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount))) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
+            for (var i = 0; i < frame.ComponentCount; i++) {
+                var component = frame.Components[i];
+                var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * component.H, JpegDimensionsLimitMessage);
+                var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * component.V, JpegDimensionsLimitMessage);
+                components[i] = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes);
+            }
+
+            return new BaselineState {
+                Components = components,
+                DecodedComponents = new bool[frame.ComponentCount],
+                McuCols = mcuCols,
+                McuRows = mcuRows,
+                _reservedBytes = aggregateBytes,
+                _orientationCanvasReserved = orientation > 1
+            };
+        }
+
+        public void ReserveOrientationCanvas(JpegFrame frame) {
+            if (!TryReserveOrientationCanvas(
+                    frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
+        }
+
+        public byte[] RenderRgba(
+            JpegFrame frame,
+            int? adobeTransform,
+            bool highQualityChroma,
+            CancellationToken cancellationToken) {
+            for (var i = 0; i < DecodedComponents.Length; i++) {
+                if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
+            }
+
+            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, cancellationToken);
+        }
+
+        public byte[] RenderColorComponents(
+            JpegFrame frame,
+            int? adobeTransform,
+            int? requestedColorTransform,
+            bool usePdfColorTransformDefault,
+            bool highQualityChroma,
+            CancellationToken cancellationToken,
+            out int componentCount) {
+            for (var i = 0; i < DecodedComponents.Length; i++) {
+                if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
+            }
+
+            return ComposeColorComponents(
+                frame,
+                Components,
+                adobeTransform,
+                requestedColorTransform,
+                usePdfColorTransformDefault,
+                highQualityChroma,
+                outputRgba: false,
+                cancellationToken,
+                out componentCount);
+        }
+    }
+
+    private sealed class BaselineComponentState {
+        public Component Component;
+        public byte[] Buffer;
+        public int[] BlockCoeffs;
+        public byte[] BlockPixels;
+        public int[] BlockWorkspace;
+        public int Stride;
+        public int BlocksPerRow;
+        public int BlocksPerCol;
+        public int PrevDc;
+
+        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes) {
+            Component = component;
+            BlocksPerRow = blocksPerRow;
+            BlocksPerCol = blocksPerCol;
+            Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
+            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
+            Buffer = new byte[bufferLength];
+            BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            PrevDc = 0;
+        }
+
+        public static BaselineComponentState FromDecodedBuffer(
+            Component component,
+            int blocksPerRow,
+            int blocksPerCol,
+            int stride,
+            byte[] buffer) {
+            return new BaselineComponentState {
+                Component = component,
+                BlocksPerRow = blocksPerRow,
+                BlocksPerCol = blocksPerCol,
+                Stride = stride,
+                Buffer = buffer,
+                BlockCoeffs = Array.Empty<int>(),
+                BlockPixels = Array.Empty<byte>(),
+                BlockWorkspace = Array.Empty<int>()
+            };
+        }
+
+        private BaselineComponentState() {
+            Buffer = Array.Empty<byte>();
+            BlockCoeffs = Array.Empty<int>();
+            BlockPixels = Array.Empty<byte>();
+            BlockWorkspace = Array.Empty<int>();
+        }
+    }
+
+    private sealed class ProgressiveState {
+        public ProgressiveComponentState[] Components = Array.Empty<ProgressiveComponentState>();
+        public int McuCols;
+        public int McuRows;
+        private long _reservedBytes;
+        private bool _orientationCanvasReserved;
+
+        public static ProgressiveState Create(
+            JpegFrame frame,
+            int[][] quantTables,
+            int orientation,
+            long retainedEncodedBytes) {
+            var maxH = frame.MaxH;
+            var maxV = frame.MaxV;
+            var mcuWidth = maxH * 8;
+            var mcuHeight = maxV * 8;
+            var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
+            var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
+
+            var components = new ProgressiveComponentState[frame.ComponentCount];
+            if (!TryInitializeDecodeWorkingSet(
+                    retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount))) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
+            for (var i = 0; i < frame.ComponentCount; i++) {
+                var comp = frame.Components[i];
+                if (comp.QuantId >= quantTables.Length || quantTables[comp.QuantId] is null) {
+                    throw new FormatException("Missing JPEG quantization table.");
+                }
+                var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * comp.H, JpegDimensionsLimitMessage);
+                var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * comp.V, JpegDimensionsLimitMessage);
+                components[i] = new ProgressiveComponentState(
+                    comp,
+                    blocksPerRow,
+                    blocksPerCol,
+                    quantTables[comp.QuantId],
+                    ref aggregateBytes);
+            }
+
+            return new ProgressiveState {
+                Components = components,
+                McuCols = mcuCols,
+                McuRows = mcuRows,
+                _reservedBytes = aggregateBytes,
+                _orientationCanvasReserved = orientation > 1
+            };
+        }
+
+        public void ReserveOrientationCanvas(JpegFrame frame) {
+            if (!TryReserveOrientationCanvas(
+                    frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
+                throw new FormatException(JpegDimensionsLimitMessage);
+            }
+        }
+
+        public byte[] RenderRgba(
+            JpegFrame frame,
+            int? adobeTransform,
+            bool highQualityChroma,
+            CancellationToken cancellationToken) {
+            BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
+            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, cancellationToken);
+        }
+
+        public byte[] RenderColorComponents(
+            JpegFrame frame,
+            int? adobeTransform,
+            int? requestedColorTransform,
+            bool usePdfColorTransformDefault,
+            bool highQualityChroma,
+            CancellationToken cancellationToken,
+            out int componentCount) {
+            BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
+            return ComposeColorComponents(
+                frame,
+                baselineStates,
+                adobeTransform,
+                requestedColorTransform,
+                usePdfColorTransformDefault,
+                highQualityChroma,
+                outputRgba: false,
+                cancellationToken,
+                out componentCount);
+        }
+
+        private BaselineComponentState[] CreateBaselineStates(CancellationToken cancellationToken) {
+            for (var i = 0; i < Components.Length; i++) {
+                var compState = Components[i];
+                for (var by = 0; by < compState.BlocksPerCol; by++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (var bx = 0; bx < compState.BlocksPerRow; bx++) {
+                        var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
+                        for (int coefficient = 0; coefficient < 64; coefficient++) {
+                            compState.BlockCoeffs[coefficient] =
+                                checked(compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient]);
+                        }
+                        InverseDct(compState.BlockCoeffs, compState.BlockPixels, compState.BlockWorkspace);
+                        WriteBlock(compState.Buffer, compState.Stride, bx, by, compState.BlockPixels);
+                    }
+                }
+            }
+
+            var baselineStates = new BaselineComponentState[Components.Length];
+            for (var i = 0; i < Components.Length; i++) {
+                var compState = Components[i];
+                baselineStates[i] = BaselineComponentState.FromDecodedBuffer(
+                    compState.Component,
+                    compState.BlocksPerRow,
+                    compState.BlocksPerCol,
+                    compState.Stride,
+                    compState.Buffer);
+            }
+
+            return baselineStates;
+        }
+    }
+
+    private sealed class ProgressiveComponentState {
+        public Component Component;
+        public int BlocksPerRow;
+        public int BlocksPerCol;
+        public short[] Coeffs;
+        public int[] Quantization;
+        public byte[] Buffer;
+        public int[] BlockCoeffs;
+        public byte[] BlockPixels;
+        public int[] BlockWorkspace;
+        public int Stride;
+        public int PrevDc;
+
+        public ProgressiveComponentState(
+            Component component,
+            int blocksPerRow,
+            int blocksPerCol,
+            int[] quantization,
+            ref long aggregateBytes) {
+            Component = component;
+            BlocksPerRow = blocksPerRow;
+            BlocksPerCol = blocksPerCol;
+            Quantization = quantization;
+            Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
+            var coeffLength = OfficeRasterGuards.EnsureInt16ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
+            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
+            Coeffs = new short[coeffLength];
+            Buffer = new byte[bufferLength];
+            BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            PrevDc = 0;
+        }
+    }
+
+}

@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffExtraSamples", 0, 0)]
+    [InlineData(XpsFormat.OpenXps, "TiffExtraSamples", 0, 0)]
     [InlineData(XpsFormat.Xps, "TiffJpegLowAlpha", 35, 19)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegLowAlpha", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegAlpha", 35, 19)]
@@ -24,13 +26,15 @@ public sealed class XpsTiffJpegTests {
     [InlineData(XpsFormat.OpenXps, "TiffJpegCosited", 0, 0)]
     public void JpegTiffResourcesRetainRasterSvgAndPdfPaint(XpsFormat format, string folder, int width, int height) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", folder);
+        bool hasAlphaCorpus = folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples";
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
+            if (folder == "TiffExtraSamples") { width = int.Parse(fields[5]); height = int.Parse(fields[6]); }
             if (folder == "TiffJpegCosited") { width = int.Parse(fields[7]); height = int.Parse(fields[8]); }
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, fields[0])), "image/tiff");
             document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
-            if ((folder == "TiffJpeg" || folder == "TiffJpegExtended" || (folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha")) && fields[1] == "5") {
+            if ((folder == "TiffJpeg" || folder == "TiffJpegExtended" || hasAlphaCorpus) && fields[1] == "5") {
                 var originalPage = document.Pages[0];
                 Assert.Throws<NotSupportedException>(() => originalPage.ToDrawing());
                 byte[] profile = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IccColorCorpus", "littlecms-cmyk-lut.icc"));
@@ -41,7 +45,7 @@ public sealed class XpsTiffJpegTests {
                 originalPage.ReplaceMarkup(markup);
             }
             var page = XpsDocument.Load(document.Save()).Pages[0];
-            if ((folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha")) {
+            if (hasAlphaCorpus) {
                 Assert.True(OfficeTiffCodec.TryDecode(File.ReadAllBytes(Path.Combine(corpus, fields[0])), out var source));
                 var transparent = OfficeDrawingRasterRenderer.Render(page.ToDrawing());
                 for (int ay = 0; ay < height; ay++) for (int ax = 0; ax < width; ax++)
@@ -50,7 +54,7 @@ public sealed class XpsTiffJpegTests {
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
-            foreach (var background in folder == "TiffJpegLowAlpha" ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
+            foreach (var background in (folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples") ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
                 var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: background);
                 var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: background);
                 var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),

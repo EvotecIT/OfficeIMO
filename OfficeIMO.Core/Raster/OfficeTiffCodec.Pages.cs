@@ -232,7 +232,7 @@ public static partial class OfficeTiffCodec {
             !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples) ||
             (planarConfiguration != 1 && planarConfiguration != 2) ||
             (predictor < 1 || predictor > 3) ||
-            (samples != baseSamples && samples != baseSamples + 1) ||
+            !TryGetAlphaSample(encodedBytes, entries, littleEndian, samples, baseSamples, out int alphaIndex, out _) ||
             (compression != (int)OfficeTiffCompression.None &&
              compression != (int)OfficeTiffCompression.Lzw &&
              compression != (int)OfficeTiffCompression.PackBits &&
@@ -257,15 +257,8 @@ public static partial class OfficeTiffCodec {
         if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 3 * (1 << (packedBits == 0 ? 8 : packedBits)), out _)) {
             return false;
         }
-        int meaningfulSamples = samples;
-        if (samples == baseSamples + 1) {
-            if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-                extraSamples[0] < 0 || extraSamples[0] > 2) return false;
-            if (extraSamples[0] == 0) meaningfulSamples = baseSamples;
-        }
-
         return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, packedBits, photometric,
-            compression, planarConfiguration, predictor, floating, meaningfulSamples, options, validationBudget,
+            compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, options, validationBudget,
             retainPixels: false, out _);
     }
 

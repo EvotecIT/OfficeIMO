@@ -7,10 +7,9 @@ public static partial class OfficeTiffCodec {
     // Floating TIFF samples are normalized device components, not an implicit scRGB
     // declaration. Preserve their precision for unassociation and explicit ICC conversion.
     private static void ConvertFloatingPixel(byte[] source, int offset, int sampleBytes, bool littleEndian,
-        int photometric, bool hasExtraSample, int alphaKind, double[]? colorComponents,
+        int photometric, int alphaIndex, int alphaKind, double[]? colorComponents,
         out byte red, out byte green, out byte blue, out byte alpha) {
-        int baseSamples = photometric == 2 ? 3 : photometric == 5 ? 4 : 1;
-        double alphaSample = hasExtraSample && alphaKind != 0 ? ReadFloatingSample(source, offset + baseSamples * sampleBytes, sampleBytes, littleEndian) : 1D;
+        double alphaSample = alphaIndex >= 0 ? ReadFloatingSample(source, offset + alphaIndex * sampleBytes, sampleBytes, littleEndian) : 1D;
         alpha = QuantizeFloatingComponent(alphaSample);
         double Component(int channel) {
             double value = ReadFloatingSample(source, offset + channel * sampleBytes, sampleBytes, littleEndian);
@@ -66,14 +65,15 @@ public static partial class OfficeTiffCodec {
     }
 
     private static void ValidateFloatingSamples(byte[] bytes, int offset, int storedWidth, int columns, int rows,
-        int samples, int meaningfulSamples, int sampleBytes, bool littleEndian, CancellationToken cancellation) {
+        int samples, int baseSamples, int alphaIndex, int sampleBytes, bool littleEndian, CancellationToken cancellation) {
         for (int y = 0; y < rows; y++) {
             cancellation.ThrowIfCancellationRequested();
             for (int x = 0; x < columns; x++) {
                 if ((x & 0xFFF) == 0) cancellation.ThrowIfCancellationRequested();
                 int pixel = offset + (y * storedWidth + x) * samples * sampleBytes;
-                for (int c = 0; c < meaningfulSamples; c++)
+                for (int c = 0; c < baseSamples; c++)
                     ReadFloatingSample(bytes, pixel + c * sampleBytes, sampleBytes, littleEndian);
+                if (alphaIndex >= 0) ReadFloatingSample(bytes, pixel + alphaIndex * sampleBytes, sampleBytes, littleEndian);
             }
         }
     }

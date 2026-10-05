@@ -57,10 +57,10 @@ above the page height, including 0xFFFFFFFF, describe a single strip. T.4/T.6 un
 pixels, five-zero stuffing and exit-color resumption within a row. Baseline and extended sequential eight-bit JPEG (compression 7) accept shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
 planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
-component order; JPEG application markers cannot override them. A single extra
-sample supports unspecified data, associated alpha or unassociated alpha for gray,
-RGB, CMYK and YCbCr. Subsampled YCbCr keeps alpha at luma resolution. Chunky
-CMYK/alpha uses five-component frames with separate scans. Legacy compression
+component order; JPEG application markers cannot override them. Extra samples support unspecified data and one declared associated or
+unassociated alpha channel at any extra-channel position for gray, RGB, CMYK and
+YCbCr; multiple declared alpha channels are rejected. Subsampled YCbCr keeps alpha at luma resolution. Chunky JPEG frames with more than four components use separate scans;
+raw component decoding retains frame order without inventing a standalone color space. Legacy compression
 6, twelve-bit, lossless and arithmetic JPEG processes remain unsupported. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
@@ -140,6 +140,17 @@ source recovery. The 768 XPS/OpenXPS light/dark exports provide 510,720 pixel-ce
 probes per route: independent MuPDF differences are at most 4/255 for PDF and
 2/255 for SVG. GhostXPS still differs by up to 255; native Windows acceptance
 remains unqualified.
+
+Multiple-extra-sample qualification adds [288 fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffExtraSamples/README.md)
+with three extra channels: one declared alpha at the first, middle or last position,
+or no alpha. The 192 lossless and 96 JPEG fixtures cover 125,856 pixels; decoded
+alpha agrees exactly and RGB differs by at most 6/255. Unspecified floating channels
+contain NaN and remain ignored. JPEG frames with more than four components use
+independently decoded individual entropy scans; whole-file native acceptance of
+these frames is not established. Both dialects produce 1,152 light/dark exports
+with 503,424 pixel-center probes per route. MuPDF differences are at most 4/255
+for PDF and 2/255 for SVG. GhostXPS crashes on 128 exports and differs by up to
+255/255 on the remaining outputs. Native Windows acceptance remains open.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,

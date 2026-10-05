@@ -107,7 +107,7 @@ public static partial class OfficeTiffCodec {
                      compression != (int)OfficeTiffCompression.Deflate &&
                      compression != 32946 && compression != 7 && !IsTiffFaxCompression(compression)) ||
                     orientation < 1 || orientation > 8 ||
-                    (samples != baseSamples && samples != baseSamples + 1) ||
+                    !TryGetAlphaSample(encodedBytes, entries, littleEndian, samples, baseSamples, out int alphaIndex, out int alphaKind) ||
                     rowsPerStrip < 1 ||
                     (planarConfiguration != 1 && planarConfiguration != 2) ||
                     (predictor < 1 || predictor > 3)) {
@@ -134,20 +134,11 @@ public static partial class OfficeTiffCodec {
                       (photometric == 2 || photometric == 3 || photometric == 6) && colorProfile.ComponentCount == 3 ||
                       photometric == 5 && colorProfile.ComponentCount == 4)) return false;
                 double[]? colorComponents = colorProfile == null ? null : new double[colorProfile.ComponentCount];
-                int alphaKind = 2;
-                if (samples == baseSamples + 1) {
-                    if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-                        (extraSamples[0] < 0 || extraSamples[0] > 2)) {
-                        return false;
-                    }
-                    alphaKind = extraSamples[0];
-                }
-
                 long maximumDecodeWorkBytes = OfficeRasterGuards.MaximumDecodedBytes - effective.RetainedManagedBytes;
                 if (maximumDecodeWorkBytes < 1L) return false;
                 var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
                 if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, packedBits, photometric,
-                        compression, planarConfiguration, predictor, floating, alphaKind == 0 ? baseSamples : samples, effective, decodeWorkBudget,
+                        compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;
 
                 int orientedWidth = orientation >= 5 ? height : width;
@@ -163,15 +154,15 @@ public static partial class OfficeTiffCodec {
                         byte red, green, blue, alpha;
                         if (floating) {
                             ConvertFloatingPixel(source, sourcePixel, sampleBytes, littleEndian, photometric,
-                                samples > baseSamples, alphaKind, colorComponents,
+                                alphaIndex, alphaKind, colorComponents,
                                 out red, out green, out blue, out alpha);
                         } else if (sampleBytes == 2) {
                             ConvertUnsigned16Pixel(source, sourcePixel, littleEndian, photometric,
-                                samples > baseSamples, alphaKind, colorComponents,
+                                alphaIndex, alphaKind, colorComponents,
                                 out red, out green, out blue, out alpha);
                         } else {
-                            alpha = samples == baseSamples + 1 && alphaKind != 0
-                                ? source[sourcePixel + baseSamples]
+                            alpha = alphaIndex >= 0
+                                ? source[sourcePixel + alphaIndex]
                                 : (byte)255;
                             ConvertPixel(source, sourcePixel, photometric == 6 ? 2 : photometric, alphaKind, alpha, colorMap,
                                 out red, out green, out blue);
