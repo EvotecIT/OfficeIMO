@@ -1076,11 +1076,11 @@
         },
         "standalone": {
           "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2826",
-          "head": "0c8776a7ddcce4258040c367fe47c12f41665256",
-          "base": "e0e13a2403444f0d7a8b4d17a78491e3b60835fe",
+          "head": "f16c2ec83239eeaaf0907f1cbd6ebd0c1013b678",
+          "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
           "proof": "../OfficeIMO-raster-contour-single-tile/Ignore/ContourSingleTileQualification/receipt.json",
           "validation": "Full Drawing3319 eachnet8/net10;Corestandard0warnings;same independent pixel/resource controls. Code blobs identical to reviewed12candidate. No larger HTML/runtime dependency.",
-          "publication": "Normal attached PR; initial complete feedback empty/current CI pending. No delayed readiness claim.",
+          "publication": "Accepted website validation owner included; exact-head initialCI96queued3skip and complete feedback0unresolved. New delayed check required, no merge-readiness claim.",
           "cleanup": "Ten generated targets357175247bytes removed, all absent; six actual native filesystem errors recovered with guarded helper. Required proof/source retained.",
           "delayedSnapshot": {
             "checkedUtc": "2026-10-05T17:02:00Z",
@@ -1088,7 +1088,8 @@
             "checks": "98success6skip1failure",
             "feedback": "Complete paginated review/nested comments/reviews/raw/issue/reactions;0 unresolved or actionable review findings.",
             "failure": "Website browser readiness in Test-BenchmarkPage.Browser.ps1:95; generated site and Chromium endpoint not ready. Failure preserved, root cause unresolved; merge held."
-          }
+          },
+          "acceptedMasterUpdate": "Conflict-free merge139files; Core/Drawing owner bytes unchanged.33contour contracts net10pass, normalCorestandard0warnings. Full combined graph remains exact-head CI gate."
         }
       }
     },
@@ -1096,11 +1097,26 @@
       "source": "554193ba5a2fe7482a0499ab3be5b452bffcef80",
       "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2828",
       "role": "Test-only published HtmlTinkerX browser session replaces consumer-owned Chromium/CDP harness; server errors reported; same rendered benchmark assertions retained. No production dependency or product API change.",
-      "proof": "../OfficeIMO-website-benchmark-browser-contract/Ignore/WebsiteBrowserQualification/qualification.json",
+      "proof": "Ignore/MasterConvergenceQualification/merged-website-browser-24b7a28ac/qualification.json",
       "receiptSha256": "9e8dd1fabf4c46faa5a9182d3c5667fb8653a0c4d93af26bf122aaaae4170a21",
       "localReview": "Fresh full read-only pass plus targeted routing/build-isolation/cleanup confirmation, all valid findings fixed.",
       "localBehavior": "Styled generated page passes both selections; missing-page, failed-server and wrong-page controls fail. Five generated targets268596574bytes removed with absence proof.",
-      "remaining": "Exact-head website CI and delayed feedback. Original Linux startup cause unconfirmed. PR2826 cannot merge while its failed website gate remains."
+      "remaining": "Standalone validation owner merged and worktree/local branch removed. Raster PR updated from accepted master; its new exact-head CI and delayed feedback remain required. No qualification-branch adoption.",
+      "state": "MERGED",
+      "head": "554193ba5a2fe7482a0499ab3be5b452bffcef80",
+      "mergeCommit": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+      "mergedAt": "2026-10-05T19:23:57Z",
+      "currentHeadChecks": {
+        "success": 85,
+        "skipped": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "delayedFeedback": "2026-10-05T19:20:43Z complete paginated snapshot, no threads/reviews/raw/issue comments/reactions pending",
+      "evidence": "Ignore/MasterConvergenceQualification/merged-website-browser-24b7a28ac/preservation-manifest.json",
+      "worktreeCleanup": "Ignore/MasterConvergenceQualification/merged-website-browser-24b7a28ac/worktree-cleanup.json",
+      "preservedFiles": 42,
+      "preservedBytes": 2694003
     }
   }
 }
