@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
                     AddLegacyDocNoteReference(paragraph, notes, markerPosition, legacyRun);
                 } else if (character == LegacyDocCommentReader.CommentReferenceCharacter) {
-                    AddLegacyDocCommentReference(paragraph, notes, markerPosition);
+                    AddLegacyDocCommentReference(paragraph, notes, markerPosition, legacyRun);
                 } else {
                     AddLegacyDocRevisionElement(paragraph, legacyRun, new Break { Type = GetLegacyDocBreakType(character) });
                 }
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
             AppendLegacyDocRevisionRun(paragraph, legacyRun, run);
         }
 
-        private static void ApplyLegacyDocNoteReferenceFormatting(WordParagraph paragraph, WordParagraph reference, LegacyDocTextRun legacyRun) {
+        private static void ApplyLegacyDocReferenceFormatting(WordParagraph paragraph, WordParagraph reference, LegacyDocTextRun legacyRun) {
             ApplyLegacyDocRunFormatting(reference, legacyRun);
             if (legacyRun.Revision.HasValue && reference._run is Run run) {
                 run.Remove();

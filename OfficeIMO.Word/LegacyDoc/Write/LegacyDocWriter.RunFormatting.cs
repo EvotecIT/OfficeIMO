@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             text,
                             runs,
                             LegacyDocCommentReader.CommentReferenceCharacter.ToString(),
-                            LegacyDocWritableFormatting.SpecialCharacter);
+                            formatting.WithSpecialCharacter());
                         break;
                     case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
                         if (pictures == null || ownerPart == null) {

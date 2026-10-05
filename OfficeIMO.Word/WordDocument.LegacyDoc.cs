@@ -1133,7 +1133,7 @@ namespace OfficeIMO.Word {
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
                     AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index), legacyRun);
                 } else if (character == LegacyDocCommentReader.CommentReferenceCharacter) {
-                    AddLegacyDocCommentReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
+                    AddLegacyDocCommentReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index), legacyRun);
                 } else {
                     AddLegacyDocBreak(paragraph, legacyRun, GetLegacyDocBreakType(character));
                 }
@@ -1169,7 +1169,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition) {
+        private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition, LegacyDocTextRun legacyRun) {
             if (characterPosition == null
                 || !notes.TryGetComment(characterPosition.Value, out LegacyDocComment? comment)
                 || comment!.Paragraphs.Count == 0) {
@@ -1181,7 +1181,8 @@ namespace OfficeIMO.Word {
                 ?? paragraph._paragraph.AppendChild(new Run());
             paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchorRun);
             var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchorRun);
-            paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
+            Run reference = paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
+            ApplyLegacyDocReferenceFormatting(paragraph, new WordParagraph(paragraph._document, paragraph._paragraph, reference), legacyRun);
         }
 
         private static WordComment CreateLegacyDocComment(WordDocument document, LegacyDocComment comment, LegacyDocStyleSheet styleSheet) {
@@ -1210,7 +1211,7 @@ namespace OfficeIMO.Word {
             }
 
             WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text);
-            ApplyLegacyDocNoteReferenceFormatting(paragraph, reference, legacyRun);
+            ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
@@ -1243,7 +1244,7 @@ namespace OfficeIMO.Word {
             }
 
             WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text);
-            ApplyLegacyDocNoteReferenceFormatting(paragraph, reference, legacyRun);
+            ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
