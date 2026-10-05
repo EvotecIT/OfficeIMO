@@ -29,6 +29,7 @@
   <ItemGroup>
     <None Update="Fixtures/ColorImages/*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures/PngColorimetry/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/ImageDefaults/*.tif;Fixtures/ImageDefaults/*.jpg;Fixtures/ImageDefaults/expected.csv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup><ProjectReference Include="..\OfficeIMO.Xps.Pdf\OfficeIMO.Xps.Pdf.csproj" />

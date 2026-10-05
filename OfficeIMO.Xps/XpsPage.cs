@@ -53,7 +53,8 @@ public sealed partial class XpsPage {
         string name = XpsPackage.Resolve(PartName, imageUri);
         string type = Document.ContentType(name);
         if (type != "image/png" && type != "image/jpeg" && type != "image/tiff") throw new NotSupportedException("The image creation API supports embedded PNG, JPEG and TIFF resources.");
-        var info = OfficeImageReader.Identify(Document.Part(name));
+        if (!OfficeImageReader.TryIdentifyByContent(Document.Part(name), null, CancellationToken.None, out var info, ignoreTiffOrientation: true))
+            throw new NotSupportedException("Image format is not supported.");
         double iw = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), ih = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);
         XNamespace ns = _markup.Name.Namespace;
         _markup.Add(new XElement(ns + "Path", new XAttribute("Data", "M" + XpsPackage.N(x) + "," + XpsPackage.N(y) + " h" + XpsPackage.N(width) + " v" + XpsPackage.N(height) + " h" + XpsPackage.N(-width) + " Z"),

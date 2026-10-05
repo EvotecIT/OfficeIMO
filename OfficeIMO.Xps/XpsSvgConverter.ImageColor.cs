@@ -4,7 +4,8 @@ namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
     private OfficeRasterDecodeOptions ImageDecodeOptions() => new() {
-        MaximumDecodedPixels = 4_000_000, CancellationToken = _token, RetainedManagedBytes = _profileAllowance
+        MaximumDecodedPixels = 4_000_000, CancellationToken = _token, RetainedManagedBytes = _profileAllowance,
+        IgnoreTiffOrientation = true
     };
 
     // ECMA-388 15.3.7: a usable associated profile takes precedence; otherwise
@@ -39,6 +40,11 @@ internal sealed partial class XpsSvgConverter {
             // downstream SVG/PDF consumers cannot reinterpret those samples.
             if (format == OfficeImageFormat.Png && !metadata.HasOtherPngColorRenderingMetadata &&
                 OfficeRasterImageDecoder.TryDecodePngDefault(bytes, ImageDecodeOptions(), out raster) && raster != null) return true;
+            // JPEG and TIFF use the same integer sRGB/gray defaults (M8.30).
+            // Decode the supported device samples and remove non-ICC descriptions
+            // before an SVG/PDF consumer can apply its own calibration or EXIF rules.
+            if ((format == OfficeImageFormat.Jpeg || format == OfficeImageFormat.Tiff) &&
+                OfficeRasterImageDecoder.TryDecode(bytes, ImageDecodeOptions(), out raster, out _) && raster != null) return true;
             Loss("Image color metadata without a supported ICC profile"); return false;
         }
         if (format == OfficeImageFormat.Png && metadata.HasPngAnimation &&

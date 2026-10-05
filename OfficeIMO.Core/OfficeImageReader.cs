@@ -141,7 +141,9 @@ public static partial class OfficeImageReader {
         byte[]? data,
         string? fileName,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) =>
+        out OfficeImageInfo info,
+        bool ignoreTiffOrientation = false) =>
+        data != null && ignoreTiffOrientation && TryReadTiff(data, cancellationToken, out info, ignoreOrientation: true) ||
         TryIdentifyCore(data, fileName, allowExtensionFallback: false, cancellationToken, out info);
 
     /// <summary>

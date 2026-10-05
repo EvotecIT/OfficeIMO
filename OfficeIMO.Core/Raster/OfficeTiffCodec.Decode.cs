@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     /// <summary>
-    /// Attempts to decode a classic baseline grayscale, palette, RGB, RGBA, or device-CMYK TIFF using
+    /// Attempts to decode an unsigned eight-bit classic grayscale, palette, RGB, RGBA, or device-CMYK TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
     /// Floating-point, JPEG-compressed, and BigTIFF payloads remain optional caller-codec responsibilities.
     /// </summary>
@@ -83,12 +83,14 @@ public static partial class OfficeTiffCodec {
 
                 if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor)) {
                     return false;
                 }
+                int orientation = 1;
+                if (!effective.IgnoreTiffOrientation &&
+                    !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out orientation)) return false;
                 if (!TryGetBaseSampleCount(photometric, out int baseSamples) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples)) {
                     return false;
@@ -112,7 +114,8 @@ public static partial class OfficeTiffCodec {
                 }
 
                 if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-                    Array.Exists(bitsPerSample, value => value != 8)) {
+                    Array.Exists(bitsPerSample, value => value != 8) ||
+                    !HasUnsignedSamples(encodedBytes, entries, littleEndian, samples)) {
                     return false;
                 }
 
@@ -130,7 +133,7 @@ public static partial class OfficeTiffCodec {
                 int alphaKind = 2;
                 if (samples == baseSamples + 1) {
                     if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-                        (extraSamples[0] != 1 && extraSamples[0] != 2)) {
+                        (extraSamples[0] < 0 || extraSamples[0] > 2)) {
                         return false;
                     }
                     alphaKind = extraSamples[0];
@@ -153,7 +156,7 @@ public static partial class OfficeTiffCodec {
                         int sourcePixel = ((y * width) + x) * samples;
                         ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
                         int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
-                        byte alpha = samples == baseSamples + 1
+                        byte alpha = samples == baseSamples + 1 && alphaKind != 0
                             ? source[sourcePixel + baseSamples]
                             : (byte)255;
                         ConvertPixel(

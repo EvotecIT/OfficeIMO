@@ -9,7 +9,7 @@ public static partial class OfficeImageReader {
     private static bool TryReadTiff(byte[] data, out OfficeImageInfo info) =>
         TryReadTiff(data, CancellationToken.None, out info);
 
-    private static bool TryReadTiff(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info) {
+    private static bool TryReadTiff(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info, bool ignoreOrientation = false) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 8) {
             return false;
@@ -25,8 +25,8 @@ public static partial class OfficeImageReader {
         }
 
         return ReadUInt16(data, 2, littleEndian) switch {
-            ClassicTiffMagic => TryReadClassicTiff(data, littleEndian, cancellationToken, out info),
-            BigTiffMagic => TryReadBigTiff(data, littleEndian, cancellationToken, out info),
+            ClassicTiffMagic => TryReadClassicTiff(data, littleEndian, cancellationToken, out info, ignoreOrientation),
+            BigTiffMagic => TryReadBigTiff(data, littleEndian, cancellationToken, out info, ignoreOrientation),
             _ => false
         };
     }
@@ -35,7 +35,8 @@ public static partial class OfficeImageReader {
         byte[] data,
         bool littleEndian,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) {
+        out OfficeImageInfo info,
+        bool ignoreOrientation) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         int ifdOffset = ReadInt32(data, 4, littleEndian);
         if (ifdOffset < 8 || ifdOffset > data.Length - 2) {
@@ -73,7 +74,7 @@ public static partial class OfficeImageReader {
             } else if (tag == 283 && TryReadClassicTiffRational(data, valueOrOffset, type, count, littleEndian, out double parsedDpiY)) {
                 dpiY = parsedDpiY;
                 hasDpiY = true;
-            } else if (tag == 274) orientation = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
+            } else if (tag == 274 && !ignoreOrientation) orientation = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
             else if (tag == 296) unit = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
         }
 
@@ -84,7 +85,8 @@ public static partial class OfficeImageReader {
         byte[] data,
         bool littleEndian,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) {
+        out OfficeImageInfo info,
+        bool ignoreOrientation) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 16 ||
             ReadUInt16(data, 4, littleEndian) != 8 ||
@@ -137,7 +139,7 @@ public static partial class OfficeImageReader {
             } else if (tag == 283 && TryReadBigTiffRational(data, entry + 12, type, count, littleEndian, out double parsedDpiY)) {
                 dpiY = parsedDpiY;
                 hasDpiY = true;
-            } else if (tag == 274) orientation = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
+            } else if (tag == 274 && !ignoreOrientation) orientation = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
             else if (tag == 296) unit = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
         }
 

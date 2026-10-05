@@ -14,7 +14,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Native logical structure | Relationship-owned StoryFragments; named page/Canvas/Path/Glyphs references; DocumentStructure story-reference order; continued paragraphs, sections, lists, figures and tables; StoryBreak boundaries; list markers and cell spans | No inferred structure on unstructured pages; unknown extensions and unresolved content produce diagnostics; missing Unicode is not reconstructed; one million work units and 16 million resolved text characters bound each read |
 | Paths | Abbreviated geometry, fill rules, explicit figures/segments with fill/stroke suppression, dashes with separate endpoint/dash caps, triangle caps, clipped miters and the degenerate-segment limit, matrix transforms and clipping | Extended strokes use bounded adaptive vector outlines; native Windows confirmation remains for degenerate and mixed-segment cap rules where the independent engines disagree with the specification |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
-| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF, native sRGB defaults for PNG gamma/chromaticity declarations, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
+| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF, native integer sRGB/gray defaults for non-ICC PNG/JPEG/TIFF descriptions, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry such as non-sRGB PNG cICP, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
 | Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a point focus strictly inside the end ellipse and at most 256 expanded stops; ordinary SVG diagnoses boundary/exterior focal fields |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
@@ -39,7 +39,23 @@ reports an error. Unprofiled CMYK JPEG/TIFF images require a usable ICC profile;
 OfficeIMO does not substitute an approximate RGB conversion or a default SWOP
 profile. Profile and decode budgets still apply before fallback.
 
+Without ICC, supported integer gray/RGB images use the native sRGB sample rules.
+PNG gamma/chromaticity and JPEG/TIFF non-ICC calibration descriptions do not
+override these defaults. The adapter normalizes these resources so subsequent
+SVG/PDF consumers cannot reinterpret the descriptions. TIFF uses the first IFD,
+ignores the display Orientation tag, and ignores an extra sample declared as
+unspecified. The managed TIFF subset accepts unsigned eight-bit components;
+signed, floating-point and undefined sample encodings are rejected.
+
 ## Qualification
+
+Integer JPEG/TIFF default qualification includes eight independently encoded
+synthetic image fixtures in both dialects: RGB, gray, alpha, calibration tags,
+TIFF orientation, an embedded profile and an unspecified extra sample. Managed
+pixels and independently rendered SVG/PDF interior samples agree within three channel
+values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
+it changes sample order for unspecified extra channels in two cases. The differing reference output is retained;
+native Windows confirmation and photographic producer coverage remain open.
 
 The focused tests exercise both dialects, package reopening and native edits,
 opaque-part preservation, deterministic saves, fonts/glyph positioning, image

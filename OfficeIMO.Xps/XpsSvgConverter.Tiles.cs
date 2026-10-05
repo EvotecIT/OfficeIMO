@@ -35,7 +35,7 @@ internal sealed partial class XpsSvgConverter {
         if (type != "image/png" && type != "image/jpeg" && type != "image/tiff") { Loss("Image codec: " + type); return; }
         byte[] bytes = _page.Document.Part(name);
         var imageFormat = type == "image/png" ? OfficeIMO.Drawing.OfficeImageFormat.Png : type == "image/jpeg" ? OfficeIMO.Drawing.OfficeImageFormat.Jpeg : OfficeIMO.Drawing.OfficeImageFormat.Tiff;
-        if (!OfficeIMO.Drawing.OfficeImageReader.TryIdentifyByContent(bytes, null, _token, out var info) || info.Format != imageFormat)
+        if (!OfficeIMO.Drawing.OfficeImageReader.TryIdentifyByContent(bytes, null, _token, out var info, ignoreTiffOrientation: true) || info.Format != imageFormat)
             throw new InvalidDataException("Image resource does not match its declared encoding.");
         double width = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), height = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);
         if (!TryPrepareImageColor(bytes, imageFormat, part, name, reference.Profile, out var raster)) return;
