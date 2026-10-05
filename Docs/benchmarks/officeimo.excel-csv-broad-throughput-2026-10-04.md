@@ -1,4 +1,4 @@
-# Excel and CSV read/copy allocation — 2026-10-04
+# Excel and CSV read, copy and save allocation — 2026-10-04
 
 Commit `8b84a1676` reduces managed allocation in CSV incremental reads, quoted
 row materialization, XLSX rich shared strings, prefixed worksheets, and package
@@ -347,6 +347,64 @@ preserve favorable, unfavorable and conflicting observations. These are
 Windows workstation experiments. Managed allocated bytes do not establish
 retained or peak memory; file timings include operating-system caching and
 exclude durable-storage flushes. Neither experiment changes the product.
+
+## Serialized CSV stream saves without a second byte array
+
+`CsvDocument.Save(Stream)` transfers the completed serialization buffer directly
+through the shared stream writer. It retains staging: formatting, encoding and
+compression finish before the destination is touched. Seekable destinations are
+truncated before byte emission and rewound after success; forward-only streams
+receive bytes at their current position. Caller streams remain open. `ToBytes`
+and the fixed-capacity `ToStream` contract retain their independent byte arrays.
+
+The matrix covers 39 stream-save workloads and six adjacent controls. It includes
+1,000 and 25,000 plain, quoted and mixed JSON rows with no compression, GZip,
+Deflate, Brotli and ZLib; 100,000 rows with no compression or GZip; one plain row;
+and three long Unicode rows with no compression or GZip. Controls exercise
+`ToBytes`, asynchronous saves, path saves, DataReader writes and file row writers.
+All 39 target workloads allocate less on actual .NET 10 and .NET 8 runtimes.
+At 100,000 rows, warmed .NET 10 allocation per operation is:
+
+| Shape and compression | Before | After | Reduction |
+| --- | ---: | ---: | ---: |
+| Plain, none | 34.334 MiB | 29.096 MiB | 5.238 MiB |
+| Quoted, none | 37.831 MiB | 31.466 MiB | 6.365 MiB |
+| Mixed JSON, none | 61.985 MiB | 52.412 MiB | 9.573 MiB |
+| Plain, GZip | 14.719 MiB | 13.409 MiB | 1.309 MiB |
+| Quoted, GZip | 14.810 MiB | 13.458 MiB | 1.353 MiB |
+| Mixed JSON, GZip | 14.894 MiB | 13.500 MiB | 1.394 MiB |
+
+The qualification retains 180 native cases and 8,928 rotated samples, including
+identical-build controls and longer follow-ups on both processor groups. The
+initial 25,000-row plain/Brotli medians are 1.129/1.073 times baseline; the longer
+follow-up measures 0.986/1.011. Short-case timing remains inconclusive. For one
+plain row, follow-up medians are 0.980/1.264 with means 0.599/0.836; an unchanged
+async control also moves to 0.952/1.136. Identical-build long-Unicode controls
+measure 1.720/1.861. These observations do not establish a general speedup or
+portable latency budgets. The change is accepted for its allocation reduction.
+
+Windows CSV correctness passes 666 tests on each modern runtime and 472 on
+.NET Framework 4.7.2. Linux/WSL passes 666 on .NET 10; macOS ARM64 passes 666 on
+each modern runtime. The product builds for `netstandard2.0` without warnings or
+errors. Existing Core stream contracts pass three focused linked tests on each
+Windows runtime; this does not claim the complete Shared.Tests suite. Independent
+decoded-text and field checks validate 1,248 outputs across eight APIs, two builds
+and two actual runtimes.
+
+One independent read-only review finds a failure-ordering regression in the first
+candidate: a fixed-length mapped stream is overwritten before resizing fails.
+The final shared buffer-segment transfer rejects resizing before emitting bytes.
+A real mapped-file regression fails on that candidate, passes with the baseline
+CSV binary, and passes with the fix. The targeted review confirmation reports no
+additional findings. Serialization failures after large prior rows preserve the
+destination's bytes and position with UTF-8, UTF-16 and compression.
+
+The [native observations](excel-csv-broad-throughput-2026-10-04/stream-save-native.json),
+[rotations and controls](excel-csv-broad-throughput-2026-10-04/stream-save-rotated.json),
+and [source, binary, validation and reproduction packet](excel-csv-broad-throughput-2026-10-04/stream-save-provenance.json)
+retain all outcomes. Staging, destination capacity and writer buffers remain;
+managed allocation does not measure retained or peak memory. General throughput,
+small-workload timing and portable memory qualification remain open.
 
 ## Validation and reproduction
 
