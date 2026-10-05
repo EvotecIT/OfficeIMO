@@ -48,6 +48,9 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
     }
     evidence.Add(new { profile = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), previews = previewPaths });
 }
+WriteFixture("fixed-layout-item-overrides", FixedLayoutFixture.Create(false, false));
+WriteFixture("fixed-layout-ltr", FixedLayoutFixture.Create(false));
+WriteFixture("fixed-layout-rtl", FixedLayoutFixture.Create(true));
 WriteFixture("glossary", GlossaryFixture.Create());
 WriteFixture("bibliography", BibliographyFixture.Create());
 WriteFixture("index", IndexFixture.Create());

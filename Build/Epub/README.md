@@ -104,6 +104,16 @@ with forward, return and incoming links repaired across the new resource boundar
 Use it to check TOC order and link destinations in independent readers as well as
 with the automated validators.
 
+`fixed-layout-ltr.epub` and `fixed-layout-rtl.epub` contain an 800×600 landscape
+canvas and a 600×800 portrait canvas. They exercise typed orientation, spread and
+page-side requests, logical DOM order and semantic links with a package-level
+fixed-layout default. `fixed-layout-item-overrides.epub` deliberately omits that
+default to expose readers that do not honor item-only fixed-layout declarations.
+Validate their exact EPUB
+bytes with EPUBCheck, then inspect spread placement, rotation and scaling in target
+readers. Extracted XHTML can verify CSS canvas geometry in a browser; it does not
+qualify a reader's spine interpretation or assistive-technology behavior.
+
 `merged-chapters.epub` merges those split reading positions back into one resource,
 retaining both TOC entries and repairing the incoming reference. Check its chapter
 order, section links and return links alongside the split fixture.

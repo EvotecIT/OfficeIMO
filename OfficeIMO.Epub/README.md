@@ -283,7 +283,8 @@ Clearing an EPUB 2 page list with retained headers or extension XML requires exp
 property; `AddMetadataProperty` adds repeatable values. `AddDublinCoreMetadata` adds
 contributors, languages, or other Dublin Core values with optional ids and language.
 EPUB 3 vocabulary prefixes, page progression, and rendition-layout declarations are
-available; declaring fixed layout does not generate page geometry.
+available. `SetRenditionLayout` declares a package default; use
+[`SetFixedLayoutPage`](#fixed-layout-xhtml-pages) for an XHTML page canvas.
 
 Accessibility metadata describes supplied content and does not certify conformance.
 The writer adds SVG and MathML properties discovered in rewritten XHTML and remote-resource
@@ -332,6 +333,58 @@ the final publication and review its content in representative readers.
 
 DOCX and Markdown composition and editable book projects belong to
 [`OfficeIMO.Workflows`](../OfficeIMO.Workflows/README.md#book-publishing).
+
+### Fixed-layout XHTML pages
+
+`SetFixedLayoutPage` configures an existing EPUB 3 XHTML spine document with a
+viewport, CSS page canvas and typed presentation overrides:
+
+```csharp
+// For an entirely fixed-layout book, declare the package default too.
+publication.SetRenditionLayout(EpubRenditionLayout.PrePaginated);
+publication.AddChapter("plate", "EPUB/plate.xhtml", "Illustrated plate",
+    "<main style='position:absolute;left:40px;top:40px;width:720px'>" +
+    "<h1>Illustrated plate</h1><p>Selectable text in reading order.</p></main>");
+publication.SetFixedLayoutPage("plate", new EpubFixedLayoutPage(800, 600) {
+    Orientation = EpubPageOrientation.Landscape,
+    Spread = EpubPageSpread.Both,
+    Side = EpubPageSide.Right
+});
+```
+
+Dimensions are positive integer CSS pixels. The method replaces the document's
+single viewport declaration with `width` and `height`, and maintains a dedicated
+canvas stylesheet setting HTML/body dimensions, zero margin/padding and a relative
+body positioning context. Other content and styles remain intact. The method does
+not place individual objects, fit overflowing text, paginate prose or rasterize text.
+Author element geometry in XHTML/CSS and inspect the result; existing CSS and reader
+styles can override the canvas rules. Overflow is not hidden automatically.
+
+The selected spine position receives `rendition:layout-pre-paginated`, orientation
+and spread overrides. `Auto` resets that aspect to the reading system's default;
+`Center` requests a single centered page. The method replaces existing overrides
+for these aspects, including vocabulary aliases, while preserving other properties
+and package defaults. Set `PageProgressionDirection` separately for LTR/RTL books.
+EPUB permits mixed reflowable and fixed-layout books using item overrides, but reader
+support varies. Set the package default to `PrePaginated` for an entirely fixed-layout
+book. In the Apple Books macOS check, item-only declarations clipped the landscape
+fixture; the package declaration rendered the whole canvas in its right-hand spread
+slot. The portrait page still appeared beside the reader's end-of-book panel instead
+of centered alone. Treat mixed layouts and per-page spread overrides as reader-specific
+qualification requirements.
+
+Content and spine edits commit together after reference, byte-budget and cancellation
+checks. The API rejects EPUB 2, non-XHTML resources, missing or repeated spine
+positions, multiple viewport declarations, and a conflicting use of its reserved
+`officeimo-fixed-layout-canvas` style identifier. Existing viewport options beyond
+width/height are intentionally replaced. Repeated calls update one canvas stylesheet.
+
+DOM order, identifiers, links and accessibility relationships remain unchanged.
+Supply content in logical reading order; visual coordinates do not establish that
+order. [Executable fixtures](../Build/Epub/Fixtures/FixedLayoutFixture.cs) cover
+landscape/portrait pages and LTR/RTL progression. EPUBCheck and browser canvas
+inspection are separate from native reader spread, rotation, scaling and
+assistive-technology qualification. Those reader checks remain open.
 
 ### Reflowable typography
 

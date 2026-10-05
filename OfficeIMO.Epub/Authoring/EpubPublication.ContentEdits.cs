@@ -17,7 +17,7 @@ public sealed partial class EpubPublication {
 
     // Stage every payload and the combined retention budget before committing any
     // document. This keeps cross-document semantic edits atomic without a ZIP round-trip.
-    private void CommitContentEdits(IReadOnlyDictionary<string, XDocument> documents, CancellationToken token, bool validatePublication = false) {
+    private void CommitContentEdits(IReadOnlyDictionary<string, XDocument> documents, CancellationToken token, bool validatePublication = false, Action<XElement>? packageEdit = null) {
         var payloads = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         long delta = 0;
         foreach (var pair in documents) {
@@ -36,15 +36,17 @@ public sealed partial class EpubPublication {
             payloads.Add(path, bytes);
             delta += bytes.LongLength - _entries[path].LongLength;
         }
-        EnsurePackageBudget(_package, delta);
+        var package = new XDocument(_package);
+        packageEdit?.Invoke(package.Root!);
+        EnsurePackageBudget(package, delta);
         if (validatePublication) {
             var proposed = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
             foreach (var pair in payloads) proposed[pair.Key] = pair.Value;
-            var package = new XDocument(_package);
             ValidatePublication(package, proposed, new List<OfficeConversionFidelityDiagnostic>(), token, changed: true);
             EnsurePackageBudget(package, delta);
         }
         token.ThrowIfCancellationRequested();
+        packageEdit?.Invoke(Root);
         foreach (var pair in payloads) _entries[pair.Key] = pair.Value;
         _retainedBytes += delta;
         MarkChanged();
