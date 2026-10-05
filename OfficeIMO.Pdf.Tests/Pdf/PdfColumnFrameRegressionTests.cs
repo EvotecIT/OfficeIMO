@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Drawing;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
@@ -112,6 +113,61 @@ public sealed class PdfColumnFrameRegressionTests {
             panel.TextField("Impossible", width: 80, height: 20),
             new PdfPanelStyle { MaxWidth = 60, PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0 }), Unequal());
         Assert.Throws<ArgumentException>(() => document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData("image")]
+    [InlineData("shape")]
+    [InlineData("drawing")]
+    public void Columns_WidthDrivenObjectPlacementRemeasuresItsKeepInTheDestination(string kind) {
+        var kept = Paragraph(); kept.KeepTogether = true;
+        var shape = OfficeShape.Rectangle(200, 40); shape.FillColor = OfficeColor.Red;
+        var document = PdfDocument.Create(Options());
+        document.Content.Paragraph(p => p.Text(Lines("Prelude", 9)), style: Paragraph());
+        document.Content.Columns(content => {
+            if (kind == "image") content.Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), 200, 40,
+                style: new PdfImageStyle { ScaleDownToFit = false, KeepWithNext = true, SpacingBefore = 0, SpacingAfter = 0 });
+            else if (kind == "shape") content.Shape(shape,
+                style: new PdfDrawingStyle { KeepWithNext = true, SpacingBefore = 0, SpacingAfter = 0 });
+            else content.Drawing(new OfficeDrawing(200, 40).AddShape(shape, 0, 0),
+                style: new PdfDrawingStyle { KeepWithNext = true, SpacingBefore = 0, SpacingAfter = 0 });
+            content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Repeat("Following words for kept text", 6))), style: kept);
+        }, new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
+            new PdfFlowColumn(PdfColumnWidth.Fixed(100), 20), new PdfFlowColumn(PdfColumnWidth.Fixed(300))
+        }});
+        byte[] bytes = document.ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain("Following", pdf.GetPage(1).Text);
+        Assert.Contains("Following", pdf.GetPage(2).Text);
+        if (kind == "image") Assert.Equal(2, Assert.Single(PdfDocument.Load(bytes).Images.Placements()).PageNumber);
+        else {
+            Assert.Empty(pdf.GetPage(1).Paths);
+            Assert.NotEmpty(pdf.GetPage(2).Paths);
+        }
+    }
+
+    [Fact]
+    public void Columns_ParagraphTableKeepChainRetainsConditionalBeforeSpacingDuringBalancing() {
+        var before = Paragraph(); before.SpacingBefore = 200; before.KeepWithNext = true;
+        var following = Paragraph(); following.KeepTogether = true;
+        var document = PdfDocument.Create(Options());
+        document.Content.Columns(content => {
+            content.Paragraph(p => p.Text("Preceding"), style: Paragraph());
+            content.Paragraph(p => p.Text("KeptLeader"), style: before);
+            content.Table(new[] { new[] { new PdfTableCell("TableLine1\nTableLine2") } }, style: new PdfTableStyle {
+                KeepWithNext = true, HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12,
+                LineHeight = 20D / 12D, SpacingBefore = 0, SpacingAfter = 0, BorderWidth = 0,
+                MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
+            });
+            content.Paragraph(p => p.Text("Following"), style: Paragraph());
+            content.Paragraph(p => p.Text(Lines("Trailing", 5)), style: following);
+        }, new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = true, BalanceTableRowLines = true, BalanceParagraphLines = false });
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        Assert.InRange(words.Single(word => word.Text == "KeptLeader").BoundingBox.Left, 239.9, 240.1);
+        Assert.Contains(words, word => word.Text == "Trailing05");
     }
 
     private static PdfOptions Options() => new() {

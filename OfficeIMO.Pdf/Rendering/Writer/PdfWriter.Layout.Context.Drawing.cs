@@ -445,10 +445,15 @@ internal static partial class PdfWriter {
             y -= block.Drawing.Height + style.SpacingAfter;
         }
 
-        private void KeepFixedBlockWithNext(double objectHeight, double spacingBefore, double spacingAfter,
+        private void KeepFixedBlockWithNext(double objectWidth, double objectHeight, double spacingBefore, double spacingAfter,
             IList<IPdfBlock> blocks, int blockIndex) {
             while (true) {
                 double needed = ResolveTopLevelSpacingBefore(spacingBefore) + objectHeight + spacingAfter;
+                EnsureFixedFlowBlockFits("Kept object", objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(width));
+                if (objectWidth > width + .001D || ShouldAdvanceForBlockHeight(needed)) {
+                    NewBlockFrame();
+                    continue;
+                }
                 double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
                     width, currentOpts.DefaultFontSize, needed);
                 double keepHeight = needed + nextHeight;

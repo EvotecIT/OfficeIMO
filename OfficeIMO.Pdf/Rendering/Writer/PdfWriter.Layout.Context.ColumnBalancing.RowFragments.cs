@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         /// <summary>Preserves a fitting kept trailing group and row measurement for a kept leading block.</summary>
         private static ColumnBalanceUnit JoinColumnBalanceUnits(ColumnBalanceUnit first, ColumnBalanceUnit second) {
             // A fitting last row and its next block must remain atomic, just as in ordinary table flow.
-            if (first.RowFragment != null) return new ColumnBalanceUnit(first.Height + second.SpacingBefore + second.Height, first.ContinuationHeight);
+            if (first.RowFragment != null) return new ColumnBalanceUnit(first.Height + second.SpacingBefore + second.Height, first.ContinuationHeight, first.SpacingBefore);
             if (first.RowFragment == null && second.RowFragment is { } leading)
                 return new ColumnBalanceUnit(leading.WithSpacing(leading.Before + first.Height,
                     leading.MovedBefore + first.Height + first.ContinuationHeight, leading.After), first.SpacingBefore);
