@@ -394,7 +394,7 @@ so protection guards cannot be bypassed by incomplete classification.
 `Preflight` returns structured native checks without writing a destination or invoking
 external tools. It uses the supplied save policy, inspects retained XHTML/SVG identifiers
 and document-local ARIA/table-header references, and checks HTML image alternative
-presence. It also inspects unchanged imported content, even when saving preserves that
+presence and EPUB 3 accessibility discovery declarations. It also inspects unchanged imported content, even when saving preserves that
 content byte-for-byte.
 
 ```csharp
@@ -414,6 +414,27 @@ presence does not establish whether the descriptions are useful. Each native che
 retains at most 10,000 findings and reports an error when that bound is reached.
 The report is a snapshot; rerun it after editing. `RequireNoLoss` remains a separate
 conversion/preservation check.
+
+Supply publisher-reviewed discovery claims together with `SetAccessibilityMetadata`:
+
+```csharp
+publication.SetAccessibilityMetadata(new EpubAccessibilityMetadata {
+    AccessModes = new[] { "textual" },
+    SufficientAccessModes = new IReadOnlyList<string>[] { new[] { "textual" } },
+    Features = new[] { "structuralNavigation", "tableOfContents" },
+    Hazards = new[] { "unknown" },
+    Summary = "Text and chapter navigation are available. Hazard review is incomplete."
+});
+```
+
+Each sufficient-mode list describes one combination; multiple lists express alternatives.
+The operation replaces these five publication-level properties atomically, preserves
+unrelated metadata and refinements, and rejects removal of a declaration referenced by
+a refinement. Null `Summary` and empty `SufficientAccessModes` remove those optional
+properties. Vocabulary values are publisher-supplied tokens; review them against the
+discovery vocabulary and the actual content. The API does not infer claims or certify them.
+Preflight reports missing access modes, features, and hazards as errors; missing sufficient
+modes and summary are warnings. EPUB 2 discovery metadata is explicitly unchecked.
 
 Newly authored or rewritten content rejects duplicate IDs and unresolved document-local
 ARIA and table-header references. IDs may repeat in separate content documents.

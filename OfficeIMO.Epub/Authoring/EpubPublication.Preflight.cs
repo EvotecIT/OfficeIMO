@@ -21,6 +21,7 @@ public sealed partial class EpubPublication {
             Add(package, "EPUB_PREFLIGHT_WRITE_FAILED", EpubDiagnosticSeverity.Error, error.Message, PackagePath);
         }
         checks.Add(Result("native-save", package));
+        checks.Add(CheckAccessibilityDiscovery());
 
         var contentFindings = new List<EpubDiagnostic>();
         var imageFindings = new List<EpubDiagnostic>();

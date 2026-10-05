@@ -20,11 +20,18 @@ produces a nonzero exit. Existing output directories are rejected to prevent mix
 reports from different runs. Inputs are limited to 256 publications, 128 MiB each;
 `--timeout` controls the per-process limit in seconds.
 
-A passing result establishes only the checks performed by that EPUBCheck version.
-Review warnings and retain the exact version with the evidence. The summary explicitly
-leaves accessibility assessment and reader presentation unchecked. Run Ace and a
-human accessibility review separately, then inspect the same publication bytes in the
-chosen reading systems. Never infer those results from the EPUBCheck exit code.
+To also capture automated accessibility checks, supply `--ace /path/to/ace-puppeteer`
+from an independently installed [DAISY Ace](https://daisy.github.io/ace/) distribution.
+Its browser runtime must already be available. The runner records its version, log,
+JSON report, exit code, and reported outcome for the same captured EPUB bytes. Missing,
+malformed, failing, or timed-out evidence produces a nonzero exit. Without `--ace`,
+automated accessibility is recorded as unchecked.
+
+A passing result establishes only the checks performed by the recorded tool versions.
+Review warnings and retain the versions with the evidence. The summary explicitly
+leaves comprehensive accessibility assessment and reader presentation unchecked even
+when Ace passes. Complete human accessibility review, then inspect the same publication
+bytes in the chosen reading systems. Never infer those results from validator exit codes.
 
 Use a task-owned output location. Retain compact reports and decisive publication
 fixtures deliberately; remove superseded captured publications and downloaded tools

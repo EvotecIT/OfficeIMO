@@ -17,6 +17,9 @@ public sealed class EpubPublishingPreflightContracts {
         XDocument content = book.GetContentXml("c");
         content.Descendants().Single(element => element.Name.LocalName == "p").Attribute("id")!.Remove();
         book.SetContentXml("c", content);
+        book.SetAccessibilityMetadata(new EpubAccessibilityMetadata {
+            AccessModes = new[] { "textual" }, Features = new[] { "structuralNavigation" }, Hazards = new[] { "unknown" }
+        });
         byte[] before = book.Write().Bytes;
         var valid = book.Preflight();
         Assert.False(valid.HasErrors);

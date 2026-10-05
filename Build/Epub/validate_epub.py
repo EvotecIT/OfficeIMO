@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in EPUBCheck evidence; does not install tools or certify accessibility."""
+"""Opt-in EPUBCheck and optional Ace evidence; does not install tools or certify accessibility."""
 import argparse
 import hashlib
 import json
@@ -22,9 +22,11 @@ def main():
     parser.add_argument("--epubcheck-jar", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path, help="New task-owned evidence directory")
     parser.add_argument("--java", default="java")
+    parser.add_argument("--ace", type=Path, help="Explicit installed Ace CLI executable (optional)")
     parser.add_argument("--timeout", type=int, default=120, help="Seconds per validator invocation")
     args = parser.parse_args()
     jar = args.epubcheck_jar.resolve(strict=True)
+    ace = args.ace.resolve(strict=True) if args.ace else None
     inputs = [path.resolve(strict=True) for path in args.epubs]
     if args.timeout < 1 or len(inputs) > 256:
         parser.error("Use a positive timeout and at most 256 publications per run")
@@ -40,6 +42,10 @@ def main():
         version = subprocess.run(command + ["--version"], capture_output=True, text=True,
                                  timeout=args.timeout, check=True)
         summary["epubcheckVersion"] = (version.stdout + version.stderr).strip()
+        if ace:
+            version = subprocess.run([str(ace), "--version"], capture_output=True, text=True,
+                                     timeout=args.timeout, check=True)
+            summary["aceVersion"] = (version.stdout + version.stderr).strip()
         for index, source in enumerate(inputs):
             folder = output / f"publication-{index + 1:04d}"
             folder.mkdir()
@@ -74,6 +80,24 @@ def main():
                 if record["errors"] == 0 and record["fatalErrors"] == 0:
                     record["status"] = "passed"
             failed |= record["status"] != "passed"
+            record["automatedAccessibility"] = {"status": "not-checked"}
+            if ace:
+                automated = record["automatedAccessibility"] = {"status": "failed"}
+                with (folder / "ace.log").open("w", encoding="utf-8") as log:
+                    result = subprocess.run([str(ace), "--exiterror2", "--timeout", str(args.timeout * 1000),
+                                             "--outdir", str(folder / "ace"), "--tempdir", str(folder / "ace-temp"), str(snapshot)],
+                                            stdout=log, stderr=subprocess.STDOUT, timeout=args.timeout, check=False)
+                automated["exitCode"] = result.returncode
+                report_path = folder / "ace" / "report.json"
+                automated["report"] = str(report_path.relative_to(output))
+                if report_path.is_file():
+                    report = json.loads(report_path.read_text(encoding="utf-8"))
+                    result_node = report.get("earl:result") if isinstance(report, dict) else None
+                    outcome = result_node.get("earl:outcome") if isinstance(result_node, dict) else None
+                    automated["outcome"] = outcome
+                    if result.returncode == 0 and outcome == "pass":
+                        automated["status"] = "passed"
+                failed |= automated["status"] != "passed"
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         summary["failure"] = str(error)
         failed = True
