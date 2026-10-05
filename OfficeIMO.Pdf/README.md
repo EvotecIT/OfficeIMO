@@ -162,8 +162,10 @@ uses the existing bounded CMYK sampling path with the gradient's interpolation
 mode. Alpha masks remain scalar opacity fields.
 Radial gradients with an explicit Repeat or Reflect mode use vector function-based
 shading, including fields with no finite cycle bound. Color and alpha retain the
-same periodic field, within the existing 1,024-stop PDF gradient bound. Explicit print-condition conversion of these fields remains
-unsupported.
+same periodic field, within the existing 1,024-stop PDF gradient bound. Explicit
+print-condition conversion uses the shared bounded ICC gradient sampler, with up
+to 4,096 CMYK samples and independent scalar alpha. Component functions retain
+the periodic geometry without rasterizing the PDF field.
 
 The reader renders directly invoked function-based shadings at the requested
 image-export resolution. `ToDrawing()` samples these fields at one pixel per PDF

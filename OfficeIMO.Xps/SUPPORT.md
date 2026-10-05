@@ -311,6 +311,12 @@ linear-light RGB and affine transforms across the tangent. Managed reopening at
 native XPS sampling. Ghostscript independently renders the vector files; its
 maximum mean difference is 2.218/255, including dense cycle sampling differences.
 These are generated fixtures, not independent-producer or native Windows proof.
+Explicit print-condition conversion reuses the PDF engine's ICC gradient sampler,
+retaining vector CMYK component functions and scalar alpha. Caller-supplied
+profiles, rendering intent and black-preservation settings follow the existing
+PDF print contract. The converted sample count is bounded at 4,096.
+Managed readback retains the PDF reader's output-intent/transparency diagnostic;
+this conversion does not qualify print soft-proof equivalence or PDF/X conformance.
 The 36 ordinary generated cases cover both dialects, fill/stroke, affine
 transforms and stop alpha. Managed sampling and Ghostscript PDF rendering track
 the analytic field in these cases, while MuPDF and GhostXPS retain visible

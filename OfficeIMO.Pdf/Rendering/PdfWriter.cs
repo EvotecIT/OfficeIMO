@@ -606,8 +606,7 @@ internal static partial class PdfWriter {
                             shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
                     int shadingId;
                     if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
-                        if (shadingColorTransform != null) throw new NotSupportedException("Periodic radial PDF shading does not yet support print-condition conversion.");
-                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false);
+                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, shadingColorTransform);
                     } else shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);

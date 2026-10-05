@@ -37,8 +37,10 @@ visual brushes is excluded.
 
 Radial Repeat/Reflect brushes remain vector PDF shadings even when tangent
 bounds or high-frequency fields prevent finite stop expansion. Color interpolation,
-stop alpha and native outside-cone endpoint paint are retained. Explicit
-print-condition conversion of these unbounded fields remains unsupported.
+stop alpha and native outside-cone endpoint paint are retained. Print-condition
+conversion configured through `XpsToPdfOptions.PdfOptions` uses the caller-supplied
+CMYK ICC profile and bounded vector color samples; alpha remains independent.
+This color conversion alone does not establish PDF/X conformance.
 
 Native StoryFragments and DocumentStructure supply paragraph, list, table and figure
 tags. Continued blocks share their logical containers across pages; declared story

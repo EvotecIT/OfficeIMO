@@ -122,9 +122,11 @@ internal static class PdfVisualResourceDictionaryBuilder {
         return builder.Append("] >>").ToString();
     }
 
-    private static string BuildTransformedGradientFunction(
+    internal static IReadOnlyList<TransformedGradientSample> CreateTransformedGradientSamples(
         IReadOnlyList<OfficeGradientStop> stops,
         PdfPrintColorTransform printColorTransform, OfficeGradientColorInterpolation colorInterpolation) {
+        ValidateStops(stops);
+        if (HasDuplicateOffsets(stops)) stops = NormalizeGradientStops(stops);
         var samples = new List<TransformedGradientSample>();
         for (int index = 1; index < stops.Count; index++) {
             OfficeGradientStop start = stops[index - 1];
@@ -144,6 +146,13 @@ internal static class PdfVisualResourceDictionaryBuilder {
                 samples);
         }
 
+        return samples;
+    }
+
+    private static string BuildTransformedGradientFunction(
+        IReadOnlyList<OfficeGradientStop> stops,
+        PdfPrintColorTransform printColorTransform, OfficeGradientColorInterpolation colorInterpolation) {
+        var samples = CreateTransformedGradientSamples(stops, printColorTransform, colorInterpolation);
         if (samples.Count == 2) {
             return BuildCmykInterpolationFunction(samples[0].Components, samples[1].Components);
         }
@@ -362,7 +371,7 @@ internal static class PdfVisualResourceDictionaryBuilder {
         if (value < 0D) throw new ArgumentOutOfRangeException(paramName, value, "PDF radial shading radii must be non-negative.");
     }
 
-    private readonly struct TransformedGradientSample {
+    internal readonly struct TransformedGradientSample {
         internal TransformedGradientSample(double offset, double[] components) {
             Offset = offset;
             Components = components;

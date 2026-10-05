@@ -4,11 +4,11 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Parsed, bounded evaluator for the calculator language defined by PDF Type 4 functions.</summary>
 internal sealed partial class PdfCalculatorProgram {
-    internal const int MaxProgramBytes = 256 * 1024;
+    internal const int MaxProgramBytes = 1024 * 1024;
     internal const long MaxValidationWork = 4L * 1024L * 1024L;
     // A balanced color-stop tree can contain many branches while executing only
     // a short path. Bound stored syntax separately from per-sample execution.
-    private const int MaxParsedInstructions = 32768;
+    private const int MaxParsedInstructions = 65536;
     private const int MaxInstructions = 4096;
     private const int MaxProcedureDepth = 16;
     private const int MaxStackValues = 256;

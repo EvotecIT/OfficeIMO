@@ -6,7 +6,8 @@ namespace OfficeIMO.Pdf;
 internal static class PdfRadialSpreadFunction {
     internal static string Build(double x0, double y0, double r0, double x1, double y1, double r1,
         IReadOnlyList<OfficeGradientStop> stops, OfficeGradientSpreadMode spread,
-        OfficeGradientColorInterpolation interpolation, OfficeColor? outside, bool nativeSeam, bool alphaOnly, int colorChannel = -1) {
+        OfficeGradientColorInterpolation interpolation, OfficeColor? outside, bool nativeSeam, bool alphaOnly, int colorChannel = -1, PdfRadialSpreadColors? colors = null) {
+        colors ??= PdfRadialSpreadColors.Create(stops, interpolation, outside, alphaOnly);
         string N(double value) => PdfNumberFormatter.Precise(value);
         bool reverse = r1 == 0D;
         double radius = Math.Max(r0, r1);
@@ -17,7 +18,10 @@ internal static class PdfRadialSpreadFunction {
         double rs = reverse ? 0D : r0 / radius;
         double dr = (reverse ? r0 : r1 - r0) / radius;
         double a = dx * dx + dy * dy - dr * dr;
+        bool hasCommonPoint = a == 0D && rs == 0D && !reverse;
         var code = new StringBuilder("{ ");
+        if (hasCommonPoint) code.Append("2 copy ").Append(N(y0)).Append(" eq exch ").Append(N(x0))
+            .Append(" eq and 3 1 roll ");
         // Input x,y becomes the quadratic coefficients b,c after normalization.
         code.Append(N(oy)).Append(" sub ").Append(N(radius)).Append(" div exch ")
             .Append(N(ox)).Append(" sub ").Append(N(radius)).Append(" div exch ")
@@ -42,67 +46,89 @@ internal static class PdfRadialSpreadFunction {
                 .Append(" { pop } { exch pop } ifelse } { pop } ifelse true } { dup ")
                 .Append(valid).Append("{ exch pop true } { pop pop 0 false } ifelse } ifelse } ifelse ");
         }
-        code.Append("{ ");
+        code.Append("exch ");
         if (reverse) code.Append("1 exch sub ");
         if (spread == OfficeGradientSpreadMode.Repeat) {
             code.Append("dup floor sub ");
             if (nativeSeam) code.Append("dup 0 eq { pop 1 } if ");
         } else code.Append("dup 2 div floor 2 mul sub dup 1 gt { 2 exch sub } if ");
-        int channels = alphaOnly || colorChannel >= 0 ? 1 : 3;
+        int channels = colorChannel >= 0 ? 1 : colors.ComponentCount;
         for (int channel = 0; channel < channels; channel++) {
             code.Append(channel).Append(" index ");
-            AppendStops(code, stops, 0, stops.Count - 1, colorChannel >= 0 ? colorChannel : channel, alphaOnly, interpolation);
+            AppendColor(code, colors, colorChannel >= 0 ? colorChannel : channel);
         }
-        code.Append(channels + 1).Append(" -1 roll pop } { pop ");
+        // Explicit boolean comparison avoids calculator consumers treating not as integer complement.
+        code.Append(channels + 1).Append(" -1 roll pop ").Append(channels + 1).Append(" -1 roll false eq { ");
+        for (int channel = 0; channel < channels; channel++) code.Append("pop ");
         for (int channel = 0; channel < channels; channel++)
-            code.Append(N(Component(outside ?? OfficeColor.Transparent, colorChannel >= 0 ? colorChannel : channel, alphaOnly, interpolation))).Append(' ');
-        string result = code.Append("} ifelse }").ToString();
-        if (a == 0D && rs == 0D && !reverse) {
-            // The common tangent point has t=+infinity: Pad's endpoint rule
-            // applies before periodic mapping, or SVG's boundary average.
-            OfficeColor common = outside ?? stops[stops.Count - 1].Color;
-            string components = string.Join(" ", Enumerable.Range(0, channels)
-                .Select(channel => N(Component(common, colorChannel >= 0 ? colorChannel : channel, alphaOnly, interpolation))));
-            result = "{ 2 copy " + N(y0) + " eq exch " + N(x0) + " eq and { pop pop " + components +
-                " } " + result + " ifelse }";
+            code.Append(N(colors.Outside[colorChannel >= 0 ? colorChannel : channel])).Append(' ');
+        code.Append("} if ");
+        if (hasCommonPoint) {
+            code.Append(channels + 1).Append(" -1 roll { ");
+            for (int channel = 0; channel < channels; channel++) code.Append("pop ");
+            for (int channel = 0; channel < channels; channel++)
+                code.Append(N(colors.Common[colorChannel >= 0 ? colorChannel : channel])).Append(' ');
+            code.Append("} if ");
         }
-        return result;
+        return code.Append('}').ToString();
     }
 
-    private static void AppendStops(StringBuilder code, IReadOnlyList<OfficeGradientStop> stops,
-        int first, int last, int channel, bool alpha, OfficeGradientColorInterpolation interpolation, int depth = 0) {
+    private static void AppendColor(StringBuilder code, PdfRadialSpreadColors colors, int channel) {
+        var stops = colors.Samples;
+        if (stops.Count <= 1024) {
+            AppendStops(code, colors, 0, stops.Count - 1, channel);
+            return;
+        }
+        // Each independent range keeps branch bytecode below portable jump
+        // limits. At most four ranges execute one bounded lookup each.
+        code.Append(PdfNumberFormatter.Precise(stops[stops.Count - 1].Components[channel])).Append(' ');
+        for (int first = 0; first < stops.Count - 1; first += 1024) {
+            int last = Math.Min(first + 1024, stops.Count - 1);
+            code.Append("1 index ").Append(PdfNumberFormatter.Precise(stops[first].Offset))
+                .Append(" ge 2 index ").Append(PdfNumberFormatter.Precise(stops[last].Offset))
+                .Append(" lt and { pop dup ");
+            AppendStops(code, colors, first, last, channel);
+            code.Append("} if ");
+        }
+        code.Append("exch pop ");
+    }
+
+    private static void AppendStops(StringBuilder code, PdfRadialSpreadColors colors,
+        int first, int last, int channel, int depth = 0) {
+        var stops = colors.Samples;
         string N(double value) => PdfNumberFormatter.Precise(value);
-        if (last - first > 1 && depth < 5) {
+        if (last - first > 1 && depth < 7) {
             int middle = (first + last) / 2;
             code.Append("dup ").Append(N(stops[middle].Offset)).Append(" lt { ");
-            AppendStops(code, stops, first, middle, channel, alpha, interpolation, depth + 1);
+            AppendStops(code, colors, first, middle, channel, depth + 1);
             code.Append("} { ");
-            AppendStops(code, stops, middle, last, channel, alpha, interpolation, depth + 1);
+            AppendStops(code, colors, middle, last, channel, depth + 1);
             code.Append("} ifelse ");
             return;
         }
         if (last - first > 1) {
             // Keep calculator procedure nesting within ten levels, including
-            // field validity and endpoint handling. Each bounded leaf bucket
-            // selects among at most 32 segments without nested conditionals.
+            // the independent range selector. Each bounded leaf bucket
+            // selects among at most eight segments without nested conditionals.
             code.Append("dup ");
-            AppendSegment(code, stops, last - 1, last, channel, alpha, interpolation);
+            AppendSegment(code, colors, last - 1, last, channel);
             for (int index = last - 2; index >= first; index--) {
                 code.Append("1 index ").Append(N(stops[index + 1].Offset)).Append(" lt { pop dup ");
-                AppendSegment(code, stops, index, index + 1, channel, alpha, interpolation);
+                AppendSegment(code, colors, index, index + 1, channel);
                 code.Append("} if ");
             }
             code.Append("exch pop ");
             return;
         }
-        AppendSegment(code, stops, first, last, channel, alpha, interpolation);
+        AppendSegment(code, colors, first, last, channel);
     }
 
-    private static void AppendSegment(StringBuilder code, IReadOnlyList<OfficeGradientStop> stops,
-        int first, int last, int channel, bool alpha, OfficeGradientColorInterpolation interpolation) {
+    private static void AppendSegment(StringBuilder code, PdfRadialSpreadColors colors,
+        int first, int last, int channel) {
         string N(double value) => PdfNumberFormatter.Precise(value);
-        double start = Component(stops[first].Color, channel, alpha, interpolation);
-        double end = Component(stops[last].Color, channel, alpha, interpolation);
+        var stops = colors.Samples;
+        double start = stops[first].Components[channel];
+        double end = stops[last].Components[channel];
         double width = stops[last].Offset - stops[first].Offset;
         if (width == 0D) { code.Append("pop ").Append(N(end)).Append(' '); return; }
         // Periodic mapping and segment selection already bound the final ratio.
@@ -110,9 +136,4 @@ internal static class PdfRadialSpreadFunction {
             .Append(N(end - start)).Append(" mul ").Append(N(start)).Append(" add ");
     }
 
-    private static double Component(OfficeColor color, int channel, bool alpha, OfficeGradientColorInterpolation interpolation) {
-        if (alpha) return color.A / 255D;
-        double value = (channel == 0 ? color.R : channel == 1 ? color.G : color.B) / 255D;
-        return interpolation == OfficeGradientColorInterpolation.LinearRgb ? OfficeColorSpaceConverter.FromSrgb(value) : value;
-    }
 }
