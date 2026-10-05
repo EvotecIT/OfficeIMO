@@ -21,7 +21,7 @@ public sealed class DrawingJpegInverseTransformTests {
             expected[index * 4 + 2] = samples[index];
             expected[index * 4 + 3] = 255;
         }
-        Assert.Equal(expected, actual.GetPixels());
+        Assert.True(expected.SequenceEqual(actual.GetPixels()), $"Unexpected decoded samples for {name}.");
     }
 
     public static IEnumerable<object[]> GrayscaleFixtures() {
