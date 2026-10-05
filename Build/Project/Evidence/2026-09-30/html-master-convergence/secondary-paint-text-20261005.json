@@ -548,9 +548,9 @@
     },
     "retainedArtifactRoot": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91",
     "remaining": [
-      "Current normal packed consumers",
-      "Current unchanged supported-platform budgets/packages",
-      "External font-envelope/selection and manual accessibility acceptance",
+      "Delayed exact-head standalone PR2820 CI/review and remediation",
+      "Current hosted supported-platform packages and unchanged budgets",
+      "Remaining corpus/profile appearance/resource/native acceptance and external selection/manual accessibility",
       "Qualified long-lived branch convergence"
     ],
     "frameworkResults": {
@@ -605,7 +605,7 @@
       "mainFocusedPdfPassed": 16,
       "separateOwnerReview": "Full logical_anchor_precision_review plus one targeted OCR confirmation completed; pre-existing searchable OCR sibling rounding error reproduced twice and fixed, no remaining findings.",
       "formatter": "Existing six-decimal matrix numeric formatter only for bounded invisible logical anchor font size; ordinary painted fonts retain their formatter.",
-      "publicExtractionSource": "2cf8efe86c (exact normal-package receipt pending)",
+      "publicExtractionSource": "2cf8efe86385eb1f595415f798683a5e360e2162",
       "focusedPasses": 135,
       "combinedFinalPdfFrameworkResults": {
         "net8.0": {
@@ -653,7 +653,16 @@
           "sha256": "78f14003884601d94c977295f3bb4dafd2f200fca74d13806c04a5984aa15dd6"
         }
       },
-      "ocrSibling": "Public MakeSearchableAsync regression fails2 before fix,135 focused pass after;6 total new standard/embedded/OCR theory cases."
+      "ocrSibling": "Public MakeSearchableAsync regression fails2 before fix,135 focused pass after;6 total new standard/embedded/OCR theory cases.",
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2820",
+      "standaloneValidation": {
+        "fullPassesEachFramework": 8871,
+        "normalFourTargetPackages": 2,
+        "publicPackedConsumerArtifacts": 8,
+        "independentPopplerChecks": 8,
+        "targetedOwnerConfirmation": "No remaining findings",
+        "hostedInitialState": "At13:15UTC queued/running, one complete thread page0unresolved, automatic code/security review running; not merge-ready."
+      }
     },
     "cleanReplay": {
       "sourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
@@ -680,6 +689,72 @@
       "pixelIdenticalChangedPngFiles": 30,
       "other3Pngs": "Only53white-pixel right tail removed; common viewport pixels exactly identical. One paired contact sheet inspected.",
       "originalStaticSetupFailure": "--verify-acceptance was invalid for static-gaps because it has no acceptance manifest; failure log retained. Corrected clean-source execution succeeds without that switch."
+    },
+    "normalPackageQualification": {
+      "sourceHead": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+      "normalPackageCount": 19,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "canonicalPackedConsumers": 2,
+      "consumerFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "allInstalledOriginsHashesAndLoadedDllsVerified": true,
+      "originReceipt": "Ignore/MasterConvergenceQualification/packages-carrier-clean-44027d598/origin-hash-verification.json",
+      "originReceiptSha256": "b5b64e499a37720eabcf9f20312ae06ee9e5870aeacc66b85d5a612118f92bde",
+      "originalPublicMathConsumer": "Both frameworks pass with exact fresh packed CoreDLL and original STIX font bytes; radical72.85x97.92 and accent238.28x21.08 match original395 source.",
+      "nativeNet472Execution": "Await current Windows hosted consumer lane; cross-target package build is not native execution."
+    },
+    "allIntentReplay": {
+      "cleanSourceHead": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "operationCount": 11,
+      "allOfficeImoOperationsComplete": true,
+      "familyVisibleCharacterMultisetsPreserved": true,
+      "allOperationsHasLoss": true,
+      "counts": {
+        "print": 19,
+        "zeroMargin": 16,
+        "fit816": 16,
+        "fit1200": 11,
+        "fit1200LocalFonts": 11,
+        "browserUa": 16,
+        "zeroMarginLocalFonts": 16,
+        "screenMedia": 21,
+        "screenMediaLocalFonts": 21,
+        "snapshot": 16,
+        "snapshotLocalFonts": 16
+      },
+      "resourceObservation": "Fourteen common decoded images; only a solid-black varying-alpha raster changes dimensions317x564 to365x649 with page margins. Observation retained, no universal source-image byte parity claim.",
+      "profileLimit": "Default conversion options differ from the explicit PortableDeterministic API/Tool profiles. These counts do not replace the canonical19/22/14 intent counts or establish visual/browser acceptance.",
+      "comparatorObservation": "Fresh isolated PeachPDF0.9.20 completes14pages; earlier bookmark failure is not reproduced on this selected source. It has different extracted text and decoded resource results, so no parity claim or unproven missing-photo defect.",
+      "artifacts": "Ignore/MasterConvergenceQualification/planetary-all-intents-clean-44027d598",
+      "independentObservation": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/all-intents-independent-44027d598.json"
+    },
+    "platformQualification": {
+      "run": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37315963943",
+      "workflowAndSourceHead": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+      "dispatchUtc": "2026-10-05T13:19:57Z",
+      "sameRunnerControl": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+      "unchangedInputFilesVerified": 21,
+      "initialState": "Registered in_progress; full current-source correctness, packages and unchanged measurements await completion.",
+      "localTiming": "No current-source timing run under shared host contention. Prior timing/allocation/deadline failures remain visible."
+    },
+    "cleanup": {
+      "verifiedRemovedTargets": 310,
+      "removedBytes": 6269408008,
+      "mainTargets": 213,
+      "standaloneTargets": 97,
+      "allTargetsAbsent": true,
+      "sourceFeedsFinalArtifactsFailureLogsAndReceiptsRetained": true,
+      "mainEvidenceApproximateSize": "2.8GiB",
+      "mainEvidenceRoot": "Ignore/MasterConvergenceQualification",
+      "recovery": "Native hidden/read-only filesystem execution errors recovered with fresh guarded DotNet preflight where needed; no policy rejection bypass."
     }
   },
   "latestStandaloneMerge": {
