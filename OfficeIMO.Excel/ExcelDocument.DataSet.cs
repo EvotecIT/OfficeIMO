@@ -96,6 +96,9 @@ namespace OfficeIMO.Excel {
 
         private bool HasWorkbookContentOutsideDirectDataSetImport(bool allowSheets) {
             foreach (var child in WorkbookRoot.ChildElements) {
+                if (child is BookViews views && IsNeutralWorkbookViews(views)) {
+                    continue;
+                }
                 if (child is Sheets sheets) {
                     if (!allowSheets && sheets.OfType<Sheet>().Any()) {
                         return true;

@@ -493,7 +493,7 @@ internal static partial class PdfWriter {
                 PdfTableCell cell = row[cellIndex];
                 int columnSpan = System.Math.Min(cell.ColumnSpan, columnCount - column);
                 int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
-                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.Paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap));
+                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.Paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport));
                 for (int c = column; c < column + columnSpan; c++) {
                     activeRowSpans[c] = System.Math.Max(activeRowSpans[c], rowSpan);
                 }
@@ -694,13 +694,13 @@ internal static partial class PdfWriter {
                 }
 
                 int rowSpan = System.Math.Min(cell.RowSpan, rowHeights.Length - rowIndex);
-                if (rowSpan <= 1) {
+                if (rowSpan <= 1 || cell.Viewport != null) {
                     continue;
                 }
 
                 TableCellTextLayout lines = rowLines[rowIndex][cell.Column];
                 double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+                double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
                 double requiredHeight = MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeadings[rowIndex], innerWidth) +
                     GetTableCellPaddingTop(style, rowIndex, cell.Column) +
                     GetTableCellPaddingBottom(style, rowIndex, cell.Column);

@@ -52,6 +52,10 @@ internal static partial class PdfWriter {
                 double widthPercent = 100D / options.ColumnCount;
                 for (int columnIndex = 0; columnIndex < options.ColumnCount; columnIndex++) {
                     var column = new RowColumn(PdfColumnWidth.Percent(widthPercent));
+                    // Whole line boxes need not divide evenly into the balanced target.
+                    // Use the remaining physical capacity for the final column so a
+                    // fitting remainder does not create an otherwise unnecessary page.
+                    double columnTarget = columnIndex == options.ColumnCount - 1 ? availableHeight : target;
                     double consumed = 0D;
                     while (blockIndex < segmentEnd) {
                         IPdfBlock block = pendingBlocks[blockIndex];
@@ -61,7 +65,7 @@ internal static partial class PdfWriter {
                         }
 
                         double blockHeight = MeasureColumnBlock(block, columnWidth);
-                        double remainingTarget = target - consumed;
+                        double remainingTarget = columnTarget - consumed;
                         if (options.BalanceParagraphLines &&
                             block is RichParagraphBlock paragraph &&
                             blockHeight > remainingTarget + 0.001D &&
@@ -72,11 +76,11 @@ internal static partial class PdfWriter {
                             break;
                         }
 
-                        if (column.Blocks.Count > 0 && consumed + blockHeight > target + 0.001D) break;
+                        if (column.Blocks.Count > 0 && consumed + blockHeight > columnTarget + 0.001D) break;
                         column.AddBlock(block);
                         consumed += blockHeight;
                         blockIndex++;
-                        if (consumed >= target - 0.001D) break;
+                        if (consumed >= columnTarget - 0.001D) break;
                     }
                     row.AddColumn(column);
                 }
@@ -101,7 +105,7 @@ internal static partial class PdfWriter {
                 return false;
             }
 
-            double fontSize = currentOpts.DefaultFontSize;
+            double fontSize = sourceStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(sourceStyle, fontSize);
             var textFrame = GetParagraphTextFrame(sourceStyle, currentOpts.MarginLeft, columnWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(
@@ -114,7 +118,7 @@ internal static partial class PdfWriter {
                 textFrame.FirstLineX - textFrame.X,
                 GetParagraphTabStopWidth(sourceStyle),
                 currentOpts,
-                GetParagraphTabStops(sourceStyle));
+                GetParagraphTabStops(sourceStyle), lineSpacing: sourceStyle?.LineSpacing);
             if (wrapped.Lines.Count < 2) {
                 return false;
             }
@@ -185,8 +189,10 @@ internal static partial class PdfWriter {
                     runs.Add(BuildTextRunFromWrappedSegment(text, segment));
                 }
 
-                if (lineIndex + 1 < count) {
-                    if (line.Count == 0 || line[line.Count - 1].EndsWithHardBreak) {
+                if (line.Count > 0 && line[line.Count - 1].EndsWithHardBreak) {
+                    runs.Add(BuildTextRunFromWrappedSegment("\n", line[line.Count - 1]));
+                } else if (lineIndex + 1 < count) {
+                    if (line.Count == 0) {
                         runs.Add(PdfTextRun.LineBreak());
                     } else if (line[line.Count - 1].EndsWithTextSeparator) {
                         runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
@@ -197,8 +203,8 @@ internal static partial class PdfWriter {
             return runs;
         }
 
-        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) =>
-            new PdfTextRun(
+        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) {
+            var run = new PdfTextRun(
                 text,
                 segment.Bold,
                 segment.Underline,
@@ -214,7 +220,14 @@ internal static partial class PdfWriter {
                 backgroundColor: segment.BackgroundColor,
                 fontFamily: segment.NamedFont?.FamilyName,
                 underlineStyle: segment.UnderlineStyle,
-                strikeStyle: segment.StrikeStyle);
+                strikeStyle: segment.StrikeStyle,
+                decorationColor: segment.DecorationColor);
+            if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
+                run = run.WithFeatureSettings(segment.FeatureSettings);
+            if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)
+                run = run.WithTextDirection(segment.TextDirection);
+            return run;
+        }
 
         private double MeasureColumnBlock(IPdfBlock block, double columnWidth) =>
             MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, columnWidth, currentOpts.DefaultFontSize);

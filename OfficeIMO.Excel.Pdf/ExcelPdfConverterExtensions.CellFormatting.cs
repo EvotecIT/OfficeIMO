@@ -4,6 +4,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (value == null) {
                 return emptyCellText;
             }
+            if (value is bool boolean) return boolean ? "TRUE" : "FALSE";
 
             string? formatCode = style?.NumberFormatCode;
             if (!string.IsNullOrWhiteSpace(formatCode)) {

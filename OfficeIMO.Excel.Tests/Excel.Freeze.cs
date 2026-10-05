@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_UnfreezeRemovesSheetViews() {
+        public void Test_UnfreezeRetainsNeutralSheetViewAndAuthoredRowHeight() {
             string filePath = Path.Combine(_directoryWithFiles, "FreezeUnfreeze.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.AsFluent()
@@ -137,7 +137,10 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 var workbookPart = spreadsheet.WorkbookPart!;
                 WorksheetPart wsPart = workbookPart.WorksheetParts.First();
-                Assert.Null(wsPart.Worksheet.GetFirstChild<SheetViews>());
+                SheetViews views = Assert.IsType<SheetViews>(wsPart.Worksheet.GetFirstChild<SheetViews>());
+                SheetView view = Assert.Single(views.Elements<SheetView>());
+                Assert.Equal(0U, view.WorkbookViewId!.Value);
+                Assert.Null(view.GetFirstChild<Pane>());
 
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(wsPart.Worksheet).ToList();

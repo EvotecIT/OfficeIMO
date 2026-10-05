@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
-            var (lines, lineHeights) = WrapRichRunsCore(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            var (lines, lineHeights) = WrapRichRunsWithSpacing(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
             double textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
             double needed = spacingBefore + textHeight + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
@@ -105,13 +105,13 @@ internal static partial class PdfWriter {
 
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double frameStart = GetCurrentFramePageStartY();
-            double size = currentOpts.DefaultFontSize;
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
+            double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, size);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
-            var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
+            var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0) {
                 double paragraphHeight = spacingBefore + lineHeights.Sum() + spacingAfter;
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
@@ -187,7 +187,7 @@ internal static partial class PdfWriter {
                         floatingLineWidths[index] = frame.Width;
                         floatingLineGaps[index] = frame.Gap;
                         return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                    });
+                    }, lineSpacing: paragraphStyle?.LineSpacing);
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null

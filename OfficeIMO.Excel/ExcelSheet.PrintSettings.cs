@@ -371,7 +371,7 @@ namespace OfficeIMO.Excel {
             return changed;
         }
 
-        private static IEnumerable<string> SplitDefinedNameParts(string text) {
+        internal static IEnumerable<string> SplitDefinedNameParts(string text) {
             var parts = new List<string>();
             int start = 0;
             bool inQuote = false;
