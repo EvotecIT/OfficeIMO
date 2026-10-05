@@ -639,8 +639,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (IsNativeTextWrappingBreak(run) && string.IsNullOrEmpty(run.Text)) {
-                        builder.LineBreak();
-                        tabIndex = 0;
+                        AddNativeRun(builder, "\n", run, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
                         continue;
                     }
 
@@ -996,6 +995,7 @@ namespace OfficeIMO.Word.Pdf {
             if (ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults).Value.HasValue && paragraphStyle.LineHeight.HasValue) {
                 style.FontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
                 style.LineHeight = paragraphStyle.LineHeight.Value;
+                style.LineSpacing = paragraphStyle.LineSpacing;
             }
 
             if (HasNativeHeadingDeclaredSpacingBefore(paragraph, styleDefaults)) {

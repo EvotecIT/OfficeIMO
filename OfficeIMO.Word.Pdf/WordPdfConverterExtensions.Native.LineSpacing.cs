@@ -11,6 +11,15 @@ namespace OfficeIMO.Word.Pdf {
             public NativeLineSpacing Inherit(NativeLineSpacing inherited) =>
                 Value.HasValue ? this : inherited;
 
+            public OfficeIMO.Pdf.PdfLineSpacing? ToPdfLineSpacing(double naturalLineHeight) {
+                if (!Value.HasValue) return null;
+                if (Rule == null || Rule == W.LineSpacingRuleValues.Auto)
+                    return OfficeIMO.Pdf.PdfLineSpacing.Multiple(Math.Max(0.01D, naturalLineHeight * Value.Value / 240D));
+                return Rule == W.LineSpacingRuleValues.AtLeast
+                    ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(Value.Value / 20D, naturalLineHeight)
+                    : OfficeIMO.Pdf.PdfLineSpacing.Exactly(Value.Value / 20D);
+            }
+
             public double? Resolve(double fontSize, double naturalLineHeight) {
                 if (!Value.HasValue) return null;
                 if (Rule == null || Rule == W.LineSpacingRuleValues.Auto) {
@@ -33,5 +42,18 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults documentDefaults, NativeLineSpacing tableSpacing = default) =>
             ReadNativeLineSpacing(paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines)
                 .Inherit(styleDefaults.LineSpacing.Inherit(tableSpacing.Inherit(documentDefaults.LineSpacing)));
+
+        // A paragraph mark or a large run on another line must not impose a
+        // paragraph-wide minimum on every visible line. Runs retain their own sizes.
+        private static double ResolveNativeParagraphLayoutFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults,
+            NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
+            double? minimum = null;
+            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) continue;
+                double size = ResolveNativeTextRunStyle(run, paragraph, tableRunStyleDefaults, nativeDefaults).FontSize ?? nativeDefaults.FontSize;
+                if (size > 0D) minimum = minimum.HasValue ? Math.Min(minimum.Value, size) : size;
+            }
+            return minimum ?? ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableRunStyleDefaults);
+        }
     }
 }

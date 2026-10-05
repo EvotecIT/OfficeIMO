@@ -927,7 +927,7 @@ namespace OfficeIMO.Word.Pdf {
                         if (child is W.Text text) {
                             AddNativeVmlTextRun(runs, document, run, properties, text);
                         } else if (child is W.Break) {
-                            runs.Add(PdfCore.PdfTextRun.LineBreak());
+                            runs.Add(CreateNativeVmlTextRun("\n", properties));
                         } else if (child is W.TabChar) {
                             runs.Add(PdfCore.PdfTextRun.Tab());
                         } else {
@@ -958,7 +958,11 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            runs.Add(new PdfCore.PdfTextRun(
+            runs.Add(CreateNativeVmlTextRun(value, properties));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeVmlTextRun(string value, W.RunProperties? properties) =>
+            new PdfCore.PdfTextRun(
                 value,
                 bold: HasNativeOnOff(properties?.Bold),
                 underline: HasNativeVmlUnderline(properties?.Underline),
@@ -966,8 +970,7 @@ namespace OfficeIMO.Word.Pdf {
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
                 fontSize: GetNativeVmlRunFontSize(properties),
-                font: GetNativeVmlRunFont(properties)));
-        }
+                font: GetNativeVmlRunFont(properties));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
             foreach (V.TextPath textPath in element.Descendants<V.TextPath>()) {

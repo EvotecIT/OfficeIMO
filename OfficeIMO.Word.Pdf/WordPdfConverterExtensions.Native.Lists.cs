@@ -158,12 +158,9 @@ namespace OfficeIMO.Word.Pdf {
                 numberingHangingIndent;
             double markerIndent = Math.Max(0D, textIndent - hangingIndent);
             double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
-            double lineHeight = ResolveNativeParagraphLineHeight(
-                paragraph,
-                fontSize,
-                nativeDefaults,
-                styleDefaults,
-                nativeFontMap);
+            double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, styleDefaults, nativeFontMap: nativeFontMap);
+            NativeLineSpacing lineSpacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults);
+            double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double markerFontSize = info.MarkerFontSize ?? fontSize;
             double markerTextWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
@@ -176,20 +173,16 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerWidth = markerWidth,
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle),
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
-                MarkerFontSize = info.MarkerFontSize,
+                MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
                 MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification),
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
             };
 
-            if (paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0D) {
-                style.FontSize = paragraph.FontSizePoints.Value;
-            } else if (styleDefaults.FontSize.HasValue) {
-                style.FontSize = styleDefaults.FontSize.Value;
-            }
-
             style.LineHeight = lineHeight;
+            style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
+            style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
 
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
@@ -353,6 +346,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return NullableDoubleEquals(left.FontSize, right.FontSize) &&
                    NullableDoubleEquals(left.LineHeight, right.LineHeight) &&
+                   NativeLineSpacingsEquivalent(left.LineSpacing, right.LineSpacing) &&
                    DoubleEquals(left.LeftIndent, right.LeftIndent) &&
                    NullableDoubleEquals(left.MarkerGap, right.MarkerGap) &&
                    NullableDoubleEquals(left.MarkerWidth, right.MarkerWidth) &&
@@ -370,6 +364,11 @@ namespace OfficeIMO.Word.Pdf {
                    left.KeepTogether == right.KeepTogether &&
                    left.KeepWithNext == right.KeepWithNext;
         }
+
+        private static bool NativeLineSpacingsEquivalent(PdfCore.PdfLineSpacing? left, PdfCore.PdfLineSpacing? right) =>
+            ReferenceEquals(left, right) || left != null && right != null &&
+            left.Rule == right.Rule && DoubleEquals(left.Value, right.Value) &&
+            DoubleEquals(left.NaturalMultiplier, right.NaturalMultiplier);
 
         private static bool NullableDoubleEquals(double? left, double? right) {
             if (left.HasValue != right.HasValue) {

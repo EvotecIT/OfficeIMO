@@ -308,11 +308,14 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter = 0D;
                 }
 
-                double? lineHeight = ResolveNativeTableCellParagraphLineHeight(
-                    paragraph,
-                    nativeDefaults,
-                    tableStyleDefaults,
-                    nativeFontMap);
+                NativeParagraphStyleDefaults paragraphStyleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+                double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle, nativeFontMap);
+                NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults.LineSpacing);
+                double? lineHeight = nativeLineSpacing.Resolve(
+                    ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults), naturalLineHeight)
+                    ?? tableStyleDefaults.ParagraphLineHeight;
+                double paragraphFontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle);
+                PdfCore.PdfLineSpacing? lineSpacing = nativeLineSpacing.ToPdfLineSpacing(naturalLineHeight);
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
@@ -324,7 +327,9 @@ namespace OfficeIMO.Word.Pdf {
                     indentation.FirstLine,
                     lineHeight,
                     nativeDefaults.DefaultTabStopWidth,
-                    tabStops));
+                    tabStops,
+                    paragraphFontSize,
+                    lineSpacing));
                 pendingSpacingAfter = spacingAfter;
             }
 
@@ -409,23 +414,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double NormalizeNativeTableCellIndent(double value) =>
             double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
-
-        private static double? ResolveNativeTableCellParagraphLineHeight(
-            WordParagraph paragraph,
-            NativeDocumentDefaults nativeDefaults,
-            NativeTableStyleDefaults tableStyleDefaults,
-            NativeFontMap? nativeFontMap = null) {
-            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            double fontSize = ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
-            double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(
-                paragraph,
-                nativeDefaults,
-                styleDefaults,
-                tableStyleDefaults.RunStyle,
-                nativeFontMap);
-            return ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults.LineSpacing)
-                .Resolve(fontSize, naturalLineHeight) ?? tableStyleDefaults.ParagraphLineHeight;
-        }
 
         private static double ResolveNativeTableCellParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) =>
             paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
@@ -541,8 +529,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (IsNativeTextWrappingBreak(run) && string.IsNullOrEmpty(run.Text)) {
-                        result.Add(PdfCore.PdfTextRun.LineBreak());
-                        tabIndex = 0;
+                        AddNativeCellRun(result, "\n", run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
                         continue;
                     }
 
@@ -623,7 +610,7 @@ namespace OfficeIMO.Word.Pdf {
             AddNativeTextSegments(
                 text,
                 value => AddOrMergeNativeCellTextRun(target, createRun(value)),
-                () => target.Add(PdfCore.PdfTextRun.LineBreak()),
+                () => target.Add(createRun("\n")),
                 () => {
                     target.Add(CreateNativeCellTabRun(tabStops, currentTabIndex));
                     currentTabIndex++;

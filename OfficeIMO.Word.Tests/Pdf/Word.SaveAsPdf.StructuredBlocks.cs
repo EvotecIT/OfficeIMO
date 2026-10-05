@@ -1121,16 +1121,18 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeVmlTextRunFonts.docx"));
         var paragraph = new Paragraph(
             new Run(
-                new RunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }),
-                new Text("Monospace VML text")));
+                new RunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "32" }),
+                new Text("Monospace VML text"), new Break(), new Text("Next line")));
         Paragraph textBoxParagraph = CreateNativeVmlTextBoxParagraph(paragraph);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
 
         var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
 
-        PdfTextRun run = Assert.Single(runs);
-        Assert.Equal("Monospace VML text", run.Text);
-        Assert.Equal(PdfStandardFont.Courier, run.Font);
+        Assert.Equal(new[] { "Monospace VML text", "\n", "Next line" }, runs.Select(run => run.Text));
+        Assert.All(runs, run => {
+            Assert.Equal(PdfStandardFont.Courier, run.Font);
+            Assert.Equal(16D, run.FontSize);
+        });
     }
 
     [Fact]
