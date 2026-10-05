@@ -4,7 +4,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderAvoidBreakRange? ResolveTrailingBoxKeepRange(HtmlRenderBoxStyle style,
         double contentHeight, double outerHeight, double contentY, IEnumerable<double> breakOffsets,
         IEnumerable<HtmlInlineBreakProgress> progress) {
-        if (style.ExplicitHeight.HasValue && !style.AutoHeightFlexStretch || contentHeight <= 0.0001D
+        if (style.ExplicitHeight.HasValue && !style.AutoHeightLayoutStretch || contentHeight <= 0.0001D
             || style.PaddingBottom + style.BorderBottomWidth <= 0.0001D) return null;
 
         // A final child's margin is spacing, not a content fragment. Keep the

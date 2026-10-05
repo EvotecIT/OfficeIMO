@@ -296,12 +296,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // Do not shift a large content-free tail and strand the next block.
                 if (gap <= 0.0001D || item.Height <= cuts[index] + 0.0001D) continue;
                 if (gap > Math.Max(16D, boundary.PageHeight * 0.25D)
-                    && LastAtomicFlexVisualBottom(item.Visuals) <= cuts[index] + 0.0001D) continue;
+                    && LastAtomicParallelVisualBottom(item.Visuals) <= cuts[index] + 0.0001D) continue;
                 // Auto-height stretch may leave a content-free tail after the
                 // last sidebar image. Use that tail for the inserted page-break
                 // space instead of growing the row and moving its next sibling.
                 double retainedEnd = new[] {
-                    LastAtomicFlexVisualBottom(item.Visuals, includePaintAndMetadata: true),
+                    LastAtomicParallelVisualBottom(item.Visuals, includePaintAndMetadata: true),
                     item.LineBreakGroups.Select(group => group.End).DefaultIfEmpty().Max(),
                     item.BreakOffsets.Where(offset => offset < item.Height - 0.0001D).DefaultIfEmpty().Max(),
                     item.RunningStringAssignments.Select(assignment => assignment.Offset).DefaultIfEmpty().Max(),
@@ -331,7 +331,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .Distinct()
             .Any(offset => line.Items.All(item => {
                 HtmlRenderFlowBlock block = item.Block!;
-                return IsSafeFlexRowBreak(block, offset, atomicVisualBottoms, atomicVisualRanges)
+                return IsSafeParallelItemBreak(block, offset, atomicVisualBottoms, atomicVisualRanges)
                     && IsAllowedLineBreak(block, cursor, offset, checkInteriorBreaks: true)
                     && !(block.AvoidBreakInside && block.Height <= pageHeight + 0.0001D
                         && offset > 0.0001D && offset < block.Height - 0.0001D)

@@ -131,8 +131,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? ExplicitWidth;
     internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
-    // Flex stretching supplies a used height without changing the authored auto-height contract.
-    internal bool AutoHeightFlexStretch;
+    // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
+    internal bool AutoHeightLayoutStretch;
     internal double? MinWidth;
     internal double? MinWidthWithIndefiniteReference;
     internal double? MaxWidth;

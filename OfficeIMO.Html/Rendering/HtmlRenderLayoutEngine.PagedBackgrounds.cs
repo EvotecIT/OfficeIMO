@@ -6,8 +6,8 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private static bool CanExtendBoxBackgroundThroughFragmentSlack(HtmlRenderBoxStyle style, OfficeShape fill) =>
         style.Display is "block" or "flex" or "grid" or "flow-root"
-        // Flex stretch records a used height; the authored auto-height box still fragments.
-        && (!style.ExplicitHeight.HasValue || style.AutoHeightFlexStretch) && !style.AspectRatio.HasValue
+        // Flex/grid stretch records a used height; the authored auto-height box still fragments.
+        && (!style.ExplicitHeight.HasValue || style.AutoHeightLayoutStretch) && !style.AspectRatio.HasValue
         && style.Position == "static" && style.FloatSide == "none"
         && style.Opacity >= 1D && fill.FillColor?.A == byte.MaxValue
         && fill.Kind == OfficeShapeKind.Rectangle && !style.HasBorderLayout

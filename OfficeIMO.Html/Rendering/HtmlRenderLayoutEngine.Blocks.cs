@@ -693,8 +693,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
         if (pagedPaintExtent > outerHeight + 0.0001D) {
-            IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicFlexVisualRanges(visuals);
-            breakOffsets = breakOffsets.Where(offset => !CrossesAtomicFlexVisual(atomicRanges, offset));
+            IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicParallelVisualRanges(visuals);
+            breakOffsets = breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
         }
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
         IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));

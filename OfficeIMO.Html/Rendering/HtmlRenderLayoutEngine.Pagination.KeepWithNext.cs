@@ -51,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (firstContentBreak <= 0.0001D) {
             // Images, vector drawings and fields have no logical characters.
             // An entry before their padding is not their first content end.
-            IReadOnlyList<(double Top, double Bottom)> atomicContent = CollectAtomicFlexVisualRanges(current.Visuals);
+            IReadOnlyList<(double Top, double Bottom)> atomicContent = CollectAtomicParallelVisualRanges(current.Visuals);
             double firstAtomicEnd = atomicContent.Count == 0 ? 0D : atomicContent[0].Bottom;
             firstContentBreak = current.BreakOffsets
                 .Where(offset => offset > 0.01D && offset >= firstAtomicEnd - 0.0001D)
