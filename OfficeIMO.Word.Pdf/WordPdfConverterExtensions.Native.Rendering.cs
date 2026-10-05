@@ -1083,6 +1083,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraphStyleFallback, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            style = style with { FontSize = style.FontSize ?? nativeFontMap.DefaultFontSize ?? nativeDefaults.FontSize };
             ApplyNativeTextStyle(builder, style);
 
             if (run.IsHyperLink && run.Hyperlink != null) {

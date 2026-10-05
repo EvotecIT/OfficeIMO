@@ -10,6 +10,30 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_MixedExplicitAndInheritedSizesRemainIndependent(bool nativeDoc, bool table) {
+        using WordDocument source = WordDocument.Create();
+        Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        foreach (FontSize size in styles.Descendants<FontSize>().ToArray()) size.Remove();
+        foreach (FontSizeComplexScript size in styles.Descendants<FontSizeComplexScript>().ToArray()) size.Remove();
+        styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.Append(new FontSize { Val = "24" });
+        var paragraph = table ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+        paragraph._paragraph.RemoveAllChildren<Run>();
+        paragraph._paragraph.Append(new Run(new RunProperties(new FontSize { Val = "16" }), new Text("A")),
+            new Run(new Text("B")));
+        using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(8D, Assert.Single(letters, letter => letter.Value == "A").PointSize, 3);
+        Assert.Equal(12D, Assert.Single(letters, letter => letter.Value == "B").PointSize, 3);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SaveAsPdf_EmptyParagraphUsesItsMarkFontMetrics(bool nativeDoc) {

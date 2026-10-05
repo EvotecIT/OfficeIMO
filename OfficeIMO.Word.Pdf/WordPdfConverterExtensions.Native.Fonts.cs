@@ -21,6 +21,8 @@ namespace OfficeIMO.Word.Pdf {
 
             public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
 
+            public double? DefaultFontSize => _resolvedOptions?.DefaultFontSize;
+
             public void PreferPdfDefaultForDocumentDefaultFont() =>
                 UsePdfDefaultForDocumentDefaultFont = true;
 
