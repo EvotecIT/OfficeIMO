@@ -6,6 +6,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
+            public NativeLineSpacing LineSpacing { get; init; }
             public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
@@ -15,6 +16,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
+            public NativeLineSpacing LineSpacing { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
@@ -46,6 +48,7 @@ namespace OfficeIMO.Word.Pdf {
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
             W.LineSpacingRuleValues? paragraphLineSpacingRule = null;
+            NativeLineSpacing authoredLineSpacing = default;
             double? paragraphSpacingBefore = null;
             double? paragraphSpacingAfter = null;
             W.JustificationValues? paragraphAlignment = null;
@@ -141,6 +144,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (spacing != null) {
                     double naturalLineHeight = ResolveNativeWordSingleLineHeight(fontFamily, nativeDefaults.FontFamily);
                     double? styleParagraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, fontFamily, nativeDefaults.FontFamily);
+                    authoredLineSpacing = ReadNativeLineSpacing(spacing).Inherit(authoredLineSpacing);
                     double? styleParagraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
                     if (styleParagraphLineHeight.HasValue || styleParagraphLineSpacingPoints.HasValue) {
                         paragraphLineHeight = styleParagraphLineHeight;
@@ -221,7 +225,7 @@ namespace OfficeIMO.Word.Pdf {
                 firstColumnStyle,
                 lastColumnStyle,
                 band1HorizontalStyle,
-                band1VerticalStyle);
+                band1VerticalStyle) { LineSpacing = authoredLineSpacing };
         }
 
         private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(
@@ -332,7 +336,10 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphAlignment ?? result.ParagraphAlignment,
                     paragraphLeftIndent ?? result.ParagraphLeftIndent,
                     paragraphRightIndent ?? result.ParagraphRightIndent,
-                    paragraphFirstLineIndent ?? result.ParagraphFirstLineIndent) { ComplexScript = result.ComplexScript.Merge(runProperties) };
+                    paragraphFirstLineIndent ?? result.ParagraphFirstLineIndent) {
+                    ComplexScript = result.ComplexScript.Merge(runProperties),
+                    LineSpacing = ReadNativeLineSpacing(spacing).Inherit(result.LineSpacing)
+                };
             }
 
             return result;

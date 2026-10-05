@@ -78,6 +78,15 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
+        /// <summary>Sets explicit section column widths and individual gaps.</summary>
+        /// <param name="columns">Column definitions in twips.</param>
+        public SectionBuilder Columns(IEnumerable<WordSectionColumn> columns) {
+            if (_section == null) throw new InvalidOperationException("No section available to configure.");
+            if (columns == null) throw new ArgumentNullException(nameof(columns));
+            _section.ColumnDefinitions = columns.ToArray();
+            return this;
+        }
+
         /// <summary>
         /// Sets the margins for the section.
         /// </summary>

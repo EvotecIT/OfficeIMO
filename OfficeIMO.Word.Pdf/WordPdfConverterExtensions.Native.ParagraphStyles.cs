@@ -190,23 +190,8 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap: nativeFontMap);
-            if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == WordLineSpacingRule.Auto) {
-                return Math.Max(0.01D, naturalLineHeight * (paragraph.LineSpacing.Value / 240D));
-            }
-
-            if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, naturalLineHeight);
-            }
-
-            if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, naturalLineHeight);
-            }
-
-            if (styleDefaults.LineHeight.HasValue) {
-                return styleDefaults.LineHeight.Value;
-            }
-
-            return nativeDefaults.ParagraphLineHeight;
+            return ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults)
+                .Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
         }
 
         private static double ResolveNativeParagraphSingleLineHeight(
@@ -256,9 +241,6 @@ namespace OfficeIMO.Word.Pdf {
 
             return requestedLineHeight;
         }
-
-        private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, WordLineSpacingRule? lineSpacingRule, double fontSize, double naturalLineHeight) =>
-            ResolveNativeLineSpacingHeight(lineSpacingPoints, lineSpacingRule.ToOpenXml(), fontSize, naturalLineHeight);
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
             if (leader == W.TabStopLeaderCharValues.Dot || leader == W.TabStopLeaderCharValues.MiddleDot || leader == W.TabStopLeaderCharValues.Heavy) {

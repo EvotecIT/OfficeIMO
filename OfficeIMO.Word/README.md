@@ -67,6 +67,8 @@ document.Save();
 
 ## Paragraph formatting and inheritance
 
+Use `LineSpacing = 360` with `LineSpacingRule = WordLineSpacingRule.Auto` for 1.5 lines. `LineSpacingPoints = 18` selects exact spacing when the paragraph has no explicit rule; declare `AtLeast` to use an 18-point minimum. Assigning `null` to `LineSpacingPoints` removes its numeric value and retains an authored rule in DOCX. Word applies a spacing rule only with a numeric value in the same declaration; otherwise the complete value/rule pair is inherited. Native DOC saving carries document-default spacing into root paragraph styles without changing the source styles.
+
 Paragraph pagination controls support explicit on, off, and inherited values. Use the nullable `*Override` properties to disable a setting enabled by a paragraph style, or set them to `null` to remove direct formatting:
 
 ```csharp
@@ -106,6 +108,25 @@ Presets include Letter, Legal, Statement, Executive, A3–A6, JIS B4/B5, Tabloid
 Set `section.Margins.Gutter` in twips to reserve binding space. `document.Settings.GutterAtTop` places that space above the body; otherwise `section.RtlGutter` selects the right edge and the default is the left edge. `document.Settings.MirrorMargins` stores the document's facing-page margin setting. These settings survive DOCX and supported native DOC saves. Present on/off XML elements without a `val` attribute remain enabled. The [PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) describes rendering support separately.
 
 `document.AddSection(WordSectionBreakType.OddPage)` returns the new section. Its `BreakType` property gets or changes how that section starts relative to the preceding section; the preceding section retains its own start type. `AddSection()` starts on the next page and continues page numbering. Set a new section's numbering restart explicitly when needed. All five start types survive DOCX and supported native DOC saves.
+
+## Section columns
+
+Set `ColumnCount` and `ColumnsSpace` for equal-width columns. Set `ColumnDefinitions` to author or inspect individual widths and following gaps. Values are in twips, where 20 twips equals one point:
+
+```csharp
+var section = document.Sections[0];
+section.ColumnDefinitions = new[] {
+    new WordSectionColumn(2000, 400),
+    new WordSectionColumn(6000, 0)
+};
+int firstWidth = section.ColumnDefinitions[0].WidthTwips;
+```
+
+The property takes a snapshot and synchronizes the column count. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing. The fluent section builder accepts the same definitions through `Columns(definitions)`.
+
+An omitted `SpaceAfterTwips` has an effective gap of zero for unequal columns. `ColumnsSpace` applies to equal-width columns. DOCX retains the omitted individual value; native DOC writes its effective zero explicitly.
+
+DOCX preserves these settings. Native DOC preserves indexed widths and individual gaps, with up to 44 columns, widths from 718 through 32767 twips and gaps from zero through 32767 twips. Saving a layout outside those native limits fails before creating output. Invalid or incomplete native indexed records produce an import diagnostic. PDF column flow is described separately in the [conversion contract](../OfficeIMO.Word.Pdf/README.md).
 
 ## Paragraph tab stops
 

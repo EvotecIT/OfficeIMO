@@ -12076,28 +12076,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnequalSectionColumnsBeforeCreatingFile() {
-            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-
-            try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Unequal columns");
-                document.Sections[0].ColumnCount = 2;
-                Columns columns = document.Sections[0]._sectionProperties.GetFirstChild<Columns>()!;
-                columns.EqualWidth = false;
-                columns.Append(new Column { Width = "3000", Space = "360" });
-                columns.Append(new Column { Width = "4000", Space = "0" });
-
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-
-                Assert.Contains("equal-width section columns", exception.Message);
-                Assert.False(File.Exists(docPath));
-            } finally {
-                DeleteIfExists(docPath);
-            }
-        }
-
-        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksNativeDocSaveWhenImportedLegacyDocHasCompoundFeaturesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -12237,7 +12215,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }
 
-        private static class LegacyDocTestBuilder {
+        private static partial class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 const int textOffset = 0x800;

@@ -414,18 +414,9 @@ namespace OfficeIMO.Word.Pdf {
             double fontSize,
             string? documentFontFamily,
             NativeFontMap? nativeFontMap = null) {
-            if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(
-                    tableStyleDefaults.ParagraphLineSpacingPoints.Value,
-                    tableStyleDefaults.ParagraphLineSpacingRule,
-                    fontSize,
-                    ResolveNativeWordSingleLineHeight(
-                        nativeFontMap,
-                        tableStyleDefaults.RunStyle.FontFamily,
-                        documentFontFamily));
-            }
-
-            return tableStyleDefaults.ParagraphLineHeight;
+            return tableStyleDefaults.LineSpacing.Resolve(fontSize,
+                ResolveNativeWordSingleLineHeight(nativeFontMap, tableStyleDefaults.RunStyle.FontFamily, documentFontFamily))
+                ?? tableStyleDefaults.ParagraphLineHeight;
         }
 
         private static PdfCore.PdfTableStyle CreateNativeDefaultTableStyle(WordToPdfOptions? options) {
@@ -702,6 +693,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ParagraphLineHeight.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
+                !conditionalStyle.LineSpacing.Value.HasValue && !conditionalStyle.LineSpacing.Rule.HasValue &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&
                 !conditionalStyle.ParagraphAlignment.HasValue &&
@@ -718,6 +710,7 @@ namespace OfficeIMO.Word.Pdf {
                 ParagraphLineHeight = conditionalStyle.ParagraphLineHeight ?? tableStyleDefaults.ParagraphLineHeight,
                 ParagraphLineSpacingPoints = conditionalStyle.ParagraphLineSpacingPoints ?? tableStyleDefaults.ParagraphLineSpacingPoints,
                 ParagraphLineSpacingRule = conditionalStyle.ParagraphLineSpacingRule ?? tableStyleDefaults.ParagraphLineSpacingRule,
+                LineSpacing = conditionalStyle.LineSpacing.Inherit(tableStyleDefaults.LineSpacing),
                 ParagraphSpacingBefore = conditionalStyle.ParagraphSpacingBefore ?? tableStyleDefaults.ParagraphSpacingBefore,
                 ParagraphSpacingAfter = conditionalStyle.ParagraphSpacingAfter ?? tableStyleDefaults.ParagraphSpacingAfter,
                 ParagraphAlignment = conditionalStyle.ParagraphAlignment ?? tableStyleDefaults.ParagraphAlignment,
