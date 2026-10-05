@@ -1,0 +1,10 @@
+{
+  "cases": [
+    { "name": "injection", "columns": [{"header":"=Header"}], "rows": [["=cmd"],["+cmd"],["-cmd"],["@cmd"],["\tcmd"],["\rcmd"],["\ncmd"],["  =cmd"],["  \tcmd"],["  "],["safe"],["'already"],[" =nonbreaking-space"],["＝fullwidth"],[-1],[-2.5],[true],[false],[null]], "expected": "'=Header\r\n'=cmd\r\n'+cmd\r\n'-cmd\r\n'@cmd\r\n'\tcmd\r\n\"'\rcmd\"\r\n\"'\ncmd\"\r\n'  =cmd\r\n'  \tcmd\r\n  \r\nsafe\r\n'already\r\n =nonbreaking-space\r\n＝fullwidth\r\n-1\r\n-2.5\r\nTrue\r\nFalse\r\n\r\n" },
+    { "name": "quoting", "columns": [{"header":"First"},{"header":"Second"}], "rows": [["a,b","say \"yes\""],["CR\rLF\nCRLF\r\n","łódź 🧪 שלום"],[null,""]], "expected": "First,Second\r\n\"a,b\",\"say \"\"yes\"\"\"\r\n\"CR\rLF\nCRLF\r\n\",łódź 🧪 שלום\r\n,\r\n" },
+    { "name": "semicolon-bom", "columns": [{"header":"Name"},{"header":"Value"}], "delimiter": ";", "bom": true, "rows": [["a;b","=SUM(1,2)"],["łódź","comma,unquoted"]], "expected": "Name;Value\r\n\"a;b\";'=SUM(1,2)\r\nłódź;comma,unquoted\r\n" },
+    { "name": "tab", "columns": [{"header":"One"},{"header":"Two"}], "delimiter": "\t", "lineEnding": "\n", "rows": [["a\tb","\tcmd"]], "expected": "One\tTwo\n\"a\tb\"\t\"'\tcmd\"\n" },
+    { "name": "preserve", "columns": [{"header":"=Header"}], "formulaInjectionProtection": false, "rows": [["=cmd"],["-1"]], "expected": "=Header\r\n=cmd\r\n-1\r\n" },
+    { "name": "no-header", "columns": [{"header":"Value"}], "includeHeader": false, "rows": [["simple"]], "expected": "simple\r\n" }
+  ]
+}
