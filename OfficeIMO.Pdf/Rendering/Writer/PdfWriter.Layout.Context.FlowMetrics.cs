@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
             }
 
             double availableHeight = GetMaximumBlockContinuationHeight() - reservedHeight - imageMeasurementReservedHeight
-                - activeContainerScopes.Sum(scope => scope.Style.PaddingY) - spacingBefore - spacingAfter;
+                - activeContainerScopes.Sum(scope => scope.Style.FragmentPaddingReservation) - spacingBefore - spacingAfter;
             double scale = 1D;
             if (imageWidth > frameWidth) {
                 scale = Math.Min(scale, frameWidth / imageWidth);
@@ -339,7 +339,7 @@ internal static partial class PdfWriter {
                 }
 
                 return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.PaddingY +
-                       MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                       MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () =>
                            MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
             }
 

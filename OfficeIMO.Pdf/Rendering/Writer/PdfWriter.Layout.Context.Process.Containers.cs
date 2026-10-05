@@ -21,10 +21,10 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double firstVisualHeight = container.Blocks.Count == 0
                 ? 0D
-                : MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                : MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () =>
                     MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
-            double minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
-            if (style.PaddingY * 2D + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
+            double minimumStartHeight = spacingBefore + style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight;
+            if (style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
             while (ShouldAdvanceForBlockHeight(minimumStartHeight)) {
@@ -32,10 +32,10 @@ internal static partial class PdfWriter {
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 parentLeft = currentOpts.MarginLeft; parentWidth = width;
                 frame = ResolveContainerFrame(style, parentLeft, parentWidth);
-                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () =>
                     MeasureNextBlockFirstVisualHeight(container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
-                minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
-                if (style.PaddingY * 2D + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
+                minimumStartHeight = spacingBefore + style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight;
+                if (style.PaddingY + style.FragmentPaddingReservation + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
 
@@ -144,9 +144,9 @@ internal static partial class PdfWriter {
 
             for (int index = (endIndex ?? activeContainerScopes.Count) - 1; index >= firstIndex; index--) {
                 ContainerRenderScope scope = activeContainerScopes[index];
-                double bottomPadding = Math.Min(scope.Style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
+                double bottomPadding = Math.Min(scope.Style.GetFragmentBottomPadding(continues: true), Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
-                FinalizeContainerFragment(scope);
+                FinalizeContainerFragment(scope, y, continues: true);
                 scope.ParentOptions.MergeFontProgramUsageFrom(scope.NestedOptions);
             }
         }
@@ -172,6 +172,7 @@ internal static partial class PdfWriter {
                     (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);
                 currentOpts = scope.NestedOptions;
                 width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                scope.IsContinuation = true;
                 BeginContainerFragment(scope);
             }
         }
@@ -183,25 +184,27 @@ internal static partial class PdfWriter {
         private double BeginContainerFragment(ContainerRenderScope scope, double top) {
             scope.InsertionIndex = sb.Length;
             scope.FragmentTop = top;
-            return top - Math.Min(scope.Style.PaddingY, Math.Max(0D, top - currentOpts.MarginBottom));
+            return top - Math.Min(scope.Style.GetFragmentTopPadding(scope.IsContinuation), Math.Max(0D, top - currentOpts.MarginBottom));
         }
 
         private void FinalizeContainerFragment(ContainerRenderScope scope) {
             FinalizeContainerFragment(scope, y);
         }
 
-        private void FinalizeContainerFragment(ContainerRenderScope scope, double bottom) {
+        private void FinalizeContainerFragment(ContainerRenderScope scope, double bottom, bool continues = false) {
             double fragmentHeight = scope.FragmentTop - bottom;
             if (fragmentHeight <= 0.001D) {
                 return;
             }
 
             var decoration = new StringBuilder();
+            bool top = scope.Style.RepeatFragmentDecoration || !scope.IsContinuation;
+            bool end = scope.Style.RepeatFragmentDecoration || !continues;
             if (scope.Style.Background.HasValue) {
-                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, true, true, true, true, emitGeneratedStructure);
+                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, top, top, end, end, emitGeneratedStructure);
             }
 
-            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure);
+            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure, top, end);
             if (decoration.Length > 0) {
                 sb.Insert(scope.InsertionIndex, decoration.ToString());
                 pageDirty = true;
@@ -227,6 +230,7 @@ internal static partial class PdfWriter {
             public PdfOptions NestedOptions { get; set; }
             public int InsertionIndex { get; set; }
             public double FragmentTop { get; set; }
+            public bool IsContinuation { get; set; }
         }
     }
 }

@@ -72,11 +72,11 @@ internal static partial class PdfWriter {
                 double? keptHeight = MeasureWholeBlockHeight(container, frame.X, frameWidth, currentOpts.DefaultFontSize);
                 return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;
             }
-            List<ColumnBalanceUnit>? units = MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+            List<ColumnBalanceUnit>? units = MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () =>
                 MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(container.Blocks), scope, frame.ContentWidth));
             if (units == null) return null;
             double firstHeight = remainder != null || container.Blocks.Count == 0 ? 0D :
-                MeasureWithContainerPaddingReservation(style.PaddingY, () => MeasureNextBlockFirstVisualHeight(
+                MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () => MeasureNextBlockFirstVisualHeight(
                     container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize,
                     allowTableFragments: true, suppressParagraphSpacingBefore: true));
             return new() { new(new ColumnBalanceContainer(style, units, firstHeight, remainder != null)) };
@@ -107,15 +107,15 @@ internal static partial class PdfWriter {
             PdfPanelStyle style = container.Style;
             double before = container.IsContinuation || used <= parentPadding + .001D ? 0D : style.SpacingBefore;
             if (!container.IsContinuation) {
-                double minimumStart = style.PaddingY * 2D + container.FirstVisualHeight;
+                double minimumStart = style.PaddingY + style.FragmentPaddingReservation + container.FirstVisualHeight;
                 if (minimumStart > height - parentPadding + .001D) return false;
                 if (used > parentPadding + .001D && used + before + minimumStart > height + .001D) {
                     if (++columns > columnCount) return false;
                     used = parentPadding; before = 0D;
                 }
             }
-            used += before + Math.Min(style.PaddingY, Math.Max(0D, height - used));
-            if (!PackColumnBalanceUnits(container.Units, height, columnCount, parentPadding + style.PaddingY, ref columns, ref used)) return false;
+            used += before + Math.Min(style.GetFragmentTopPadding(container.IsContinuation), Math.Max(0D, height - used));
+            if (!PackColumnBalanceUnits(container.Units, height, columnCount, parentPadding + style.GetFragmentTopPadding(isContinuation: true), ref columns, ref used)) return false;
             used += Math.Min(style.PaddingY, Math.Max(0D, height - used));
             double after = style.SpacingAfter;
             while (after > .001D) {

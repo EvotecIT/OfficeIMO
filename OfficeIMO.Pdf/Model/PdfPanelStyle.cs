@@ -74,6 +74,20 @@ public class PdfPanelStyle {
             _paddingY = value;
         }
     }
+    /// <summary>
+    /// When true, each page or column fragment repeats vertical padding and top/bottom borders.
+    /// When false, top padding and border belong to the first fragment and bottom padding and border
+    /// belong to the final fragment; intermediate fragments retain side borders and background.
+    /// </summary>
+    public bool RepeatFragmentDecoration { get; set; } = true;
+
+    internal double GetFragmentTopPadding(bool isContinuation) =>
+        RepeatFragmentDecoration || !isContinuation ? PaddingY : 0D;
+
+    internal double GetFragmentBottomPadding(bool continues) =>
+        RepeatFragmentDecoration || !continues ? PaddingY : 0D;
+
+    internal double FragmentPaddingReservation => RepeatFragmentDecoration ? PaddingY : 0D;
     /// <summary>Horizontal padding inside the panel (points).</summary>
     public double PaddingX {
         get => _paddingX;
@@ -131,6 +145,7 @@ public class PdfPanelStyle {
             BottomBorder = _bottomBorder,
             LeftBorder = _leftBorder,
             PaddingY = PaddingY,
+            RepeatFragmentDecoration = RepeatFragmentDecoration,
             PaddingX = PaddingX,
             MaxWidth = MaxWidth,
             Align = Align,

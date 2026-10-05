@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
                 }
 
                 double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                double? contentHeight = MeasureWithContainerPaddingReservation(style.PaddingY, () => MeasureBlockSequence(
+                double? contentHeight = MeasureWithContainerPaddingReservation(style.FragmentPaddingReservation, () => MeasureBlockSequence(
                     container.Blocks,
                     frameX + style.PaddingX,
                     contentWidth,
@@ -152,7 +152,8 @@ internal static partial class PdfWriter {
         private double GetCurrentFramePageStartY() {
             double pageStart = yStart;
             for (int index = activeColumnFlow?.ContainerDepth ?? 0; index < activeContainerScopes.Count; index++) {
-                pageStart -= activeContainerScopes[index].Style.PaddingY;
+                ContainerRenderScope scope = activeContainerScopes[index];
+                pageStart -= scope.Style.GetFragmentTopPadding(scope.IsContinuation);
             }
 
             return pageStart;

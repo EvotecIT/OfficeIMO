@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
             ColumnFlowScope? scope = columnBalanceMeasurementScope ?? activeColumnFlow;
             double height = scope == null ? yStart - currentOpts.MarginBottom : scope.ParentYStart - scope.ParentOptions.MarginBottom;
             int activeDepth = columnBalanceMeasurementScope == null ? activeContainerScopes.Count : columnBalanceMeasurementScope.ContainerDepth;
-            for (int index = 0; index < activeDepth; index++) height -= activeContainerScopes[index].Style.PaddingY;
+            for (int index = 0; index < activeDepth; index++) height -= activeContainerScopes[index].Style.GetFragmentTopPadding(isContinuation: true);
             return Math.Max(0D, height - containerMeasurementTopPadding);
         }
 
