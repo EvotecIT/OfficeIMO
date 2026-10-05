@@ -495,3 +495,42 @@ fingerprint changed during another benchmark edit; it contributes no samples.
 The [writer and DataTable diagnostic profiles](excel-csv-broad-throughput-2026-10-04/writer-datatable-profiles.json)
 retain sampled allocation and CPU attribution. Those traces include setup and
 validation; they are not exact per-operation allocation or peak-memory evidence.
+
+## Late repeated worksheet rows — 2026-10-05
+
+Commit `048b089925` preserves updates from late physical worksheet rows, including
+rows that appear after the requested range has already been encountered. Array,
+row, column, chunk, dictionary, typed-object, DataTable and DataReader paths keep
+the later values. Readers qualify row order before publishing results that could
+otherwise become stale. The unsorted typed-stream fallback buffers pending row
+fragments within its existing resource limit.
+
+Regression fixtures cover UTF-8 and UTF-16, small and large ranges, sequential
+and parallel entrypoints, cancellation-capable paths, and the direct-schema
+DataReader. The final reader selection passes 742 tests on Windows .NET 10/.NET
+8, Linux/WSL .NET 10 and both macOS runtimes; .NET Framework 4.7.2 passes 738.
+Complete Windows Excel suites pass 5,464 tests with five existing skips on each
+modern runtime. The .NET Standard 2.0 build passes. Independent review exposed
+three additional reachable variants; all were reproduced and fixed, and the
+targeted confirmation reports no remaining actionable findings.
+
+The correctness cost is retained separately from subsequent optimization work.
+The 39-workload native comparison contains 156 before/after observations across
+Windows .NET 10 and .NET 8. Both sides use the same benchmark assembly; only the
+Excel library and symbols differ. Each observation retains all 12 measurements
+after 24 warmups, four invocations per measurement, Normal priority and the
+verified `0xFFFF` processor group. Complete-output setup validation passes every
+workload on both runtimes.
+
+Short-prefix reads now traverse the remaining physical rows to preserve late
+updates. For a 100-row prefix of a 25,000-row worksheet, native mean ratios are
+11.60 and 11.97 on .NET 10 without/with column inference, and 6.25 and 10.21 on
+.NET 8. The 2,500-row prefix ratios are 1.64/1.65 and 1.98/1.85 respectively.
+These are cost observations on this host with fixed execution order, not
+portable latency budgets. A performance candidate must be compared with this
+corrected baseline; the former early exits cannot serve as a valid target.
+
+The [qualification and complete native-cost packet](excel-csv-broad-throughput-2026-10-04/xlsx-reader-termination-qualified.json)
+retains the source and binary fingerprints, output proof, test counters, review
+boundary, measurements and unfavorable ratios. Wide unsorted typed-stream
+retained/peak memory and first-row latency remain open measurements.
