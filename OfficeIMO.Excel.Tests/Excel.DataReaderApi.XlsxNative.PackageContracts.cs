@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using System.Data.Common;
 using System.IO.Compression;
 using System.Text;
 using System.Threading;
@@ -265,7 +266,7 @@ public partial class Excel {
 
 #if !NETFRAMEWORK
     [Fact]
-    public void XlsxNativePackage_FallsBackForWorksheetLargerThanNativeBuffer() {
+    public void XlsxNativePackage_StreamsWorksheetLargerThanIndexedBuffer() {
         string path = CreateCompactFastPathWorkbook();
         try {
             const string entryName = "xl/worksheets/sheet1.xml";
@@ -287,7 +288,13 @@ public partial class Excel {
                 destination.Write(worksheet, closingTagOffset, worksheet.Length - closingTagOffset);
             }
 
-            AssertCompactNumericRows(path);
+            using XlsxTabularWorkbook workbook = XlsxTabularWorkbook.Open(path, new ExcelReadOptions());
+            using DbDataReader reader = workbook.OpenTable("Data", true, CancellationToken.None);
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.True(reader.Read());
+            Assert.Equal(43, reader.GetInt32(0));
+            Assert.False(reader.Read());
         } finally {
             File.Delete(path);
         }

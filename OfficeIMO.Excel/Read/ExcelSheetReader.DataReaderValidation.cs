@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         private bool ValidateDataReaderProjection(CancellationToken ct) {
             if (_canStreamWorksheetPart) {
                 try {
-                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    using var stream = OpenDataReaderWorksheetStream(ct);
                     if (TryPrepareWorksheetStream(stream)) {
                         return ValidateDataReaderProjectionXml(stream, ct);
                     }
@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            RequireSdkWorksheetPart();
             ct.ThrowIfCancellationRequested();
             Worksheet worksheet = _wsPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
@@ -57,7 +58,7 @@ namespace OfficeIMO.Excel {
             using var reader = OpenWorksheetXmlReader(stream);
             // Table-backed dimensions can intentionally include empty cells.
             // Otherwise reuse this complete validation scan to discover actual bounds.
-            var bounds = _usedRangeA1 == null && !_wsPart.TableDefinitionParts.Any()
+            var bounds = _usedRangeA1 == null && (!_hasSdkWorksheetPart || !_wsPart.TableDefinitionParts.Any())
                 ? new WorksheetRangeAccumulator() : null;
             var coordinates = bounds != null && Volatile.Read(ref _implicitXmlRowIndexes) == null
                 ? new ImplicitXmlRowIndexBuilder() : null;
@@ -75,6 +76,11 @@ namespace OfficeIMO.Excel {
                             || reader.NamespaceURI == StrictSpreadsheetNamespace;
                         if (nodeType == XmlNodeType.Element && reader.Depth == 0
                             && (localName != "worksheet" || !spreadsheetElement)) {
+                            bounds = null;
+                        } else if (!_hasSdkWorksheetPart && localName == "tableParts"
+                            && nodeType == XmlNodeType.Element) {
+                            // Table extents may include intentional empty rows and
+                            // columns; their discovery retains the SDK owner.
                             bounds = null;
                         } else if (localName == "sheetData" && nodeType == XmlNodeType.Element) {
                             if (haveSheetData || reader.Depth != 1 || !spreadsheetElement) {

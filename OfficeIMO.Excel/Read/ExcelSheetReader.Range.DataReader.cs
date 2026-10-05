@@ -23,9 +23,11 @@ namespace OfficeIMO.Excel {
                 return indexedReader!;
             }
 
-            RequireSdkWorksheetPart();
+            if (!_hasSdkWorksheetPart && !CanUseRangeStreamXmlReader()) {
+                RequireSdkWorksheetPart();
+            }
 
-            if (TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
+            if (_hasSdkWorksheetPart && TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
                 return new ExcelRangeDataReader(
                     Array.Empty<RangeChunk>(),
                     firstRow: 1,
@@ -38,6 +40,9 @@ namespace OfficeIMO.Excel {
             }
 
             bool rowsStrictlyIncreasing = ValidateDataReaderProjection(ct);
+            if (!_hasSdkWorksheetPart && (!rowsStrictlyIncreasing || _usedRangeA1 == null)) {
+                RequireSdkWorksheetPart();
+            }
             string usedRange = GetUsedRangeA1(ct);
             return ReadRangeAsDataReaderCore(
                 usedRange,

@@ -102,11 +102,11 @@ namespace OfficeIMO.Excel {
                     _utf8SourceOrdinalOffset = firstColumn - utf8SourceFirstColumn;
                 } else if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
                     _utf8Source = utf8Source;
-                } else if (!owner._hasSdkWorksheetPart) {
+                } else if (!owner._hasSdkWorksheetPart && !rowsAlreadyQualified) {
                     throw new XlsxTabularFastPathNotSupportedException(
                         $"Worksheet '{owner._sheetName}' requires the Open XML SDK fallback path.");
                 } else {
-                    _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    _stream = owner.OpenDataReaderWorksheetStream(ct);
                     RewindWorksheetStream(_stream);
                     _reader = OpenWorksheetXmlReader(_stream);
                 }

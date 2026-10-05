@@ -105,6 +105,22 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        // Native tabular readers retain the opened package snapshot. A worksheet
+        // that is too large to index can still use the existing XML projection.
+        private Stream OpenDataReaderWorksheetStream(CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
+            if (_hasSdkWorksheetPart) {
+                return _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            }
+            if (_partBufferReader != null
+                && _partBufferReader.TryGetLength(_worksheetPartName, out long length)
+                && length >= 0 && length <= int.MaxValue) {
+                return _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct);
+            }
+            RequireSdkWorksheetPart();
+            throw new InvalidOperationException("No worksheet stream is available.");
+        }
+
         private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
         private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
 
