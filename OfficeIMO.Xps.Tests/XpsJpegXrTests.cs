@@ -72,13 +72,17 @@ public sealed class XpsJpegXrTests {
             "subsampled-yuv422-frequency-overlap0-q32-alpha0",
             "extended-s16-3c-frequency-q32-alpha0", "extended-s32-3c-frequency-q32-alpha0",
             "extended-f16-3c-frequency-q32-alpha0", "extended-f32-3c-frequency-q32-alpha0",
-            "extended-f32-premultiplied-4c-frequency-q32-alpha2", "extended-s32-limits-3c-frequency-q32-alpha0"
+            "extended-f32-premultiplied-4c-frequency-q32-alpha2", "extended-s32-limits-3c-frequency-q32-alpha0",
+            "mixed-8-spatial-p0-a1", "mixed-8-frequency-p0-a2", "mixed-8-frequency-p0-a3",
+            "mixed-16-spatial-p1-a2", "mixed-16-frequency-p1-a3", "mixed-16-frequency-p2-a3"
         }) {
             byte[] encoded = File.ReadAllBytes(Path.Combine(Corpus, sourceName + ".jxr"));
             byte[] expected = File.ReadAllBytes(Path.Combine(Corpus, sourceName + ".rgba"));
             var document = XpsDocument.Create(format);
             string uri = document.AddResource("Images/source.jxr", encoded, contentType);
-            document.AddPage(57, 39).AddImage(uri, 0, 0, 57, 39);
+            Assert.True(OfficeImageReader.TryIdentifyByContent(encoded, null, out var metadata));
+            int width = metadata.Width, height = metadata.Height;
+            document.AddPage(width * 3, height * 3).AddImage(uri, 0, 0, width * 3, height * 3);
             var page = XpsDocument.Load(document.Save()).Pages[0];
             var svg = page.ToSvg(); Assert.Empty(svg.Diagnostics); Assert.Contains("data:image/png;base64,", svg.Svg);
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
@@ -86,8 +90,8 @@ public sealed class XpsJpegXrTests {
             var svgRaster = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
             var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
             var pdfRaster = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
-            for (int y = 0; y < 13; y++) for (int x = 0; x < 19; x++) {
-                int offset = (y * 19 + x) * 4;
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                int offset = (y * width + x) * 4;
                 foreach (var raster in new[] { direct, svgRaster, pdfRaster }) {
                     var pixel = raster.GetPixel(x * 3 + 1, y * 3 + 1);
                     int Composite(int c) => (expected[offset + c] * expected[offset + 3] + 255 * (255 - expected[offset + 3]) + 127) / 255;

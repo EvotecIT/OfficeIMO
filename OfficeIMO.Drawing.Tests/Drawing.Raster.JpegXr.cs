@@ -23,6 +23,20 @@ public class DrawingRasterJpegXrTests {
     }
 
     [Fact]
+    public void InterleavedAlphaCannotContainMoreBandsThanThePrimaryPlane() {
+        byte[] bytes = Fixture("mixed-8-spatial-p0-a1");
+        var container = OfficeJpegXrDecoder.ReadContainer(bytes, default);
+        int primary = container.ImageOffset + 16;
+        int alpha = container.Frame.HeaderEnd - 5;
+        // ALL and NOFLEX share the same plane-header layout; only the band nibble changes.
+        Assert.Equal(0x70, bytes[primary]); Assert.Equal(0x11, bytes[alpha]);
+        bytes[primary] = 0x71;
+        bytes[alpha] = 0x10;
+        Assert.False(OfficeImageReader.TryIdentifyByContent(bytes, null, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
+    }
+
+    [Fact]
     public void SubsampledFirstLevelOverlapRejectsAnUndersizedImage() {
         byte[] bytes = Fixture("subsampled-yuv420-tiny-frequency-overlap0-q32-alpha0");
         int directory = Read32(bytes, 4), count = bytes[directory] | bytes[directory + 1] << 8;

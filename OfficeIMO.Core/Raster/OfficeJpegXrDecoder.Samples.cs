@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing;
 internal static partial class OfficeJpegXrDecoder {
     internal static int[][] ReconstructSamples(FrameHeader frame, PlaneHeader plane, DclpPlane dclp,
             int[]? highpass, CancellationToken cancellation) {
+        if (plane.Bands >= 2) highpass = null; // Missing alpha HP coefficients reconstruct as zero.
         int columns = (frame.Width + frame.Left + frame.Right) / 16, rows = (frame.Height + frame.Top + frame.Bottom) / 16;
         var output = new int[plane.Components][];
         var work = new long[16]; var block = new int[16];

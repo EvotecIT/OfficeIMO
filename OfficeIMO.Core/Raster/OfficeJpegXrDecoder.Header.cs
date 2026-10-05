@@ -84,8 +84,8 @@ internal static partial class OfficeJpegXrDecoder {
                 if (tileWidth < 2) throw new FormatException("JPEG-XR subsampled overlap requires two columns per hard tile.");
         }
         if (frame.Alpha) frame.AlphaPlane = ReadPlaneHeader(bits, true, frame.BitDepth);
-        if (frame.AlphaPlane != null && frame.AlphaPlane.Bands != frame.Primary.Bands)
-            throw new FormatException("JPEG-XR differing interleaved alpha subbands are outside the managed contract.");
+        if (frame.AlphaPlane != null && frame.AlphaPlane.Bands < frame.Primary.Bands)
+            throw new FormatException("JPEG-XR alpha cannot contain more frequency bands than the primary plane.");
         frame.HeaderEnd = bits.ByteOffset;
         return frame;
     }

@@ -16,6 +16,7 @@ internal static partial class OfficeJpegXrDecoder {
         PlaneHeader plane = alpha ? frame.AlphaPlane! : frame.Primary;
         int components = plane.Components, columns = (frame.Width + frame.Left + frame.Right) / 16;
         int rows = (frame.Height + frame.Top + frame.Bottom) / 16, macroblocks = checked(columns * rows);
+        if (plane.Bands == 3) lp = null; // DC-only alpha has no LP packet data or quantizers.
         int[] rawDc = alpha ? dc.Alpha : dc.Primary;
         int[]? rawLp = lp == null ? null : alpha ? lp.Alpha : lp.Primary;
         int[]? lpIndices = lp == null ? null : alpha ? lp.AlphaQuantizerIndices : lp.QuantizerIndices;

@@ -89,3 +89,13 @@ pixel packets are changed. Tests exercise matching profiles, rejected mismatches
 resource limits, both XPS dialects, SVG pixels, and PDF-reader alpha. Microsoft
 comparison decoding differs on interleaved alpha and one eight-channel frequency
 case; these fixtures do not establish complete native interoperability.
+
+The 24 `mixed-*` fixtures cover all six valid reduced interleaved-alpha band
+combinations at unsigned 8/16-bit precision in spatial and frequency packet
+order. Microsoft jxrlib produces them with a configuration-only adapter exposing
+its alpha-plane `sbSubband` setting; encoding algorithms are unchanged. The
+unmodified ITU decoder supplies the twelve spatial RGBA references. Each frequency
+case uses its equivalent spatial encoding's reference, with identical input and
+quantization. Native frequency decoders fail or disagree for these cases, so
+paired-packet equivalence does not establish direct native frequency acceptance.
+`provenance.json` records the source archive hash and each reference pairing.
