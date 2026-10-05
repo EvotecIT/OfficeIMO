@@ -203,8 +203,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplySectionBreakKind(RtfSectionBreakKind kind, WordSection section) {
-        section._sectionProperties.RemoveAllChildren<SectionType>();
-        section._sectionProperties.Append(new SectionType { Val = ToWordSectionMark(kind) });
+        section.BreakType = ToWordSectionMark(kind).ToOfficeEnum();
     }
 
     private static SectionMarkValues ToWordSectionMark(RtfSectionBreakKind kind) {
