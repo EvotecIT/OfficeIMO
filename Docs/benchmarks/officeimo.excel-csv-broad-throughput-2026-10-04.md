@@ -905,3 +905,76 @@ Framework. The [restoration qualification packet](excel-csv-broad-throughput-202
 retains test-result fingerprints and the normalized row-source checksum,
 matching the fresh Before source exactly. Previously integrated typed-presence,
 formula fallback and cancellation fixes remain in this validated source.
+
+## Typed XML staging screen and first-call memory rejection
+
+A materialized typed-reader experiment stages the requested raw cells in one
+pooled buffer, then maps the final header and merged logical rows. It avoids the
+row-order qualification pass without replaying property setters when a later
+row fragment replaces a value. The experiment changes three C# paths against
+the conservative integrated source. It is retained on separate local branches;
+it is not integrated or counted as an accepted performance improvement.
+
+The eight-case screen covers narrow and wide ordered worksheets, successful
+UTF-8 indexing controls, and fully mapped numeric rows. Actual .NET 8 and .NET
+10 runs on Windows and macOS retain 64 observations and 768 measurements:
+24 warmups, 12 measured iterations, four reads per iteration, unroll factor one,
+and no outlier removal. Windows uses affinity mask 65535; macOS uses operating
+system scheduling. Both sides use the same freshly built harness and
+dependencies, differing only in the Excel assembly and its symbols. Setup
+validates every projected value, row count and complete observation.
+
+| Case | Windows .NET 10 After/Before median | Windows .NET 8 | macOS .NET 10 | macOS .NET 8 |
+|---|---:|---:|---:|---:|
+| Wide UTF-16 projection, Automatic, 5,000 rows | 0.651 | 0.614 | 0.564 | 0.551 |
+| Wide UTF-16 projection, Sequential, 5,000 rows | 0.490 | 0.687 | 0.893 | 0.611 |
+| Narrow UTF-16 projection, Automatic, 5,000 rows | 1.466 | 1.165 | 0.796 | 1.825 |
+| Narrow UTF-16 projection, Sequential, 5,000 rows | 2.630 | 1.317 | 0.406 | 1.474 |
+| Numeric objects, decimal mode disabled, 25,000 rows | 0.757 | 0.726 | 0.662 | 0.729 |
+| Numeric objects, decimal mode enabled, 25,000 rows | 0.650 | 0.692 | 0.725 | 0.964 |
+
+The wide cases improve on all four host/runtime combinations, but narrow-case
+regressions and variation in unchanged UTF-8 controls prevent a portable speed
+conclusion. macOS .NET 8 also reports higher allocation for several changed
+cases. The [complete native summary](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-native-summary.json)
+and [Windows](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-native-windows.json)
+and [macOS](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-native-macos.json)
+packets retain every case, including unfavorable observations and raw samples.
+
+A separate .NET 10 first-call probe uses 96 fresh worker processes: three
+repetitions of each of the eight cases on each host and each source version.
+Before/After order alternates. A producer independently validates every
+projected field and verifies identical decoded worksheet, style and
+shared-string parts. Each worker performs its first complete typed read against
+that frozen input, validates the complete returned observation, then measures
+memory after the benchmark releases the reader and materialized result.
+
+| Numeric objects, decimal mode disabled, 25,000 rows | Windows Before | Windows After | macOS Before | macOS After |
+|---|---:|---:|---:|---:|
+| Mean calling-thread allocation, bytes | 3,634,029 | 8,855,944 | 3,619,715 | 8,839,395 |
+| Mean sampled managed-memory increase, bytes | 3,878,160 | 8,614,885 | 3,974,589 | 8,610,016 |
+| Mean managed-memory increase after return and GC, bytes | 291,979 | 293,411 | 564,211 | 5,791,536 |
+
+The first call adds about 5.2 MB of allocation on both hosts and more than
+doubles the sampled managed-memory increase in these numeric controls. Pool
+retention differs between hosts; the after-return figures are observations of
+these processes, not a universal retention guarantee. The probe includes JIT,
+type initialization and reflection invocation. Calling-thread allocation
+excludes the sampler, sampled peaks are lower bounds, and the producer warms
+operating-system file caches. These figures do not describe warmed throughput.
+
+The [Windows memory packet](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-windows.json)
+and [macOS memory packet](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-macos.json)
+retain all 96 observations, fixture qualification, source/binary inventories and
+runner fingerprints. The [source patch](excel-csv-broad-throughput-2026-10-04/typed-xml-staging.patch)
+and [disposition](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-disposition.json)
+record the rejected candidate. The preserved memory [producer](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-fixtures.ps1),
+[worker](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-worker.ps1)
+and [suite](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-suite.ps1)
+show the measurement boundary.
+
+Focused correctness passes on both modern runtimes and both hosts contain
+1,043 passed tests per run; Windows .NET Framework contains 1,038. The candidate
+is rejected before full-suite or integration review qualification because its
+buffer adds a demonstrated memory cost and its narrow performance is mixed.
+The conservative integrated typed-reader implementation remains the baseline.

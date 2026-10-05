@@ -1,0 +1,77 @@
+{
+  "Disposition": "Rejected for integration: warmed narrow regressions and first-call buffer allocation/peak memory growth",
+  "CandidateBase": "7ea6a06f8eb11db5ba464825b50ca218e9bb7b07",
+  "PatchSha256": "E79420F7C670B56E8A52A7386BF24CA4250FC9BD0482DE568EEE7467F04BC339",
+  "NativeObservations": 64,
+  "NativeRawMeasurements": 768,
+  "FreshMemoryWorkers": 96,
+  "Policy": "No complete-matrix or universal performance claim; all negatives retained; first-call memory qualified only on .NET10",
+  "Files": [
+    {
+      "File": "retained-native-projection-v1.json",
+      "Sha256": "CFF1063F1B4CCBA20DB420DA56E7C142D00B6D933BF94407C6C7CDC9936BB26E"
+    },
+    {
+      "File": "retained-native-projection-v1-macos.json",
+      "Sha256": "143C9C272F1360DDD09C2FB47F329BC8B257A645917606921F5F493C30C65C07"
+    },
+    {
+      "File": "retained-memory-v1-65535-N3.json",
+      "Sha256": "8383F1615DF76C94F88ACFB6B28AC91A6B3983A58448BB9A5C9E3E9E08921F59"
+    },
+    {
+      "File": "retained-memory-v1-65535-N3-macos.json",
+      "Sha256": "E7BAACE319CAA0091AF7888F281546096E7DC9A92EE4330B259086C89B9E67B9"
+    },
+    {
+      "File": "summary-native-v1.json",
+      "Sha256": "E793D108F434D16353FE3E5FD48CD8BAEF37E4ACAC1A5E3ECFEB18E9CDF536D5"
+    }
+  ],
+  "FocusedTests": [
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Passed": 1043,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "4222A47518FB1D53F762BA224A3EB426B84D1D7750C6F679530E8ACF41DE54D6"
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Passed": 1043,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "6DB7DD3183B739A70F10633C3228C32CE5DE345FBB50B6A70268EE4952618444"
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net472",
+      "Passed": 1038,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "8D2761E312273A28FB81AA089C1267834E4B9F69A97C69323EC66B60A734F70D"
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Passed": 1043,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "BDF38123844A0B2432985ED205327207F3F1F8289854B2E015CD5CBD745DAF20"
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Passed": 1043,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "102CCF01F4C89555C0B22FDD9E15B1BD757CAAF7ED11278C95EC3B9E0015D907"
+    }
+  ],
+  "RejectedSourceCheckpoints": {
+    "macOS": "bf9391147",
+    "Windows": "b8933c1c0aa0dd4644737369d87580ce6bd10437"
+  }
+}
