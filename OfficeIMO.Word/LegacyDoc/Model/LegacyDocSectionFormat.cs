@@ -170,42 +170,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
         }
 
-        internal LegacyDocSectionFormat WithSectionBreakType(SectionMarkValues? sectionBreakType) {
-            return new LegacyDocSectionFormat(
-                sectionBreakType,
-                PageWidthTwips,
-                PageHeightTwips,
-                Orientation,
-                MarginTopTwips,
-                MarginRightTwips,
-                MarginBottomTwips,
-                MarginLeftTwips,
-                HeaderDistanceTwips,
-                FooterDistanceTwips,
-                GutterTwips,
-                DifferentFirstPage,
-                ColumnCount,
-                ColumnSpacingTwips,
-                HasColumnSeparator,
-                PageNumberStart,
-                PageNumberFormat,
-                RtlGutter,
-                VerticalAlignment,
-                LineNumberCountBy,
-                LineNumberDistanceTwips,
-                LineNumberStart,
-                LineNumberRestart,
-                FootnotePosition,
-                FootnoteRestart,
-                FootnoteStart,
-                FootnoteNumberFormat,
-                EndnotePosition,
-                EndnoteRestart,
-                EndnoteStart,
-                EndnoteNumberFormat,
-                PageBorders);
-        }
-
         internal LegacyDocSectionFormat WithEndnotePosition(EndnotePositionValues? endnotePosition) {
             return new LegacyDocSectionFormat(
                 SectionBreakType,

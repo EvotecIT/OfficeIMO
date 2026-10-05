@@ -98,6 +98,8 @@ internal static partial class PdfWriter {
         }
 
         private void RenderListItem(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, PdfStandardFont markerFont, PdfNamedFontFace? markerNamedFont, double markerSize, PdfColor? markerColor, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
+            double markerOffset = markerX - currentOpts.MarginLeft;
+            double textOffset = textX - currentOpts.MarginLeft;
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
@@ -173,9 +175,9 @@ internal static partial class PdfWriter {
                         GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
                         markerSize,
                         leading,
-                        markerX,
+                        currentOpts.MarginLeft + markerOffset,
                         markerWidth,
-                        baselineY,
+                        AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size),
                         markerLines,
                         markerAlign,
                         markerColor ?? color,
@@ -190,7 +192,7 @@ internal static partial class PdfWriter {
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, textX, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
                 MarkRichFonts(runs);
                 y -= heightSum;
                 lineIndex += take;
@@ -207,10 +209,11 @@ internal static partial class PdfWriter {
 
         private double MeasureNextParagraphFirstVisualHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
+            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
             if (wrap.LineHeights.Count == 0) {
                 return spacingBefore;
             }
@@ -345,17 +348,18 @@ internal static partial class PdfWriter {
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
-            var wrap = WrapRichRunsCore(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+            var wrap = WrapRichRunsWithSpacing(headingRuns, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont), headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
             return spacingBefore + MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, headingLeading) + spacingAfter;
         }
 
         private double MeasureParagraphBlockHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
+            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
@@ -666,10 +670,10 @@ internal static partial class PdfWriter {
                     TableCellLayout cell = cells[cellIndex];
                     PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                     double cellWidth = GetTableCellWidth(columnLayout.Widths, cell.Column, cell.ColumnSpan, columnGap);
-                    double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+                    double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
                     TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
                     rowLines[rowIndex][cell.Column] = lines;
-                    if (cell.RowSpan <= 1) {
+                    if (cell.RowSpan <= 1 && cell.Viewport == null) {
                         maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, rowIndex, cell.Column) + GetTableCellPaddingBottom(style, rowIndex, cell.Column));
                     }
                 }
@@ -734,6 +738,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderHorizontalRuleBlock(HorizontalRuleBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(block, currentOpts);
             ValidateHorizontalRule(ruleStyle);
             double spacingBefore = ResolveTopLevelSpacingBefore(ruleStyle.SpacingBefore);
@@ -744,6 +749,7 @@ internal static partial class PdfWriter {
                 spacingBefore = 0D;
             }
             if (spacingBefore > 0) y -= spacingBefore;
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             RecordFlowPlacement(y);
             double yLine = y - ruleStyle.Thickness * 0.5;
             DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine, emitGeneratedStructure);

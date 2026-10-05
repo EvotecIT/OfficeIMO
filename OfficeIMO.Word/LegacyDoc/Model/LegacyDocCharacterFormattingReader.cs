@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCDxaSpace = 0x8840;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
+        private const ushort SprmCHpsKern = 0x484B;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgLid0 = 0x486D;
         private const ushort SprmCRgLid1 = 0x486E;
@@ -153,6 +154,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex = null;
             string? fontFamily = null;
             int? characterSpacingTwips = null;
+            int? kerningMinimumFontSizeHalfPoints = null;
             string? language = null;
             string? eastAsiaLanguage = null;
             int? pictureDataOffset = null;
@@ -317,6 +319,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmCHpsKern) {
+                    if (offset + 4 > end) break;
+                    int threshold = unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    if (threshold >= 0 && threshold <= 3276) {
+                        kerningMinimumFontSizeHalfPoints = threshold;
+                        specified |= LegacyDocCharacterFormatProperties.Kerning;
+                    }
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmCHps) {
                     if (offset + 4 > end) {
                         break;
@@ -423,7 +436,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 eastAsiaLanguage,
                 specified,
                 pictureDataOffset,
-                revision);
+                revision,
+                kerningMinimumFontSizeHalfPoints);
         }
 
         private static string ResolveRevisionAuthor(IReadOnlyList<string>? revisionAuthors, int authorIndex) {

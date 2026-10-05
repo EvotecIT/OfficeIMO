@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 byte[] pictureData,
                 bool hasPictures,
                 bool facingPages,
+                bool mirrorMargins,
+                bool gutterAtTop,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
@@ -53,6 +55,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PictureData = pictureData;
                 HasPictures = hasPictures;
                 FacingPages = facingPages;
+                MirrorMargins = mirrorMargins;
+                GutterAtTop = gutterAtTop;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
@@ -89,11 +93,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     .Select((author, index) => new { author, index })
                     .ToDictionary(item => item.author, item => item.index, StringComparer.Ordinal);
                 SttbfRMark = CreateRevisionAuthorTable(RevisionAuthors);
+                FieldTables = new LegacyDocWritableFieldTables(Text, FormattedRuns, HeaderFooterText, HeaderFooterFormattedRuns,
+                    FootnoteText, FootnoteFormattedRuns, CommentText, CommentFormattedRuns, EndnoteText, EndnoteFormattedRuns);
                 ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
             }
 
             internal string Text { get; }
+
+            internal LegacyDocWritableFieldTables FieldTables { get; }
+
+            internal int FieldTablesOffsetInTableStream => AfterEndnoteDataOffsetInTableStream;
+
+            private int AfterFieldTablesOffsetInTableStream => FieldTablesOffsetInTableStream + FieldTables.Length;
 
             internal string HeaderFooterText { get; }
 
@@ -159,6 +171,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool FacingPages { get; }
 
+            internal bool MirrorMargins { get; }
+
+            internal bool GutterAtTop { get; }
+
             internal byte[] PictureData { get; }
 
             internal bool HasPictures { get; }
@@ -212,11 +228,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
             internal bool HasDocumentOptions => FacingPages
+                || MirrorMargins
+                || GutterAtTop
                 || EndnotePosition != null
                 || TrackRevisions
                 || LockRevisionTracking;
 
-            internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+            internal int DopLength => GutterAtTop ? DopBaseFullLength
+                : EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 
@@ -261,9 +280,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterEndnoteDataOffsetInTableStream => AfterCommentDataOffsetInTableStream + (HasEndnotes ? PlcfendRef.Length + PlcfendTxt.Length : 0);
 
-            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterEndnoteDataOffsetInTableStream) : AfterEndnoteDataOffsetInTableStream;
+            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterFieldTablesOffsetInTableStream) : AfterFieldTablesOffsetInTableStream;
 
-            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterEndnoteDataOffsetInTableStream;
+            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterFieldTablesOffsetInTableStream;
 
             internal int SttbfBkmkOffsetInTableStream => HasBookmarks ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
 
@@ -500,17 +519,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         return PlainParagraphPapx;
-                    });
+                    }, new HashSet<int>(Sections.Select(section => section.EndCharacter)));
             }
 
             private static void AddStoryParagraphSegments(
                 List<LegacyDocWritableParagraphSegment> segments,
                 string story,
                 int storyStart,
-                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
+                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat,
+                HashSet<int>? sectionEndCharacters = null) {
                 int paragraphStart = 0;
                 for (int index = 0; index < story.Length; index++) {
-                    if (story[index] != '\r' && story[index] != '\a') {
+                    bool isSectionMark = story[index] == LegacyDocSpecialCharacters.PageBreak &&
+                        sectionEndCharacters?.Contains(storyStart + index + 1) == true;
+                    if (story[index] != '\r' && story[index] != '\a' && !isSectionMark) {
                         continue;
                     }
 

@@ -26,6 +26,8 @@ namespace OfficeIMO.Excel {
                 }
                 if (!string.IsNullOrEmpty(metadata?.SheetViewsXml)) {
                     writer.Write(metadata!.SheetViewsXml);
+                } else {
+                    writer.Write(ExcelSheet.CreateDefaultSheetViews().OuterXml);
                 }
 
                 if (!string.IsNullOrEmpty(metadata?.SheetFormatPropertiesXml)) {

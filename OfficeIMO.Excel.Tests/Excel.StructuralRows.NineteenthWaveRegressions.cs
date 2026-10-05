@@ -22,6 +22,7 @@ namespace OfficeIMO.Tests {
             };
             var sheetViews = new SheetViews(normalView);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            sheet.WorksheetPart.Worksheet.RemoveAllChildren<SheetViews>();
             sheet.WorksheetPart.Worksheet.InsertBefore(sheetViews, sheetData);
 
             var customPane = new Pane { TopLeftCell = "D5" };
@@ -58,6 +59,7 @@ namespace OfficeIMO.Tests {
             };
             var sheetViews = new SheetViews(view);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            sheet.WorksheetPart.Worksheet.RemoveAllChildren<SheetViews>();
             sheet.WorksheetPart.Worksheet.InsertBefore(sheetViews, sheetData);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(

@@ -38,6 +38,7 @@ var options = new ExcelToPdfOptions {
     UseWorksheetPageSetup = true,
     UseWorksheetHeadersAndFooters = true,
     UseWorksheetPageBreaks = true,
+    UseWorksheetPrintTitleColumns = true,
     PageSize = PageSizes.A4.Landscape(),
     Margins = PageMargins.UniformCentimeters(1.2)
 };
@@ -133,8 +134,8 @@ Compatible table segments continue across adjacent pages by default. The shared 
 ## What it maps
 
 - Workbook sheets, selected sheet lists, visible used ranges, print areas, page setup, margins, orientation, and worksheet page breaks.
-- Repeated print-title rows, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
-- Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives.
+- Repeated print-title rows and columns, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
+- Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives. General alignment follows stored cell types: numeric and date values align right, Booleans align center, and text retains its text alignment. Boolean display uses `TRUE` and `FALSE`.
 - Numeric cell text uses the Excel owner's display formatter, including optional decimal placeholders, single-digit scientific mantissas with exponent sign/case/padding, percentage scaling, grouping, negative sections, quoted/escaped numeric literals, literal percent signs, and the `[Red]` format color. Stored numeric precision is preserved before formatting, including values immediately beside a fraction midpoint. Other format colors are not projected. Imported formats use at most four sections; extra sections do not affect display selection.
 - Text cells and text formula caches retain their text and font color, even when the text looks numeric and the cell has a numeric, date, or elapsed-time format.
 - Supported worksheet images and common chart snapshots through shared OfficeIMO drawing primitives.
@@ -143,9 +144,20 @@ Compatible table segments continue across adjacent pages by default. The shared 
 - Source-faithful zero-options output: worksheet-name headings are opt-in through `IncludeSheetHeadings`.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
+Worksheet print areas are exported separately, in their stored order, with each area starting on a new page. Both worksheet layouts honor local A1 cells and ranges, whole-row and whole-column selections, and multiple areas. Content outside the selected areas is excluded. Repeated title rows, first/even/odd headers and footers, and page numbering belong to the worksheet and continue across its areas. Internal links to a cell appearing in several areas target its first exported occurrence. Invalid or external print-area references are rejected instead of widening the selection to the used range.
+
+`WorksheetCanvas` paginates using worksheet row heights and column widths, repeats configured title columns on horizontal pages, and applies the worksheet's down-then-over or over-then-down page order. Title columns left of a print area are included without exporting the intervening columns. A title column repeats after the page sequence reaches it; it is not moved onto an earlier page. Titles already inside a page's body are emitted once; titles beyond the print area's last column are excluded. Manual breaks remain on axes with an unlimited fit count, while a constrained fit axis determines its own page boundaries. Unspecified cell vertical alignment uses Excel's bottom alignment; explicit top and center settings take precedence.
+
+`FlowTable` reflows cells into PDF tables and repeats title columns across requested horizontal chunks. Fit-to-height scales cell fonts, padding, and minimum row heights together. Rows can grow to retain their laid-out text, so this mode does not promise worksheet page counts.
+
+Print-title rows can start inside the print area. Canvas automatic pages and both layouts' manual row chunks repeat only title rows reached before the current body segment, including a break within a title block. Flow-table automatic continuation still repeats leading header rows; title rows starting later in a single flowing table are not repeated automatically.
+
+Manual row and column breaks also divide merged cells. Each fragment retains the original cell's full text box for wrapping and alignment, then clips it to that page. Flow-table cell images retain their full-cell placement and clip to each fragment; canvas images retain worksheet coordinates. Outer borders stay at the original merge edges. Diagonal borders retain their full-cell slope on the fragment containing the source anchor. Worksheet formatting keeps Excel's default bottom alignment when the source cell has no explicit alignment. Breaks on constrained fit axes still follow the fit settings.
+
 ## Current limits
 
 - Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.
+- Worksheet column widths and fit scaling use layout estimates. Exact Excel printer geometry and derived fit percentages are not guaranteed; fit-to-width documents can have different scale and page counts. Use producer comparisons for workflows that depend on identical pagination.
 - PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables. `HasLoss` and `RequireNoLoss()` include both that omitted page content and table-row truncation.
 - The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 

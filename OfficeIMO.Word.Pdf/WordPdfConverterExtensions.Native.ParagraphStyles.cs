@@ -615,68 +615,6 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfColor.FromRgb(47, 84, 150);
         }
 
-        private static PdfCore.PageSize GetNativePageSize(WordSection section, WordToPdfOptions? options) {
-            PdfCore.PageSize size;
-            if (options?.PageSize != null) {
-                size = options.PageSize.Value;
-                if (options.Orientation == null) {
-                    return size;
-                }
-            } else if (section.PageSettings.Width > 0 && section.PageSettings.Height > 0) {
-                size = new PdfCore.PageSize(
-                    section.PageSettings.Width.GetValueOrDefault() / 20D,
-                    section.PageSettings.Height.GetValueOrDefault() / 20D);
-            } else if (section.PageSettings.PageSize.HasValue) {
-                size = MapNativePageSize(section.PageSettings.PageSize.Value);
-            } else if (options?.DefaultPageSize.HasValue == true) {
-                size = MapNativePageSize(options.DefaultPageSize.Value);
-            } else {
-                size = PdfCore.PageSizes.A4;
-            }
-
-            OfficePageOrientation orientation;
-            if (options?.Orientation != null) {
-                orientation = options.Orientation.Value;
-            } else if (section.PageSettings.Orientation == OfficePageOrientation.Landscape) {
-                orientation = OfficePageOrientation.Landscape;
-            } else if (options?.DefaultOrientation != null) {
-                orientation = options.DefaultOrientation == OfficePageOrientation.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-            } else {
-                orientation = OfficePageOrientation.Portrait;
-            }
-
-            return orientation == OfficePageOrientation.Landscape ? size.Landscape() : size.Portrait();
-        }
-
-        private static PdfCore.PageSize MapNativePageSize(WordPageSize pageSize) =>
-            pageSize switch {
-                WordPageSize.Letter => PdfCore.PageSizes.Letter,
-                WordPageSize.Legal => PdfCore.PageSizes.Legal,
-                WordPageSize.A3 => new PdfCore.PageSize(842, 1191),
-                WordPageSize.A4 => PdfCore.PageSizes.A4,
-                WordPageSize.A5 => PdfCore.PageSizes.A5,
-                WordPageSize.A6 => new PdfCore.PageSize(298, 420),
-                WordPageSize.B5 => new PdfCore.PageSize(499, 709),
-                WordPageSize.Executive => new PdfCore.PageSize(522, 756),
-                WordPageSize.Statement => new PdfCore.PageSize(396, 612),
-                _ => PdfCore.PageSizes.A4
-            };
-
-        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options) {
-            return GetNativeMargins(section, options, GetNativeHeaderFooterMarginExpansion(section, options));
-        }
-
-        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options, (double Header, double Footer) headerFooterMarginExpansion) {
-            if (options?.Margins != null) {
-                return options.Margins.Value;
-            }
-
-            return new PdfCore.PageMargins(
-                section.Margins.Left / 20D,
-                (section.Margins.Top ?? 0) / 20D + headerFooterMarginExpansion.Header,
-                section.Margins.Right / 20D,
-                (section.Margins.Bottom ?? 0) / 20D + headerFooterMarginExpansion.Footer);
-        }
 
         private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(WordSection section, WordToPdfOptions? options) {
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers =
@@ -704,6 +642,7 @@ namespace OfficeIMO.Word.Pdf {
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
 
             double baseTop = (section.Margins.Top ?? 0) / 20D;
+            if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;
             double baseBottom = (section.Margins.Bottom ?? 0) / 20D;
             double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height - baseTop - baseBottom);
             double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);

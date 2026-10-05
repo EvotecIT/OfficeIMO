@@ -11,6 +11,13 @@ public sealed class PdfPageBuilder {
     internal PdfOptions Options => _options;
     internal PdfPageBuilder(PdfDocument doc, PdfOptions options) { _doc = doc; _options = options; }
 
+    /// <summary>Sets or clears the parity required at the start of a later page group. Optionally uses the continuing page number before this group's numbering restart.</summary>
+    public PdfPageBuilder StartOnPageParity(PdfPageParity? parity, bool useContinuingPageNumber = false) {
+        Options.PageStartParity = parity;
+        Options.UseContinuingPageNumberForStartParity = useContinuingPageNumber;
+        return this;
+    }
+
     /// <summary>Sets page size using a predefined <see cref="PageSize"/>.</summary>
     public PdfPageBuilder Size(PageSize size) {
         Guard.Positive(size.Width, nameof(size));
@@ -242,6 +249,11 @@ public sealed class PdfPageBuilder {
     /// <summary>Sets page margins from a reusable margin value.</summary>
     public PdfPageBuilder Margin(PageMargins margins) {
         Options.Margins = margins;
+        return this;
+    }
+    /// <summary>Swaps left and right margins on even visible page numbers, including numbering restarts.</summary>
+    public PdfPageBuilder MirrorMargins(bool enabled = true) {
+        Options.MirrorMargins = enabled;
         return this;
     }
     /// <summary>Sets page margins (left, top, right, bottom in points).</summary>

@@ -33,6 +33,48 @@ public sealed class PdfTableTextReuseTests {
         AssertSameLetters(explicitSize, implicitSize);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RepeatedViewportCellsRetainFullContentWidthsAndFragmentClipping(bool rowColumn) {
+        AssertSameLetters(CreateViewportTable(rowColumn, explicitSize: true),
+            CreateViewportTable(rowColumn, explicitSize: false));
+    }
+
+    private static byte[] CreateViewportTable(bool rowColumn, bool explicitSize) {
+        var options = new PdfOptions {
+            PageWidth = 400, PageHeight = 800,
+            MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+        };
+        var style = TableStyles.Minimal();
+        style.FontSize = 10;
+        style.CellPaddingX = 0;
+        style.CellPaddingY = 0;
+        style.ColumnWidthPoints = new List<double?> { 70, 70, 70 };
+        style.FixedRowHeights = new List<double?> { 120, 120, 120 };
+        var rows = new List<PdfTableCell[]>();
+        for (int rowIndex = 0; rowIndex < 3; rowIndex++) {
+            var cells = new PdfTableCell[3];
+            for (int columnIndex = 0; columnIndex < cells.Length; columnIndex++) {
+                double contentWidth = 70 * (columnIndex + 1);
+                double offset = rowIndex < 2 ? 0 : Math.Min(70, contentWidth - 70);
+                cells[columnIndex] = new PdfTableCell(new[] {
+                    PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta", fontSize: explicitSize ? 10 : null)
+                }).WithViewport(new PdfTableCellViewport(contentWidth, 120, 70, 120, offsetX: offset));
+            }
+            rows.Add(cells);
+        }
+        PdfDocument document = PdfDocument.Create(options);
+        if (rowColumn) {
+            document.Compose(root => root.Page(page => page.Content(content =>
+                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+        } else {
+            document.Table(rows, style: style);
+        }
+        return document.ToBytes();
+    }
+
     private static byte[] CreateTable(bool rowColumn, byte[]? fontData, bool explicitSize, Func<string, IReadOnlyList<int>>? lineBreaks = null) {
         int count = rowColumn ? 12 : 96;
         var options = new PdfOptions {

@@ -128,6 +128,7 @@ namespace OfficeIMO.Tests {
             var sheetViews = new SheetViews(
                 new SheetView(normalSelection) { WorkbookViewId = 0U });
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            sheet.WorksheetPart.Worksheet.RemoveAllChildren<SheetViews>();
             sheet.WorksheetPart.Worksheet.InsertBefore(sheetViews, sheetData);
 
             var customSelection = new Selection {
@@ -169,6 +170,7 @@ namespace OfficeIMO.Tests {
             var sheetViews = new SheetViews(
                 new SheetView(selection) { WorkbookViewId = 0U });
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            sheet.WorksheetPart.Worksheet.RemoveAllChildren<SheetViews>();
             sheet.WorksheetPart.Worksheet.InsertBefore(sheetViews, sheetData);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(

@@ -144,7 +144,7 @@ namespace OfficeIMO.Word {
 
         private static (int Value, string Text) ResolveSectionPageNumber(WordSection section, int sectionPageNumberStart, int sectionPageIndex) {
             PageNumberType? pageNumberType = section._sectionProperties.GetFirstChild<PageNumberType>();
-            int start = pageNumberType?.Start?.Value ?? sectionPageNumberStart;
+            int start = section.GetEffectivePageNumberStart() ?? sectionPageNumberStart;
             int value = Math.Max(1, start + Math.Max(0, sectionPageIndex));
             return (value, FormatPageNumber(value, pageNumberType?.Format?.Value));
         }

@@ -40,7 +40,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Inserts a page break.</summary>
-    internal PdfDocument PageBreak() { AddBlock(new PageBreakBlock()); return this; }
+    internal PdfDocument PageBreak(bool preserveEmptyPage = false) { AddBlock(new PageBreakBlock(preserveEmptyPage)); return this; }
 
     /// <summary>Adds invisible vertical space to the current document flow.</summary>
     internal PdfDocument Spacer(double height) {

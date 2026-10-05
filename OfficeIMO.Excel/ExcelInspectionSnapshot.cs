@@ -918,7 +918,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Immutable style metadata resolved for a cell.
     /// </summary>
-    public sealed class ExcelCellStyleSnapshot {
+    public sealed partial class ExcelCellStyleSnapshot {
         /// <summary>
         /// Original style index.
         /// </summary>

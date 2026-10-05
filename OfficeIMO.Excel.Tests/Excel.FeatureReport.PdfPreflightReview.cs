@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FeatureReport_Preflight_BlocksPdfExportForPrintTitleColumns() {
+        public void FeatureReport_Preflight_AllowsPdfExportForPrintTitleColumns() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PrintTitleColumns.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -175,12 +175,8 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
-
-                string diagnostics = string.Join(Environment.NewLine,
-                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unsupported print titles", diagnostics);
-                Assert.Contains("print-title columns", diagnostics);
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Empty(report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
             }
         }
 

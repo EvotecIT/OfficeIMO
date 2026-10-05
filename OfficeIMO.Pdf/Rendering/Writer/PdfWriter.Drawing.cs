@@ -819,7 +819,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null) {
+    private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null, TableCellContentFrame? diagonalFrame = null) {
         if (!border.Color.HasValue &&
             border.TopBorderSnapshot == null &&
             border.RightBorderSnapshot == null &&
@@ -857,8 +857,7 @@ internal static partial class PdfWriter {
         if (border.Right) DrawCellVBorderSegments(sb, ResolveCellBorderSide(border.RightBorderSnapshot, border), x2, y2, y, -1D, border.HiddenRightRowSegments, rowSegmentHeights, artifact);
         if (border.Bottom) DrawCellHBorderSegments(sb, ResolveCellBorderSide(border.BottomBorderSnapshot, border), x, x2, y, 1D, border.HiddenBottomColumnSegments, columnSegmentWidths, artifact);
         if (border.Left) DrawCellVBorderSegments(sb, ResolveCellBorderSide(border.LeftBorderSnapshot, border), x, y2, y, 1D, border.HiddenLeftRowSegments, rowSegmentHeights, artifact);
-        if (border.DiagonalUp) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalUpBorderSnapshot, border), x, y, x2, y2, diagonalUp: true, artifact);
-        if (border.DiagonalDown) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalDownBorderSnapshot, border), x, y, x2, y2, diagonalUp: false, artifact);
+        DrawTableCellDiagonals(sb, border, x, y, w, h, diagonalFrame, artifact);
     }
 
     private static bool HasRenderableCellBorder(PdfCellBorder? border) =>

@@ -27,11 +27,23 @@ namespace OfficeIMO.Internal {
             return Normalize(identity, IsCaseInsensitiveFileSystem(identity));
         }
 
+        /// <summary>Identifies an entry being replaced by its physical parent and name, independent of the entry's current inode or existence.</summary>
+        /// <remarks>Parent aliases share a key. The final entry is not followed because publication replaces that entry itself.</remarks>
+        internal static string NormalizeDirectoryEntry(string path) {
+            string fullPath = TrimEndingDirectorySeparators(Path.GetFullPath(path));
+            string? parent = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(parent)) throw new ArgumentException("Publication requires a parent directory.", nameof(path));
+            string physicalParent = ResolvePhysicalPath(parent);
+            return Normalize(Path.Combine(physicalParent, Path.GetFileName(fullPath)),
+                IsCaseInsensitiveFileSystem(physicalParent));
+        }
+
         internal static string ResolvePhysicalPath(string path) {
             string fullPath = ResolveLinkSegments(Path.GetFullPath(path));
             string existingPath = TrimEndingDirectorySeparators(fullPath);
             var missingSegments = new Stack<string>();
-            while (!TryGetPathMetadata(existingPath, out _)) {
+            string resolvedPath;
+            while (!TryResolveExistingPhysicalPath(existingPath, out resolvedPath)) {
                 if (HasUnresolvedLinkEntry(existingPath)) {
                     throw new IOException("Could not safely resolve linked path '" + existingPath + "'.");
                 }
@@ -44,7 +56,6 @@ namespace OfficeIMO.Internal {
                 existingPath = parent;
             }
 
-            string resolvedPath = ResolveExistingPhysicalPath(existingPath);
             foreach (string segment in missingSegments) resolvedPath = Path.Combine(resolvedPath, segment);
             return TrimEndingDirectorySeparators(Path.GetFullPath(resolvedPath));
         }
@@ -278,10 +289,10 @@ namespace OfficeIMO.Internal {
         private static bool IsConservativelyCaseInsensitivePlatform =>
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || IsDarwinFileSystem;
 
-        private static string ResolveExistingPhysicalPath(string path) {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return ResolveWindowsExistingPath(path);
+        private static bool TryResolveExistingPhysicalPath(string path, out string resolvedPath) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return TryResolveWindowsExistingPath(path, out resolvedPath);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
-                return ResolveUnixExistingPath(path);
+                return TryResolveUnixExistingPath(path, out resolvedPath);
             }
             throw new PlatformNotSupportedException("Physical path resolution is not supported on this platform.");
         }
@@ -346,7 +357,8 @@ namespace OfficeIMO.Internal {
             out string relativeTail, out string existingPath) {
             existingPath = TrimEndingDirectorySeparators(Path.GetFullPath(path));
             var missing = new Stack<string>();
-            while (!TryGetPathMetadata(existingPath, out _)) {
+            OfficeFileMetadata metadata;
+            while (!TryGetPathMetadata(existingPath, out metadata)) {
                 if (HasUnresolvedLinkEntry(existingPath)) {
                     throw new IOException("Could not safely inspect linked path '" + existingPath + "'.");
                 }
@@ -360,7 +372,7 @@ namespace OfficeIMO.Internal {
                 if (!string.IsNullOrEmpty(name)) missing.Push(name);
                 existingPath = parent;
             }
-            identity = GetMetadata(existingPath).Identity;
+            identity = metadata.Identity;
             relativeTail = string.Join("/", missing.ToArray());
             return true;
         }

@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
-            var (lines, lineHeights) = WrapRichRunsCore(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            var (lines, lineHeights) = WrapRichRunsWithSpacing(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
             double textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
             double needed = spacingBefore + textHeight + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
@@ -89,8 +89,8 @@ internal static partial class PdfWriter {
                 } else {
                     markedContentId = RegisterTextStructureElement(structureType);
                 }
-                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex);
-                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex, sliceHeights);
+                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont);
                 MarkRichFonts(headingRuns);
                 if (GetHeadingBold(headingStyle)) {
                     currentPage!.UsedBold = true;
@@ -105,13 +105,13 @@ internal static partial class PdfWriter {
 
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double frameStart = GetCurrentFramePageStartY();
-            double size = currentOpts.DefaultFontSize;
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
+            double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, size);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
-            var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
+            var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0) {
                 double paragraphHeight = spacingBefore + lineHeights.Sum() + spacingAfter;
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
@@ -138,6 +138,7 @@ internal static partial class PdfWriter {
             }
 
             List<double>? floatingLineOffsets = null;
+            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             List<double>? floatingLineWidths = null;
             List<double>? floatingLineGaps = null;
             HashSet<int>? floatingPageStarts = null;
@@ -187,7 +188,7 @@ internal static partial class PdfWriter {
                         floatingLineWidths[index] = frame.Width;
                         floatingLineGaps[index] = frame.Gap;
                         return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                    });
+                    }, lineSpacing: paragraphStyle?.LineSpacing);
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
@@ -202,8 +203,10 @@ internal static partial class PdfWriter {
 
             int lineIndex = 0;
             bool firstSegment = true;
+            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             void NewParagraphPage() {
                 NewPage();
+                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
                 if (lineIndex == 0) { RestoreUnobstructedWrapping(); return; }
                 // Widow/orphan control can carry a previously simulated float-side line forward.
                 // Keep its line break, but remove the old page's exclusion offset and clearance.

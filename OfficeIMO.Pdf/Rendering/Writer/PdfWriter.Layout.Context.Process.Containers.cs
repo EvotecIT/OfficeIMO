@@ -11,9 +11,9 @@ internal static partial class PdfWriter {
             var pendingBlocks = columns.Blocks.ToList();
             int blockIndex = 0;
             while (blockIndex < pendingBlocks.Count) {
-                if (pendingBlocks[blockIndex] is PageBreakBlock) {
+                if (pendingBlocks[blockIndex] is PageBreakBlock pageBreak) {
                     pendingFloatingBookmarks.Clear();
-                    NewPage();
+                    NewPage(pageBreak.PreserveEmptyPage);
                     blockIndex++;
                     continue;
                 }
@@ -52,6 +52,10 @@ internal static partial class PdfWriter {
                 double widthPercent = 100D / options.ColumnCount;
                 for (int columnIndex = 0; columnIndex < options.ColumnCount; columnIndex++) {
                     var column = new RowColumn(PdfColumnWidth.Percent(widthPercent));
+                    // Whole line boxes need not divide evenly into the balanced target.
+                    // Use the remaining physical capacity for the final column so a
+                    // fitting remainder does not create an otherwise unnecessary page.
+                    double columnTarget = columnIndex == options.ColumnCount - 1 ? availableHeight : target;
                     double consumed = 0D;
                     while (blockIndex < segmentEnd) {
                         IPdfBlock block = pendingBlocks[blockIndex];
@@ -61,7 +65,7 @@ internal static partial class PdfWriter {
                         }
 
                         double blockHeight = MeasureColumnBlock(block, columnWidth);
-                        double remainingTarget = target - consumed;
+                        double remainingTarget = columnTarget - consumed;
                         if (options.BalanceParagraphLines &&
                             block is RichParagraphBlock paragraph &&
                             blockHeight > remainingTarget + 0.001D &&
@@ -72,11 +76,11 @@ internal static partial class PdfWriter {
                             break;
                         }
 
-                        if (column.Blocks.Count > 0 && consumed + blockHeight > target + 0.001D) break;
+                        if (column.Blocks.Count > 0 && consumed + blockHeight > columnTarget + 0.001D) break;
                         column.AddBlock(block);
                         consumed += blockHeight;
                         blockIndex++;
-                        if (consumed >= target - 0.001D) break;
+                        if (consumed >= columnTarget - 0.001D) break;
                     }
                     row.AddColumn(column);
                 }
@@ -101,7 +105,7 @@ internal static partial class PdfWriter {
                 return false;
             }
 
-            double fontSize = currentOpts.DefaultFontSize;
+            double fontSize = sourceStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(sourceStyle, fontSize);
             var textFrame = GetParagraphTextFrame(sourceStyle, currentOpts.MarginLeft, columnWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(
@@ -114,7 +118,7 @@ internal static partial class PdfWriter {
                 textFrame.FirstLineX - textFrame.X,
                 GetParagraphTabStopWidth(sourceStyle),
                 currentOpts,
-                GetParagraphTabStops(sourceStyle));
+                GetParagraphTabStops(sourceStyle), lineSpacing: sourceStyle?.LineSpacing);
             if (wrapped.Lines.Count < 2) {
                 return false;
             }
@@ -185,8 +189,10 @@ internal static partial class PdfWriter {
                     runs.Add(BuildTextRunFromWrappedSegment(text, segment));
                 }
 
-                if (lineIndex + 1 < count) {
-                    if (line.Count == 0 || line[line.Count - 1].EndsWithHardBreak) {
+                if (line.Count > 0 && line[line.Count - 1].EndsWithHardBreak) {
+                    runs.Add(BuildTextRunFromWrappedSegment("\n", line[line.Count - 1]));
+                } else if (lineIndex + 1 < count) {
+                    if (line.Count == 0) {
                         runs.Add(PdfTextRun.LineBreak());
                     } else if (line[line.Count - 1].EndsWithTextSeparator) {
                         runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
@@ -197,8 +203,8 @@ internal static partial class PdfWriter {
             return runs;
         }
 
-        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) =>
-            new PdfTextRun(
+        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) {
+            var run = new PdfTextRun(
                 text,
                 segment.Bold,
                 segment.Underline,
@@ -214,7 +220,14 @@ internal static partial class PdfWriter {
                 backgroundColor: segment.BackgroundColor,
                 fontFamily: segment.NamedFont?.FamilyName,
                 underlineStyle: segment.UnderlineStyle,
-                strikeStyle: segment.StrikeStyle);
+                strikeStyle: segment.StrikeStyle,
+                decorationColor: segment.DecorationColor);
+            if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
+                run = run.WithFeatureSettings(segment.FeatureSettings);
+            if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)
+                run = run.WithTextDirection(segment.TextDirection);
+            return run;
+        }
 
         private double MeasureColumnBlock(IPdfBlock block, double columnWidth) =>
             MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, columnWidth, currentOpts.DefaultFontSize);
@@ -296,12 +309,13 @@ internal static partial class PdfWriter {
             PdfOptions parentOptions = currentOpts;
             double parentYStart = yStart;
             PdfOptions pageOptions = currentPage!.Options;
+            outerX = ResolveContainerFrame(style, currentOpts.MarginLeft, parentWidth).X;
             var nestedOptions = currentOpts.Clone();
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
             nestedOptions.Validate();
 
-            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions);
+            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions);
             activeContainerScopes.Add(scope);
             currentOpts = nestedOptions;
             width = contentWidth;
@@ -313,14 +327,14 @@ internal static partial class PdfWriter {
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well
                 // as glyphs. Transfer both to the page's font resource owner.
-                parentOptions.MergeFontProgramUsageFrom(nestedOptions);
+                scope.ParentOptions.MergeFontProgramUsageFrom(scope.NestedOptions);
             } finally {
                 activeContainerScopes.RemoveAt(activeContainerScopes.Count - 1);
-                currentOpts = parentOptions;
+                currentOpts = scope.ParentOptions;
                 width = parentWidth;
                 yStart = parentYStart;
                 if (currentPage != null) {
-                    currentPage.Options = pageOptions;
+                    currentPage.Options = scope.PageOptions;
                 }
             }
 
@@ -352,6 +366,7 @@ internal static partial class PdfWriter {
                 double bottomPadding = Math.Min(scope.Style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
+                scope.ParentOptions.MergeFontProgramUsageFrom(scope.NestedOptions);
             }
         }
 
@@ -360,9 +375,20 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            currentPage.Options = activeContainerScopes[0].PageOptions;
+            double marginShift = currentOpts.MarginLeft - activeContainerScopes[0].PageOptions.MarginLeft;
             for (int index = 0; index < activeContainerScopes.Count; index++) {
-                BeginContainerFragment(activeContainerScopes[index]);
+                ContainerRenderScope scope = activeContainerScopes[index];
+                scope.PageOptions = currentPage.Options;
+                scope.ParentOptions = currentOpts;
+                scope.OuterX += marginShift;
+                // Only the frame changes during continuation. Reuse child options
+                // and their accumulated font usage instead of copying assets per page.
+                scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
+                scope.NestedOptions.MarginRight = currentOpts.PageWidth -
+                    (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);
+                currentOpts = scope.NestedOptions;
+                width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                BeginContainerFragment(scope);
             }
         }
 
@@ -399,17 +425,22 @@ internal static partial class PdfWriter {
         }
 
         private sealed class ContainerRenderScope {
-            public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions) {
+            public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions,
+                PdfOptions parentOptions, PdfOptions nestedOptions) {
                 Style = style;
                 OuterX = outerX;
                 OuterWidth = outerWidth;
                 PageOptions = pageOptions;
+                ParentOptions = parentOptions;
+                NestedOptions = nestedOptions;
             }
 
             public PdfPanelStyle Style { get; }
-            public double OuterX { get; }
+            public double OuterX { get; set; }
             public double OuterWidth { get; }
-            public PdfOptions PageOptions { get; }
+            public PdfOptions PageOptions { get; set; }
+            public PdfOptions ParentOptions { get; set; }
+            public PdfOptions NestedOptions { get; set; }
             public int InsertionIndex { get; set; }
             public double FragmentTop { get; set; }
         }

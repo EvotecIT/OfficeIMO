@@ -21,7 +21,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Color = 1 << 16,
         FontFamily = 1 << 17,
         CharacterSpacing = 1 << 18,
-        Language = 1 << 19
+        Language = 1 << 19,
+        Kerning = 1 << 20
     }
 
     internal readonly struct LegacyDocCharacterFormat : IEquatable<LegacyDocCharacterFormat> {
@@ -48,7 +49,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? eastAsiaLanguage,
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
             int? pictureDataOffset = null,
-            LegacyDocRevision revision = default) {
+            LegacyDocRevision revision = default,
+            int? kerningMinimumFontSizeHalfPoints = null) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
@@ -69,6 +71,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            KerningMinimumFontSizeHalfPoints = kerningMinimumFontSizeHalfPoints;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
             Specified = specified;
@@ -112,6 +115,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? CharacterSpacingTwips { get; }
 
+        internal int? KerningMinimumFontSizeHalfPoints { get; }
+
         internal string? Language { get; }
 
         internal string? EastAsiaLanguage { get; }
@@ -141,6 +146,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || ColorHex != null
             || FontFamily != null
             || CharacterSpacingTwips != null
+            || KerningMinimumFontSizeHalfPoints != null
             || Language != null
             || EastAsiaLanguage != null
             || PictureDataOffset != null
@@ -157,7 +163,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             new LegacyDocCharacterFormat(Bold, Italic, Strike, DoubleStrike, Outline, Shadow, Emboss, Imprint,
                 Hidden, NoProof, Caps, VerticalPosition, Underline, Highlight, FontSizeHalfPoints, ColorHex,
                 fontFamily, CharacterSpacingTwips, Language, EastAsiaLanguage,
-                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision);
+                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision, KerningMinimumFontSizeHalfPoints);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
@@ -178,6 +184,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
                 && CharacterSpacingTwips == other.CharacterSpacingTwips
+                && KerningMinimumFontSizeHalfPoints == other.KerningMinimumFontSizeHalfPoints
                 && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(EastAsiaLanguage, other.EastAsiaLanguage, StringComparison.OrdinalIgnoreCase)
                 && PictureDataOffset == other.PictureDataOffset
@@ -209,6 +216,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
             hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
+            hash = (hash * 31) + KerningMinimumFontSizeHalfPoints.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(Language ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(EastAsiaLanguage ?? string.Empty);
             hash = (hash * 31) + PictureDataOffset.GetHashCode();

@@ -29,5 +29,6 @@
     <None Update="samples\showcase-dashboard.pdf"
           CopyToOutputDirectory="PreserveNewest" />
     <None Update="samples\view-only.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="samples\base14-font-families.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

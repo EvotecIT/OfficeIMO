@@ -920,7 +920,9 @@ namespace OfficeIMO.Word {
 
                 if (child is LastRenderedPageBreak) {
                     FlushCurrentChildren();
-                    result.Add(CreateLogicalRun(runProperties, new OpenXmlElement[] { new Break { Type = BreakValues.Page } }));
+                    Run cachedBreak = CreateLogicalRun(runProperties, new OpenXmlElement[] { new Break { Type = BreakValues.Page } });
+                    cachedBreak.AddAnnotation(new LastRenderedPageBreak());
+                    result.Add(cachedBreak);
                     continue;
                 }
 

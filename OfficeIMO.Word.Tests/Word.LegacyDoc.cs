@@ -2858,7 +2858,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, document.Sections.Count);
             Assert.Equal("Before continuous section", Assert.Single(document.Sections[0].Paragraphs).Text);
             Assert.Equal(sectionText, Assert.Single(document.Sections[1].Paragraphs).Text);
-            Assert.Equal(GetSectionMarkValue(expectedSectionTypeKey), GetParagraphSectionType(document));
+            Assert.Equal(GetSectionMarkValue(expectedSectionTypeKey).ToOfficeEnum(), document.Sections[1].BreakType);
         }
 
         [Fact]
@@ -4854,7 +4854,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(20, lcbPlcfSed);
                 Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed));
                 Assert.Equal(ccpText, BitConverter.ToInt32(tableStream, fcPlcfSed + 4));
-                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed + 10));
+                int defaultSectionOffset = BitConverter.ToInt32(tableStream, fcPlcfSed + 10);
+                Assert.InRange(defaultSectionOffset, 512, wordDocumentStream.Length - 2);
+                Assert.Equal(0, BitConverter.ToUInt16(wordDocumentStream, defaultSectionOffset));
                 Assert.Equal(ccpHdd - 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 8));
                 Assert.Equal(ccpHdd + 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 4));
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
@@ -11753,7 +11755,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Before continuous section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal(sectionText, Assert.Single(reloaded.Sections[1].Paragraphs).Text);
-                Assert.Equal(sectionBreakType, GetParagraphSectionType(reloaded));
+                Assert.Equal(sectionBreakType.ToOfficeEnum(), reloaded.Sections[1].BreakType);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -16816,13 +16818,6 @@ namespace OfficeIMO.Tests {
             }
 
             return false;
-        }
-
-        private static SectionMarkValues? GetParagraphSectionType(WordDocument document) {
-            return document._wordprocessingDocument.MainDocumentPart!.Document.Body!
-                .Elements<Paragraph>()
-                .Select(paragraph => paragraph.ParagraphProperties?.SectionProperties?.GetFirstChild<SectionType>()?.Val?.Value)
-                .FirstOrDefault(value => value != null);
         }
 
         private static SectionMarkValues GetSectionMarkValue(string key) {

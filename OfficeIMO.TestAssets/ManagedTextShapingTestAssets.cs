@@ -24,14 +24,35 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
         CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
 
+    internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
+        ushort windowsDescent, params int[] scalars) {
+        int[] ordered = new SortedSet<int>(scalars).ToArray();
+        var os2 = new byte[78];
+        WriteUInt16(os2, 4, 400);
+        WriteUInt16(os2, 74, checked((ushort)Math.Max(0, (int)ascender)));
+        WriteUInt16(os2, 76, windowsDescent);
+        byte[] font = CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1, os2: os2);
+        int count = ReadUInt16(font, 4);
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (ReadUInt32(font, record) != 0x68686561) continue;
+            int offset = checked((int)ReadUInt32(font, record + 8));
+            WriteUInt16(font, offset + 4, unchecked((ushort)ascender));
+            WriteUInt16(font, offset + 6, unchecked((ushort)descender));
+            WriteUInt16(font, offset + 8, unchecked((ushort)lineGap));
+            return font;
+        }
+        throw new InvalidOperationException("The test font is missing its horizontal metrics.");
+    }
+
     internal static byte[] CreateFontWithInkedNotdef() =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }), inkedNotdef: true);
 
-    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
+    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment, bool includeSpace = false) {
         if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2),
-            glyphCount: 3,
+            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2, includeSpace ? 32 : null, 3),
+            glyphCount: includeSpace ? 4 : 3,
             kern: CreateKernTable(1, 2, adjustment));
     }
 
@@ -219,7 +240,8 @@ internal static partial class ManagedTextShapingTestAssets {
         byte[]? cpal = null,
         int baseGlyphHeight = 700,
         bool inkedNotdef = false,
-        bool emptyGlyphs = false) {
+        bool emptyGlyphs = false,
+        byte[]? os2 = null) {
         byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -250,6 +272,7 @@ internal static partial class ManagedTextShapingTestAssets {
         if (gpos != null) tables.Add(("GPOS", gpos));
         if (colr != null) tables.Add(("COLR", colr));
         if (cpal != null) tables.Add(("CPAL", cpal));
+        if (os2 != null) tables.Add(("OS/2", os2));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];
