@@ -623,6 +623,14 @@ public static partial class OfficePngReader {
         int filter,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+#if NET8_0_OR_GREATER
+        if (bytesPerPixel == 3 && filter == 3 && current.Length >= 64
+            && current.Length % 3 == 0 && previous.Length >= current.Length
+            && System.Runtime.Intrinsics.X86.Sse2.IsSupported) {
+            UnfilterRgbAverage(current, previous, cancellationToken);
+            return;
+        }
+#endif
         switch (filter) {
             case 0:
                 return;
