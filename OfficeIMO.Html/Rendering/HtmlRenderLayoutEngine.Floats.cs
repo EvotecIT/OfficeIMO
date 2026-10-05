@@ -514,10 +514,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage || alignTextBaseline ? segment.Run.Style.LineHeight : lineHeight;
-                    double textY = current.HasReplacedImage
-                        ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
-                        : lineY + (alignTextBaseline ? Math.Max(0D, baseline - segment.Run.Style.Font.Size) : 0D);
-                    if (alignTextBaseline && !current.HasReplacedImage) {
+                    double textY = lineY + (current.HasReplacedImage || alignTextBaseline
+                        ? Math.Max(0D, baseline - segment.Run.Style.Font.Size) : 0D);
+                    if (alignTextBaseline || current.HasReplacedImage) {
                         textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - (textY - lineY)));
                     }
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), textLineHeight, inlineBounds);

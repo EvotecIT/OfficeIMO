@@ -8,16 +8,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<GridIntrinsicContribution> contributions,
         double availableSize,
         double gap,
-        bool includeFractionTracks) {
+        bool includeFractionTracks,
+        int depth = 1,
+        bool minimumContribution = false,
+        Dictionary<FlexItem, (double Minimum, double Maximum)>? measurements = null) {
+        measurements ??= new Dictionary<FlexItem, (double Minimum, double Maximum)>();
         var sizes = tracks.Select(track => track.IsCollapsed ? 0D : Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
         foreach (GridIntrinsicContribution contribution in contributions.OrderBy(value => value.Item.ColumnSpan)) {
             GridItem item = contribution.Item;
             IReadOnlyList<GridTrack> spannedTracks = tracks.Skip(item.Column).Take(item.ColumnSpan).ToList();
-            bool usesMaxContentContribution = includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
-                || GridTracksUseMaxContentContribution(spannedTracks);
-            double required = (usesMaxContentContribution
-                ? ResolveGridMaxContentContribution(item.Item, availableSize)
-                : ResolveGridMinContentContribution(item.Item, availableSize)) + contribution.EdgeInsets;
+            bool usesMaxContentContribution = minimumContribution
+                ? spannedTracks.Any(track => track.MinimumSizing == GridIntrinsicSizing.MaxContent)
+                : includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
+                    || GridTracksUseMaxContentContribution(spannedTracks);
+            if (!measurements.TryGetValue(item.Item, out var measured)) {
+                measured = ResolveGridContentContributions(item.Item, availableSize, depth + 1);
+                measurements.Add(item.Item, measured);
+            }
+            double required = (usesMaxContentContribution ? measured.Maximum : measured.Minimum) + contribution.EdgeInsets;
             double current = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
             double deficit = Math.Max(0D, required - current);
             if (deficit <= 0D) continue;
@@ -53,7 +61,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             // fit-content() limits max-content growth, but its automatic minimum still
             // has to satisfy the item's min-content contribution.
-            double minContentRequired = ResolveGridMinContentContribution(item.Item, availableSize) + contribution.EdgeInsets;
+            double minContentRequired = measured.Minimum + contribution.EdgeInsets;
             double minContentAllocated = sizes.Skip(item.Column).Take(item.ColumnSpan).Sum() + gap * Math.Max(0, item.ColumnSpan - 1);
             double minContentDeficit = Math.Max(0D, minContentRequired - minContentAllocated);
             if (minContentDeficit <= 0D) continue;
@@ -94,32 +102,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || track.MinimumSizing == GridIntrinsicSizing.MaxContent
             || track.Kind == GridTrackKind.Auto);
 
-    private double ResolveGridMinContentContribution(FlexItem item, double availableSize) {
+    private double ResolveGridMinContentContribution(FlexItem item, double availableSize, int depth = 1) =>
+        ResolveGridContentContributions(item, availableSize, depth).Minimum;
+
+    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth) {
         HtmlRenderBoxStyle style = item.Style;
-        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
-
-        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize);
-        double measured;
-        if (textRuns.Count == 0) {
-            measured = 1D;
-        } else {
-            measured = MeasureMinContentRuns(textRuns);
-        }
-        measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
-
-        return ResolveGridMeasuredContribution(style, measured);
-    }
-
-    private double ResolveGridMaxContentContribution(FlexItem item, double availableSize) {
-        HtmlRenderBoxStyle style = item.Style;
-        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
-
-        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize);
-        double measured = textRuns.Count == 0
-            ? 1D
-            : MeasureMaxContentRuns(textRuns);
-        measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
-        return ResolveGridMeasuredContribution(style, measured);
+        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
+        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth);
+        double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
+        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns), replaced);
+        double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns), replaced);
+        return (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
     }
 
     private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize) {

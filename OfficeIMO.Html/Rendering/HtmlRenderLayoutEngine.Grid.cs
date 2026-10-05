@@ -481,8 +481,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .ThenBy(text => text.X)
             .FirstOrDefault();
         if (firstText == null) return item.Block.Height;
-        double leading = Math.Max(0D, firstText.LineHeight - firstText.Font.Size);
-        return firstText.LayoutY + Math.Min(firstText.LineHeight, leading / 2D + firstText.Font.Size * 0.8D);
+        return firstText.LayoutY + firstText.Font.Size;
     }
 
     private static IEnumerable<HtmlRenderText> EnumerateGridTextVisuals(IEnumerable<HtmlRenderVisual> visuals) {

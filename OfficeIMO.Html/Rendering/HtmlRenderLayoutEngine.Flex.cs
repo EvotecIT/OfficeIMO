@@ -175,7 +175,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private double ResolveFlexBasis(FlexItem item, double availableWidth) {
+    private double ResolveFlexBasis(FlexItem item, double availableWidth, int intrinsicDepth = 1, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         double boxBasis;
         if (style.FlexBasis != "auto") {
@@ -183,10 +183,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
             } else {
                 ReportUnsupportedFlexValue(item, "flex-basis=" + style.FlexBasis);
-                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth, resolvedRuns);
             }
         } else {
-            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth, resolvedRuns);
         }
 
         return Math.Max(0D, boxBasis + style.MarginLeft + style.MarginRight);

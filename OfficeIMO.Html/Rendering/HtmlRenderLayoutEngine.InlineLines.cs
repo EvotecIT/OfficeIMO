@@ -74,11 +74,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ascent = Math.Max(ascent, atomicBaseline);
                     descent = Math.Max(descent, run.AtomicBlock.Height - atomicBaseline);
                 } else {
-                    ascent = Math.Max(ascent, ResolveTextAscent(run.Style));
-                    descent = Math.Max(descent, Math.Max(0D, run.Style.LineHeight - ResolveTextAscent(run.Style)));
+                    ascent = Math.Max(ascent, run.Style.Font.Size);
+                    descent = Math.Max(descent, Math.Max(0D, run.Style.LineHeight - run.Style.Font.Size));
                 }
             }
-            return Math.Max(0.01D, ascent + descent);
+            return Math.Max(0.01D, Math.Max(height, ascent + descent));
         }
 
         internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
@@ -98,21 +98,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 return baseline;
             }
-            double ascent = 0D;
+            double ascent = paragraphStyle.Font.Size;
             for (int i = 0; i < Segments.Count; i++) {
                 HtmlInlineRun run = Segments[i].Run;
                 ascent = Math.Max(ascent, run.AtomicBlock == null
-                    ? ResolveTextAscent(run.Style)
+                    ? run.Style.Font.Size
                     : Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height)));
             }
             return ascent;
         }
-    }
-
-    private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
-        double effectiveSize = GetEffectiveTextFont(style).Size;
-        double leading = Math.Max(0D, style.LineHeight - effectiveSize);
-        return Math.Min(style.LineHeight, leading / 2D + effectiveSize * 0.8D);
     }
 
     private static OfficeFontInfo GetEffectiveTextFont(HtmlRenderBoxStyle style) =>

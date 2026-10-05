@@ -17,6 +17,7 @@ public static partial class HtmlComputedStyleEngine {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
         if (normalizedName == "font") return TryExpandFontShorthand(value, out longhands);
         if (normalizedName == "gap") return TryExpandGapShorthand(value, out longhands);
+        if (normalizedName is "place-items" or "place-self" or "place-content") return TryExpandAlignmentShorthand(normalizedName, value, out longhands);
         if (normalizedName is "grid-column" or "grid-row" or "grid-area") return TryExpandGridShorthand(normalizedName, value, out longhands);
         if (normalizedName == "border") {
             string width, style, color;

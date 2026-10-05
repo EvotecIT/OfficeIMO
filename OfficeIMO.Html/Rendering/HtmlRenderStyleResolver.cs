@@ -1215,28 +1215,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.GridColumnEnd = NormalizeCssValue(computed.GetValue("grid-column-end"), "auto");
         style.GridRowStart = NormalizeCssValue(computed.GetValue("grid-row-start"), "auto");
         style.GridRowEnd = NormalizeCssValue(computed.GetValue("grid-row-end"), "auto");
-        ApplyPlacePair(computed.GetValue("place-items"), ref style.AlignItems, ref style.JustifyItems);
-        ApplyPlacePair(computed.GetValue("place-self"), ref style.AlignSelf, ref style.JustifySelf);
-        ApplyPlacePair(computed.GetValue("place-content"), ref style.AlignContent, ref style.JustifyContent);
-    }
-
-    private static void ApplyPlacePair(string value, ref string first, ref string second) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
-        if (parts.Count == 0) return;
-        int index = 0;
-        first = ReadPlaceComponent(parts, ref index);
-        second = index < parts.Count ? ReadPlaceComponent(parts, ref index) : first;
-    }
-
-    private static string ReadPlaceComponent(IReadOnlyList<string> parts, ref int index) {
-        string value = parts[index++].Trim().ToLowerInvariant();
-        if ((value == "first" || value == "last")
-            && index < parts.Count
-            && string.Equals(parts[index], "baseline", StringComparison.OrdinalIgnoreCase)) {
-            value += " baseline";
-            index++;
-        }
-        return value;
     }
 
     private static void ApplyFlexFlow(string value, HtmlRenderBoxStyle style) {

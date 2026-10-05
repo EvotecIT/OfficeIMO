@@ -4,7 +4,8 @@ public static partial class HtmlComputedStyleEngine {
     private const string LayoutDeclarationSentinelPrefix = "-officeimo-internal-layout-declaration-";
     private static readonly HashSet<string> LayoutDeclarationNames = new(StringComparer.Ordinal) {
         "grid-column", "grid-row", "grid-area", "grid-column-start", "grid-column-end", "grid-row-start", "grid-row-end",
-        "grid-template-columns", "grid-template-rows", "grid-template-areas", "gap", "row-gap", "column-gap"
+        "grid-template-columns", "grid-template-rows", "grid-template-areas", "gap", "row-gap", "column-gap",
+        "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content"
     };
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 
@@ -13,6 +14,9 @@ public static partial class HtmlComputedStyleEngine {
         "grid-column" => GridColumnLonghands,
         "grid-row" => GridRowLonghands,
         "grid-area" => GridAreaLonghands,
+        "place-items" => PlaceItemsLonghands,
+        "place-self" => PlaceSelfLonghands,
+        "place-content" => PlaceContentLonghands,
         _ => null
     };
 

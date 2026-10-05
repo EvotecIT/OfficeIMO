@@ -212,8 +212,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool definite = TryResolveDefiniteGridContribution(item, availableSize, out double minimumContribution);
                 IReadOnlyList<IntrinsicTextRun>? childRuns = definite ? null : ResolveInFlowIntrinsicTextRuns(item, availableSize, depth + 1);
                 double contribution = column ? ResolveColumnFlexCrossBasis(item, availableSize, depth + 1, childRuns)
-                    : ClampFlexMainSize(item, ResolveFlexAutoBoxBasis(item, availableSize, depth + 1, childRuns)
-                        + item.Style.MarginLeft + item.Style.MarginRight, vertical: false);
+                    : ClampFlexMainSize(item, ResolveFlexBasis(item, availableSize, depth + 1, childRuns), vertical: false);
                 if (!definite) minimumContribution = ResolveGridMeasuredContribution(item.Style, MeasureMinContentRuns(childRuns!));
                 if (!column && item.Style.FlexShrink == 0D) minimumContribution = Math.Max(minimumContribution, contribution);
                 width = column ? Math.Max(width, contribution) : width + contribution;
@@ -223,6 +222,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!column) width += parentStyle.ColumnGap * Math.Max(0, items.Count - 1);
             if (!column && parentStyle.FlexWrap == "nowrap") minimumWidth += parentStyle.ColumnGap * Math.Max(0, items.Count - 1);
             result.Add(IntrinsicTextRun.Replaced(width, parentStyle, minimumWidth));
+            return;
+        }
+        // Subgrid axes are sized in their parent's inherited track context.
+        // Only standalone grids can use the independent intrinsic-width owner.
+        if (parentStyle.Display is "grid" or "inline-grid"
+            && !IsSubgridTrackList(parentStyle.GridTemplateColumns) && !IsSubgridTrackList(parentStyle.GridTemplateRows)) {
+            (double minimum, double maximum) = ResolveIntrinsicGridWidths(parent, availableSize, parentStyle, depth + 1, clampToAvailable: false);
+            double insets = parentStyle.HorizontalInsets + parentStyle.MarginLeft + parentStyle.MarginRight;
+            result.Add(IntrinsicTextRun.Replaced(Math.Max(0D, maximum - insets), parentStyle, Math.Max(0D, minimum - insets)));
             return;
         }
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);

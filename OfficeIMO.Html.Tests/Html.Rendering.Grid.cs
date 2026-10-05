@@ -820,8 +820,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderGrid(html, 220D);
         HtmlRenderText small = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Small");
         HtmlRenderText large = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Large");
-        double smallBaseline = small.Y + (small.LineHeight - small.Font.Size) / 2D + small.Font.Size * 0.8D;
-        double largeBaseline = large.Y + (large.LineHeight - large.Font.Size) / 2D + large.Font.Size * 0.8D;
+        double smallBaseline = small.Y + small.Font.Size;
+        double largeBaseline = large.Y + large.Font.Size;
 
         Assert.Equal(largeBaseline, smallBaseline, 3);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
@@ -878,8 +878,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
         HtmlRenderText nested = Assert.Single(scene.OfType<HtmlRenderText>(), text => text.Text == "Nested");
         HtmlRenderText large = Assert.Single(scene.OfType<HtmlRenderText>(), text => text.Text == "Large");
-        double nestedBaseline = nested.Y + (nested.LineHeight - nested.Font.Size) / 2D + nested.Font.Size * 0.8D;
-        double largeBaseline = large.Y + (large.LineHeight - large.Font.Size) / 2D + large.Font.Size * 0.8D;
+        double nestedBaseline = nested.Y + nested.Font.Size;
+        double largeBaseline = large.Y + large.Font.Size;
 
         Assert.Equal(largeBaseline, nestedBaseline, 3);
     }

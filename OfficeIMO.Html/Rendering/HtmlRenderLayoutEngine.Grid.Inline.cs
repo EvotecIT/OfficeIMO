@@ -34,15 +34,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             element));
     }
 
-    private double ResolveInlineGridWidth(IElement element, double availableWidth, HtmlRenderBoxStyle style, int depth) {
+    private double ResolveInlineGridWidth(IElement element, double availableWidth, HtmlRenderBoxStyle style, int depth) =>
+        ResolveIntrinsicGridWidths(element, availableWidth, style, depth).Maximum;
+
+    private (double Minimum, double Maximum) ResolveIntrinsicGridWidths(IElement element, double availableWidth, HtmlRenderBoxStyle style, int depth, bool clampToAvailable = true) {
         double availableOuterWidth = Math.Max(1D, availableWidth);
         double availableBoxWidth = Math.Max(1D, availableOuterWidth - style.MarginLeft - style.MarginRight);
         if (style.ExplicitWidth.HasValue) {
-            return Math.Min(availableOuterWidth, style.MarginLeft + ResolveBoxWidth(availableBoxWidth, style) + style.MarginRight);
+            double definite = clampToAvailable
+                ? Math.Min(availableOuterWidth, style.MarginLeft + ResolveBoxWidth(availableBoxWidth, style) + style.MarginRight)
+                : ResolveGridMeasuredContribution(style, style.ExplicitWidth.Value - (style.BorderBox ? style.HorizontalInsets : 0D));
+            return (definite, definite);
         }
 
         if (!TryCollectFlexItems(element, availableOuterWidth, style, depth, captureRunningElements: false,
-            out List<FlexItem> formattingItems, out _, registerOutOfFlowElements: false)) return availableOuterWidth;
+            out List<FlexItem> formattingItems, out _, registerOutOfFlowElements: false)) return (availableOuterWidth, availableOuterWidth);
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         List<GridTrack> tracks = ParseGridTracks(style.GridTemplateColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
         double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
@@ -61,18 +67,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         rowLineNames = OffsetGridLineNames(rowLineNames, leadingRowCount);
         CollapseEmptyAutoFitColumns(style, items, tracks, ref columnCount);
         EnsureGridTrackCount(tracks, columnCount, style.GridAutoColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
-        List<double> sizes = ResolveGridIntrinsicTrackBases(
-            tracks,
-            CollectGridIntrinsicContributions(items, availableBoxWidth, style.ColumnGap, columnLineNames, rowLineNames, depth),
-            availableBoxWidth,
-            style.ColumnGap,
-            includeFractionTracks: true);
+        List<GridIntrinsicContribution> contributions = CollectGridIntrinsicContributions(items, availableBoxWidth, style.ColumnGap, columnLineNames, rowLineNames, depth);
+        var measured = new Dictionary<FlexItem, (double Minimum, double Maximum)>();
+        List<double> maximumSizes = ResolveGridIntrinsicTrackBases(tracks, contributions, availableBoxWidth, style.ColumnGap,
+            includeFractionTracks: true, depth: depth, measurements: measured);
+        List<double> minimumSizes = ResolveGridIntrinsicTrackBases(tracks, contributions, availableBoxWidth, style.ColumnGap,
+            includeFractionTracks: true, depth: depth, minimumContribution: true, measurements: measured);
+        return (ResolveWidth(minimumSizes), ResolveWidth(maximumSizes));
 
-        double intrinsicContentWidth = sizes.Sum() + style.ColumnGap * CountGridBaseGaps(tracks);
-        double intrinsicBoxWidth = intrinsicContentWidth + style.HorizontalInsets;
-        var intrinsicStyle = style.Clone();
-        intrinsicStyle.ExplicitWidth = intrinsicStyle.BorderBox ? intrinsicBoxWidth : intrinsicContentWidth;
-        double resolvedBoxWidth = ResolveBoxWidth(availableBoxWidth, intrinsicStyle);
-        return Math.Max(1D, Math.Min(availableOuterWidth, style.MarginLeft + resolvedBoxWidth + style.MarginRight));
+        double ResolveWidth(IReadOnlyList<double> sizes) {
+            double intrinsicContentWidth = sizes.Sum() + style.ColumnGap * CountGridBaseGaps(tracks);
+            if (!clampToAvailable) return ResolveGridMeasuredContribution(style, intrinsicContentWidth);
+            double intrinsicBoxWidth = intrinsicContentWidth + style.HorizontalInsets;
+            var intrinsicStyle = style.Clone();
+            intrinsicStyle.ExplicitWidth = intrinsicStyle.BorderBox ? intrinsicBoxWidth : intrinsicContentWidth;
+            double resolvedBoxWidth = ResolveBoxWidth(availableBoxWidth, intrinsicStyle);
+            double outerWidth = style.MarginLeft + resolvedBoxWidth + style.MarginRight;
+            return Math.Max(1D, clampToAvailable ? Math.Min(availableOuterWidth, outerWidth) : outerWidth);
+        }
     }
 }

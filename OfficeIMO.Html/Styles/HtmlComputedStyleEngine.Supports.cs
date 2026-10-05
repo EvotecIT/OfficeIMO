@@ -399,6 +399,10 @@ public static partial class HtmlComputedStyleEngine {
         }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "place-items":
+            case "place-self":
+            case "place-content":
+                return TryExpandAlignmentShorthand(propertyName.ToLowerInvariant(), value, out _);
             case "gap":
                 return TryExpandGapShorthand(value, out _);
             case "row-gap":

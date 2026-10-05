@@ -245,7 +245,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyDictionary<string, int> rowLineNames,
         int depth) {
         List<GridIntrinsicContribution> contributions = CollectGridIntrinsicContributions(items, availableSize, gap, columnLineNames, rowLineNames, depth);
-        List<double> sizes = ResolveGridIntrinsicTrackBases(tracks, contributions, availableSize, gap, includeFractionTracks: false);
+        List<double> sizes = ResolveGridIntrinsicTrackBases(tracks, contributions, availableSize, gap, includeFractionTracks: false, depth: depth);
         double trackSpace = Math.Max(0D, availableSize - gap * CountGridBaseGaps(tracks));
         double used = sizes.Sum();
         double remaining = Math.Max(0D, trackSpace - used);
