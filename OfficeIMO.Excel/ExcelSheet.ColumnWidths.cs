@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 SetColumnWidthsCore(selected.Select(pair => pair.Key).ToArray(),
-                    selected.Select(pair => pair.Value).ToArray());
+                    selected.Select(pair => pair.Value).ToArray(), bestFit: false);
                 WorksheetRoot.Save();
             });
         }

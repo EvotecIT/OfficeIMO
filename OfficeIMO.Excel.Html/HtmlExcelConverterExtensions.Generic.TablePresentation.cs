@@ -93,9 +93,7 @@ public static partial class HtmlExcelConverterExtensions {
             sheet.SetColumnWidths(fittedWidths);
         }
 
-        foreach (ExcelCellValueInfo cell in importedCells) {
-            sheet.CellWrapText(cell.Row, cell.Column);
-        }
+        sheet.CellWrapTextFor(importedCells.Select(cell => (cell.Row, cell.Column)));
         sheet.AutoFitRows();
     }
 
