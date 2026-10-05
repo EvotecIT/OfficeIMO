@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// One continuous or paged HTML render surface in CSS-pixel coordinates.
 /// </summary>
-public sealed class HtmlRenderPage {
+public sealed partial class HtmlRenderPage {
     private readonly ReadOnlyCollection<HtmlRenderVisual> _visuals;
     private readonly ReadOnlyCollection<HtmlRenderVisual> _scene;
     private readonly OfficeFontFaceCollection _fonts;
@@ -298,12 +298,13 @@ public sealed class HtmlRenderPage {
         double surfaceHeight,
         OfficeFontFaceCollection fonts,
         CancellationToken cancellationToken) {
-        double minimumLeft = Math.Min(0D, MinimumLeft(group.Visuals));
-        double minimumTop = Math.Min(0D, MinimumTop(group.Visuals));
+        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        double minimumLeft = bounds.Left;
+        double minimumTop = bounds.Top;
         double shiftX = -minimumLeft;
         double shiftY = -minimumTop;
-        double nestedWidth = Math.Max(surfaceWidth, MaximumRight(group.Visuals)) - minimumLeft;
-        double nestedHeight = Math.Max(surfaceHeight, MaximumBottom(group.Visuals)) - minimumTop;
+        double nestedWidth = bounds.Right - minimumLeft;
+        double nestedHeight = bounds.Bottom - minimumTop;
         var nested = new OfficeDrawing(Math.Max(0.01D, nestedWidth), Math.Max(0.01D, nestedHeight));
         nested.Fonts.AddRange(fonts);
         foreach (HtmlRenderVisual child in group.Visuals) {
@@ -329,12 +330,13 @@ public sealed class HtmlRenderPage {
         double bottom = group.ClipVertical ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : surfaceHeight;
         if (right <= left + 0.0001D || bottom <= top + 0.0001D) return;
 
-        double minimumLeft = Math.Min(0D, MinimumLeft(group.Visuals));
-        double minimumTop = Math.Min(0D, MinimumTop(group.Visuals));
+        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        double minimumLeft = bounds.Left;
+        double minimumTop = bounds.Top;
         double shiftX = -minimumLeft;
         double shiftY = -minimumTop;
-        double nestedWidth = Math.Max(surfaceWidth, MaximumRight(group.Visuals)) - minimumLeft;
-        double nestedHeight = Math.Max(surfaceHeight, MaximumBottom(group.Visuals)) - minimumTop;
+        double nestedWidth = bounds.Right - minimumLeft;
+        double nestedHeight = bounds.Bottom - minimumTop;
         var nested = new OfficeDrawing(Math.Max(0.01D, nestedWidth), Math.Max(0.01D, nestedHeight));
         nested.Fonts.AddRange(fonts);
         foreach (HtmlRenderVisual child in group.Visuals) {
@@ -358,12 +360,13 @@ public sealed class HtmlRenderPage {
         double surfaceHeight,
         OfficeFontFaceCollection fonts,
         CancellationToken cancellationToken) {
-        double minimumLeft = Math.Min(0D, MinimumLeft(group.Visuals));
-        double minimumTop = Math.Min(0D, MinimumTop(group.Visuals));
+        var bounds = ResolveDrawingBufferBounds(group.Visuals, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        double minimumLeft = bounds.Left;
+        double minimumTop = bounds.Top;
         double shiftX = -minimumLeft;
         double shiftY = -minimumTop;
-        double nestedWidth = Math.Max(surfaceWidth, MaximumRight(group.Visuals)) - minimumLeft;
-        double nestedHeight = Math.Max(surfaceHeight, MaximumBottom(group.Visuals)) - minimumTop;
+        double nestedWidth = bounds.Right - minimumLeft;
+        double nestedHeight = bounds.Bottom - minimumTop;
         var nested = new OfficeDrawing(Math.Max(0.01D, nestedWidth), Math.Max(0.01D, nestedHeight));
         nested.Fonts.AddRange(fonts);
         foreach (HtmlRenderVisual child in group.Visuals) {
