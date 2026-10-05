@@ -82,7 +82,7 @@ public static partial class OfficeSvgDrawingReader {
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
-            var paintServers = new SvgPaintServerRegistry(definitions);
+            var paintServers = new SvgPaintServerRegistry(definitions, options?.UseFirstRadialIntersection == true);
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer,
                 options?.CancellationToken ?? default) {
                 MaximumGeometryCommands = maximumGeometryCommands,

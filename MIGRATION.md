@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## XPS radial focal points
+
+For radial gradients with a focal point on or outside the end ellipse, use
+`XpsPage.ToDrawing()`, raster `ExportImage()` or `XpsDocument.ToPdf()` for native Pad
+rendering. These paths select the smallest containing ellipse and preserve the
+endpoint color outside its cone, including stop alpha. Ordinary SVG has a
+different field contract, so `ToSvg()` and SVG image export reject these focal points; `ToSvg(true)`
+returns the projection with an explicit loss diagnostic. Boundary/exterior
+Repeat and Reflect remain unsupported by native drawing/PDF conversion.
+
 ## XPS/OpenXPS Reader identity and native order
 
 Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and

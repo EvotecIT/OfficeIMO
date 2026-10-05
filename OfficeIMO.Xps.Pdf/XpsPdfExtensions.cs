@@ -45,7 +45,7 @@ public static class XpsPdfExtensions {
             for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
                 var page = document.Pages[pageIndex];
                 cancellationToken.ThrowIfCancellationRequested();
-                var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true).Convert(false);
+                var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true, nativeDrawing: true).Convert(false);
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
                 builder.Page(p => p.Size(width, height).Margin(new PageMargins(0, 0, 0, 0))

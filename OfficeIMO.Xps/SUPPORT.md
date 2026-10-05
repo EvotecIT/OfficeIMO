@@ -16,7 +16,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF, native sRGB defaults for PNG gamma/chromaticity declarations, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
-| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; bounded radial Repeat/Reflect expansion retains vector PDF shading | Radial spread requires a point focus strictly inside the end ellipse and at most 256 expanded stops; boundary/exterior focal behavior is not qualified |
+| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a point focus strictly inside the end ellipse and at most 256 expanded stops; ordinary SVG diagnoses boundary/exterior focal fields |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
 | PDF | Optional thin bridge retaining vector paint, dimensions, native alpha masks and searchable Unicode clusters; native paragraph/list/table/figure tags, continued cross-page containers, declared story order, list labels and cell spans; header/footer artifacts | Unstructured pages use markup order; unassociated fragments use page order; unknown/unresolved/overlapping semantics reject strict mapping; an explicit paint-only mode retains markup-order text; no inferred figure descriptions, PDF/UA qualification, print-ticket or signature migration; clipped/transparent source text remains searchable |
@@ -182,6 +182,20 @@ and 1.02/255 for PDF; repeat boundaries and stroke edges have the largest raster
 differences. Managed tests check analytic color samples, SVG round trips, opaque
 PDF reimport, opacity/clone retention and rejection at the expansion limit. These
 cases do not qualify all focal positions or every producer's gradient conventions.
+
+Native Pad boundary/exterior qualification adds generated XPS/OpenXPS cases for
+elliptical fields, rotation, shear, reflection, strokes and translucent endpoints.
+Core reverses the circle sequence to select the smallest containing ellipse;
+PDF retains vector shading and explicitly paints the outside endpoint color and
+alpha. Independent PDF consumers exercise both cone paint and outside paint.
+GhostXPS agrees on qualified interior samples but leaves some outside regions
+unpainted; that difference is retained in the evidence. Standalone SVG uses a
+different intersection rule and does not carry native semantics: strict `ToSvg`
+rejects boundary/exterior foci, while partial SVG reports loss. SVG image exports
+and shared Drawing SVG exports reject these fields too. Managed opaque PDF
+readback retains shrinking elliptical fields with a point end. Boundary/exterior
+Repeat/Reflect, arbitrary photographic or producer coverage, and PDF/UA are not
+qualified by these cases.
 
 Stroke qualification includes 48 generated XPS/OpenXPS cases and 16 focused rendering
 regressions covering clipped miters,

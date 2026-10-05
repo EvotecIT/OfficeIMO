@@ -307,6 +307,10 @@ public static partial class OfficeSvgFormatting {
             throw new ArgumentNullException(nameof(gradient));
         }
 
+        if (gradient.OutsideColor != null) {
+            throw new NotSupportedException("Native radial boundary/exterior Pad fields cannot be represented by ordinary SVG without loss.");
+        }
+
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
         double endX = elliptical ? 0D : gradient.EndX;
         double endY = elliptical ? 0D : gradient.EndY;

@@ -63,6 +63,10 @@ internal sealed partial class XpsSvgConverter {
             if (center.Length != 2 || origin.Length != 2) throw new InvalidDataException("Invalid radial gradient coordinates.");
             double rx = XpsPackage.Number((string?)brush.Attribute("RadiusX")); double ry = XpsPackage.Number((string?)brush.Attribute("RadiusY"));
             if (rx <= 0 || ry <= 0) throw new InvalidDataException("Gradient radii must be positive.");
+            double focusX = (origin[0] - center[0]) / rx, focusY = (origin[1] - center[1]) / ry;
+            if (focusX * focusX + focusY * focusY >= 1 && (!_nativeDrawing || ((string?)brush.Attribute("SpreadMethod") ?? "Pad") != "Pad")) {
+                Loss("Radial boundary/exterior focus cannot be represented by ordinary SVG without native field semantics");
+            }
             Set(gradient, "cx", N(center[0])); Set(gradient, "cy", N(center[1])); Set(gradient, "r", N(rx));
             Set(gradient, "fx", N(origin[0])); Set(gradient, "fy", N(center[1] + (origin[1] - center[1]) * rx / ry));
             Set(gradient, "gradientTransform", "translate(0 " + N(center[1]) + ") scale(1 " + N(ry / rx) + ") translate(0 " + N(-center[1]) + ")");

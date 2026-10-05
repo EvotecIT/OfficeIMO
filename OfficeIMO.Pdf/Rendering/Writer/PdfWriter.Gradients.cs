@@ -63,13 +63,14 @@ internal static partial class PdfWriter {
         double r1 = elliptical ? 1D : gradient.EndRadius;
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops)) return existing.Name;
+            if (existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
         shadings.Add(new PageShading {
             Name = name,
             IsRadial = true,
+            OutsideColor = gradient.OutsideColor,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
             X0 = x0,
             Y0 = y0,

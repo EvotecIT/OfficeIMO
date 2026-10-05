@@ -8,6 +8,7 @@ internal sealed partial class XpsSvgConverter {
         (_page.Document.Format == XpsFormat.Xps && name == LegacyXamlNamespace + "Key");
     private readonly XpsPage _page;
     private readonly bool _explicitPageLinks;
+    private readonly bool _nativeDrawing;
     private readonly CancellationToken _token;
     private readonly List<string> _diagnostics = new();
     private readonly XElement _defs;
@@ -21,7 +22,7 @@ internal sealed partial class XpsSvgConverter {
     private int _outputNodes;
     private readonly Dictionary<string, XElement> _resourceDictionaries = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, OfficeIMO.Drawing.OfficeTrueTypeFont> _fonts = new(StringComparer.OrdinalIgnoreCase);
-    internal XpsSvgConverter(XpsPage page, CancellationToken token, bool explicitPageLinks = false) { _explicitPageLinks = explicitPageLinks; _page = page; _token = token; _defs = Element("defs"); }
+    internal XpsSvgConverter(XpsPage page, CancellationToken token, bool explicitPageLinks = false, bool nativeDrawing = false) { _nativeDrawing = nativeDrawing; _explicitPageLinks = explicitPageLinks; _page = page; _token = token; _defs = Element("defs"); }
     private sealed class Resource {
         internal Resource(XElement value, string part) { Value = value; Part = part; }
         internal XElement Value { get; }

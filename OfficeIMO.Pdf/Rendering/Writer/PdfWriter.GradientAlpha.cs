@@ -18,8 +18,21 @@ internal static partial class PdfWriter {
     /// <summary>Accumulates the painted region in the shading's own coordinate system.</summary>
     private static void RegisterGradientAlphaBounds(IList<PageShading> shadings, string name,
         OfficeShape shape, double x, double bottomY, bool localCoordinates) {
-        if (!HasGradientAlpha(shape)) return;
-        double left = 0D, top = 0D, right = shape.Width, bottom = shape.Height;
+        if (!HasGradientAlpha(shape) && shape.FillRadialGradient?.OutsideColor == null) return;
+        GetGradientPaintBounds(shape, x, bottomY, localCoordinates, out double left, out double top, out double right, out double bottom);
+        foreach (PageShading shading in shadings) {
+            if (shading.Name != name) continue;
+            shading.AlphaLeft = Math.Min(shading.AlphaLeft, left);
+            shading.AlphaBottom = Math.Min(shading.AlphaBottom, top);
+            shading.AlphaRight = Math.Max(shading.AlphaRight, right);
+            shading.AlphaTop = Math.Max(shading.AlphaTop, bottom);
+            return;
+        }
+    }
+
+    private static void GetGradientPaintBounds(OfficeShape shape, double x, double bottomY, bool localCoordinates,
+        out double left, out double top, out double right, out double bottom) {
+        left = 0D; top = 0D; right = shape.Width; bottom = shape.Height;
         foreach (var contour in OfficeStrokeGeometry.FlattenShape(shape, 1D)) {
             foreach (OfficePoint point in contour.Points) {
                 left = Math.Min(left, point.X); right = Math.Max(right, point.X);
@@ -44,14 +57,6 @@ internal static partial class PdfWriter {
             bottom = bottomY + shape.Height - top;
             top = lower;
         }
-        foreach (PageShading shading in shadings) {
-            if (shading.Name != name) continue;
-            shading.AlphaLeft = Math.Min(shading.AlphaLeft, left);
-            shading.AlphaBottom = Math.Min(shading.AlphaBottom, top);
-            shading.AlphaRight = Math.Max(shading.AlphaRight, right);
-            shading.AlphaTop = Math.Max(shading.AlphaTop, bottom);
-            return;
-        }
     }
 
     /// <summary>Preserves stop alpha with a native luminosity mask, retaining vector shading.</summary>
@@ -68,7 +73,15 @@ internal static partial class PdfWriter {
             F(shading.AlphaRight) + " " + F(shading.AlphaTop) + "]" +
             " /Group << /S /Transparency /CS /DeviceGray /I true >>" +
             " /Resources << /Shading << /A " + maskShadingId + " 0 R >> >>";
-        int maskFormId = AddFlateStreamObject(objects, Encoding.ASCII.GetBytes("/A sh\n"), entries);
+        var maskContent = new StringBuilder();
+        var content = new ContentStreamBuilder(maskContent);
+        if (shading.OutsideColor is OfficeColor outside) {
+            content.FillGray(outside.A / 255D)
+                .Rectangle(shading.AlphaLeft, shading.AlphaBottom, shading.AlphaRight - shading.AlphaLeft, shading.AlphaTop - shading.AlphaBottom)
+                .FillPath();
+        }
+        content.Shading("A");
+        int maskFormId = AddFlateStreamObject(objects, Encoding.ASCII.GetBytes(maskContent.ToString()), entries);
         int stateId = AddObject(objects, "<< /Type /ExtGState /SMask << /S /Luminosity /G " + maskFormId + " 0 R /BC [0] >> >>\n");
         graphicsStates.Add(("/" + GradientAlphaStateName(shading.Name), stateId));
     }

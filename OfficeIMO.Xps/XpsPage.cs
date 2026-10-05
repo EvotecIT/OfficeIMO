@@ -94,11 +94,11 @@ public sealed partial class XpsPage {
     public XpsSvgResult ToSvg(bool allowPartial = false, CancellationToken cancellationToken = default) => new XpsSvgConverter(this, cancellationToken).Convert(allowPartial);
     /// <summary>Converts through the shared SVG reader. Any SVG import loss fails rather than silently disappearing.</summary>
     public OfficeDrawing ToDrawing(CancellationToken cancellationToken = default) {
-        return ImportDrawing(ToSvg(false, cancellationToken), cancellationToken);
+        return ImportDrawing(new XpsSvgConverter(this, cancellationToken, nativeDrawing: true).Convert(false), cancellationToken);
     }
     internal static OfficeDrawing ImportDrawing(XpsSvgResult svg, CancellationToken cancellationToken) => ImportDrawing(svg.Svg, cancellationToken);
     internal static OfficeDrawing ImportDrawing(string svg, CancellationToken cancellationToken, bool retainSourceElementIds = false) {
-        if (!OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken, RetainSourceElementIds = retainSourceElementIds, MaximumGeometryCommands = 1000000, MaximumElements = 100000 }, out var drawing, out int unsupported) || drawing == null || unsupported != 0)
+        if (!OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken, RetainSourceElementIds = retainSourceElementIds, UseFirstRadialIntersection = true, MaximumGeometryCommands = 1000000, MaximumElements = 100000 }, out var drawing, out int unsupported) || drawing == null || unsupported != 0)
             throw new NotSupportedException("The shared drawing importer cannot represent this XPS page without loss. Use ToSvg for the native vector projection.");
         return drawing;
     }

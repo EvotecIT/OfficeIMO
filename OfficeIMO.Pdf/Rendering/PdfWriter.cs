@@ -580,6 +580,7 @@ internal static partial class PdfWriter {
                 }
             }
 
+            var xobjects = new List<(string Name, int Id)>();
             var shadings = new List<(string Name, int Id)>();
             if (page.Shadings.Count > 0) {
                 PdfPrintColorTransform? shadingColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
@@ -606,6 +607,7 @@ internal static partial class PdfWriter {
                     int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);
+                    AddRadialPadResources(objects, shading, shadingId, xobjects, shadingColorTransform, cancellationToken);
                 }
             }
 
@@ -621,7 +623,6 @@ internal static partial class PdfWriter {
                 AssignFigureMarkedContentIds(page);
             }
 
-            var xobjects = new List<(string Name, int Id)>();
             if (page.Images.Count > 0) {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {

@@ -6,6 +6,8 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeSvgDrawingReaderOptions {
     /// <summary>Retains source identifiers as paint-neutral metadata for owned format adapters.</summary>
     internal bool RetainSourceElementIds { get; set; }
+    /// <summary>Uses the first containing ellipse for native point-focus radial Pad fields.</summary>
+    internal bool UseFirstRadialIntersection { get; set; }
     /// <summary>Cancellation observed during SVG import and managed filter processing.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 

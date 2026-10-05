@@ -75,11 +75,13 @@ public static partial class OfficeSvgDrawingReader {
 
     private sealed class SvgPaintServerRegistry {
         private readonly SvgDefinitionRegistry _definitions;
+        private readonly bool _useFirstRadialIntersection;
         private readonly Dictionary<string, SvgGradientDefinition> _resolved = new(StringComparer.Ordinal);
         private readonly HashSet<string> _invalid = new(StringComparer.Ordinal);
 
-        internal SvgPaintServerRegistry(SvgDefinitionRegistry definitions) {
+        internal SvgPaintServerRegistry(SvgDefinitionRegistry definitions, bool useFirstRadialIntersection = false) {
             _definitions = definitions;
+            _useFirstRadialIntersection = useFirstRadialIntersection;
         }
 
         internal bool TryResolve(string value, out SvgResolvedPaint paint) {
@@ -105,7 +107,7 @@ public static partial class OfficeSvgDrawingReader {
                 _resolved[id] = definition;
             }
             try {
-                if (definition!.UserSpaceOnUse || definition.GradientTransform != OfficeTransform.Identity || definition.SpreadMode != SvgGradientSpreadMode.Pad) {
+                if (definition!.UserSpaceOnUse || definition.GradientTransform != OfficeTransform.Identity || definition.SpreadMode != SvgGradientSpreadMode.Pad || definition.UseFirstRadialIntersection) {
                     paint = new SvgResolvedPaint(definition);
                 } else if (definition.Kind == SvgGradientKind.Linear) {
                     paint = new SvgResolvedPaint(OfficeLinearGradient.CreateImported(
@@ -201,6 +203,7 @@ public static partial class OfficeSvgDrawingReader {
                     || (focalX.Equals(centerX) && focalY.Equals(centerY) && focalRadius.Equals(radius))) return false;
                 if (!userSpaceOnUse && focalRadius.Value > radius.Value) return false;
                 definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform, spreadMode);
+                definition.UseFirstRadialIntersection = _useFirstRadialIntersection;
                 _resolved[id] = definition;
                 return true;
             } finally {
@@ -445,6 +448,7 @@ public static partial class OfficeSvgDrawingReader {
         internal bool UserSpaceOnUse { get; private set; }
         internal OfficeTransform GradientTransform { get; private set; }
         internal SvgGradientSpreadMode SpreadMode { get; private set; }
+        internal bool UseFirstRadialIntersection { get; set; }
         internal IReadOnlyList<OfficeGradientStop> Stops { get; private set; } = Array.Empty<OfficeGradientStop>();
 
         internal static SvgGradientDefinition Linear(
@@ -513,6 +517,9 @@ public static partial class OfficeSvgDrawingReader {
                 } else {
                     radial = new OfficeRadialGradient(first.X, first.Y, radius1, second.X, second.Y, radius2, Stops)
                         .TransformCoordinates(radialCoordinates);
+                }
+                if (UseFirstRadialIntersection && SpreadMode == SvgGradientSpreadMode.Pad && radial.StartRadiusX == 0D) {
+                    radial = radial.WithFirstPadIntersection();
                 }
                 return TryCreateRadialSpread(radial, shape, out radial);
             } catch (ArgumentException) {

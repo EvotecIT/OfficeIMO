@@ -42,7 +42,10 @@ internal static partial class PdfPageContentVisualParser {
                 return;
             }
 
-            if (transform.B != 0D || transform.C != 0D) {
+            // Shrinking circles with a point end cannot use the ellipse constructor,
+            // whose end radii must be positive. Retain their full affine circle field
+            // rather than substituting the larger axis as a circular radius.
+            if (transform.B != 0D || transform.C != 0D || shading.R1 == 0D && shading.R0 > 0D) {
                 var coordinates = new OfficeTransform(transform.A, transform.B, transform.C, transform.D, transform.E, transform.F)
                     .Then(new OfficeTransform(1D / paintWidth, 0D, 0D, -1D / paintHeight, -x / paintWidth, (pageHeight - y) / paintHeight));
                 try {

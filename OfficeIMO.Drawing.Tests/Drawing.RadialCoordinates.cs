@@ -44,4 +44,31 @@ public sealed class DrawingRadialCoordinatesTests {
         Assert.Equal(OfficeTransform.Identity, original.CoordinateTransform);
         Assert.Throws<ArgumentException>(() => original.TransformCoordinates(OfficeTransform.Scale(0, 1)));
     }
+
+    [Fact]
+    public void NativePadEndpointPaintTracksStopAlphaThroughCloneAndOpacity() {
+        var field = new OfficeRadialGradient(1, .5, 0, 0, .5, .5, .3, .2,
+            new[] { new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue) })
+            .WithFirstPadIntersection().Clone().WithStops(new[] {
+                new OfficeGradientStop(0, OfficeColor.FromRgba(0, 0, 255, 64)),
+                new OfficeGradientStop(1, OfficeColor.FromRgba(255, 0, 0, 128)) });
+        Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 64), field.OutsideColor);
+        var shape = OfficeShape.Rectangle(100, 100);
+        shape.FillRadialGradient = field; shape.FillOpacity = .5; shape.StrokeWidth = 0;
+        var image = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(100, 100).AddShape(shape, 0, 0), background: OfficeColor.White);
+        Assert.InRange(image.GetPixel(95, 5).R, 221, 225); Assert.Equal(255, image.GetPixel(95, 5).B);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SvgRejectsNativeEndpointFieldsInFillAndStroke(bool stroke) {
+        var field = new OfficeRadialGradient(1, .5, 0, .5, .5, .3,
+            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue)).WithFirstPadIntersection();
+        var shape = OfficeShape.Rectangle(100, 100);
+        if (stroke) shape.StrokeRadialGradient = field;
+        else shape.FillRadialGradient = field;
+        var drawing = new OfficeDrawing(100, 100).AddShape(shape, 0, 0);
+        Assert.Throws<NotSupportedException>(() => OfficeDrawingSvgExporter.ToSvg(drawing));
+    }
 }

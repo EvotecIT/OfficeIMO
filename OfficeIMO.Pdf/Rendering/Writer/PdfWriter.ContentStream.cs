@@ -44,6 +44,11 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder FillGray(double gray) {
+        _sb.Append(F(gray)).Append(" g\n");
+        return this;
+    }
+
     public ContentStreamBuilder StrokeColor(PdfColor color) {
         _sb.Append(F(color.R)).Append(' ').Append(F(color.G)).Append(' ').Append(F(color.B)).Append(" RG\n");
         return this;
