@@ -46,8 +46,9 @@ public partial class WordRtfConverterTests {
             Assert.Equal(last, roundTrip.Sections[2].BreakType);
             Assert.Equal(new[] { "First", "Second", "Third" },
                 roundTrip.Sections.Select(section => string.Concat(section.Paragraphs.Select(paragraph => paragraph.Text))));
-            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator()
-                .Validate(roundTrip._wordprocessingDocument).Select(error => error.Description));
+            var errors = new DocumentFormat.OpenXml.Validation.OpenXmlValidator()
+                .Validate(roundTrip._wordprocessingDocument).Select(error => error.Description).ToArray();
+            Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors));
         }
     }
 }

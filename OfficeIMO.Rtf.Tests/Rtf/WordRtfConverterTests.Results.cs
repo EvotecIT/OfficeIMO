@@ -115,6 +115,8 @@ public partial class WordRtfConverterTests {
 
         RtfConversionResult<WordDocument> toWord = rtf.ToWordDocumentResult();
         using WordDocument word = toWord.Value;
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator()
+            .Validate(word._wordprocessingDocument).Select(error => error.Description));
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
         Assert.Equal("RtfP7", wordParagraph.StyleId);
         Assert.True(wordParagraph.IsListItem);
@@ -130,9 +132,14 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal("RtfP7", mappedParagraphStyle.Name);
         Assert.Equal("RtfC8", mappedCharacterStyle.Name);
+        Assert.Equal(120, mappedParagraphStyle.SpaceAfterTwips);
+        Assert.Null(mappedParagraphStyle.SpaceBeforeTwips);
+        Assert.Null(mappedParagraphStyle.LineSpacingTwips);
         Assert.Equal(20, roundTripParagraph.ListId);
         Assert.Equal(10, roundTripParagraph.ListDefinitionId);
         Assert.Equal(3, Assert.Single(roundTrip.ListDefinitions, item => item.Id == 10).Levels[0].StartAt);
+        Assert.Equal(720, Assert.Single(roundTrip.ListDefinitions, item => item.Id == 10).Levels[0].LeftIndentTwips);
+        Assert.Null(Assert.Single(roundTrip.ListDefinitions, item => item.Id == 10).Levels[0].FirstLineIndentTwips);
         RtfListLevelOverride roundTripOverride = Assert.Single(Assert.Single(roundTrip.ListOverrides, item => item.Id == 20).LevelOverrides);
         Assert.Equal(7, roundTripOverride.StartAt);
         Assert.Equal(2, roundTripOverride.LevelIndex);
