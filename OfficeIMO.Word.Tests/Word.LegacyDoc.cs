@@ -4854,7 +4854,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(20, lcbPlcfSed);
                 Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed));
                 Assert.Equal(ccpText, BitConverter.ToInt32(tableStream, fcPlcfSed + 4));
-                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed + 10));
+                int defaultSectionOffset = BitConverter.ToInt32(tableStream, fcPlcfSed + 10);
+                Assert.InRange(defaultSectionOffset, 512, wordDocumentStream.Length - 2);
+                Assert.Equal(0, BitConverter.ToUInt16(wordDocumentStream, defaultSectionOffset));
                 Assert.Equal(ccpHdd - 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 8));
                 Assert.Equal(ccpHdd + 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 4));
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain ".Length, "bold ".Length, 0x0835, 1);

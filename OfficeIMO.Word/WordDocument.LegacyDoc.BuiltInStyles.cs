@@ -42,6 +42,24 @@ namespace OfficeIMO.Word {
         }
 
         private static void MergeLegacyDocBuiltInStyleParagraphFormatting(WordDocument document, Style style, LegacyDocParagraphFormat paragraphFormat) {
+            // Imported styles inherit absent controls from their own base style, not from our authoring templates.
+            if (style.StyleParagraphProperties is StyleParagraphProperties templateProperties) {
+                RemoveStyleProperties<KeepLines>(templateProperties);
+                RemoveStyleProperties<KeepNext>(templateProperties);
+                RemoveStyleProperties<PageBreakBefore>(templateProperties);
+                RemoveStyleProperties<WidowControl>(templateProperties);
+                RemoveStyleProperties<SuppressLineNumbers>(templateProperties);
+                RemoveStyleProperties<SuppressAutoHyphens>(templateProperties);
+                RemoveStyleProperties<ContextualSpacing>(templateProperties);
+                RemoveStyleProperties<MirrorIndents>(templateProperties);
+                RemoveStyleProperties<Kinsoku>(templateProperties);
+                RemoveStyleProperties<WordWrap>(templateProperties);
+                RemoveStyleProperties<OverflowPunctuation>(templateProperties);
+                RemoveStyleProperties<TopLinePunctuation>(templateProperties);
+                RemoveStyleProperties<AutoSpaceDE>(templateProperties);
+                RemoveStyleProperties<AutoSpaceDN>(templateProperties);
+                RemoveStyleProperties<BiDi>(templateProperties);
+            }
             if (!paragraphFormat.HasFormatting) {
                 return;
             }
@@ -96,64 +114,64 @@ namespace OfficeIMO.Word {
                 properties.Append(tabs);
             }
 
-            if (paragraphFormat.KeepLinesTogether == true) {
-                ReplaceStyleProperty(properties, new KeepLines());
+            if (paragraphFormat.KeepLinesTogether.HasValue) {
+                ReplaceStyleProperty(properties, new KeepLines { Val = paragraphFormat.KeepLinesTogether.Value });
             }
 
-            if (paragraphFormat.KeepWithNext == true) {
-                ReplaceStyleProperty(properties, new KeepNext());
+            if (paragraphFormat.KeepWithNext.HasValue) {
+                ReplaceStyleProperty(properties, new KeepNext { Val = paragraphFormat.KeepWithNext.Value });
             }
 
-            if (paragraphFormat.PageBreakBefore == true) {
-                ReplaceStyleProperty(properties, new PageBreakBefore());
+            if (paragraphFormat.PageBreakBefore.HasValue) {
+                ReplaceStyleProperty(properties, new PageBreakBefore { Val = paragraphFormat.PageBreakBefore.Value });
             }
 
-            if (paragraphFormat.AvoidWidowAndOrphan == true) {
-                ReplaceStyleProperty(properties, new WidowControl());
+            if (paragraphFormat.AvoidWidowAndOrphan.HasValue) {
+                ReplaceStyleProperty(properties, new WidowControl { Val = paragraphFormat.AvoidWidowAndOrphan.Value });
             }
 
-            if (paragraphFormat.SuppressLineNumbers == true) {
-                ReplaceStyleProperty(properties, new SuppressLineNumbers());
+            if (paragraphFormat.SuppressLineNumbers.HasValue) {
+                ReplaceStyleProperty(properties, new SuppressLineNumbers { Val = paragraphFormat.SuppressLineNumbers.Value });
             }
 
-            if (paragraphFormat.SuppressAutoHyphens == true) {
-                ReplaceStyleProperty(properties, new SuppressAutoHyphens());
+            if (paragraphFormat.SuppressAutoHyphens.HasValue) {
+                ReplaceStyleProperty(properties, new SuppressAutoHyphens { Val = paragraphFormat.SuppressAutoHyphens.Value });
             }
 
-            if (paragraphFormat.ContextualSpacing == true) {
-                ReplaceStyleProperty(properties, new ContextualSpacing());
+            if (paragraphFormat.ContextualSpacing.HasValue) {
+                ReplaceStyleProperty(properties, new ContextualSpacing { Val = paragraphFormat.ContextualSpacing.Value });
             }
 
-            if (paragraphFormat.MirrorIndents == true) {
-                ReplaceStyleProperty(properties, new MirrorIndents());
+            if (paragraphFormat.MirrorIndents.HasValue) {
+                ReplaceStyleProperty(properties, new MirrorIndents { Val = paragraphFormat.MirrorIndents.Value });
             }
 
-            if (paragraphFormat.Kinsoku == true) {
-                ReplaceStyleProperty(properties, new Kinsoku());
+            if (paragraphFormat.Kinsoku.HasValue) {
+                ReplaceStyleProperty(properties, new Kinsoku { Val = paragraphFormat.Kinsoku.Value });
             }
 
-            if (paragraphFormat.WordWrap == true) {
-                ReplaceStyleProperty(properties, new WordWrap());
+            if (paragraphFormat.WordWrap.HasValue) {
+                ReplaceStyleProperty(properties, new WordWrap { Val = paragraphFormat.WordWrap.Value });
             }
 
-            if (paragraphFormat.OverflowPunctuation == true) {
-                ReplaceStyleProperty(properties, new OverflowPunctuation());
+            if (paragraphFormat.OverflowPunctuation.HasValue) {
+                ReplaceStyleProperty(properties, new OverflowPunctuation { Val = paragraphFormat.OverflowPunctuation.Value });
             }
 
-            if (paragraphFormat.TopLinePunctuation == true) {
-                ReplaceStyleProperty(properties, new TopLinePunctuation());
+            if (paragraphFormat.TopLinePunctuation.HasValue) {
+                ReplaceStyleProperty(properties, new TopLinePunctuation { Val = paragraphFormat.TopLinePunctuation.Value });
             }
 
-            if (paragraphFormat.AutoSpaceDE == true) {
-                ReplaceStyleProperty(properties, new AutoSpaceDE());
+            if (paragraphFormat.AutoSpaceDE.HasValue) {
+                ReplaceStyleProperty(properties, new AutoSpaceDE { Val = paragraphFormat.AutoSpaceDE.Value });
             }
 
-            if (paragraphFormat.AutoSpaceDN == true) {
-                ReplaceStyleProperty(properties, new AutoSpaceDN());
+            if (paragraphFormat.AutoSpaceDN.HasValue) {
+                ReplaceStyleProperty(properties, new AutoSpaceDN { Val = paragraphFormat.AutoSpaceDN.Value });
             }
 
-            if (paragraphFormat.Bidirectional == true) {
-                ReplaceStyleProperty(properties, new BiDi());
+            if (paragraphFormat.Bidirectional.HasValue) {
+                ReplaceStyleProperty(properties, new BiDi { Val = paragraphFormat.Bidirectional.Value });
             }
 
             if (paragraphFormat.VerticalCharacterAlignment != null && TryMapVerticalCharacterAlignment(paragraphFormat.VerticalCharacterAlignment.Value, out VerticalTextAlignmentValues verticalCharacterAlignment)) {

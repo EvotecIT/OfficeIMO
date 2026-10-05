@@ -94,7 +94,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             VerticalCharacterAlignment = verticalCharacterAlignment.HasValue && verticalCharacterAlignment.Value <= 4
                 ? verticalCharacterAlignment
                 : null;
-            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 8
+            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 9
                 ? outlineLevel
                 : null;
             IsInTable = isInTable;
