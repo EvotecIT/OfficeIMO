@@ -1,25 +1,12 @@
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
-    private const string GridDeclarationSentinelPrefix = "-officeimo-internal-grid-declaration-";
-    private static readonly HashSet<string> GridDeclarationNames = new(StringComparer.Ordinal) {
-        "grid-column", "grid-row", "grid-area", "grid-column-start", "grid-column-end", "grid-row-start", "grid-row-end",
-        "grid-template-columns", "grid-template-rows", "grid-template-areas"
-    };
-
     private static readonly string[] GridColumnLonghands = { "grid-column-start", "grid-column-end" };
     private static readonly string[] GridRowLonghands = { "grid-row-start", "grid-row-end" };
     private static readonly string[] GridAreaLonghands = { "grid-row-start", "grid-column-start", "grid-row-end", "grid-column-end" };
 
-    private static string[]? GetGridShorthandLonghands(string propertyName) => propertyName.ToLowerInvariant() switch {
-        "grid-column" => GridColumnLonghands,
-        "grid-row" => GridRowLonghands,
-        "grid-area" => GridAreaLonghands,
-        _ => null
-    };
-
     private static bool TryExpandGridShorthand(string propertyName, string value, out IReadOnlyList<KeyValuePair<string, string>> longhands) {
-        string[] names = GetGridShorthandLonghands(propertyName)!;
+        string[] names = GetDeferredLayoutShorthandLonghands(propertyName)!;
         if (IsCssWideKeyword(value.Trim())) {
             longhands = names.Select(name => new KeyValuePair<string, string>(name, value)).ToArray();
             return true;
@@ -38,32 +25,6 @@ public static partial class HtmlComputedStyleEngine {
         }
         longhands = names.Select((name, index) => new KeyValuePair<string, string>(name, values[index])).ToArray();
         return true;
-    }
-
-    private static void ResolveDeferredGridLonghands(Dictionary<string, string> properties, IReadOnlyDictionary<string, string> deferred,
-        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset,
-        bool enforceResolutionLimits) {
-        foreach (KeyValuePair<string, string> pending in deferred) {
-            string value = "unset";
-            if (HtmlCssCustomPropertyResolver.TryResolve(properties[pending.Key],
-                    customName => properties.TryGetValue(customName, out string? local) ? local
-                        : parentProperties != null && parentProperties.TryGetValue(customName, out string? parent) ? parent : null,
-                    out string shorthand, enforceResolutionLimits)
-                && TryExpandGridShorthand(pending.Value, shorthand, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
-                value = longhands.First(item => item.Key == pending.Key).Value;
-            }
-            // Invalid substitution still occupies the shorthand's cascade position.
-            CssKeywordResolution resolved = ResolveCssWideKeyword(pending.Key, value, parentProperties);
-            if (resolved.HasValue) {
-                properties[pending.Key] = resolved.Value;
-                reset.Remove(pending.Key);
-                if (resolved.InheritsComputedValue) inherited.Add(pending.Key); else inherited.Remove(pending.Key);
-            } else {
-                properties.Remove(pending.Key);
-                inherited.Remove(pending.Key);
-                reset.Add(pending.Key);
-            }
-        }
     }
 
     private static bool IsGridCustomIdentifier(string value) {

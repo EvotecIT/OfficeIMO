@@ -399,6 +399,11 @@ public static partial class HtmlComputedStyleEngine {
         }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "gap":
+                return TryExpandGapShorthand(value, out _);
+            case "row-gap":
+            case "column-gap":
+                return IsGapComponentSyntax(value);
             case "grid-template-columns":
             case "grid-template-rows":
             case "grid-template-areas":
@@ -570,7 +575,7 @@ public static partial class HtmlComputedStyleEngine {
         bool enforceResolutionLimits = true) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
-        var deferredGrid = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
+        var deferredLayout = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
@@ -590,7 +595,7 @@ public static partial class HtmlComputedStyleEngine {
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
                 if (effective.IsDeferredFontShorthand) deferredFonts.Add(pair.Key);
-                if (effective.DeferredGridShorthand != null) deferredGrid[pair.Key] = effective.DeferredGridShorthand;
+                if (effective.DeferredLayoutShorthand != null) deferredLayout[pair.Key] = effective.DeferredLayoutShorthand;
                 priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
@@ -621,7 +626,7 @@ public static partial class HtmlComputedStyleEngine {
         }
         ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations, enforceResolutionLimits);
         ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, enforceResolutionLimits);
-        ResolveDeferredGridLonghands(raw, deferredGrid, parentProperties, inherited, reset, enforceResolutionLimits);
+        ResolveDeferredLayoutLonghands(raw, deferredLayout, parentProperties, inherited, reset, enforceResolutionLimits);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));

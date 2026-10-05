@@ -152,8 +152,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.ExplicitWidth.HasValue) return ResolveColumnFlexOuterWidth(style, contentWidth);
         if (tag == "table") return contentWidth;
         double boxBasis;
-        string content = CollapseFlexText(item.TextContent);
-        double measured = content.Length == 0 ? 1D : MeasureInlineText(ApplyTextTransform(content, style), style);
+        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, contentWidth);
+        double measured = runs.Count == 0 ? 1D : MeasureMaxContentRuns(runs);
         boxBasis = measured + style.HorizontalInsets;
 
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));

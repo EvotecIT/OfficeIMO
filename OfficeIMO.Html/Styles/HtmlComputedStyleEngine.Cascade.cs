@@ -30,7 +30,7 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null, bool deferredFontShorthand = false, bool enforceResolutionLimits = true, string? deferredGridShorthand = null) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, bool valueAlreadyValidated = false, int declarationOrder = 0, IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null, bool deferredFontShorthand = false, bool enforceResolutionLimits = true, string? deferredLayoutShorthand = null) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -44,13 +44,13 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
-        string[]? gridLonghands = GetGridShorthandLonghands(name);
-        if (gridLonghands != null && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
-            foreach (string longhand in gridLonghands) {
+        string[]? layoutLonghands = GetDeferredLayoutShorthandLonghands(name);
+        if (layoutLonghands != null && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            foreach (string longhand in layoutLonghands) {
                 ApplyDeclaration(properties, parentProperties, longhand, value, isImportant, specificity, order, layerOrder,
                     valueAlreadyValidated: true, declarationOrder: declarationOrder,
                     customPropertyRegistrations: customPropertyRegistrations, enforceResolutionLimits: enforceResolutionLimits,
-                    deferredGridShorthand: name.ToLowerInvariant());
+                    deferredLayoutShorthand: name.ToLowerInvariant());
             }
         }
 
@@ -119,11 +119,11 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder, declarationOrder)) {
-            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder, deferredFontShorthand: deferredFontShorthand, deferredGridShorthand: deferredGridShorthand));
+            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder, deferredFontShorthand: deferredFontShorthand, deferredLayoutShorthand: deferredLayoutShorthand));
             return;
         }
 
-        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand, deferredGridShorthand);
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand, deferredLayoutShorthand);
     }
 
     private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {

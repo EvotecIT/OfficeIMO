@@ -201,8 +201,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (tag == "table") return availableWidth;
-        string content = CollapseFlexText(item.TextContent);
-        double measured = content.Length == 0 ? 0D : MeasureInlineText(ApplyTextTransform(content, style), style);
+        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, availableWidth);
+        double measured = runs.Count == 0 ? 0D : MeasureMaxContentRuns(runs);
         return Math.Min(availableWidth, measured + style.HorizontalInsets);
     }
 

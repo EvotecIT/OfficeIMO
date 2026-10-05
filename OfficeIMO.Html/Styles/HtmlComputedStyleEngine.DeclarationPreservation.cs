@@ -4,7 +4,7 @@ public static partial class HtmlComputedStyleEngine {
     private static string RestoreManagedDeclarationName(string name) {
         string? prefix = name.StartsWith(FontDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase)
             ? FontDeclarationSentinelPrefix
-            : name.StartsWith(GridDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? GridDeclarationSentinelPrefix : null;
+            : name.StartsWith(LayoutDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? LayoutDeclarationSentinelPrefix : null;
         if (prefix == null) return name;
         string suffix = name.Substring(prefix.Length);
         int separator = suffix.IndexOf('-');
@@ -12,7 +12,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     // Keep authored order and values where parser expansion loses font syntax,
-    // subgrid tracks, or the distinction between row/column and area shorthands.
+    // subgrid tracks, row/column gap order, or grid placement shorthands.
     private static string PreserveManagedDeclarations(string css) {
         var result = new System.Text.StringBuilder(css.Length);
         int copied = 0;
@@ -35,7 +35,7 @@ public static partial class HtmlComputedStyleEngine {
             if (!HtmlCssIdentifierParser.TryRead(css, ref endName, out string name)) continue;
             name = name.ToLowerInvariant();
             string? prefix = name == "font" || FontShorthandLonghands.Contains(name)
-                ? FontDeclarationSentinelPrefix : GridDeclarationNames.Contains(name) ? GridDeclarationSentinelPrefix : null;
+                ? FontDeclarationSentinelPrefix : LayoutDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix : null;
             if (prefix == null) continue;
             int colon = SkipCssWhitespaceAndCommentsForward(css, endName);
             if (colon >= css.Length || css[colon] != ':') continue;

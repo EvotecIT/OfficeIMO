@@ -15,7 +15,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private sealed class CascadedProperty {
-        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null, bool inheritsComputedValue = false, int declarationOrder = 0, bool deferredFontShorthand = false, string? deferredGridShorthand = null) {
+        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null, bool inheritsComputedValue = false, int declarationOrder = 0, bool deferredFontShorthand = false, string? deferredLayoutShorthand = null) {
             Value = value;
             HasValue = true;
             IsImportant = isImportant;
@@ -26,7 +26,7 @@ public static partial class HtmlComputedStyleEngine {
             Alternatives = MaterializeAlternatives(alternatives);
             InheritsComputedValue = inheritsComputedValue;
             IsDeferredFontShorthand = deferredFontShorthand;
-            DeferredGridShorthand = deferredGridShorthand;
+            DeferredLayoutShorthand = deferredLayoutShorthand;
         }
 
         private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, bool revertsLayer, int declarationOrder) {
@@ -60,14 +60,14 @@ public static partial class HtmlComputedStyleEngine {
         internal bool RevertsLayer { get; }
         internal bool InheritsComputedValue { get; }
         internal bool IsDeferredFontShorthand { get; }
-        internal string? DeferredGridShorthand { get; }
+        internal string? DeferredLayoutShorthand { get; }
 
         internal CascadedProperty WithAlternative(CascadedProperty alternative) {
             var alternatives = new List<CascadedProperty>(Alternatives) { alternative };
             return RevertsLayer
                 ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder)
                 : HasValue
-                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue, DeclarationOrder, IsDeferredFontShorthand, DeferredGridShorthand)
+                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue, DeclarationOrder, IsDeferredFontShorthand, DeferredLayoutShorthand)
                     : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder);
         }
 
