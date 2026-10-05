@@ -37,9 +37,9 @@ namespace OfficeIMO.Internal {
         private const uint UnixDirectoryType = 0x4000;
 
         private static FileStream OpenUnixRegularFileForRead(string path, int bufferSize) {
-            int nonBlocking = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x0004 : 0x0800;
-            int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
-            int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
+            int nonBlocking = IsDarwinFileSystem ? 0x0004 : 0x0800;
+            int closeOnExec = IsDarwinFileSystem ? 0x01000000 : 0x00080000;
+            int noFollow = IsDarwinFileSystem ? 0x00000100 : 0x00020000;
             int descriptor = LinuxOpen(path, nonBlocking | closeOnExec | noFollow);
             if (descriptor < 0) throw UnixIdentityError(path);
 
@@ -56,9 +56,9 @@ namespace OfficeIMO.Internal {
         }
 
         private static SafeFileHandle OpenUnixDirectoryForIdentity(string path) {
-            int directory = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00100000 : 0x00010000;
-            int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
-            int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
+            int directory = IsDarwinFileSystem ? 0x00100000 : 0x00010000;
+            int closeOnExec = IsDarwinFileSystem ? 0x01000000 : 0x00080000;
+            int noFollow = IsDarwinFileSystem ? 0x00000100 : 0x00020000;
             int descriptor = LinuxOpen(path, directory | closeOnExec | noFollow);
             if (descriptor < 0) throw UnixIdentityError(path);
 
@@ -88,7 +88,10 @@ namespace OfficeIMO.Internal {
                 }
                 return resolved;
             }
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            // iOS has no public libproc descriptor-path API. Callers validate the
+            // resolved path against the opened inode instead, as on Linux without /proc.
+            if (IsIosFileSystem) return null;
+            if (IsDarwinFileSystem) {
                 const int vnodePathInfoSize = 1200;
                 const int pathOffset = 176;
                 const int maximumPathBytes = 1024;
@@ -113,17 +116,23 @@ namespace OfficeIMO.Internal {
             throw new PlatformNotSupportedException("Opened-file path resolution is not supported on this platform.");
         }
 
-        private static string ResolveUnixExistingPath(string path) {
+        private static bool TryResolveUnixExistingPath(string path, out string resolvedPath) {
             IntPtr pointer = IntPtr.Zero;
             try {
                 pointer = RealPath(path, IntPtr.Zero);
                 if (pointer == IntPtr.Zero) {
+                    int error = Marshal.GetLastWin32Error();
+                    if (IsConfirmedMissing(error)) {
+                        resolvedPath = string.Empty;
+                        return false;
+                    }
                     throw new IOException("Unable to resolve physical path '" + path + "' (OS error " +
-                        Marshal.GetLastWin32Error() + ").");
+                        error + ").");
                 }
                 string? value = Marshal.PtrToStringAnsi(pointer);
                 if (string.IsNullOrEmpty(value)) throw new IOException("The resolved physical path was empty.");
-                return value!;
+                resolvedPath = value!;
+                return true;
             } catch (DllNotFoundException exception) {
                 throw new PlatformNotSupportedException("The Unix runtime does not expose realpath.", exception);
             } catch (EntryPointNotFoundException exception) {
@@ -135,14 +144,14 @@ namespace OfficeIMO.Internal {
 
         private static bool TryGetUnixMetadata(string path, out OfficeFileMetadata metadata) {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return TryGetLinuxMetadata(path, out metadata);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return TryGetMacMetadata(path, out metadata);
+            if (IsDarwinFileSystem) return TryGetMacMetadata(path, out metadata);
             throw new PlatformNotSupportedException("Unix file identity is not supported on this platform.");
         }
 
         private static OfficeFileMetadata GetUnixMetadata(SafeFileHandle handle) {
             int descriptor = checked((int)handle.DangerousGetHandle().ToInt64());
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return GetLinuxMetadata(descriptor);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return GetMacMetadata(descriptor);
+            if (IsDarwinFileSystem) return GetMacMetadata(descriptor);
             throw new PlatformNotSupportedException("Unix file identity is not supported on this platform.");
         }
 
@@ -272,7 +281,7 @@ namespace OfficeIMO.Internal {
                     ? MacStatInode64(path, buffer)
                     : RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                         ? MacStat(path, buffer)
-                        : throw new PlatformNotSupportedException("macOS file identity supports x64 and ARM64.");
+                        : throw new PlatformNotSupportedException("Darwin file identity supports x64 and ARM64.");
                 if (result == 0) {
                     metadata = ReadMacMetadata(buffer);
                     return true;
@@ -296,7 +305,7 @@ namespace OfficeIMO.Internal {
                     ? MacFStatInode64(descriptor, buffer)
                     : RuntimeInformation.ProcessArchitecture == Architecture.Arm64
                         ? MacFStat(descriptor, buffer)
-                        : throw new PlatformNotSupportedException("macOS file identity supports x64 and ARM64.");
+                        : throw new PlatformNotSupportedException("Darwin file identity supports x64 and ARM64.");
                 if (result != 0) throw UnixIdentityError("open descriptor");
                 return ReadMacMetadata(buffer);
             } finally {
@@ -316,7 +325,7 @@ namespace OfficeIMO.Internal {
 
         private static bool TryGetUnixDirectoryCaseInsensitive(string directory, out bool caseInsensitive) {
             caseInsensitive = true;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            if (IsDarwinFileSystem) {
                 long result = MacPathConf(directory, MacPathConfCaseSensitive);
                 if (result == 0 || result == 1) {
                     caseInsensitive = result == 0;

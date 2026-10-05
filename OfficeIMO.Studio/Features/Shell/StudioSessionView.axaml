@@ -2,7 +2,7 @@
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              x:Class="OfficeIMO.Studio.Features.Shell.StudioSessionView" x:DataType="shell:StudioSessionController"
-             IsVisible="{Binding HasPending}">
+             IsVisible="{Binding HasPending, FallbackValue=False}">
   <UserControl.Styles>
     <Style Selector="Border.statusChip">
       <Setter Property="CornerRadius" Value="99" />

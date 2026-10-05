@@ -1,0 +1,26 @@
+<infra:StudioDialogContent xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
+    xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+    xmlns:input="using:Avalonia.Input.TextInput"
+    x:Class="OfficeIMO.Studio.Features.Reader.PageNavigationDialogContent"
+    Title="{loc:Loc Reader.GoToPage}" Width="360" Height="280" HasContentHeading="True"
+    Background="{DynamicResource StudioPanelBrush}">
+  <StackPanel Margin="20" Spacing="14">
+    <TextBlock Text="{loc:Loc Reader.GoToPage}" FontSize="20" FontWeight="SemiBold"/>
+    <TextBlock x:Name="PageRange" TextWrapping="Wrap" Foreground="{DynamicResource StudioMutedTextBrush}"/>
+    <TextBox x:Name="PageInput" MinHeight="44" FontSize="18" MaxLength="20"
+             input:TextInputOptions.ContentType="Digits" input:TextInputOptions.ReturnKeyType="Go"
+             AutomationProperties.Name="{loc:Loc Shell.PageNumber}" TextChanged="OnPageTextChanged" KeyDown="OnPageKeyDown"/>
+    <Border MinHeight="34">
+      <TextBlock x:Name="ValidationMessage" IsVisible="False" TextWrapping="Wrap"
+                 Foreground="{DynamicResource StudioErrorBrush}" AutomationProperties.LiveSetting="Polite"/>
+    </Border>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+      <Button x:Name="CancelButton" Classes="tool" Content="{loc:Loc Common.Cancel}" MinHeight="44"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnCancel"/>
+      <Button x:Name="GoButton" Grid.Column="1" Classes="primary" Content="{loc:Loc Reader.Go}" MinHeight="44"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnGo"/>
+    </Grid>
+  </StackPanel>
+</infra:StudioDialogContent>

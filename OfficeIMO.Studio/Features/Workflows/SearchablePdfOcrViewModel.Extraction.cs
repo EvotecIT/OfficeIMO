@@ -16,7 +16,7 @@ public sealed partial class SearchablePdfOcrViewModel {
     private string _extractedText = string.Empty;
 
     public bool HasExtractedText => !string.IsNullOrEmpty(ExtractedText);
-    private bool CanExtractText => !_disposed && !IsBusy && !Scan.IsBusy && !string.IsNullOrWhiteSpace(InputPath)
+    private bool CanExtractText => TextRecognitionAvailable && !_disposed && !IsBusy && !Scan.IsBusy && !string.IsNullOrWhiteSpace(InputPath)
         && Languages.Any(choice => choice.IsSelected);
 
     [RelayCommand(CanExecute = nameof(CanExtractText))]

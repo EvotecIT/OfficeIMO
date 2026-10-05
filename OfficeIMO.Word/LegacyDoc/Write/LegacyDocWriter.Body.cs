@@ -93,11 +93,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     .Select((author, index) => new { author, index })
                     .ToDictionary(item => item.author, item => item.index, StringComparer.Ordinal);
                 SttbfRMark = CreateRevisionAuthorTable(RevisionAuthors);
+                FieldTables = new LegacyDocWritableFieldTables(Text, FormattedRuns, HeaderFooterText, HeaderFooterFormattedRuns,
+                    FootnoteText, FootnoteFormattedRuns, CommentText, CommentFormattedRuns, EndnoteText, EndnoteFormattedRuns);
                 ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
             }
 
             internal string Text { get; }
+
+            internal LegacyDocWritableFieldTables FieldTables { get; }
+
+            internal int FieldTablesOffsetInTableStream => AfterEndnoteDataOffsetInTableStream;
+
+            private int AfterFieldTablesOffsetInTableStream => FieldTablesOffsetInTableStream + FieldTables.Length;
 
             internal string HeaderFooterText { get; }
 
@@ -272,9 +280,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterEndnoteDataOffsetInTableStream => AfterCommentDataOffsetInTableStream + (HasEndnotes ? PlcfendRef.Length + PlcfendTxt.Length : 0);
 
-            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterEndnoteDataOffsetInTableStream) : AfterEndnoteDataOffsetInTableStream;
+            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterFieldTablesOffsetInTableStream) : AfterFieldTablesOffsetInTableStream;
 
-            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterEndnoteDataOffsetInTableStream;
+            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterFieldTablesOffsetInTableStream;
 
             internal int SttbfBkmkOffsetInTableStream => HasBookmarks ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
 

@@ -33,7 +33,8 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Undo", "Undo", "Undo the last document edit.", "Edit", document.UndoCommand,
             () => Loaded() ?? (!document.CanUndo ? Text("NoUndo", "There is no edit to undo.") : null), shortcut: modifier + "Z");
         Add("Redo", "Redo", "Restore the last undone edit.", "Edit", document.RedoCommand,
-            () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null), shortcut: StudioShortcutLabels.Format("Ctrl+Shift+Z"));
+            () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null),
+            shortcut: OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() ? StudioShortcutLabels.Format("Ctrl+Shift+Z") : "Ctrl+Y");
         Add("Read", "Read document", "Return to the document reading workspace.", "Read", document.ShowViewModeCommand, Loaded, workspace: true);
         Add("FocusReading", "Focus reading", "Hide document tools and panes, or restore the workspace.", "Read", document.ToggleFocusReadingCommand, Loaded, shortcut: "F9");
         Add("Comment", "Comment and review", "Add annotations and review existing comments.", "Review", document.ShowAnnotateModeCommand, Loaded, true, workspace: true);
@@ -58,6 +59,12 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("InsertBlankPage", "Insert a blank page", "Add an empty page after the current page.", "Organize", document.InsertBlankCommand,
             () => Allowed(document.CanMutatePages));
         Add("Forms", "Fill and edit forms", "Fill fields or author supported AcroForm controls.", "Edit", document.ShowFormsModeCommand, Loaded, true, workspace: true);
+        Add("PreviousFormField", "Previous form field", "Select the previous field and show its page, keeping unapplied values.", "Edit", document.SelectPreviousFormFieldCommand,
+            () => Loaded() ?? (!document.HasFormFields ? Text("NoFormFields", "This document has no named form fields.") :
+                !document.CanSelectPreviousFormField ? Text("FirstFormField", "The first form field is selected.") : null), workspace: true);
+        Add("NextFormField", "Next form field", "Select the next field and show its page, keeping unapplied values.", "Edit", document.SelectNextFormFieldCommand,
+            () => Loaded() ?? (!document.HasFormFields ? Text("NoFormFields", "This document has no named form fields.") :
+                !document.CanSelectNextFormField ? Text("LastFormField", "The last form field is selected.") : null), workspace: true);
         Add("Protect", "Protect and sign", "Inspect protection, sign, or protect a document copy.", "Security", document.ShowProtectModeCommand, Loaded, true, workspace: true);
         Add("Redact", "Redact content", "Mark content for reviewed permanent removal.", "Security", document.BeginRedactionCommand, () => Allowed(document.CanRedact), true, workspace: true);
         Add("Convert", "Convert files", "Convert supported Office, web, markup, PDF, and image files.", "Convert", document.ShowConversionWorkbenchCommand, tool: true);

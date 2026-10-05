@@ -95,13 +95,14 @@ internal static class PdfAttachmentEditor {
 
         if (names == null) { names = new PdfDictionary(); catalog.Items["Names"] = names; }
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        var nameEntries = new List<(string Name, PdfReference FileSpec)>(attachments.Count);
+        var nameEntries = new List<(byte[] KeyBytes, PdfReference FileSpec)>(attachments.Count);
         var fileSpecificationsByName = new Dictionary<string, PdfReference>(StringComparer.Ordinal);
         var fileSpecificationsByOriginalObject = new Dictionary<int, PdfReference>();
         var fileSpecificationsByOriginalEmbeddedFile = new Dictionary<int, PdfReference>();
         var associated = new PdfArray();
-        foreach (PdfAttachmentEditEntry entry in attachments
-            .OrderBy(static item => item.Attachment.FileName, StringComparer.Ordinal)) {
+        foreach (var item in attachments.Select(static entry => (Entry: entry, KeyBytes: PdfTextString.Encode(entry.Attachment.FileName)))
+            .OrderBy(static item => item.KeyBytes, PdfNameTreeKeyComparer.Instance)) {
+            PdfAttachmentEditEntry entry = item.Entry;
             PdfEmbeddedFile attachment = entry.Attachment;
             byte[] data = attachment.DataSnapshot;
             int streamNumber = nextObjectNumber++;
@@ -111,7 +112,7 @@ internal static class PdfAttachmentEditor {
             PdfDictionary fileSpec = BuildFileSpec(attachment, streamNumber);
             objects[fileSpecNumber] = new PdfIndirectObject(fileSpecNumber, 0, fileSpec);
             var reference = new PdfReference(fileSpecNumber, 0);
-            nameEntries.Add((attachment.FileName, reference));
+            nameEntries.Add((item.KeyBytes, reference));
             fileSpecificationsByName[attachment.FileName] = reference;
             if (entry.SourceIdentity.FileSpecObjectNumber > 0) {
                 fileSpecificationsByOriginalObject[entry.SourceIdentity.FileSpecObjectNumber] = reference;
@@ -122,7 +123,7 @@ internal static class PdfAttachmentEditor {
             if (attachment.Relationship != PdfAssociatedFileRelationship.Unspecified) associated.Items.Add(reference);
         }
         var nameArray = new PdfArray();
-        foreach ((string name, PdfReference reference) in nameEntries) { nameArray.Items.Add(new PdfStringObj(name, true)); nameArray.Items.Add(reference); }
+        foreach ((byte[] keyBytes, PdfReference reference) in nameEntries) { nameArray.Items.Add(new PdfStringObj(keyBytes)); nameArray.Items.Add(reference); }
         var embeddedFiles = new PdfDictionary(); embeddedFiles.Items["Names"] = nameArray; names.Items["EmbeddedFiles"] = embeddedFiles;
         if (associated.Items.Count > 0) catalog.Items["AF"] = associated;
         return ReconnectFileAttachmentAnnotations(

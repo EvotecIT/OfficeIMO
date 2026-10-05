@@ -30,7 +30,12 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         _pickInput = pickInput; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner(); _publicationGuard = publicationGuard;
         _jobs = jobHistory;
     }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
+    /// <summary>Whether the host imports private copies and shares results instead of exposing local paths.</summary>
+    public bool UsesWorkingCopies { get; internal set; }
+    public string InputName => Path.GetFileName(InputPath);
+    public string OutputName => Path.GetFileName(OutputPath);
+    public string ReportName => Path.GetFileName(ReportPath);
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InputName)), NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
     private string _inputPath = "";
     [ObservableProperty] private string _outputFolder = "";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy)), NotifyPropertyChangedFor(nameof(CanExportReport))]
@@ -40,8 +45,8 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCreateCopy))] private bool _removeDeclarations;
     [ObservableProperty] private string _status = "Choose a local file and assess its supported provenance evidence.";
     [ObservableProperty] private string _checks = "Structural: NotRequested · Text integrity: NotRequested · Verification: NotConfigured · Providers: NotConfigured";
-    [ObservableProperty] private string _outputPath = "";
-    [ObservableProperty] private string _reportPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OutputName))] private string _outputPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ReportName))] private string _reportPath = "";
     [ObservableProperty] private string _inputHash = "";
     [ObservableProperty] private string _outputHash = "";
     [ObservableProperty] private string _coverage = "";
@@ -63,8 +68,17 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [RelayCommand] private async Task ChooseInputAsync() {
         if (IsBusy || _disposed) return;
         int revision = _revision;
-        string? path = await _pickInput(CancellationToken.None);
-        if (!_disposed && revision == _revision && path != null) InputPath = path;
+        using var cancellation = new CancellationTokenSource();
+        _cancellation = cancellation;
+        IsBusy = true;
+        try {
+            string? path = await _pickInput(cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (!_disposed && revision == _revision && path != null) InputPath = path;
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            if (!_disposed) Status = "Import cancelled.";
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status = error.Message; }
+        finally { _cancellation = null; IsBusy = false; }
     }
     [RelayCommand] private async Task ChooseFolderAsync() {
         if (IsBusy || _disposed) return;

@@ -12,7 +12,7 @@ public sealed partial class HomeView : UserControl {
 
     public HomeView() {
         InitializeComponent();
-        OpenShortcut.Text = OperatingSystem.IsMacOS() ? "⌘O" : "Ctrl O";
+        OpenShortcut.Text = (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) ? "⌘O" : "Ctrl O";
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width);
         RecentList.ContainerPrepared += (_, _) => SchedulePreviews();
         DataContextChanged += (_, _) => AttachPreviewContext();
@@ -27,6 +27,11 @@ public sealed partial class HomeView : UserControl {
             if (IsVisible) SchedulePreviews();
             else CancelPreviews();
         };
+    }
+
+    internal void UseTouchPresentation() {
+        OpenPrompt.Text = Infrastructure.Localization.StudioLocalization.Current.Get("Commands.Open.Title");
+        if (OpenShortcut.Parent is Control shortcut) shortcut.IsVisible = false;
     }
 
     private void AttachPreviewContext() {
