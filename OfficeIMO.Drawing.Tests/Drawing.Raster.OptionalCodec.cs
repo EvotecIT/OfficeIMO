@@ -6,7 +6,8 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterOptionalCodecTests {
-    private const string IndependentJpegTiff = "SUkqADwAAAD/2P/AABEIABAAEANSEQBHEQBCEQD/2gAMA1IARwBCAAA/APf6+f6+f6KKKKKKKKK//9kACwAAAQMAAQAAABAAAAABAQMAAQAAABAAAAACAQMAAwAAAMYAAAADAQMAAQAAAAcAAAAGAQMAAQAAAAIAAAARAQQAAQAAAAgAAAAVAQMAAQAAAAMAAAAWAQMAAQAAABAAAAAXAQQAAQAAADMAAAAcAQMAAQAAAAEAAABbAQcAIQEAAMwAAAAAAAAACAAIAAgA/9j/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/2Q==";
+    // LibTIFF 4.7.2 independently encoded and decoded 16x16 RGB, LZMA compression.
+    private const string IndependentLzmaTiff = "SUkqAFAAAAD9N3pYWgAAAP8S2UECAQMBACEBFnkgxO7gAv8ADV0Af4A8Fz4mR/wBtzwgAAAAAAAAASGABgAAAADtKJuoAAr8AgAAAAAAWVoKAAABAwABAAAAEAAAAAEBAwABAAAAEAAAAAIBAwADAAAAzgAAAAMBAwABAAAAbYgAAAYBAwABAAAAAgAAABEBBAABAAAACAAAABUBAwABAAAAAwAAABYBAwABAAAAEAAAABcBBAABAAAASAAAABwBAwABAAAAAQAAAAAAAAAIAAgACAA=";
     // Independently encoded two-frame 16x16 animation (Pillow 12.3.0, libwebp 1.6.0).
     private const string IndependentAnimatedWebp = "UklGRogAAABXRUJQVlA4WAoAAAACAAAADwAADwAAQU5JTQYAAAAAAAAAAABBTk1GKgAAAAAAAAAAAA8AAA8AAGQAAAJWUDhMEQAAAC8PwAMAB1CoohSv/4GI6H8AAEFOTUYqAAAAAAAAAAAADwAADwAAZAAAAFZQOEwRAAAALw/AAwAHUKjiFaX/gYjofwAA";
 
@@ -177,8 +178,8 @@ public sealed class DrawingRasterOptionalCodecTests {
     [InlineData(16, true)]
     [InlineData(1, false)]
     public void InspectedUnsupportedTiffUsesValidatedFirstPageCallerPixels(int size, bool succeeds) {
-        // Independent Pillow/libtiff JPEG-compressed TIFF, outside managed compression support.
-        byte[] bytes = Convert.FromBase64String(IndependentJpegTiff);
+        // Valid independent LZMA TIFF remains outside managed compression support.
+        byte[] bytes = Convert.FromBase64String(IndependentLzmaTiff);
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
         var codec = new TiffCodec(size);
         Assert.Equal(succeeds, OfficeRasterImageDecoder.TryDecode(bytes,
@@ -204,7 +205,7 @@ public sealed class DrawingRasterOptionalCodecTests {
 
     [Fact]
     public void OptionalCodecCloneAndOutputMustFitRetainedBudgetBeforeCallback() {
-        byte[] bytes = Convert.FromBase64String(IndependentJpegTiff);
+        byte[] bytes = Convert.FromBase64String(IndependentLzmaTiff);
         Array.Resize(ref bytes, 128 * 1024); // TIFF permits unreferenced trailing data.
         var codec = new TiffCodec(16);
         // The inspector's 64 KiB allowance fits, but the 128 KiB provider input clone does not.

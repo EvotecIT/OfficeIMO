@@ -817,9 +817,11 @@ internal static partial class OfficeJpegReader {
     }
 
     private static int FindScanEnd(OfficeByteView data, int start, CancellationToken cancellationToken) {
+        // Stuffed bytes and restart markers advance by two, so offsets can skip checkpoint boundaries.
         var i = start;
+        int scanSteps = 0;
         while (i + 1 < data.Length) {
-            if ((i & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if ((scanSteps++ & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (data[i] == 0xFF) {
                 var j = i + 1;
                 SkipFillBytes(data, ref j, cancellationToken);

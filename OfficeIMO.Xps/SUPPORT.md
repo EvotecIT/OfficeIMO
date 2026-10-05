@@ -54,7 +54,12 @@ Packed samples require no predictor. Bilevel CCITT decoding supports Modified
 Huffman, Group 3 one/two-dimensional coding with optional fill bits, and Group 4,
 including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
 above the page height, including 0xFFFFFFFF, describe a single strip. Optional uncompressed fax
-extension mode is rejected. JPEG-compressed TIFF, mixed component widths, reversed
+extension mode is rejected. Baseline eight-bit JPEG (compression 7) accepts shared
+or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
+planes, and chunky centered YCbCr. TIFF tags control color interpretation and
+component order; JPEG application markers cannot override them. Legacy compression
+6, non-baseline JPEG processes, JPEG extra channels, separate YCbCr planes and
+cosited chroma remain unsupported. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -71,6 +76,16 @@ pixels and independently rendered SVG/PDF interior samples agree within three ch
 values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
 it changes sample order for unspecified extra channels in two cases. The differing reference output is retained;
 native Windows confirmation and photographic producer coverage remain open.
+
+JPEG-TIFF qualification covers 160 independently encoded and decoded LibTIFF
+fixtures: gray/RGB/CMYK/YCbCr, byte order, strips/tiles, separate gray/RGB/CMYK planes,
+centered YCbCr 1-by-1 and 2-by-2 subsampling, and local/shared table combinations.
+All 106,400 Core pixel comparisons agree with the independent decoder within
+3/255 per channel. Both dialects produce 320 documents and 212,800 pixel-center
+probes per route; MuPDF SVG/PDF output differs from managed rendering by at most
+2/255. CMYK XPS resources use an explicit ICC profile. GhostXPS exits successfully
+but differs by up to 255 and leaves some planar/tiled cases blank. Those consumer
+differences and native Windows qualification remain open.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,

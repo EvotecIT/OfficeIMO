@@ -6,7 +6,8 @@ public static partial class OfficeTiffCodec {
     /// <summary>
     /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/24/32/64-bit samples, or packed 1/4-bit grayscale and 1/4/8-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
-    /// Floating samples are normalized device components; JPEG-compressed and BigTIFF payloads remain caller-codec responsibilities.
+    /// Bilevel CCITT and baseline eight-bit JPEG TIFF are supported within the documented sample contract.
+    /// Floating samples are normalized device components; BigTIFF payloads remain caller-codec responsibilities.
     /// </summary>
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
         TryDecodePage(encodedBytes, 0, options: null, out image);
@@ -104,7 +105,7 @@ public static partial class OfficeTiffCodec {
                      compression != (int)OfficeTiffCompression.Lzw &&
                      compression != (int)OfficeTiffCompression.PackBits &&
                      compression != (int)OfficeTiffCompression.Deflate &&
-                     compression != 32946 && !IsTiffFaxCompression(compression)) ||
+                     compression != 32946 && compression != 7 && !IsTiffFaxCompression(compression)) ||
                     orientation < 1 || orientation > 8 ||
                     (samples != baseSamples && samples != baseSamples + 1) ||
                     rowsPerStrip < 1 ||
@@ -115,6 +116,9 @@ public static partial class OfficeTiffCodec {
 
                 if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
                     (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
+                    (photometric == 6 && compression != 7) ||
+                    (compression == 7 && (sampleBytes != 1 || floating || packedBits != 0 || predictor != 1 ||
+                        samples != baseSamples || photometric == 3)) ||
                     (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) {
                     return false;
                 }
@@ -127,7 +131,7 @@ public static partial class OfficeTiffCodec {
 
                 if (colorProfile != null &&
                     !((photometric == 0 || photometric == 1) && colorProfile.ComponentCount == 1 ||
-                      (photometric == 2 || photometric == 3) && colorProfile.ComponentCount == 3 ||
+                      (photometric == 2 || photometric == 3 || photometric == 6) && colorProfile.ComponentCount == 3 ||
                       photometric == 5 && colorProfile.ComponentCount == 4)) return false;
                 double[]? colorComponents = colorProfile == null ? null : new double[colorProfile.ComponentCount];
                 int alphaKind = 2;
@@ -169,7 +173,7 @@ public static partial class OfficeTiffCodec {
                             alpha = samples == baseSamples + 1 && alphaKind != 0
                                 ? source[sourcePixel + baseSamples]
                                 : (byte)255;
-                            ConvertPixel(source, sourcePixel, photometric, alphaKind, alpha, colorMap,
+                            ConvertPixel(source, sourcePixel, photometric == 6 ? 2 : photometric, alphaKind, alpha, colorMap,
                                 out red, out green, out blue);
                             if (colorProfile != null) {
                                 if (photometric == 5) {

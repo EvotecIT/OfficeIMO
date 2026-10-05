@@ -486,6 +486,7 @@ public static partial class OfficeTiffCodec {
             2 => 3,
             3 => 1,
             5 => 4,
+            6 => 3,
             _ => 0
         };
         return samples != 0;
