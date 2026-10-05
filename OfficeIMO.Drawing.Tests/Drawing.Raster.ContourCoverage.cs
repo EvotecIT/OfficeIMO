@@ -9,6 +9,47 @@ public partial class DrawingRasterTests {
     [InlineData(true, 48)]
     [InlineData(false, 2049)]
     [InlineData(true, 2049)]
+    public void ConsecutiveContourFillsKeepIndependentCoverageAfterGrowthAndInvalidGeometry(bool nonZero, int columns) {
+        var contours = Enumerable.Range(0, columns).Select(i => (IReadOnlyList<OfficePoint>)new[] {
+            new OfficePoint(2D * i + 0.25D, -0.25D), new OfficePoint(2D * i + 1.5D, -0.25D),
+            new OfficePoint(2D * i + 1.5D, 3.25D), new OfficePoint(2D * i + 0.25D, 3.25D)
+        }).ToArray();
+        var image = new OfficeRasterImage(2 * columns, 8, OfficeColor.Transparent);
+        var canvas = new OfficeRasterCanvas(image);
+        var color = OfficeColor.FromRgba(200, 40, 80, 128);
+        if (columns == 2049) {
+            // The final fractional row exceeds the public work limit after three
+            // complete rows. Reusing the canvas must not reuse that failed fill's state.
+            Assert.Throws<InvalidOperationException>(() => Fill(contours));
+        } else {
+            Fill(contours);
+        }
+        // Rejected geometry must not leave partial contour state in the next fill.
+        Fill(new[] { new[] { new OfficePoint(0, 4), new OfficePoint(5, 4), new OfficePoint(double.NaN, 6) } });
+        Fill(new[] { new[] { new OfficePoint(0.25D, 5.25D), new OfficePoint(5.75D, 5.25D),
+            new OfficePoint(5.75D, 7.75D), new OfficePoint(0.25D, 7.75D) } });
+
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                double firstArea = (x % 2 == 0 ? 0.75D : 0.5D)
+                    * Math.Max(0D, Math.Min(y + 1D, columns == 2049 ? 3D : 3.25D) - y);
+                double secondArea = Math.Max(0D, Math.Min(x + 1D, 5.75D) - Math.Max(x, 0.25D))
+                    * Math.Max(0D, Math.Min(y + 1D, 7.75D) - Math.Max(y, 5.25D));
+                Assert.Equal((byte)Math.Round(128D * (firstArea + secondArea)), image.GetPixel(x, y).A);
+            }
+        }
+
+        void Fill(IReadOnlyList<IReadOnlyList<OfficePoint>> shapes) {
+            if (nonZero) canvas.FillPolygonsNonZero(shapes, color);
+            else canvas.FillPolygonsEvenOdd(shapes, color);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, 48)]
+    [InlineData(true, 48)]
+    [InlineData(false, 2049)]
+    [InlineData(true, 2049)]
     public void ManyDisjointContourColumnsRetainCoverageAcrossScratchGrowth(bool nonZero, int columns) {
         var contours = Enumerable.Range(0, columns).Select(i => (IReadOnlyList<OfficePoint>)new[] {
             new OfficePoint(2D * i + 0.25D, -0.25D), new OfficePoint(2D * i + 1.5D, -0.25D),
