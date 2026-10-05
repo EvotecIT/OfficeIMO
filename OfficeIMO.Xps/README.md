@@ -110,6 +110,11 @@ placeholders. The resulting nodes retain named page references, list markers,
 table-cell spans, and source page occurrences. It does not infer semantics for
 pages without StoryFragments or invent Unicode text from glyph identifiers.
 
+Resolved Path and Canvas references expose authored `AutomationProperties.Name`
+and `AutomationProperties.HelpText` through `XpsNamedContent.AccessibilityName`
+and `AccessibilityHelpText`. SVG retains them as `title` and `desc` metadata.
+They describe graphics without adding painted text or changing `ExtractText()`.
+
 ```csharp
 XpsLogicalStructure structure = document.ReadLogicalStructure();
 foreach (XpsLogicalStory story in structure.Stories)
@@ -130,6 +135,10 @@ foreach (var block in model.Blocks)
 
 The [Reader adapter](../OfficeIMO.Reader.Xps/README.md) adds bounded chunks, source
 hashes and JSON transport. Optional SVG previews use the strict native renderer.
+Authored graphic descriptions also appear as payload-free `graphic-description`
+assets in the shared model, with the short name in `Title` and the name followed
+by HelpText in `AltText`. Each asset retains its physical page location, including
+descriptions on pages without native StoryFragments.
 
 `page.ReadContentStructure()` reads a page's own fragments, including headers and
 footers. `GetStoryFragmentsMarkup()` and

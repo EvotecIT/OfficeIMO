@@ -57,7 +57,7 @@ internal sealed partial class XpsDocumentModelProjection {
             if (!logical.Pages[pageIndex].HasNativeStructure)
                 Diagnostic("XpsMarkupTextOrder", "This page has no native StoryFragments; its Unicode is projected in markup order.", pageIndex);
         }
-        var assets = new List<OfficeDocumentModelAsset>(); long assetBytes = 0;
+        var assets = new List<OfficeDocumentModelAsset>(); long assetBytes = 0; int previewCount = 0;
         var blocksByPage = _blocks.ToLookup(block => block.Location.Page);
         var tablesByPage = _tables.Where(table => _tablePages[table].Count == 1).ToLookup(table => table.Location!.Page);
         var linksByPage = _links.ToLookup(link => link.Location.Page);
@@ -67,7 +67,7 @@ internal sealed partial class XpsDocumentModelProjection {
             var blocks = blocksByPage[pageIndex + 1].ToArray();
             var pageAssets = new List<OfficeDocumentModelAsset>();
             if (previews) {
-                if (assets.Count >= 512) throw new InvalidDataException("XPS document projection preview count exceeds 512.");
+                if (++previewCount > 512) throw new InvalidDataException("XPS document projection preview count exceeds 512.");
                 byte[] svg = Encoding.UTF8.GetBytes(page.ToSvg(cancellationToken: _token).Svg);
                 if (svg.LongLength > 128L * 1024 * 1024 - assetBytes) throw new InvalidDataException("XPS document projection preview bytes exceed 128 MiB.");
                 assetBytes += svg.LongLength;
@@ -75,6 +75,18 @@ internal sealed partial class XpsDocumentModelProjection {
                     MediaType = "image/svg+xml", Extension = ".svg", PayloadBytes = svg, LengthBytes = svg.LongLength,
                     PayloadHash = Hash(svg), SourceObjectId = page.PartName,
                     Location = Location(pageIndex, null, "page-preview") };
+                assets.Add(asset); pageAssets.Add(asset);
+            }
+            int elementIndex = 0;
+            foreach (var element in XpsStoryFragmentsReader.PageElements(page.GetMarkup())) {
+                _budget.Charge(); int current = elementIndex++;
+                var description = XpsGraphicDescription.Read(element);
+                if (description == null) continue;
+                _budget.Text(description.CharacterCount);
+                var asset = new OfficeDocumentModelAsset { Id = "xps-graphic-" + pageIndex + "-" + current, Kind = "graphic-description",
+                    Title = description.Name, AltText = description.AlternativeText,
+                    SourceObjectId = page.PartName + "#" + ((string?)element.Attribute("Name") ?? current.ToString(CultureInfo.InvariantCulture)),
+                    Location = Location(pageIndex, null, element.Name.LocalName.ToLowerInvariant() + "-description") };
                 assets.Add(asset); pageAssets.Add(asset);
             }
             pages.Add(new OfficeDocumentModelPage { Number = pageIndex + 1, Name = page.PartName,
@@ -121,9 +133,12 @@ internal sealed partial class XpsDocumentModelProjection {
         var location = Location(content.PageIndex, firstOrdinal, kind);
         if (content.Text.Length != 0) location = AddBlock(content.Text, storyKind is "header" or "footer" ? storyKind : kind,
             content.PageIndex, firstOrdinal!.Value).Location;
+        var attributes = new Dictionary<string, string> { ["nameReference"] = content.Name, ["elementName"] = content.ElementName,
+                ["pagePartName"] = content.PagePartName };
+        if (content.AccessibilityName != null) attributes["accessibilityName"] = content.AccessibilityName;
+        if (content.AccessibilityHelpText != null) attributes["accessibilityHelpText"] = content.AccessibilityHelpText;
         return new OfficeDocumentModelNode { Id = id, Kind = kind == "list-marker" ? kind : "named-element", Text = content.Text, Location = location,
-            Attributes = new Dictionary<string, string> { ["nameReference"] = content.Name, ["elementName"] = content.ElementName,
-                ["pagePartName"] = content.PagePartName } };
+            Attributes = attributes };
     }
 
     private OfficeDocumentModelBlock AddBlock(string text, string kind, int page, int ordinal) {

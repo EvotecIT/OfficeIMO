@@ -43,11 +43,16 @@ body structure tree. Page-local fragments use page order when no story addresses
 were authored. Unreferenced text remains in markup order in a generic division.
 Unstructured documents retain markup-order search text without inferred tags.
 
+Authored `AutomationProperties.Name` and `AutomationProperties.HelpText` on a
+figure's named Path or Canvas become its PDF alternative text. Name precedes
+HelpText; multiple named targets follow the figure's reference order. Descriptions
+remain separate from the painted and searchable Unicode layer.
+
 Selection regions follow cluster advances and glyph bounds, rather than inferred
 words. Source text remains searchable even when native clipping or opacity hides
 it; clipping is not text redaction. Glyph-only runs without UnicodeString have no
-recoverable logical text. Native structure supplies no figure alternative text, so
-export does not establish PDF/UA conformance.
+recoverable logical text. Missing figure descriptions are not inferred, and export
+does not establish PDF/UA conformance.
 
 Unsupported structure extensions, unresolved references and overlapping semantic
 ownership reject strict export. To retain the fixed canvas and markup-order search

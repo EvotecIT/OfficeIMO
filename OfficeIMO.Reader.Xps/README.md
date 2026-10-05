@@ -30,6 +30,13 @@ outside a truncated grid remain as text. Logical tables that span pages remain
 at document scope; each physical page retains its own text instead of receiving
 another page's cells.
 
+Authored Path and Canvas accessibility descriptions are payload-free
+`graphic-description` assets. `Title` retains `AutomationProperties.Name`;
+`AltText` contains the name followed by `AutomationProperties.HelpText`, separated
+by a newline when both are present. The assets retain page locations and survive
+JSON transport. Descriptions do not create text blocks, chunks or native story
+structure. Missing descriptions are not inferred.
+
 `ReaderXpsOptions.ReadOptions` controls package expansion, part, page and XML limits.
 Registration snapshots these limits, and `ReaderOptions.MaxInputBytes` can tighten
 them. Stream input follows Reader's whole-stream snapshot contract, restores a
@@ -45,7 +52,8 @@ var readerWithPreviews = new OfficeDocumentReaderBuilder()
 
 Previews use strict native SVG conversion; unsupported paint fails instead of
 producing an incomplete preview. Preview projection is bounded to 512 pages and
-128 MiB of asset payload. The native package's rendering support matrix applies.
+128 MiB of preview payload. Description-only assets do not consume the preview
+page limit. The native package's rendering support matrix applies.
 
 Native story order can cross physical pages. `ReaderLocation.LogicalOrder` retains
 that order through canonical block/content traversal and JSON transport. Missing

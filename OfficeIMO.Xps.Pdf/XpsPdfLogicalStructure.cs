@@ -41,11 +41,11 @@ internal sealed class XpsPdfLogicalStructure {
     internal bool HasNativeStructure { get; }
     internal IReadOnlyDictionary<string, PdfCanvasSourceContent> Paint(int page) => _pages[page].Paint;
 
-    private PdfCanvasStructureStep Step(PdfCanvasStructureRole role, int rowSpan = 1, int columnSpan = 1) {
+    private PdfCanvasStructureStep Step(PdfCanvasStructureRole role, int rowSpan = 1, int columnSpan = 1, string? alternative = null) {
         long order = _order++;
         return new PdfCanvasStructureStep(role, new PdfCanvasStructureOptions {
             StructureElementKey = "xps-structure-" + order.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            LogicalOrder = order, RowSpan = rowSpan, ColumnSpan = columnSpan
+            LogicalOrder = order, RowSpan = rowSpan, ColumnSpan = columnSpan, AlternativeText = alternative
         });
     }
     private void Visit(XpsStructureNode node, List<PdfCanvasStructureStep> path, bool artifact, int pageIndex) {
@@ -67,7 +67,12 @@ internal sealed class XpsPdfLogicalStructure {
             XpsStructureKind.Figure => PdfCanvasStructureRole.Figure,
             _ => throw new NotSupportedException("Unsupported native structure role: " + node.Kind)
         };
-        nested.Add(Step(role, node.RowSpan, node.ColumnSpan));
+        string? alternative = null;
+        if (node.Kind == XpsStructureKind.Figure) {
+            var descriptions = node.Children.Select(child => child.Content?.Description?.AlternativeText).Where(text => text != null).ToArray();
+            if (descriptions.Length != 0) alternative = string.Join("\n", descriptions);
+        }
+        nested.Add(Step(role, node.RowSpan, node.ColumnSpan, alternative));
         if (node.Kind == XpsStructureKind.ListItem) {
             if (node.Marker != null) {
                 var label = new List<PdfCanvasStructureStep>(nested) { Step(PdfCanvasStructureRole.ListLabel) };

@@ -125,7 +125,7 @@ internal sealed class XpsStoryFragmentsReader {
         _budget.Charge();
         try { XmlConvert.VerifyNCName(name); } catch (XmlException error) { throw new InvalidDataException("Invalid content name reference.", error); }
         if (_resolved.TryGetValue(name, out var cached)) {
-            if (cached != null) _budget.Text(cached.Text.Length);
+            if (cached != null) _budget.Text(cached.Text.Length + (cached.Description?.CharacterCount ?? 0));
             return cached;
         }
         if (!_names.TryGetValue(name, out var target)) { _hasUnresolvedNames = true; Diagnostic("Unresolved native name: " + name); _resolved.Add(name, null); return null; }
@@ -138,7 +138,9 @@ internal sealed class XpsStoryFragmentsReader {
                 string value = XpsPage.Unescape(unicode.Value); _budget.Text(value.Length); text.Append(value);
             } else Diagnostic("Referenced glyphs have no UnicodeString: " + name);
         }
-        var content = new XpsNamedContent(name, target.Name.LocalName, _page.PartName, _pageIndex, text.ToString(), ordinals.AsReadOnly());
+        var description = XpsGraphicDescription.Read(target);
+        if (description != null) _budget.Text(description.CharacterCount);
+        var content = new XpsNamedContent(name, target.Name.LocalName, _page.PartName, _pageIndex, text.ToString(), ordinals.AsReadOnly(), description);
         _resolved.Add(name, content); return content;
     }
     private static int Positive(string? value) {

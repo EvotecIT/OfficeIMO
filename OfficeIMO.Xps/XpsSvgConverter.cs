@@ -47,6 +47,7 @@ internal sealed partial class XpsSvgConverter {
     }
     private void Loss(string message) { if (_diagnostics.Count < 100 && !_diagnostics.Contains(message)) _diagnostics.Add(message); }
     private void CheckAttributes(XElement e, string allowed) {
+        if (e.Name.LocalName is "Path" or "Canvas") allowed += " AutomationProperties.Name AutomationProperties.HelpText";
         var names = new HashSet<string>((allowed + " Name").Split(' '), StringComparer.Ordinal);
         foreach (var a in e.Attributes()) {
             if (a.IsNamespaceDeclaration || a.Name == XNamespace.Xml + "lang" || IsResourceKey(a.Name)) continue;
@@ -125,6 +126,11 @@ internal sealed partial class XpsSvgConverter {
                 default: Loss("Element: " + child.Name.LocalName); continue;
             }
             if (result == null) continue;
+            var description = XpsGraphicDescription.Read(child);
+            if (description != null) {
+                if (!string.IsNullOrWhiteSpace(description.HelpText)) result.AddFirst(Element("desc", description.HelpText!));
+                if (!string.IsNullOrWhiteSpace(description.Name)) result.AddFirst(Element("title", description.Name!));
+            }
             TransformText(firstText, transform);
             ApplyOpacityMask(child, result, scope, part, depth + 1, localRegion);
             if (transform != null) Set(result, "transform", transform);

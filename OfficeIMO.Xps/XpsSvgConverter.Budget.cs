@@ -18,7 +18,10 @@ internal sealed partial class XpsSvgConverter {
         _token.ThrowIfCancellationRequested();
         if (++_outputNodes > 100000) throw new InvalidDataException("XPS SVG node budget exceeded.");
         long size = 128 + name.Length * 2L;
-        foreach (object item in content) if (item is XAttribute attribute) size += AttributeSize(attribute.Name.LocalName, attribute.Value);
+        foreach (object item in content) {
+            if (item is XAttribute attribute) size += AttributeSize(attribute.Name.LocalName, attribute.Value);
+            else if (item is string text) size += AttributeSize("", text);
+        }
         ChargeOutput(size);
         return new XElement(Svg + name, content);
     }

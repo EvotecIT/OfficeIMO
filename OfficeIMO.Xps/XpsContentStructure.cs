@@ -38,9 +38,10 @@ public enum XpsStoryFragmentType {
 
 /// <summary>A resolved native page reference, without inferring text from glyph identifiers or graphics.</summary>
 public sealed class XpsNamedContent {
-    internal XpsNamedContent(string name, string elementName, string pagePart, int pageIndex, string text, IReadOnlyList<int> glyphOrdinals) {
+    internal XpsNamedContent(string name, string elementName, string pagePart, int pageIndex, string text, IReadOnlyList<int> glyphOrdinals,
+        XpsGraphicDescription? description = null) {
         Name = name; ElementName = elementName; PagePartName = pagePart; PageIndex = pageIndex; Text = text;
-        GlyphOrdinals = glyphOrdinals;
+        GlyphOrdinals = glyphOrdinals; Description = description;
     }
     /// <summary>The native Name attribute.</summary>
     public string Name { get; }
@@ -52,6 +53,11 @@ public sealed class XpsNamedContent {
     public int PageIndex { get; }
     /// <summary>Literal UnicodeString content in the referenced element's native order.</summary>
     public string Text { get; }
+    /// <summary>The authored AutomationProperties.Name on a Path or Canvas, when present.</summary>
+    public string? AccessibilityName => Description?.Name;
+    /// <summary>The authored AutomationProperties.HelpText on a Path or Canvas, when present.</summary>
+    public string? AccessibilityHelpText => Description?.HelpText;
+    internal XpsGraphicDescription? Description { get; }
     internal IReadOnlyList<int> GlyphOrdinals { get; }
 }
 

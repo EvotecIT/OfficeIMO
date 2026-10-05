@@ -51,7 +51,7 @@ internal static partial class XpsReaderAdapter {
                 ColumnProfiles = ReaderTableProfiler.CreateProfiles(t.Columns, rows) };
         });
         var assets = model.Assets.ToDictionary(a => a, a => new OfficeDocumentAsset {
-            Id = a.Id, Kind = a.Kind, MediaType = a.MediaType, Extension = a.Extension, SourceObjectId = a.SourceObjectId,
+            Id = a.Id, Kind = a.Kind, MediaType = a.MediaType, Extension = a.Extension, SourceObjectId = a.SourceObjectId, Title = a.Title, AltText = a.AltText,
             PayloadBytes = a.PayloadBytes, PayloadHash = a.PayloadHash, LengthBytes = a.LengthBytes, Location = Map(a.Location)
         });
         var links = model.Links.ToDictionary(link => link, link => new OfficeDocumentLink { Id = link.Id, Kind = link.Kind,
