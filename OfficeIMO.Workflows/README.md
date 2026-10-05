@@ -225,12 +225,50 @@ or explicitly set `NoContributors = true` with an empty list. Missing EPUB credi
 are not interpreted as an assertion that there are no contributors.
 
 Early, advance and confirmed notifications are **complete-record replacements**.
-Commercial blocks are emitted only when supplied. This profile has no
-accessibility-discovery, series, subject, description or retailer-specific blocks.
+Commercial and accessibility blocks are emitted only when supplied. This profile
+has no series, subject, description or retailer-specific blocks.
 Do not use it to update an existing richer trade record unless replacing that record
 with this profile is intended. Subtitle and publication date are optional explicit
 values; all other EPUB metadata stays in the EPUB and is not automatically mapped.
 Block updates, deletion records and multi-product messages are outside this profile.
+
+Add accessibility discovery information as explicit publisher assertions:
+
+```csharp
+record = project.ExportOnix(options with {
+    Accessibility = new BookOnixAccessibilityMetadata {
+        Summary = "Language-tagged text and labelled links; some diagrams lack extended descriptions.",
+        Status = BookOnixAccessibilityStatus.Limited,
+        Features = [BookOnixAccessibilityFeature.LanguageTagging,
+                    BookOnixAccessibilityFeature.ClearLinkPurposes],
+        AssessmentDate = new DateOnly(2026, 10, 5),
+        PublisherInformationUrl = "https://example.org/accessibility/edition-42",
+        PublisherContactEmail = "accessibility@example.org"
+    }
+}, schemas);
+```
+
+These declarations use `ProductFormFeatureType` 09 and the supported
+[ONIX list 196](https://ns.editeur.org/onix/en/196) values. Feature assertions describe
+the edition as a whole. The typed API restricts supported code values; the ONIX
+XSD checks their XML placement but does not enforce list 196 membership or verify
+the truth of an assertion. A chapter-only TOC does not establish complete TOC navigation,
+and partial narration does not establish synchronized audio for substantially all
+text. EPUB metadata and validator passes never populate these fields automatically.
+
+After an appropriate assessment, callers can explicitly supply
+`Conformance = new(BookOnixWcagVersion.V2_2, BookOnixWcagLevel.AA)` to declare EPUB
+Accessibility 1.1 plus that WCAG version and level. This is a publisher assertion,
+not certification by OfficeIMO. Unknown accessibility cannot also assert conformance.
+Certifier identities, independent assessment-report links and legal exemption claims
+are outside this export profile. The publisher information URL uses code 96; it is
+not presented as an independent certification report.
+
+Omit `Accessibility` when no assertions are supplied; an empty declaration is rejected.
+Feature lists must be distinct and contain at most 32 supported values. Text fields
+are limited to 4096 characters, URLs must be absolute HTTP(S) without credentials,
+and contacts must be plain email addresses. Export does not fetch URLs, send email,
+verify assessments or derive an assessment date from the transmission timestamp.
 
 Add explicit commercial metadata when the record must describe a market offer:
 

@@ -73,7 +73,10 @@ their hashes and the three schema hashes, and checks that the schema rejects an
 invalid language code. Commercial fixtures cover worldwide exclusions, distinct
 Polish and British markets, all seven supported price bases, decimal scale, effective
 dates, free and unannounced pricing, an unknown supply date, and withdrawal after
-rights are lost. The schema must also reject unknown country and currency codes.
+rights are lost. Accessibility fixtures exercise unknown status, publisher contact
+and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
+declarations. Those assertions are synthetic serialization inputs, not certifications
+of the accompanying EPUBs. The schema must also reject unknown country and currency codes.
 It is outside normal builds and shipped packages.
 
 Obtain the ONIX 3.1 reference XSD from [EDItEUR](https://www.editeur.org/93/Release-3.0-and-3.1-Downloads/)

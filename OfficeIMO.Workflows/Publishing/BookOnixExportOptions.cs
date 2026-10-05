@@ -60,4 +60,6 @@ public sealed record BookOnixExportOptions {
     public bool NoContributors { get; init; }
     /// <summary>Optional explicit publishing status, territorial rights, supplier availability and pricing.</summary>
     public BookOnixCommercialMetadata? Commercial { get; init; }
+    /// <summary>Optional explicit accessibility assertions; never inferred from EPUB metadata or automated checks.</summary>
+    public BookOnixAccessibilityMetadata? Accessibility { get; init; }
 }

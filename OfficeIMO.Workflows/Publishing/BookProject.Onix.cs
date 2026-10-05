@@ -62,6 +62,7 @@ public sealed partial class BookProject {
         }
 
         OnixCommercialParts commercial = BuildOnixCommercial(options.Commercial, options.PublicationDate, cancellationToken);
+        IReadOnlyList<XElement> accessibility = BuildOnixAccessibility(options.Accessibility, cancellationToken);
         EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;
@@ -88,6 +89,7 @@ public sealed partial class BookProject {
         var descriptive = new XElement(onix + "DescriptiveDetail",
             new XElement(onix + "ProductComposition", "00"), new XElement(onix + "ProductForm", "ED"),
             new XElement(onix + "ProductFormDetail", "E101"),
+            accessibility,
             new XElement(onix + "TitleDetail", new XElement(onix + "TitleType", "01"), titleElement));
         if (options.NoContributors) descriptive.Add(new XElement(onix + "NoContributor"));
         else descriptive.Add(contributorElements);

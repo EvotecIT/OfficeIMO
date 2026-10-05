@@ -22,7 +22,9 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
-    (Name: "withdrawn", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed) }) {
+    (Name: "withdrawn", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "accessibility-unknown", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "accessibility-claims", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed) }) {
     var project = BookProject.Create("Publishing & metadata — " + profile.Name, profile.Language);
     project.Publication.Identifier = "urn:officeimo:fixture:onix:" + profile.Name;
     project.Publication.AddIdentifier("digital-isbn", new EpubIdentifierMetadata { Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13 });
@@ -36,7 +38,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             new("Alice Example", BookOnixContributorRole.Author), new("Jan Kowalski", BookOnixContributorRole.Translator),
             new("Example Studio", BookOnixContributorRole.Illustrator, true), new("Anne Editor", BookOnixContributorRole.Editor),
             new("Other Creator", BookOnixContributorRole.Other)],
-        Commercial = commercial
+        Commercial = commercial, Accessibility = AccessibilityFixtures.Create(profile.Name)
     };
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);
@@ -63,7 +65,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     }
     evidence.Add(new { profile = profile.Name, onixSha256 = Convert.ToHexString(SHA256.HashData(result.Bytes)),
         epubSha256 = result.PublicationSha256, schemaValidation = "passed", invalidLanguageCode = "rejected",
-        invalidCountryRejected, invalidCurrencyRejected });
+        invalidCountryRejected, invalidCurrencyRejected, accessibilityAssertionsSynthetic = options.Accessibility != null });
 }
 File.WriteAllText(Path.Combine(outputDirectory, "evidence.json"), JsonSerializer.Serialize(new {
     schemaFiles = schemaFiles.Select(path => new { name = Path.GetFileName(path), sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) }),
