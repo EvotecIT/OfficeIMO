@@ -9,6 +9,63 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(0x80, true, false)]
+    [InlineData(0x81, false, true)]
+    public void LegacyDoc_TextboxRelativeTogglesUseEachParagraphStyle(int operand, bool expectedStyled, bool expectedNormal) {
+        const string body = "Body before textbox\r";
+        string source = Path.Combine(_directoryWithFiles, $"TextboxRelative{operand}.doc");
+        using (var document = WordDocument.Create()) {
+            document.AddParagraph(body.TrimEnd('\r'));
+            WordParagraph styled = document.AddParagraph("StyledTextboxMarker").SetStyle(WordParagraphStyles.Heading4);
+            styled.Bold = true;
+            styled.Italic = true;
+            WordParagraph normalParagraph = document.AddParagraph("NormalTextboxMarker").SetStyle(WordParagraphStyles.Normal);
+            normalParagraph.Bold = true;
+            normalParagraph.Italic = true;
+            Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style normal = styles.Elements<Style>().Single(style => style.StyleId == "Normal");
+            normal.StyleRunProperties = new StyleRunProperties(new Bold { Val = false }, new Italic { Val = false });
+            EnsureParagraphStyle(styles, WordParagraphStyles.Heading4.ToStringStyle()).StyleRunProperties = new StyleRunProperties(new Bold(), new Italic());
+            document.Save(source);
+        }
+        byte[] bytes = RewriteNativeRunToggleOperands(File.ReadAllBytes(source), (byte)operand, minimumChanges: 2);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
+        byte[] word = compound!.Streams["WordDocument"];
+        int originalBodyLength = BitConverter.ToInt32(word, 0x4C);
+        // Reclassify the two native paragraphs as the body textbox story; retain their real PAPX/CHPX records.
+        Buffer.BlockCopy(BitConverter.GetBytes(body.Length), 0, word, 0x4C, sizeof(int));
+        Buffer.BlockCopy(BitConverter.GetBytes(originalBodyLength - body.Length), 0, word, 0x64, sizeof(int));
+        using var package = new MemoryStream();
+        using (RootStorage root = RootStorage.Create(package, OpenMcdf.Version.V3, StorageModeFlags.LeaveOpen)) {
+            foreach (KeyValuePair<string, byte[]> entry in compound.Streams) {
+                using CfbStream stream = root.CreateStream(entry.Key);
+                stream.Write(entry.Value, 0, entry.Value.Length);
+            }
+        }
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(package.ToArray()));
+        AssertTextbox(loaded);
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(loaded.ToBytes()));
+        AssertTextbox(reopened);
+
+        void AssertTextbox(WordDocument document) {
+            WordTextBox box = Assert.Single(document.TextBoxes);
+            Paragraph[] paragraphs = box.Content!.Elements<Paragraph>().ToArray();
+            Assert.Equal(2, paragraphs.Length);
+            var styled = new WordParagraph(document, paragraphs[0], newRun: false);
+            var normal = new WordParagraph(document, paragraphs[1], newRun: false);
+            WordParagraph styledRun = Assert.Single(styled.GetRuns());
+            WordParagraph normalRun = Assert.Single(normal.GetRuns());
+            Assert.Equal("StyledTextboxMarker", styledRun.Text);
+            Assert.Equal("NormalTextboxMarker", normalRun.Text);
+            Assert.Equal(expectedStyled, styledRun.Bold);
+            Assert.Equal(expectedStyled, styledRun.Italic);
+            Assert.Equal(expectedNormal, normalRun.Bold);
+            Assert.Equal(expectedNormal, normalRun.Italic);
+            Assert.Equal(WordParagraphStyles.Heading4, styled.Style);
+        }
+    }
+
+    [Theory]
     [InlineData(0, false, false)]
     [InlineData(0, true, false)]
     [InlineData(1, false, true)]
@@ -112,7 +169,7 @@ public partial class Word {
         }
     }
 
-    private static byte[] RewriteNativeRunToggleOperands(byte[] source, byte operand) {
+    private static byte[] RewriteNativeRunToggleOperands(byte[] source, byte operand, int minimumChanges = 16) {
         Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"];
         byte[] table = compound.Streams["1Table"];
@@ -137,7 +194,7 @@ public partial class Word {
                 }
             }
         }
-        Assert.True(changed.Count >= 16);
+        Assert.True(changed.Count >= minimumChanges);
         using var output = new MemoryStream();
         using (RootStorage root = RootStorage.Create(output, OpenMcdf.Version.V3, StorageModeFlags.LeaveOpen)) {
             foreach (KeyValuePair<string, byte[]> entry in compound.Streams) {

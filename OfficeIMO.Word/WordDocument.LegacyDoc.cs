@@ -152,36 +152,27 @@ namespace OfficeIMO.Word {
 
             ApplyLegacyDocDocumentOptions(document, legacyDocument);
             AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
-            AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, notes);
+            AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, legacyDocument.StyleSheet, notes);
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
             return document;
         }
 
-        private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories, LegacyDocNoteProjection notes) {
+        private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories,
+            LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
             foreach (LegacyDocTextBoxStory story in textBoxStories) {
-                if (story.IsHeaderFooterTextBox) {
-                    continue;
-                }
-
+                if (story.IsHeaderFooterTextBox) continue;
                 WordTextBox textBox = document.AddTextBox(story.Text);
-                if (story.Runs.Count == 0 && story.Bookmarks.Count == 0) {
-                    continue;
-                }
-
                 TextBoxContent? content = textBox.Content;
-                Paragraph? paragraph = content?.Elements<Paragraph>().FirstOrDefault();
-                if (paragraph == null) {
-                    continue;
+                if (content == null || story.Paragraphs.Count == 0) continue;
+                content.RemoveAllChildren<Paragraph>();
+                foreach (LegacyDocNoteParagraph source in story.Paragraphs) {
+                    var paragraph = content.AppendChild(new Paragraph());
+                    var target = new WordParagraph(document, paragraph, newRun: false);
+                    ApplyLegacyDocParagraphFormatting(target, source.Format, styleSheet);
+                    LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(source.Bookmarks, source.StartCharacter, source.EndCharacter);
+                    AddLegacyDocRuns(target, source.Runs, notes, bookmarks);
+                    bookmarks.EmitRemaining(paragraph);
                 }
-
-                foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties).ToArray()) {
-                    child.Remove();
-                }
-
-                var textBoxParagraph = new WordParagraph(document, paragraph, newRun: false);
-                LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(story.Bookmarks, story.StartCharacter, story.EndCharacter);
-                AddLegacyDocRuns(textBoxParagraph, story.Runs, notes, bookmarks);
-                bookmarks.EmitRemaining(paragraph);
             }
         }
 

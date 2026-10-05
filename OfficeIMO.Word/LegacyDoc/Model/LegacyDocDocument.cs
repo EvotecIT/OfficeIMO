@@ -256,7 +256,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-COMMENT-PLC-INVALID", commentWarning);
             }
 
-            TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, bookmarkProjection);
+            TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition);
             AddKnownUnsupportedFeatureDiagnostics(
                 compoundFile,
                 tableStream,

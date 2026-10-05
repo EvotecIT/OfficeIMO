@@ -6,13 +6,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int startCharacter,
             int endCharacter,
             IReadOnlyList<LegacyDocTextRun>? runs = null,
-            IReadOnlyList<LegacyDocBookmark>? bookmarks = null) {
+            IReadOnlyList<LegacyDocBookmark>? bookmarks = null,
+            IReadOnlyList<LegacyDocNoteParagraph>? paragraphs = null) {
             IsHeaderFooterTextBox = isHeaderFooterTextBox;
             Text = text ?? throw new ArgumentNullException(nameof(text));
             StartCharacter = startCharacter;
             EndCharacter = endCharacter;
             Runs = runs ?? Array.Empty<LegacyDocTextRun>();
             Bookmarks = bookmarks ?? Array.Empty<LegacyDocBookmark>();
+            Paragraphs = paragraphs ?? Array.Empty<LegacyDocNoteParagraph>();
         }
 
         internal bool IsHeaderFooterTextBox { get; }
@@ -22,6 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int StartCharacter { get; }
 
         internal int EndCharacter { get; }
+
+        internal IReadOnlyList<LegacyDocNoteParagraph> Paragraphs { get; }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
 
