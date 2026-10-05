@@ -6,6 +6,33 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfHeadingHierarchyTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdapterHeading_RetainsStyledRunsWithoutChangingOutlineTitle(bool columns) {
+        var document = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true });
+        document.TaggedPdfCatalogMarkers();
+        PdfParagraphBuilder captured = null!;
+        const string uri = "https://example.com/inline-heading";
+        void AddHeading(PdfContentBuilder content) => content.Heading(9, "Outline title", builder => {
+            captured = builder;
+            builder.Text("PlainMarker ").Italic(true).Text("ItalicMarker ").Italic(false)
+                .Link("LinkedMarker", uri).Baseline(PdfTextBaseline.Superscript).Text("2");
+        }, PdfAlign.Left, null, new PdfHeadingStyle { FontSize = 12 });
+        if (columns) document.Content.Columns(AddHeading);
+        else AddHeading(document.Content);
+        captured.Text("Late mutation");
+
+        byte[] bytes = document.ToBytes();
+        var spans = PdfReadDocument.Open(bytes).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
+        Assert.Contains(spans, span => span.Text.Contains("ItalicMarker") && span.IsItalic);
+        Assert.DoesNotContain(spans, span => span.Text.Contains("Late mutation"));
+        var logical = PdfDocumentReadResult.Load(bytes);
+        Assert.Single(logical.GetLinksByUri(uri));
+        Assert.Equal(9, Assert.Single(logical.Headings).Level);
+        Assert.Equal("Outline title", Assert.Single(PdfInspector.Inspect(bytes).Outlines).Title);
+    }
+
     [Fact]
     public void Heading_PreservesNineAuthoredLevelsWithEqualFontSizes() {
         var document = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true });

@@ -26,6 +26,15 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    // Adapters retain their run formatting without putting note markers in the outline title.
+    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, PdfColor? color, PdfHeadingStyle? style) {
+        Guard.NotNull(build, nameof(build));
+        var builder = new PdfParagraphBuilder(align, color);
+        build(builder);
+        AddBlock(new HeadingBlock(level, title, align, color, style: style, runs: builder.Build().Runs));
+        return this;
+    }
+
     /// <summary>Adds a level-1 heading.</summary>
     internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(1, text, align, color, linkUri, style, linkContents, linkDestinationName);

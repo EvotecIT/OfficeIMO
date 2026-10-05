@@ -9,6 +9,10 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfContentBuilder {
     private readonly PdfDocument _doc;
     internal PdfContentBuilder(PdfDocument doc) { _doc = doc; }
+    internal PdfContentBuilder Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, PdfColor? color, PdfHeadingStyle? style) {
+        _doc.Heading(level, title, build, align, color, style);
+        return this;
+    }
     /// <summary>Returns this content receiver for readable grouping in fluent chains.</summary>
     public PdfContentBuilder Item() => this;
     /// <summary>Adds a logical group of content without introducing layout behavior.</summary>

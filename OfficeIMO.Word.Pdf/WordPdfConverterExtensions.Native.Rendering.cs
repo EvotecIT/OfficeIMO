@@ -188,8 +188,6 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = GetHeadingLevel(paragraph);
             PdfCore.PdfColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
-            (string? LinkUri, string? LinkDestinationName, string? LinkContents) headingLink = GetNativeHeadingLink(paragraph);
-            bool hasHeadingLinkTarget = headingLink.LinkUri != null || headingLink.LinkDestinationName != null;
             PdfCore.PdfHorizontalRuleStyle? topBorderRuleStyle = marker == null ? CreateNativeTopBorderRuleStyle(paragraph, style) : null;
             PdfCore.PdfParagraphStyle paragraphStyle = topBorderRuleStyle == null ? style : style.Clone();
             if (topBorderRuleStyle != null) {
@@ -205,7 +203,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent);
-                RenderNativeHeading(pdf, headingLevel, headingText, objectAlign, headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap, headingLink.LinkUri, headingLink.LinkDestinationName, headingLink.LinkContents);
+                RenderNativeHeading(pdf, headingLevel, headingText,
+                    builder => AddNativeParagraphContent(builder, paragraph, null, runs, hasRenderableRuns,
+                        renderContent, paragraphFootnoteNumbers, options, nativeDefaults, nativeFontMap),
+                    objectAlign, headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
                 if (CreateNativeBottomBorderRuleStyle(paragraph, paragraphStyle) is { } headingRuleStyle) {
                     pdf.HR(style: headingRuleStyle);
                 }
@@ -888,14 +889,14 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? linkUri = null, string? linkDestinationName = null, string? linkContents = null) {
+        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             PdfCore.PdfHeadingStyle style = CreateNativeWordHeadingStyle(level, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
             string normalizedText = NormalizeNativeDirectText(text);
             if (string.IsNullOrWhiteSpace(normalizedText)) {
                 return;
             }
 
-            pdf.Heading(level, normalizedText, align, color, style, linkUri, linkDestinationName, linkContents);
+            pdf.Heading(level, normalizedText, build, align, color, style);
         }
 
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {
@@ -1024,31 +1025,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasNativeHeadingDeclaredSpacingAfter(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
             paragraph.LineSpacingAfterPoints.HasValue || styleDefaults.SpacingAfter.HasValue;
-
-        private static (string? LinkUri, string? LinkDestinationName, string? LinkContents) GetNativeHeadingLink(WordParagraph paragraph) {
-            if (!paragraph.IsHyperLink || paragraph.Hyperlink == null) {
-                return (null, null, null);
-            }
-
-            string? contents = string.IsNullOrWhiteSpace(paragraph.Hyperlink.Tooltip)
-                ? paragraph.Hyperlink.Text
-                : paragraph.Hyperlink.Tooltip;
-            if (string.IsNullOrWhiteSpace(contents)) {
-                contents = null;
-            }
-
-            Uri? uri = paragraph.Hyperlink.Uri;
-            if (uri != null && uri.IsAbsoluteUri) {
-                return (uri.AbsoluteUri, null, contents);
-            }
-
-            string? bookmarkName = paragraph.Hyperlink.Anchor;
-            if (!string.IsNullOrWhiteSpace(bookmarkName)) {
-                return (null, bookmarkName, contents);
-            }
-
-            return (null, null, null);
-        }
 
         private static void AddNativeRun(
             PdfCore.PdfParagraphBuilder builder,
