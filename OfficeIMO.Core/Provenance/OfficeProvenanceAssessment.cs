@@ -42,8 +42,7 @@ public sealed class OfficeProvenanceSignalResult {
         OfficeProvenanceSignalStatus status,
         IReadOnlyList<string>? findings = null) : this(providerName, signalKind, status, findings, null) { }
 
-    /// <summary>Creates a provider result with optional reproducible detector measurements.</summary>
-    public OfficeProvenanceSignalResult(
+    private OfficeProvenanceSignalResult(
         string providerName,
         OfficeProvenanceSignalKind signalKind,
         OfficeProvenanceSignalStatus status,
@@ -56,6 +55,10 @@ public sealed class OfficeProvenanceSignalResult {
         Status = status;
         Findings = new List<string>(findings ?? Array.Empty<string>()).AsReadOnly();
     }
+
+    /// <summary>Returns a copy carrying optional reproducible detector measurements; null clears existing measurements.</summary>
+    public OfficeProvenanceSignalResult WithMeasurement(OfficeProvenanceSignalMeasurement? measurement) =>
+        new OfficeProvenanceSignalResult(ProviderName, SignalKind, Status, Findings, measurement);
 
     /// <summary>Gets the provider identity.</summary>
     public string ProviderName { get; }

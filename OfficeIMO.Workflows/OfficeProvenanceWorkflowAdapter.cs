@@ -71,6 +71,7 @@ internal static class OfficeProvenanceWorkflowAdapter {
             MaxFindings = options.TextIntegrity.MaxFindings,
             DetectInstructionLikeText = false,
             IncludeTextIntegrityEvidence = true,
+            TextIntegrityOnly = true,
             TextIntegrityOptions = new OfficeTextIntegrityOptions {
                 IncludeTypographicSpaces = options.TextIntegrity.IncludeTypographicSpaces,
                 IncludeVariationSelectors = options.TextIntegrity.IncludeVariationSelectors,

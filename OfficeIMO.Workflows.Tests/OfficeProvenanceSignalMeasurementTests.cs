@@ -5,6 +5,18 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeProvenanceSignalMeasurementTests {
     [Fact]
+    public void ExistingSignalDtoJsonStillDeserializes() {
+        var signal = JsonSerializer.Deserialize<ProvenanceSignalDto>("""
+            {"ProviderName":"legacy","SignalKind":"StatisticalTextWatermark","Status":"Inconclusive","Findings":[]}
+            """);
+        Assert.NotNull(signal);
+        Assert.Equal("legacy", signal.ProviderName);
+        Assert.Null(signal.Measurement);
+        var original = new OfficeProvenanceSignalResult("legacy", OfficeProvenanceSignalKind.StatisticalTextWatermark, OfficeProvenanceSignalStatus.Inconclusive);
+        Assert.Equal(original.ProviderName, JsonSerializer.Deserialize<OfficeProvenanceSignalResult>(JsonSerializer.Serialize(original))!.ProviderName);
+    }
+
+    [Fact]
     public async Task ProviderMeasurementsSurviveCanonicalReportSerialization() {
         var measurement = new OfficeProvenanceSignalMeasurement("1.2.3", "example-watermark", "z-score", 4.2,
             threshold: 3.5, tokenCount: 400, tokenizer: "example-tokenizer/1", configurationId: "public-profile-1",
@@ -17,7 +29,10 @@ public sealed class OfficeProvenanceSignalMeasurementTests {
                 .RunProvenanceAsync(new OfficeProvenanceWorkflowRequest { InputPath = path, Operation = OfficeProvenanceWorkflowOperation.Assess });
         } finally { File.Delete(path); }
         Assert.True(result.Succeeded, result.Summary);
-        using JsonDocument document = JsonDocument.Parse(OfficeProvenanceReportSerializer.Serialize(result));
+        string json = OfficeProvenanceReportSerializer.Serialize(result);
+        var roundTrip = JsonSerializer.Deserialize<ProvenanceResultDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.Equal(measurement.Score, Assert.Single(roundTrip!.Assessment!.ProviderSignals).Measurement!.Score);
+        using JsonDocument document = JsonDocument.Parse(json);
         JsonElement evidence = document.RootElement.GetProperty("assessment").GetProperty("providerSignals")[0].GetProperty("measurement");
         Assert.Equal(4.2, evidence.GetProperty("score").GetDouble());
         Assert.Equal("z-score", evidence.GetProperty("scoreName").GetString());
@@ -30,7 +45,7 @@ public sealed class OfficeProvenanceSignalMeasurementTests {
     private sealed class MeasurementDetector(OfficeProvenanceSignalMeasurement measurement) : IOfficeProvenanceSignalDetector {
         public string Name => "test-provider";
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.StatisticalTextWatermark;
-        public OfficeProvenanceSignalResult Detect(string filePath) => new(Name, SignalKind, OfficeProvenanceSignalStatus.Detected, [], measurement);
+        public OfficeProvenanceSignalResult Detect(string filePath) => new OfficeProvenanceSignalResult(Name, SignalKind, OfficeProvenanceSignalStatus.Detected).WithMeasurement(measurement);
     }
 
     [Fact]

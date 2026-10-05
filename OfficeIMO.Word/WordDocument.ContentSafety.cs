@@ -147,6 +147,7 @@ public partial class WordDocument {
                 evidence = "The text is stored outside the primary body story in " + rootLocation + ".";
             }
 
+            if (builder.Options.TextIntegrityOnly) kind = null;
             if (kind.HasValue) {
                 OfficeContentSafetyFinding finding = builder.Add(
                     kind.Value,
@@ -197,8 +198,12 @@ public partial class WordDocument {
         int index,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, WordCleanupTarget>? targets) {
-        if (string.IsNullOrWhiteSpace(value)) return;
+        if (string.IsNullOrEmpty(value)) return;
         string location = "DrawingProperties[" + index.ToString(CultureInfo.InvariantCulture) + "]/@" + attributeName;
+        if (builder.Options.TextIntegrityOnly) {
+            builder.InspectVisibleText(location, value);
+            return;
+        }
         OfficeContentSafetyFinding finding = builder.Add(
             OfficeContentConcealmentKind.NonPrimaryContent,
             OfficeContentSafetyRisk.Informational,

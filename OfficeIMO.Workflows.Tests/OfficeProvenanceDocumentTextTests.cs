@@ -6,6 +6,27 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeProvenanceDocumentTextTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task UnicodeFindingBudgetDoesNotCountOrdinaryNonPrimaryText(int markerCount) {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+        try {
+            using (var document = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document)) {
+                var main = document.AddMainDocumentPart();
+                main.Document = new W.Document(new W.Body(Paragraph("body" + new string('\u200B', markerCount))));
+                main.AddNewPart<FootnotesPart>().Footnotes = new W.Footnotes(new W.Footnote(Paragraph("first"), Paragraph("second")) { Id = 1 });
+            }
+            var request = new OfficeProvenanceWorkflowRequest { InputPath = path, Operation = OfficeProvenanceWorkflowOperation.Assess };
+            request.Assessment.TextIntegrity.MaxFindings = 1;
+            var result = await new OfficeWorkflowRunner().RunProvenanceAsync(request);
+            Assert.Equal(markerCount <= 1, result.Succeeded);
+            if (result.Succeeded) Assert.Equal(markerCount, result.Assessment!.TextIntegrity!.Findings.Count);
+            else Assert.Equal(OfficeProvenanceCheckStatus.Failed, result.Checks.TextIntegrity);
+        } finally { File.Delete(path); }
+    }
+
     [Fact]
     public async Task WordAssessmentUsesNativeTextLocationsAcrossStoriesAndPreservesBytes() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");

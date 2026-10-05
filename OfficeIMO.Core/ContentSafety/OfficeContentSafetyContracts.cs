@@ -84,6 +84,8 @@ public sealed class OfficeContentSafetyOptions {
 
     // Shared provenance workflows supply the same Unicode policy to the existing format owner.
     internal OfficeIMO.Provenance.OfficeTextIntegrityOptions? TextIntegrityOptions { get; set; }
+    // Native Word provenance assessment collects Unicode only, with its own finding budget.
+    internal bool TextIntegrityOnly { get; set; }
 
     internal void Validate() {
         if (MaxInputBytes <= 0 || MaxInputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));

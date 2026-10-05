@@ -34,7 +34,7 @@ Structural inspection reports whether the carrier shape is safe to interpret or 
 
 `IOfficeProvenanceSignalDetector` is the extension point for vendor-specific watermark and disclosure services. Each result retains the provider name, signal type, and `Detected`, `NotDetected`, `Inconclusive`, `ProviderUnavailable`, or `Error` status. `OfficeProvenanceAssessment` combines those results with structural, verification, and Unicode evidence without producing an `IsAi` property.
 
-Optional `OfficeProvenanceSignalMeasurement` evidence records the detector version, algorithm, named score, threshold, token count/tokenizer, configuration identifier and calibration reference. A SHA-256 text digest can bind a UTF-16 span to the full extracted UTF-8 text. Scores retain their provider-defined scale; they are not AI-authorship probabilities. Canonical v2 reports include these additive fields only when a provider supplies them.
+Detectors attach optional evidence with `result.WithMeasurement(measurement)`. `OfficeProvenanceSignalMeasurement` records the detector version, algorithm, named score, threshold, token count/tokenizer, configuration identifier and calibration reference. A SHA-256 text digest can bind a UTF-16 span to the full extracted UTF-8 text. Scores retain their provider-defined scale; they are not AI-authorship probabilities. Canonical v2 reports include these additive fields only when a provider supplies them.
 
 Providers can opt into cooperative cancellation through `ICancellableOfficeProvenanceSignalDetector` and `ICancellableOfficeProvenanceVerifier`. The original interfaces remain supported, so existing provider implementations do not need to change.
 
