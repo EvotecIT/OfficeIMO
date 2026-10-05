@@ -8,6 +8,7 @@ internal static partial class OfficeImageMetadataInspector {
         try {
             var container = OfficeJpegXrDecoder.ReadContainer(data, token);
             snapshot.Kinds |= container.MetadataKinds;
+            snapshot.HasDeviceCmyk = container.Cmyk;
             snapshot.HasColorRenderingMetadata = container.HasColorRenderingMetadata;
             snapshot.HasPhysicalResolution = (container.MetadataKinds & OfficeImageMetadataKinds.Resolution) != 0;
             bool swap = container.Transform >= 4;

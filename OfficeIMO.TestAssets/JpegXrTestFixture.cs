@@ -29,6 +29,24 @@ internal static class JpegXrTestFixture {
         return output;
     }
 
+    internal static byte[] ConvertCmykReference(byte[] samples, int depth, int components, OfficeIMO.Drawing.OfficeIccColorProfile profile) {
+        int size = depth / 8, pixels = samples.Length / (components * size);
+        var output = new byte[pixels * 4];
+        var channels = new double[4];
+        int maximum = depth == 8 ? 255 : 65535;
+        for (int pixel = 0; pixel < pixels; pixel++) {
+            int start = pixel * components * size;
+            for (int c = 0; c < 4; c++)
+                channels[c] = (depth == 8 ? samples[start + c] : Read16(samples, start + c * 2)) / (double)maximum;
+            if (!profile.TryConvert(channels, OfficeIMO.Drawing.OfficeIccRenderingIntent.RelativeColorimetric, out var color))
+                throw new InvalidOperationException("Reference CMYK profile could not convert the sample.");
+            output[pixel * 4] = color.R; output[pixel * 4 + 1] = color.G; output[pixel * 4 + 2] = color.B;
+            int alpha = components == 4 ? maximum : depth == 8 ? samples[start + 4] : Read16(samples, start + 8);
+            output[pixel * 4 + 3] = (byte)(((long)alpha * 255 + maximum / 2) / maximum);
+        }
+        return output;
+    }
+
     private static int Read16(byte[] b, int p) => b[p] | b[p + 1] << 8;
     private static int Read32(byte[] b, int p) => Read16(b, p) | Read16(b, p + 2) << 16;
     private static void Write16(byte[] b, int p, int value) { b[p] = (byte)value; b[p + 1] = (byte)(value >> 8); }

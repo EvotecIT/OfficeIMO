@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv;TestAssets\JpegXr\*.cmyk;TestAssets\JpegXr\cmyk-manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\TiffUnsigned16\*.tif;TestAssets\TiffUnsigned16\*.rgba;TestAssets\TiffUnsigned16\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />

@@ -30,7 +30,7 @@ internal static partial class OfficeJpegXrDecoder {
                 result.Quantizers[tile] = new[] { frame.Primary.DcQuant ?? ReadQuantization(bits, components) };
                 if (frame.AlphaPlane != null)
                     result.AlphaQuantizers[tile] = new[] { frame.AlphaPlane.DcQuant ?? ReadQuantization(bits, 1) };
-                var primary = new DcContext(components);
+                var primary = new DcContext(components, frame.Primary.Color);
                 DcContext? alpha = frame.Alpha ? new DcContext(1) : null;
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {

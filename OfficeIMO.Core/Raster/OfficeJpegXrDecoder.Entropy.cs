@@ -71,7 +71,7 @@ internal static partial class OfficeJpegXrDecoder {
         private readonly int[] _state = new int[2];
         private readonly int _band, _components, _color;
         private static readonly int[] LumaWeights = { 240, 12, 1 };
-        private static readonly int[,] ChromaWeights = { { 0, 240, 120 }, { 0, 12, 6 }, { 0, 16, 8 } };
+        private static readonly int[,] ChromaWeights = { { 0, 240, 120, 80 }, { 0, 12, 6, 4 }, { 0, 16, 8, 5 } };
 
         internal CoefficientModel(int band, int components, int color = 0) {
             _band = band; _components = components; _color = color;
@@ -107,17 +107,18 @@ internal static partial class OfficeJpegXrDecoder {
     private sealed class DcContext {
         private readonly BinaryVlc _luma = new(), _chroma = new();
         private readonly CoefficientModel _model;
-        private readonly int _components;
+        private readonly int _components, _color;
 
-        internal DcContext(int components) { _components = components; _model = new CoefficientModel(0, components); }
+        internal DcContext(int components, int color = 0) { _components = components; _color = color; _model = new CoefficientModel(0, components, color); }
 
         internal void Read(Bits bits, int[] destination, int offset, bool adapt) {
-            int presence = _components == 1 ? (int)bits.Read(1) : DcPresence.Read(bits);
+            bool independent = _color == 0 || _color == 4;
+            int presence = independent ? 0 : DcPresence.Read(bits);
             int lumaCount = 0, chromaCount = 0;
             for (int i = 0; i < _components; i++) {
-                bool nonzero = (presence & (1 << (_components - i - 1))) != 0;
+                bool nonzero = independent ? bits.Flag() : (presence & (1 << (_components - i - 1))) != 0;
                 if (nonzero) { if (i == 0) lumaCount++; else chromaCount++; }
-                BinaryVlc vlc = i == 0 ? _luma : _chroma;
+                BinaryVlc vlc = i == 0 || independent ? _luma : _chroma;
                 long value = nonzero ? vlc.ReadAbsolute(bits) - 1L : 0;
                 int refinement = _model.Bits[i == 0 ? 0 : 1];
                 value = (value << refinement) | bits.Read(refinement);

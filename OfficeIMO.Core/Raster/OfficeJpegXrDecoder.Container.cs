@@ -13,18 +13,21 @@ internal static partial class OfficeJpegXrDecoder {
         internal OfficeImageMetadataKinds MetadataKinds;
         internal bool HasColorRenderingMetadata;
         internal bool Premultiplied => PixelFormat == 0x10 || PixelFormat == 0x17 || PixelFormat == 0x1A;
+        internal bool CmykDirect => PixelFormat is 0x54 or 0x55 or 0x56 or 0x43;
+        internal bool Cmyk => CmykDirect || PixelFormat is 0x1C or 0x1F or 0x2C or 0x2D;
+        internal int ColorComponents => Cmyk ? 4 : Gray ? 1 : 3;
         internal bool Gray => PixelFormat == 0x08 || PixelFormat == 0x0B || PixelFormat == 0x13 ||
             PixelFormat == 0x3E || PixelFormat == 0x3F || PixelFormat == 0x11;
         internal int BitDepth => PixelFormat switch {
-            0x08 or 0x0C or 0x0D or 0x0F or 0x10 => 1,
-            0x0B or 0x15 or 0x16 or 0x17 => 2,
+            0x08 or 0x0C or 0x0D or 0x0F or 0x10 or 0x1C or 0x2C or 0x54 or 0x56 => 1,
+            0x0B or 0x15 or 0x16 or 0x17 or 0x1F or 0x2D or 0x55 or 0x43 => 2,
             0x13 or 0x12 or 0x40 or 0x1D => 3,
             0x3E or 0x3B or 0x42 or 0x3A => 4,
             0x3F or 0x18 or 0x41 or 0x1E => 6,
             0x11 or 0x1B or 0x19 or 0x1A => 7,
             _ => 0
         };
-        internal bool HasAlpha => PixelFormat == 0x0F || PixelFormat == 0x10 || PixelFormat == 0x16 || PixelFormat == 0x17 ||
+        internal bool HasAlpha => PixelFormat is 0x2C or 0x2D or 0x56 or 0x43 || PixelFormat == 0x0F || PixelFormat == 0x10 || PixelFormat == 0x16 || PixelFormat == 0x17 ||
             PixelFormat == 0x1D || PixelFormat == 0x3A || PixelFormat == 0x1E || PixelFormat == 0x19 || PixelFormat == 0x1A;
         internal FrameHeader Frame = new();
         internal FrameHeader? SeparateAlpha;
@@ -84,7 +87,7 @@ internal static partial class OfficeJpegXrDecoder {
         for (int i = 0; i < formatPrefix.Length; i++)
             if (bytes[pixel.Value + i] != formatPrefix[i]) throw new FormatException("JPEG-XR pixel format is unsupported.");
         container.PixelFormat = bytes[pixel.Value + 15];
-        if (container.BitDepth == 0) throw new FormatException("JPEG-XR pixel format is outside the RGB/gray contract.");
+        if (container.BitDepth == 0) throw new FormatException("JPEG-XR pixel format is outside the supported sample contract.");
         if (fields.ContainsKey(0xBC02)) container.Transform = RequiredUnsigned(bytes, fields, 0xBC02);
         if (container.Transform > 7) container.Transform = 0;
         if (container.Transform != 0) container.MetadataKinds |= OfficeImageMetadataKinds.Orientation;
@@ -102,7 +105,7 @@ internal static partial class OfficeJpegXrDecoder {
         if (container.ImageLength == 0) container.ImageLength = bytes.Length - container.ImageOffset;
         ValidateCodestreamRange(bytes, container.ImageOffset, container.ImageLength);
         container.Frame = ReadHeader(bytes, container.ImageOffset, container.ImageLength, cancellation);
-        if ((container.Gray ? 0 : 7) != container.Frame.OutputColor || container.BitDepth != container.Frame.BitDepth)
+        if ((container.CmykDirect ? 5 : container.Cmyk ? 4 : container.Gray ? 0 : 7) != container.Frame.OutputColor || container.BitDepth != container.Frame.BitDepth)
             throw new FormatException("JPEG-XR pixel format and codestream color/alpha semantics disagree.");
         if (container.Frame.Width != container.Width || container.Frame.Height != container.Height ||
             container.Frame.Alpha && !container.HasAlpha || !alphaOffset && container.HasAlpha != container.Frame.Alpha)

@@ -27,7 +27,8 @@ internal static partial class OfficeJpegXrDecoder {
         if (bytes.Length > options.MaximumEncodedBytes || options.FrameIndex != 0) return false;
         try {
             Container container = ReadContainer(bytes, options.CancellationToken);
-            if (colorProfile != null && colorProfile.ComponentCount != (container.Gray ? 1 : 3)) return false;
+            if ((colorProfile != null && colorProfile.ComponentCount != container.ColorComponents) ||
+                (container.Cmyk && colorProfile == null)) return false;
             if (!OfficeRasterGuards.TryEnsurePixelCount(container.Width, container.Height, options.MaximumDecodedPixels, out int pixels)) return false;
             // Budget the complete pipeline before allocating coefficient/sample arrays.
             // This includes simultaneously retained alpha, prediction scratch, tile

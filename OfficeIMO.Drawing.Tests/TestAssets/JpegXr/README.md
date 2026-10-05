@@ -61,3 +61,19 @@ interleaved-alpha samples; this is retained as a consumer qualification limit.
 
 Signed endpoint fixtures distinguish sixteen-bit clipping from thirty-two-bit
 output packing when lossy reconstruction crosses a representable endpoint.
+
+The CMYK corpus in `cmyk-manifest.csv` carries independent decoded source samples
+in `.cmyk` files (interleaved C/M/Y/K/optional alpha, unsigned eight-bit or
+little-endian sixteen-bit). Tests convert these samples through the existing ICC
+engine before comparing image and PDF-reader pixels. The wider comparison covers
+96 encodings and 768,768 exact channel samples. Microsoft comparison decoding
+accepts ordinary CMYK, with one-level alpha differences in four lossy eight-bit
+interleaved-alpha cases, and rejects CMYKDirect identifiers.
+
+The ITU encoder input adapter pads the final eight-bit interleaved-alpha TIFF
+strip to a macroblock boundary; its reader requests a full strip after the image
+height. CMYKDirect container GUIDs are corrected to match the encoded output color
+format, and separate-alpha byte counts include the complete alpha stream. Neither
+correction changes pixel packets. Corrected files are decoded again by the reference
+program; its planar CMYKDirect output is interleaved for `.cmyk` storage. Fixture
+hashes and producer details are recorded in `provenance.json`.

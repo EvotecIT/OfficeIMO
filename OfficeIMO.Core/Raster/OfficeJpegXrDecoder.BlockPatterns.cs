@@ -10,31 +10,34 @@ internal static partial class OfficeJpegXrDecoder {
         private readonly int[] _difference;
         internal BlockPatterns(int components, int color = 0) { _components = components; _color = color; _difference = new int[components]; }
 
-        // T.832 8.7.17.2/8.7.17.5 and 8.10, for gray and YUV planes.
+        // T.832 8.7.17.2/8.7.17.5 and 8.10, for gray, YUV and YUVK planes.
         internal void Read(Bits bits, int[] patterns, int start, int left, int top, bool leftEdge, bool topEdge) {
             Array.Clear(_difference, 0, _difference.Length);
-            int groupMask = Refine(bits, _groups.Read(bits, PatternCountCodes, PatternCountDeltas));
-            for (int group = 0; group < 4; group++) if ((groupMask & (1 << group)) != 0) {
-                int value = _components == 1 ? _blocks.Read(bits, PatternCountCodes, PatternCountDeltas) + 1
-                    : _blocks.Read(bits, ChromaPatternCountCodes, ChromaPatternCountDeltas) + 1;
-                int chroma = 0;
-                if (value >= 6) {
-                    chroma = (TernaryCodes.Read(bits) + 1) << 4;
-                    if (value >= 9) value += TernaryCodes.Read(bits);
-                    value -= 6;
-                }
-                if (value > 5) throw new FormatException("JPEG-XR block pattern symbol is invalid.");
-                int index = PatternOffsets[value] + (int)bits.Read(PatternWidths[value]);
-                int pattern = PatternValues[index] | chroma;
-                _difference[0] |= (pattern & 15) << (group * 4);
-                for (int c = 1; c < _components; c++) if ((pattern & (1 << (c + 3))) != 0) {
-                    if (_color == 1) _difference[c] |= 1 << group;
-                    else if (_color == 2) {
-                        int symbol = TernaryCodes.Read(bits);
-                        int pair = symbol == 0 ? 1 : symbol == 1 ? 4 : 5;
-                        int shift = group < 2 ? group : group + 2;
-                        _difference[c] |= pair << shift;
-                    } else _difference[c] |= Refine(bits, ChromaBlockCodes.Read(bits) + 1) << (group * 4);
+            bool independent = _color == 0 || _color == 4;
+            for (int channel = 0; channel < (independent ? _components : 1); channel++) {
+                int groupMask = Refine(bits, _groups.Read(bits, PatternCountCodes, PatternCountDeltas));
+                for (int group = 0; group < 4; group++) if ((groupMask & (1 << group)) != 0) {
+                    int value = independent ? _blocks.Read(bits, PatternCountCodes, PatternCountDeltas) + 1
+                        : _blocks.Read(bits, ChromaPatternCountCodes, ChromaPatternCountDeltas) + 1;
+                    int chroma = 0;
+                    if (value >= 6) {
+                        chroma = (TernaryCodes.Read(bits) + 1) << 4;
+                        if (value >= 9) value += TernaryCodes.Read(bits);
+                        value -= 6;
+                    }
+                    if (value > 5) throw new FormatException("JPEG-XR block pattern symbol is invalid.");
+                    int index = PatternOffsets[value] + (int)bits.Read(PatternWidths[value]);
+                    int pattern = PatternValues[index] | chroma;
+                    _difference[channel] |= (pattern & 15) << (group * 4);
+                    for (int c = 1; !independent && c < _components; c++) if ((pattern & (1 << (c + 3))) != 0) {
+                        if (_color == 1) _difference[c] |= 1 << group;
+                        else if (_color == 2) {
+                            int symbol = TernaryCodes.Read(bits);
+                            int pair = symbol == 0 ? 1 : symbol == 1 ? 4 : 5;
+                            int shift = group < 2 ? group : group + 2;
+                            _difference[c] |= pair << shift;
+                        } else _difference[c] |= Refine(bits, ChromaBlockCodes.Read(bits) + 1) << (group * 4);
+                    }
                 }
             }
             for (int c = 0; c < _components; c++) {
