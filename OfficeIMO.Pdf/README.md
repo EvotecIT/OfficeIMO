@@ -1892,6 +1892,8 @@ The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX P
 
 The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
 
+Automatic fallback registration keeps every resolved candidate when the Helvetica, Times and Courier compatibility slots cannot hold the complete set. It uses distinct named font resources in that case, preserving caller registrations and their bold/italic faces. Resetting or replacing the automatic fallback set releases its named resources; a later caller registration retains ownership of that family. Named resources remain subject to the 64-family limit. Explicit fallback sets retain their configured candidates and mappings.
+
 `PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. Named fallback families use their own registrations. `PdfEmbeddedFontFallbackSet.RegisterFonts` explicitly installs the supplied slot mapping. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data.
 
 ### Inspect and remove content provenance

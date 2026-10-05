@@ -164,6 +164,8 @@ and enforces `MaxOutlinedTextCharactersPerRun` plus the operation-wide
 `MaxOutlinedTextPathCommands` budget. The defaults are 16,384 UTF-16 characters per
 run and 1,000,000 path commands per conversion. Raise them only for trusted inputs.
 
+HTML body text and SVG text share font discovery, including nested SVG viewports, effect groups and tiling patterns. Fonts registered through `options.Fonts` are available to layout and PDF encoding in those groups. Automatic installed-font fallback follows `ResourcePolicy` for both HTML and SVG text; `CreatePortableDeterministic()` requires explicit in-memory or allowed document fonts. Uncovered characters retain strict encoding diagnostics.
+
 No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
 
 ```csharp
