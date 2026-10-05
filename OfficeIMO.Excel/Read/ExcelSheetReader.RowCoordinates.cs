@@ -56,7 +56,10 @@ namespace OfficeIMO.Excel {
             private int _fallback;
             private long _position;
             private bool _inferred;
+            private bool _hasPreviousRow;
+            private int _previousRowIndex;
             internal bool NeedsCellReference { get; private set; }
+            internal bool RowsStrictlyIncreasing { get; private set; } = true;
 
             internal void BeginRow(XmlReader reader, int declaredRowIndex) {
                 _rowIndex = declaredRowIndex;
@@ -75,6 +78,9 @@ namespace OfficeIMO.Excel {
             }
 
             internal void EndRow() {
+                if (_hasPreviousRow && _rowIndex <= _previousRowIndex) RowsStrictlyIncreasing = false;
+                _previousRowIndex = _rowIndex;
+                _hasPreviousRow = true;
                 if (_inferred && _rowIndex != _fallback) {
                     if (Indexes.Count >= A1.MaxRows) {
                         throw new InvalidDataException("Worksheet implicit row coordinates exceed the XLSX row limit.");

@@ -74,7 +74,8 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct,
                 ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
                 int utf8SourceFirstColumn = 0,
-                bool trackCellPresence = false) {
+                bool trackCellPresence = false,
+                bool rowsAlreadyQualified = false) {
                 _owner = owner;
                 _firstRow = firstRow;
                 _lastRow = lastRow;
@@ -116,7 +117,8 @@ namespace OfficeIMO.Excel {
                     }
                     // XML rows may recur after a dense prefix. Establish ordering before
                     // publishing any values; unsorted input uses the existing cell budget.
-                    if (_utf8Source == null && !owner.RowsAreSortedWithinRangeXmlFast(firstRow, lastRow, ct)) {
+                    if (_utf8Source == null && !rowsAlreadyQualified
+                        && !owner.RowsAreSortedWithinRangeXmlFast(firstRow, lastRow, ct)) {
                         BufferRemainingRows();
                     }
 

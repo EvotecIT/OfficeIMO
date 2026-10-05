@@ -7,13 +7,12 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
-        internal void ValidateDataReaderProjection(CancellationToken ct) {
+        private bool ValidateDataReaderProjection(CancellationToken ct) {
             if (_canStreamWorksheetPart) {
                 try {
                     using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (TryPrepareWorksheetStream(stream)) {
-                        ValidateDataReaderProjectionXml(stream, ct);
-                        return;
+                        return ValidateDataReaderProjectionXml(stream, ct);
                     }
                 } catch (XmlException) {
                 } catch (IOException) {
@@ -49,9 +48,10 @@ namespace OfficeIMO.Excel {
                     $"'{_sheetName}'!{reference.ToString()}. Read the workbook through ExcelDocument when resolved " +
                     "shared-formula text is required.");
             }
+            return false;
         }
 
-        private void ValidateDataReaderProjectionXml(
+        private bool ValidateDataReaderProjectionXml(
             Stream stream,
             CancellationToken ct) {
             using var reader = OpenWorksheetXmlReader(stream);
@@ -206,8 +206,10 @@ namespace OfficeIMO.Excel {
                 }
                 if (coordinates != null) {
                     Interlocked.CompareExchange(ref _implicitXmlRowIndexes, coordinates.Indexes, null);
+                    return coordinates.RowsStrictlyIncreasing;
                 }
             }
+            return false;
         }
 
         private static string ReadSimpleElementText(

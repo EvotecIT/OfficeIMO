@@ -37,14 +37,17 @@ namespace OfficeIMO.Excel {
                     ct);
             }
 
-            ValidateDataReaderProjection(ct);
+            bool rowsStrictlyIncreasing = ValidateDataReaderProjection(ct);
             string usedRange = GetUsedRangeA1(ct);
-            return ReadRangeAsDataReader(
+            return ReadRangeAsDataReaderCore(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
                 chunkRows: Math.Min(1024, _opt.MaxDataReaderChunkRows),
                 schemaSampleRows: schemaSampleRows,
-                ct: ct);
+                mode: null,
+                ct: ct,
+                trackCellPresence: false,
+                rowsAlreadyQualified: rowsStrictlyIncreasing);
         }
 
         private bool TryCreateIndexedUsedRangeDataReader(
@@ -128,7 +131,8 @@ namespace OfficeIMO.Excel {
             int schemaSampleRows,
             OfficeIMO.Excel.ExcelExecutionMode? mode,
             CancellationToken ct,
-            bool trackCellPresence) {
+            bool trackCellPresence,
+            bool rowsAlreadyQualified = false) {
             if (chunkRows <= 0 || chunkRows > _opt.MaxDataReaderChunkRows) {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows),
                     $"Chunk row count must be between 1 and {_opt.MaxDataReaderChunkRows}.");
@@ -166,7 +170,8 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
                 }
 
-                return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct, trackCellPresence: trackCellPresence);
+                return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct,
+                    trackCellPresence: trackCellPresence, rowsAlreadyQualified: rowsAlreadyQualified);
             }
 
             long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
