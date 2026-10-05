@@ -281,6 +281,12 @@ internal static partial class DocumentReaderEngine {
         }
 
         var pages = new List<OfficeDocumentPage>();
+        var chunksByPage = chunks.ToLookup(chunk => chunk.Location.Page);
+        var blocksByPage = blocks.ToLookup(block => block.Location.Page);
+        var tablesByPage = tables.ToLookup(table => table.Location?.Page);
+        var assetsByPage = assets.ToLookup(asset => asset.Location.Page);
+        var ocrCandidatesByPage = ocrCandidates.ToLookup(candidate => candidate.Location.Page);
+
         var pageNumbers = chunks
             .Where(static chunk => chunk.Location.Page.HasValue)
             .Select(static chunk => chunk.Location.Page!.Value)
@@ -290,19 +296,25 @@ internal static partial class DocumentReaderEngine {
             .Distinct()
             .OrderBy(static page => page);
         foreach (int pageNumber in pageNumbers) {
-            ReaderLocation location = chunks.FirstOrDefault(chunk => chunk.Location.Page == pageNumber)?.Location
-                ?? tables.FirstOrDefault(table => table.Location?.Page == pageNumber)?.Location
-                ?? assets.FirstOrDefault(asset => asset.Location.Page == pageNumber)?.Location
-                ?? ocrCandidates.First(candidate => candidate.Location.Page == pageNumber).Location;
+            ReaderLocation location = chunksByPage[pageNumber].FirstOrDefault()?.Location
+                ?? tablesByPage[pageNumber].FirstOrDefault()?.Location
+                ?? assetsByPage[pageNumber].FirstOrDefault()?.Location
+                ?? ocrCandidatesByPage[pageNumber].First().Location;
             pages.Add(BuildChunkPage(
                 number: pageNumber,
                 name: null,
                 location: BuildContainerLocation(location, "page"),
-                blocks: blocks.Where(block => block.Location.Page == pageNumber).ToArray(),
-                tables: tables.Where(table => table.Location?.Page == pageNumber).ToArray(),
-                assets: assets.Where(asset => asset.Location.Page == pageNumber).ToArray(),
-                ocrCandidates: ocrCandidates.Where(candidate => candidate.Location.Page == pageNumber).ToArray()));
+                blocks: blocksByPage[pageNumber].ToArray(),
+                tables: tablesByPage[pageNumber].ToArray(),
+                assets: assetsByPage[pageNumber].ToArray(),
+                ocrCandidates: ocrCandidatesByPage[pageNumber].ToArray()));
         }
+
+        var chunksBySlide = chunks.ToLookup(chunk => chunk.Location.Slide);
+        var blocksBySlide = blocks.ToLookup(block => block.Location.Slide);
+        var tablesBySlide = tables.ToLookup(table => table.Location?.Slide);
+        var assetsBySlide = assets.ToLookup(asset => asset.Location.Slide);
+        var ocrCandidatesBySlide = ocrCandidates.ToLookup(candidate => candidate.Location.Slide);
 
         var slideNumbers = chunks
             .Where(static chunk => chunk.Location.Slide.HasValue)
@@ -313,19 +325,25 @@ internal static partial class DocumentReaderEngine {
             .Distinct()
             .OrderBy(static slide => slide);
         foreach (int slideNumber in slideNumbers) {
-            ReaderLocation location = chunks.FirstOrDefault(chunk => chunk.Location.Slide == slideNumber)?.Location
-                ?? tables.FirstOrDefault(table => table.Location?.Slide == slideNumber)?.Location
-                ?? assets.FirstOrDefault(asset => asset.Location.Slide == slideNumber)?.Location
-                ?? ocrCandidates.First(candidate => candidate.Location.Slide == slideNumber).Location;
+            ReaderLocation location = chunksBySlide[slideNumber].FirstOrDefault()?.Location
+                ?? tablesBySlide[slideNumber].FirstOrDefault()?.Location
+                ?? assetsBySlide[slideNumber].FirstOrDefault()?.Location
+                ?? ocrCandidatesBySlide[slideNumber].First().Location;
             pages.Add(BuildChunkPage(
                 number: slideNumber,
                 name: null,
                 location: BuildContainerLocation(location, "slide"),
-                blocks: blocks.Where(block => block.Location.Slide == slideNumber).ToArray(),
-                tables: tables.Where(table => table.Location?.Slide == slideNumber).ToArray(),
-                assets: assets.Where(asset => asset.Location.Slide == slideNumber).ToArray(),
-                ocrCandidates: ocrCandidates.Where(candidate => candidate.Location.Slide == slideNumber).ToArray()));
+                blocks: blocksBySlide[slideNumber].ToArray(),
+                tables: tablesBySlide[slideNumber].ToArray(),
+                assets: assetsBySlide[slideNumber].ToArray(),
+                ocrCandidates: ocrCandidatesBySlide[slideNumber].ToArray()));
         }
+
+        var chunksBySheet = chunks.ToLookup(chunk => chunk.Location.Sheet);
+        var blocksBySheet = blocks.ToLookup(block => block.Location.Sheet);
+        var tablesBySheet = tables.ToLookup(table => table.Location?.Sheet);
+        var assetsBySheet = assets.ToLookup(asset => asset.Location.Sheet);
+        var ocrCandidatesBySheet = ocrCandidates.ToLookup(candidate => candidate.Location.Sheet);
 
         var sheetNames = chunks
             .Where(static chunk => !string.IsNullOrWhiteSpace(chunk.Location.Sheet))
@@ -335,18 +353,18 @@ internal static partial class DocumentReaderEngine {
             .Concat(ocrCandidates.Where(static candidate => !string.IsNullOrWhiteSpace(candidate.Location.Sheet)).Select(static candidate => candidate.Location.Sheet!))
             .Distinct(StringComparer.Ordinal);
         foreach (string sheetName in sheetNames) {
-            ReaderLocation location = chunks.FirstOrDefault(chunk => string.Equals(chunk.Location.Sheet, sheetName, StringComparison.Ordinal))?.Location
-                ?? tables.FirstOrDefault(table => string.Equals(table.Location?.Sheet, sheetName, StringComparison.Ordinal))?.Location
-                ?? assets.FirstOrDefault(asset => string.Equals(asset.Location.Sheet, sheetName, StringComparison.Ordinal))?.Location
-                ?? ocrCandidates.First(candidate => string.Equals(candidate.Location.Sheet, sheetName, StringComparison.Ordinal)).Location;
+            ReaderLocation location = chunksBySheet[sheetName].FirstOrDefault()?.Location
+                ?? tablesBySheet[sheetName].FirstOrDefault()?.Location
+                ?? assetsBySheet[sheetName].FirstOrDefault()?.Location
+                ?? ocrCandidatesBySheet[sheetName].First().Location;
             pages.Add(BuildChunkPage(
                 number: null,
                 name: sheetName,
                 location: BuildContainerLocation(location, "sheet"),
-                blocks: blocks.Where(block => string.Equals(block.Location.Sheet, sheetName, StringComparison.Ordinal)).ToArray(),
-                tables: tables.Where(table => string.Equals(table.Location?.Sheet, sheetName, StringComparison.Ordinal)).ToArray(),
-                assets: assets.Where(asset => string.Equals(asset.Location.Sheet, sheetName, StringComparison.Ordinal)).ToArray(),
-                ocrCandidates: ocrCandidates.Where(candidate => string.Equals(candidate.Location.Sheet, sheetName, StringComparison.Ordinal)).ToArray()));
+                blocks: blocksBySheet[sheetName].ToArray(),
+                tables: tablesBySheet[sheetName].ToArray(),
+                assets: assetsBySheet[sheetName].ToArray(),
+                ocrCandidates: ocrCandidatesBySheet[sheetName].ToArray()));
         }
 
         return pages.Count == 0 ? Array.Empty<OfficeDocumentPage>() : pages;

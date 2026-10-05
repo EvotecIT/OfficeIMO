@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Xps\OfficeIMO.Xps.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Xps\OfficeIMO.Reader.Xps.csproj" />
   </ItemGroup>
 
   <ItemGroup><None Update="Fixtures/ColorImages/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>

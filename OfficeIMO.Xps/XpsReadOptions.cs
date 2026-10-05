@@ -14,6 +14,8 @@ public sealed class XpsReadOptions {
     public int MaximumPages { get; set; } = 5000;
     /// <summary>Maximum XML element nesting depth.</summary>
     public int MaximumXmlDepth { get; set; } = 64;
+    /// <summary>Returns an independent, validated copy of these package and XML limits.</summary>
+    public XpsReadOptions Clone() => Snapshot();
     internal XpsReadOptions Snapshot() {
         if (MaximumInputBytes <= 0 || MaximumExpandedBytes <= 0 || MaximumPartBytes <= 0 ||
             MaximumParts <= 0 || MaximumPages <= 0 || MaximumXmlDepth <= 0)

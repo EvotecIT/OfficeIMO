@@ -9,6 +9,20 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## XPS/OpenXPS Reader identity and native order
+
+Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
+`.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
+schema version 10. Exhaustive kind switches and transport bindings must accept
+this value and version. Versions 5 through 9 remain readable; they cannot carry
+XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
+artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
+page citations remain separate. Null order values retain existing container order.
+
+`XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
+`XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
+for bounded chunks, tables, page citations and diagnostics.
+
 ## XPS PDF reading order
 
 `XpsDocument.ToPdf()` maps authored native logical structure by default. Its search

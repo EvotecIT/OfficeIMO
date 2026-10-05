@@ -333,7 +333,9 @@ Portable XPS/OpenXPS package reading, native page editing, and writing, with
 embedded fonts, paths, images, and explicit conversion diagnostics. SVG and raster
 export reuse the shared drawing engine; [OfficeIMO.Xps.Pdf](OfficeIMO.Xps.Pdf/README.md)
 adds vector PDF export. [Rendering and preservation boundaries](OfficeIMO.Xps/SUPPORT.md)
-are documented separately. The core package references only `OfficeIMO.Core`.
+are documented separately. [OfficeIMO.Reader.Xps](OfficeIMO.Reader.Xps/README.md)
+adds bounded Unicode, logical-order and page ingestion. The core package references
+only `OfficeIMO.Core`.
 
 #### [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md)
 

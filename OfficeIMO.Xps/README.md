@@ -119,6 +119,18 @@ foreach (string diagnostic in structure.Diagnostics)
     Console.WriteLine(diagnostic);
 ```
 
+`ToOfficeDocumentModel()` projects the same native reading order into the shared
+document model with physical page locations, links, list markers and tables:
+
+```csharp
+OfficeIMO.OfficeDocumentModel model = document.ToOfficeDocumentModel("report.oxps");
+foreach (var block in model.Blocks)
+    Console.WriteLine($"Page {block.Location.Page}: {block.Text}");
+```
+
+The [Reader adapter](../OfficeIMO.Reader.Xps/README.md) adds bounded chunks, source
+hashes and JSON transport. Optional SVG previews use the strict native renderer.
+
 `page.ReadContentStructure()` reads a page's own fragments, including headers and
 footers. `GetStoryFragmentsMarkup()` and
 `fixedDocument.GetDocumentStructureMarkup()` return detached native XML.

@@ -27,6 +27,8 @@ internal static partial class DocumentReaderEngine {
             AddCountMetadata(entries, "reader-slide-count", "reader.container", "SlideCount", pages.Count(static page => string.Equals(page.Location.SourceBlockKind, "slide", StringComparison.Ordinal)));
         } else if (kind == ReaderInputKind.Pdf) {
             AddCountMetadata(entries, "reader-page-count", "reader.container", "PageCount", pages.Count(static page => string.Equals(page.Location.SourceBlockKind, "page", StringComparison.Ordinal)));
+        } else if (kind == ReaderInputKind.Xps) {
+            AddCountMetadata(entries, "reader-page-count", "reader.container", "PageCount", pages.Count(static page => string.Equals(page.Location.SourceBlockKind, "fixed-page", StringComparison.Ordinal)));
         }
 
         return entries.Count == 0 ? Array.Empty<OfficeDocumentMetadataEntry>() : entries.AsReadOnly();

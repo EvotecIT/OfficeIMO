@@ -62,8 +62,8 @@ public sealed partial class XpsPage {
                 new XAttribute("ViewboxUnits", "Absolute"), new XAttribute("ViewportUnits", "Absolute")))));
         return this;
     }
-    /// <summary>Returns UnicodeString values in markup order, not inferred paragraph or reading order.</summary>
-    public string ExtractText() => string.Join("\n", _markup.Descendants(_markup.Name.Namespace + "Glyphs").Select(g => Unescape((string?)g.Attribute("UnicodeString") ?? "")));
+    /// <summary>Returns page-element UnicodeString values in markup order, excluding resources and brush visuals. Paragraphs and reading order are not inferred.</summary>
+    public string ExtractText() => string.Join("\n", XpsStoryFragmentsReader.PageElements(_markup).Where(e => e.Name.LocalName == "Glyphs").Select(g => Unescape((string?)g.Attribute("UnicodeString") ?? "")));
     internal static string Unescape(string text) => text.StartsWith("{}", StringComparison.Ordinal) ? text.Substring(2) : text;
     internal static void ValidatePageDimension(double value) {
         ValidateDimension(value);
