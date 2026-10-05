@@ -8802,13 +8802,13 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Default sides", row.Cells[0].Paragraphs[0].Text);
                 Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Null(row.Cells[0].MarginLeftWidth);
+                Assert.Equal((short)108, row.Cells[0].MarginLeftWidth);
                 Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Null(row.Cells[0].MarginRightWidth);
+                Assert.Equal((short)108, row.Cells[0].MarginRightWidth);
                 Assert.Equal("Specific sides", row.Cells[1].Paragraphs[0].Text);
-                Assert.Null(row.Cells[1].MarginTopWidth);
+                Assert.Equal((short)0, row.Cells[1].MarginTopWidth);
                 Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-                Assert.Null(row.Cells[1].MarginBottomWidth);
+                Assert.Equal((short)0, row.Cells[1].MarginBottomWidth);
                 Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
             } finally {
                 DeleteIfExists(docPath);

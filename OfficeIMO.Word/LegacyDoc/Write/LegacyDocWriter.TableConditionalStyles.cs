@@ -112,6 +112,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static int GetTableConditionalStylePrecedence(TableStyleOverrideValues type) {
+            // Higher-priority regions are visited first, independently of XML or base-style order.
             if (type == TableStyleOverrideValues.NorthWestCell
                 || type == TableStyleOverrideValues.NorthEastCell
                 || type == TableStyleOverrideValues.SouthWestCell
@@ -119,25 +120,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return 0;
             }
 
-            if (type == TableStyleOverrideValues.FirstRow
-                || type == TableStyleOverrideValues.LastRow
-                || type == TableStyleOverrideValues.FirstColumn
-                || type == TableStyleOverrideValues.LastColumn) {
+            if (type == TableStyleOverrideValues.FirstRow || type == TableStyleOverrideValues.LastRow) {
                 return 1;
             }
 
-            if (type == TableStyleOverrideValues.Band1Horizontal
-                || type == TableStyleOverrideValues.Band2Horizontal
-                || type == TableStyleOverrideValues.Band1Vertical
-                || type == TableStyleOverrideValues.Band2Vertical) {
+            if (type == TableStyleOverrideValues.FirstColumn || type == TableStyleOverrideValues.LastColumn) {
                 return 2;
             }
 
-            if (type == TableStyleOverrideValues.WholeTable) {
+            if (type == TableStyleOverrideValues.Band1Vertical || type == TableStyleOverrideValues.Band2Vertical) {
                 return 3;
             }
 
-            return 3;
+            if (type == TableStyleOverrideValues.Band1Horizontal || type == TableStyleOverrideValues.Band2Horizontal) {
+                return 4;
+            }
+
+            return 5;
         }
 
         private static OpenXmlCompositeElement? GetSupportedTableStyleRunProperties(TableStyleProperties properties) {
