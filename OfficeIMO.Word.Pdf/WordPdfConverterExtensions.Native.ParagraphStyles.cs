@@ -305,6 +305,7 @@ namespace OfficeIMO.Word.Pdf {
                 BorderWidth = border?.Width ?? 0D,
                 PaddingX = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingX(borders, 0D),
                 PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 0D),
+                RepeatFragmentDecoration = !hasParagraphBorder,
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
                 KeepWithNext = paragraphStyle.KeepWithNext,
@@ -446,15 +447,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double ResolveNativeParagraphPanelPaddingY(NativeParagraphBorders borders, double defaultPadding) {
-            uint? top = HasNativeBorder(borders.Top.Style) ? borders.Top.Space : null;
-            uint? bottom = HasNativeBorder(borders.Bottom.Style) ? borders.Bottom.Space : null;
+            double? top = HasNativeBorder(borders.Top.Style)
+                ? Math.Min(borders.Top.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (borders.Top.Size ?? 4U) / 8D : null;
+            double? bottom = HasNativeBorder(borders.Bottom.Style)
+                ? Math.Min(borders.Bottom.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (borders.Bottom.Size ?? 4U) / 8D : null;
             if (!top.HasValue && !bottom.HasValue) {
                 return defaultPadding;
             }
 
-            return Math.Min(
-                Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault()),
-                MaxNativeParagraphBorderSpacingPoints);
+            return Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault());
         }
 
         private static bool HasNativeOnlyBottomParagraphBorder(NativeParagraphBorders borders) =>
