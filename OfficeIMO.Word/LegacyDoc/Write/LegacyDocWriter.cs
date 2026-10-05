@@ -510,7 +510,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks.AddStart(bookmarkStart, text.Length);
                     break;
                 case BookmarkEnd bookmarkEnd:
-                    bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    int? precedingTableEnd = text.Length > 1 && text[text.Length - 1] == '\r' && text[text.Length - 2] == '\a' &&
+                        FindPrecedingBodyBlock(child) is Table && FindFollowingBodyBlock(child) is Table
+                        ? text.Length - 1
+                        : null;
+                    bookmarks.AddEnd(bookmarkEnd, text.Length, precedingTableEnd);
                     break;
                 case SectionProperties sectionProperties:
                     finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);

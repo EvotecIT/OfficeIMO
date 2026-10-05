@@ -28,5 +28,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
         }
+
+        private static OpenXmlElement? FindPrecedingBodyBlock(OpenXmlElement marker) {
+            OpenXmlElement? element = PreviousBodyElement(marker);
+            while (element != null) {
+                if (element is SdtBlock control && control.SdtContentBlock != null) {
+                    element = control.SdtContentBlock.LastChild ?? PreviousBodyElement(control);
+                } else if (element is BookmarkStart || element is BookmarkEnd) {
+                    element = PreviousBodyElement(element);
+                } else {
+                    return element;
+                }
+            }
+            return null;
+        }
+
+        private static OpenXmlElement? PreviousBodyElement(OpenXmlElement element) {
+            while (true) {
+                OpenXmlElement? sibling = element.PreviousSibling();
+                if (sibling != null) return sibling;
+                if (element.Parent is SdtContentBlock content && content.Parent is SdtBlock control) {
+                    element = control;
+                } else {
+                    return null;
+                }
+            }
+        }
     }
 }

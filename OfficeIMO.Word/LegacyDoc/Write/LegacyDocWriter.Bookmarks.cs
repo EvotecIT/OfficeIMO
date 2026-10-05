@@ -78,10 +78,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            internal void AddEnd(BookmarkEnd bookmarkEnd, int endCharacter) {
+            internal void AddEnd(BookmarkEnd bookmarkEnd, int endCharacter, int? precedingTableEnd = null) {
                 string id = ReadBookmarkId(bookmarkEnd.Id?.Value, "end");
                 if (!_starts.TryGetValue(id, out LegacyDocWritableBookmarkStart start)) {
                     throw new NotSupportedException($"Native DOC saving cannot write bookmark end id '{id}' because the matching bookmark start was not found in the same supported story.");
+                }
+
+                if (precedingTableEnd.HasValue && start.StartCharacter < precedingTableEnd.Value) {
+                    endCharacter = precedingTableEnd.Value;
                 }
 
                 if (endCharacter < start.StartCharacter) {

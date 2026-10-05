@@ -121,14 +121,18 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    public void LegacyDoc_TableSpacing_AdjacentTableBookmarksExcludeSeparator(int contentControlDepth) {
+    [InlineData(0, false, false)]
+    [InlineData(1, false, false)]
+    [InlineData(2, false, false)]
+    [InlineData(3, false, false)]
+    [InlineData(0, true, false)]
+    [InlineData(3, true, false)]
+    [InlineData(0, true, true)]
+    public void LegacyDoc_TableSpacing_AdjacentTableBookmarksExcludeSeparator(int contentControlDepth, bool previousEndAfterNextStart, bool authoredBlank) {
         using WordDocument document = WordDocument.Create();
         WordTable first = document.AddTable(1, 1);
         first.Rows[0].Cells[0].Paragraphs[0].Text = "First";
+        if (authoredBlank) document.AddParagraph();
         WordTable second = document.AddTable(1, 1);
         second.Rows[0].Cells[0].Paragraphs[0].Text = "Second";
         Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
@@ -138,10 +142,15 @@ public partial class Word {
         body.InsertBefore(new BookmarkStart { Id = "63", Name = "BeforeSecond" }, second._table);
         body.InsertBefore(new BookmarkEnd { Id = "63" }, second._table);
         body.InsertAfter(new BookmarkEnd { Id = "62" }, second._table);
+        if (previousEndAfterNextStart) {
+            var previousEnd = body.Elements<BookmarkEnd>().Single(end => end.Id?.Value == "61");
+            previousEnd.Remove();
+            body.InsertAfter(previousEnd, body.Elements<BookmarkStart>().Single(start => start.Id?.Value == "62"));
+        }
         if (contentControlDepth == 3) {
             var content = new SdtContentBlock();
             foreach (var marker in body.ChildElements.Where(child => child is BookmarkStart start && start.Id?.Value != "61" ||
-                child is BookmarkEnd end && end.Id?.Value == "63").ToArray()) {
+                child is BookmarkEnd end && end.Id?.Value != "62").ToArray()) {
                 marker.Remove();
                 content.Append(marker);
             }
@@ -164,7 +173,7 @@ public partial class Word {
         var point = Assert.Single(model.Bookmarks, b => b.Name == "BeforeSecond");
         Assert.Equal(secondStart, point.StartCharacter);
         Assert.Equal(secondStart, point.EndCharacter);
-        Assert.Equal("First\a\a".Length, Assert.Single(model.Bookmarks, b => b.Name == "FirstTable").EndCharacter);
+        Assert.Equal("First\a\a".Length + (authoredBlank ? 1 : 0), Assert.Single(model.Bookmarks, b => b.Name == "FirstTable").EndCharacter);
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         Assert.Equal(2, reopened.Tables.Count);
         Assert.Contains(reopened.Bookmarks, b => b.Name == "SecondTable");
