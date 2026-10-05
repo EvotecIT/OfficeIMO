@@ -193,6 +193,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("A", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
     }
 
+    [Fact]
+    public void RelativePagePaint_KeepsOverflowGlyphPaintTranslatedIntoThePage() {
+        string html = "<style>@page{size:400px 400px;margin:0}body{margin:0;font:16px Arial}</style>"
+            + "<div style='position:relative;top:10px;width:200px;white-space:nowrap;transform:translateX(-200px)'>"
+            + string.Concat(Enumerable.Repeat("ABCDEFGHIJKLMNO ", 8)) + "</div>";
+        var input = HtmlConversionDocument.Parse(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(input, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.Contains(Enumerable.Range(300, 100), x => Enumerable.Range(10, 24)
+            .Any(y => raster.GetPixel(x, y) != OfficeColor.White));
+
+    }
+
     private static IEnumerable<(HtmlRenderPage Page, HtmlRenderText Text)> RelativeTextPlacements(HtmlRenderDocument document, string marker) {
         foreach (HtmlRenderPage page in document.Pages) {
             foreach (HtmlRenderVisual visual in Leaves(page.Scene)) {

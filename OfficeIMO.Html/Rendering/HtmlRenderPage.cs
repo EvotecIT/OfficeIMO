@@ -388,7 +388,9 @@ public sealed class HtmlRenderPage {
                 ? Math.Max(visual.X + visual.Width, MaximumRight(layoutRegion.Visuals))
             : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                 ? Math.Max(visual.X + visual.Width, MaximumRight(logicalTextGroup.Visuals))
-                : visual.X + visual.Width)
+                : visual.X + (visual is HtmlRenderText text
+                    ? Math.Max(text.Width, text.TextPaintWidth ?? text.TextAdvanceWidth ?? text.Width)
+                    : visual.Width))
         .DefaultIfEmpty(0.01D)
         .Max();
 
