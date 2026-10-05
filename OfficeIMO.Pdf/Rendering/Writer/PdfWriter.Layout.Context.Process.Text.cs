@@ -16,23 +16,48 @@ internal static partial class PdfWriter {
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
             var (lines, lineHeights) = WrapRichRunsWithSpacing(headingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
+            double wrappedWidth = width;
+            int lineIndex = 0;
+            bool firstLogicalLine = true;
             double textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
+            void NewHeadingFrame() {
+                if (firstLogicalLine) QueueColumnBalanceRemainder(hb, blockList, blockIndex);
+                else QueueColumnBalanceRemainder(new List<ColumnBalanceUnit> {
+                    new(lineHeights.Skip(lineIndex).Sum() + spacingAfter)
+                }, hb, blockList, blockIndex);
+                NewPage();
+                frameStart = GetCurrentFramePageStartY();
+                if (activeColumnFlow != null && Math.Abs(wrappedWidth - width) > 0.001D) {
+                    var remainingRuns = firstLogicalLine ? headingRuns : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
+                    (lines, lineHeights) = WrapRichRunsWithSpacing(remainingRuns, width, size, ChooseNormal(currentOpts.DefaultFont), leading, null,
+                        DefaultParagraphTabStopWidth, currentOpts, headingStyle?.LineSpacing);
+                    lineIndex = 0;
+                    wrappedWidth = width;
+                    textHeight = MeasureRichLinesHeight(lineHeights, lines.Count, leading);
+                }
+            }
             double needed = spacingBefore + textHeight + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
-                double keepHeight = needed + MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
-                double availableHeight = frameStart - currentOpts.MarginBottom;
-                if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < frameStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
-                    NewPage();
+                double keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                double availableHeight = GetMaximumBlockContinuationHeight();
+                while (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && ShouldAdvanceForBlockHeight(keepHeight)) {
+                    NewHeadingFrame();
                     spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                     needed = spacingBefore + textHeight + spacingAfter;
+                    keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                    availableHeight = GetMaximumBlockContinuationHeight();
                 }
             }
 
             if (y < frameStart - 0.001 && y - needed < currentOpts.MarginBottom) {
-                NewPage();
+                NewHeadingFrame();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
+            }
+            while (lineHeights.Count > 0 && ShouldAdvanceForBlockHeight(spacingBefore + lineHeights[0])) {
+                NewHeadingFrame();
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
             }
             if (lineHeights.Count > 0 && spacingBefore + lineHeights[0] > frameStart - currentOpts.MarginBottom + 0.001)
                 throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
@@ -40,7 +65,6 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            int lineIndex = 0;
             PageStructElement? logicalHeading = null;
             while (lineIndex < lines.Count) {
                 double available = y - currentOpts.MarginBottom;
@@ -53,19 +77,19 @@ internal static partial class PdfWriter {
                     take++;
                 }
                 if (take == 0) {
-                    if (y >= frameStart - 0.001 || lineHeights[lineIndex] > frameStart - currentOpts.MarginBottom + 0.001)
+                    if (!ShouldAdvanceForBlockHeight(lineHeights[lineIndex]))
                         throw new ArgumentException("Heading line height exceeds the available page content height.");
-                    NewPage();
+                    NewHeadingFrame();
                     continue;
                 }
                 var sliceLines = lines.GetRange(lineIndex, take);
                 var sliceHeights = lineHeights.GetRange(lineIndex, take);
                 EnsurePage();
                 RecordFlowPlacement(y);
-                if (lineIndex == 0) captureFirstPlacement?.Invoke();
-                if (lineIndex == 0 && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderParagraphCanvas(headingCanvas, y);
+                if (firstLogicalLine) captureFirstPlacement?.Invoke();
+                if (firstLogicalLine && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderParagraphCanvas(headingCanvas, y);
                 pageDirty = true;
-                if (lineIndex == 0 && currentOpts.CreateOutlineFromHeadings) {
+                if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings) {
                     currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
                 }
                 double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
@@ -75,9 +99,9 @@ internal static partial class PdfWriter {
                 int? linkStructElementIndex = null;
                 string markedStructureType = structureType;
                 int? markedContentId;
-                if ((hasLinkTarget || take < lines.Count) && emitGeneratedStructure && currentPage != null) {
+                if ((logicalHeading != null || hasLinkTarget || take < lines.Count) && emitGeneratedStructure && currentPage != null) {
                     logicalHeading ??= RegisterStructureContainer(structureType, parentElement: null);
-                    if (logicalHeading != null && lineIndex > 0) {
+                    if (logicalHeading != null && !firstLogicalLine) {
                         logicalHeading.SpansPages = true;
                         // The heading keeps its first-page parent; notify active ancestor scopes
                         // that their descendant has continued onto this page.
@@ -98,7 +122,8 @@ internal static partial class PdfWriter {
                 }
                 y -= heightSum;
                 lineIndex += take;
-                if (lineIndex < lines.Count) NewPage();
+                firstLogicalLine = false;
+                if (lineIndex < lines.Count) NewHeadingFrame();
             }
             y -= spacingAfter;
         }
@@ -111,34 +136,62 @@ internal static partial class PdfWriter {
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+            double wrappedWidth = textFrame.Width;
             var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
-            if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0) {
-                double paragraphHeight = spacingBefore + lineHeights.Sum() + spacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
+            if (activeColumnFlow is { Options.BalanceParagraphLines: false, Options.BalanceLastPage: true } &&
+                lineHeights.Sum() <= GetMaximumBlockContinuationHeight() + 0.001D) {
+                paragraphStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
+                paragraphStyle.KeepTogether = true;
+            }
+            void NewParagraphStartFrame() {
+                NewBlockFrame();
+                frameStart = GetCurrentFramePageStartY();
+                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                if (Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
+                    (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
+                        textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
+                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
+                    wrappedWidth = textFrame.Width;
+                }
+            }
+            bool IsKeptInCurrentFrame() => paragraphStyle?.KeepTogether == true &&
+                !(activeColumnFlow is { Options.BalanceKeptParagraphLines: true } && IsBalancedColumnFrame() &&
+                  lineHeights.Sum() > GetCurrentFramePageStartY() - currentOpts.MarginBottom + .001D);
+            if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0 &&
+                (ReservesWholeKeepGroup() || IsKeptInCurrentFrame())) {
+                double paragraphHeight = ResolveTopLevelSpacingBefore(spacingBefore) + lineHeights.Sum() + spacingAfter;
+                double nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
                 double keepHeight = paragraphHeight + nextHeight;
-                double availableHeight = frameStart - currentOpts.MarginBottom;
-                if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < frameStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
-                    NewPage();
+                while ((ReservesWholeKeepGroup() || IsKeptInCurrentFrame()) && nextHeight > 0.001 &&
+                    keepHeight <= GetMaximumBlockContinuationHeight() + 0.001 && ShouldAdvanceForBlockHeight(keepHeight)) {
+                    NewParagraphStartFrame();
+                    paragraphHeight = lineHeights.Sum() + spacingAfter;
+                    nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
+                    keepHeight = paragraphHeight + nextHeight;
                 }
             }
 
-            if (paragraphStyle?.KeepTogether == true) {
-                double paragraphContentHeight = lineHeights.Sum();
-                double availableHeight = frameStart - currentOpts.MarginBottom;
-                if (paragraphContentHeight > availableHeight + 0.001) {
-                    throw new ArgumentException("Paragraph height exceeds the available page content height.");
-                }
-
-                double paragraphHeight =
-                    (y < frameStart - 0.001D ? spacingBefore : 0D) +
-                    paragraphContentHeight;
-                if (y < frameStart - 0.001 && y - paragraphHeight < currentOpts.MarginBottom) {
-                    NewPage();
+            if (IsKeptInCurrentFrame()) {
+                while (true) {
+                    if (!IsKeptInCurrentFrame()) break;
+                    double paragraphContentHeight = lineHeights.Sum();
+                    if (paragraphContentHeight > GetMaximumBlockContinuationHeight() + 0.001)
+                        throw new ArgumentException("Paragraph height exceeds the available page content height.");
+                    double paragraphHeight = ResolveTopLevelSpacingBefore(spacingBefore) + paragraphContentHeight;
+                    if (!ShouldAdvanceForBlockHeight(paragraphHeight)) break;
+                    NewParagraphStartFrame();
                 }
             }
 
             List<double>? floatingLineOffsets = null;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+            if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
+                (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
+                    textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
+                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
+                wrappedWidth = textFrame.Width;
+                frameStart = GetCurrentFramePageStartY();
+            }
             List<double>? floatingLineWidths = null;
             List<double>? floatingLineGaps = null;
             HashSet<int>? floatingPageStarts = null;
@@ -203,10 +256,30 @@ internal static partial class PdfWriter {
 
             int lineIndex = 0;
             bool firstSegment = true;
+            bool firstLogicalLine = true;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             void NewParagraphPage() {
+                if (activeColumnFlow?.Options.BalanceLastPage == true) {
+                    PdfParagraphStyle continuationStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
+                    if (!firstLogicalLine) { continuationStyle.SpacingBefore = 0D; continuationStyle.FirstLineIndent = 0D; }
+                    var remainingRuns = firstLogicalLine ? rpb.Runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
+                    QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex);
+                }
                 NewPage();
+                frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
+                    IReadOnlyList<PdfTextRun> remainingRuns = firstLogicalLine ? rpb.Runs :
+                        BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
+                    var wrapped = WrapRichRunsCoreWithFirstLineOrigin(remainingRuns, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
+                        firstLogicalLine ? textFrame.FirstLineWidth : textFrame.Width,
+                        firstLogicalLine ? textFrame.FirstLineX - textFrame.X : 0D, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
+                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
+                    lines = originalLines = wrapped.Lines; lineHeights = originalLineHeights = wrapped.LineHeights;
+                    lineIndex = 0; wrappedWidth = textFrame.Width;
+                    floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
+                    return;
+                }
                 if (lineIndex == 0) { RestoreUnobstructedWrapping(); return; }
                 // Widow/orphan control can carry a previously simulated float-side line forward.
                 // Keep its line break, but remove the old page's exclusion offset and clearance.
@@ -234,8 +307,14 @@ internal static partial class PdfWriter {
             while (lineIndex < lines.Count) {
                 if (floatingPageStarts?.Remove(lineIndex) == true && (HasFloatingTables || y < frameStart - 0.001)) NewParagraphPage();
                 double minimumLineHeight = lineHeights[lineIndex];
-                if (minimumLineHeight > frameStart - currentOpts.MarginBottom)
+                if (minimumLineHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
+                while (ShouldAdvanceForBlockHeight(minimumLineHeight)) {
+                    NewParagraphPage();
+                    minimumLineHeight = lineHeights[lineIndex];
+                    if (minimumLineHeight > GetMaximumBlockContinuationHeight() + .001D)
+                        throw new ArgumentException("Paragraph line height exceeds the available page content height.");
+                }
                 double available = y - currentOpts.MarginBottom;
                 if (available <= 0) {
                     NewParagraphPage();
@@ -270,6 +349,9 @@ internal static partial class PdfWriter {
                     take++;
                 }
 
+                ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, roomForText, blockList,
+                    blockIndex, paragraphStyle?.KeepWithNext == true, paragraphStyle == null ? 1 : ResolveMinimumWidowLines(paragraphStyle),
+                    ref take, ref heightSum);
                 if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < frameStart - 0.001)) {
                     NewParagraphPage();
                     firstSegment = false;
@@ -277,6 +359,8 @@ internal static partial class PdfWriter {
                 }
 
                 if (take == 0) {
+                    if (!ShouldAdvanceForBlockHeight(minimumLineHeight))
+                        throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                     NewParagraphPage();
                     firstSegment = false;
                     continue;
@@ -293,7 +377,7 @@ internal static partial class PdfWriter {
                     sliceHeights.Add(lineHeights[lineIndex + k]);
                 }
 
-                bool sliceStartsAtFirstLine = lineIndex == 0;
+                bool sliceStartsAtFirstLine = firstLogicalLine;
                 double firstLineTop = y - (floatingLineGaps?[lineIndex] ?? 0D);
                 RecordFlowPlacement(firstLineTop);
                 if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderParagraphCanvas(paragraphCanvas, firstLineTop);
@@ -306,6 +390,7 @@ internal static partial class PdfWriter {
                 y -= heightSum;
                 lineIndex += take;
                 firstSegment = false;
+                firstLogicalLine = false;
                 if (lineIndex < lines.Count) {
                     NewParagraphPage();
                 } else {
