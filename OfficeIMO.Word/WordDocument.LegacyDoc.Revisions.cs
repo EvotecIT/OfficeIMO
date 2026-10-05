@@ -62,6 +62,14 @@ namespace OfficeIMO.Word {
             AppendLegacyDocRevisionRun(paragraph, legacyRun, run);
         }
 
+        private static void ApplyLegacyDocNoteReferenceFormatting(WordParagraph paragraph, WordParagraph reference, LegacyDocTextRun legacyRun) {
+            ApplyLegacyDocRunFormatting(reference, legacyRun);
+            if (legacyRun.Revision.HasValue && reference._run is Run run) {
+                run.Remove();
+                AppendLegacyDocRevisionRun(paragraph, legacyRun, run);
+            }
+        }
+
         private static void AppendLegacyDocRevisionRun(WordParagraph paragraph, LegacyDocTextRun legacyRun, Run run) {
             OpenXmlCompositeElement revisionElement = legacyRun.Revision.Kind == LegacyDocRevisionKind.Deleted
                 ? new DeletedRun()

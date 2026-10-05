@@ -1210,7 +1210,7 @@ namespace OfficeIMO.Word {
             }
 
             WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text);
-            ApplyLegacyDocRunFormatting(reference, legacyRun);
+            ApplyLegacyDocNoteReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
@@ -1243,7 +1243,7 @@ namespace OfficeIMO.Word {
             }
 
             WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text);
-            ApplyLegacyDocRunFormatting(reference, legacyRun);
+            ApplyLegacyDocNoteReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
                 return;
