@@ -75,7 +75,6 @@
     "preservationGateNotRelaxed": true
   },
   "remainingQualification": [
-    "PR #2781 exact-head CI and delayed paginated feedback check before authorized merge/cleanup",
     "Existing larger static timing and qualified long-lived integration gates remain open",
     "Named held-out reading-order/width/flow/native/corpus/intent acceptance remains partial"
   ],
@@ -554,5 +553,21 @@
       "remainingFindings": []
     },
     "dependentStep": "After owner merge and current-head gates, pin the merged shared workflow and source once in OfficeIMO2781 CI, then qualify the actual website job and complete PR gates. No downstream shim or waiver."
+  },
+  "standaloneMergedDelivery": {
+    "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2781",
+    "head": "6308b79987bc81003c430d2e23d23e20e60e036f",
+    "mergeCommit": "540f805359e5a578f2a0c8fd59e43bc6e63bd958",
+    "mergedAtUtc": "2026-10-05T01:31:12Z",
+    "checks": "91success/3skipped, allcomplete exacthead",
+    "delayedFeedback": "Complete paginated/nested threads, reviews/raw+issuecomments/reactions; zeroactionable; no pending/manual hosted request",
+    "mergeable": "MERGEABLE/CLEAN with current title/body",
+    "preservedEvidence": {
+      "path": "Ignore/MasterConvergenceQualification/merged-pdf-document-text-540f80535",
+      "files": 218,
+      "bytes": 86418501,
+      "allSha256Verified": true
+    },
+    "ownedWorktreeAndBranchRemovedWithoutForce": true
   }
 }

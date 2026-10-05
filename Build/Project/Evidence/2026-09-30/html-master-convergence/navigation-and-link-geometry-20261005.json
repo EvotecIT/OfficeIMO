@@ -1,0 +1,1227 @@
+{
+  "schema": 1,
+  "recordedUtc": "2026-10-05T01:57:54.922491+00:00",
+  "sourceCommit": "b592f475215506212a16ecca23af5a4a20e3a581",
+  "scope": "Cyclic intrinsic inline-flex sizing and canonical PDF linked-overflow/positioned-anchor ownership; selected H10 slice, not complete static/H10 delivery",
+  "observedDefect": "Percent child width incorrectly sized an indefinite inline-flex parent to400CSSpx versus independent Chromium121.390625; block-flex400CSSpx and auto-inline121.38 controls remained distinct",
+  "ownerShape": [
+    "Use canonical intrinsic flex-item measurement; normalize cyclic width/min/max while retaining absolute constraints and final layout sizing",
+    "Keep intrinsic measurement in its own semantic partial; moved method bytes unchanged, main flex file699lines",
+    "Suppress per-visual PDF links only when existing anchor fragments contain linked geometry, with floating-point tolerance1e-7",
+    "Internal text link bounds retain glyph paint and allocated advance while excluding clipping allowance and extra line leading; translated with source paint",
+    "A positioned laid-out atomic anchor owns its hit area; omit synthetic origin links by source-node identity"
+  ],
+  "productionApiOrDependencyExpansion": false,
+  "normalValidation": {
+    "fullHtmlNet8": {
+      "total": 4322,
+      "passed": 4322,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "fullHtmlNet10": {
+      "total": 4322,
+      "passed": 4322,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "focusedFinalNet10": {
+      "total": 162,
+      "passed": 162,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "negativeTrackingBefore": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2,
+      "notExecuted": 0
+    },
+    "heldOutProfiles": "All8 H4 cases pass within both final full suites",
+    "normalHtmlAndHtmlPdfNetstandard20": "0 warnings/errors",
+    "actualApiToolMarginAndFixtureBuilds": "Normal clean source,0 warnings/errors; no deterministic SourceRoot workaround",
+    "stableSourceReceipt": {
+      "baseHead": "ec70355d2feb0ab269a6473ff65cf05b66924055",
+      "recordedUtc": "2026-10-05T01:34:08.432606+00:00",
+      "files": [
+        {
+          "path": "OfficeIMO.Html.Pdf/HtmlPdfAnchorLinkMap.cs",
+          "sha256": "14f30caf2b3ff1bda8563a00f385300c42b588e61e840582c10a2a15c84de604",
+          "commitBlob": "2fb07d5232de7694af113124d8066016aea8e5b0"
+        },
+        {
+          "path": "OfficeIMO.Html.Tests/Html.Rendering.Flex.Intrinsic.cs",
+          "sha256": "413bd64e4183874f2000e2169ed8a0f93bdfacf4f7de45a546abcbadb85944c9",
+          "commitBlob": "2ac321415025b1945e77cb5ac29a1e97fb9d3d88"
+        },
+        {
+          "path": "OfficeIMO.Html.Tests/Html.Rendering.SvgLinkArea.cs",
+          "sha256": "cbfd2c13131f02fb6b2502bd518cd67f53027f8bf79902cff957232b8a2d1ed4",
+          "commitBlob": "f0f3557e717932a3054743ab7866ca0094582a37"
+        },
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Flex.Inline.cs",
+          "sha256": "f822ee4ac0a68018d7ed8d5994a35faf739ea6032c2d35d99f4d99466bf0cbc1",
+          "commitBlob": "5aff8f2dd60a1d3d92c4dd65c85378ebfac75816"
+        },
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Flex.cs",
+          "sha256": "a48f665b1ef59bb2233a36ba46f3a8f07a9e0c01d7d59a21f621b741e7a9ecd2",
+          "commitBlob": "841b53412967522e36a347dc24ee23226e5e299f"
+        },
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Floats.cs",
+          "sha256": "f334088bdaddef0f0c369f8d8bc2cae5b823553b17ef9b21e176d8d0767b1562",
+          "commitBlob": "455d9736a2115d0e18c4be10aa5426b84a7883eb"
+        },
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Positioning.Inline.cs",
+          "sha256": "f0a82b7798e42770d3e7228705387e2fe4e14e466d4a25019cd69723d779bc33",
+          "commitBlob": "5c8ba263fe7cae4a04f84eb7cb82a0fb5c9df67b"
+        },
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderText.cs",
+          "sha256": "bcea2573fb85d58febf0949c12d938770ff4489c0d606ec3235978fcb2341d5f",
+          "commitBlob": "eedc6c41ee78a37df018edab8c06f4b556ef2a23"
+        },
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Flex.Intrinsic.cs",
+          "sha256": "cd9f2ea444d1b901b22c7fa2d7ef22a7baeb9ad7f24151c65f1a472a94a6c264",
+          "commitBlob": "91117950635f5843370b0183d4fdc9d845547dbf"
+        }
+      ],
+      "sourceCommit": "b592f475215506212a16ecca23af5a4a20e3a581"
+    },
+    "coreCopyHashes": {
+      "OfficeIMO.Core/bin/Release/net10.0/OfficeIMO.Core.dll": "e1de4b6e2284306033544941f9a4606758b53cbb7157708da86173e3ccbd7e0f",
+      "OfficeIMO.Tool/bin/Release/net10.0/OfficeIMO.Core.dll": "e1de4b6e2284306033544941f9a4606758b53cbb7157708da86173e3ccbd7e0f",
+      "Ignore/MasterConvergenceQualification/api-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "e1de4b6e2284306033544941f9a4606758b53cbb7157708da86173e3ccbd7e0f",
+      "Ignore/MasterConvergenceQualification/reference-font-diagnosis-5a9de77f6/margin-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "e1de4b6e2284306033544941f9a4606758b53cbb7157708da86173e3ccbd7e0f",
+      "Ignore/MasterConvergenceQualification/reference-navigation-inspection-ec70355d2/office-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "e1de4b6e2284306033544941f9a4606758b53cbb7157708da86173e3ccbd7e0f"
+    }
+  },
+  "independentReview": {
+    "scope": "Auto inline row-flex intrinsic width and canonical intrinsic flex-item constraint measurement",
+    "baseHead": "ec70355d2feb0ab269a6473ff65cf05b66924055",
+    "initialDiffFingerprint": "800d3473bbd18aa033462eee15bd2a7c097efd17",
+    "reviewer": "inline_flex_cyclic_width_review",
+    "fullPass": "completed",
+    "finding": "P2 cyclic min/max normalized; existing PDF partial overlap suppresses overflowing icon link",
+    "reproduced": true,
+    "boundary": "candidate-reviewed; separate new PDF link suppression owner",
+    "targetedConfirmation": "used; original cyclic min/max finding closed",
+    "productionDependenciesOrApi": "none",
+    "upstreamOrHostedManualReview": "none",
+    "linkFinding": "Validated7.31CSSpx visible SVG paint missing click area; remediation in PDF adapter link suppression",
+    "pdfCoverageReview": {
+      "reviewer": "pdf_partial_link_coverage_review",
+      "fullPassUsed": true,
+      "targetedConfirmationUsed": true,
+      "fullDiff": "df9cce4bd00c7657d111458dc1643d3ae67fc03c",
+      "confirmationDiff": "1f8d2713a537a250bbe7f473cbac78b77149ddda",
+      "findings": [
+        {
+          "issue": "1CSSpx tolerance accepted fractional overflow",
+          "classification": "initial candidate",
+          "resolution": "strict1e-7 coordinate arithmetic tolerance; fractional width and height tests plus actual PDF proof"
+        },
+        {
+          "issue": "Generic text clipping frames caused duplicate annotations",
+          "classification": "initial candidate",
+          "resolution": "Internal renderer-owned linked text bounds preserve existing face-height/leading contracts"
+        },
+        {
+          "issue": "Negative tracking can paint beyond allocated advance",
+          "classification": "remediation-introduced",
+          "resolution": "Coverage uses maximum of glyph paint width and advance; before2fail/focused final pass"
+        },
+        {
+          "issue": "Relative positioned atomic anchor emitted origin hit area",
+          "classification": "pre-existing sibling",
+          "resolution": "Atomic source anchor owns positioned/effected fragment; synthetic origin area omitted by source-node identity"
+        }
+      ],
+      "finalConfirmationClaim": "Confirmation exposed last two issues; primary reproduced/fixed/validated both after its single allowance. No repeat full review",
+      "boundary": "candidate-reviewed",
+      "remainingKnownFindings": []
+    }
+  },
+  "independentFixtures": {
+    "reference": "Test-only published HtmlTinkerX3.0.3/Chromium153; print and screen independently measured",
+    "result": "Inline-auto and cyclic width/min/max match browser intrinsic width within0.02CSSpx; definite block-flex preserves400CSSpx. Browser-authored constrained overflow is retained",
+    "publicCleanConsumer": "Ten fixtures from clean source; exact SVG link coverage, fractional0.5CSSpx and negative-tracking glyph coverage, positioned origin area absent",
+    "visuals": "Both final ten-case sheets inspected; original browser/producer pairs retained",
+    "linkClassification": {
+      "sourceCommit": "b592f475215506212a16ecca23af5a4a20e3a581",
+      "referenceObserverPdfBytesEqualToActualApi": true,
+      "chesapeakeObserverPdfBytesEqualToActualApi": true,
+      "referenceLinkDeltas": "Anchor narrows with intrinsic content; conservative per-text link remains because linked face box27.109CSSpx exceeds anchor22.4CSSpx. Icon19.2x19.2 lies inside anchor. No opaque-font/browser/manual accessibility conformance claim",
+      "chesapeakeLinkDeltas": "Logo paint/hit shape104x79CSSpx exceeds centered anchor74x74CSSpx; preserve existing per-shape clickable area",
+      "referenceNextPageWord": {
+        "text": "Next Page",
+        "xMin": "54.000000",
+        "yMin": "137.937600",
+        "xMax": "137.522865",
+        "yMax": "153.477600"
+      },
+      "arrowGapPdfPoints": 6.719862272727283,
+      "authoredGapCssPixels": 8.96,
+      "referenceIcon": {
+        "page": 8,
+        "kind": "HtmlRenderDrawing",
+        "Source": "svg",
+        "X": 192.32363636363635,
+        "Y": 179.20000000000073,
+        "Width": 19.2,
+        "Height": 19.2,
+        "LinkUri": "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/",
+        "text": null,
+        "textAdvance": null,
+        "textPaint": null,
+        "linkBounds": null
+      },
+      "referenceText": {
+        "page": 8,
+        "kind": "HtmlRenderText",
+        "Source": "span",
+        "X": 72,
+        "Y": 177.60000000000036,
+        "Width": 111.36363636363635,
+        "Height": 22.4,
+        "LinkUri": "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/",
+        "text": "Next Page",
+        "textAdvance": 111.36363636363635,
+        "textPaint": 111.36363636363635,
+        "linkBounds": {
+          "X": 72,
+          "Y": 177.60000000000036,
+          "Width": 111.36363636363635,
+          "Height": 27.109090909090906,
+          "Right": 183.36363636363635,
+          "Bottom": 204.70909090909126
+        }
+      },
+      "referenceAnchor": {
+        "page": 8,
+        "kind": "HtmlRenderAnchorFragment",
+        "Source": "a.button-primary.button-primary-md.link-external-false",
+        "X": 72,
+        "Y": 177.60000000000036,
+        "Width": 139.52363636363634,
+        "Height": 22.4,
+        "LinkUri": "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/",
+        "text": null,
+        "textAdvance": null,
+        "textPaint": null,
+        "linkBounds": null
+      },
+      "observerBoundary": "Isolated read-only inspector reuses exact existing private MHTML/PDF policy preparation; no production bridge or hook. Direct ConfigureRenderOptions inspector differed and its non-equivalent reports remain retained"
+    }
+  },
+  "frozenReplay": {
+    "routes": [
+      {
+        "case": "reference",
+        "profile": "print-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 10,
+        "beforePages": 10,
+        "imageOccurrences": 11,
+        "beforeImages": 11,
+        "uriLinks": 59,
+        "beforeUriLinks": 58,
+        "sha256": "33a8b4d863cbc87aa1c663facf0f430ba0c2782a4cacbfaa0e65380be8795e21",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": true
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": false
+          },
+          {
+            "page": 9,
+            "pixelEqual": true
+          },
+          {
+            "page": 10,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          8
+        ]
+      },
+      {
+        "case": "reference",
+        "profile": "screen-media-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 12,
+        "beforePages": 12,
+        "imageOccurrences": 11,
+        "beforeImages": 11,
+        "uriLinks": 59,
+        "beforeUriLinks": 58,
+        "sha256": "06adaf8e5c633f504a67ff0e7ecff4d9e5957cd1cf13daa3525d07f208a45557",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": true
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": true
+          },
+          {
+            "page": 9,
+            "pixelEqual": false
+          },
+          {
+            "page": 10,
+            "pixelEqual": true
+          },
+          {
+            "page": 11,
+            "pixelEqual": true
+          },
+          {
+            "page": 12,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          9
+        ]
+      },
+      {
+        "case": "reference",
+        "profile": "screen-snapshot-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 8,
+        "beforePages": 8,
+        "imageOccurrences": 17,
+        "beforeImages": 17,
+        "uriLinks": 63,
+        "beforeUriLinks": 62,
+        "sha256": "f3c77ea82c618ad2f1b09bef883434eefe60403013cc8b0856c0bf4b6123ee6e",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": false
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          6
+        ]
+      },
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 19,
+        "beforePages": 19,
+        "imageOccurrences": 16,
+        "beforeImages": 16,
+        "uriLinks": 73,
+        "beforeUriLinks": 72,
+        "sha256": "908b5f6464313b68a90f43f9cf0cdeec04ad923d563f6bcd231fe880ac2d462d",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-3/": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": true
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": true
+          },
+          {
+            "page": 9,
+            "pixelEqual": true
+          },
+          {
+            "page": 10,
+            "pixelEqual": true
+          },
+          {
+            "page": 11,
+            "pixelEqual": true
+          },
+          {
+            "page": 12,
+            "pixelEqual": true
+          },
+          {
+            "page": 13,
+            "pixelEqual": true
+          },
+          {
+            "page": 14,
+            "pixelEqual": true
+          },
+          {
+            "page": 15,
+            "pixelEqual": true
+          },
+          {
+            "page": 16,
+            "pixelEqual": false
+          },
+          {
+            "page": 17,
+            "pixelEqual": true
+          },
+          {
+            "page": 18,
+            "pixelEqual": true
+          },
+          {
+            "page": 19,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          16
+        ]
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 22,
+        "beforePages": 22,
+        "imageOccurrences": 18,
+        "beforeImages": 18,
+        "uriLinks": 74,
+        "beforeUriLinks": 73,
+        "sha256": "5a990a3879ef71d1b42170859d42563bdb364e928f681b1a6431b5421c8b9e76",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-3/": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": true
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": true
+          },
+          {
+            "page": 9,
+            "pixelEqual": true
+          },
+          {
+            "page": 10,
+            "pixelEqual": true
+          },
+          {
+            "page": 11,
+            "pixelEqual": true
+          },
+          {
+            "page": 12,
+            "pixelEqual": true
+          },
+          {
+            "page": 13,
+            "pixelEqual": true
+          },
+          {
+            "page": 14,
+            "pixelEqual": true
+          },
+          {
+            "page": 15,
+            "pixelEqual": true
+          },
+          {
+            "page": 16,
+            "pixelEqual": true
+          },
+          {
+            "page": 17,
+            "pixelEqual": true
+          },
+          {
+            "page": 18,
+            "pixelEqual": true
+          },
+          {
+            "page": 19,
+            "pixelEqual": false
+          },
+          {
+            "page": 20,
+            "pixelEqual": true
+          },
+          {
+            "page": 21,
+            "pixelEqual": true
+          },
+          {
+            "page": 22,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          19
+        ]
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 14,
+        "beforePages": 14,
+        "imageOccurrences": 23,
+        "beforeImages": 23,
+        "uriLinks": 84,
+        "beforeUriLinks": 83,
+        "sha256": "ef6c223d495397df57662762b7ae7ffc0359b0f02e649ee5efbe2ee66a0d72bb",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-3/": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": true
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": true
+          },
+          {
+            "page": 9,
+            "pixelEqual": true
+          },
+          {
+            "page": 10,
+            "pixelEqual": true
+          },
+          {
+            "page": 11,
+            "pixelEqual": true
+          },
+          {
+            "page": 12,
+            "pixelEqual": false
+          },
+          {
+            "page": 13,
+            "pixelEqual": true
+          },
+          {
+            "page": 14,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          12
+        ]
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 3,
+        "beforePages": 3,
+        "imageOccurrences": 16,
+        "beforeImages": 16,
+        "uriLinks": 44,
+        "beforeUriLinks": 44,
+        "sha256": "79ae6ea71595ff2ba1d51832aaa66d70610a06d8e2b0d2b258f19351fb43dbb4",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {},
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": true,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 5,
+        "beforePages": 5,
+        "imageOccurrences": 19,
+        "beforeImages": 19,
+        "uriLinks": 56,
+        "beforeUriLinks": 55,
+        "sha256": "34c1501186e89bedd440c0edc30261b94a1bf843eb585f723ada531b1b55d272",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://oceanservice.noaa.gov/welcome.html": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceHead": "b592f475215506212a16ecca23af5a4a20e3a581",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Html.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581",
+          "OfficeIMO.Pdf": "3.4.4+b592f475215506212a16ecca23af5a4a20e3a581"
+        },
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 4,
+        "beforePages": 4,
+        "imageOccurrences": 22,
+        "beforeImages": 22,
+        "uriLinks": 57,
+        "beforeUriLinks": 56,
+        "sha256": "1ab3a088088eb8aa5bd6f204a47f40d7833902591a27bb121575c89411a994ed",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://oceanservice.noaa.gov/welcome.html": 1
+        },
+        "removedUriOccurrences": {},
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "changedRawTextPages": [],
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": []
+      },
+      {
+        "case": "reference",
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "beforePages": 9,
+        "imageOccurrences": 11,
+        "uriLinks": 59,
+        "fullCharacterMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": false,
+        "uriTargetsEqual": true,
+        "addedUriOccurrences": {
+          "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-2/": 1
+        },
+        "removedUriOccurrences": {},
+        "sha256": "2e8a971aabd32fe3893a98cfda334ca10dc46861ddedb1fab790c01fd6c5c48f",
+        "linkGeometryEqual": false,
+        "allPagePaint": [
+          {
+            "page": 1,
+            "pixelEqual": true
+          },
+          {
+            "page": 2,
+            "pixelEqual": true
+          },
+          {
+            "page": 3,
+            "pixelEqual": true
+          },
+          {
+            "page": 4,
+            "pixelEqual": true
+          },
+          {
+            "page": 5,
+            "pixelEqual": true
+          },
+          {
+            "page": 6,
+            "pixelEqual": false
+          },
+          {
+            "page": 7,
+            "pixelEqual": true
+          },
+          {
+            "page": 8,
+            "pixelEqual": true
+          },
+          {
+            "page": 9,
+            "pixelEqual": true
+          }
+        ],
+        "changedPaintPages": [
+          6
+        ]
+      }
+    ],
+    "totalPages": 106,
+    "pixelIdenticalPages": 99,
+    "changedPagePairsInspected": true,
+    "paintClassification": "Only navigation arrows move toward the labels on7 NASA pages; page counts, per-page raw text, all photos, URL target sets and reports retained. Conservative per-text/overflow link additions classified separately",
+    "referenceSourceOrder": "All36 article blocks ordered in each3profile",
+    "apiToolRoutes": 9,
+    "apiToolBytesAndIndependentRawPerPageTextEqual": true,
+    "allHasLossRetained": true
+  },
+  "standaloneOwnerDelivery": {
+    "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2781",
+    "head": "6308b79987bc81003c430d2e23d23e20e60e036f",
+    "mergeCommit": "540f805359e5a578f2a0c8fd59e43bc6e63bd958",
+    "mergedAtUtc": "2026-10-05T01:31:12Z",
+    "checks": "91success/3skipped, allcomplete exacthead",
+    "delayedFeedback": "Complete paginated/nested threads, reviews/raw+issuecomments/reactions; zeroactionable; no pending/manual hosted request",
+    "mergeable": "MERGEABLE/CLEAN with current title/body",
+    "preservedEvidence": {
+      "path": "Ignore/MasterConvergenceQualification/merged-pdf-document-text-540f80535",
+      "files": 218,
+      "bytes": 86418501,
+      "allSha256Verified": true
+    },
+    "ownedWorktreeAndBranchRemovedWithoutForce": true
+  },
+  "releaseBoundary": "No HTML PR, HTML-to-master merge, release or long-lived adoption. New link-map/vertical-face owners do not yet exist on master; do not extract this patch without their actual static prerequisites",
+  "failureEvidence": [
+    "Initial cyclic width and min/max regression reports",
+    "Containment candidate4 ordinary-text annotation regressions",
+    "Fractional/negative spacing and positioned-origin reproductions",
+    "System Python missingpypdf setup failure; resumed independent observations using bundled Python without rerendering finished routes",
+    "Direct ConfigureRenderOptions diagnostic differs from actual embedded PDF policy; isolated exact-policy inspector then reproduced actual PDF bytes"
+  ],
+  "remaining": [
+    "Reference card-label boundary/footer/background/typography/default width and manual accessibility",
+    "Other frozen-corpus/native/resource criteria and all11historical PDF intents",
+    "Current-source hosted packages and unchanged budgets with equivalent same-host controls",
+    "Qualified deliberate adoption into long-lived HTML branches"
+  ],
+  "retainedEvidence": [
+    "Ignore/MasterConvergenceQualification/reference-navigation-inspection-ec70355d2",
+    "Ignore/MasterConvergenceQualification/reference-navigation-clean-b592f4752",
+    "Ignore/MasterConvergenceQualification/{api,tool}-{planets,chesapeake}-b592f4752",
+    "Ignore/MasterConvergenceQualification/navigation-observations-b592f4752.json",
+    "Ignore/MasterConvergenceQualification/navigation-link-deltas-b592f4752.json",
+    "Ignore/MasterConvergenceQualification/navigation-visuals-b592f4752"
+  ],
+  "openWorkOwner": "Docs/ROADMAP.md#h10-unfamiliar-page-acceptance",
+  "cleanup": {
+    "recordedUtc": "2026-10-05T02:08:18.436505+00:00",
+    "regenerableTargets": 186,
+    "removedBytes": 2327240493,
+    "absenceVerified": true,
+    "nativeRecoveryTargets": 95,
+    "preserved": "Final PDFs, independent fixtures, source archives, package origins, test/failure evidence and unrelated worktrees/caches",
+    "retainedEvidence": "Ignore/MasterConvergenceQualification",
+    "plan": "Ignore/MasterConvergenceQualification/navigation-finish-cleanup-plan.json",
+    "results": "Ignore/MasterConvergenceQualification/navigation-finish-cleanup-results.json"
+  },
+  "hostedQualificationPlan": {
+    "sourceBehavior": "b592f475215506212a16ecca23af5a4a20e3a581",
+    "controlSource": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+    "sameMeasurementInputs": true,
+    "corpusInputFiles": 11,
+    "contract": "Same source workload, approved AngleSharp 1.8.3/Css 1.1.2 provider pins, unchanged ceilings and measurement runner; implementation output differences must be independently validated and are not assumed equal.",
+    "checkedFiles": [
+      {
+        "path": "global.json",
+        "currentSha256": "687318203b29066b8ce9465540d53dadeef6195d0380cf08d373867e116348f8",
+        "controlSha256": "687318203b29066b8ce9465540d53dadeef6195d0380cf08d373867e116348f8",
+        "bytesEqual": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/Program.cs",
+        "currentSha256": "4aa973c8d3ddc8d1c05fa89c2a057ef92d0f112e50e57027ce92f53e4eeb029c",
+        "controlSha256": "4aa973c8d3ddc8d1c05fa89c2a057ef92d0f112e50e57027ce92f53e4eeb029c",
+        "bytesEqual": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj",
+        "currentSha256": "8ced961adb62c01486efd30e90f65b9904bab33a25871dda95e03cd63ab24bad",
+        "controlSha256": "8ced961adb62c01486efd30e90f65b9904bab33a25871dda95e03cd63ab24bad",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+        "currentSha256": "e54f7a274b7cbe2f0926c954d7603b6daca92abe67f8214549a541df4a91679e",
+        "controlSha256": "e54f7a274b7cbe2f0926c954d7603b6daca92abe67f8214549a541df4a91679e",
+        "bytesEqual": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/HtmlStaticBudgetModels.cs",
+        "currentSha256": "74da1f535066ed51c4445571f39ba6cee90bedc0a31d34a02d6bc76093c6a884",
+        "controlSha256": "74da1f535066ed51c4445571f39ba6cee90bedc0a31d34a02d6bc76093c6a884",
+        "bytesEqual": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/HtmlStaticBudgetRunner.cs",
+        "currentSha256": "2f18f16a8f3559051fc04aef9129d3ebb7c75dc24bf8295470e936e6fe6d206d",
+        "controlSha256": "2f18f16a8f3559051fc04aef9129d3ebb7c75dc24bf8295470e936e6fe6d206d",
+        "bytesEqual": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/HtmlStaticBudgetWorker.cs",
+        "currentSha256": "97a60c1498d78254b50b826fc7a1059df3042d3077cc8098645bf50f48116154",
+        "controlSha256": "97a60c1498d78254b50b826fc7a1059df3042d3077cc8098645bf50f48116154",
+        "bytesEqual": true
+      },
+      {
+        "path": "Build/HtmlStaticBudget/README.md",
+        "currentSha256": "4b0d72a968c87024241a49df12e0381a58ab7794a2beb0b16f4d1ce2c0f11046",
+        "controlSha256": "4d1571472df415455c96952b9fde787380d4a92280f29b84d6d5c3ce91e884c0",
+        "bytesEqual": false
+      },
+      {
+        "path": "OfficeIMO.TestAssets/HtmlRenderingAdvancedHeldOutCorpus.cs",
+        "currentSha256": "002219fe320931c368650977b45e823c7059a86064f5daf5a7e3cacf13611424",
+        "controlSha256": "002219fe320931c368650977b45e823c7059a86064f5daf5a7e3cacf13611424",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.Pdf.Benchmarks.Comparisons/EvidenceOutputReservation.cs",
+        "currentSha256": "92a19bad380b1f53b8649842eb85f81d6c9b1c097e21c3da8b2b402f026c317f",
+        "controlSha256": "92a19bad380b1f53b8649842eb85f81d6c9b1c097e21c3da8b2b402f026c317f",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.Pdf.Benchmarks.Comparisons/ProcessTreeMemorySampler.cs",
+        "currentSha256": "65d4bcd52b5547388b0449d7078df121996f07b4cd63d5132a53f854d549a178",
+        "controlSha256": "65d4bcd52b5547388b0449d7078df121996f07b4cd63d5132a53f854d549a178",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.Pdf.Benchmarks.Comparisons/SourceProvenanceReader.cs",
+        "currentSha256": "f704f3a688375052957302fe99e58e39ccc5df1eac2df07548efbc6050250239",
+        "controlSha256": "f704f3a688375052957302fe99e58e39ccc5df1eac2df07548efbc6050250239",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/acceptance.json",
+        "currentSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+        "controlSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/budgets.json",
+        "currentSha256": "8b1bf3f67ad4ffb7fa9189f97fc756d22787df70fa1fc180b1b2a313731038a0",
+        "controlSha256": "8b1bf3f67ad4ffb7fa9189f97fc756d22787df70fa1fc180b1b2a313731038a0",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/columns-footnotes-brief.html",
+        "currentSha256": "acceb4e28b1bd2ef879b40ffa40e51aba5ec6c8b5fb2c9f98b887c3f8c2a26d7",
+        "controlSha256": "acceb4e28b1bd2ef879b40ffa40e51aba5ec6c8b5fb2c9f98b887c3f8c2a26d7",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/legacy-portal.html",
+        "currentSha256": "d43ec5ada3e7991955564d10d18c0b33611013c764920ee74633abf576e45e5d",
+        "controlSha256": "d43ec5ada3e7991955564d10d18c0b33611013c764920ee74633abf576e45e5d",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/manifest.json",
+        "currentSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "controlSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/named-pages-brochure.html",
+        "currentSha256": "910c76528fbe545e3676bc1ef3359c2780c4eda14ca536a57ff659ce3634bef2",
+        "controlSha256": "910c76528fbe545e3676bc1ef3359c2780c4eda14ca536a57ff659ce3634bef2",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/nested-fragmentation-report.html",
+        "currentSha256": "04680d6df883d87bd4e1923d588a838fa1f6e02079a12c06bad80a00ba7546b9",
+        "controlSha256": "04680d6df883d87bd4e1923d588a838fa1f6e02079a12c06bad80a00ba7546b9",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/professional-print-catalog.html",
+        "currentSha256": "920bea7010c85aa91482dc81b04b3ab41883313b3f0c13ec6cecc0b227a2c509",
+        "controlSha256": "920bea7010c85aa91482dc81b04b3ab41883313b3f0c13ec6cecc0b227a2c509",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/stacking-clipping-board.html",
+        "currentSha256": "bdb8a8b208362a3883e8aea23c30b0764a809ba057eea9b48155c485cac015a5",
+        "controlSha256": "bdb8a8b208362a3883e8aea23c30b0764a809ba057eea9b48155c485cac015a5",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/subgrid-operations.html",
+        "currentSha256": "ad40b4e445e53f7f59c89e1e310b381bb2a7e037b890e419538aa7aa023ddd37",
+        "controlSha256": "ad40b4e445e53f7f59c89e1e310b381bb2a7e037b890e419538aa7aa023ddd37",
+        "bytesEqual": true
+      },
+      {
+        "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out/typography-specimen.html",
+        "currentSha256": "83739f290d72d040df74a146ae850fea8a7dd8175f215ca87a0bcc3809fd7b4f",
+        "controlSha256": "83739f290d72d040df74a146ae850fea8a7dd8175f215ca87a0bcc3809fd7b4f",
+        "bytesEqual": true
+      }
+    ],
+    "scope": "Existing manual html-static suite on Windows/Linux/macOS; current full correctness/packages and unchanged budgets, followed by same-runner prior-source budgets; no acceptance until actual artifacts inspected"
+  },
+  "nextAppearanceSlice": {
+    "evidence": "Ignore/MasterConvergenceQualification/reference-card-footer-inspection-b592f4752",
+    "sourceContract": "Captured absolute-positioned card overlay and black overflow-hidden footer",
+    "state": "Current page8 still has white region after footer logo; browser-page comparison and small fixture remain required before patch",
+    "productPatch": false
+  }
+}
