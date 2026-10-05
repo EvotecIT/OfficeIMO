@@ -1346,6 +1346,8 @@ document.Compose("Members", composer => {
 document.Save();
 ```
 
+Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Existing stored workbook heights remain unchanged when loaded.
+
 ## Managed image export
 
 Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:

@@ -46,6 +46,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal XlsbPaneInfo? Pane { get; set; }
 
+        internal bool? ShowGridLines { get; set; }
+
         internal XlsbWorksheetProtection? Protection { get; set; }
 
         internal XlsbAutoFilter? AutoFilter { get; set; }
