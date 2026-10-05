@@ -37,7 +37,7 @@ permissions:
 
 jobs:
   catalog:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@2d68d96612f1121b355c70936a6d2145f41a8565
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@371daf0d7106b37657b5be7971e52fdaba7110ae
     with:
       environment-name: studio-catalog
       profile-path: Build/Studio/powerforge.catalog.json
