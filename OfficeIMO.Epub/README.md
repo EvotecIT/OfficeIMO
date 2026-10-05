@@ -366,6 +366,16 @@ may cover only part of a chapter. An existing overlay is never overwritten.
 Other retained SMIL resources need one unambiguous, nonnegative duration each,
 expressible exactly as a `TimeSpan`, before the publication total can be recalculated.
 
+`ReplaceMediaOverlay("story-narration", revisedOverlay)` replaces the same bounded
+single-sequence profile. It preserves cue IDs for retained text targets and reserves
+removed IDs during the edit, so new cues cannot accidentally inherit their links.
+Removal fails when another inspectable resource still references a removed cue.
+The operation preserves manifest identity and duration metadata attributes,
+recalculates the publication total, and leaves audio resources unchanged. Shared
+or encrypted overlays, extra SMIL structures/attributes, and processing instructions
+are rejected. Validation, cancellation and size-limit failures leave the publication
+unchanged. Other retained renditions must not depend on the replaced resource.
+
 Use `SetMetadataProperty("media:active-class", "narration-active")` with a matching
 CSS class in every narrated document for active-text styling. Validate the final
 EPUB with EPUBCheck and check synchronization, highlighting, seeking and pause/resume

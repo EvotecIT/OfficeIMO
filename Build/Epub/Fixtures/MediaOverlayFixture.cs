@@ -1,6 +1,19 @@
 using OfficeIMO.Epub;
 
 internal static class MediaOverlayFixture {
+    internal static EpubPublication Revised() {
+        var book = Create();
+        // Move the cue boundary within the independently measured inter-sentence silence.
+        book.ReplaceMediaOverlay("narration", new EpubMediaOverlay {
+            AudioDurations = new Dictionary<string, TimeSpan> { ["audio"] = TimeSpan.FromTicks(71179590) },
+            Cues = new[] {
+                new EpubMediaOverlayCue("first", "audio", TimeSpan.Zero, TimeSpan.FromSeconds(2.85)),
+                new EpubMediaOverlayCue("second", "audio", TimeSpan.FromSeconds(2.85), TimeSpan.FromTicks(71179590))
+            }
+        });
+        return book;
+    }
+
     internal static EpubPublication Create() {
         var book = EpubPublication.Create("Read-aloud qualification", "en", "urn:officeimo:fixture:read-aloud");
         book.Creator = "OfficeIMO validation";

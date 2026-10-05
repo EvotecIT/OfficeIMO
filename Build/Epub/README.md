@@ -140,6 +140,8 @@ its source/encoding notes live in `Fixtures/Assets`. Its accessibility summary
 identifies the unnarrated heading and unqualified reader playback. Verify cue
 synchronization, highlighting, seeking and pause/resume in a media-overlay reader;
 successful decoding and EPUBCheck/Ace results do not establish those behaviors.
+`read-aloud-revised.epub` exercises typed overlay replacement by moving the cue
+boundary within the recorded inter-sentence silence while retaining both cue IDs.
 
 `merged-chapters.epub` merges those split reading positions back into one resource,
 retaining both TOC entries and repairing the incoming reference. Check its chapter

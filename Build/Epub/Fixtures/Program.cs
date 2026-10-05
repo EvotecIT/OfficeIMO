@@ -50,6 +50,7 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
         nativePreflight = InspectFixture(imported.Publication) });
 }
 WriteFixture("read-aloud", MediaOverlayFixture.Create());
+WriteFixture("read-aloud-revised", MediaOverlayFixture.Revised());
 WriteFixture("fixed-layout-escaped-id", FixedLayoutFixture.EscapedIdentifier());
 WriteFixture("fixed-layout-item-overrides", FixedLayoutFixture.Create(false, false));
 WriteFixture("fixed-layout-ltr", FixedLayoutFixture.Create(false));

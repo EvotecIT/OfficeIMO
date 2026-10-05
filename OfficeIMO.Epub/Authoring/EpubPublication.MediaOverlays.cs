@@ -23,10 +23,36 @@ public sealed partial class EpubPublication {
         VerifyAvailableId(overlayId);
         EpubManifestItem contentItem = RequireManifestItem(contentManifestId);
         if (!string.IsNullOrEmpty(contentItem.MediaOverlayId)) throw new InvalidOperationException("The content already has a media overlay.");
+        var prepared = PrepareMediaOverlay(contentItem, containerPath, overlay, cancellationToken);
+        byte[] payload = SerializeXml(prepared.Document, _maximumEntryBytes);
+        XElement declaration = PrepareResourceDeclaration(overlayId, containerPath, "application/smil+xml", payload, null);
+        TimeSpan duration = prepared.Duration;
+        if (OverlayDurations(Root).Any(meta => ReferencesPackageId((string?)meta.Attribute("refines") ?? string.Empty, overlayId)))
+            throw new InvalidDataException("The new overlay id is already the target of retained duration metadata.");
+        TimeSpan total = MediaOverlayTotal(duration);
+        cancellationToken.ThrowIfCancellationRequested();
+        EditPackageElement(Root, proposed => {
+            cancellationToken.ThrowIfCancellationRequested();
+            XElement manifest = proposed.Element(Opf + "manifest")!;
+            manifest.Add(new XElement(declaration));
+            manifest.Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == contentManifestId).SetAttributeValue("media-overlay", overlayId);
+            XElement metadata = proposed.Element(Opf + "metadata")!;
+            XElement? existingTotal = OverlayDurations(proposed).SingleOrDefault(meta => meta.Attribute("refines") == null);
+            if (existingTotal == null) metadata.Add(DurationMetadata(total, null));
+            else existingTotal.Value = EpubSmilClock.Format(total);
+            metadata.Add(DurationMetadata(duration, "#" + overlayId));
+        }, payload.LongLength);
+        _entries.Add(containerPath, payload);
+        _retainedBytes += payload.LongLength;
+        return RequireManifestItem(overlayId);
+    }
+
+    private (XDocument Document, TimeSpan Duration) PrepareMediaOverlay(EpubManifestItem contentItem, string containerPath,
+        EpubMediaOverlay overlay, CancellationToken cancellationToken) {
         string contentPath = RequireLocalPath(contentItem);
         if (Manifest.Count(item => item.Reference.ContainerPath == contentPath) != 1)
             throw new InvalidDataException("Media-overlay authoring requires a uniquely declared content resource.");
-        XDocument content = EditableXhtml(contentManifestId);
+        XDocument content = EditableXhtml(contentItem.Id);
         XElement body = content.Root!.Element(Html + "body") ?? throw new InvalidDataException("Content has no XHTML body.");
         EpubContentIdentifiers.Collect(content.Root, contentPath, rejectDuplicates: true, cancellationToken);
         if (overlay.Cues == null || overlay.Cues.Count < 1 || overlay.Cues.Count > 10000)
@@ -73,37 +99,17 @@ public sealed partial class EpubPublication {
         }
         var document = new XDocument(new XElement(Smil + "smil", new XAttribute("version", "3.0"),
             new XAttribute(XNamespace.Xmlns + "epub", Ops.NamespaceName), new XElement(Smil + "body", sequence)));
-        byte[] payload = SerializeXml(document, _maximumEntryBytes);
-        XElement declaration = PrepareResourceDeclaration(overlayId, containerPath, "application/smil+xml", payload, null);
-        TimeSpan duration = TimeSpan.FromTicks(ticks);
-        if (OverlayDurations(Root).Any(meta => ReferencesPackageId((string?)meta.Attribute("refines") ?? string.Empty, overlayId)))
-            throw new InvalidDataException("The new overlay id is already the target of retained duration metadata.");
-        TimeSpan total = MediaOverlayTotal(duration);
-        cancellationToken.ThrowIfCancellationRequested();
-        EditPackageElement(Root, proposed => {
-            cancellationToken.ThrowIfCancellationRequested();
-            XElement manifest = proposed.Element(Opf + "manifest")!;
-            manifest.Add(new XElement(declaration));
-            manifest.Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == contentManifestId).SetAttributeValue("media-overlay", overlayId);
-            XElement metadata = proposed.Element(Opf + "metadata")!;
-            XElement? existingTotal = OverlayDurations(proposed).SingleOrDefault(meta => meta.Attribute("refines") == null);
-            if (existingTotal == null) metadata.Add(DurationMetadata(total, null));
-            else existingTotal.Value = EpubSmilClock.Format(total);
-            metadata.Add(DurationMetadata(duration, "#" + overlayId));
-        }, payload.LongLength);
-        _entries.Add(containerPath, payload);
-        _retainedBytes += payload.LongLength;
-        return RequireManifestItem(overlayId);
+        return (document, TimeSpan.FromTicks(ticks));
     }
 
-    private TimeSpan MediaOverlayTotal(TimeSpan addedDuration) {
+    private TimeSpan MediaOverlayTotal(TimeSpan addedDuration, string? replacedOverlayId = null) {
         XElement[] durations = OverlayDurations(Root).ToArray();
         if (durations.Count(meta => meta.Attribute("refines") == null) > 1)
             throw new InvalidDataException("The publication has ambiguous total media durations.");
         long total = addedDuration.Ticks;
-        foreach (EpubManifestItem item in Manifest.Where(item => HasMediaType(item.MediaType, "application/smil+xml"))) {
+        foreach (EpubManifestItem item in Manifest.Where(item => HasMediaType(item.MediaType, "application/smil+xml") && item.Id != replacedOverlayId)) {
             XElement[] values = durations.Where(meta => ReferencesPackageId((string?)meta.Attribute("refines") ?? string.Empty, item.Id)).ToArray();
-            if (values.Length != 1) throw new InvalidDataException("Each existing SMIL resource requires exactly one duration before adding narration.");
+            if (values.Length != 1) throw new InvalidDataException("Each existing SMIL resource requires exactly one duration before changing narration.");
             try { total = checked(total + EpubSmilClock.Parse(values[0].Value).Ticks); }
             catch (OverflowException) { throw new InvalidDataException("Total narration duration exceeds TimeSpan."); }
         }
