@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(prefix, offset, length - offset);
                 if (read == 0) {
-                    throw new EndOfStreamException(
+                    throw new InvalidDataException(
                         $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended within its {length}-byte prefix.");
                 }
                 offset += read;
@@ -265,7 +265,9 @@ namespace OfficeIMO.Excel {
 
             // Small metadata and shared-string parts can use a seekable pooled stream.
             // Retain streaming behavior for larger parts.
-            if (entry.Length > 8192) return entry.Open();
+            if (entry.Length > 8192) {
+                return new OpenXmlPartLengthStream(entry.Open(), entry.Length, normalizedPartName);
+            }
 
             int length = checked((int)entry.Length);
             byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
@@ -290,7 +292,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(output, offset, length - offset);
                 if (read == 0) {
-                    throw new EndOfStreamException(
+                    throw new InvalidDataException(
                         $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
                 }
                 offset += read;
