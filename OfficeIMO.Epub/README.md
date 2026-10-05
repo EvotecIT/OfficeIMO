@@ -536,6 +536,13 @@ lowercase spelling; custom metadata belongs in the EPUB property vocabulary APIs
 
 For repeatable external validation, see the [EPUBCheck evidence runner](../Build/Epub/README.md).
 
+The [independent publishing fixture](../OfficeIMO.TestAssets/Documents/Epub/IdpfPublishing/README.md)
+tests creator refinements, nested navigation, 92 print-page references, and editorial
+metadata changes against an unchanged EPUB 3 Samples publication. Its non-package
+payloads remain byte-for-byte intact after metadata editing. This supplements the
+[W3C spine fixtures](../OfficeIMO.TestAssets/Documents/Epub/W3cSpine/README.md);
+neither corpus establishes full accessibility or reader-presentation conformance.
+
 ## Save validation and limits
 
 Save preflight checks required metadata, unique package ids, manifest targets and

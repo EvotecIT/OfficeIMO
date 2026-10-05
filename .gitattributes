@@ -34,6 +34,9 @@ OfficeIMO.Email.Tests/Corpora/native-apple-20261003/manifest.json text eol=lf di
 OfficeIMO.Latex.Tests/Fixtures/latex2e/*.tex -text
 OfficeIMO.Latex.Tests/Fixtures/latex2e/*.txt -text
 
+# Hash-bound EPUB producer fixtures retain upstream bytes on every checkout platform.
+OfficeIMO.TestAssets/Documents/Epub/IdpfPublishing/childrens-literature/** -text -whitespace
+
 # Public showcase downloads are generated binary evidence. Preserve exact bytes
 # so the committed manifest hashes remain stable across platforms and checkouts.
 Website/static/downloads/showcase/** -text -diff
