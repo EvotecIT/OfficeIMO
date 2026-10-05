@@ -94,10 +94,14 @@ public sealed partial class EpubPublication {
         // A newly added resource can occupy a vacated original path. Omission evidence follows
         // the original identity, while RemovedEntries continues to describe physical paths.
         var retainedOrigins = new HashSet<string>(_entryOrigins.Where(pair => entries.ContainsKey(pair.Key)).Select(pair => pair.Value), StringComparer.Ordinal);
+        var merged = _mergedEntryOrigins.Where(pair => entries.ContainsKey(pair.Key))
+            .SelectMany(pair => pair.Value.Select(origin => new KeyValuePair<string, string>(origin, pair.Key)))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        retainedOrigins.UnionWith(merged.Keys);
         foreach (string path in _originalEntries.Keys.Except(retainedOrigins, StringComparer.Ordinal)
             .Where(path => path != "META-INF/signatures.xml").OrderBy(path => path, StringComparer.Ordinal)) diagnostics.Add(new OfficeConversionFidelityDiagnostic(
             "EPUB_WRITE_ENTRY_REMOVED", "Original entry was explicitly removed by editing.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub", path));
-        return new EpubWriteResult(output, new EpubWriteReport(false, preserved, regenerated, removed, diagnostics, renamed));
+        return new EpubWriteResult(output, new EpubWriteReport(false, preserved, regenerated, removed, diagnostics, renamed, merged));
     }
 
     /// <summary>Atomically saves a completed artifact to a file, preserving an existing destination on validation/cancellation failure.</summary>

@@ -6,6 +6,23 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class BookProjectTests {
     [Fact]
+    public void ChapterMergeIsUndoableAndRetainsChapterNavigationAfterProjectReopen() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<p>First</p>");
+        publication.AddChapter("two", "EPUB/two.xhtml", "Two", "<p>Second</p>");
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        project.MergeChapters("one", "two", "second-start");
+        Assert.Single(project.Publication.Spine);
+        Assert.Equal("EPUB/one.xhtml", project.Publication.Write().Report.MergedEntries["EPUB/two.xhtml"]);
+        project.Undo(); Assert.Equal(2, project.Publication.Spine.Count);
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Single(reopened.Publication.Spine);
+        Assert.Equal("second-start", reopened.Publication.Read().TableOfContents[1].Fragment);
+        Assert.Contains("FirstSecond", reopened.Publication.GetContentXml("one").Root!.Element(XName.Get("body", "http://www.w3.org/1999/xhtml"))!.Value);
+    }
+
+    [Fact]
     public void ChapterSplitParticipatesInUndoRedoAndProjectPersistence() {
         var publication = EpubPublication.Create("Book", "en");
         publication.AddChapter("one", "EPUB/one.xhtml", "One", "<h1>First</h1><p id='cut'>Second</p>");

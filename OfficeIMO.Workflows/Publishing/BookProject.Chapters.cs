@@ -6,6 +6,10 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
+    /// <summary>Merges consecutive compatible chapters, repairing references in one undoable transaction.</summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.MergeChapters(firstManifestId, secondManifestId, boundaryId, cancellationToken), cancellationToken);
+
     /// <summary>Splits a chapter before a block identifier, with reference repair and one undoable transaction.</summary>
     public void SplitChapter(string manifestId, string boundaryId, string newManifestId, string newContainerPath,
         string title, CancellationToken cancellationToken = default) =>

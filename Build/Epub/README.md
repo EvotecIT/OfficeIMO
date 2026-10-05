@@ -66,6 +66,10 @@ with forward, return and incoming links repaired across the new resource boundar
 Use it to check TOC order and link destinations in independent readers as well as
 with the automated validators.
 
+`merged-chapters.epub` merges those split reading positions back into one resource,
+retaining both TOC entries and repairing the incoming reference. Check its chapter
+order, section links and return links alongside the split fixture.
+
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
   /path/to/task-evidence/typography

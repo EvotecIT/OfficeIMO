@@ -179,6 +179,7 @@ public sealed partial class EpubPublication {
         if (removePayload) {
             _entries.Remove(path); _retainedBytes -= releasedBytes;
             _entryOrigins.Remove(path);
+            _mergedEntryOrigins.Remove(path);
         }
     }
 

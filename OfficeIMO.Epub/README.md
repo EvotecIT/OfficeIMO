@@ -460,9 +460,39 @@ retention limits and cancellation apply before any retained state changes. The
 operation preserves markup, but changed chapter boundaries can affect pagination,
 CSS counters and layout; assess the result in the intended reading systems.
 
+`MergeChapters` combines consecutive reflowable reading positions into the first
+resource. Supply an unused content ID for the second chapter's boundary:
+
+```csharp
+publication.MergeChapters("chapter-1", "chapter-2", "second-chapter-start");
+```
+
+Both TOC entries and their nesting remain. Whole-document links to the second chapter
+target the new boundary; fragment links follow their retained elements. Relative assets,
+HTML base URLs, page-list entries and package links are repaired before the second
+manifest/spine entry and payload are removed. Its title is retained on the boundary
+marker; the merged document keeps the first title. Identical structural containers at
+the join, with matching IDs and attributes, are recombined, including containers cloned
+by `SplitChapter`.
+
+The default merge requires matching root/body attributes and equivalent heads after URL
+rebasing, apart from title text. It rejects conflicting styles, metadata, processing
+instructions, remaining duplicate IDs or image-map names, different reading-position
+attributes, and package refinements that would lose their target. Document-local
+relationships cannot be redirected to an empty boundary marker. Resolve these conflicts
+explicitly before merging; there is no automatic CSS isolation or identifier-renaming
+policy. The same reflowable, resource-inspection, retention and atomicity limits as
+splitting apply. Reader layout and accessibility assessment remain separate checks.
+
 `EpubWriteReport` identifies preserved, regenerated, and removed entries. Its
 `RenamedEntries` map distinguishes original paths relocated by the rename API from
-content omissions, so a rename alone does not fail `RequireNoLoss`. Explicit
+content omissions. `MergedEntries` identifies original resources consolidated into
+retained chapters; later renames follow that identity, and deleting the retained
+chapter reports the corresponding original resources as omitted. Reports describe
+operations relative to the current instance's load baseline; this history is not
+embedded in the EPUB, and reopening establishes a new baseline. A rename or supported
+merge alone does not fail `RequireNoLoss`. This is resource-identity evidence, not a
+semantic comparison of arbitrary content edits. Explicit
 resource or signature removal produces omission diagnostics; `RequireNoLoss` rejects
 them. `RemoveResource` blocks structural and cover references, declared rootfiles,
 and payloads referenced by retained alternate packages or their XHTML/SVG/NCX content.

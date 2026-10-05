@@ -72,6 +72,10 @@ public sealed partial class EpubPublication {
             _entryOrigins.Remove(oldPath);
             _entryOrigins.Add(newPath, origin);
         }
+        if (_mergedEntryOrigins.TryGetValue(oldPath, out HashSet<string>? mergedOrigins)) {
+            _mergedEntryOrigins.Remove(oldPath);
+            _mergedEntryOrigins.Add(newPath, mergedOrigins);
+        }
         foreach (var edit in packageEdits) edit.Original.Value = edit.Value;
         _entries.Clear();
         foreach (var entry in entries) _entries.Add(entry.Key, entry.Value);
@@ -94,7 +98,11 @@ public sealed partial class EpubPublication {
         string referenceValue = empty ? "#" : value;
         EpubReference original = EpubReference.Resolve(owner, oldBase, referenceValue);
         if (!original.IsValid) throw new InvalidDataException("Invalid resource URL in " + owner + ": " + value);
-        if (original.Kind != EpubReferenceKind.Container) return value;
+        if (original.Kind != EpubReferenceKind.Container) {
+            EpubReference currentExternal = EpubReference.Resolve(destination, newBase, referenceValue);
+            return currentExternal.Kind == original.Kind && currentExternal.ResolvedValue == original.ResolvedValue
+                ? value : original.ResolvedValue ?? value;
+        }
         var mapped = map == null ? (Path: original.ContainerPath == oldPath ? newPath : original.ContainerPath!, Fragment: original.Fragment) : map(original);
         string target = mapped.Path;
         EpubReference current = EpubReference.Resolve(destination, newBase, referenceValue);

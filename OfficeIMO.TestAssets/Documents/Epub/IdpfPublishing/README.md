@@ -26,6 +26,8 @@ rejected without mutation. It then creates an in-memory static derivative by rem
 the navigation script and revealing hidden navigation entries. The independently
 produced chapter remains unchanged before splitting; the test checks complete body
 text, reading order, print-page targets, and both XHTML and NCX navigation afterward.
+The matching merge contract recombines the static derivative and checks complete
+body text, the restored spine and all 92 print-page targets.
 
 These are independent-producer read/edit contracts. They do not establish modern
 accessibility conformance or independent-reader presentation of the sample.

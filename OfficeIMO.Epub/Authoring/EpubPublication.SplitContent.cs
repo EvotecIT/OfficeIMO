@@ -28,17 +28,17 @@ public sealed partial class EpubPublication {
         return (first, second);
     }
 
-    private XElement RequireSplittablePosition(EpubManifestItem item) {
+    private XElement RequireRestructurablePosition(EpubManifestItem item) {
         string path = RequireLocalPath(item);
         if (!HasMediaType(item.MediaType, "application/xhtml+xml") || HasToken(item.Properties, "nav"))
-            throw new NotSupportedException("Chapter splitting requires a non-navigation XHTML chapter.");
+            throw new NotSupportedException("Chapter restructuring requires a non-navigation XHTML chapter.");
         if (_rootfilePaths.Length != 1 || _encryption.Count != 0 || Manifest.Any(resource => HasToken(resource.Properties, "scripted") || IsScriptMediaType(resource.MediaType)))
-            throw new NotSupportedException("Chapter splitting requires one unencrypted, non-scripted rendition.");
+            throw new NotSupportedException("Chapter restructuring requires one unencrypted, non-scripted rendition.");
         if (Manifest.Count(resource => resource.Reference.ContainerPath == path) != 1 || item.MediaOverlayId != null || item.FallbackId != null ||
             Manifest.Any(resource => resource.FallbackId == item.Id))
             throw new NotSupportedException("Shared resources, fallbacks and media-overlay chapters require an explicit split policy.");
         XElement[] positions = RequireSection("spine").Elements(Opf + "itemref").Where(element => (string?)element.Attribute("idref") == item.Id).ToArray();
-        if (positions.Length != 1) throw new InvalidOperationException("A split chapter must have exactly one spine position.");
+        if (positions.Length != 1) throw new InvalidOperationException("An edited chapter must have exactly one spine position.");
         const string rendition = "http://www.idpf.org/vocab/rendition/#";
         string[] properties = Tokens((string?)positions[0].Attribute("properties")).Select(token => EpubVocabulary.Expand(Root, token)).ToArray();
         bool fixedLayout = RequireSection("metadata").Elements(Opf + "meta").Any(meta => meta.Attribute("refines") == null &&

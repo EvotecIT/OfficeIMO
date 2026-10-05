@@ -68,6 +68,21 @@ public sealed class EpubIndependentPublishingContracts {
         Assert.Equal(new[] { "cover", "nav", "s04", "later" }, reopened.Spine.Select(item => item.ManifestId));
     }
 
+    [Fact]
+    public void IndependentStaticDerivativeSplitAndMergeRetainsCompleteTextAndPrintPages() {
+        var book = LoadIndependent(out _, staticNavigation: true);
+        var html = XNamespace.Get("http://www.w3.org/1999/xhtml");
+        string original = book.GetContentXml("s04").Root!.Element(html + "body")!.Value;
+        book.SplitChapter("s04", "pgepubid00508", "later", "EPUB/parts/later.xhtml", "Later stories");
+        book.MergeChapters("s04", "later", "later-start");
+        var reopened = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        Assert.Equal(original, reopened.GetContentXml("s04").Root!.Element(html + "body")!.Value);
+        Assert.Equal(new[] { "cover", "nav", "s04" }, reopened.Spine.Select(item => item.ManifestId));
+        Assert.Equal(92, reopened.Read().PageList.Count);
+        Assert.All(reopened.Read().PageList, page => Assert.Equal("EPUB/s04.xhtml", page.Target));
+        Assert.DoesNotContain("EPUB/parts/later.xhtml", reopened.EntryPaths);
+    }
+
     private static EpubPublication LoadIndependent(out Dictionary<string, byte[]> entries, bool staticNavigation = false) {
         string directory = Path.Combine(AppContext.BaseDirectory, "idpf", "childrens-literature");
         entries = Directory.GetFiles(directory, "*", SearchOption.AllDirectories).ToDictionary(

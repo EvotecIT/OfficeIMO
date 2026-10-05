@@ -15,7 +15,7 @@ public sealed partial class EpubPublication {
         newContainerPath = VerifyContentPath(newContainerPath);
         VerifyAvailableContainerPath(newContainerPath);
         EpubManifestItem source = RequireManifestItem(manifestId);
-        XElement position = RequireSplittablePosition(source);
+        XElement position = RequireRestructurablePosition(source);
         string sourcePath = RequireLocalPath(source);
         XDocument first = EditableXhtml(manifestId);
         EpubContentIdentifiers.Collect(first.Root!, sourcePath, true, cancellationToken);

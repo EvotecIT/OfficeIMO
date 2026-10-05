@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private static bool RewriteMovedXml(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token, ContentReferenceMap? map = null) {
+    private static bool RewriteMovedXml(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token, ContentReferenceMap? map = null, bool removeHtmlBase = false) {
         if (document.Root == null) throw new InvalidDataException("Resource XML has no root.");
         if (document.Descendants().Attributes(XNamespace.Xml + "base").Any())
             throw new NotSupportedException("Resource renaming does not support XML base declarations.");
@@ -19,7 +19,13 @@ public sealed partial class EpubPublication {
             .Attributes("href").FirstOrDefault() : null;
         string? oldBase = baseAttribute?.Value;
         bool changed = RewriteMovedXmlStylesheets(document, owner, destination, oldPath, newPath, token, map);
-        if (!string.IsNullOrWhiteSpace(oldBase)) {
+        if (removeHtmlBase && document.Root.Name == Html + "html") {
+            XElement[] bases = document.Root.Element(Html + "head")!.Elements(Html + "base").ToArray();
+            if (bases.Attributes().Any(attribute => attribute.Name != "href" && !attribute.IsNamespaceDeclaration))
+                throw new NotSupportedException("Merging cannot discard additional HTML base attributes.");
+            bases.Remove(); changed |= bases.Length != 0;
+        }
+        if (!removeHtmlBase && !string.IsNullOrWhiteSpace(oldBase)) {
             EpubReference reference = EpubReference.Resolve(owner, oldBase!, "#");
             if (!reference.IsValid) throw new InvalidDataException("Invalid content base URL.");
             if (reference.Kind == EpubReferenceKind.Container) {
@@ -31,7 +37,7 @@ public sealed partial class EpubPublication {
                 }
             }
         }
-        string? newBase = baseAttribute?.Value;
+        string? newBase = removeHtmlBase ? null : baseAttribute?.Value;
         string Rewrite(string value) => RewriteMovedReference(owner, oldBase, destination, newBase, value, oldPath, newPath, map);
         foreach (XElement element in document.Descendants()) {
             token.ThrowIfCancellationRequested();
