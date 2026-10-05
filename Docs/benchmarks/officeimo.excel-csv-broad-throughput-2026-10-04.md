@@ -1273,6 +1273,34 @@ Raw native, rotated and memory packets and their captured runner scripts are
 retained beside the summaries. The qualification source is `1b0c3b146`; its
 normalized Excel source is integrated at `b57455a0c`.
 
+## Rejected full-tail worksheet budget probe
+
+A worksheet just above the one-million-cell indexing budget can discard a roughly 42 MB decompressed buffer before continuing through the streaming reader. A prototype inspected a bounded prefix and a rolling tail to decline that buffer earlier. It reduced first-read allocation for the 250,000-data-row fixture, but added another complete decompression pass to the nearby eligible 249,999-row fixture. The prototype is rejected and is not part of the integration source.
+
+All four rotated comparisons retain that eligible-case cost. Ratios below divide candidate median time by the original median; values above one are slower. The control uses an identical copy of the original assemblies.
+
+| Host and control runtime | Eligible 249,999-row candidate/original | Identical control/original |
+| --- | ---: | ---: |
+| Windows, .NET 10.0.12 | 1.195 | 1.101 |
+| Windows, .NET 8.0.21 | 1.126 | 0.972 |
+| macOS, .NET 10.0.12 | 1.167 | 0.950 |
+| macOS, .NET 8.0.21 | 1.150 | 1.017 |
+
+The Windows .NET 10 packet is a four-case screen. The other three packets include all five sizes, including one million rows. Together they retain 57 observations and 1,368 measurements, with 24 warmups, 24 retained samples, one complete read per sample, rotated engine order and no outlier removal. The over-budget 250,000-row timing result is mixed: candidate/original ranges from 0.964 to 1.074. This does not establish a portable throughput improvement.
+
+The corresponding cold memory comparison uses three fresh workers for each engine and size on each host/runtime: 120 workers, with another 20 separate .NET 8 output-validation workers. The producer and validation checks cover every projected field and row. For the over-budget 250,000-row fixture, the arithmetic means are:
+
+| Host and native worker runtime | Calling-thread allocation, original → prototype | Managed increase after return, original → prototype |
+| --- | ---: | ---: |
+| Windows, .NET 10.0.12 | 42.816 → 0.873 MB | 42.318 → 0.377 MB |
+| Windows, .NET 8.0.31 | 43.140 → 1.197 MB | 42.607 → 0.613 MB |
+| macOS, .NET 10.0.12 | 42.789 → 0.841 MB | 42.466 → 0.521 MB |
+| macOS, .NET 8.0.23 | 43.169 → 1.222 MB | 42.643 → 0.551 MB |
+
+MB means 1,000,000 bytes. These first-call measurements include JIT, reflection and pool initialization. Managed memory after return includes reusable pooled buffers; sampled peaks are lower bounds. Cold-read elapsed times are not the warmed timing result. Allocation for the eligible 249,999-row fixture remains roughly 61 MB, so its repeated slowdown has no corresponding allocation benefit.
+
+The Windows candidate is `cc39dc4bab635a3accc3a0d745fa7e0ef9a82f44`; the macOS candidate is `011c50a0804d90ad9fb17060ea6ef83f026b2c77`. The retained [source patch](excel-csv-broad-throughput-2026-10-04/budget-tail-rejected-source.patch), [timing summary](excel-csv-broad-throughput-2026-10-04/budget-tail-rejected-summary-controls-all-runtimes.json), [memory summary](excel-csv-broad-throughput-2026-10-04/budget-tail-rejected-summary-memory.json) and [evidence manifest](excel-csv-broad-throughput-2026-10-04/budget-tail-rejected-evidence-manifest.json) identify all raw packets and captured runners. The manifest explains recovery of the original Windows memory samples after an obsolete inventory assertion and a stale diagnostic description in the captured screen runner. Neither correction changes or replaces the retained measurements.
+
 ## Semicolon and tab quote-character searches
 
 CSV writers use the existing vectorized character-search mechanism for
