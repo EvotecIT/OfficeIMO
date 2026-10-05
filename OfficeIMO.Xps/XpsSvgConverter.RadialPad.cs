@@ -1,0 +1,49 @@
+using System.Text;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Xps;
+
+internal sealed partial class XpsSvgConverter {
+    private void NativeRadialPad(XElement gradient, XElement target, string attribute, BrushRegion region) {
+        if (region.Width <= 0 || region.Height <= 0) { Set(target, attribute, "none"); return; }
+        string id = (string)gradient.Attribute("id")!;
+        if ((string?)gradient.Attribute("gradientUnits") == "objectBoundingBox") {
+            StripFillRule((string?)target.Attribute("d") ?? "", out _, out var bounds);
+            if (!bounds.HasValue || bounds.Value.Width <= 0 || bounds.Value.Height <= 0) { Set(target, attribute, "none"); return; }
+            var box = bounds.Value;
+            Set(gradient, "gradientTransform", "matrix(" + N(box.Width) + " 0 0 " + N(box.Height) + " " + N(box.X) + " " + N(box.Y) + ") " + (string?)gradient.Attribute("gradientTransform"));
+        }
+        Set(gradient, "gradientUnits", "userSpaceOnUse");
+        string cx = (string)gradient.Attribute("cx")!, cy = (string)gradient.Attribute("cy")!, radius = (string)gradient.Attribute("r")!;
+        Set(gradient, "cx", (string)gradient.Attribute("fx")!); Set(gradient, "cy", (string)gradient.Attribute("fy")!);
+        Set(gradient, "fx", cx); Set(gradient, "fy", cy); Set(gradient, "fr", radius); Set(gradient, "r", "0");
+        var stops = gradient.Elements().ToArray();
+        if (stops.Length == 0) { Set(target, attribute, "none"); return; }
+        // Match SVG's monotonic clamping before reversal, including duplicate stops.
+        double previous = 0;
+        foreach (var stop in stops) {
+            previous = Math.Max(previous, Math.Min(1, Math.Max(0, XpsPackage.Number((string?)stop.Attribute("offset")))));
+            Set(stop, "offset", N(1 - previous));
+        }
+        gradient.RemoveNodes();
+        foreach (var stop in Enumerable.Reverse(stops)) gradient.Add(stop);
+        var alpha = CloneProjection(gradient);
+        Set(alpha, "color-interpolation", "sRGB");
+        foreach (var stop in alpha.Elements()) {
+            double opacity = Unit((string?)stop.Attribute("stop-opacity") ?? "1");
+            string channel = N(opacity * 100) + "%";
+            Set(stop, "stop-color", "rgb(" + channel + "," + channel + "," + channel + ")");
+            stop.Attribute("stop-opacity")?.Remove();
+        }
+        foreach (var stop in gradient.Elements()) stop.Attribute("stop-opacity")?.Remove();
+        var markup = new StringBuilder();
+        markup.AppendNativeRadialPatternDefinition(id, region.X, region.Y, region.Width, region.Height,
+            (string)gradient.Elements().First().Attribute("stop-color")!, (string)alpha.Elements().First().Attribute("stop-color")!,
+            (output, fieldId) => { Set(gradient, "id", fieldId); output.Append(gradient.ToString(SaveOptions.DisableFormatting)); },
+            (output, fieldId) => { Set(alpha, "id", fieldId); output.Append(alpha.ToString(SaveOptions.DisableFormatting)); });
+        EnsureOutputCapacity(markup.Length);
+        // Charge every composed node/attribute through the native converter's budget.
+        _defs.Add(CloneProjection(XElement.Parse(markup.ToString())).Elements().ToArray());
+        Set(target, attribute, "url(#" + id + ")");
+    }
+}

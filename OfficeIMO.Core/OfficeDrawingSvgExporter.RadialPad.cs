@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Globalization;
 using System.Text;
 using System.Threading;
 
@@ -37,31 +36,13 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void AppendNativeRadialPattern(StringBuilder builder, string id, OfficeRadialGradient field,
         double left, double top, double width, double height) {
-        string N(double value) {
-            if (double.IsNaN(value) || double.IsInfinity(value)) throw new NotSupportedException("Native radial SVG paint bounds must be finite.");
-            return value.ToString("R", CultureInfo.InvariantCulture);
-        }
-        string region = " x=\"" + N(left) + "\" y=\"" + N(top) + "\" width=\"" + N(width) + "\" height=\"" + N(height) + "\"";
-        string colorId = id + "-color", alphaId = id + "-alpha", maskId = id + "-mask";
-        // SVG2 shrinking circles select the native first intersection. SVG leaves
-        // the outside cone transparent, so compose opaque RGB and alpha separately,
-        // just as the PDF owner does. Painting translucent layers over one another
-        // would incorrectly compound the outside endpoint alpha inside the cone.
         var colors = field.WithStops(field.Stops.Select(stop => new OfficeGradientStop(stop.Offset,
             OfficeColor.FromRgb(stop.Color.R, stop.Color.G, stop.Color.B))).ToArray());
         var alpha = field.WithStops(field.Stops.Select(stop => new OfficeGradientStop(stop.Offset,
             OfficeColor.FromRgb(stop.Color.A, stop.Color.A, stop.Color.A))).ToArray());
-        builder.Append("<defs><pattern").AppendAttribute("id", id).Append(region)
-            .Append(" patternUnits=\"userSpaceOnUse\" patternContentUnits=\"userSpaceOnUse\"><g transform=\"translate(")
-            .Append(N(-left)).Append(' ').Append(N(-top)).Append(")\">");
-        builder.AppendRadialGradientFieldDefinition(colorId, colors);
-        builder.AppendRadialGradientFieldDefinition(alphaId, alpha);
-        builder.Append("<defs><mask").AppendAttribute("id", maskId).Append(region)
-            .Append(" maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\" style=\"mask-type:luminance\">");
-        Rect(OfficeSvgFormatting.ToCssColor(alpha.Stops[0].Color)); Rect("url(#" + alphaId + ")");
-        builder.Append("</mask></defs><g").AppendAttribute("mask", "url(#" + maskId + ")").Append('>');
-        Rect(OfficeSvgFormatting.ToCssColor(colors.Stops[0].Color)); Rect("url(#" + colorId + ")");
-        builder.Append("</g></g></pattern></defs>");
-        void Rect(string fill) => builder.Append("<rect").Append(region).AppendAttribute("fill", fill).Append("/>");
+        builder.AppendNativeRadialPatternDefinition(id, left, top, width, height,
+            OfficeSvgFormatting.ToCssColor(colors.Stops[0].Color), OfficeSvgFormatting.ToCssColor(alpha.Stops[0].Color),
+            (output, fieldId) => output.AppendRadialGradientFieldDefinition(fieldId, colors),
+            (output, fieldId) => output.AppendRadialGradientFieldDefinition(fieldId, alpha));
     }
 }

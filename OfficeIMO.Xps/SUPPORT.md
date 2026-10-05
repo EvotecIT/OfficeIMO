@@ -16,7 +16,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF/JPEG XR, native integer sRGB/gray defaults for non-ICC image descriptions, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry such as non-sRGB PNG cICP, unsupported TIFF and JPEG XR encodings are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
-| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior, boundary and exterior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a finite cycle bound and at most 256 expanded stops; boundary foci require painted bounds strictly inside the tangent half-plane; ordinary SVG diagnoses boundary/exterior focal fields; native consumer differences remain below |
+| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior, boundary and exterior radial Repeat/Reflect expansion retains vector PDF shading | Repeat/Reflect requires a finite cycle bound and at most 256 expanded stops; boundary foci require painted bounds strictly inside the tangent half-plane; direct SVG preserves Pad fields and diagnoses boundary/exterior Repeat/Reflect fields; native consumer differences remain below |
 | SVG | Self-contained images and glyph outlines; authored Path/Canvas descriptions retained as title/desc metadata; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
 | PDF | Optional thin bridge retaining vector paint, dimensions, native alpha masks and searchable Unicode clusters; native paragraph/list/table/figure tags with authored figure descriptions, continued cross-page containers, declared story order, list labels and cell spans; header/footer artifacts | Unstructured pages use markup order; unassociated fragments use page order; unknown/unresolved/overlapping semantics reject strict mapping; an explicit paint-only mode retains markup-order text; no inferred figure descriptions, PDF/UA qualification, print-ticket or signature migration; clipped/transparent source text remains searchable |
@@ -269,13 +269,17 @@ Core reverses the circle sequence to select the smallest containing ellipse;
 PDF retains vector shading and explicitly paints the outside endpoint color and
 alpha. Independent PDF consumers exercise both cone paint and outside paint.
 GhostXPS agrees on qualified interior samples but leaves some outside regions
-unpainted; that difference is retained in the evidence. Standalone SVG uses a
-different intersection rule and does not carry native semantics: strict `ToSvg`
-rejects boundary/exterior foci, while partial SVG reports loss. SVG image exports
-and shared Drawing SVG exports preserve these fields through SVG 2 shrinking-circle
+unpainted; that difference is retained in the evidence. Direct `ToSvg`, SVG image
+exports and shared Drawing SVG exports preserve native Pad fields through SVG 2 shrinking-circle
 patterns with separately composed color and alpha. These exports retain vector
 paint and require an SVG 2 consumer; the shared SVG importer still rejects the
-shrinking-circle representation. A 20-case browser comparison covers boundary/exterior
+shrinking-circle representation. Direct `ToSvg` preserves its native glyph, mask,
+and VisualBrush projection paths. A 40-case direct-SVG browser comparison across
+both dialects covers fills, strokes, affine visual/brush transforms, opacity masks
+and VisualBrush content; full-rectangle pixels differ by at most 1/255 per channel
+and the maximum whole-page mean difference is 0.145/255. Sixteen additional normal
+and simulated-bold glyph cases retain the field with a maximum whole-page mean
+difference of 0.801/255, including text-edge rasterization differences. A 20-case Drawing browser comparison covers boundary/exterior
 foci, opaque/translucent stops, inset paths, reflected/sheared placement, strokes and
 markers. Full-rectangle pixels differ from managed output by at most 1/255 per
 channel; maximum whole-page mean difference is 0.285/255, with geometry-edge
@@ -302,8 +306,8 @@ Form bounds. Managed rendering and opaque PDF readback retain these extreme
 fields; both MuPDF and Ghostscript have numerical or raster differences in the
 large-radius stress cases. This evidence qualifies the bounded field and emitted
 vector geometry, not every consumer's raster output or independent native Windows
-behavior. Standalone SVG retains the same explicit loss boundary as native Pad
-exterior fields for direct `ToSvg`; Drawing and SVG image exports use the vector
+behavior. Direct `ToSvg` still reports loss for native boundary/exterior Repeat/Reflect
+fields; Drawing and SVG image exports use the vector
 pattern composition after bounded spread expansion.
 
 Boundary Repeat/Reflect qualification adds 36 generated cases across both dialects,

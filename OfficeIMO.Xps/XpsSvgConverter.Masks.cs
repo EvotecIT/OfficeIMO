@@ -47,7 +47,7 @@ internal sealed partial class XpsSvgConverter {
         var mask = Element("mask", new XAttribute("id", id), new XAttribute("mask-type", "alpha"), new XAttribute("maskUnits", "userSpaceOnUse"), new XAttribute("maskContentUnits", "userSpaceOnUse"),
             new XAttribute("x", N(region.X)), new XAttribute("y", N(region.Y)), new XAttribute("width", N(region.Width)), new XAttribute("height", N(region.Height)));
         var paint = Element("path", new XAttribute("d", "M" + N(region.X) + "," + N(region.Y) + " h" + N(region.Width) + " v" + N(region.Height) + " h" + N(-region.Width) + " Z"));
-        Paint(source, "OpacityMask", paint, "fill", scope, part, depth);
+        Paint(source, "OpacityMask", paint, "fill", scope, part, depth, region);
         mask.Add(ApplyBrushFill(paint));
         _defs.Add(mask); Set(target, "mask", "url(#" + id + ")");
     }

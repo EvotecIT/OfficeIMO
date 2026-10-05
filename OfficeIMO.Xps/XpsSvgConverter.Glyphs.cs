@@ -154,10 +154,10 @@ internal sealed partial class XpsSvgConverter {
             double growth = size * 0.01;
             region = IntersectRegion(region, new BrushRegion(minX - growth, minY - growth, maxX - minX + growth * 2, maxY - minY + growth * 2));
             var paint = Element("path", new XAttribute("d", "M" + N(region.X) + "," + N(region.Y) + " h" + N(region.Width) + " v" + N(region.Height) + " h" + N(-region.Width) + " Z"));
-            Paint(e, "Fill", paint, "fill", scope, part, depth);
+            Paint(e, "Fill", paint, "fill", scope, part, depth, region);
             result = Element("g", ApplyCoverageMask(path, ApplyBrushFill(paint), region));
         } else {
-            Paint(e, "Fill", path, "fill", scope, part, depth);
+            Paint(e, "Fill", path, "fill", scope, part, depth, region);
             result = ApplyBrushFill(path);
         }
         if (text.Length > 0) Set(result, "aria-label", text);

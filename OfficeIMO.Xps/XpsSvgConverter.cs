@@ -225,8 +225,8 @@ internal sealed partial class XpsSvgConverter {
         if (_visualDepth == 0 && bounds.HasValue) _nativeBounds[e] = bounds.Value;
         string fillPath = bounds.HasValue && bounds.Value.Width == 0D && bounds.Value.Height == 0D ? "" : projection?.Fill ?? path;
         var result = Element("path", new XAttribute("d", fillPath), new XAttribute("fill-rule", rule));
-        Paint(e, "Fill", result, "fill", scope, part, depth);
-        Paint(e, "Stroke", result, "stroke", scope, part, depth);
+        Paint(e, "Fill", result, "fill", scope, part, depth, region);
+        Paint(e, "Stroke", result, "stroke", scope, part, depth, region);
         Stroke(e, result, path, region, projection);
         foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform", "Path.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
         return ApplyBrushFill(result, region);

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
-    private void Paint(XElement source, string property, XElement target, string attribute, Dictionary<string, Resource> scope, string part, int depth) {
+    private void Paint(XElement source, string property, XElement target, string attribute, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
         string? value = (string?)source.Attribute(property);
         XElement? brush = source.Element(source.Name.Namespace + (source.Name.LocalName + "." + property))?.Elements().SingleOrDefault();
         if (value?.StartsWith("{", StringComparison.Ordinal) == true) {
@@ -17,7 +17,7 @@ internal sealed partial class XpsSvgConverter {
                 SetColor(target, attribute, attribute + "-opacity", (string?)brush.Attribute("Color") ?? "#00000000", part, Unit((string?)brush.Attribute("Opacity") ?? "1"));
                 break;
             case "LinearGradientBrush": case "RadialGradientBrush":
-                Gradient(brush, target, attribute, scope, part); break;
+                Gradient(brush, target, attribute, scope, part, region); break;
             case "VisualBrush": VisualBrush(brush, target, attribute, scope, part, depth); break;
             case "ImageBrush": ImageBrush(brush, target, attribute, scope, part, depth); break;
             default: Loss("Brush: " + brush.Name.LocalName); Set(target, attribute, "none"); break;
@@ -51,9 +51,10 @@ internal sealed partial class XpsSvgConverter {
         } else { Loss("Color: unsupported syntax"); Set(element, colorAttribute, "none"); }
         if (opacity != 1) Set(element, alphaAttribute, N(opacity));
     }
-    private void Gradient(XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope, string part) {
+    private void Gradient(XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope, string part, BrushRegion region) {
         CheckAttributes(brush, "StartPoint EndPoint Center GradientOrigin RadiusX RadiusY MappingMode SpreadMethod ColorInterpolationMode Opacity Transform");
         bool radial = brush.Name.LocalName == "RadialGradientBrush";
+        bool nativeFocus = false;
         string id = "paint" + (++_id);
         var gradient = Element((radial ? "radialGradient" : "linearGradient"), new XAttribute("id", id),
             new XAttribute("gradientUnits", ((string?)brush.Attribute("MappingMode") ?? "Absolute") == "Absolute" ? "userSpaceOnUse" : "objectBoundingBox"));
@@ -64,7 +65,8 @@ internal sealed partial class XpsSvgConverter {
             double rx = XpsPackage.Number((string?)brush.Attribute("RadiusX")); double ry = XpsPackage.Number((string?)brush.Attribute("RadiusY"));
             if (rx <= 0 || ry <= 0) throw new InvalidDataException("Gradient radii must be positive.");
             double focusX = (origin[0] - center[0]) / rx, focusY = (origin[1] - center[1]) / ry;
-            if (focusX * focusX + focusY * focusY >= 1 && !_nativeDrawing) {
+            nativeFocus = focusX * focusX + focusY * focusY >= 1 && !_nativeDrawing;
+            if (nativeFocus && ((string?)brush.Attribute("SpreadMethod") ?? "Pad") != "Pad") {
                 Loss("Radial boundary/exterior focus cannot be represented by ordinary SVG without native field semantics");
             }
             Set(gradient, "cx", N(center[0])); Set(gradient, "cy", N(center[1])); Set(gradient, "r", N(rx));
@@ -91,6 +93,7 @@ internal sealed partial class XpsSvgConverter {
                 SetColor(svgStop, "stop-color", "stop-opacity", (string?)stop.Attribute("Color") ?? "#00000000", part, opacity); gradient.Add(svgStop);
             }
         }
+        if (nativeFocus && spread == "Pad") { NativeRadialPad(gradient, target, attribute, region); return; }
         _defs.Add(gradient); Set(target, attribute, "url(#" + id + ")");
     }
 }

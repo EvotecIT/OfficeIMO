@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -35,8 +36,19 @@ public sealed class XpsRadialBoundaryTests {
         }
         byte[] pdf = document.ToPdf();
         Assert.Single(PdfReadDocument.Open(pdf).Pages);
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
-        Assert.Contains("Radial boundary/exterior focus cannot be represented by ordinary SVG without native field semantics", page.ToSvg(true).Diagnostics);
+        var svg = page.ToSvg();
+        Assert.Empty(svg.Diagnostics);
+        var svgXml = XElement.Parse(svg.Svg);
+        var fields = svgXml.Descendants().Where(e => e.Name.LocalName == "radialGradient").ToArray();
+        Assert.Equal(2, fields.Length);
+        Assert.All(fields, field => {
+            Assert.Equal("0", (string?)field.Attribute("r"));
+            Assert.Equal("60", (string?)field.Attribute("fr"));
+            Assert.Equal("100", (string?)field.Attribute("fx"));
+            Assert.Equal(focus.ToString(CultureInfo.InvariantCulture), (string?)field.Attribute("cx"));
+            Assert.All(field.Elements(), stop => Assert.Null(stop.Attribute("stop-opacity")));
+        });
+        Assert.Contains("<pattern", svg.Svg);
         Assert.NotEmpty(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("<pattern", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
         if (!alpha && !stroke) {
