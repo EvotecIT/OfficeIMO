@@ -421,6 +421,37 @@ leave the publication unchanged. Generated links respect local HTML base URLs;
 external bases are rejected. EPUB 2 note authoring is unsupported. Full save and
 independent accessibility/reader checks still apply; note popup behavior depends on the reader.
 
+## Publishing metadata
+
+`AddCreator` and `AddContributor` append EPUB 3 records with ordered MARC roles,
+sorting names, and name languages. `AddCollection` records membership in a series
+or set. Each operation commits the record and its refinements together and rejects
+an identifier already used anywhere in the package.
+
+```csharp
+publication.AddCreator("author-alice", new EpubContributorMetadata {
+    Name = "Alice Example", FileAs = "Example, Alice", Language = "en",
+    MarcRoles = new[] { "aut", "ill" }
+});
+publication.AddContributor("translator-jan", new EpubContributorMetadata {
+    Name = "Jan Kowalski", Language = "pl", MarcRoles = new[] { "trl" }
+});
+publication.AddCollection("chronicles", new EpubCollectionMetadata {
+    Name = "The Example Chronicles", Kind = EpubCollectionKind.Series,
+    FileAs = "Example Chronicles, The", Position = new uint[] { 2, 1 }
+});
+```
+
+Positions are hierarchical: `2, 1` produces `2.1`; an empty position list leaves
+the order unspecified. MARC roles retain their supplied priority, with repeated
+codes collapsed. The API checks the three-letter code shape; independent validation
+checks the vocabulary. Omitting roles leaves the contribution unspecified.
+
+Existing metadata and refinements remain intact, including other creators and
+collections. These append operations do not replace the primary `Creator` property.
+Use `AddDublinCoreMetadata` and `SetMetadataProperty` for other declarations; typed
+records do not infer rights, publisher identities, or accessibility claims.
+
 ## Book matter and print-page navigation
 
 `SetDocumentMatter` marks an XHTML document as front, body, or back matter while
