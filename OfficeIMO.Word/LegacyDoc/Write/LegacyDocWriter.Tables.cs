@@ -186,6 +186,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            ThrowIfUnsupportedTableGapShading(tableProperties, tableStyleDefinitions);
             foreach (OpenXmlElement property in tableProperties.ChildElements) {
                 switch (property) {
                     case TableStyle tableStyle:
@@ -373,7 +374,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (width == 0) {
-                return null;
+                return 0;
             }
 
             if (spacing.Type?.Value != TableWidthUnitValues.Dxa) {

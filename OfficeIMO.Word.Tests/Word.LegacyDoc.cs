@@ -8970,7 +8970,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_IgnoresZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_PreservesZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -8986,15 +8986,15 @@ namespace OfficeIMO.Tests {
                 }
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
-                Assert.False(
+                Assert.True(
                     ContainsBytePattern(wordDocumentStream, 0x33, 0xD6, 0x06),
-                    "Expected native DOC save to omit sprmTCellSpacingDefault for zero auto table cell spacing.");
+                    "Expected native DOC save to preserve explicit zero spacing as sprmTCellSpacingDefault.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Null(reloadedTable.StyleDetails!.CellSpacing);
+                Assert.Equal((short)0, reloadedTable.StyleDetails!.CellSpacing);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("No spacing", row.Cells[0].Paragraphs[0].Text);
             } finally {
