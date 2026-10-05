@@ -59,7 +59,9 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             }
 
             OcrResult engineResult = outcome.Result ?? new OcrResult();
+            int diagnosticStart = diagnostics.Count;
             NormalizeEngineResult(engineResult, engineId, effective, budget, outcome.Job.Candidate, diagnostics, cancellationToken);
+            bool normalizationLoss = diagnostics.Skip(diagnosticStart).Any(item => item.Severity != OfficeDocumentDiagnosticSeverity.Information);
             budget.Consume(engineResult);
             recognitions.Add(new OfficeDocumentOcrRecognition {
                 DocumentId = documentId,
@@ -91,7 +93,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Confidence = engineResult.Confidence,
                 Language = engineResult.Language,
                 Provider = engineResult.Provider,
-                Model = engineResult.Model
+                Model = engineResult.Model,
+                Recognition = CaptureRecognitionEvidence(engineResult, normalizationLoss)
             });
         }
 

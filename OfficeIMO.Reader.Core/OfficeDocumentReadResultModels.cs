@@ -289,6 +289,9 @@ public sealed class OfficeDocumentPage {
 /// Normalized logical block emitted by a document read adapter.
 /// </summary>
 public sealed class OfficeDocumentBlock {
+    /// <summary>Recognition provenance for OCR text; null means no recognition provenance was supplied.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; set; }
+
     /// <summary>
     /// Stable block identifier within the read result.
     /// </summary>
