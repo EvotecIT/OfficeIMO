@@ -359,6 +359,8 @@ internal static partial class PdfWriter {
                 }
 
                 if (take == 0) {
+                    if (!ShouldAdvanceForBlockHeight(minimumLineHeight))
+                        throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                     NewParagraphPage();
                     firstSegment = false;
                     continue;
