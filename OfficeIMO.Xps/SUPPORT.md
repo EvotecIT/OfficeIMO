@@ -272,8 +272,8 @@ GhostXPS agrees on qualified interior samples but leaves some outside regions
 unpainted; that difference is retained in the evidence. Direct `ToSvg`, SVG image
 exports and shared Drawing SVG exports preserve native Pad fields through SVG 2 shrinking-circle
 patterns with separately composed color and alpha. These exports retain vector
-paint and require an SVG 2 consumer; the shared SVG importer still rejects the
-shrinking-circle representation. Direct `ToSvg` preserves its native glyph, mask,
+paint and require an SVG 2 consumer; the shared SVG importer accepts their shrinking-circle
+Pad representation. Direct `ToSvg` preserves its native glyph, mask,
 and VisualBrush projection paths. A 40-case direct-SVG browser comparison across
 both dialects covers fills, strokes, affine visual/brush transforms, opacity masks
 and VisualBrush content; full-rectangle pixels differ by at most 1/255 per channel
@@ -285,7 +285,13 @@ markers. Full-rectangle pixels differ from managed output by at most 1/255 per
 channel; maximum whole-page mean difference is 0.285/255, with geometry-edge
 rasterization differences retained. Native radial colors and alpha interpolate
 consistently across rectangle, path and stroke rendering. Managed opaque PDF
-readback retains shrinking elliptical fields with a point end. Arbitrary
+readback retains shrinking elliptical fields with a point end. A 108-case SVG import/browser
+comparison covers 32 standalone shrinking fields, the 56 direct native SVG
+exports above and 20 Drawing SVG exports. Another 22 native tiled-brush cases
+compare native PNG output with emitted SVG in the browser. Plain fills differ from browser rendering by at most 2/255 per
+channel; the maximum whole-page mean difference is 1.024/255 including glyph,
+stroke, transformed-pattern and cone-edge rasterization. Pattern tile origins,
+stroke coverage offsets and clipped overflow are retained through import. Arbitrary
 photographic or producer coverage and PDF/UA are not qualified by these cases.
 
 Native exterior Repeat/Reflect uses the same smallest-containing-ellipse rule.

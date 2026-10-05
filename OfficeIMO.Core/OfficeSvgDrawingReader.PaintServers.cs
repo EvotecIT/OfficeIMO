@@ -198,10 +198,10 @@ public static partial class OfficeSvgDrawingReader {
                     || !TryCoordinate(element, "fx", inherited?.X1 ?? centerX, allowOutsideUnit: true, userSpaceOnUse, out SvgGradientCoordinate focalX)
                     || !TryCoordinate(element, "fy", inherited?.Y1 ?? centerY, allowOutsideUnit: true, userSpaceOnUse, out SvgGradientCoordinate focalY)
                     || !TryCoordinate(element, "fr", inherited?.Radius1 ?? SvgGradientCoordinate.CreateDefault(0D), allowOutsideUnit: true, userSpaceOnUse, out SvgGradientCoordinate focalRadius)
-                    || radius.Value <= 0D
+                    || radius.Value < 0D
                     || focalRadius.Value < 0D
+                    || (radius.Value == 0D && focalRadius.Value == 0D)
                     || (focalX.Equals(centerX) && focalY.Equals(centerY) && focalRadius.Equals(radius))) return false;
-                if (!userSpaceOnUse && focalRadius.Value > radius.Value) return false;
                 definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform, spreadMode);
                 definition.UseFirstRadialIntersection = _useFirstRadialIntersection;
                 _resolved[id] = definition;
@@ -505,12 +505,12 @@ public static partial class OfficeSvgDrawingReader {
                 double diagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
                 double radius1 = ResolveRadius(Radius1, diagonal, UserSpaceOnUse);
                 double radius2 = ResolveRadius(Radius2, diagonal, UserSpaceOnUse);
-                if (radius2 <= 0D || radius1 < 0D || radius1 > radius2) return false;
+                if (radius2 < 0D || radius1 < 0D || (radius1 == 0D && radius2 == 0D)) return false;
                 OfficeTransform radialCoordinates = GradientTransform;
                 if (UserSpaceOnUse) radialCoordinates = radialCoordinates
                     .Then(OfficeTransform.Translate(-viewX - shapeX, -viewY - shapeY))
                     .Then(OfficeTransform.Scale(1D / shape.Width, 1D / shape.Height));
-                if (radialCoordinates.M12 == 0D && radialCoordinates.M21 == 0D) {
+                if (radius2 > 0D && radialCoordinates.M12 == 0D && radialCoordinates.M21 == 0D) {
                     first = radialCoordinates.TransformPoint(first); second = radialCoordinates.TransformPoint(second);
                     radial = new OfficeRadialGradient(first.X, first.Y, radius1 * Math.Abs(radialCoordinates.M11), radius1 * Math.Abs(radialCoordinates.M22),
                         second.X, second.Y, radius2 * Math.Abs(radialCoordinates.M11), radius2 * Math.Abs(radialCoordinates.M22), Stops);

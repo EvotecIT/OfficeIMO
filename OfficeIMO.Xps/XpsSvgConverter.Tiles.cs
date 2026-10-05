@@ -115,6 +115,11 @@ internal sealed partial class XpsSvgConverter {
         if (flipX) pattern.Add(Element("g", new XAttribute("transform", mirrorX), CloneProjection(tile)));
         if (flipY) pattern.Add(Element("g", new XAttribute("transform", mirrorY), CloneProjection(tile)));
         if (flipX && flipY) pattern.Add(Element("g", new XAttribute("transform", mirrorX + " " + mirrorY), CloneProjection(tile)));
+        // Pattern content is relative to its tile origin. The native mapping and
+        // clip above are in page coordinates, so shift the entire flipped tile set.
+        var tiles = pattern.Elements().ToArray();
+        pattern.RemoveNodes();
+        pattern.Add(Element("g", new XAttribute("transform", "translate(" + N(-viewport.X) + " " + N(-viewport.Y) + ")"), tiles));
         if (transform != null) Set(pattern, "patternTransform", transform);
         _defs.Add(pattern); Set(target, attribute, "url(#" + id + ")");
     }

@@ -21,7 +21,7 @@ public sealed class DrawingRadialCoordinatesTests {
     public void NearPointEndDoesNotRoundOutsideRootsOntoAZeroRadiusCircle() {
         var field = new OfficeRadialGradient(0, 0, 1, 1.000000005, 0, 0,
             new OfficeGradientStop(0, OfficeColor.Blue), new OfficeGradientStop(1, OfficeColor.Red));
-        Assert.Equal(0D, field.SampleRatio(1.0000000055, -.0000000105));
+        Assert.True(double.IsNaN(field.SampleRatio(1.0000000055, -.0000000105)));
     }
 
     [Theory]

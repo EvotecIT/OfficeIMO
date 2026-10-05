@@ -49,6 +49,15 @@ public sealed class XpsRadialBoundaryTests {
             Assert.All(field.Elements(), stop => Assert.Null(stop.Attribute("stop-opacity")));
         });
         Assert.Contains("<pattern", svg.Svg);
+        Assert.True(OfficeSvgDrawingReader.TryRead(System.Text.Encoding.UTF8.GetBytes(svg.Svg), out var imported, out int unsupported));
+        Assert.Equal(0, unsupported);
+        var importedRaster = OfficeDrawingRasterRenderer.Render(imported!, background: OfficeColor.White);
+        foreach (var xy in points) {
+            var expected = raster.GetPixel(xy.Item1, xy.Item2); var actual = importedRaster.GetPixel(xy.Item1, xy.Item2);
+            Assert.InRange(Math.Abs(actual.R - expected.R), 0, 4);
+            Assert.InRange(Math.Abs(actual.G - expected.G), 0, 4);
+            Assert.InRange(Math.Abs(actual.B - expected.B), 0, 4);
+        }
         Assert.NotEmpty(page.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("<pattern", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing()));
         if (!alpha && !stroke) {

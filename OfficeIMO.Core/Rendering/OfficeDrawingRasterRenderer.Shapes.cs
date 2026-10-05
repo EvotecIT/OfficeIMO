@@ -243,7 +243,7 @@ public static partial class OfficeDrawingRasterRenderer {
         InterpolateGradientStops(gradient.Stops, ratio);
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) =>
-        InterpolateGradientStops(gradient.Stops, ratio);
+        double.IsNaN(ratio) ? OfficeColor.Transparent : InterpolateGradientStops(gradient.Stops, ratio);
 
     private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio) {
         if (ratio <= stops[0].Offset) {

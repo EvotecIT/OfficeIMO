@@ -9,6 +9,7 @@ namespace OfficeIMO.Drawing;
 /// Coordinates use a top-left origin and are mapped through CoordinateTransform into normalized shape coordinates.
 /// With the identity transform, 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
 /// Ellipse centers may sit outside that box to preserve authored gradients whose focal point is off-canvas.
+/// Pixels unreached by a physical circle remain transparent; native-format adapters may explicitly supply outside endpoint paint.
 /// Independent horizontal and vertical radii allow ellipses before the affine coordinate transform while the original circle constructors remain source-compatible.
 /// </summary>
 public sealed partial class OfficeRadialGradient {

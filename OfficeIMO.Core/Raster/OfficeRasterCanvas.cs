@@ -725,7 +725,8 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio, gradient.OutsideColor != null);
+        return double.IsNaN(ratio) ? OfficeColor.Transparent
+            : InterpolateGradientStops(gradient.Stops, ratio, gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius);
     }
 
     private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false) {
