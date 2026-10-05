@@ -6,6 +6,22 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 Deliberately bounded compatibility contracts are not backlog by themselves. A preserved or rejected profile with a documented diagnostic becomes roadmap work only when the repository adopts a concrete supported shape and evidence plan for it.
 
+## OfficeIMO JavaScript
+
+The [TypeScript foundation](../OfficeIMO.JavaScript/README.md) and [architecture contract](officeimo.javascript-architecture.md) own the current package and public layers. Delivery order follows browser consumers. HtmlForgeX and PSWriteHTML's DataTables export paths use JSZip for Excel and pdfmake plus its font file for PDF; TestimoX, CertNoob and DomainDetective reports inherit those paths. CanopyX's replacement grid needs both table exports. Word and PowerPoint remain later modules because their browser consumers are not yet defined; C# OfficeIMO supplies their build-time document generation.
+
+Every milestone retains strict TypeScript compiled with `tsc`, zero runtime dependencies, documented public layers, C# conformance, isolated package qualification and measured size budgets. Keep format models and shared ZIP/XML/OPC behavior in the library, with thin consumer integrations.
+
+| Open milestone | Content and acceptance | Consumers |
+| --- | --- | --- |
+| [ ] 2. Excel export, report grade | Extend the foundation styles and several-sheet writer with report styles/number formats, column widths, frozen headers, autofilter, row/cell tones, hyperlinks, ChartForgeX PNG images and exports that carry the grid's look. Qualify the complete behavior of `hfx-datatables.excel-export.js`, including all report tables in one workbook. | CanopyX, HtmlForgeX data explorer and report shell, PSWriteHTML, TestimoX, CertNoob, DomainDetective |
+| [ ] 3. PDF table export | Typed PDF object model, TrueType subsetting/embedding for Polish and other non-Latin-1 text, paginated tables with repeated headers, title, page size/orientation, header/footer and page numbers. Qualify the current DataTables PDF-button contract so HtmlForgeX can remove pdfmake and its font asset, approximately 1 MB. | Same report consumers as milestone 2 |
+| [ ] 4. Adoption | In the owning consumer repositories, use OfficeIMO JavaScript for CanopyX/HtmlForgeX Excel and PDF export; remove JSZip, pdfmake and the font asset from HtmlForgeX after equivalent exports are qualified. | HtmlForgeX, CanopyX |
+| [ ] 5. PDF documents | Images, vector paths from SVG/ChartForgeX charts, text layout beyond tables and a portable report-to-PDF path without a server. | Portable reports that need a PDF without a server |
+| [ ] 6. Readers, on demand | Streaming ZIP reader, XLSX reader for values/types/basic styles and streaming CSV reader. Begin a bounded import slice when a report/application needs it, such as importing a domain list. | The report/application with an identified import workflow |
+| [ ] 7. Word writer, later | Paragraphs, runs, headings, lists, tables, images, headers/footers and sections, mapping to `OfficeIMO.Word` vocabulary and independent DOCX qualification. | A browser consumer that needs Export to Word |
+| [ ] 8. PowerPoint writer, later | Slides, text, tables, images and charts as visuals, with independent PPTX qualification. | A browser consumer that needs PowerPoint export |
+
 ## Release-wide quality
 
 - [ ] Establish an all-page conversion consistency gate over the existing Drawing scene and format owners. Cover DOCX, XLSX, PPTX, HTML, PDF, Visio, OneNote, email, EPUB, ODT, ODS, and ODP to SVG, PNG, JPEG, TIFF, and WebP with identical page selection, layout profile, font bytes, shaping provider, dimensions, DPI, background, and resource policy. Compare direct raster output with independently rendered SVG and PDF, then compare all three against source-producer or labelled semantic evidence so matching outputs cannot hide a shared import loss. Gate text and object coverage, crop/rotation, clipping, gradients, alpha, images, page counts, and diagnostics; allow encoder-specific visual tolerances only after geometry and content pass.
