@@ -2,6 +2,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using System.Text.Json;
 using System.Xml;
@@ -55,6 +56,21 @@ internal static class JavaScriptWorkbookContract {
             Stylesheet styles = sdk.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
             Require(styles.Fonts!.Elements<Font>().Any(f => XmlConvert.DecodeName(f.FontName?.Val?.Value ?? "") == "Font_x0041_"), "Literal font name differs.");
             Require(styles.NumberingFormats!.Elements<NumberingFormat>().Any(f => XmlConvert.DecodeName(f.FormatCode?.Value ?? "") == "\"_x003A_\"0"), "Literal number-format code differs.");
+        }
+        if (fixture.TryGetProperty("parts", out JsonElement parts)) {
+            using Package package = Package.Open(path, FileMode.Open, FileAccess.Read);
+            foreach (JsonElement part in parts.EnumerateArray()) {
+                JsonElement relationship = part.GetProperty("relationship");
+                var source = new Uri(relationship.TryGetProperty("source", out JsonElement suppliedSource) ? suppliedSource.GetString()! : "/xl/workbook.xml", UriKind.Relative);
+                string id = relationship.GetProperty("id").GetString()!;
+                PackageRelationship link = source.OriginalString == "/" ? package.GetRelationship(id) : package.GetPart(source).GetRelationship(id);
+                Require(link.TargetMode == TargetMode.Internal && !link.TargetUri.IsAbsoluteUri, "Relationship became an external URI.");
+                Uri resolved = PackUriHelper.ResolvePartUri(source, link.TargetUri);
+                Require(PackUriHelper.ComparePartUri(resolved, new Uri(part.GetProperty("uri").GetString()!, UriKind.Relative)) == 0 && package.PartExists(resolved),
+                    "Relationship did not resolve to its internal part.");
+                using var text = new StreamReader(package.GetPart(resolved).GetStream(FileMode.Open, FileAccess.Read));
+                Require(text.ReadToEnd() == part.GetProperty("data").GetString(), "Relationship target contents differ.");
+            }
         }
         if (fixture.GetProperty("name").GetString() == "styles-custom") {
             WorkbookPart workbook = sdk.WorkbookPart!;

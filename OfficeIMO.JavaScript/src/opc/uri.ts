@@ -25,5 +25,7 @@ export function relativePartTarget(source: string, target: string): string {
   const to = partUri(target).slice(1).split("/");
   const from = source === "/" ? [] : partUri(source).slice(1).split("/").slice(0, -1);
   while (from.length && from[0] === to[0]) { from.shift(); to.shift(); }
-  return "../".repeat(from.length) + to.join("/");
+  const relative = "../".repeat(from.length) + to.join("/");
+  // RFC 3986 section 4.2 forbids a colon in a relative reference's first segment.
+  return relative.split("/", 1)[0]!.includes(":") ? "./" + relative : relative;
 }

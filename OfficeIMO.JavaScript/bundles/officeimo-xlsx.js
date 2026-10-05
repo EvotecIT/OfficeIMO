@@ -171,7 +171,7 @@ _modules.set("88c9bd1627ac07a6d1e491b47ce707782b17029f861f98120c1b6ea907ae92a6",
 return _exports;
 })();
 
-const _m6 = _modules.get("353898fd34b1d508fd038fa2cfa4050959cbd5297764d0ba60bdafdd088f9ee8") ?? (() => {
+const _m6 = _modules.get("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -210,10 +210,12 @@ function relativePartTarget(source, target) {
         from.shift();
         to.shift();
     }
-    return "../".repeat(from.length) + to.join("/");
+    const relative = "../".repeat(from.length) + to.join("/");
+    // RFC 3986 section 4.2 forbids a colon in a relative reference's first segment.
+    return relative.split("/", 1)[0].includes(":") ? "./" + relative : relative;
 }
 const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relationshipPartUri, relativePartTarget: relativePartTarget });
-_modules.set("353898fd34b1d508fd038fa2cfa4050959cbd5297764d0ba60bdafdd088f9ee8", _exports);
+_modules.set("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b", _exports);
 return _exports;
 })();
 
@@ -625,7 +627,7 @@ _modules.set("02d03d6947d3e27c4c4d459848293a6406e49326beb006d7cca99ffb3a115a89",
 return _exports;
 })();
 
-const _m5 = _modules.get("1f894d9deedd9fce39f74bf0afc72eb9d1fec4416e89e839bce67491d93b7dbe") ?? (() => {
+const _m5 = _modules.get("6ad89ed04a37ab57321391f5a67d2da8d6fd913ed9ee3c73bbdd0152fcb2095e") ?? (() => {
 
 
 
@@ -816,7 +818,7 @@ class OpcPackage {
     }
 }
 const _exports = Object.freeze({ partUri: _m6.partUri, relationshipPartUri: _m6.relationshipPartUri, relativePartTarget: _m6.relativePartTarget, corePropertiesXml: _m7.corePropertiesXml, appPropertiesXml: _m7.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("1f894d9deedd9fce39f74bf0afc72eb9d1fec4416e89e839bce67491d93b7dbe", _exports);
+_modules.set("6ad89ed04a37ab57321391f5a67d2da8d6fd913ed9ee3c73bbdd0152fcb2095e", _exports);
 return _exports;
 })();
 
@@ -1264,7 +1266,7 @@ _modules.set("6f88c4cc4c4ec9f0e456de7c9824bdab94bc799c7b090c53f02a5bf6c9006e42",
 return _exports;
 })();
 
-const _m1 = _modules.get("bcf362dfbbecaffb836e23a626c11077e1dda32b6f2d8f81d3f93df760ec0694") ?? (() => {
+const _m1 = _modules.get("7e276dc9fb5742ac93e76627c1fcb92d062211a9041765b84b5af3d8bb5642bf") ?? (() => {
 const { checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -1391,7 +1393,7 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("bcf362dfbbecaffb836e23a626c11077e1dda32b6f2d8f81d3f93df760ec0694", _exports);
+_modules.set("7e276dc9fb5742ac93e76627c1fcb92d062211a9041765b84b5af3d8bb5642bf", _exports);
 return _exports;
 })();
 
@@ -1440,10 +1442,10 @@ _modules.set("bf316b006cecef93fb2fb4cb481e2926ed30014eccf35dddbf146f410ba2d689",
 return _exports;
 })();
 
-const _m0 = _modules.get("6c57302b504bcd58b45170442929a6e69f40da20a488b0159740a55da8a088a7") ?? (() => {
+const _m0 = _modules.get("911cf4bcd8e7ef96a39ffd9468ea8ff1b50da072e52454589efe2789d6f5cada") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m13.Worksheet, Cell: _m12.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, saveBlob: _m15.saveBlob });
-_modules.set("6c57302b504bcd58b45170442929a6e69f40da20a488b0159740a55da8a088a7", _exports);
+_modules.set("911cf4bcd8e7ef96a39ffd9468ea8ff1b50da072e52454589efe2789d6f5cada", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m15, zip: _m9, xml: _m8, opc: _m5, xlsx: _m0 });

@@ -71,3 +71,20 @@ test("OPC protects generated property and relationship metadata paths", () => {
   for (const uri of ["/[Content_Types].xml", "/[Content_Types].xml/child.xml"])
     assert.throws(() => new OpcPackage().addPart({ uri, contentType: "application/xml", data: "<data/>" }));
 });
+
+test("relative relationship targets with a colon in the first segment remain internal URIs", async () => {
+  for (const [source, target, expected] of [["/", "/custom:part.xml", "./custom:part.xml"],
+    ["/word/document.xml", "/word/custom:part.xml", "./custom:part.xml"],
+    ["/word/document.xml", "/custom:part.xml", "../custom:part.xml"],
+    ["/", "/word/custom:part.xml", "word/custom:part.xml"]]) {
+    assert.equal(relativePartTarget(source, target), expected);
+    const base = new URL(source, "https://officeimo.invalid/");
+    assert.equal(new URL(expected, base).href, "https://officeimo.invalid" + target);
+    const packageFile = new OpcPackage({ compression: "store" });
+    if (source !== "/") packageFile.addPart({ uri: source, contentType: "application/xml", data: "<document/>" });
+    packageFile.addPart({ uri: target, contentType: "application/xml", data: "<custom/>" });
+    packageFile.addRelationship(source, { id: "custom", type: relationshipTypes.customXml, target });
+    const zip = await readZip(await packageFile.toBlob());
+    assert.ok(zip.get(relationshipPartUri(source).slice(1)).content.includes('Target="' + expected + '"'));
+  }
+});

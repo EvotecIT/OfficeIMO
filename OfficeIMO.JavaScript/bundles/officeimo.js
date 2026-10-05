@@ -600,7 +600,7 @@ _modules.set("2cbfac9428920609a86bbbedbf0f0f7de139faed8a23e348709cf63b3a867ee3",
 return _exports;
 })();
 
-const _m9 = _modules.get("353898fd34b1d508fd038fa2cfa4050959cbd5297764d0ba60bdafdd088f9ee8") ?? (() => {
+const _m9 = _modules.get("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -639,10 +639,12 @@ function relativePartTarget(source, target) {
         from.shift();
         to.shift();
     }
-    return "../".repeat(from.length) + to.join("/");
+    const relative = "../".repeat(from.length) + to.join("/");
+    // RFC 3986 section 4.2 forbids a colon in a relative reference's first segment.
+    return relative.split("/", 1)[0].includes(":") ? "./" + relative : relative;
 }
 const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relationshipPartUri, relativePartTarget: relativePartTarget });
-_modules.set("353898fd34b1d508fd038fa2cfa4050959cbd5297764d0ba60bdafdd088f9ee8", _exports);
+_modules.set("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b", _exports);
 return _exports;
 })();
 
@@ -670,7 +672,7 @@ _modules.set("2c3c96f212917efd49be5480152523daaa2c70fa44ad4ab0a9bebc156e1af747",
 return _exports;
 })();
 
-const _m8 = _modules.get("1f894d9deedd9fce39f74bf0afc72eb9d1fec4416e89e839bce67491d93b7dbe") ?? (() => {
+const _m8 = _modules.get("6ad89ed04a37ab57321391f5a67d2da8d6fd913ed9ee3c73bbdd0152fcb2095e") ?? (() => {
 
 
 
@@ -861,7 +863,7 @@ class OpcPackage {
     }
 }
 const _exports = Object.freeze({ partUri: _m9.partUri, relationshipPartUri: _m9.relationshipPartUri, relativePartTarget: _m9.relativePartTarget, corePropertiesXml: _m10.corePropertiesXml, appPropertiesXml: _m10.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("1f894d9deedd9fce39f74bf0afc72eb9d1fec4416e89e839bce67491d93b7dbe", _exports);
+_modules.set("6ad89ed04a37ab57321391f5a67d2da8d6fd913ed9ee3c73bbdd0152fcb2095e", _exports);
 return _exports;
 })();
 
@@ -1309,7 +1311,7 @@ _modules.set("6f88c4cc4c4ec9f0e456de7c9824bdab94bc799c7b090c53f02a5bf6c9006e42",
 return _exports;
 })();
 
-const _m12 = _modules.get("bcf362dfbbecaffb836e23a626c11077e1dda32b6f2d8f81d3f93df760ec0694") ?? (() => {
+const _m12 = _modules.get("7e276dc9fb5742ac93e76627c1fcb92d062211a9041765b84b5af3d8bb5642bf") ?? (() => {
 const { checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -1436,14 +1438,14 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("bcf362dfbbecaffb836e23a626c11077e1dda32b6f2d8f81d3f93df760ec0694", _exports);
+_modules.set("7e276dc9fb5742ac93e76627c1fcb92d062211a9041765b84b5af3d8bb5642bf", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("6c57302b504bcd58b45170442929a6e69f40da20a488b0159740a55da8a088a7") ?? (() => {
+const _m11 = _modules.get("911cf4bcd8e7ef96a39ffd9468ea8ff1b50da072e52454589efe2789d6f5cada") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m12.Workbook, createWorkbook: _m12.createWorkbook, Worksheet: _m15.Worksheet, Cell: _m14.Cell, StyleRegistry: _m13.StyleRegistry, NumberFormats: _m13.NumberFormats, saveBlob: _m1.saveBlob });
-_modules.set("6c57302b504bcd58b45170442929a6e69f40da20a488b0159740a55da8a088a7", _exports);
+_modules.set("911cf4bcd8e7ef96a39ffd9468ea8ff1b50da072e52454589efe2789d6f5cada", _exports);
 return _exports;
 })();
 
@@ -1528,10 +1530,10 @@ _modules.set("577f63391957f6cf1d280a34f14ebf563ac0c5f5fb5c867f67d6d13cbfc18b76",
 return _exports;
 })();
 
-const _m0 = _modules.get("1b0ba84c29afc0c471d9cffc7e1f6190fff68e0077ea38b2fc471ebc6a6d6555") ?? (() => {
+const _m0 = _modules.get("bef4eca5bc7007505294070ab1a29e57fce8057ad5021f624d7a352b9b8e61e7") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m5, xml: _m7, opc: _m8, xlsx: _m11, csv: _m17, Workbook: _m11.Workbook, Worksheet: _m11.Worksheet, Cell: _m11.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, createWorkbook: _m11.createWorkbook, writeCsv: _m17.writeCsv, writeCsvTo: _m17.writeCsvTo, saveBlob: _m1.saveBlob });
-_modules.set("1b0ba84c29afc0c471d9cffc7e1f6190fff68e0077ea38b2fc471ebc6a6d6555", _exports);
+_modules.set("bef4eca5bc7007505294070ab1a29e57fce8057ad5021f624d7a352b9b8e61e7", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

@@ -201,7 +201,9 @@ function relativePartTarget(source, target) {
         from.shift();
         to.shift();
     }
-    return "../".repeat(from.length) + to.join("/");
+    const relative = "../".repeat(from.length) + to.join("/");
+    // RFC 3986 section 4.2 forbids a colon in a relative reference's first segment.
+    return relative.split("/", 1)[0].includes(":") ? "./" + relative : relative;
 }
 const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relationshipPartUri, relativePartTarget: relativePartTarget });
 return _exports;

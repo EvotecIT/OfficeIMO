@@ -38,6 +38,12 @@
         { "name": "Bad_Name", "expectedName": "Bad_Name (2)", "columns": [{ "header": "V" }], "rows": [["sanitized duplicate"]], "expected": { "A2": "sanitized duplicate" } },
         { "name": "_x005F_x0041_", "columns": [{ "header": "V" }], "rows": [["literal underscore escape"]], "expected": { "A2": "literal underscore escape" } }
       ] },
+    { "name": "colon-targets", "parts": [
+      { "uri": "/root:custom.xml", "contentType": "application/xml", "data": "<data xmlns=\"urn:officeimo:test\">root target</data>",
+        "relationship": { "id": "rootCustom", "source": "/", "type": "urn:officeimo:test:root-extension" } },
+      { "uri": "/xl/custom:part.xml", "contentType": "application/xml", "data": "<data xmlns=\"urn:officeimo:test\">same directory target</data>",
+        "relationship": { "id": "sameDirectoryCustom", "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" } }
+      ], "sheets": [{ "name": "Relationships", "columns": [{ "header": "V" }], "rows": [["internal targets"]], "expected": { "A2": "internal targets" } }] },
     { "name": "xml-reject-valid", "options": { "invalidCharacterPolicy": "reject" },
       "sheets": [{ "name": "Data", "columns": [{ "header": "Unicode" }], "rows": [["Zażółć gęślą jaźń 🧪\r\n"]], "expected": { "A2": "Zażółć gęślą jaźń 🧪\r\n" } }] }
   ]
