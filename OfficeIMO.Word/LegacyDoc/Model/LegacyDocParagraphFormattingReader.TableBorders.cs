@@ -19,10 +19,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 var original = cellBorders != null && cell < cellBorders.Count ? cellBorders[cell] : default;
                 if (cell >= cells) { result[cell] = original; continue; }
                 int at = offset + 3 + cell * 4;
+                bool noBorder = bytes[at] == 0xFF && bytes[at + 1] == 0xFF
+                    && bytes[at + 2] == 0xFF && bytes[at + 3] == 0xFF;
                 string? color = bytes[at + 3] == 0xFF ? null
                     : bytes[at].ToString("X2") + bytes[at + 1].ToString("X2") + bytes[at + 2].ToString("X2");
-                LegacyDocTableCellBorder Color(LegacyDocTableCellBorder border) => new LegacyDocTableCellBorder(
-                    border.Style, color, border.SizeEighthPoints, border.SpacePoints);
+                LegacyDocTableCellBorder Color(LegacyDocTableCellBorder border) => noBorder
+                    ? new LegacyDocTableCellBorder(LegacyDocTableCellBorderStyle.ExplicitNone, null, 0, 0)
+                    : new LegacyDocTableCellBorder(border.Style, color, border.SizeEighthPoints, border.SpacePoints);
                 int edge = sprm - SprmTBrcTopCv;
                 result[cell] = new LegacyDocTableCellBorders(edge == 0 ? Color(original.Top) : original.Top,
                     edge == 1 ? Color(original.Left) : original.Left, edge == 2 ? Color(original.Bottom) : original.Bottom,

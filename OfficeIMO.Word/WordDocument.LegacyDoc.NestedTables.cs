@@ -17,8 +17,10 @@ namespace OfficeIMO.Word {
             LegacyDocNoteProjection notes,
             IReadOnlyList<LegacyDocBookmark>? pendingBookmarks = null) {
             var rows = new List<List<List<LegacyDocTableCellParagraph>>>();
+            var rowFormats = new List<LegacyDocParagraphFormat>();
             var currentRow = new List<List<LegacyDocTableCellParagraph>>();
             var currentCell = new List<LegacyDocTableCellParagraph>();
+            LegacyDocParagraphFormat lastRowFormat = LegacyDocParagraphFormat.Default;
             int index = startIndex;
 
             for (; index < paragraphs.Count; index++) {
@@ -26,6 +28,7 @@ namespace OfficeIMO.Word {
                 if (!IsLegacyDocNestedTableParagraph(paragraph)) {
                     break;
                 }
+                lastRowFormat = paragraph.Format;
 
                 if (!paragraph.Format.HasInnerTableTerminatingParagraphMarker || paragraph.Runs.Count > 0 || paragraph.Bookmarks.Count > 0) {
                     currentCell.Add(paragraph);
@@ -42,6 +45,7 @@ namespace OfficeIMO.Word {
 
                     if (currentRow.Count > 0) {
                         rows.Add(currentRow);
+                        rowFormats.Add(paragraph.Format);
                         currentRow = new List<List<LegacyDocTableCellParagraph>>();
                     }
                 }
@@ -53,6 +57,7 @@ namespace OfficeIMO.Word {
 
             if (currentRow.Count > 0) {
                 rows.Add(currentRow);
+                rowFormats.Add(lastRowFormat);
             }
 
             if (rows.Count == 0) {
@@ -61,12 +66,12 @@ namespace OfficeIMO.Word {
 
             int columnCount = rows.Max(row => row.Count);
             WordTable nestedTable = hostCell.AddTable(rows.Count, columnCount, WordTableStyle.TableNormal);
-            ApplyLegacyDocTableBorderDefaults(nestedTable, paragraphs.Skip(startIndex).Take(index - startIndex)
-                .Select(paragraph => paragraph.Format.TableBorders.WithDefaults(
-                    styleSheet.ResolveTableBorders(paragraph.Format.TableStyleIndex))));
+            ApplyLegacyDocTableBorderDefaults(nestedTable, rowFormats.Select(format =>
+                format.TableBorders.WithDefaults(styleSheet.ResolveTableBorders(format.TableStyleIndex))));
             AddPendingBookmarksAroundNestedTable(nestedTable, pendingBookmarks);
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 List<List<LegacyDocTableCellParagraph>> row = rows[rowIndex];
+                IReadOnlyList<LegacyDocTableCellBorders> cellBorders = rowFormats[rowIndex].GetTableCellBordersForCellCount(row.Count);
                 for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
                     AddLegacyDocTableCell(
                         nestedTable.Rows[rowIndex].Cells[columnIndex],
@@ -74,6 +79,9 @@ namespace OfficeIMO.Word {
                         styleSheet,
                         notes,
                         projectNestedTables: false);
+                    if (columnIndex < cellBorders.Count) {
+                        ApplyLegacyDocTableCellBorders(nestedTable.Rows[rowIndex].Cells[columnIndex], cellBorders[columnIndex]);
+                    }
                 }
             }
 
