@@ -317,7 +317,6 @@ namespace OfficeIMO.Excel {
             }
 
             const double pixelPadding = 2.0;
-            const double columnWidthSafetyFactor = 1.22;
 
             void ApplyMeasurement(
                 AutoFitMeasurement measurement,
@@ -329,7 +328,7 @@ namespace OfficeIMO.Excel {
                     float textWidthPx = measurement.RichTextRuns != null && measurement.RichTextRuns.Count > 0
                         ? MeasureRichTextWidth(measurement.RichTextRuns, styleInfo)
                         : MeasureTextWidth(measurement.Text, measurement.StyleIndex, styleInfo, textWidthCache, charWidthCache);
-                    double cellWidthPx = (textWidthPx * columnWidthSafetyFactor) + (2 * pixelPadding) + 1;
+                    double cellWidthPx = (textWidthPx * AutoFitTextWidthSafetyFactor) + (2 * pixelPadding) + 1;
                     double columnWidth = Math.Truncate(cellWidthPx / defaultMdw * 256.0) / 256.0;
 
                     if (columnWidth > localWidths[measurement.TargetIndex]) {
