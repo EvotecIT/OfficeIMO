@@ -20,12 +20,13 @@ internal static partial class PdfWriter {
         if (shading.OutsideColor is not OfficeColor outside) return;
         var buffer = new StringBuilder();
         new ContentStreamBuilder(buffer).FillColor(PdfColor.FromOfficeColor(outside))
-            .Rectangle(shading.AlphaLeft, shading.AlphaBottom, shading.AlphaRight - shading.AlphaLeft, shading.AlphaTop - shading.AlphaBottom)
+            .Rectangle(shading.AlphaLeft, shading.AlphaBottom, shading.AlphaRight - shading.AlphaLeft, shading.AlphaTop - shading.AlphaBottom, preciseCoordinates: true)
             .FillPath().Shading("A");
         string content = buffer.ToString();
         if (printColorTransform != null) content = printColorTransform.NormalizeGeneratedContent(content, cancellationToken);
         string entries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [" +
-            F(shading.AlphaLeft) + " " + F(shading.AlphaBottom) + " " + F(shading.AlphaRight) + " " + F(shading.AlphaTop) + "]" +
+            PdfNumberFormatter.Precise(shading.AlphaLeft) + " " + PdfNumberFormatter.Precise(shading.AlphaBottom) + " " +
+            PdfNumberFormatter.Precise(shading.AlphaRight) + " " + PdfNumberFormatter.Precise(shading.AlphaTop) + "]" +
             " /Group << /S /Transparency /CS " + (printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /I true >>" +
             " /Resources << /Shading << /A " + shadingId + " 0 R >> >>";
         int formId = AddFlateStreamObject(objects, Encoding.ASCII.GetBytes(content), entries);

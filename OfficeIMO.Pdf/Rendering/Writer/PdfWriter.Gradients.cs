@@ -55,11 +55,14 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IList<PageShading> shadings,
         OfficeRadialGradient gradient) {
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
-        double x0 = elliptical ? (gradient.StartX - gradient.EndX) / gradient.EndRadiusX : gradient.StartX;
-        double y0 = elliptical ? (gradient.EndY - gradient.StartY) / gradient.EndRadiusY : 1D - gradient.StartY;
+        // Put the end focus at the coordinate origin. Large native brush maps
+        // otherwise subtract nearly equal numbers in a consumer's float matrix,
+        // erasing a small painted region even when the PDF numbers are precise.
+        double x0 = elliptical ? (gradient.StartX - gradient.EndX) / gradient.EndRadiusX : gradient.StartX - gradient.EndX;
+        double y0 = elliptical ? (gradient.EndY - gradient.StartY) / gradient.EndRadiusY : gradient.EndY - gradient.StartY;
         double r0 = elliptical ? gradient.StartRadiusX / gradient.EndRadiusX : gradient.StartRadius;
-        double x1 = elliptical ? 0D : gradient.EndX;
-        double y1 = elliptical ? 0D : 1D - gradient.EndY;
+        double x1 = 0D;
+        double y1 = 0D;
         double r1 = elliptical ? 1D : gradient.EndRadius;
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
@@ -89,13 +92,13 @@ internal static partial class PdfWriter {
         double y,
         bool localCoordinates = false) {
         var transform = RadialShadingTransform(shape, x, y, localCoordinates);
-        content.TransformMatrix(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX, transform.OffsetY);
+        content.TransformMatrix(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX, transform.OffsetY, preciseCoordinates: true);
     }
 
     private static OfficeTransform RadialShadingTransform(OfficeShape shape, double x, double y, bool localCoordinates) {
         OfficeRadialGradient gradient = shape.FillRadialGradient!;
         var coordinates = gradient.EndRadiusX.Equals(gradient.EndRadiusY)
-            ? new OfficeTransform(1D, 0D, 0D, -1D, 0D, 1D)
+            ? new OfficeTransform(1D, 0D, 0D, -1D, gradient.EndX, gradient.EndY)
             : new OfficeTransform(gradient.EndRadiusX, 0D, 0D, -gradient.EndRadiusY, gradient.EndX, gradient.EndY);
         return coordinates.Then(gradient.CoordinateTransform).Then(new OfficeTransform(
             shape.Width, 0D, 0D, localCoordinates ? shape.Height : -shape.Height,

@@ -28,26 +28,27 @@ public sealed partial class OfficeRadialGradient {
         x = point.X; y = point.Y;
         double endRadiusX = Math.Max(Math.Max(StartRadiusX, EndRadiusX), 0.0000001D);
         double endRadiusY = Math.Max(Math.Max(StartRadiusY, EndRadiusY), 0.0000001D);
-        double normalizedX = (x - EndX) / endRadiusX;
-        double normalizedY = (y - EndY) / endRadiusY;
-        double startX = (StartX - EndX) / endRadiusX;
-        double startY = (StartY - EndY) / endRadiusY;
-        double startRadius = StartRadiusX / endRadiusX;
-        double vx = normalizedX - startX;
-        double vy = normalizedY - startY;
-        double dx = -startX;
-        double dy = -startY;
-        double dr = (EndRadiusX - StartRadiusX) / endRadiusX;
+        // Solve from a point end using u=1-t. Subtracting unit-radius squares
+        // near t=1 can round an outside-cone root onto a physical zero radius.
+        bool pointEnd = EndRadiusX == 0D && EndRadiusY == 0D;
+        double startRadius = pointEnd ? 0D : StartRadiusX / endRadiusX;
+        double vx = (x - (pointEnd ? EndX : StartX)) / endRadiusX;
+        double vy = (y - (pointEnd ? EndY : StartY)) / endRadiusY;
+        double dx = (EndX - StartX) / endRadiusX * (pointEnd ? -1D : 1D);
+        double dy = (EndY - StartY) / endRadiusY * (pointEnd ? -1D : 1D);
+        double dr = (EndRadiusX - StartRadiusX) / endRadiusX * (pointEnd ? -1D : 1D);
         double a = (dx * dx) + (dy * dy) - (dr * dr);
         double b = -2D * ((vx * dx) + (vy * dy) + (startRadius * dr));
         double c = (vx * vx) + (vy * vy) - (startRadius * startRadius);
-        if (Math.Abs(a) < 0.0000001D) {
-            if (Math.Abs(b) < 0.0000001D) {
+        // Small coefficients still describe physical circles. An absolute
+        // threshold erases near-boundary fields after a large coordinate map.
+        if (a == 0D) {
+            if (b == 0D) {
                 return 0D;
             }
 
             double linearRatio = -c / b;
-            return startRadius + linearRatio * dr >= 0D ? linearRatio : 0D;
+            return startRadius + linearRatio * dr >= 0D ? (pointEnd ? 1D - linearRatio : linearRatio) : 0D;
         }
 
         double discriminant = (b * b) - (4D * a * c);
@@ -56,13 +57,18 @@ public sealed partial class OfficeRadialGradient {
         }
 
         double sqrt = Math.Sqrt(discriminant);
-        double t1 = (-b - sqrt) / (2D * a);
-        double t2 = (-b + sqrt) / (2D * a);
+        // Compute the non-cancelling numerator first and recover the other
+        // root from their product. This also preserves almost-linear fields.
+        double q = -0.5D * (b + (b >= 0D ? sqrt : -sqrt));
+        double t1 = q / a;
+        double t2 = q == 0D ? 0D : c / q;
         // Squaring the circle equation also produces roots with negative radii.
         // Only physical circles contribute; where two exist, the later circle wins.
         bool valid1 = startRadius + t1 * dr >= 0D;
         bool valid2 = startRadius + t2 * dr >= 0D;
-        return valid1 ? (valid2 ? Math.Max(t1, t2) : t1) : (valid2 ? t2 : 0D);
+        if (!valid1 && !valid2) return 0D;
+        double ratio = valid1 ? (valid2 ? (pointEnd ? Math.Min(t1, t2) : Math.Max(t1, t2)) : t1) : t2;
+        return pointEnd ? 1D - ratio : ratio;
     }
 
 }

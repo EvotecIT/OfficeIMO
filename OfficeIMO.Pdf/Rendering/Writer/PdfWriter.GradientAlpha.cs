@@ -69,15 +69,15 @@ internal static partial class PdfWriter {
             : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(shading.X0, shading.Y0, shading.X1, shading.Y1, shading.Stops, alphaOnly: true);
         int maskShadingId = AddObject(objects, maskShading);
         string entries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [" +
-            F(shading.AlphaLeft) + " " + F(shading.AlphaBottom) + " " +
-            F(shading.AlphaRight) + " " + F(shading.AlphaTop) + "]" +
+            PdfNumberFormatter.Precise(shading.AlphaLeft) + " " + PdfNumberFormatter.Precise(shading.AlphaBottom) + " " +
+            PdfNumberFormatter.Precise(shading.AlphaRight) + " " + PdfNumberFormatter.Precise(shading.AlphaTop) + "]" +
             " /Group << /S /Transparency /CS /DeviceGray /I true >>" +
             " /Resources << /Shading << /A " + maskShadingId + " 0 R >> >>";
         var maskContent = new StringBuilder();
         var content = new ContentStreamBuilder(maskContent);
         if (shading.OutsideColor is OfficeColor outside) {
             content.FillGray(outside.A / 255D)
-                .Rectangle(shading.AlphaLeft, shading.AlphaBottom, shading.AlphaRight - shading.AlphaLeft, shading.AlphaTop - shading.AlphaBottom)
+                .Rectangle(shading.AlphaLeft, shading.AlphaBottom, shading.AlphaRight - shading.AlphaLeft, shading.AlphaTop - shading.AlphaBottom, preciseCoordinates: true)
                 .FillPath();
         }
         content.Shading("A");

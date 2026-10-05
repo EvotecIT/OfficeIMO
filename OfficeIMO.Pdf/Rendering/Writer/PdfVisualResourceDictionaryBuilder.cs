@@ -57,7 +57,7 @@ internal static class PdfVisualResourceDictionaryBuilder {
 
         return
             "<< /ShadingType 2 /ColorSpace " + (alphaOnly ? "/DeviceGray" : printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /Coords [" +
-            FormatNumber(x0) + " " + FormatNumber(y0) + " " + FormatNumber(x1) + " " + FormatNumber(y1) +
+            PdfNumberFormatter.Precise(x0) + " " + PdfNumberFormatter.Precise(y0) + " " + PdfNumberFormatter.Precise(x1) + " " + PdfNumberFormatter.Precise(y1) +
             "] /Function " + BuildGradientFunction(stops, printColorTransform, alphaOnly) + " /Extend [true true] >>\n";
     }
 
@@ -84,8 +84,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
 
         return
             "<< /ShadingType 3 /ColorSpace " + (alphaOnly ? "/DeviceGray" : printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /Coords [" +
-            FormatNumber(x0) + " " + FormatNumber(y0) + " " + FormatNumber(r0) + " " +
-            FormatNumber(x1) + " " + FormatNumber(y1) + " " + FormatNumber(r1) +
+            PdfNumberFormatter.Precise(x0) + " " + PdfNumberFormatter.Precise(y0) + " " + PdfNumberFormatter.Precise(r0) + " " +
+            PdfNumberFormatter.Precise(x1) + " " + PdfNumberFormatter.Precise(y1) + " " + PdfNumberFormatter.Precise(r1) +
             "] /Function " + BuildGradientFunction(stops, printColorTransform, alphaOnly) + " /Extend [true true] >>\n";
     }
 

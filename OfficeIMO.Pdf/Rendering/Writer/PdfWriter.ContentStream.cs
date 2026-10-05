@@ -93,7 +93,12 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder Rectangle(double x, double y, double width, double height) {
+    public ContentStreamBuilder Rectangle(double x, double y, double width, double height, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(PdfNumberFormatter.Precise(x)).Append(' ').Append(PdfNumberFormatter.Precise(y)).Append(' ')
+                .Append(PdfNumberFormatter.Precise(width)).Append(' ').Append(PdfNumberFormatter.Precise(height)).Append(" re");
+            return this;
+        }
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(' ').Append(F(width)).Append(' ').Append(F(height)).Append(" re");
         return this;
     }
@@ -156,7 +161,13 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f) {
+    public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(PdfNumberFormatter.Precise(a)).Append(' ').Append(PdfNumberFormatter.Precise(b)).Append(' ')
+                .Append(PdfNumberFormatter.Precise(c)).Append(' ').Append(PdfNumberFormatter.Precise(d)).Append(' ')
+                .Append(PdfNumberFormatter.Precise(e)).Append(' ').Append(PdfNumberFormatter.Precise(f)).Append(" cm\n");
+            return this;
+        }
         _sb.Append(MatrixNumber(a)).Append(' ')
             .Append(MatrixNumber(b)).Append(' ')
             .Append(MatrixNumber(c)).Append(' ')

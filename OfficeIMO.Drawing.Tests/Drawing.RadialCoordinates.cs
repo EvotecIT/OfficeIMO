@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingRadialCoordinatesTests {
     [Theory]
+    [InlineData(1.000000005)]
+    [InlineData(1D)]
+    [InlineData(.999999995)]
+    public void NearlyLinearShrinkingFieldsRetainThePhysicalRoot(double focus) {
+        var field = new OfficeRadialGradient(0, 0, 1, focus, 0, 0,
+            new OfficeGradientStop(0, OfficeColor.Blue), new OfficeGradientStop(1, OfficeColor.Red));
+        // A small painted region beside the focus remains inside a physical
+        // circle even when both quadratic coefficients are below 1e-7.
+        Assert.InRange(field.SampleRatio(focus - .0000000025, .000000025), .99999, 1D);
+    }
+
+    [Fact]
+    public void NearPointEndDoesNotRoundOutsideRootsOntoAZeroRadiusCircle() {
+        var field = new OfficeRadialGradient(0, 0, 1, 1.000000005, 0, 0,
+            new OfficeGradientStop(0, OfficeColor.Blue), new OfficeGradientStop(1, OfficeColor.Red));
+        Assert.Equal(0D, field.SampleRatio(1.0000000055, -.0000000105));
+    }
+
+    [Theory]
     [InlineData(false, .25, 127)]
     [InlineData(true, .25, 127)]
     [InlineData(false, 0, 191)]
