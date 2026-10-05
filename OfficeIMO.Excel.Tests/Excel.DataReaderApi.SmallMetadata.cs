@@ -87,6 +87,41 @@ public partial class Excel {
 
 public class OpenXmlSmallPartTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void PrefixFilteredPartReadsPreserveTheCompleteInput(bool prefetch, bool accept) {
+        byte[] content = Enumerable.Range(0, 4097).Select(index => (byte)(index % 251)).ToArray();
+        using var parts = OpenXmlPackagePartBufferReader.TryOpen(Package("xl/test.xml", content))!;
+        if (prefetch) parts.BeginPrefetch("xl/test.xml", content.Length, default);
+        int calls = 0;
+        bool accepted = parts.TryRead("xl/test.xml", content.Length, default, out byte[]? buffer, out int length,
+            (prefix, prefixLength) => {
+                calls++;
+                Assert.Equal(content.Take(256), prefix.Take(prefixLength));
+                return accept;
+            });
+        Assert.Equal(1, calls);
+        Assert.Equal(accept, accepted);
+        try {
+            if (accept) {
+                Assert.Equal(content.Length, length);
+                Assert.Equal(content, buffer!.Take(length));
+            } else {
+                Assert.Null(buffer);
+                Assert.Equal(0, length);
+            }
+        } finally {
+            OpenXmlPartBufferPool.Return(buffer);
+        }
+        // A declined read consumes neither the package's lifetime nor future reads.
+        Assert.True(parts.TryRead("xl/test.xml", content.Length, default, out buffer, out length));
+        try { Assert.Equal(content, buffer!.Take(length)); }
+        finally { OpenXmlPartBufferPool.Return(buffer); }
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(16)]
     [InlineData(4095)]

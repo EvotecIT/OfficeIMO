@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         private readonly ZipArchive _archive;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
         private readonly object _prefetchSync = new object();
-        private Task<PrefetchedPartBuffer>? _prefetchTask;
+        private Task<PrefetchedPartBuffer?>? _prefetchTask;
         private CancellationTokenSource? _prefetchCancellation;
         private string? _prefetchPartName;
         private bool _disposed;
@@ -105,7 +105,8 @@ namespace OfficeIMO.Excel {
             int maximumBytes,
             CancellationToken cancellationToken,
             out byte[]? buffer,
-            out int length) {
+            out int length,
+            Func<byte[], int, bool>? acceptPrefix = null) {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
@@ -121,7 +122,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            Task<PrefetchedPartBuffer>? prefetchTask = null;
+            Task<PrefetchedPartBuffer?>? prefetchTask = null;
             CancellationTokenSource? prefetchCancellation = null;
             lock (_prefetchSync) {
                 if (string.Equals(_prefetchPartName, normalizedPartName, StringComparison.OrdinalIgnoreCase)) {
@@ -141,11 +142,15 @@ namespace OfficeIMO.Excel {
                     prefetchCancellation?.Dispose();
                 }
             } else {
-                prefetched = ReadPart(entry, normalizedPartName, cancellationToken);
+                prefetched = ReadPart(entry, normalizedPartName, cancellationToken, acceptPrefix);
             }
             if (prefetched == null) return false;
-            prefetched.Detach(out buffer, out length);
-            return true;
+            using (prefetched) {
+                // Prefetch may already have completed without the caller's prefix filter.
+                if (prefetchTask != null && acceptPrefix != null && !prefetched.AcceptsPrefix(acceptPrefix)) return false;
+                prefetched.Detach(out buffer, out length);
+                return true;
+            }
         }
 
         internal void BeginPrefetch(
@@ -176,20 +181,48 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static PrefetchedPartBuffer ReadPart(
+        private static PrefetchedPartBuffer? ReadPart(
             ZipArchiveEntry entry,
             string normalizedPartName,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            Func<byte[], int, bool>? acceptPrefix = null) {
             int length = checked((int)entry.Length);
-            byte[] output = OpenXmlPartBufferPool.Rent(length);
+            byte[]? prefix = null;
             try {
                 using Stream input = entry.Open();
-                ReadPartContents(input, output, length, normalizedPartName, cancellationToken);
-                return new PrefetchedPartBuffer(output, length);
-            } catch {
-                OpenXmlPartBufferPool.Return(output);
-                throw;
+                int prefixLength = acceptPrefix == null ? 0 : Math.Min(length, 256);
+                if (acceptPrefix != null) {
+                    prefix = ArrayPool<byte>.Shared.Rent(Math.Max(1, prefixLength));
+                    ReadPartPrefix(input, prefix, prefixLength, normalizedPartName, cancellationToken);
+                    if (!acceptPrefix(prefix, prefixLength)) return null;
+                }
+                byte[] output = OpenXmlPartBufferPool.Rent(length);
+                try {
+                    if (prefixLength != 0) Buffer.BlockCopy(prefix!, 0, output, 0, prefixLength);
+                    ReadPartContents(input, output, length, normalizedPartName, cancellationToken, prefixLength);
+                    return new PrefetchedPartBuffer(output, length);
+                } catch {
+                    OpenXmlPartBufferPool.Return(output);
+                    throw;
+                }
+            } finally {
+                if (prefix != null) ArrayPool<byte>.Shared.Return(prefix, clearArray: true);
             }
+        }
+
+        private static void ReadPartPrefix(Stream input, byte[] prefix, int length,
+            string normalizedPartName, CancellationToken cancellationToken) {
+            int offset = 0;
+            while (offset < length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = input.Read(prefix, offset, length - offset);
+                if (read == 0) {
+                    throw new EndOfStreamException(
+                        $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended within its {length}-byte prefix.");
+                }
+                offset += read;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         internal bool ContainsPart(string partName) {
@@ -250,8 +283,8 @@ namespace OfficeIMO.Excel {
             byte[] output,
             int length,
             string normalizedPartName,
-            CancellationToken cancellationToken) {
-            int offset = 0;
+            CancellationToken cancellationToken,
+            int offset = 0) {
             while (offset < length) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(output, offset, length - offset);
@@ -359,7 +392,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
             _disposed = true;
-            Task<PrefetchedPartBuffer>? prefetchTask;
+            Task<PrefetchedPartBuffer?>? prefetchTask;
             CancellationTokenSource? prefetchCancellation;
             lock (_prefetchSync) {
                 prefetchTask = _prefetchTask;
@@ -389,6 +422,9 @@ namespace OfficeIMO.Excel {
             }
 
             internal int Length { get; }
+
+            internal bool AcceptsPrefix(Func<byte[], int, bool> predicate) =>
+                predicate(_buffer ?? throw new ObjectDisposedException(nameof(PrefetchedPartBuffer)), Math.Min(Length, 256));
 
             internal void Detach(out byte[] buffer, out int length) {
                 buffer = _buffer ?? throw new ObjectDisposedException(nameof(PrefetchedPartBuffer));

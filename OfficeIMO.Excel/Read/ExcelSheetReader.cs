@@ -82,22 +82,6 @@ namespace OfficeIMO.Excel {
             _hasWorksheetPartStreamContent = true;
         }
 
-        private bool TryReadWorksheetPartBuffer(
-            int maximumBytes,
-            CancellationToken cancellationToken,
-            out byte[]? buffer,
-            out int length) {
-            buffer = null;
-            length = 0;
-            return _partBufferReader != null
-                && _partBufferReader.TryRead(
-                _worksheetPartName,
-                maximumBytes,
-                cancellationToken,
-                out buffer,
-                out length);
-        }
-
         private void RequireSdkWorksheetPart() {
             if (!_hasSdkWorksheetPart) {
                 throw new XlsxTabularFastPathNotSupportedException(

@@ -223,17 +223,17 @@ namespace OfficeIMO.Excel {
                 // stream. Avoid inflating and growing a buffer only to discard it.
                 if (owner._partBufferReader != null
                     && owner._partBufferReader.TryGetLength(owner._worksheetPartName, out long declaredLength)
-                    && declaredLength > MaximumBufferSize) {
-                    buffer = null;
-                    length = 0;
-                    return false;
-                }
-                if (owner.TryReadWorksheetPartBuffer(
-                        MaximumBufferSize,
-                        ct,
-                        out buffer,
-                        out length)) {
-                    return true;
+                    && declaredLength >= 0) {
+                    if (declaredLength > MaximumBufferSize) {
+                        buffer = null;
+                        length = 0;
+                        return false;
+                    }
+                    // Reject non-UTF-8 input before renting a worksheet-sized buffer.
+                    // Accepted input continues on the same ZIP stream and still receives
+                    // complete length, XML, and value validation before publication.
+                    return owner._partBufferReader.TryRead(owner._worksheetPartName,
+                        MaximumBufferSize, ct, out buffer, out length, CanBufferUtf8WorksheetPrefix);
                 }
 
                 owner.RequireSdkWorksheetPart();
@@ -469,8 +469,16 @@ namespace OfficeIMO.Excel {
             }
 
             private static bool TryReadWorksheetBuffer(Stream stream, CancellationToken ct, out byte[]? buffer, out int length) {
-                buffer = OpenXmlPartBufferPool.Rent(InitialBufferSize);
+                buffer = null;
                 length = 0;
+                if (!TryReadUtf8WorksheetPrefix(stream, ct, out byte[] prefix, out int prefixLength)) return false;
+                try {
+                    buffer = OpenXmlPartBufferPool.Rent(InitialBufferSize);
+                    Buffer.BlockCopy(prefix, 0, buffer, 0, prefixLength);
+                    length = prefixLength;
+                } finally {
+                    ArrayPool<byte>.Shared.Return(prefix, clearArray: true);
+                }
                 while (true) {
                     if (ct.CanBeCanceled) {
                         ct.ThrowIfCancellationRequested();
