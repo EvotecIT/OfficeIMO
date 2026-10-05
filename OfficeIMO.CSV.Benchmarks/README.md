@@ -136,7 +136,7 @@ records the long-note improvement and the limits of short-row timing on a busy P
 ## Document saves and compression
 
 `CsvDocumentSaveBenchmarks` measures `CsvDocument.Save(Stream)`,
-`SaveAsync(Stream)`, `ToBytes()`, `Save(path)`, and `SaveAsync(path)`. It covers 1,000 and
+`SaveAsync(Stream)`, `ToBytes()`, `ToString()`, `Save(path)`, and `SaveAsync(path)`. It covers 1,000 and
 25,000 rows, plain text, multiline quoted Unicode, mixed JSON and typed values,
 and uncompressed, GZip, Deflate, Brotli and ZLib output. Document preparation is
 outside timing; serialization, compression, destination growth and disposal are
@@ -145,9 +145,11 @@ inside it. This lane compares OfficeIMO APIs, not equivalent cross-library APIs.
 The same fixtures also cover `CsvRowWriter.CreateFile`, sequential data-reader
 exports to streams, and parallel exports with four workers and 512-row batches.
 
-Setup decompresses all eight outputs, compares their complete text with an independent
+Setup decompresses all eight binary outputs, compares their complete text with an independent
 CsvHelper reference, checks every field, and verifies that the destination remains
-open. Compressed bytes may differ while decoded text remains identical. The lane
+open. It also compares the complete `ToString()` result with that reference;
+`ToText` reports its UTF-16 character count and performs no compression.
+Compressed bytes may differ while decoded text remains identical. The lane
 uses empty streams and makes no claim about overwriting existing stream content.
 File saves include serialization, file creation or replacement, and disposal. Each
 benchmark instance owns a unique directory beneath `OFFICEIMO_BENCHMARK_OUTPUT`

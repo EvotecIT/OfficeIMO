@@ -74,6 +74,10 @@ public class CsvDocumentSaveBenchmarks {
 
         string expected = CreateReferenceText();
         ExpectedCsvSha256 = Convert.ToHexString(SHA256.HashData(Utf8.GetBytes(expected)));
+        string textOutput = _document.ToString(_options);
+        if (!string.Equals(expected, textOutput, StringComparison.Ordinal))
+            throw new InvalidDataException("Document text differs from the independently formatted CSV.");
+        _expectedOutputLengths[nameof(ToText)] = textOutput.Length;
         using var sync = new MemoryStream();
         _document.Save(sync, _options);
         Validate(nameof(Save), sync, expected);
@@ -124,6 +128,9 @@ public class CsvDocumentSaveBenchmarks {
 
     [Benchmark]
     public long ToBytes() => _document.ToBytes(_options).LongLength;
+
+    [Benchmark]
+    public long ToText() => _document.ToString(_options).Length;
 
     [Benchmark]
     public long SaveFile() {
