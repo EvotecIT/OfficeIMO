@@ -30,9 +30,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static RtfSectionBreakKind ToRtfSectionBreakKind(WordDocument document, int sectionIndex) {
-        WordSection section = sectionIndex > 0
-            ? document.Sections[sectionIndex - 1]
-            : document.Sections[sectionIndex];
+        WordSection section = document.Sections[sectionIndex];
         SectionMarkValues? sectionMark = section._sectionProperties.GetFirstChild<SectionType>()?.Val?.Value;
         if (sectionMark == SectionMarkValues.Continuous) return RtfSectionBreakKind.Continuous;
         if (sectionMark == SectionMarkValues.NextColumn) return RtfSectionBreakKind.Column;
@@ -87,7 +85,7 @@ public static partial class WordRtfConverterExtensions {
                 : document.AddSection(ToWordSectionMark(rtfSection.BreakKind).ToOfficeEnum());
             wordSections[index] = wordSection;
 
-            if (rtfDocument.Sections.Count == 1) {
+            if (index == 0) {
                 ApplySectionBreakKind(rtfSection.BreakKind, wordSection);
             }
 
