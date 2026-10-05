@@ -262,7 +262,7 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
 - Serves as the shared engine for Word, Excel, PowerPoint, OpenDocument, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters.
 
-Opaque grayscale PNG images with 1-, 2-, or 4-bit samples retain their packed sample depth when embedded. Noninterlaced inputs reuse the validated compressed image stream; Adam7 inputs normalize their rows first. Images with grayscale transparency use the existing grayscale and soft-mask conversion. This keeps scanned-page images compact without changing their pixels.
+PNG embedding keeps scanned-page images compact without changing their pixels. See the [image capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for supported sample depths and transparency behavior.
 
 ## Existing PDF workflows
 
@@ -1949,8 +1949,6 @@ result.Save("proposal.pdf");
 The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
 
 The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
-
-Automatic fallback registration keeps every resolved candidate when the Helvetica, Times and Courier compatibility slots cannot hold the complete set. It uses distinct named font resources in that case, preserving caller registrations and their bold/italic faces. Resetting or replacing the automatic fallback set releases its named resources; a later caller registration retains ownership of that family. Named resources remain subject to the 64-family limit. Explicit fallback sets retain their configured candidates and mappings.
 
 `PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. Named fallback families use their own registrations. `PdfEmbeddedFontFallbackSet.RegisterFonts` explicitly installs the supplied slot mapping. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data.
 

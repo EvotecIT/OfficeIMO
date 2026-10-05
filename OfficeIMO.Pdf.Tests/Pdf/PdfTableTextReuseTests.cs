@@ -6,6 +6,55 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTableTextReuseTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RepeatedCellsRetainTextAndGeometryAcrossUnequalColumnContinuations(bool embedded) {
+        byte[] Render(bool explicitSize) {
+            var options = new PdfOptions {
+                PageWidth = 420, PageHeight = 420,
+                MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+            };
+            if (embedded) {
+                options.EmbedStandardFont(PdfStandardFont.Helvetica,
+                    File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!), "ColumnTableFont");
+            }
+            var style = TableStyles.Minimal();
+            style.HeaderRowCount = 0;
+            style.FontSize = 10;
+            style.CellPaddingX = 0;
+            style.CellPaddingY = 0;
+            style.SpacingBefore = 0;
+            style.SpacingAfter = 0;
+            style.ColumnWidthPoints = new List<double?> { 35, null };
+            var rows = Enumerable.Range(0, 18).Select(index => new[] {
+                new PdfTableCell(new[] { PdfTextRun.Normal("R" + index.ToString("D3"), fontSize: explicitSize ? 10 : null) }),
+                new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau",
+                    fontSize: explicitSize ? 10 : null) })
+            }).ToArray();
+            return PdfDocument.Create(options).Columns(content => content.Table(rows, style: style),
+                new PdfMultiColumnOptions {
+                    BalanceLastPage = false,
+                    ColumnDefinitions = new[] {
+                        new PdfFlowColumn(PdfColumnWidth.Fixed(100), 20),
+                        new PdfFlowColumn(PdfColumnWidth.Fixed(260))
+                    }
+                }).ToBytes();
+        }
+
+        byte[] actual = Render(false);
+        AssertSameLetters(Render(true), actual);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(actual);
+        var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
+        for (int index = 0; index < 18; index++)
+            Assert.Single(words, word => word.Text == "R" + index.ToString("D3"));
+        Assert.Equal(18, words.Count(word => word.Text == "Alpha"));
+        Assert.Equal(18, words.Count(word => word.Text == "tau"));
+        Assert.Contains(words, word => word.BoundingBox.Left < 30);
+        Assert.Contains(words, word => word.BoundingBox.Left > 130);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]

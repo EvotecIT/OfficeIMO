@@ -96,7 +96,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
         if (request.ApplyDefaultLatinLigatures) {
             if (substitution != null && !substitution.ApplyLatinDefaults(tokens, request.FeatureSettings, request.CancellationToken, request.Text)) return false;
         } else {
-            if (substitution != null && !substitution.CanApply(request.FeatureSettings)) return false;
+            if (substitution != null && !substitution.CanApply(request.FeatureSettings, request.CancellationToken)) return false;
             substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
         }
         return tokens.Count > 0;
