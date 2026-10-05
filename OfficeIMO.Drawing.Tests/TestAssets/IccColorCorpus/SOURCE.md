@@ -12,3 +12,13 @@ These unmodified profiles cover two RGB matrix/TRC transforms (including wide-ga
 LittleCMS is MIT licensed; its license is included beside the fixtures. The DCI-P3 file's copyright tag identifies the International Color Consortium, whose [profile library terms](https://registry.color.org/profile-library/) permit redistribution. The [sRGB v4 terms](https://registry.color.org/rgb-registry/srgbprofiles) permit redistribution of the unchanged display-class file with its copyright tag retained. The LittleCMS CMYK file identifies itself as a test profile and is used only as a correctness fixture.
 
 Malformed coverage is derived in the test by truncating a valid profile and corrupting a tag offset; configured parser, pixel, and allocation limits are checked separately. The corpus establishes raw device-sample conversion accuracy; it does not establish color-correct extraction from every encoded image format or automatic image optimizer conversion.
+
+The `littlecms-3clr-*` through `littlecms-8clr-*` profiles are generated test
+profiles, not printing characterizations. `generate_multichannel_reference.py`
+uses LittleCMS 2.19 to author LUT8/LUT16 and variable-grid v4 `mAB` transforms,
+with distinct input-channel tone curves, then records 153 independently converted sRGB swatches in `reference-nchannel.csv`.
+The samples include endpoints, mixtures, and each individual channel. Tests
+allow two 8-bit levels for interpolation and rounding, reject malformed dimensions,
+and keep multichannel output/soft-proof conversion unsupported. LittleCMS remains
+an optional fixture-generation tool; neither runtime code nor ordinary tests
+require it.

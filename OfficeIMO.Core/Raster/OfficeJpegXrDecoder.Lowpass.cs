@@ -32,7 +32,7 @@ internal static partial class OfficeJpegXrDecoder {
             bool reduced = _color == 1 || _color == 2;
             int maximum = reduced ? 3 : 7;
             int presence;
-            if (_color == 0 || _color == 4) {
+            if (_color == 0 || _color == 4 || _color == 6) {
                 presence = 0;
                 for (int c = 0; c < _components; c++) presence |= (int)bits.Read(1) << c;
             }

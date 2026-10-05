@@ -71,7 +71,7 @@ internal static partial class OfficeJpegXrDecoder {
         private readonly int[] _state = new int[2];
         private readonly int _band, _components, _color;
         private static readonly int[] LumaWeights = { 240, 12, 1 };
-        private static readonly int[,] ChromaWeights = { { 0, 240, 120, 80 }, { 0, 12, 6, 4 }, { 0, 16, 8, 5 } };
+        private static readonly int[,] ChromaWeights = { { 0, 240, 120, 80, 60, 48, 40, 34 }, { 0, 12, 6, 4, 3, 2, 2, 2 }, { 0, 16, 8, 5, 4, 3, 3, 2 } };
 
         internal CoefficientModel(int band, int components, int color = 0) {
             _band = band; _components = components; _color = color;
@@ -112,7 +112,7 @@ internal static partial class OfficeJpegXrDecoder {
         internal DcContext(int components, int color = 0) { _components = components; _color = color; _model = new CoefficientModel(0, components, color); }
 
         internal void Read(Bits bits, int[] destination, int offset, bool adapt) {
-            bool independent = _color == 0 || _color == 4;
+            bool independent = _color == 0 || _color == 4 || _color == 6;
             int presence = independent ? 0 : DcPresence.Read(bits);
             int lumaCount = 0, chromaCount = 0;
             for (int i = 0; i < _components; i++) {

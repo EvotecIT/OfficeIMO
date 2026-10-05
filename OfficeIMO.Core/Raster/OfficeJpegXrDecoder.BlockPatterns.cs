@@ -13,7 +13,7 @@ internal static partial class OfficeJpegXrDecoder {
         // T.832 8.7.17.2/8.7.17.5 and 8.10, for gray, YUV and YUVK planes.
         internal void Read(Bits bits, int[] patterns, int start, int left, int top, bool leftEdge, bool topEdge) {
             Array.Clear(_difference, 0, _difference.Length);
-            bool independent = _color == 0 || _color == 4;
+            bool independent = _color == 0 || _color == 4 || _color == 6;
             for (int channel = 0; channel < (independent ? _components : 1); channel++) {
                 int groupMask = Refine(bits, _groups.Read(bits, PatternCountCodes, PatternCountDeltas));
                 for (int group = 0; group < 4; group++) if ((groupMask & (1 << group)) != 0) {

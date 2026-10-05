@@ -21,7 +21,7 @@ public sealed class XpsJpegXrCmykTests {
             string[] fields = row.Split(',');
             byte[] encoded = File.ReadAllBytes(Path.Combine(corpus, fields[0]));
             int width = int.Parse(fields[1]), height = int.Parse(fields[2]);
-            byte[] expected = JpegXrTestFixture.ConvertCmykReference(
+            byte[] expected = JpegXrTestFixture.ConvertDeviceReference(
                 File.ReadAllBytes(Path.Combine(corpus, Path.ChangeExtension(fields[0], ".cmyk"))), int.Parse(fields[3]), int.Parse(fields[4]), profile!);
             foreach (bool embedded in new[] { false, true }) {
                 var document = XpsDocument.Create(format);

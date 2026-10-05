@@ -4,23 +4,24 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegXrDecoder {
-    private static byte[] FormatCmykRgba(FrameHeader frame, int[][] primary, FrameHeader? alphaFrame,
+    private static byte[] FormatDeviceRgba(FrameHeader frame, int[][] primary, FrameHeader? alphaFrame,
             int[][]? alpha, OfficeIccColorProfile? profile, CancellationToken cancellation) {
-        if (profile == null || profile.ComponentCount != 4)
-            throw new FormatException("JPEG-XR CMYK requires a four-component ICC profile.");
+        if (profile == null || profile.ComponentCount != frame.Primary.Components)
+            throw new FormatException("JPEG-XR device channels require a matching ICC profile.");
         int stride = frame.Width + frame.Left + frame.Right;
         int alphaStride = alphaFrame == null ? 0 : alphaFrame.Width + alphaFrame.Left + alphaFrame.Right;
         int maximum = frame.BitDepth == 2 ? 65535 : 255;
         var output = new byte[checked(frame.Width * frame.Height * 4)];
-        var channels = new double[4];
+        var channels = new double[frame.Primary.Components];
         for (int y = 0; y < frame.Height; y++) {
             cancellation.ThrowIfCancellationRequested();
             for (int x = 0; x < frame.Width; x++) {
                 if ((x & 4095) == 0) cancellation.ThrowIfCancellationRequested();
                 int index = (y + frame.Top) * stride + x + frame.Left, target = (y * frame.Width + x) * 4;
-                ReadCmykSamples(frame, primary, index, channels);
+                if (frame.OutputColor == 6) ReadMultichannelSamples(frame, primary, index, channels);
+                else ReadCmykSamples(frame, primary, index, channels);
                 if (!profile.TryConvert(channels, OfficeIccRenderingIntent.RelativeColorimetric, out var color))
-                    throw new FormatException("JPEG-XR CMYK ICC conversion failed.");
+                    throw new FormatException("JPEG-XR device-channel ICC conversion failed.");
                 output[target] = color.R; output[target + 1] = color.G; output[target + 2] = color.B;
                 int a = alpha == null ? maximum : ScaleSample(
                     alpha[0][(y + alphaFrame!.Top) * alphaStride + x + alphaFrame.Left],
@@ -29,6 +30,12 @@ internal static partial class OfficeJpegXrDecoder {
             }
         }
         return output;
+    }
+
+    internal static void ReadMultichannelSamples(FrameHeader frame, int[][] samples, int index, double[] channels) {
+        double maximum = frame.BitDepth == 2 ? 65535D : 255D;
+        for (int channel = 0; channel < frame.Primary.Components; channel++)
+            channels[channel] = ScaleSample(samples[channel][index], frame.Primary, frame.BitDepth) / maximum;
     }
 
     // T.832 Tables 186-188: transformed CMYK has half bias for C/M/Y and

@@ -60,8 +60,8 @@ internal static partial class OfficeJpegXrDecoder {
 
     internal static byte[] FormatRgba(FrameHeader frame, int[][] primary, FrameHeader? alphaFrame, int[][]? alpha, bool premultiplied, OfficeIccColorProfile? colorProfile,
             CancellationToken cancellation) {
-        if (frame.OutputColor == 4 || frame.OutputColor == 5)
-            return FormatCmykRgba(frame, primary, alphaFrame, alpha, colorProfile, cancellation);
+        if (frame.OutputColor == 4 || frame.OutputColor == 5 || frame.OutputColor == 6)
+            return FormatDeviceRgba(frame, primary, alphaFrame, alpha, colorProfile, cancellation);
         int stride = frame.Width + frame.Left + frame.Right, alphaStride = alphaFrame == null ? 0
             : alphaFrame.Width + alphaFrame.Left + alphaFrame.Right;
         var output = new byte[checked(frame.Width * frame.Height * 4)];

@@ -33,6 +33,7 @@ internal sealed partial class XpsSvgConverter {
         if (unusable != null) { Loss(unusable); return false; }
         var metadata = OfficeImageMetadataInspector.Inspect(bytes, format, _profileAllowance, _token);
         // ECMA-388 permits an explicit error when no usable device profile exists.
+        if (metadata.HasDeviceMultichannel) { Loss("N-channel image requires a usable ICC profile"); return false; }
         if (metadata.HasDeviceCmyk) { Loss("CMYK image requires a usable ICC profile"); return false; }
         if (metadata.HasColorRenderingMetadata || metadata.HasNonSrgbPngCalibration) {
             // ECMA-388 M8.30 defaults integer PNG samples to sRGB without a

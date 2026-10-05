@@ -86,7 +86,7 @@ internal static partial class OfficeJpegXrDecoder {
         values[target] = CheckedCoefficient((long)values[target] + values[source]);
 
     private static int DcPredictionMode(int[] values, PlaneHeader plane, int left, int top, int diagonal) {
-        int components = Math.Min(plane.Components, 3);
+        int components = plane.Color == 6 ? 1 : Math.Min(plane.Components, 3);
         long horizontal = 0, vertical = 0;
         for (int c = 0; c < components; c++) {
             int offset = c * 16, weight = c == 0 && components == 3 ? (plane.Color == 1 ? 8 : plane.Color == 2 ? 4 : 2) : 1;
@@ -97,7 +97,7 @@ internal static partial class OfficeJpegXrDecoder {
     }
 
     private static byte HighpassPredictionMode(int[] values, int start, PlaneHeader plane) {
-        int components = Math.Min(plane.Components, 3);
+        int components = plane.Color == 6 ? 1 : Math.Min(plane.Components, 3);
         long horizontal = Math.Abs((long)values[start + 1]) + Math.Abs((long)values[start + 2]) + Math.Abs((long)values[start + 3]);
         long vertical = Math.Abs((long)values[start + 4]) + Math.Abs((long)values[start + 8]) + Math.Abs((long)values[start + 12]);
         for (int c = 1; c < components; c++) {

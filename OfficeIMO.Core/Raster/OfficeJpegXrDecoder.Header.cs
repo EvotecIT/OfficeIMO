@@ -19,7 +19,7 @@ internal static partial class OfficeJpegXrDecoder {
         internal int[]? DcQuant, LpQuant, HpQuant;
     }
 
-    // T.832 8.3/8.4. This parses the bounded gray/RGB/CMYK frame contract; pixel
+    // T.832 8.3/8.4. This parses the bounded gray/RGB/CMYK/N-channel frame contract; pixel
     // reconstruction and container dispatch remain separate codec responsibilities.
     internal static FrameHeader ReadHeader(byte[] bytes, int offset, int length, CancellationToken token) {
         var bits = new Bits(bytes, offset, length, token);
@@ -36,7 +36,7 @@ internal static partial class OfficeJpegXrDecoder {
         frame.OutputColor = (int)bits.Read(4); frame.BitDepth = (int)bits.Read(4);
         uint width = bits.Read(shortHeader ? 16 : 32), height = bits.Read(shortHeader ? 16 : 32);
         if (width >= int.MaxValue || height >= int.MaxValue || frame.Overlap == 3 ||
-            (frame.BitDepth < 1 || frame.BitDepth > 7 || frame.BitDepth == 5) || (frame.OutputColor != 0 && frame.OutputColor != 4 && frame.OutputColor != 5 && frame.OutputColor != 7))
+            (frame.BitDepth < 1 || frame.BitDepth > 7 || frame.BitDepth == 5) || (frame.OutputColor != 0 && frame.OutputColor != 4 && frame.OutputColor != 5 && frame.OutputColor != 6 && frame.OutputColor != 7))
             throw new FormatException("JPEG-XR frame is outside the supported sample contract.");
         frame.Width = (int)width + 1; frame.Height = (int)height + 1;
         if ((long)frame.Width * frame.Height > 50_000_000L)
@@ -71,6 +71,9 @@ internal static partial class OfficeJpegXrDecoder {
         frame.TileWidths[columns - 1] = paddedWidth / 16 - widthSum;
         frame.TileHeights[rows - 1] = paddedHeight / 16 - heightSum;
         frame.Primary = ReadPlaneHeader(bits, false, frame.BitDepth);
+        if ((frame.OutputColor == 6) != (frame.Primary.Color == 6) ||
+            frame.OutputColor == 6 && frame.BitDepth != 1 && frame.BitDepth != 2)
+            throw new FormatException("JPEG-XR N-channel output and plane declarations disagree.");
         if ((frame.OutputColor == 4 || frame.OutputColor == 5)
                 ? frame.Primary.Color != 4 || (frame.BitDepth != 1 && frame.BitDepth != 2)
                 : frame.Primary.Color == 4)
@@ -89,8 +92,8 @@ internal static partial class OfficeJpegXrDecoder {
 
     private static PlaneHeader ReadPlaneHeader(Bits bits, bool alpha, int bitDepth) {
         var plane = new PlaneHeader { Color = (int)bits.Read(3), Scaled = bits.Flag(), Bands = (int)bits.Read(4) };
-        if ((plane.Color < 0 || plane.Color > 4) || alpha && plane.Color != 0 || plane.Bands > 3)
-            throw new FormatException("JPEG-XR plane is outside the gray/YUV/YUVK contract.");
+        if ((plane.Color > 4 && plane.Color != 6) || alpha && plane.Color != 0 || plane.Bands > 3)
+            throw new FormatException("JPEG-XR plane is outside the gray/YUV/YUVK/N-channel contract.");
         plane.Components = plane.Color == 0 ? 1 : plane.Color == 4 ? 4 : 3;
         if (plane.Color >= 1 && plane.Color <= 3) {
             bits.Read(1); plane.CenterX = (int)bits.Read(3);
@@ -100,6 +103,14 @@ internal static partial class OfficeJpegXrDecoder {
             // Reserved or unspecified positions use the default interpolation grid.
             if (plane.CenterX > 4) plane.CenterX = 0;
             if (plane.CenterY > 4) plane.CenterY = 0;
+        }
+        if (plane.Color == 6) {
+            int count = (int)bits.Read(4);
+            if (count == 15) count = 15 + (int)bits.Read(12);
+            else bits.Read(4);
+            plane.Components = count + 1;
+            if (plane.Components < 3 || plane.Components > 8)
+                throw new FormatException("JPEG-XR N-channel plane requires three to eight components.");
         }
         if (bitDepth == 2 || bitDepth == 3 || bitDepth == 6) plane.ShiftBits = (int)bits.Read(8);
         if (bitDepth == 7) {

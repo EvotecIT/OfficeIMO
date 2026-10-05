@@ -205,12 +205,12 @@ if (profile?.HasOutputTransform == true &&
 ```
 
 The managed contract accepts bounded RGB and Gray matrix/TRC input-device and display-device profiles
-plus RGB or CMYK LUT8 input transforms with a Lab profile connection space and RGB or CMYK LUT16
-input transforms with an XYZ or Lab profile connection space. For LUT and ICC v4 `mAB` profiles,
+plus RGB, CMYK, or three-to-eight-channel (`3CLR`–`8CLR`) LUT8 input transforms with a Lab profile
+connection space and LUT16 input transforms with an XYZ or Lab profile connection space. For LUT and ICC v4 `mAB` profiles,
 conversion selects `A2B1` for relative or absolute colorimetric intent and `A2B2` for saturation intent,
 falling back to `A2B0` when the intent-specific transform is absent. It also accepts bounded ICC v4
-RGB and CMYK A2B `mAB` input transforms and B2A `mBA` output transforms using the
-specification-defined curve, variable-grid CLUT, matrix, and offset combinations. Output conversion is
+RGB, CMYK, and `3CLR`–`8CLR` A2B `mAB` input transforms, plus RGB/CMYK B2A `mBA` output transforms using the
+specification-defined curve, variable-grid CLUT, matrix, and offset combinations. Multichannel profiles support input conversion only. Output conversion is
 available through a valid `B2A0` transform or
 the synthesized inverse of a supported RGB matrix/TRC profile; optional intent-specific tags fall back
 to `B2A0` when that transform is present. `TryCreate` returns `false` for unsupported
@@ -226,7 +226,7 @@ that require color-managed pixels must perform that conversion explicitly before
 image. The profile APIs above provide bounded color conversion; metadata validation alone does not
 mean a raster image has been converted to sRGB.
 
-For already unpacked, tightly packed 8-bit RGB or CMYK device samples, use the explicit raster
+For already unpacked, tightly packed 8-bit RGB, CMYK, or supported multichannel device samples, use the explicit raster
 converter with the corresponding embedded profile bytes:
 
 ```csharp
@@ -521,7 +521,7 @@ if (OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out var page, out v
 
 Set `FrameLossPolicy` to `RejectMultipleFrames` when a static result must not discard animation frames or document pages. Animated WebP pixel composition remains a caller-codec boundary, but its frame inventory is still available for a fail-closed decision.
 
-The managed JPEG XR decoder accepts single-image tagged `.jxr`, `.wdp`, and `.hdp` containers with unsigned eight-bit gray/RGB/BGR/BGRA, unsigned sixteen-bit gray/RGB/RGBA, and finite sixteen/thirty-two-bit fixed-point or floating-point gray/RGB/RGBA pixels. It handles 4:4:4, 4:2:2, and 4:2:0 chroma with defined sampling-grid centering, spatial and frequency packet order, lossless and lossy quantization, all three overlap modes, hard and soft tiles, omitted high-frequency bands, trimmed flexbits, and interleaved or separate alpha. Premultiplied alpha becomes straight RGBA at source precision before samples are rounded to the public eight-bit buffer. Fixed-point and floating-point samples default to linear scRGB and use the shared sRGB conversion; out-of-range colors are clipped to the SDR output gamut. The container orientation is applied. Encoded bytes, padded coefficient/sample buffers, output, retained caller data, and cancellation share the Core resource limits. Embedded ICC data is available to the color-management layer; ordinary unsigned raster decoding returns device channel values. The color-management layer also decodes unsigned eight/sixteen-bit CMYK and CMYKDirect with a supplied four-component ICC profile, preserving source precision and alpha. Unprofiled CMYK does not produce approximate RGB pixels. Non-finite samples, N-channel planes, mixed interleaved alpha subbands, and multiple image directories are outside this decoder contract.
+The managed JPEG XR decoder accepts single-image tagged `.jxr`, `.wdp`, and `.hdp` containers with unsigned eight-bit gray/RGB/BGR/BGRA, unsigned sixteen-bit gray/RGB/RGBA, and finite sixteen/thirty-two-bit fixed-point or floating-point gray/RGB/RGBA pixels. It handles 4:4:4, 4:2:2, and 4:2:0 chroma with defined sampling-grid centering, spatial and frequency packet order, lossless and lossy quantization, all three overlap modes, hard and soft tiles, omitted high-frequency bands, trimmed flexbits, and interleaved or separate alpha. Premultiplied alpha becomes straight RGBA at source precision before samples are rounded to the public eight-bit buffer. Fixed-point and floating-point samples default to linear scRGB and use the shared sRGB conversion; out-of-range colors are clipped to the SDR output gamut. The container orientation is applied. Encoded bytes, padded coefficient/sample buffers, output, retained caller data, and cancellation share the Core resource limits. Embedded ICC data is available to the color-management layer; ordinary unsigned raster decoding returns device channel values. The color-management layer also decodes unsigned eight/sixteen-bit CMYK and CMYKDirect with a supplied four-component ICC profile, preserving source precision and alpha. Unprofiled CMYK does not produce approximate RGB pixels. Three-to-eight-channel unsigned eight/sixteen-bit images also require a matching ICC profile. Non-finite samples, mixed interleaved alpha subbands, and multiple image directories are outside this decoder contract.
 
 
 ### Optimize encoded images for a placement

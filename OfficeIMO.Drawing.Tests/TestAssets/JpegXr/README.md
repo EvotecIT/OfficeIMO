@@ -77,3 +77,15 @@ format, and separate-alpha byte counts include the complete alpha stream. Neithe
 correction changes pixel packets. Corrected files are decoded again by the reference
 program; its planar CMYKDirect output is interleaved for `.cmyk` storage. Fixture
 hashes and producer details are recorded in `provenance.json`.
+
+`nchannel-manifest.csv` covers three through eight unsigned 8/16-bit color
+channels. The `.nchannel` files contain interleaved source channels and optional
+alpha, with sixteen-bit samples stored little-endian. All 422,730 samples in 60
+fixtures match the ITU reference decoder. Of these, 48 are direct encodings and
+12 are containers assembled from independently encoded primary and grayscale
+alpha streams because the reference encoder asserts for separate N-channel
+alpha. The reference decoder reads each assembled container again. No encoded
+pixel packets are changed. Tests exercise matching profiles, rejected mismatches,
+resource limits, both XPS dialects, SVG pixels, and PDF-reader alpha. Microsoft
+comparison decoding differs on interleaved alpha and one eight-channel frequency
+case; these fixtures do not establish complete native interoperability.

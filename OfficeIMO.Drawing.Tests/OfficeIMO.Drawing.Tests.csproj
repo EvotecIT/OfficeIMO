@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv;TestAssets\JpegXr\*.cmyk;TestAssets\JpegXr\cmyk-manifest.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv;TestAssets\JpegXr\*.cmyk;TestAssets\JpegXr\cmyk-manifest.csv;TestAssets\JpegXr\*.nchannel;TestAssets\JpegXr\nchannel-manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\TiffUnsigned16\*.tif;TestAssets\TiffUnsigned16\*.rgba;TestAssets\TiffUnsigned16\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
@@ -57,7 +57,7 @@
     <None Include="TestAssets\RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\IccColorCorpus\*.icc" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="TestAssets\IccColorCorpus\reference-srgb.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\IccColorCorpus\reference-srgb.csv;TestAssets\IccColorCorpus\reference-nchannel.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ContentSafety\svg-concealed-adversarial.svg" Link="TestAssets\svg-concealed-adversarial.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

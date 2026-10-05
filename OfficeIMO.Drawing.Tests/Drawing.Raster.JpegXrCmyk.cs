@@ -18,7 +18,7 @@ public class DrawingRasterJpegXrCmykTests {
             Assert.Equal(int.Parse(fields[1]), metadata.Width); Assert.Equal(int.Parse(fields[2]), metadata.Height);
             Assert.False(OfficeRasterImageDecoder.TryDecode(encoded, out _));
             Assert.True(OfficeIccRasterConverter.TryDecodeToSrgb(encoded, profile!, new OfficeRasterDecodeOptions(), out var image), fields[0]);
-            byte[] expected = JpegXrTestFixture.ConvertCmykReference(
+            byte[] expected = JpegXrTestFixture.ConvertDeviceReference(
                 File.ReadAllBytes(Path.Combine(Corpus, Path.ChangeExtension(fields[0], ".cmyk"))), int.Parse(fields[3]), int.Parse(fields[4]), profile!);
             Assert.Equal(expected, image!.GetPixels());
         }

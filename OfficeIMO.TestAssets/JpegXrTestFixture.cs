@@ -29,19 +29,20 @@ internal static class JpegXrTestFixture {
         return output;
     }
 
-    internal static byte[] ConvertCmykReference(byte[] samples, int depth, int components, OfficeIMO.Drawing.OfficeIccColorProfile profile) {
+    internal static byte[] ConvertDeviceReference(byte[] samples, int depth, int components, OfficeIMO.Drawing.OfficeIccColorProfile profile) {
         int size = depth / 8, pixels = samples.Length / (components * size);
         var output = new byte[pixels * 4];
-        var channels = new double[4];
+        int colorComponents = profile.ComponentCount;
+        var channels = new double[colorComponents];
         int maximum = depth == 8 ? 255 : 65535;
         for (int pixel = 0; pixel < pixels; pixel++) {
             int start = pixel * components * size;
-            for (int c = 0; c < 4; c++)
+            for (int c = 0; c < colorComponents; c++)
                 channels[c] = (depth == 8 ? samples[start + c] : Read16(samples, start + c * 2)) / (double)maximum;
             if (!profile.TryConvert(channels, OfficeIMO.Drawing.OfficeIccRenderingIntent.RelativeColorimetric, out var color))
-                throw new InvalidOperationException("Reference CMYK profile could not convert the sample.");
+                throw new InvalidOperationException("Reference device profile could not convert the sample.");
             output[pixel * 4] = color.R; output[pixel * 4 + 1] = color.G; output[pixel * 4 + 2] = color.B;
-            int alpha = components == 4 ? maximum : depth == 8 ? samples[start + 4] : Read16(samples, start + 8);
+            int alpha = components == colorComponents ? maximum : depth == 8 ? samples[start + colorComponents] : Read16(samples, start + colorComponents * 2);
             output[pixel * 4 + 3] = (byte)(((long)alpha * 255 + maximum / 2) / maximum);
         }
         return output;

@@ -15,10 +15,14 @@ internal static partial class OfficeJpegXrDecoder {
         internal bool Premultiplied => PixelFormat == 0x10 || PixelFormat == 0x17 || PixelFormat == 0x1A;
         internal bool CmykDirect => PixelFormat is 0x54 or 0x55 or 0x56 or 0x43;
         internal bool Cmyk => CmykDirect || PixelFormat is 0x1C or 0x1F or 0x2C or 0x2D;
-        internal int ColorComponents => Cmyk ? 4 : Gray ? 1 : 3;
+        internal bool Multichannel => PixelFormat is >= 0x20 and <= 0x2B or >= 0x2E and <= 0x39;
+        internal int ColorComponents => Multichannel ? 3 + (PixelFormat < 0x2E ? PixelFormat - 0x20 : PixelFormat - 0x2E) % 6
+            : Cmyk ? 4 : Gray ? 1 : 3;
         internal bool Gray => PixelFormat == 0x08 || PixelFormat == 0x0B || PixelFormat == 0x13 ||
             PixelFormat == 0x3E || PixelFormat == 0x3F || PixelFormat == 0x11;
         internal int BitDepth => PixelFormat switch {
+            >= 0x20 and <= 0x25 or >= 0x2E and <= 0x33 => 1,
+            >= 0x26 and <= 0x2B or >= 0x34 and <= 0x39 => 2,
             0x08 or 0x0C or 0x0D or 0x0F or 0x10 or 0x1C or 0x2C or 0x54 or 0x56 => 1,
             0x0B or 0x15 or 0x16 or 0x17 or 0x1F or 0x2D or 0x55 or 0x43 => 2,
             0x13 or 0x12 or 0x40 or 0x1D => 3,
@@ -27,7 +31,7 @@ internal static partial class OfficeJpegXrDecoder {
             0x11 or 0x1B or 0x19 or 0x1A => 7,
             _ => 0
         };
-        internal bool HasAlpha => PixelFormat is 0x2C or 0x2D or 0x56 or 0x43 || PixelFormat == 0x0F || PixelFormat == 0x10 || PixelFormat == 0x16 || PixelFormat == 0x17 ||
+        internal bool HasAlpha => PixelFormat is >= 0x2E and <= 0x39 || PixelFormat is 0x2C or 0x2D or 0x56 or 0x43 || PixelFormat == 0x0F || PixelFormat == 0x10 || PixelFormat == 0x16 || PixelFormat == 0x17 ||
             PixelFormat == 0x1D || PixelFormat == 0x3A || PixelFormat == 0x1E || PixelFormat == 0x19 || PixelFormat == 0x1A;
         internal FrameHeader Frame = new();
         internal FrameHeader? SeparateAlpha;
@@ -105,7 +109,8 @@ internal static partial class OfficeJpegXrDecoder {
         if (container.ImageLength == 0) container.ImageLength = bytes.Length - container.ImageOffset;
         ValidateCodestreamRange(bytes, container.ImageOffset, container.ImageLength);
         container.Frame = ReadHeader(bytes, container.ImageOffset, container.ImageLength, cancellation);
-        if ((container.CmykDirect ? 5 : container.Cmyk ? 4 : container.Gray ? 0 : 7) != container.Frame.OutputColor || container.BitDepth != container.Frame.BitDepth)
+        if ((container.Multichannel ? 6 : container.CmykDirect ? 5 : container.Cmyk ? 4 : container.Gray ? 0 : 7) != container.Frame.OutputColor || container.BitDepth != container.Frame.BitDepth ||
+            container.Multichannel && container.ColorComponents != container.Frame.Primary.Components)
             throw new FormatException("JPEG-XR pixel format and codestream color/alpha semantics disagree.");
         if (container.Frame.Width != container.Width || container.Frame.Height != container.Height ||
             container.Frame.Alpha && !container.HasAlpha || !alphaOffset && container.HasAlpha != container.Frame.Alpha)

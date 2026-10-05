@@ -3,6 +3,7 @@ namespace OfficeIMO.Drawing;
 internal sealed class OfficeImageMetadataSnapshot {
     internal OfficeImageMetadataKinds Kinds { get; set; }
     internal bool HasColorRenderingMetadata { get; set; }
+    internal bool HasDeviceMultichannel { get; set; }
     internal bool HasDeviceCmyk { get; set; }
     internal bool HasOtherPngColorRenderingMetadata { get; set; }
     internal bool HasNonSrgbPngCalibration { get; set; }
