@@ -44,4 +44,5 @@
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffPacked/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffPacked/manifest.csv" Link="Fixtures/TiffPacked/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFax/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFax/manifest.csv" Link="Fixtures/TiffFax/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpeg/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpeg/manifest.csv" Link="Fixtures/TiffJpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegPlanar/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegPlanar/manifest.csv" Link="Fixtures/TiffJpegPlanar/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

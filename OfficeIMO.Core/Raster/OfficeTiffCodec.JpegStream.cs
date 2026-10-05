@@ -28,7 +28,8 @@ public static partial class OfficeTiffCodec {
             int length = (data[offset] << 8) | data[offset + 1];
             if (length < 2 || length > data.Length - offset) return false;
             int start = offset + 2, end = offset + length;
-            if (marker >= 224 && marker <= 239) data[markerOffset] = 254; // COM is ignored by the JPEG owner.
+            if (tablesOnly && (marker == 204 || marker == 221)) data[markerOffset] = 254; // SOI resets DAC/DRI before each image.
+            else if (marker >= 224 && marker <= 239) data[markerOffset] = 254; // COM is ignored by the JPEG owner.
             else if (marker == 219 || marker == 196) {
                 int p = start;
                 while (p < end) {

@@ -56,10 +56,9 @@ including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
 above the page height, including 0xFFFFFFFF, describe a single strip. Optional uncompressed fax
 extension mode is rejected. Baseline eight-bit JPEG (compression 7) accepts shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
-planes, and chunky centered YCbCr. TIFF tags control color interpretation and
+planes, and chunky or separate centered YCbCr. TIFF tags control color interpretation and
 component order; JPEG application markers cannot override them. Legacy compression
-6, non-baseline JPEG processes, JPEG extra channels, separate YCbCr planes and
-cosited chroma remain unsupported. Mixed component widths, reversed
+6, non-baseline JPEG processes, JPEG extra channels and cosited chroma remain unsupported. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -86,6 +85,16 @@ probes per route; MuPDF SVG/PDF output differs from managed rendering by at most
 2/255. CMYK XPS resources use an explicit ICC profile. GhostXPS exits successfully
 but differs by up to 255 and leaves some planar/tiled cases blank. Those consumer
 differences and native Windows qualification remain open.
+
+Separate-plane YCbCr qualification adds 48 independently encoded and decoded
+LibTIFF fixtures with 1/1, 2/1, 2/2, 4/1, 4/2 and 4/4 chroma sampling. Reduced JPEG
+frame dimensions, odd image edges, byte order, strips/tiles and shared/local tables
+are covered. All 112,560 Core pixel comparisons agree within 3/255 with independent
+plane decoding and Pillow reconstruction. Both dialects produce 96 documents and
+225,120 pixel-center probes per route; MuPDF SVG/PDF output differs from managed
+rendering by at most 2/255. GhostXPS still differs by up to 255, including blank
+planar/tiled output. Native Windows acceptance remains unqualified. Shared JPEG
+tables ignore DAC/DRI control markers without carrying their state into segments.
 
 Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
 fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,
