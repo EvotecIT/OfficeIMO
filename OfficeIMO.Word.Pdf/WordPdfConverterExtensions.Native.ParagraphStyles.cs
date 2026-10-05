@@ -306,6 +306,8 @@ namespace OfficeIMO.Word.Pdf {
                 PaddingX = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingX(borders, 0D),
                 PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 0D),
                 RepeatFragmentDecoration = !hasParagraphBorder,
+                FragmentBottomInset = hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
+                    ? ResolveNativeParagraphPanelPaddingY(borders, 0D) : 0D,
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
                 KeepWithNext = paragraphStyle.KeepWithNext,
