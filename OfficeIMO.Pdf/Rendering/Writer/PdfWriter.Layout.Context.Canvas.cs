@@ -250,7 +250,7 @@ internal static partial class PdfWriter {
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, textHeight)
+                .Font(fontResource, textHeight, preserveLogicalPrecision: item.UsesBounds)
                 .WordSpacing(0D).TextRise(0D)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)

@@ -695,6 +695,160 @@
       "qualified": false,
       "initialState": "queued"
     },
-    "historicalCorePackageNote": "Older 966539fd4 package source retained; later raster changes are qualified in the fresh e377c6ad6 Core package, not asserted byte-identical to that older package."
+    "historicalCorePackageNote": "Older 966539fd4 package source retained; later raster changes are qualified in the fresh e377c6ad6 Core package, not asserted byte-identical to that older package.",
+    "latestCombinedValidation": {
+      "recordedAtUtc": "2026-10-05T13:09:31.344398+00:00",
+      "cleanReplaySourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
+      "mathMetadataAndPlacementSourceBlobs": [
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMath.cs",
+          "originalBlob": "77b81c01c04fc6625b1c4239cc69e3c1124b404d",
+          "currentBlob": "77b81c01c04fc6625b1c4239cc69e3c1124b404d",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathConstant.cs",
+          "originalBlob": "5877d071ea5177721057fb132414f2993d6abbfd",
+          "currentBlob": "5877d071ea5177721057fb132414f2993d6abbfd",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathExpression.cs",
+          "originalBlob": "e33051ea25c8570bdb94aed22dce79db8f45d2b0",
+          "currentBlob": "e33051ea25c8570bdb94aed22dce79db8f45d2b0",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathFontConstants.cs",
+          "originalBlob": "984e251dab78a3831eb120850f775b71c06ca5d1",
+          "currentBlob": "984e251dab78a3831eb120850f775b71c06ca5d1",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathGlyphData.cs",
+          "originalBlob": "4b715f29a115b4e0b0a8beb1958c54d490ed23b8",
+          "currentBlob": "4b715f29a115b4e0b0a8beb1958c54d490ed23b8",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathMarkup.MathMlParser.cs",
+          "originalBlob": "61c95bba65fde9ba93dc88e449295feee0d79a7a",
+          "currentBlob": "61c95bba65fde9ba93dc88e449295feee0d79a7a",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathMarkup.cs",
+          "originalBlob": "99352b7d1005e5b1812547fa496c2d22f93123bf",
+          "currentBlob": "99352b7d1005e5b1812547fa496c2d22f93123bf",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathParseException.cs",
+          "originalBlob": "41f5454de64391995113ac59b90a4c1ab3ef31bf",
+          "currentBlob": "41f5454de64391995113ac59b90a4c1ab3ef31bf",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderOptions.cs",
+          "originalBlob": "c92af110d4f12548290007357b9a855ad3df8296",
+          "currentBlob": "c92af110d4f12548290007357b9a855ad3df8296",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderer.FontMetrics.cs",
+          "originalBlob": "44a8d36c7faa2500edfff0fa3c7edda8e2bd13af",
+          "currentBlob": "0bbad2f87fe4c62fc0a2cf4fab8bac9ab24418b8",
+          "unchanged": false,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderer.GlyphConstruction.cs",
+          "originalBlob": "48894e5a3c872d6d63996feee5986792b39ea934",
+          "currentBlob": "e2502f47c8075be45c5ea848161bb65e928010e2",
+          "unchanged": false,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderer.GlyphPlacement.cs",
+          "originalBlob": "f9aff9ac6d51d1c73f0f0564f64d26c4829a03af",
+          "currentBlob": "f9aff9ac6d51d1c73f0f0564f64d26c4829a03af",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderer.MathConstants.cs",
+          "originalBlob": "3c9e9cc6be50952bfa5e0063d95ab75d9b139f3a",
+          "currentBlob": "3c9e9cc6be50952bfa5e0063d95ab75d9b139f3a",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderer.StretchGeometry.cs",
+          "originalBlob": "d73f434f5cfe65d4305d7b3e4242e60dfa777226",
+          "currentBlob": "d73f434f5cfe65d4305d7b3e4242e60dfa777226",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/Math/OfficeMathRenderer.cs",
+          "originalBlob": "daacbdd9d56a348d27d4f831f1c0768ae9a7c3c1",
+          "currentBlob": "b658cd5266d761452798a81c0e8305c510f90943",
+          "unchanged": false,
+          "matchesPriorAuditedSource": true
+        },
+        {
+          "path": "OfficeIMO.Core/OfficeMathTextTransform.cs",
+          "originalBlob": "8c8a4ced1a1ae04345a0a16cea7d981c4ddc4883",
+          "currentBlob": "8c8a4ced1a1ae04345a0a16cea7d981c4ddc4883",
+          "unchanged": true,
+          "matchesPriorAuditedSource": null
+        },
+        {
+          "path": "OfficeIMO.Core/OfficeOpenTypeMathConstants.cs",
+          "originalBlob": "cc3f99d4950588b6667dd9d745575a3b9013d1dc",
+          "currentBlob": "cc3f99d4950588b6667dd9d745575a3b9013d1dc",
+          "unchanged": true,
+          "matchesPriorAuditedSource": null
+        },
+        {
+          "path": "OfficeIMO.Core/OfficeOpenTypeMathGlyphs.cs",
+          "originalBlob": "167a79f8aa784fe74c2d307a209c46cbcf75f102",
+          "currentBlob": "167a79f8aa784fe74c2d307a209c46cbcf75f102",
+          "unchanged": true,
+          "matchesPriorAuditedSource": true
+        }
+      ],
+      "allComparedMathOwnerBlobsUnchanged": false,
+      "qualifiedHtmlFullTestsEachFramework": 4367,
+      "independentStaticCases": 18,
+      "all36PdfSemanticsPreserved": true,
+      "all18SourceVisibleCharacterMultisetsPreserved": true,
+      "H4AcceptanceCasesPassed": 8,
+      "all106RealPagePaintPairsPixelIdentical": true,
+      "externalLogicalCarrierReview": "Affine full+targeted; shared numeric writer full+targeted, all reproduced findings addressed. Current additional OCR sibling source validated separately.",
+      "remaining": [
+        "Current normal nineteen-package and public consumer proof",
+        "Current unchanged supported-platform budgets/packages",
+        "Qualified synchronized long-lived branch adoption"
+      ],
+      "proofOwner": "secondary-paint-text-20261005.json",
+      "changedSinceOriginalFiles": [
+        "OfficeIMO.Core/Math/OfficeMathRenderer.FontMetrics.cs",
+        "OfficeIMO.Core/Math/OfficeMathRenderer.GlyphConstruction.cs",
+        "OfficeIMO.Core/Math/OfficeMathRenderer.cs"
+      ],
+      "matchesPriorAuditedMathSources": false,
+      "matchesPriorAuditedMathSourcesOrUnchangedOriginal": true,
+      "combinedFinalPdfPassesEachFramework": 8788
+    }
   }
 }

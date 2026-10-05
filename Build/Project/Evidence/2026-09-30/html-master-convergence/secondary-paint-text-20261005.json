@@ -548,8 +548,8 @@
     },
     "retainedArtifactRoot": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91",
     "remaining": [
-      "Final full framework suites, clean-source API/Tool/corpus replay",
-      "Current packages and unchanged supported-platform budgets",
+      "Current normal packed consumers",
+      "Current unchanged supported-platform budgets/packages",
       "External font-envelope/selection and manual accessibility acceptance",
       "Qualified long-lived branch convergence"
     ],
@@ -603,8 +603,100 @@
       "publicMasterExtractionBase": "a2e840590f0e90e509a0e204756799a9a3bc964a",
       "directRegressionsUnpatchedMasterFailed": 2,
       "mainFocusedPdfPassed": 16,
-      "separateOwnerReview": "logical_anchor_precision_review pending on standalone equivalent candidate; final review disposition not yet established",
-      "formatter": "Existing six-decimal matrix numeric formatter only for bounded invisible logical anchor font size; ordinary painted fonts retain their formatter."
+      "separateOwnerReview": "Full logical_anchor_precision_review plus one targeted OCR confirmation completed; pre-existing searchable OCR sibling rounding error reproduced twice and fixed, no remaining findings.",
+      "formatter": "Existing six-decimal matrix numeric formatter only for bounded invisible logical anchor font size; ordinary painted fonts retain their formatter.",
+      "publicExtractionSource": "2cf8efe86c (exact normal-package receipt pending)",
+      "focusedPasses": 135,
+      "combinedFinalPdfFrameworkResults": {
+        "net8.0": {
+          "counters": {
+            "total": "8788",
+            "executed": "8788",
+            "passed": "8788",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "path": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/main-final-pdf-net8.0.trx",
+          "sha256": "5a3c165bbe29448c14905e37b086478255b17512ff33a4c18ce978db75435ff1"
+        },
+        "net10.0": {
+          "counters": {
+            "total": "8788",
+            "executed": "8788",
+            "passed": "8788",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "path": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/main-final-pdf-net10.0.trx",
+          "sha256": "78f14003884601d94c977295f3bb4dafd2f200fca74d13806c04a5984aa15dd6"
+        }
+      },
+      "ocrSibling": "Public MakeSearchableAsync regression fails2 before fix,135 focused pass after;6 total new standard/embedded/OCR theory cases."
+    },
+    "cleanReplay": {
+      "sourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
+      "actualApiToolRoutes": 9,
+      "additionalReferenceZeroMargin": true,
+      "all106PagesPixelIdenticalToAccepted83e": true,
+      "pageCountsImagePayloadsLinksReportsPreserved": true,
+      "finiteCoordinateLogicalExtractionChangesClassified": true,
+      "observations": "Ignore/MasterConvergenceQualification/relative-corpus-observations-b40f035ec.json"
+    },
+    "staticCorpus": {
+      "sourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
+      "h4AcceptancePassed": 8,
+      "staticCases": 18,
+      "staticRunnerFailures": 0,
+      "independentPdfSemanticChecks": 36,
+      "allPdfCountsTokenMultisetsFormulaAttachmentsUriLinksPreserved": true,
+      "all18SourceVisibleCharacterMultisetsPreserved": true,
+      "globalColumnNoteOrder": "Intentionally not a global sequence; notes follow their originating column. Original observation retained.",
+      "combinedBaseline": "08277c5d42ade8a5f5dd9229d818a3f3564a59e9",
+      "byteIdenticalArtifacts": 111,
+      "totalArtifacts": 150,
+      "changedPngFiles": 33,
+      "pixelIdenticalChangedPngFiles": 30,
+      "other3Pngs": "Only53white-pixel right tail removed; common viewport pixels exactly identical. One paired contact sheet inspected.",
+      "originalStaticSetupFailure": "--verify-acceptance was invalid for static-gaps because it has no acceptance manifest; failure log retained. Corrected clean-source execution succeeds without that switch."
     }
+  },
+  "latestStandaloneMerge": {
+    "number": 2817,
+    "mergeCommit": "58adc12b7b982fae32f044534741c2b35a64533c",
+    "mergedAtUtc": "2026-10-05T13:05:26Z",
+    "exactHead": "18d43803188d0621e462f65fdf388d0a860a2bde",
+    "currentHeadChecks": {
+      "success": 99,
+      "skipped": 6,
+      "failed": 0
+    },
+    "completeDelayedFeedbackClean": true,
+    "unresolvedThreads": 0,
+    "worktreeAndBranchRemoved": true,
+    "preservedProof": "Ignore/MasterConvergenceQualification/merged-transformed-paint-58adc12b7",
+    "preservedBytes": 27867741,
+    "originalWindowsTimeout": "Cancelled job had no TRX; one terminal diagnosed job rerun passed. No root cause or code fix claimed."
   }
 }
