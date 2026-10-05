@@ -129,6 +129,7 @@ public sealed partial class OfficeAiEngine {
             || synthesisStatus == OfficeAiSynthesisStatus.Incomplete;
         if (incomplete) mergedFields = Array.AsReadOnly(mergedFields.Select(field => field.Status == OfficeAiFieldStatus.Missing
             ? field with { Status = OfficeAiFieldStatus.NotEvaluated } : field).ToArray());
+        if (mergedFields.Any(field => field.RecognitionReviewRequired)) diagnostics.Add("field-recognition-review-required");
         bool normalizationFailed = fields.Any(field => field.Status == OfficeAiFieldStatus.Invalid);
         if (normalizationFailed) diagnostics.Add("field-normalization-failed");
         bool useful = claims.Count > 0 || blocks.Count > 0 || tables.Count > 0 || mergedFields.Any(field => field.Status is not (OfficeAiFieldStatus.Missing or OfficeAiFieldStatus.NotEvaluated));

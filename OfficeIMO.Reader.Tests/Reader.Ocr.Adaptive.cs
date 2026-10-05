@@ -28,9 +28,47 @@ public sealed class AdaptiveOcrTests {
         });
         AdaptiveOcrResult result = await engine.RecognizeWithReviewAsync(Request());
         Assert.Single(result.Attempts);
-        Assert.False(result.ReviewRecommended);
-        Assert.Equal("adaptive-ocr-thresholds-met", result.Result.Diagnostics[0].Code);
+        Assert.True(result.ReviewRecommended);
+        Assert.Equal(OcrReviewStatus.Unassessed, result.Review.Status);
+        Assert.Equal("adaptive-ocr-unassessed", result.Result.Diagnostics[0].Code);
         Assert.Contains("does not establish", result.Result.Diagnostics[0].Message);
+    }
+
+    [Theory]
+    [InlineData("Total 42", OcrReviewStatus.ChecksPassed)]
+    [InlineData("Total 99", OcrReviewStatus.ReviewRecommended)]
+    public async Task ComparisonChecksPassingVariantsAndPreservesEvidenceThroughRunner(string alternate, OcrReviewStatus expected) {
+        var engine = new AdaptiveOcrEngine("adaptive", new[] {
+            Attempt("baseline", () => Words("Total 42", .99, .99)),
+            Attempt("alternate", () => Words(alternate, .99, .99)),
+            Attempt("third", () => Words("Total 42", .99, .99))
+        }, new OcrReviewPolicy(OcrRetryMode.CompareAll));
+        OcrResult result = await OcrEngineRunner.RecognizeAsync(engine, Request(), TimeSpan.FromSeconds(10));
+        Assert.NotNull(result.Review);
+        Assert.Equal(3, result.Review!.CompletedAttempts);
+        Assert.Equal(expected, result.Review.Status);
+        Assert.Equal("Total 42", result.Text);
+    }
+
+    [Theory]
+    [InlineData(1, 10)]
+    [InlineData(10, 0)]
+    public async Task ComparisonFailureAndRetentionLossCannotReportChecksPassed(int maximumSpans, int maximumAttributes) {
+        var engine = new AdaptiveOcrEngine("adaptive", new[] {
+            Attempt("baseline", () => Words("Total 42", .99, .99)),
+            Attempt("alternate", () => throw new InvalidOperationException("private failure"))
+        }, new OcrReviewPolicy(OcrRetryMode.CompareAll));
+        AdaptiveOcrResult result = await engine.RecognizeWithReviewAsync(Request());
+        Assert.Equal(OcrReviewStatus.ReviewRecommended, result.Review.Status);
+        Assert.True(result.RetryIncomplete);
+        var agreeing = new AdaptiveOcrEngine("agreeing", new[] {
+            Attempt("baseline", () => Words("Total 42", .99, .99)),
+            Attempt("alternate", () => Words("Total 42", .99, .99))
+        }, new OcrReviewPolicy(OcrRetryMode.CompareAll));
+        var execution = OcrEngineRunner.CreateExecution(agreeing);
+        var limited = await execution.RecognizeAsync(Request(), TimeSpan.FromSeconds(10), new OcrResultCaptureLimits(maximumSpans, 10, maximumAttributes), CancellationToken.None);
+        Assert.Equal(OcrReviewStatus.ReviewRecommended, limited.Review!.Status);
+        Assert.True(limited.Review.ComparisonIncomplete);
     }
 
     [Fact]

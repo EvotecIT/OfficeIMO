@@ -14,7 +14,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             string id = ProjectId(documentId, block.Id);
             blocks.Add(new OfficeDocumentBlock {
                 Id = id, Kind = block.Kind, Text = block.Text, Level = block.Level, Marker = block.Marker,
-                Region = block.Region, Location = ProjectLocation(block.Location, before.Source?.Path, originalVirtualPath, documentPath, ProjectId(documentId, block.Location.BlockAnchor ?? block.Id))
+                Recognition = block.Recognition, Region = block.Region, Location = ProjectLocation(block.Location, before.Source?.Path, originalVirtualPath, documentPath, ProjectId(documentId, block.Location.BlockAnchor ?? block.Id))
             });
         }
         foreach (ReaderChunk chunk in after.Chunks.Skip(before.Chunks?.Count ?? 0)) {

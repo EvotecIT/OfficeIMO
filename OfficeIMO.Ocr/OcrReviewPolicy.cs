@@ -8,7 +8,14 @@ namespace OfficeIMO.Ocr;
 public sealed class OcrReviewPolicy {
     /// <summary>Creates a policy. Unknown word confidence always counts as uncertain.</summary>
     public OcrReviewPolicy(double minimumWordConfidence = 0.8, double maximumUncertainWordFraction = 0.1,
-        int minimumWordCount = 1, double minimumRetainedWordRatio = 0.9) {
+        int minimumWordCount = 1, double minimumRetainedWordRatio = 0.9)
+        : this(OcrRetryMode.WhenUncertain, minimumWordConfidence, maximumUncertainWordFraction, minimumWordCount, minimumRetainedWordRatio) { }
+
+    /// <summary>Creates a policy with an explicit bounded recognition comparison strategy.</summary>
+    public OcrReviewPolicy(OcrRetryMode retryMode, double minimumWordConfidence = 0.8,
+        double maximumUncertainWordFraction = 0.1, int minimumWordCount = 1, double minimumRetainedWordRatio = 0.9) {
+        if (!Enum.IsDefined(typeof(OcrRetryMode), retryMode)) throw new ArgumentOutOfRangeException(nameof(retryMode));
+        RetryMode = retryMode;
         ValidateUnit(minimumWordConfidence, nameof(minimumWordConfidence));
         ValidateUnit(maximumUncertainWordFraction, nameof(maximumUncertainWordFraction));
         ValidateUnit(minimumRetainedWordRatio, nameof(minimumRetainedWordRatio));
@@ -18,6 +25,9 @@ public sealed class OcrReviewPolicy {
         MinimumWordCount = minimumWordCount;
         MinimumRetainedWordRatio = minimumRetainedWordRatio;
     }
+
+    /// <summary>Whether to stop after passing confidence checks or compare all configured variants.</summary>
+    public OcrRetryMode RetryMode { get; }
 
     /// <summary>Minimum normalized word score. Equality passes.</summary>
     public double MinimumWordConfidence { get; }
@@ -43,7 +53,7 @@ public sealed class OcrReviewPolicy {
         double fraction = words == 0 ? 1 : (double)(low + unknown) / words;
         bool meets = !string.IsNullOrWhiteSpace(result.Text) && words >= MinimumWordCount &&
             fraction <= MaximumUncertainWordFraction && result.OmittedSpanCount == 0 && !diagnostics;
-        return new OcrQualityAssessment(words, low, unknown, fraction, meets, diagnostics, result.OmittedSpanCount > 0);
+        return new OcrQualityAssessment(words, low, unknown, fraction, meets, diagnostics, result.OmittedSpanCount > 0, MinimumWordConfidence, MaximumUncertainWordFraction);
     }
 
     private static bool ValidUnit(double value) => !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0 && value <= 1;
@@ -54,10 +64,15 @@ public sealed class OcrReviewPolicy {
 
 /// <summary>Word-level uncertainty counts for one owned OCR result.</summary>
 public sealed class OcrQualityAssessment {
-    internal OcrQualityAssessment(int words, int low, int unknown, double fraction, bool meets, bool diagnostics, bool omitted) {
+    internal OcrQualityAssessment(int words, int low, int unknown, double fraction, bool meets, bool diagnostics, bool omitted, double minimumWordConfidence, double maximumUncertainWordFraction) {
+        MinimumWordConfidence = minimumWordConfidence; MaximumUncertainWordFraction = maximumUncertainWordFraction;
         WordCount = words; LowConfidenceWordCount = low; UnknownConfidenceWordCount = unknown;
         UncertainWordFraction = fraction; MeetsThresholds = meets; HasWarningsOrErrors = diagnostics; HasOmittedSpans = omitted;
     }
+    /// <summary>Configured threshold used for these word counts.</summary>
+    public double MinimumWordConfidence { get; }
+    /// <summary>Configured maximum uncertain fraction used for these checks.</summary>
+    public double MaximumUncertainWordFraction { get; }
     /// <summary>Number of nonempty word spans; line/character spans are not counted twice.</summary>
     public int WordCount { get; }
     /// <summary>Words below the configured threshold.</summary>

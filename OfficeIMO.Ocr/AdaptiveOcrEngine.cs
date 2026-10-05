@@ -146,7 +146,7 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
                     selected = candidate; selectedQuality = quality; selectedIndex = summaries.Count - 1;
                 }
             }
-            if (selectedQuality!.MeetsThresholds) break;
+            if (_policy.RetryMode == OcrRetryMode.WhenUncertain && selectedQuality!.MeetsThresholds) break;
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (selected == null || selectedQuality == null) throw new OcrEngineTimeoutException(Id, _timeout, providerCallStarted: false);

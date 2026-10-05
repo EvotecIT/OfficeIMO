@@ -49,7 +49,7 @@ public sealed partial class OfficeAiEngine {
                     maxTableColumns = request.Limits.MaxTableColumns },
                 fields = request.Fields.Select((field, index) => new { key = FieldKey(index), name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
                 evidence = observations.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page,
-                    sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor, sourceLocation = item.SourceLocation }),
+                    recognition = item.Recognition, sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor, sourceLocation = item.SourceLocation }),
                 images = attachments.Select(item => new { id = item.Id, page = item.Page, width = item.Width, height = item.Height })
             });
             return new(requestId + "-" + (batches.Count + 1), Instructions, input, outputSchema,

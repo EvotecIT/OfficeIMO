@@ -37,7 +37,7 @@ public sealed partial class OfficeAiEngine {
                     operation = request.Operation.ToString(), instruction = request.Instruction, conversationContext = request.ConversationContext,
                     maxResultItems = request.Limits.MaxResultItems,
                     drafts = items.Select((claim, index) => new { id = "c" + index, text = claim.Text,
-                        sources = claim.Citations.Select(citation => new { citation.EvidenceId, citation.Page, citation.Quote, citation.QuoteMatched }) })
+                        sources = claim.Citations.Select(citation => new { citation.EvidenceId, citation.Page, citation.Quote, citation.QuoteMatched, citation.Recognition }) })
                 }), outputSchema, Array.Empty<OfficeAiImage>(), request.Limits.MaxResponseCharacters);
             int position = 0;
             while (position < current.Count) {

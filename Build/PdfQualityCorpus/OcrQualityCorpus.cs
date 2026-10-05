@@ -50,7 +50,7 @@ internal static partial class OcrQualityCorpus {
                                     return result;
                                 }, engine.Capabilities)));
                         }
-                        var adaptive = new AdaptiveOcrEngine("tesseract-adaptive", variants, timeout: TimeSpan.FromSeconds(45));
+                        var adaptive = new AdaptiveOcrEngine("tesseract-adaptive", variants, new OcrReviewPolicy(OcrRetryMode.CompareAll), timeout: TimeSpan.FromSeconds(45));
                         AdaptiveOcrResult selected = await adaptive.RecognizeWithReviewAsync(request, deadline.Token);
                         ScanTextAccuracy before = ScanTextAccuracy.Measure(label.Expected, baseline!.Text, deadline.Token);
                         ScanTextAccuracy after = ScanTextAccuracy.Measure(label.Expected, selected.Result.Text, deadline.Token);
@@ -75,7 +75,7 @@ internal static partial class OcrQualityCorpus {
                             BaselineTextSha256 = Hash(System.Text.Encoding.UTF8.GetBytes(ScanTextAccuracy.Normalize(baseline.Text))),
                             SelectedTextSha256 = Hash(System.Text.Encoding.UTF8.GetBytes(ScanTextAccuracy.Normalize(selected.Result.Text))),
                             Baseline = before, Selected = after, GoldLimitsMet = goldMet,
-                            ReviewRecommended = selected.ReviewRecommended, HasDisagreement = selected.HasDisagreement,
+                            ReviewStatus = selected.Review.Status.ToString(), ReviewRecommended = selected.ReviewRecommended, HasDisagreement = selected.HasDisagreement,
                             RetryIncomplete = selected.RetryIncomplete, GeometryWithinRaster = geometry, SourceUnchanged = unchanged,
                             SelectedAttempt = selected.SelectedAttempt, Attempts = selected.Attempts, Thresholds = thresholds,
                             ElapsedMilliseconds = elapsed.Elapsed.TotalMilliseconds,
@@ -100,7 +100,7 @@ internal static partial class OcrQualityCorpus {
                 TrainedDataCatalogRevision = TesseractLanguageData.Version,
                 LanguageModels = models.Files.Select(model => new { model.Language, model.Sha256, model.ByteCount }).ToArray(),
                 Dpi = 300, SegmentationModes = new[] { 3, 6, 11 },
-                Policy = new OcrReviewPolicy(), Repetitions = 2, OperationalQualificationPassed = operational, QualityLimitsMet = qualityMet,
+                Policy = new OcrReviewPolicy(OcrRetryMode.CompareAll), Repetitions = 2, OperationalQualificationPassed = operational, QualityLimitsMet = qualityMet,
                 RepeatedOutputsStable = measurements.GroupBy(item => item.Id).All(group => group.Count() == 2 &&
                     group.All(item => item.Outcome == "completed") && group.Select(item => item.SelectedTextSha256).Distinct().Count() == 1 &&
                     group.Select(item => item.RasterSha256).Distinct().Count() == 1),
@@ -113,6 +113,7 @@ internal static partial class OcrQualityCorpus {
                     Regressed = group.Count(item => item.Selected != null && item.Baseline != null && item.Selected.CharacterErrorRate > item.Baseline.CharacterErrorRate),
                     BaselineCer = AggregateCer(group.Select(item => item.Baseline)), SelectedCer = AggregateCer(group.Select(item => item.Selected))
                 }).ToArray(),
+                ReviewFalsePasses = measurements.Count(item => item.Outcome == "completed" && !item.ReviewRecommended && !item.GoldLimitsMet),
                 ThresholdObservations = measurements.SelectMany(item => item.Thresholds).GroupBy(item => item.MinimumWordConfidence).Select(group => new {
                     MinimumWordConfidence = group.Key, Evaluated = group.Count(), ThresholdPassed = group.Count(item => item.MeetsThresholds),
                     ThresholdPassedWithGoldFailure = group.Count(item => item.MeetsThresholds && !item.GoldLimitsMet),
