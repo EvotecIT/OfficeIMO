@@ -62,6 +62,36 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
+## Paragraph font size and line spacing
+
+Paragraphs can use a fallback font size independently of the document default:
+
+```csharp
+PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 })
+    .Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
+        FontSize = 8,
+        LineSpacing = PdfLineSpacing.Exactly(14),
+        SpacingAfter = 0
+    })
+    .Save("fixed-spacing.pdf");
+```
+
+`PdfLineSpacing.Multiple(1.25)` scales the advance with each line's font size.
+`Exactly(14)` keeps a fourteen-point advance even with larger runs or inline
+elements; their painted content can extend beyond the line box. `AtLeast(20,
+naturalMultiplier: 1.2)` uses twenty points for small text and expands when the
+natural text or inline-element height exceeds that minimum. The rule and value
+are readable from the immutable spacing object.
+
+`LineSpacing` overrides the existing `LineHeight` multiplier. Heading and list
+styles accept the same spacing object. Font size and spacing are snapshotted with
+their style and apply consistently to paragraph measurement, pagination and
+rendering in flow, columns and nested frames.
+
+`PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
+on a blank line can expand proportional or minimum spacing; exact spacing keeps
+its fixed advance.
+
 ## Authoring model
 
 `PdfDocumentBuilder` owns document settings and page boundaries.

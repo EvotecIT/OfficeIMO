@@ -10,6 +10,9 @@ public sealed class PdfHeadingStyle {
     private double? _spacingAfter;
     private string? _fontFamily;
 
+    /// <summary>Explicit line spacing. When set, this overrides <see cref="LineHeight"/>.</summary>
+    public PdfLineSpacing? LineSpacing { get; set; }
+
     /// <summary>Heading font size in points. When null the writer uses the built-in size for the heading level.</summary>
     public double? FontSize {
         get => _fontSize;
@@ -78,6 +81,7 @@ public sealed class PdfHeadingStyle {
         return new PdfHeadingStyle {
             AnchoredCanvas = AnchoredCanvas,
             FontSize = FontSize,
+            LineSpacing = LineSpacing,
             LineHeight = LineHeight,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
@@ -98,7 +102,7 @@ public sealed class PdfHeadingStyle {
     }
 
     internal double GetLeading(double fontSize) {
-        return fontSize * (LineHeight ?? 1.25D);
+        return LineSpacing?.GetAdvance(fontSize) ?? fontSize * (LineHeight ?? 1.25D);
     }
 
     internal double GetSpacingAfter(double leading) {

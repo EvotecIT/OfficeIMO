@@ -101,7 +101,7 @@ internal static partial class PdfWriter {
                 return false;
             }
 
-            double fontSize = currentOpts.DefaultFontSize;
+            double fontSize = sourceStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(sourceStyle, fontSize);
             var textFrame = GetParagraphTextFrame(sourceStyle, currentOpts.MarginLeft, columnWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(
@@ -114,7 +114,7 @@ internal static partial class PdfWriter {
                 textFrame.FirstLineX - textFrame.X,
                 GetParagraphTabStopWidth(sourceStyle),
                 currentOpts,
-                GetParagraphTabStops(sourceStyle));
+                GetParagraphTabStops(sourceStyle), lineSpacing: sourceStyle?.LineSpacing);
             if (wrapped.Lines.Count < 2) {
                 return false;
             }
