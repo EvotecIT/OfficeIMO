@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     /// <summary>
-    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/24/32/64-bit samples, or eight-bit palette TIFF using
+    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/24/32/64-bit samples, or packed 1/4-bit grayscale and 1/4/8-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
     /// Floating samples are normalized device components; JPEG-compressed and BigTIFF payloads remain caller-codec responsibilities.
     /// </summary>
@@ -113,14 +113,14 @@ public static partial class OfficeTiffCodec {
                     return false;
                 }
 
-                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating) ||
-                    !IsSupportedSamplePredictor(predictor, floating, compression)) {
+                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
+                    (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) {
                     return false;
                 }
 
                 int[]? colorMap = null;
                 if (photometric == 3 &&
-                    !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out colorMap)) {
+                    !TryReadValues(encodedBytes, entries, 320, littleEndian, 3 * (1 << (packedBits == 0 ? 8 : packedBits)), out colorMap)) {
                     return false;
                 }
 
@@ -141,7 +141,7 @@ public static partial class OfficeTiffCodec {
                 long maximumDecodeWorkBytes = OfficeRasterGuards.MaximumDecodedBytes - effective.RetainedManagedBytes;
                 if (maximumDecodeWorkBytes < 1L) return false;
                 var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
-                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes,
+                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, packedBits, photometric,
                         compression, planarConfiguration, predictor, floating, alphaKind == 0 ? baseSamples : samples, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;
 

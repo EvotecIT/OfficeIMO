@@ -243,14 +243,14 @@ public static partial class OfficeTiffCodec {
             (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
              orientation < 1 || orientation > 8)) return false;
 
-        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating) ||
-                    !IsSupportedSamplePredictor(predictor, floating, compression)) return false;
+        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
+                    (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) return false;
 
         if (photometric == 5 &&
             (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) || inkSet != 1)) {
             return false;
         }
-        if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out _)) {
+        if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 3 * (1 << (packedBits == 0 ? 8 : packedBits)), out _)) {
             return false;
         }
         int meaningfulSamples = samples;
@@ -260,7 +260,7 @@ public static partial class OfficeTiffCodec {
             if (extraSamples[0] == 0) meaningfulSamples = baseSamples;
         }
 
-        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes,
+        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, packedBits, photometric,
             compression, planarConfiguration, predictor, floating, meaningfulSamples, options, validationBudget,
             retainPixels: false, out _);
     }

@@ -523,8 +523,8 @@ public static partial class OfficeTiffCodec {
             case 3:
                 int paletteIndex = source[offset];
                 red = ColorMapByte(colorMap![paletteIndex]);
-                green = ColorMapByte(colorMap[256 + paletteIndex]);
-                blue = ColorMapByte(colorMap[512 + paletteIndex]);
+                green = ColorMapByte(colorMap[colorMap.Length / 3 + paletteIndex]);
+                blue = ColorMapByte(colorMap[2 * (colorMap.Length / 3) + paletteIndex]);
                 return;
             case 5:
                 int cyan = Component(0);

@@ -12,6 +12,8 @@ public static partial class OfficeTiffCodec {
         int height,
         int samples,
         int sampleBytes,
+        int packedBits,
+        int photometric,
         int compression,
         int planarConfiguration,
         int predictor,
@@ -22,6 +24,8 @@ public static partial class OfficeTiffCodec {
         bool retainPixels,
         out byte[] source) {
         source = Array.Empty<byte>();
+        if (packedBits != 0) return TryDecodePackedSegments(encodedBytes, entries, littleEndian,
+            width, height, packedBits, photometric, compression, options, validationBudget, retainPixels, out source);
         if (planarConfiguration != 1 && planarConfiguration != 2 ||
             (predictor < 1 || predictor > 3) || samples < 1 ||
             (sampleBytes != 1 && sampleBytes != 2 && sampleBytes != 3 && sampleBytes != 4 && sampleBytes != 8)) return false;

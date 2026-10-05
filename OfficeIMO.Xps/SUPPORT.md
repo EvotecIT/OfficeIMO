@@ -45,10 +45,12 @@ override these defaults. The adapter normalizes these resources so subsequent
 SVG/PDF consumers cannot reinterpret the descriptions. TIFF uses the first IFD,
 ignores the display Orientation tag, and ignores an extra sample declared as
 unspecified. The managed TIFF subset accepts unsigned eight/sixteen-bit and finite
-floating sixteen/twenty-four/thirty-two/sixty-four-bit gray/RGB/CMYK components and eight-bit palette indices in either byte order. Chunky/planar strips
+floating sixteen/twenty-four/thirty-two/sixty-four-bit gray/RGB/CMYK components,
+packed one/four-bit grayscale samples, and one/four/eight-bit palette indices in either byte order. Chunky/planar strips
 and tiles use uncompressed, LZW, PackBits or Deflate payloads, including word-based
 horizontal prediction and floating-point prediction for LZW/Deflate. Sample and associated-alpha precision is retained through
-ICC conversion before eight-bit RGBA projection. Mixed component widths, reversed
+ICC conversion before eight-bit RGBA projection. Packed rows retain byte alignment, and bilevel images may omit BitsPerSample.
+Packed samples require no predictor. CCITT and JPEG-compressed TIFF, mixed component widths, reversed
 bit order, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -65,6 +67,16 @@ pixels and independently rendered SVG/PDF interior samples agree within three ch
 values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
 it changes sample order for unspecified extra channels in two cases. The differing reference output is retained;
 native Windows confirmation and photographic producer coverage remain open.
+
+Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
+fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,
+strip/tile layouts, and uncompressed/LZW/Deflate/PackBits payloads. Odd widths and
+partial tiles in both axes preserve row alignment and ignore padding. Core pixels
+match source values exactly. Both dialects preserve 62,016 pixel-center samples
+per rendering route across raster, SVG and PDF readback; MuPDF SVG/PDF comparisons
+differ by at most 2/255 per channel. GhostXPS returns success but differs by up to
+255 and leaves tiled cases blank. Its output is retained as a consumer difference;
+native Windows packed-TIFF acceptance remains unqualified.
 
 Floating-point qualification covers 304 independently encoded and decoded LibTIFF
 fixtures: 16/24/32/64-bit samples, both byte orders, compression/prediction and
