@@ -40,13 +40,14 @@ public sealed partial class HtmlRenderingTests {
             .Any(x => raster.GetPixel(x, y) != OfficeColor.White));
     }
     [Theory]
-    [InlineData("j", 80)]
-    [InlineData("ffffffffffffffffffffffffffffffffffffffffffffffffff", -200)]
-    public void TransformedTextPaint_PreservesScopedItalicGlyphInk(string value, int offset) {
+    [InlineData("j", 80, "italic", 40)]
+    [InlineData("ffffffffffffffffffffffffffffffffffffffffffffffffff", -200, "italic", 40)]
+    [InlineData("ffffffffffffffff", -200, "bold italic", 96)]
+    public void TransformedTextPaint_PreservesScopedItalicGlyphInk(string value, int offset, string style, int size) {
         string face = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSansPro-Regular.otf")));
         string css = "<style>@page{size:400px 400px;margin:0}body{margin:0}"
             + "@font-face{font-family:Proof;src:url(data:font/otf;base64," + face + ")}"
-            + "div{font:italic 40px/60px Proof;width:20px;white-space:nowrap;transform-origin:0 0}</style>";
+            + "div{font:" + style + " " + size + "px/120px Proof;width:20px;white-space:nowrap;transform-origin:0 0}</style>";
         HtmlRenderDocument control = HtmlRenderTestDriver.Render(css + "<div style='position:relative;left:" + offset + "px'>" + value + "</div>",
             new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
         HtmlRenderDocument actual = HtmlRenderTestDriver.Render(css + "<div style='transform:translateX(" + offset + "px)'>" + value + "</div>",
@@ -54,11 +55,30 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(Assert.Single(control.Pages).CreateDrawing());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(actual.Pages).CreateDrawing());
         int ink = 0;
-        for (int y = 0; y < 80; y++) for (int x = 0; x < 400; x++) {
+        for (int y = 0; y < 130; y++) for (int x = 0; x < 400; x++) {
             if (expected.GetPixel(x, y) != OfficeColor.White) ink++;
-            Assert.Equal(expected.GetPixel(x, y), raster.GetPixel(x, y));
+            OfficeColor wanted = expected.GetPixel(x, y), observed = raster.GetPixel(x, y);
+            if (style.Contains("bold", StringComparison.Ordinal)) {
+                // The intermediate affine composite can round coverage by one byte.
+                Assert.InRange(Math.Abs(wanted.R - observed.R), 0, 1);
+                Assert.InRange(Math.Abs(wanted.G - observed.G), 0, 1);
+                Assert.InRange(Math.Abs(wanted.B - observed.B), 0, 1);
+                Assert.Equal(wanted.A, observed.A);
+            } else Assert.Equal(wanted, observed);
         }
         Assert.True(ink > 20);
+    }
+    [Theory]
+    [InlineData("overflow:hidden")]
+    [InlineData("clip-path:inset(0)")]
+    public void TransformedTextPaint_DoesNotAllocateClippedAwayTransformedInk(string clip) {
+        const string css = "<style>@page{size:400px 400px;margin:0}body{margin:0;font:16px Arial}</style>";
+        string html = css + "<div style='opacity:.5'><div style='" + clip + ";width:100px;height:100px;background:red'>"
+            + "<span style='display:block;transform:translateX(200000px)'>InvisibleFarAwayMarker</span></div></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.NotEqual(OfficeColor.White, raster.GetPixel(20, 20));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(200, 20));
     }
 
 }
