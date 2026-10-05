@@ -449,8 +449,48 @@ checks the vocabulary. Omitting roles leaves the contribution unspecified.
 
 Existing metadata and refinements remain intact, including other creators and
 collections. These append operations do not replace the primary `Creator` property.
-Use `AddDublinCoreMetadata` and `SetMetadataProperty` for other declarations; typed
-records do not infer rights, publisher identities, or accessibility claims.
+Titles, identifiers, subjects, and primary publication details have typed operations:
+
+```csharp
+publication.SetPrimaryTitle("main-title", new EpubTitleMetadata {
+    Text = "The Example Book", Kind = EpubTitleKind.Main,
+    FileAs = "Example Book, The", DisplaySequence = 1, Language = "en"
+});
+publication.AddTitle("subtitle", new EpubTitleMetadata {
+    Text = "An illustrated introduction", Kind = EpubTitleKind.Subtitle,
+    DisplaySequence = 2
+});
+publication.AddIdentifier("isbn", new EpubIdentifierMetadata {
+    Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13
+});
+publication.AddSubject("fiction", new EpubSubjectMetadata {
+    Text = "FICTION / General", Authority = "BISAC", Code = "FIC000000"
+});
+publication.SetPublicationDetails(new EpubPublicationDetails {
+    Publisher = "Example Press", Description = "An illustrated introduction.",
+    Rights = "Publisher-supplied rights statement.",
+    PublicationDate = new DateTime(2026, 10, 5)
+});
+```
+
+`SetPrimaryTitle` updates the first title; when it already has an identifier, supply
+that same identifier to preserve inbound refinements. Null optional fields retain
+existing values. `AddTitle` appends a variant without replacing the first title;
+display sequence refines presentation order without reordering XML records.
+
+ISBN authoring validates length, characters, prefix for ISBN-13, and checksum, then
+writes an ISBN URN. ISBN-10 supports historical records. DOI input is a DOI name,
+such as `10.1000/182`, rather than a resolver URL. `Unspecified` retains an opaque
+identifier without a type refinement. Adding an identifier leaves the selected
+package identity unchanged. Neither registration nor ISBN range allocation is
+checked, and subject authority/code pairs are publisher-supplied classifications.
+
+`SetPublicationDetails` changes only supplied primary values in one atomic edit;
+null fields retain existing values and additional publishers/declarations remain.
+Publication dates use the supplied calendar date without a timezone conversion.
+All typed publishing operations above require EPUB 3. Use `AddDublinCoreMetadata`
+and `SetMetadataProperty` for other declarations; typed records do not infer rights,
+publisher identities, or accessibility claims.
 
 ## Book matter and print-page navigation
 

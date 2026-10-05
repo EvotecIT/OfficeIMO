@@ -31,6 +31,10 @@ public sealed class EpubIndependentPublishingContracts {
 
         book.AddContributor("editorial-reviewer", new EpubContributorMetadata { Name = "OfficeIMO test editor", MarcRoles = new[] { "edt" } });
         book.AddCollection("test-series", new EpubCollectionMetadata { Name = "Test editions", Position = new uint[] { 1 } });
+        book.SetPrimaryTitle("t1", new EpubTitleMetadata { Text = "Children's Literature — test edition", FileAs = "Children's Literature" });
+        book.AddTitle("test-edition", new EpubTitleMetadata { Text = "Editorial test edition", Kind = EpubTitleKind.Edition });
+        book.AddSubject("test-subject", new EpubSubjectMetadata { Text = "Education", Language = "en" });
+        book.SetPublicationDetails(new EpubPublicationDetails { Description = "An independent-producer editing fixture." });
         EpubWriteResult result = book.Write();
         Assert.False(result.HasLoss);
         using var saved = new ZipArchive(new MemoryStream(result.Bytes), ZipArchiveMode.Read);
@@ -46,6 +50,8 @@ public sealed class EpubIndependentPublishingContracts {
         Assert.Equal(Flatten(original.TableOfContents).Select(PageTarget), Flatten(reopened.TableOfContents).Select(PageTarget));
         Assert.Equal("Curry, Charles Madison", Assert.Single(reopened.Metadata, entry => entry.Id == "curry").FileAs);
         Assert.Equal("edt", Assert.Single(reopened.Metadata, entry => entry.Id == "editorial-reviewer").Role);
+        Assert.Equal("Children's Literature — test edition", Assert.Single(reopened.Metadata, entry => entry.Id == "t1").Value);
+        Assert.Contains(reopened.Metadata, entry => entry.Refines == "#t2" && entry.Property == "title-type" && entry.Value == "subtitle");
     }
 
     private static string PageTarget(EpubNavigationItem item) => item.Label + "|" + item.Target + "|" + item.Fragment;
