@@ -36,6 +36,14 @@ public sealed class PdfLineSpacing {
 
     internal bool IsExact => Rule == PdfLineSpacingRule.Exact;
 
+    // Document formats may position a baseline in the font's natural line box
+    // rather than align its ascender to the top. Keep this independent of the
+    // requested multiple, which changes advance but not that initial box.
+    internal double? FontLineBoxMultiplier { get; private init; }
+
+    internal PdfLineSpacing WithFontLineBoxBaseline(double naturalMultiplier) =>
+        new(Rule, Value, NaturalMultiplier) { FontLineBoxMultiplier = naturalMultiplier };
+
     internal double GetAdvance(double fontSize) => Rule switch {
         PdfLineSpacingRule.Exact => Value,
         PdfLineSpacingRule.AtLeast => System.Math.Max(Value, fontSize * NaturalMultiplier),

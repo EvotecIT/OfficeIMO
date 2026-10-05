@@ -98,24 +98,18 @@ internal static partial class PdfWriter {
         List<List<RichSeg>> lines, IReadOnlyList<double> heights,
         IReadOnlyList<PdfAlign?>? alignments, IReadOnlyList<double>? offsets, IReadOnlyList<double>? widths,
         PdfAlign alignment, double baseline, double textX, double textWidth,
-        double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfOptions options) {
+        double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfOptions options, PdfStandardFont? baselineFont = null) {
         double lineY = baseline;
         for (int index = 0; index < lines.Count; index++) {
             List<RichSeg> line = lines[index];
-            double inkBaseline = AdjustRichLineBaseline(lineY, line, options, fontSize);
+            double inkBaseline = AdjustRichLineBaseline(lineY, line, options, fontSize, baselineFont);
             double lineWidth = MeasureRichLineWidth(line);
             double availableWidth = widths != null && index < widths.Count ? widths[index] : textWidth;
             double lineX = textX + (offsets != null && index < offsets.Count ? offsets[index] : 0D);
             PdfAlign lineAlignment = alignments != null && index < alignments.Count ? alignments[index] ?? alignment : alignment;
             if (lineAlignment == PdfAlign.Center) lineX += Math.Max(0D, (availableWidth - lineWidth) / 2D);
             else if (lineAlignment == PdfAlign.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
-            double ascender = 0D, descender = 0D;
-            foreach (RichSeg segment in line) {
-                double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
-                double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
-                ascender = Math.Max(ascender, rise + GetAscenderForOptions(segment.Font, segment.NamedFont, size, options));
-                descender = Math.Max(descender, GetDescenderForOptions(segment.Font, segment.NamedFont, size, options) - rise);
-            }
+            GetRichLineInkMetrics(line, options, out double ascender, out double descender);
             if (lineX + lineWidth <= clipX || lineX >= clipX + clipWidth ||
                 inkBaseline + ascender <= clipBottom || inkBaseline - descender >= clipBottom + clipHeight)
                 lines[index] = new List<RichSeg>();

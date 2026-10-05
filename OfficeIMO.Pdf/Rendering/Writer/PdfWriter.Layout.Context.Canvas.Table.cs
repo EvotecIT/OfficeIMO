@@ -381,7 +381,7 @@ internal static partial class PdfWriter {
             if (cell.Viewport != null)
                 OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
-                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts);
+                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts, cellFont);
             int? markedContentId = RegisterTextStructureElement(
                 rowIsHeader ? "TH" : "TD",
                 _canvasStructureParentElement,
@@ -409,12 +409,12 @@ internal static partial class PdfWriter {
                 structurePage: currentPage,
                 lineAlignments: visibleAlignments,
                 lineXOffsets: visibleXOffsets,
-                lineWidths: visibleWidths);
+                lineWidths: visibleWidths, baselineFont: cellFont);
             MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {
-                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, firstBaseline);
+                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, AdjustRichLineBaseline(firstBaseline, lines.Lines[0], currentOpts, fontSize, cellFont));
                 } else {
                     double textHeight = MeasureTableCellTextHeight(lines, 0, lineCount, leading);
                     double formFieldTop = contentFrame.Top - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
