@@ -966,6 +966,19 @@
           "filesystemExecutionErrorsRecovered": 2,
           "retainedArtifactBytes": 670890
         }
+      },
+      "additionalPreGateCleanup": {
+        "scope": "Three completed archived probe build outputs and three Python bytecode directories; useful source, fixtures, normal package feed, all original font/browser/profile/test receipts, current profiles and failure/control evidence preserved.",
+        "targets": 9,
+        "removedBytes": 77790395,
+        "allAbsent": true,
+        "nativeFilesystemErrorsRecovered": 3,
+        "targetManifest": "Ignore/MasterConvergenceQualification/math-goal-audit/obsolete-probe-output-cleanup-20261005/targets.json",
+        "targetManifestSha256": "4b1b63d936e782730cf24244395d240e4141ecaa14350ed2f96b3260fd521fa5",
+        "resultReceipt": "Ignore/MasterConvergenceQualification/math-goal-audit/obsolete-probe-output-cleanup-20261005/result.json",
+        "resultReceiptSha256": "15a5710a5c8f64ff4edb277ab4e92a3c8c26e31b60775492c46e5bc1f2c902b8",
+        "nextExecution": "Probe source remains; rebuild normally with pinned SDK10.0.112 before subsequent execution. No stale compiled runner is qualification of a different source.",
+        "retainedTools": "reference-font-diagnosis tool-venv preserved with its shared-interpreter links; no linked roots or shared caches changed."
       }
     }
   }
