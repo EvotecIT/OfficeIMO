@@ -7,6 +7,23 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfHeadingHierarchyTests {
     [Theory]
+    [InlineData(4, true)]
+    [InlineData(7, true)]
+    [InlineData(9, true)]
+    [InlineData(4, false)]
+    [InlineData(7, false)]
+    [InlineData(9, false)]
+    public void SparseHeadingLevels_KeepTaggedDepthAndUseOutlinesAsFallback(int level, bool tagged) {
+        var document = PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true });
+        if (tagged) document.TaggedPdfCatalogMarkers();
+        document.Content.Heading(1, "ParentHeading").Heading(level, "SparseHeading");
+        byte[] bytes = document.ToBytes();
+        Assert.Equal(2, Assert.Single(Assert.Single(PdfInspector.Inspect(bytes).Outlines).Children).Level);
+        var heading = Assert.Single(PdfDocumentReadResult.Load(bytes).Headings, item => item.Text == "SparseHeading");
+        Assert.Equal(tagged ? level : 2, heading.Level);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void AdapterHeading_RetainsStyledRunsWithoutChangingOutlineTitle(bool columns) {
