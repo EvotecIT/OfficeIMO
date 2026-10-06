@@ -74,7 +74,7 @@ internal static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, cancellationToken);
     }
 
     private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions,
@@ -335,7 +335,7 @@ internal static partial class PdfFormFiller {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions), pdf);
     }
 
     /// <summary>
@@ -418,7 +418,7 @@ internal static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, cancellationToken);
     }
 
     /// <summary>
@@ -529,8 +529,10 @@ internal static partial class PdfFormFiller {
         return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
-    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
-        FlattenFields(FillFields(pdf, fieldValues, options, readOptions), options);
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
+        byte[] filled = FillFields(pdf, fieldValues, options, readOptions);
+        return FlattenFields(filled, options, PdfLoadOptions.WithMinimumInputBytes(readOptions, filled.LongLength));
+    }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
@@ -546,8 +548,10 @@ internal static partial class PdfFormFiller {
         return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
-    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
-        FlattenFields(FillFields(pdf, fieldValues, options, readOptions), options);
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
+        byte[] filled = FillFields(pdf, fieldValues, options, readOptions);
+        return FlattenFields(filled, options, PdfLoadOptions.WithMinimumInputBytes(readOptions, filled.LongLength));
+    }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
