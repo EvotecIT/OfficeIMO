@@ -262,6 +262,10 @@ namespace OfficeIMO.Word.Pdf {
                                 continue;
                             }
 
+                            if (TryRenderNativeJoinedParagraphs(flow, elements, ref i,
+                                paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,
+                                footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
+
                             if (TryRenderNativeList(
                                 flow,
                                 elements,

@@ -48,6 +48,9 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
+                if (TryRenderNativeJoinedParagraphs(pdf, elements, ref i, getMarker,
+                    footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
+
                 RenderNativeElement(
                     pdf,
                     element,
