@@ -21,7 +21,10 @@ public enum BookOnixCollectionIdentifierType {
 }
 
 /// <summary>An explicit collection identifier; SchemeName is required only for proprietary identifiers.</summary>
-public sealed record BookOnixCollectionIdentifier(BookOnixCollectionIdentifierType Type, string Value, string? SchemeName = null);
+public sealed record BookOnixCollectionIdentifier(BookOnixCollectionIdentifierType Type, string Value, string? SchemeName = null) {
+    /// <summary>Optional hierarchy level identified by this value; must occur in the collection title.</summary>
+    public BookOnixCollectionLevel? Level { get; init; }
+}
 
 /// <summary>Collection ordering semantics from ONIX list 197.</summary>
 public enum BookOnixCollectionSequenceType {
@@ -47,19 +50,23 @@ public enum BookOnixCollectionSequenceType {
 /// <param name="Name">Required only for proprietary sequences.</param>
 public sealed record BookOnixCollectionSequence(BookOnixCollectionSequenceType Type, string Number, string? Name = null);
 
-/// <summary>Explicit membership in one named collection. Does not infer ONIX semantics from EPUB series metadata.</summary>
+/// <summary>Explicit membership in one collection. Does not infer ONIX semantics from EPUB series metadata.</summary>
 public sealed record BookOnixCollection {
     /// <summary>Who defines the collection.</summary>
     public required BookOnixCollectionType Type { get; init; }
-    /// <summary>Top-level collection title, separate from the product title.</summary>
-    public required string Title { get; init; }
+    /// <summary>Simple top-level collection title, separate from the product title. Mutually exclusive with TitleElements.</summary>
+    public string? Title { get; init; }
     /// <summary>Optional subtitle of the collection.</summary>
     public string? Subtitle { get; init; }
     /// <summary>Optional ONIX list 74 language for the collection title and subtitle.</summary>
     public string? LanguageCode { get; init; }
+    /// <summary>One to three title elements in display order, with one per level. Mutually exclusive with Title, Subtitle and LanguageCode.</summary>
+    public IReadOnlyList<BookOnixCollectionTitleElement> TitleElements { get; init; } = [];
+    /// <summary>Optional explicit frequency of publication of successive products in the collection.</summary>
+    public BookOnixCollectionFrequency? Frequency { get; init; }
     /// <summary>Source of an ascribed collection; required for Ascribed and optional otherwise.</summary>
     public string? SourceName { get; init; }
-    /// <summary>Up to 16 identifiers; at most one value per type and proprietary scheme name.</summary>
+    /// <summary>Up to 16 identifiers; at most one value per level, type and proprietary scheme name. Unscoped and scoped values for the same scheme cannot coexist.</summary>
     public IReadOnlyList<BookOnixCollectionIdentifier> Identifiers { get; init; } = [];
     /// <summary>Up to 16 positions; at most one per type and proprietary sequence name.</summary>
     public IReadOnlyList<BookOnixCollectionSequence> Sequences { get; init; } = [];

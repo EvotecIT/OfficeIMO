@@ -160,7 +160,12 @@ fixture covers all supported collection, identifier and sequence types, ordered
 person and organization credits, every supported contributor role, and omitted
 versus explicitly absent collection credits. The schema must reject misplaced
 credits and conflicting contributor assertions. The `no-collection` fixture distinguishes explicit absence from omitted membership.
-Collection identities are synthetic assignments, not evidence of allocation or ownership.
+The `collection-hierarchy` fixture covers three hierarchy levels, display order
+independent of level, multilingual title and part designations, and identifiers
+scoped to each level. The `collection-frequency` fixture covers all supported
+frequency codes. The schema must reject duplicate title sequence numbers and an
+unknown frequency code. Collection identities and schedules are synthetic assertions,
+not evidence of allocation, ownership or a publisher's actual publication schedule.
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
 assertions exercise serialization and do not establish readership or suitability.

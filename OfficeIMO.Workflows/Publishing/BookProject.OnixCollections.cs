@@ -14,9 +14,7 @@ public sealed partial class BookProject {
         foreach (var collection in options.Collections) {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(collection);
-            RequireOnixText(collection.Title, nameof(collection.Title));
-            if (collection.Subtitle != null) RequireOnixText(collection.Subtitle, nameof(collection.Subtitle));
-            if (collection.LanguageCode != null) RequireOnixLanguageCode(collection.LanguageCode, nameof(collection.LanguageCode));
+            var title = BuildOnixCollectionTitle(collection, cancellationToken, out var titleLevels);
             if (collection.SourceName != null || collection.Type == BookOnixCollectionType.Ascribed)
                 RequireOnixText(collection.SourceName!, nameof(collection.SourceName));
             string type = collection.Type switch {
@@ -24,17 +22,12 @@ public sealed partial class BookProject {
                 BookOnixCollectionType.Ascribed => "20", _ => throw new ArgumentOutOfRangeException(nameof(collection.Type))
             };
             var element = new XElement(ns + "Collection", new XElement(ns + "CollectionType", type));
+            if (collection.Frequency is { } frequency)
+                element.Add(new XElement(ns + "CollectionFrequency", OnixCollectionFrequencyCode(frequency)));
             if (collection.SourceName != null) element.Add(new XElement(ns + "SourceName", collection.SourceName));
-            element.Add(BuildOnixCollectionIdentifiers(collection.Identifiers, cancellationToken));
+            element.Add(BuildOnixCollectionIdentifiers(collection.Identifiers, titleLevels, cancellationToken));
             element.Add(BuildOnixCollectionSequences(collection.Sequences, cancellationToken));
-            var title = new XElement(ns + "TitleElement", new XElement(ns + "TitleElementLevel", "02"),
-                new XElement(ns + "TitleText", collection.Title));
-            if (collection.Subtitle != null) title.Add(new XElement(ns + "Subtitle", collection.Subtitle));
-            if (collection.LanguageCode != null) {
-                title.Element(ns + "TitleText")!.Add(new XAttribute("language", collection.LanguageCode));
-                title.Element(ns + "Subtitle")?.Add(new XAttribute("language", collection.LanguageCode));
-            }
-            element.Add(new XElement(ns + "TitleDetail", new XElement(ns + "TitleType", "01"), title));
+            element.Add(title);
             element.Add(BuildOnixContributors(collection.Contributors, collection.NoContributors,
                 requireDeclaration: false, cancellationToken));
             result.Add(element);
@@ -43,27 +36,33 @@ public sealed partial class BookProject {
     }
 
     private static IReadOnlyList<XElement> BuildOnixCollectionIdentifiers(IReadOnlyList<BookOnixCollectionIdentifier> identifiers,
-        CancellationToken cancellationToken) {
+        IReadOnlyCollection<BookOnixCollectionLevel> titleLevels, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(identifiers);
         if (identifiers.Count > 16) throw new ArgumentException("At most 16 collection identifiers are supported.", nameof(identifiers));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
-        var schemes = new HashSet<(BookOnixCollectionIdentifierType, string?)>();
+        var schemes = new HashSet<(BookOnixCollectionIdentifierType Type, string? Name, BookOnixCollectionLevel? Level)>();
         foreach (var identifier in identifiers) {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(identifier);
             RequireOnixText(identifier.Value, nameof(identifier.Value));
             bool proprietary = identifier.Type == BookOnixCollectionIdentifierType.Proprietary;
             RequireOnixNamedScheme(proprietary, identifier.SchemeName, nameof(identifier.SchemeName));
-            if (!schemes.Add((identifier.Type, identifier.SchemeName)))
-                throw new ArgumentException("Collection identifier schemes must be distinct.", nameof(identifiers));
+            string? level = identifier.Level is { } selectedLevel ? OnixCollectionLevelCode(selectedLevel) : null;
+            if (identifier.Level is { } requiredLevel && !titleLevels.Contains(requiredLevel))
+                throw new ArgumentException("An identifier's collection level must occur in the collection title.", nameof(identifiers));
+            if (schemes.Any(scheme => scheme.Type == identifier.Type && scheme.Name == identifier.SchemeName &&
+                (scheme.Level == identifier.Level || scheme.Level == null || identifier.Level == null)))
+                throw new ArgumentException("Collection identifier schemes must be distinct within each level; scoped and unscoped values cannot overlap.", nameof(identifiers));
+            schemes.Add((identifier.Type, identifier.SchemeName, identifier.Level));
             (string type, string value) = identifier.Type switch {
                 BookOnixCollectionIdentifierType.Proprietary => ("01", identifier.Value),
                 BookOnixCollectionIdentifierType.Issn => ("02", OfficeIssn.Normalize(identifier.Value)),
                 BookOnixCollectionIdentifierType.Isbn13 => ("15", OfficeIsbn.Normalize(identifier.Value, true)),
                 _ => throw new ArgumentOutOfRangeException(nameof(identifier.Type))
             };
-            result.Add(new XElement(ns + "CollectionIdentifier", new XElement(ns + "CollectionIDType", type),
+            result.Add(new XElement(ns + "CollectionIdentifier", level != null ? new XElement(ns + "CollectionElementLevel", level) : null,
+                new XElement(ns + "CollectionIDType", type),
                 proprietary ? new XElement(ns + "IDTypeName", identifier.SchemeName) : null, new XElement(ns + "IDValue", value)));
         }
         return result;

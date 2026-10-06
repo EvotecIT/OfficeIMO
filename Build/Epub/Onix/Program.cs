@@ -31,6 +31,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "audience-months", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience-open", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collection", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "collection-hierarchy", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "collection-frequency", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "no-collection", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "no-edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -55,7 +57,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         TitleId = profile.Name == "discoverability" ? "selected-title" : null,
         Audience = AudienceFixtures.Create(profile.Name),
         CollateralTexts = profile.Name == "collateral-xhtml" ? CollateralXhtmlFixtures.Create() : CollateralFixtures.Create(profile.Name),
-        Collections = profile.Name == "collection" ? CollectionFixtures.Create() : [],
+        Collections = profile.Name == "collection" ? CollectionFixtures.Create() : CollectionHierarchyFixtures.Create(profile.Name),
         NoCollection = profile.Name == "no-collection",
         Edition = profile.Name == "edition" ? new() { Number = 2, VersionNumber = "1.2",
             Types = [BookOnixEditionType.Revised, BookOnixEditionType.Annotated],
@@ -106,6 +108,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     if (profile.Name == "collection") CollectionFixtures.Verify(result, schemas);
+    if (profile.Name is "collection-hierarchy" or "collection-frequency")
+        CollectionHierarchyFixtures.Verify(result, profile.Name == "collection-frequency", schemas);
     if (profile.Name == "collateral-xhtml" && !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
         throw new InvalidDataException("XHTML record composition changed mixed content or whitespace.");
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);

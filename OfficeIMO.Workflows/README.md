@@ -659,8 +659,11 @@ Identifiers support named proprietary schemes, ISSN and ISBN-13. ISSN shape and
 check digits are checked; an optional central hyphen is removed and a final `x` is
 uppercased. ISBN normalization uses the shared publishing validator. Checks establish
 neither identifier allocation nor ownership. Use a collection ISBN only when the
-collection is available as a single product. Each identifier type may occur once,
-except that different named proprietary schemes may coexist.
+collection is available as a single product. Each identifier type may occur once per
+hierarchy level, except that different named proprietary schemes may coexist.
+Set an identifier's `Level` when it identifies a particular level of a hierarchy;
+that level must be present in the title. Scoped and unscoped identifiers for the
+same type and proprietary scheme cannot coexist.
 
 Sequence types cover title, publication, narrative, original publication, suggested
 reading, suggested display and named proprietary ordering. Positions retain their
@@ -676,12 +679,48 @@ between the product, collections and EPUB metadata; place them according to the
 recipient's requirements. An empty list makes no assertion. `NoContributors = true`
 explicitly asserts no collection contributors and cannot accompany credits.
 
+For a hierarchy, use `TitleElements` instead of the simple `Title`, `Subtitle` and
+`LanguageCode` fields:
+
+```csharp
+var collection = new BookOnixCollection {
+    Type = BookOnixCollectionType.Publisher,
+    TitleElements = [
+        new() { Level = BookOnixCollectionLevel.Collection,
+                Title = "Collected studies", LanguageCode = "eng" },
+        new() { Level = BookOnixCollectionLevel.Subcollection,
+                Title = "Historical studies", PartNumber = "Series II", LanguageCode = "eng" },
+        new() { Level = BookOnixCollectionLevel.SubSubcollection,
+                PartNumber = "Part 3" }
+    ],
+    Identifiers = [new(BookOnixCollectionIdentifierType.Issn, "0317-8471") {
+        Level = BookOnixCollectionLevel.Subcollection
+    }],
+    Frequency = BookOnixCollectionFrequency.Annual
+};
+```
+
+The list holds one element per represented level, up to three, and must include
+parent levels. List order determines display order and writes consecutive
+`SequenceNumber` values; it can differ from hierarchy order. Every element needs
+a title, a part designation (including its caption), or both. Its optional language
+applies to its title, subtitle and part designation; languages are not inherited
+between levels. The product title remains separate. Alternative title types,
+master brands, universes and prefix-separated sorting titles are not represented
+by this profile.
+
+`Frequency` declares the schedule of successive products in the collection. It
+supports the [ONIX list 259 values](https://ns.editeur.org/onix/en/259), including
+irregular, explicitly unknown and no future publications. Omitting it makes no
+schedule assertion. `TwiceYearly` and `EveryTwoMonths` distinguish two from six
+publications per year; `MoreOftenThanWeekly` includes daily publication. Frequency
+is not inferred from publication dates and does not assert product availability.
+
 `NoCollection = true` explicitly asserts no collection membership and cannot accompany
 `Collections`. An empty list with the default `NoCollection = false` makes no assertion.
-This profile writes one top-level collection title per membership; hierarchical
-titles, publication frequency and other identifier schemes
-are not represented. Collection claims and recipient acceptance remain the publisher's
-responsibility. The [ONIX collection types](https://ns.editeur.org/onix/en/148),
+Collection claims and recipient acceptance remain the publisher's responsibility.
+The [ONIX collection types](https://ns.editeur.org/onix/en/148),
+[title levels](https://ns.editeur.org/onix/en/149),
 [contributor roles](https://ns.editeur.org/onix/en/17),
 [identifier schemes](https://ns.editeur.org/onix/en/13) and
 [sequence types](https://ns.editeur.org/onix/en/197) define the trade semantics.
