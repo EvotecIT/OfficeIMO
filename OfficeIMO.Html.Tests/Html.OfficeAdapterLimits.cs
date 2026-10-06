@@ -61,7 +61,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               <section class="officeimo-sheet" data-officeimo-sheet="Data" data-officeimo-range="A1">
                 <table><tbody><tr><td>value</td></tr></tbody></table>
                 <section class="officeimo-images"><ul>
-                  <li><img src="data:image/webp;base64,AA=="></li>
+                  <li><img src="data:image/heic;base64,AA=="></li>
                   <li><img src="data:image/png;base64,AQID"></li>
                 </ul></section>
               </section>
@@ -79,13 +79,13 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Single(workbook.Sheets[0].Images);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
-                && diagnostic.Detail == "mediaType=image/webp");
+                && diagnostic.Detail == "mediaType=image/heic");
     }
 
     [Fact]
     public void ExcelHtml_GenericUnsupportedImageDoesNotConsumeImageBudget() {
         const string html = """
-            <img src="data:image/webp;base64,AA==" alt="Unsupported">
+            <img src="data:image/heic;base64,AA==" alt="Unsupported">
             <img src="data:image/png;base64,AQID" alt="Accepted">
             """;
         HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
@@ -101,7 +101,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(1, result.Images);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
-                && diagnostic.Detail == "mediaType=image/webp");
+                && diagnostic.Detail == "mediaType=image/heic");
     }
 
     [Fact]

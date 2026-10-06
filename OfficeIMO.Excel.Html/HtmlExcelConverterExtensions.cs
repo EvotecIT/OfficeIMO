@@ -324,22 +324,9 @@ public static partial class HtmlExcelConverterExtensions {
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
         }
-        if (!IsSupportedExcelImage(dataUri, result, image.GetAttribute("src"))) return;
-
-        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An embedded worksheet image was omitted because the shared import limit was reached.",
-                lossKind: OfficeConversionLossKind.Omission,
-                detail: imageLimit);
-            return;
-        }
-
+        if (!TryPrepareExcelImage(dataUri, result, budget, image.GetAttribute("src"),
+                out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) return;
         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: OfficeConversionLossKind.Omission);
-            return;
-        }
 
         ReadImagePlacement(item, budget, result, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY);
         string name = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
@@ -353,15 +340,15 @@ public static partial class HtmlExcelConverterExtensions {
             int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
             xPixels = NormalizeImportInt(xPixels, 0, -maxGeometry, maxGeometry, budget, result, "image x position");
             yPixels = NormalizeImportInt(yPixels, 0, -maxGeometry, maxGeometry, budget, result, "image y position");
-            importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, dataUri.MediaType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, contentType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsAbsoluteImageAnchor(item)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                 "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
-            importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsTwoCellImageAnchor(item)) {
-            importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
+            importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, contentType, row, column, width, height, offsetX, offsetY, name, description);
         } else {
-            importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         }
 
         ApplyImageTransforms(item, importedImage, budget, result);

@@ -22,8 +22,11 @@ public sealed class HtmlImportLimits {
     /// <summary>Maximum decoded bytes in one embedded image.</summary>
     public long MaxImageBytes { get; set; } = 10L * 1024L * 1024L;
 
-    /// <summary>Maximum decoded embedded-image bytes across one import operation.</summary>
+    /// <summary>Maximum decoded embedded-image bytes across one import operation. Normalizing adapters charge the larger of the source payload and retained native payload.</summary>
     public long MaxTotalImageBytes { get; set; } = 50L * 1024L * 1024L;
+
+    /// <summary>Maximum pixels in one raster image that an adapter decodes to normalize into a target-native image format.</summary>
+    public long MaxDecodedImagePixels { get; set; } = 16_000_000L;
 
     /// <summary>Maximum imported native charts.</summary>
     public int MaxCharts { get; set; } = 1_000;
@@ -57,6 +60,7 @@ public sealed class HtmlImportLimits {
         MaxImages = MaxImages,
         MaxImageBytes = MaxImageBytes,
         MaxTotalImageBytes = MaxTotalImageBytes,
+        MaxDecodedImagePixels = MaxDecodedImagePixels,
         MaxCharts = MaxCharts,
         MaxChartSeries = MaxChartSeries,
         MaxChartCategories = MaxChartCategories,
@@ -75,6 +79,7 @@ public sealed class HtmlImportLimits {
         Positive(MaxImages, nameof(MaxImages));
         Positive(MaxImageBytes, nameof(MaxImageBytes));
         Positive(MaxTotalImageBytes, nameof(MaxTotalImageBytes));
+        Positive(MaxDecodedImagePixels, nameof(MaxDecodedImagePixels));
         Positive(MaxCharts, nameof(MaxCharts));
         Positive(MaxChartSeries, nameof(MaxChartSeries));
         Positive(MaxChartCategories, nameof(MaxChartCategories));

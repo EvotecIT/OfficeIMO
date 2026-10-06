@@ -6,6 +6,7 @@
 # Raw decoded raster evidence contains arbitrary bytes, including LF without NUL.
 # Windows checkout must not expand those sample values to CRLF.
 *.rgba -text -diff
+OfficeIMO.Html.Tests/Fixtures/ExcelRaster/*.webp -text -diff
 *.yuv16 -text -diff
 *.avif -text -diff
 *.obu -text -diff
