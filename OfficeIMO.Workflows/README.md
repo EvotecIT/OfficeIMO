@@ -709,9 +709,18 @@ Up to 32 named collections are supported. Each can declare a subtitle, an ONIX l
 types distinguish publisher series/sets, collections éditoriales, and ascribed
 collections. An ascribed collection requires the defining party's `SourceName`.
 
-Identifiers support named proprietary schemes, ISSN and ISBN-13. ISSN shape and
-check digits are checked; an optional central hyphen is removed and a final `x` is
-uppercased. ISBN normalization uses the shared publishing validator. Checks establish
+Identifiers support all collection schemes in ONIX list 13: named proprietary IDs,
+ISSN, ISBN-13, German National Bibliography, German Books in Print (VLB), Electre,
+DOI, URN, Japanese magazine IDs, BNF control numbers, ARK resolver URLs and ISSN-L.
+National catalog IDs retain the supplied text; allocation and authority-specific
+syntax are the caller's responsibility. DOI values use bare `10.` names with a
+numeric registrant prefix and nonempty suffix, not resolver URLs. URNs receive
+RFC 8141 lexical checks, without namespace registration or namespace-specific
+validation. ARKs require an HTTP(S) resolver URL containing `/ark:/`, a numeric
+authority and a nonempty name. Japanese magazine IDs require five ASCII digits,
+without an issue extension. Values are not fetched or resolved during export.
+ISSN and ISSN-L shape and check digits are checked; an optional central hyphen is removed and a final `x` is
+uppercased. Use ISSN-L when it differs from the serial ISSN. ISBN normalization uses the shared publishing validator. Checks establish
 neither identifier allocation nor ownership. Use a collection ISBN only when the
 collection is available as a single product. Each identifier type may occur once per
 hierarchy level, except that different named proprietary schemes may coexist.

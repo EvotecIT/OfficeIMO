@@ -59,6 +59,15 @@ public sealed partial class BookProject {
                 BookOnixCollectionIdentifierType.Proprietary => ("01", identifier.Value),
                 BookOnixCollectionIdentifierType.Issn => ("02", OfficeIssn.Normalize(identifier.Value)),
                 BookOnixCollectionIdentifierType.Isbn13 => ("15", OfficeIsbn.Normalize(identifier.Value, true)),
+                BookOnixCollectionIdentifierType.GermanNationalBibliography => ("03", identifier.Value),
+                BookOnixCollectionIdentifierType.GermanBooksInPrint => ("04", identifier.Value),
+                BookOnixCollectionIdentifierType.Electre => ("05", identifier.Value),
+                BookOnixCollectionIdentifierType.Doi => ("06", RequireOnixCollectionDoi(identifier.Value)),
+                BookOnixCollectionIdentifierType.Urn => ("22", RequireOnixCollectionUrn(identifier.Value)),
+                BookOnixCollectionIdentifierType.JapaneseMagazine => ("27", RequireOnixMagazineIdentifier(identifier.Value)),
+                BookOnixCollectionIdentifierType.BnfControlNumber => ("29", identifier.Value),
+                BookOnixCollectionIdentifierType.Ark => ("35", RequireOnixCollectionArk(identifier.Value)),
+                BookOnixCollectionIdentifierType.IssnL => ("38", OfficeIssn.Normalize(identifier.Value)),
                 _ => throw new ArgumentOutOfRangeException(nameof(identifier.Type))
             };
             result.Add(new XElement(ns + "CollectionIdentifier", level != null ? new XElement(ns + "CollectionElementLevel", level) : null,

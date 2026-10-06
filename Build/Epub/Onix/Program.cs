@@ -31,6 +31,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "audience-months", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience-open", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collection", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "collection-identifiers", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collection-brand-universe", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collection-hierarchy", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collection-frequency", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -63,7 +64,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         AlternativeTitles = profile.Name == "alternative-titles" ? AlternativeTitleFixtures.Create() : [],
         Audience = AudienceFixtures.Create(profile.Name),
         CollateralTexts = profile.Name == "collateral-xhtml" ? CollateralXhtmlFixtures.Create() : CollateralFixtures.Create(profile.Name),
-        Collections = profile.Name == "collection-brand-universe" ? BrandUniverseFixtures.Create() :
+        Collections = profile.Name == "collection-identifiers" ? CollectionIdentifierFixtures.Create() :
+            profile.Name == "collection-brand-universe" ? BrandUniverseFixtures.Create() :
             profile.Name == "collection" ? CollectionFixtures.Create() :
             profile.Name == "title-sorting" ? TitleSortingFixtures.Collections() : CollectionHierarchyFixtures.Create(profile.Name),
         NoCollection = profile.Name == "no-collection",
@@ -116,6 +118,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     if (profile.Name == "alternative-titles") AlternativeTitleFixtures.Verify(result, schemas);
+    if (profile.Name == "collection-identifiers") CollectionIdentifierFixtures.Verify(result, schemas);
     if (profile.Name == "collection-brand-universe") BrandUniverseFixtures.Verify(result, schemas);
     if (profile.Name == "collection") CollectionFixtures.Verify(result, schemas);
     if (profile.Name is "title-sorting" or "title-no-prefix")

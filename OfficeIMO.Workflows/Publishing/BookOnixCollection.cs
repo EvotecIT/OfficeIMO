@@ -17,7 +17,25 @@ public enum BookOnixCollectionIdentifierType {
     /// <summary>ISSN (02), validated and serialized without its hyphen.</summary>
     Issn,
     /// <summary>ISBN-13 (15). Use only when the collection is available as a single product.</summary>
-    Isbn13
+    Isbn13,
+    /// <summary>German National Bibliography series identifier (03), supplied by the publisher.</summary>
+    GermanNationalBibliography,
+    /// <summary>German Books in Print (VLB) series identifier (04), supplied by the publisher.</summary>
+    GermanBooksInPrint,
+    /// <summary>Electre series identifier (05), supplied by the publisher.</summary>
+    Electre,
+    /// <summary>Bare Digital Object Identifier (06), beginning with 10. and without a resolver URL.</summary>
+    Doi,
+    /// <summary>Full Uniform Resource Name (22). Prefer a specific scheme when available.</summary>
+    Urn,
+    /// <summary>Five-digit Japanese magazine identifier (27), without an issue extension.</summary>
+    JapaneseMagazine,
+    /// <summary>French National Bibliography series control number (29), supplied by the publisher.</summary>
+    BnfControlNumber,
+    /// <summary>Archival Resource Key (35), including its HTTP or HTTPS resolver URL.</summary>
+    Ark,
+    /// <summary>Linking ISSN (38), validated and serialized without its hyphen. Use when distinct from the serial ISSN.</summary>
+    IssnL
 }
 
 /// <summary>An explicit collection identifier; SchemeName is required only for proprietary identifiers.</summary>

@@ -161,6 +161,11 @@ The `alternative-titles` fixture covers all supported book title classifications
 multilingual text and subtitles, independent sorting declarations and retained order
 through message composition. Negative controls require rejection of an unknown title
 type and an unknown language code on an alternative title.
+The `collection-identifiers` fixture exercises national catalog identifiers, DOI,
+URN, Japanese magazine IDs, ARK resolver URLs and ISSN-L, including message
+composition and a schema negative control for an unknown identifier scheme. Its
+synthetic values do not establish allocation, ownership or resolver availability.
+
 The `collection-brand-universe` fixture covers standalone master brands and fictional
 universes, their combination with all three series levels, scoped identifiers and
 message composition. Its negative control requires rejection of an unknown identifier
