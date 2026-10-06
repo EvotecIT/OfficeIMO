@@ -19,6 +19,7 @@ public class PdfPanelStyle {
     private PdfPanelBorder? _leftBorder;
 
     internal double? PaddingTopOverride { get; set; }
+    internal double? ContinuationPaddingTopOverride { get; set; }
     internal double? PaddingBottomOverride { get; set; }
     internal double TopPadding => PaddingTopOverride ?? PaddingY;
     internal double BottomPadding => PaddingBottomOverride ?? PaddingY;
@@ -100,8 +101,8 @@ public class PdfPanelStyle {
         }
     }
 
-    internal double GetFragmentTopPadding(bool isContinuation) =>
-        RepeatFragmentDecoration || !isContinuation ? TopPadding : 0D;
+    internal double GetFragmentTopPadding(bool isContinuation) => !isContinuation ? TopPadding :
+        RepeatFragmentDecoration ? ContinuationPaddingTopOverride ?? TopPadding : 0D;
 
     internal double GetFragmentBottomPadding(bool continues) =>
         RepeatFragmentDecoration || !continues ? BottomPadding : 0D;
@@ -109,7 +110,7 @@ public class PdfPanelStyle {
     internal double FragmentPaddingReservation => RepeatFragmentDecoration ? Math.Max(0D, BottomPadding - FragmentBottomInset) : 0D;
 
     internal double FullFragmentPaddingReservation => FragmentPaddingReservation +
-        (RepeatFragmentDecoration ? Math.Max(0D, TopPadding - FragmentBottomInset) : 0D);
+        Math.Max(0D, GetFragmentTopPadding(isContinuation: true) - FragmentBottomInset);
 
     internal double InitialFragmentImageReservation => TopPadding + Math.Max(BottomPadding, FragmentBottomInset);
 
@@ -166,6 +167,7 @@ public class PdfPanelStyle {
             Background = Background,
             BorderColor = BorderColor,
             PaddingTopOverride = PaddingTopOverride,
+            ContinuationPaddingTopOverride = ContinuationPaddingTopOverride,
             PaddingBottomOverride = PaddingBottomOverride,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,

@@ -27,10 +27,16 @@ internal sealed class ContainerBlock : IPdfBlock {
         FrameTableBorderInset = frame.HorizontalInset;
         FrameTableContinuationBottomPadding = frame.Spacing / 2D +
             (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D);
+        bool repeatsHeader = (source.RepeatHeaderRowCount ?? source.HeaderRowCount) > 0 &&
+            table.Rows.Count > source.HeaderRowCount;
+        double topBorderThickness = frame.Border?.Top == true ? frame.Border.TopBorderSnapshot?.PaintThickness ?? 0D : 0D;
         Style = new PdfPanelStyle {
             Background = frame.Background,
             PaddingX = frame.Spacing + frame.HorizontalInset, PaddingY = frame.Spacing,
-            PaddingTopOverride = frame.Spacing + (frame.Border?.Top == true ? frame.Border.TopBorderSnapshot?.PaintThickness ?? 0D : 0D),
+            PaddingTopOverride = frame.Spacing + topBorderThickness,
+            // A continued body row starts at half the gap; repeated headers
+            // preserve the first fragment's complete leading spacing.
+            ContinuationPaddingTopOverride = (repeatsHeader ? frame.Spacing : frame.Spacing / 2D) + topBorderThickness,
             PaddingBottomOverride = frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D),
             FragmentBottomInset = frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D),
             SpacingBefore = source.SpacingBefore, SpacingAfter = source.SpacingAfter,

@@ -134,6 +134,56 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public void SaveAsPdf_SpacedTableContinuationUsesBodyOrHeaderSpacing(bool columns, bool exact, bool repeatHeader) {
+        using WordDocument document = WordDocument.Create();
+        if (columns) {
+            document.Sections[0].ColumnCount = 2;
+            document.Sections[0].ColumnsSpace = 720;
+        }
+        WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
+        if (exact) foreach (WordTableRow row in table.Rows) row.Height = 480;
+        table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = repeatHeader;
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        double initial = pdf.GetPage(1).GetWords().Single(word => word.Text == "Frame0" && word.BoundingBox.Left < 306D).Letters[0].StartBaseLine.Y;
+        var continuation = columns
+            ? pdf.GetPage(1).GetWords().Where(word => word.BoundingBox.Left > 306D)
+            : pdf.GetPage(2).GetWords();
+        double continued = continuation.Max(word => word.Letters[0].StartBaseLine.Y);
+        Assert.Equal(initial + (repeatHeader ? 0D : 6D), continued, 3);
+    }
+
+    [Theory]
+    [InlineData(0, false, false, 0D)]
+    [InlineData(40, false, false, 2D)]
+    [InlineData(0, true, false, 4D)]
+    [InlineData(120, false, false, 6D)]
+    [InlineData(0, false, true, 0D)]
+    public void SaveAsPdf_SpacedTableExactHeightUsesEffectiveBottomMargins(short bottom, bool inheritOne, bool merge, double effective) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 3, 2, 120);
+        table.StyleDetails!.MarginDefaultBottomWidth = 80;
+        foreach (WordTableRow row in table.Rows) {
+            row.Height = 960;
+            foreach (WordTableCell cell in row.Cells) cell.MarginBottomWidth = bottom;
+            if (inheritOne) row.Cells[0].MarginBottomWidth = null;
+        }
+        if (merge) for (int row = 0; row < 3; row++) table.MergeCells(row, 0, 1, 2, copyParagraphs: false);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        double[] baseline = Enumerable.Range(0, 3).Select(row => pdf.GetPage(1).GetWords()
+            .Single(word => word.Text == $"Frame{row * 2}").Letters[0].StartBaseLine.Y).ToArray();
+        Assert.Equal(48D + effective, baseline[0] - baseline[1], 3);
+        Assert.Equal(54.5D + effective, baseline[1] - baseline[2], 3);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SaveAsPdf_SpacedTableRepeatsHeadersAtTheSamePositionAndKeepsItsPerimeterInsideThePage(bool exact) {

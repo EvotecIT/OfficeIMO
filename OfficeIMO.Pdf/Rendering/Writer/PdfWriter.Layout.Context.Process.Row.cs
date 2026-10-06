@@ -229,7 +229,7 @@ internal static partial class PdfWriter {
                                 hsum += hAdd; take++;
                             }
 
-                            double resumedTopPadding = activeGroups.Sum(group => group.Style?.TopPadding ?? 0D);
+                            double resumedTopPadding = activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D);
                             bool canMoveParagraph = consumed > resumedTopPadding + 0.001D || y < GetCurrentFramePageStartY() - 0.001D;
                             if (TryApplyWidowControl(paragraphStyle, lines.Count, start, ref take, ref hsum, heights, canMoveParagraph)) {
                                 break;
@@ -443,7 +443,7 @@ internal static partial class PdfWriter {
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
-                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.TopPadding ?? 0D), closingPadding);
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingPadding);
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
                             (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
                             if (!completed) break;

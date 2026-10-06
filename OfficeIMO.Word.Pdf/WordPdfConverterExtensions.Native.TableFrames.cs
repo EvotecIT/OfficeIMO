@@ -46,11 +46,11 @@ namespace OfficeIMO.Word.Pdf {
                 Background = table._tableProperties?.GetFirstChild<W.Shading>() is { } shading
                     ? ParseNativeColor(shading.Fill?.Value) : defaults.CellFill
             };
-            ApplyNativeFramedRowHeights(table, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
+            ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
         }
 
         /// <summary>Translates Word's row constraints into cell-box heights without counting spacing twice.</summary>
-        private static void ApplyNativeFramedRowHeights(WordTable table, PdfCore.PdfTableStyle style,
+        private static void ApplyNativeFramedRowHeights(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style,
             double sourceSpacing, double outerTopThickness) {
             var minimums = style.RowMinHeights == null ? new List<double?>() : new List<double?>(style.RowMinHeights);
             var fixedHeights = style.FixedRowHeights == null ? new List<double?>() : new List<double?>(style.FixedRowHeights);
@@ -61,16 +61,12 @@ namespace OfficeIMO.Word.Pdf {
                 W.TableRowHeight? height = table.Rows[rowIndex]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
                 if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
                 double top = 0D, bottom = 0D;
-                double bottomMargin = style.CellPaddingBottom ?? style.CellPaddingY;
+                double bottomMargin = GetNativeFramedRowBottomMargin(layout, style, rowIndex);
                 if (style.CellBorders != null) {
                     foreach (var entry in style.CellBorders.Where(entry => entry.Key.Row == rowIndex)) {
                         top = Math.Max(top, GetNativeFrameSide(entry.Value, top: true)?.PaintThickness ?? 0D);
                         bottom = Math.Max(bottom, GetNativeFrameSide(entry.Value, top: false)?.PaintThickness ?? 0D);
                     }
-                }
-                if (style.CellPaddings != null) {
-                    foreach (var entry in style.CellPaddings.Where(entry => entry.Key.Row == rowIndex))
-                        bottomMargin = Math.Max(bottomMargin, entry.Value.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY);
                 }
                 double points = height.Val.Value / 20D;
                 if (height.HeightType?.Value == W.HeightRuleValues.Exact) {
@@ -87,6 +83,22 @@ namespace OfficeIMO.Word.Pdf {
             }
             if (hasFixed) style.FixedRowHeights = fixedHeights;
             if (hasMinimum) { style.MinRowHeight = 0D; style.RowMinHeights = minimums; }
+        }
+
+        private static double GetNativeFramedRowBottomMargin(TableLayout layout, PdfCore.PdfTableStyle style, int rowIndex) {
+            double maximum = 0D;
+            int column = layout.GetRowStartColumn(rowIndex);
+            foreach (WordTableCell cell in layout.Rows[rowIndex]) {
+                if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                int span = GetNativeCellColumnSpan(cell);
+                if (!IsNativeVerticalMergeContinuation(cell)) {
+                    PdfCore.PdfCellPadding? padding = null;
+                    style.CellPaddings?.TryGetValue((rowIndex, column), out padding);
+                    maximum = Math.Max(maximum, padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY);
+                }
+                column += span;
+            }
+            return maximum;
         }
 
         private static PdfCore.PdfCellBorderSide? GetNativeFrameSide(PdfCore.PdfCellBorder border,
