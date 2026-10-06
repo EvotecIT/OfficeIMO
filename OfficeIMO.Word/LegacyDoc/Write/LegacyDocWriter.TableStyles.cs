@@ -6,6 +6,22 @@ using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
+        private static TableProperties? ResolveSupportedEffectiveTableProperties(TableProperties? properties,
+            IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            if (!string.IsNullOrWhiteSpace(properties?.TableStyle?.Val?.Value)) {
+                return properties;
+            }
+            Style? defaultStyle = tableStyleDefinitions.Values.FirstOrDefault(style => style.Default?.Value == true);
+            if (defaultStyle == null || IsNoOpTableStyle(defaultStyle.StyleId?.Value)) {
+                return properties;
+            }
+            // Resolve an implicit document default without adding a style to
+            // the caller's source XML. Existing style readers validate it.
+            var effective = properties == null ? new TableProperties() : (TableProperties)properties.CloneNode(true);
+            effective.TableStyle = new TableStyle { Val = defaultStyle.StyleId!.Value };
+            return effective;
+        }
+
         private static IReadOnlyDictionary<string, Style> ReadTableStyleDefinitions(MainDocumentPart mainPart) {
             Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
             if (styles == null) {

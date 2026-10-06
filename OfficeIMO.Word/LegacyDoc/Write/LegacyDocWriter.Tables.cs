@@ -20,7 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             AppendLeadingTableBoundaryBookmarks(table, bookmarks, text.Length);
-            TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
+            TableProperties? tableProperties = ResolveSupportedEffectiveTableProperties(
+                table.GetFirstChild<TableProperties>(), tableStyleDefinitions);
             LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
             tableAlignment ??= ReadSupportedTableStyleAlignment(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             int? tableLeftIndentTwips = ReadSupportedTableIndentation(tableProperties);

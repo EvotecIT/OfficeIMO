@@ -426,6 +426,11 @@ namespace OfficeIMO.Word.Pdf {
             var visited = new HashSet<string>(StringComparer.Ordinal);
             string? currentStyleId = resolvedStyleId;
             while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.TableStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+                // Word ignores the built-in Normal Table definition's child
+                // properties, including when it is a named style's base.
+                if (IsNativeNormalTableStyleId(currentStyleId)) {
+                    break;
+                }
                 cache.RecordStyleChainReference(chain.Count + 1);
                 chain.Add(style);
                 currentStyleId = style.BasedOn?.Val?.Value;
@@ -442,6 +447,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeFallbackTableStyleId(string? styleId) =>
             string.IsNullOrWhiteSpace(styleId) ||
-            string.Equals(styleId, "TableNormal", StringComparison.Ordinal);
+            IsNativeNormalTableStyleId(styleId);
+
+        private static bool IsNativeNormalTableStyleId(string? styleId) =>
+            string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
     }
 }

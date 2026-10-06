@@ -149,4 +149,87 @@ public partial class Word {
         Assert.Equal((short)108, first.MarginLeftWidth); Assert.Equal((short)108, first.MarginRightWidth);
         Assert.Equal((short)0, second.MarginLeftWidth); Assert.Equal((short)108, second.MarginRightWidth);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void SaveAsPdf_TableNormalChildPropertiesDoNotAlterNamedOrInheritedLayout(int tableMode) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        WordTable table = document.AddTable(1, 1, tableMode < 2 ? WordTableStyle.TableNormal : WordTableStyle.TableGrid);
+        W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        if (tableMode == 1) table._tableProperties!.TableStyle = null;
+        if (tableMode == 3) {
+            styles.Append(new W.Style(new W.StyleName { Val = "Derived Grid" }, new W.BasedOn { Val = "TableGrid" }) {
+                StyleId = "DerivedGrid", Type = W.StyleValues.Table, CustomStyle = true
+            });
+            table._tableProperties!.TableStyle = new W.TableStyle { Val = "DerivedGrid" };
+        }
+        table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
+        using var baseline = OpenJoinedParagraphPdf(document);
+        var before = baseline.GetPage(1).Letters.First(letter => letter.Value == "M");
+        W.Style normal = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == "TableNormal");
+        normal.StyleRunProperties = new W.StyleRunProperties(new W.Color { Val = "FF0000" });
+        normal.StyleParagraphProperties = new W.StyleParagraphProperties(new W.SpacingBetweenLines { Before = "180" });
+        W.StyleTableProperties properties = normal.GetFirstChild<W.StyleTableProperties>()!;
+        properties.Shading = new W.Shading { Fill = "FFFF00" };
+        properties.TableCellMarginDefault!.TopMargin = new W.TopMargin { Width = "144", Type = W.TableWidthUnitValues.Dxa };
+        using var pdf = OpenJoinedParagraphPdf(document);
+        var after = pdf.GetPage(1).Letters.First(letter => letter.Value == "M");
+        Assert.Equal(before.StartBaseLine.X, after.StartBaseLine.X, 3);
+        Assert.Equal(before.StartBaseLine.Y, after.StartBaseLine.Y, 3);
+        Assert.Equal(before.Color.ToRGBValues(), after.Color.ToRGBValues());
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void SaveAsPdf_TablePartialMarginsRetainMissingSidesAndExplicitOverrides(bool nativeDoc, bool configuredPdf) {
+        using WordDocument source = CreateJoinedParagraphDocument();
+        WordTable table = source.AddTable(1, 2);
+        table.WidthType = WordTableWidthUnit.Dxa; table.Width = 9360;
+        table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 4680, 4680 };
+        foreach (WordTableCell cell in table.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 4680; }
+        table.StyleDetails!.MarginDefaultTopWidth = 60;
+        table._tableProperties!.TableStyle = null;
+        table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
+        table.Rows[0].Cells[1].AddParagraph("ZERO", removeExistingParagraphs: true);
+        table.Rows[0].Cells[1].MarginLeftWidth = 0;
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        if (configuredPdf) options.PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var margin = pdf.GetPage(1).Letters.First(letter => letter.Value == "M");
+        Assert.InRange(margin.StartBaseLine.X, configuredPdf ? 91.9D : 77.3D, configuredPdf ? 92.1D : 77.5D);
+        // Per-cell zero overrides both Word's missing-side defaults and the configured PDF padding.
+        Assert.InRange(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X, 305.9D, 306.1D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_UnnamedTableRetainsCustomDocumentDefaultMargins(bool nativeDoc) {
+        using WordDocument source = CreateJoinedParagraphDocument();
+        WordTable table = source.AddTable(1, 1); table._tableProperties!.TableStyle = null;
+        table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
+        W.Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        foreach (W.Style style in styles.Elements<W.Style>().Where(style => style.Type?.Value == W.StyleValues.Table)) style.Default = false;
+        styles.Append(new W.Style(new W.StyleName { Val = "Custom Default Padding" }, new W.BasedOn { Val = "TableNormal" },
+            new W.StyleTableProperties(new W.TableCellMarginDefault(new W.TopMargin { Width = "60", Type = W.TableWidthUnitValues.Dxa },
+                new W.TableCellLeftMargin { Width = 240, Type = W.TableWidthValues.Dxa }, new W.BottomMargin { Width = "0", Type = W.TableWidthUnitValues.Dxa },
+                new W.TableCellRightMargin { Width = 180, Type = W.TableWidthValues.Dxa }))) {
+                StyleId = "CustomDefaultPadding", Type = W.StyleValues.Table, CustomStyle = true, Default = true });
+        string before = source._wordprocessingDocument.MainDocumentPart.Document.OuterXml;
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        Assert.Equal(before, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+        if (nativeDoc) {
+            WordTableCell cell = document.Tables[0].Rows[0].Cells[0];
+            Assert.Equal((short)240, cell.MarginLeftWidth); Assert.Equal((short)180, cell.MarginRightWidth);
+            Assert.Equal((short)60, cell.MarginTopWidth);
+        }
+        using var pdf = OpenJoinedParagraphPdf(document);
+        Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 83.9D, 84.1D);
+    }
 }

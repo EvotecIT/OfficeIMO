@@ -310,20 +310,19 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style, bool preserveConfiguredFallbackPadding, NativeTableStyleDefaults tableStyleDefaults) {
+            if (!preserveConfiguredFallbackPadding) {
+                // Standard Word cell margins apply to each missing side. A
+                // partial table declaration must not lose the horizontal inset.
+                style.CellPaddingTop ??= 0D;
+                style.CellPaddingBottom ??= 0D;
+                style.CellPaddingLeft ??= 5.4D;
+                style.CellPaddingRight ??= 5.4D;
+            }
+            if (tableStyleDefaults.CellPadding != null) {
+                ApplyNativeResolvedTableCellPadding(style, tableStyleDefaults.CellPadding);
+            }
             W.TableCellMarginDefault? margins = table._tableProperties?.TableCellMarginDefault;
             if (margins == null) {
-                if (tableStyleDefaults.CellPadding != null) {
-                    ApplyNativeResolvedTableCellPadding(style, tableStyleDefaults.CellPadding);
-                }
-
-                if (!preserveConfiguredFallbackPadding) {
-                    // Word's Normal Table defaults have no vertical cell margin.
-                    // PDF's presentation padding inflates dense Word rows enough
-                    // to move following content to another page.
-                    style.CellPaddingTop ??= 0D;
-                    style.CellPaddingBottom ??= 0D;
-                }
-
                 return;
             }
 
@@ -338,14 +337,10 @@ namespace OfficeIMO.Word.Pdf {
 
             if (top.HasValue) {
                 style.CellPaddingTop = top.Value;
-            } else if (!preserveConfiguredFallbackPadding) {
-                style.CellPaddingTop = 0D;
             }
 
             if (bottom.HasValue) {
                 style.CellPaddingBottom = bottom.Value;
-            } else if (!preserveConfiguredFallbackPadding) {
-                style.CellPaddingBottom = 0D;
             }
 
             if (left.HasValue) {
