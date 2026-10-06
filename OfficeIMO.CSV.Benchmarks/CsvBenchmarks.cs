@@ -76,6 +76,7 @@ public partial class CsvBenchmarks
 
         ValidateWriteBenchmarkOutputs();
         ValidateTypedReadBenchmarkOutputs();
+        ValidateRawReadBenchmarkOutputs();
     }
 
     private void ValidateWriteBenchmarkOutputs()
@@ -703,8 +704,11 @@ public partial class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetString(i).Length;
+                string value = csv.GetString(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -736,7 +740,9 @@ public partial class CsvBenchmarks
             {
                 string? value = csv.GetField(i);
                 fieldCount += 1 + (value?.Length ?? 0);
+                if (_validateRawRead) ValidateRawField(i, value.AsSpan());
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -752,8 +758,11 @@ public partial class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetString(i).Length;
+                string value = csv.GetString(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -779,8 +788,11 @@ public partial class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetFieldSpan(i).Length;
+                ReadOnlySpan<char> value = csv.GetFieldSpan(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -796,8 +808,11 @@ public partial class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetString(i).Length;
+                string value = csv.GetString(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -823,8 +838,11 @@ public partial class CsvBenchmarks
         {
             for (var i = 0; i < row.ColCount; i++)
             {
-                fieldCount += 1 + row[i].ToString().Length;
+                string value = row[i].ToString();
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -840,8 +858,11 @@ public partial class CsvBenchmarks
         {
             for (var i = 0; i < row.ColCount; i++)
             {
-                fieldCount += 1 + row[i].Span.Length;
+                ReadOnlySpan<char> value = row[i].Span;
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
