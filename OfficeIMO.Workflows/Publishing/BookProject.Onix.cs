@@ -43,6 +43,7 @@ public sealed partial class BookProject {
         OnixCommercialParts commercial = BuildOnixCommercial(options.Commercial, options.PublicationDate, cancellationToken);
         IReadOnlyList<XElement> accessibility = BuildOnixAccessibility(options.Accessibility, cancellationToken);
         IReadOnlyList<XElement> subjects = BuildOnixSubjects(options.Subjects, cancellationToken);
+        IReadOnlyList<XElement> alternativeTitles = BuildOnixAlternativeTitles(options.AlternativeTitles, cancellationToken);
         IReadOnlyList<XElement> edition = BuildOnixEdition(options.Edition, cancellationToken);
         IReadOnlyList<XElement> collections = BuildOnixCollections(options, cancellationToken);
         IReadOnlyList<XElement> audience = BuildOnixAudience(options.Audience, cancellationToken);
@@ -78,6 +79,7 @@ public sealed partial class BookProject {
             new XElement(onix + "ProductFormDetail", "E101"),
             accessibility, collections,
             new XElement(onix + "TitleDetail", new XElement(onix + "TitleType", "01"), titleElement));
+        descriptive.Add(alternativeTitles);
         descriptive.Add(contributorElements);
         descriptive.Add(edition);
         descriptive.Add(new XElement(onix + "Language", new XElement(onix + "LanguageRole", "01"),

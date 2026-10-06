@@ -58,6 +58,8 @@ public sealed record BookOnixExportOptions {
     public BookOnixTitleSorting? TitleSorting { get; init; }
     /// <summary>Optional subtitle for the ONIX product-level title.</summary>
     public string? Subtitle { get; init; }
+    /// <summary>At most 32 explicit alternative product-level titles, retained in caller order after the distinctive title.</summary>
+    public IReadOnlyList<BookOnixAlternativeTitle> AlternativeTitles { get; init; } = [];
     /// <summary>Explicit publication date, when known.</summary>
     public DateOnly? PublicationDate { get; init; }
     /// <summary>Ordered credits, at most 100. Mutually exclusive with NoContributors.</summary>

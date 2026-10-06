@@ -452,9 +452,33 @@ credit/commercial lists and schema sets must not be mutated concurrently with ex
 Omitting it retains the first-title default. Missing identifiers are rejected;
 selection does not change EPUB metadata. `Subtitle` remains an explicit assertion.
 
+`AlternativeTitles` adds up to 32 publisher-supplied product-level titles after the
+selected distinctive title. Declare their meaning explicitly: original-language,
+abbreviated, parallel-language, former, distributor, cover, back-cover, expanded,
+widely known alternative, spine, or intermediate translation title. Serial-only
+title types are outside this book profile. Multiple titles of the same type are
+allowed, for example parallel titles in different languages; caller order is retained.
+
+```csharp
+var translated = existingOptions with {
+    AlternativeTitles = [
+        new() { Type = BookOnixAlternativeTitleType.OriginalLanguage,
+            Title = "L’histoire", LanguageCode = "fre", TitleSorting = new() { Prefix = "L’" } },
+        new() { Type = BookOnixAlternativeTitleType.OtherLanguage,
+            Title = "Historia", LanguageCode = "pol" }
+    ]
+};
+```
+
+Each alternative may carry a subtitle and an ONIX list 74 language code, applied to
+its title, sorting components and subtitle. Omitted language remains unspecified.
+These are separate ONIX assertions: they neither change EPUB metadata nor infer
+translation history or territorial applicability. The supplied schema validates
+codes, while retailer acceptance requires recipient-specific qualification.
+
 `TitleSorting` distinguishes an unknown prefix from a publisher's explicit sorting
 instruction. It is available on `BookOnixExportOptions`, a simple `BookOnixCollection`,
-and each `BookOnixCollectionTitleElement`:
+`BookOnixAlternativeTitle`, and each `BookOnixCollectionTitleElement`:
 
 ```csharp
 var prefixed = existingOptions with {
@@ -474,8 +498,9 @@ title exactly. Empty, whitespace-only, mismatched and exhaustive prefixes are
 rejected. OfficeIMO does not infer sorting rules from language or strip articles
 automatically.
 
-For products, the assertion applies to the selected title from the exported EPUB.
-For collections, the declared title language applies to both prefix and remainder.
+`BookOnixExportOptions.TitleSorting` applies to the selected title from the exported
+EPUB. Alternative titles use their own declared text and language. For collections,
+the declared title language applies to both prefix and remainder.
 Sorting cannot be attached to a part-only element. With `TitleElements`, place
 sorting on each element, not on the collection's simple-title fields. The choice
 is explicit because `TitleText` is deprecated but still accepted in ONIX 3.1;

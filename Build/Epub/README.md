@@ -157,6 +157,10 @@ The `title-sorting` and `title-no-prefix` fixtures cover explicit prefixes (incl
 spaces and apostrophes), no-prefix assertions, product and collection title paths,
 per-element language, part-only hierarchy elements and byte-preserving ONIX message
 composition. The schema must reject simultaneous prefix and no-prefix assertions.
+The `alternative-titles` fixture covers all supported book title classifications,
+multilingual text and subtitles, independent sorting declarations and retained order
+through message composition. Negative controls require rejection of an unknown title
+type and an unknown language code on an alternative title.
 The `edition` and `no-edition` fixtures cover numbered minor revisions, multilingual
 plain-text statements and explicit absence of edition information. The generator
 also validates each supported edition type against the schema. The `collection`

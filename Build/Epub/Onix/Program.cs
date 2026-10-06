@@ -36,6 +36,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "no-collection", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "no-edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "alternative-titles", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "title-sorting", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "title-no-prefix", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discoverability", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -58,6 +59,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
         TitleId = profile.Name == "discoverability" ? "selected-title" : null,
         TitleSorting = profile.Name == "title-sorting" ? new() { Prefix = "The " } : profile.Name == "title-no-prefix" ? new() : null,
+        AlternativeTitles = profile.Name == "alternative-titles" ? AlternativeTitleFixtures.Create() : [],
         Audience = AudienceFixtures.Create(profile.Name),
         CollateralTexts = profile.Name == "collateral-xhtml" ? CollateralXhtmlFixtures.Create() : CollateralFixtures.Create(profile.Name),
         Collections = profile.Name == "collection" ? CollectionFixtures.Create() :
@@ -111,6 +113,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         if (!invalidNestingRejected) throw new InvalidDataException("The supplied schema accepted invalid XHTML paragraph nesting.");
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+    if (profile.Name == "alternative-titles") AlternativeTitleFixtures.Verify(result, schemas);
     if (profile.Name == "collection") CollectionFixtures.Verify(result, schemas);
     if (profile.Name is "title-sorting" or "title-no-prefix")
         TitleSortingFixtures.Verify(result, profile.Name == "title-no-prefix", schemas);
