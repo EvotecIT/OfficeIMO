@@ -240,13 +240,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? FontName {
             get => GetRun()?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set {
-                var props = EnsureRunProperties();
-                props.RemoveAllChildren<A.LatinFont>();
-                if (value != null) {
-                    props.Append(new A.LatinFont { Typeface = value });
-                }
-            }
+            set => PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
         }
 
         /// <summary>
@@ -254,25 +248,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? Color {
             get => GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
-            set {
-                var props = EnsureRunProperties();
-                var latin = props.GetFirstChild<A.LatinFont>();
-                var ea = props.GetFirstChild<A.EastAsianFont>();
-                var cs = props.GetFirstChild<A.ComplexScriptFont>();
-
-                props.RemoveAllChildren<A.SolidFill>();
-                props.RemoveAllChildren<A.LatinFont>();
-                props.RemoveAllChildren<A.EastAsianFont>();
-                props.RemoveAllChildren<A.ComplexScriptFont>();
-
-                if (value != null) {
-                    props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
-                }
-
-                if (latin != null) props.Append((A.LatinFont)latin.CloneNode(true));
-                if (ea != null) props.Append((A.EastAsianFont)ea.CloneNode(true));
-                if (cs != null) props.Append((A.ComplexScriptFont)cs.CloneNode(true));
-            }
+            set => PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
         }
 
         /// <summary>
