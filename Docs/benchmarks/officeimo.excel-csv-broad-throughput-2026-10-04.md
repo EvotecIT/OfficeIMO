@@ -1362,3 +1362,52 @@ The index review reproduced and closed an introduced grid-coordinate defect;
 the delimiter-search review found no actionable defects. These are local source
 and correctness findings. The remaining large-reader, memory, writer and CSV
 read comparisons remain part of the broad performance investigation.
+
+## Raw CSV field reading — 2026-10-06
+
+The current raw CSV read comparison exposes a throughput gap in
+`CsvDocument.OpenTextDataReader` followed by `GetString`. Each method reads the
+same generated text and returns a field-count/length checksum. The benchmark
+setup separately checks every decoded field and row against the expected data;
+the measured loop omits that validation. The seven lanes cover OfficeIMO,
+CsvHelper, Sylvan, Dataplat and Sep. Sylvan and Sep also have span-reading
+lanes, whose lower allocation is a different output contract from `GetString`.
+
+The Windows native run covers 1,000, 10,000 and 25,000 rows, mixed, quoted and
+multiline text, .NET 8.0.31 and 10.0.12, and two fixed CPU affinity masks.
+Its 252 observations retain 3,024 samples after 16 warmups per case, with four
+invocations per sample, normal priority and no outlier removal. All four raw
+BenchmarkDotNet reports and their source/binary provenance are in the
+[evidence packet](excel-csv-broad-throughput-2026-10-04/csv-raw-read-public-2026-10-06.zip).
+The packet includes the captured runner; to repeat the run, copy `Runner.ps1`
+into an empty scratch directory and invoke it with `-Workspace` pointing to a
+clean checkout at the recorded commit. Results are written beside that copy.
+
+The table shows median milliseconds for the 25,000-row **string-field** lanes.
+Comparisons should be made within each runtime, mask and shape, not across
+CPU placements. All measurements, including the 1,000- and 10,000-row cases,
+remain in the packet.
+
+| Runtime | Affinity mask | Shape | OfficeIMO | Sep | Sylvan |
+| --- | ---: | --- | ---: | ---: | ---: |
+| .NET 10 | 65535 | Mixed | 2.98 | 2.67 | 2.17 |
+| .NET 10 | 65535 | Quoted | 6.09 | 3.75 | 7.36 |
+| .NET 10 | 65535 | Multiline | 4.28 | 2.18 | 3.92 |
+| .NET 10 | 4294901760 | Mixed | 2.78 | 2.07 | 1.90 |
+| .NET 10 | 4294901760 | Quoted | 5.06 | 3.61 | 6.51 |
+| .NET 10 | 4294901760 | Multiline | 3.96 | 2.12 | 3.35 |
+| .NET 8 | 65535 | Mixed | 3.88 | 2.12 | 2.68 |
+| .NET 8 | 65535 | Quoted | 7.48 | 5.95 | 5.23 |
+| .NET 8 | 65535 | Multiline | 3.67 | 3.47 | 3.79 |
+| .NET 8 | 4294901760 | Mixed | 3.49 | 2.11 | 2.48 |
+| .NET 8 | 4294901760 | Quoted | 6.36 | 4.93 | 6.81 |
+| .NET 8 | 4294901760 | Multiline | 4.08 | 4.44 | 4.45 |
+
+At this size, OfficeIMO allocates 11.301, 12.586 and 12.109 MB for mixed,
+quoted and multiline respectively. Sep allocates 10.945, 12.231 and 11.753 MB;
+Sylvan allocates 11.309, 12.595 and 12.117 MB. MB is 1,000,000 bytes.
+OfficeIMO trails Sep in most measured timing cases and allocates about 0.355 MB
+more per 25,000-row operation. It beats Sylvan on quoted input under both .NET
+10 placements but trails it on mixed input. This is a Windows, in-memory,
+string-materializing workload; it does not establish a universal library rank
+or qualify a new performance change. Raw CSV read throughput remains open work.
