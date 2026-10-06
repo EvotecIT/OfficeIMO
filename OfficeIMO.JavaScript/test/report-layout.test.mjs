@@ -39,11 +39,11 @@ test("grouped report headings, cached totals, bounded sizes and print settings f
   assert.match(xml, /ySplit="3" topLeftCell="B4"/);
   assert.match(xml, /<mergeCell ref="B1:D1"\/>/); assert.match(xml, /<mergeCell ref="B2:C2"\/>/);
   assert.match(xml, /width="24"/); assert.match(xml, /<c r="B7"[^>]*><f>SUBTOTAL\(109,B4:B6\)<\/f><v>20<\/v>/);
-  assert.match(xml, /<c r="C7"[^>]*><f>IF\(COUNT\(C4:C6\)=0,&quot;&quot;,SUBTOTAL\(101,C4:C6\)\)<\/f><v>3<\/v>/);
+  assert.match(xml, /<c r="C7"[^>]*><f>IF\(SUBTOTAL\(102,C4:C6\)=0,&quot;&quot;,SUBTOTAL\(101,C4:C6\)\)<\/f><v>3<\/v>/);
   assert.match(xml, /<pageSetUpPr fitToPage="1"/); assert.match(xml, /paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/);
   assert.match(xml, /Report &amp;&amp; data/);
   assert.match(zip.get("xl/tables/table1.xml").content, /ref="A3:D7" totalsRowCount="1"><autoFilter ref="A3:D6"/);
-  assert.match(zip.get("xl/tables/table1.xml").content, /name="Count" totalsRowFunction="custom"><totalsRowFormula>IF\(COUNT\(C4:C6\)=0,&quot;&quot;,SUBTOTAL\(101,C4:C6\)\)/);
+  assert.match(zip.get("xl/tables/table1.xml").content, /name="Count" totalsRowFunction="custom"><totalsRowFormula>IF\(SUBTOTAL\(102,C4:C6\)=0,&quot;&quot;,SUBTOTAL\(101,C4:C6\)\)/);
   assert.match(zip.get("xl/workbook.xml").content, /_xlnm.Print_Titles[^>]*>&apos;Report&apos;&apos;s _x005F_x0041_&apos;!\$1:\$3/);
   if (process.env.OFFICEIMO_REPORT_FIXTURES) { await mkdir(process.env.OFFICEIMO_REPORT_FIXTURES, { recursive: true }); await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/layout.xlsx", new Uint8Array(await blob.arrayBuffer())); }
 });
@@ -120,7 +120,7 @@ test("footer caches aggregate emitted date serials and numeric counts use Genera
   const operations = ["sum", "count", "average", "min", "max"];
   const book = createWorkbook({ dateMode: "utc" });
   const sheet = book.addSheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })).concat({ header: "Inferred" }),
-    autoSize: {}, footer: { totals: Object.fromEntries(operations.map(op => [op, op]).concat([["Inferred", "count"]])) } });
+    autoSize: {}, table: { name: "DateTotals" }, footer: { totals: Object.fromEntries(operations.map(op => [op, op]).concat([["Inferred", "count"]])) } });
   await sheet.addRows([operations.map(() => new Date("2026-10-06T00:00:00Z")).concat(new ExportCell(new Date("2026-10-06T00:00:00Z"))),
     operations.map(() => new Date("2026-10-08T00:00:00Z")).concat(new Date("2026-10-08T00:00:00Z")),
     operations.map(() => new Date(NaN)).concat(null)]);

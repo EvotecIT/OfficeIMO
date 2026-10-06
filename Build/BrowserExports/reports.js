@@ -3,7 +3,7 @@ async function runReportContracts() {
   const operations = ["sum", "count", "average", "min", "max"];
   for (const compression of ["auto", "store"]) {
     const dates = OfficeIMO.createWorkbook({ dateMode: "utc", compression });
-    const sheet = dates.addSheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })), autoSize: {},
+    const sheet = dates.addSheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })), autoSize: {}, table: { name: "DateTotals" },
       footer: { totals: Object.fromEntries(operations.map(operation => [operation, operation])) } });
     await sheet.addRows([operations.map(() => new Date("2026-10-06T00:00:00Z")), operations.map(() => new OfficeIMO.ExportCell(new Date("2026-10-08T00:00:00Z")))]);
     await emit("report-dates-" + compression + ".xlsx", await dates.toBlob());

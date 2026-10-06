@@ -1505,7 +1505,7 @@ function totalFormula(operation, letter, headerRows, rows) {
     const code = { sum: 109, count: 102, average: 101, min: 105, max: 104 }[operation];
     const guarded = ["average", "min", "max"].includes(operation);
     const range = letter + (headerRows + 1) + ":" + letter + (headerRows + rows), subtotal = "SUBTOTAL(" + code + "," + range + ")";
-    return !rows ? guarded ? '""' : "0" : guarded ? 'IF(COUNT(' + range + ')=0,"",' + subtotal + ')' : subtotal;
+    return !rows ? guarded ? '""' : "0" : guarded ? 'IF(SUBTOTAL(102,' + range + ')=0,"",' + subtotal + ')' : subtotal;
 }
 function validatePrint(options, policy) {
     if (options.paper !== undefined && !["A4", "Letter"].includes(options.paper))
