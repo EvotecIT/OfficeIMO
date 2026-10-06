@@ -12,20 +12,17 @@ namespace OfficeIMO.Excel {
             int maxRow = 0;
             int minCol = int.MaxValue;
             int maxCol = 0;
-            int rowOrdinal = 0;
+            int previousRowIndex = 0;
 
             foreach (var row in sheetData.Elements<Row>()) {
-                rowOrdinal++;
+                uint? declaredRowIndex = row.RowIndex?.Value;
+                int rowIndex = declaredRowIndex.HasValue && (declaredRowIndex.Value < 1U || declaredRowIndex.Value > A1.MaxRows)
+                    ? 0
+                    : ExcelWorksheetCoordinates.GetRowIndex(row, ref previousRowIndex);
                 if (!row.HasChildren) continue;
 
-                uint? declaredRowIndex = row.RowIndex?.Value;
-                int rowIndex = declaredRowIndex.HasValue
-                    ? declaredRowIndex.Value >= 1U && declaredRowIndex.Value <= A1.MaxRows
-                        ? (int)declaredRowIndex.Value
-                        : 0
-                    : rowOrdinal <= A1.MaxRows ? rowOrdinal : 0;
-
                 int cellOrdinal = 0;
+                int nextColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     cellOrdinal++;
                     int resolvedRow = rowIndex;
@@ -41,8 +38,9 @@ namespace OfficeIMO.Excel {
                         }
                     }
                     if (resolvedCol <= 0) {
-                        resolvedCol = cellOrdinal;
+                        resolvedCol = string.IsNullOrEmpty(cref) ? nextColumnIndex : cellOrdinal;
                     }
+                    nextColumnIndex = resolvedCol + 1;
 
                     if (resolvedRow <= 0 || resolvedRow > A1.MaxRows || resolvedCol <= 0 || resolvedCol > A1.MaxColumns) continue;
 

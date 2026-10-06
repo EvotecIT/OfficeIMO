@@ -1,7 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using System.Diagnostics;
 using ExcelReader.Core.Reader;
+#if !NET10_0_OR_GREATER
 using ExcelReader.Core.ValueObjects;
+#endif
 using ExcelReader.Core.Writer;
 using OfficeIMO.Excel.LegacyXls.Model;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
@@ -112,9 +114,13 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
     private byte[] WriteExcelReaderXlsWorkbook() {
         using var stream = new MemoryStream();
         using XlsWorkbookWriter workbook = XlsWorkbookWriter.Create(stream, leaveOpen: true);
+#if !NET10_0_OR_GREATER
         workbook.Start();
+#endif
         using (XlsSheetWriter sheet = workbook.AddSheet("Data")) {
+#if !NET10_0_OR_GREATER
             sheet.Start();
+#endif
             using (XlsRowWriter header = sheet.StartRow()) {
                 WriteHeaders(header);
             }
@@ -132,9 +138,13 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
     private byte[] WriteExcelReaderXlsbWorkbook() {
         using var stream = new MemoryStream();
         using XlsbWorkbookWriter workbook = XlsbWorkbookWriter.Create(stream, leaveOpen: true);
+#if !NET10_0_OR_GREATER
         workbook.Start();
+#endif
         using (XlsbSheetWriter sheet = workbook.AddSheet("Data")) {
+#if !NET10_0_OR_GREATER
             sheet.Start();
+#endif
             using (XlsbRowWriter header = sheet.StartRow()) {
                 WriteHeaders(header);
             }

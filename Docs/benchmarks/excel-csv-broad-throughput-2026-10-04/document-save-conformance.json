@@ -1,0 +1,268 @@
+{
+  "source": "a97198615636e0d26636f40a6b9be4b555febd50",
+  "csvPatchHash": "90a5112a83ac7fbc0ca115e7de8de187f4f79cfe564bf5318515c493be7c4e75",
+  "benchmarkSourceHash": "188868cc2a5e3b7c0c6b829a5043265478d44974b25f18a284ad544036d1eb28",
+  "reportSha256": "5735bb868e8defdb2108cd33d612654095a6334b8adf32f00f76b22fcc61e469",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.112",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "cases": [
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"MixedJson\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"MixedJson\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"MixedJson\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"MixedJson\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"MixedJson\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"MixedJson\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"MixedJson\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"MixedJson\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"MixedJson\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"MixedJson\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Plain\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Plain\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Plain\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Plain\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Plain\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Plain\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Plain\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Plain\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Plain\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Plain\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Quoted\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Quoted\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Quoted\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Quoted\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Quoted\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Quoted\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Quoted\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Quoted\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 1000, Shape: \"Quoted\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 1000, Shape: \"Quoted\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"MixedJson\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"MixedJson\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"MixedJson\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"MixedJson\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"MixedJson\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"MixedJson\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"MixedJson\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"MixedJson\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"MixedJson\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"MixedJson\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Plain\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Plain\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Plain\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Plain\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Plain\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Plain\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Plain\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Plain\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Plain\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Plain\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Quoted\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Quoted\", Compression: None)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Quoted\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Quoted\", Compression: GZip)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Quoted\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Quoted\", Compression: Deflate)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Quoted\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Quoted\", Compression: Brotli)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.Save(RowCount: 25000, Shape: \"Quoted\", Compression: ZLib)",
+      "status": "Succeeded"
+    },
+    {
+      "case": "OfficeIMO.CSV.Benchmarks.CsvDocumentSaveBenchmarks.SaveAsync(RowCount: 25000, Shape: \"Quoted\", Compression: ZLib)",
+      "status": "Succeeded"
+    }
+  ],
+  "policy": "Dry conformance only: setup verifies complete independently formatted text and every field after decompression. No speed or allocation ranking. Product DataReader optimization is present but does not alter document saves."
+}

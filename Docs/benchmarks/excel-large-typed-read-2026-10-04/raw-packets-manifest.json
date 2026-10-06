@@ -1,0 +1,149 @@
+{
+  "Archive": "raw-packets.zip",
+  "Sha256": "755CBD9C74371DF2C1D2AD047ACF240F46DE86949150D04AC59158788A8CD77D",
+  "CompressedBytes": 610450,
+  "OriginalBytes": 11933492.0,
+  "Policy": "Each member retains the original filename and exact captured bytes; every member verified by SHA-256 before replacing loose tracked packets.",
+  "Files": [
+    {
+      "Name": "coordinate-cache-native.json",
+      "Bytes": 691097,
+      "Sha256": "C9BEFFFF0BD3203469A3780B5AA3B871AFD0A527BBB064A82B6C8732C673F2DC"
+    },
+    {
+      "Name": "coordinate-cache-rotated.json",
+      "Bytes": 1120025,
+      "Sha256": "3ECFAC4AA8705155F1D6138D75E84F9C44DFD2A7386DBA9B8979558F6435B61F"
+    },
+    {
+      "Name": "coordinate-initial-large-rotated.json",
+      "Bytes": 84984,
+      "Sha256": "329DA7F2537536097360AAFA022BD1134469A5AEFEFA0360978083D42C14ED75"
+    },
+    {
+      "Name": "coordinate-initial-native.json",
+      "Bytes": 406156,
+      "Sha256": "19DF03DDFFFA04A6C7812251908975648E33F2BEC87FD13A9D9E11B91E3076B9"
+    },
+    {
+      "Name": "coordinate-initial-rotated.json",
+      "Bytes": 594764,
+      "Sha256": "234E7FF3156D096D0323939618D295A4D18DBB2421EEA2321CB3ACD7F97DADDE"
+    },
+    {
+      "Name": "coordinate-rejected-inline.json",
+      "Bytes": 99306,
+      "Sha256": "7CA6AAF561FC89D05CB4925D0067C866B10054A75C44A0753DD8670A8C839206"
+    },
+    {
+      "Name": "coordinate-schema-screen.json",
+      "Bytes": 99420,
+      "Sha256": "EF3CD5912AFA2CB3E0DDD9ED1D102A582F9CF5FE8B42338A4E74AC29A83CA598"
+    },
+    {
+      "Name": "coordinate-validation-screen.json",
+      "Bytes": 99388,
+      "Sha256": "7D5FFD1F71E49B27AF7B16CD61BBA3DF3125BCFBACE1974FAB094935DCF3D7C2"
+    },
+    {
+      "Name": "implicit-coordinates-native.json",
+      "Bytes": 120255,
+      "Sha256": "9C42B74970D9BB774BCAB6E3ED26204E3603F8F079FAB517847B3241F9D8ADA7"
+    },
+    {
+      "Name": "implicit-coordinates-rotated.json",
+      "Bytes": 240895,
+      "Sha256": "C4C206250984E95F78CD9F75BA21251FC46787836C074A9C22CBFB6A04A5BB43"
+    },
+    {
+      "Name": "large-peers-coordinate-checkpoint.json",
+      "Bytes": 147644,
+      "Sha256": "DF7165A4E91051E9D23E80984BA032AB1F6E49674DA5826B0B03CC264E53A7F2"
+    },
+    {
+      "Name": "metadata-attributes-native.json",
+      "Bytes": 634760,
+      "Sha256": "08DBF799C5B11D86C108A2652E42347055AA8A490A4CC445CB5EB80F09AD528B"
+    },
+    {
+      "Name": "metadata-attributes-rotated.json",
+      "Bytes": 997666,
+      "Sha256": "A414C099FEE6AF100E1A2A8BE17085C4ADBE032A3A59B200038E26BD7CAFD3C8"
+    },
+    {
+      "Name": "native.json",
+      "Bytes": 113936,
+      "Sha256": "42F660177466C9FFDC03273F3848198321AC066105D79E55C93B7C40831F7036"
+    },
+    {
+      "Name": "numeric-native.json",
+      "Bytes": 312483,
+      "Sha256": "95878430B60F9646EC67924099507ED3D8C2EC8D69CF62E136313C701EBD48BB"
+    },
+    {
+      "Name": "numeric-rotated.json",
+      "Bytes": 274015,
+      "Sha256": "7A92B2DDE02212DE62EB23E91566A27ED415076776ADEDAD70C0F2E314BE0843"
+    },
+    {
+      "Name": "pool-check-native.json",
+      "Bytes": 68207,
+      "Sha256": "E6F9D640EBDE12AD4537F47AC19A873AD137C83C2792FC825234485B40BCD21A"
+    },
+    {
+      "Name": "range-scan-native.json",
+      "Bytes": 97540,
+      "Sha256": "8A3359AD0101C1C033184DBF32AAAC2D4AA9B6069C71AA2C0CE2380F180F790A"
+    },
+    {
+      "Name": "rejected-eager-coordinate-cache.json",
+      "Bytes": 949546,
+      "Sha256": "18ECF197A36556EA1FEB1B17E484D209A5737CE8E0FC74D988507AB8474B4A8E"
+    },
+    {
+      "Name": "rejected-stream-buffer.json",
+      "Bytes": 68839,
+      "Sha256": "792C398F0048648F00AC7D4058ECC3DFD2289D97977D599A965A9AD3EA914D05"
+    },
+    {
+      "Name": "rejected-xml-async-buffer.json",
+      "Bytes": 168072,
+      "Sha256": "599809B9A8AE64081D90575D22B36C5921BC9D3486DF64794E52F50DF3B53CC3"
+    },
+    {
+      "Name": "typed-values-large-rotated.json",
+      "Bytes": 84937,
+      "Sha256": "30ACB52BF558FA4794FE91C9B06DB7D6A38A5D8A721288A893521A7F05623E8A"
+    },
+    {
+      "Name": "typed-values-native.json",
+      "Bytes": 496686,
+      "Sha256": "7E4385C95612CCDC4F01C9884A87D1D6197142FF456C3EC2DAE02CBE36BCAE04"
+    },
+    {
+      "Name": "typed-values-small-rotated.json",
+      "Bytes": 752296,
+      "Sha256": "D17D42EA067732DA870C0CE8E6398989AD1F8A5CA0CAFAC805B9D715403CDEB6"
+    },
+    {
+      "Name": "xml-short-attributes-followup.json",
+      "Bytes": 604345,
+      "Sha256": "7E209C57E35C738473F15209D5917E21A51A38C2FA255C8454CD0C1260F63251"
+    },
+    {
+      "Name": "xml-short-attributes-native.json",
+      "Bytes": 1001201,
+      "Sha256": "92AE12EFAFBB6673E3F14BE4E4C028726E9992F083BFA3F67BB807D3B3BCC1A1"
+    },
+    {
+      "Name": "xml-short-attributes-provenance.json",
+      "Bytes": 42163,
+      "Sha256": "CE7A7A4AACC2A048728F3194B752A3B22BE85032E4C9D831473C6ECBD7FB6031"
+    },
+    {
+      "Name": "xml-short-attributes-rotated.json",
+      "Bytes": 1562866,
+      "Sha256": "70C21E79A51209373942D790BB6B51A4BDA5E7C35C49D16B7ABD44C8C3DAC985"
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "Explicit-TypedDataReader-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "TypedDataReader",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "Explicit-Range-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "Range",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "Explicit-UsedRange-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "UsedRange",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRows-TypedDataReader-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRows",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRows-Range-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "Range",
+      "Coordinates": "ImplicitRows",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRows-UsedRange-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "UsedRange",
+      "Coordinates": "ImplicitRows",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRowsAndCells-TypedDataReader-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRowsAndCells",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRowsAndCells-Range-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "Range",
+      "Coordinates": "ImplicitRowsAndCells",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRowsAndCells-UsedRange-2500": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "Api": "UsedRange",
+      "Coordinates": "ImplicitRowsAndCells",
+      "NumericAsDecimal": true
+    }
+  },
+  "Explicit-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "TypedDataReader",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "Explicit-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "Range",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "Explicit-UsedRange-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "UsedRange",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRows-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRows",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRows-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "Range",
+      "Coordinates": "ImplicitRows",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRows-UsedRange-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "UsedRange",
+      "Coordinates": "ImplicitRows",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRowsAndCells-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRowsAndCells",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRowsAndCells-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "Range",
+      "Coordinates": "ImplicitRowsAndCells",
+      "NumericAsDecimal": true
+    }
+  },
+  "ImplicitRowsAndCells-UsedRange-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "UsedRange",
+      "Coordinates": "ImplicitRowsAndCells",
+      "NumericAsDecimal": true
+    }
+  },
+  "Explicit-DataTable-25000-DecimalFalse": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "DataTable",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": false
+    }
+  },
+  "Explicit-DataTable-25000-DecimalTrue": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "Api": "DataTable",
+      "Coordinates": "Explicit",
+      "NumericAsDecimal": true
+    }
+  },
+  "Discovery-2500-SparseFalse-OmitFalse": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 2500,
+      "Sparse": false,
+      "OmitRowCoordinates": false
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-2500-SparseFalse-OmitTrue": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 2500,
+      "Sparse": false,
+      "OmitRowCoordinates": true
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-2500-SparseTrue-OmitFalse": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 2500,
+      "Sparse": true,
+      "OmitRowCoordinates": false
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-2500-SparseTrue-OmitTrue": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 2500,
+      "Sparse": true,
+      "OmitRowCoordinates": true
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-25000-SparseFalse-OmitFalse": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 25000,
+      "Sparse": false,
+      "OmitRowCoordinates": false
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-25000-SparseFalse-OmitTrue": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 25000,
+      "Sparse": false,
+      "OmitRowCoordinates": true
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-25000-SparseTrue-OmitFalse": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 25000,
+      "Sparse": true,
+      "OmitRowCoordinates": false
+    },
+    "Setup": "Setup"
+  },
+  "Discovery-25000-SparseTrue-OmitTrue": {
+    "Library": "Excel",
+    "Class": "ExcelUsedRangeDiscoveryBenchmarks",
+    "Method": "DiscoverRange",
+    "Properties": {
+      "RowCount": 25000,
+      "Sparse": true,
+      "OmitRowCoordinates": true
+    },
+    "Setup": "Setup"
+  }
+}

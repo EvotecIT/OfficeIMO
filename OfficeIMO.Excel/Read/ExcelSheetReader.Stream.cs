@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
             var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData is null) yield break;
 
-            if (estRows > chunkRows && !RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
+            if (!RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
                 foreach (var chunk in ReadUnsortedRows(sheetData, r1, c1, r2, c2, decided, ct)) {
                     yield return chunk;
                 }
@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
                 int currentWindow = -1;
                 var sequentialRows = new List<Row>();
 
-                foreach (var row in sheetData.Elements<Row>()) {
+                foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
@@ -224,7 +224,7 @@ namespace OfficeIMO.Excel {
             int activeWindow = -1;
             List<Row> bufferRows = new();
 
-            foreach (var row in sheetData.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
@@ -299,8 +299,9 @@ namespace OfficeIMO.Excel {
                     int rowOffset = rowIndex - startRow;
                     if ((uint)rowOffset >= (uint)height) continue;
 
+                    int nextDomColumnIndex = 1;
                     foreach (var cell in rowEl.Elements<Cell>()) {
-                        int c = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                        int c = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                         if (c < cc1 || c > cc2) continue;
                         if (TryConvertCell(cell, out object? value)) {
                             outRows[rowOffset][c - cc1] = value ?? outRows[rowOffset][c - cc1];
@@ -410,7 +411,7 @@ namespace OfficeIMO.Excel {
 
             IEnumerable<RangeChunk> ReadUnsortedRows(SheetData data, int rr1, int cc1, int rr2, int cc2, OfficeIMO.Excel.ExcelExecutionMode executionMode, CancellationToken token) {
                 var windows = new SortedDictionary<int, List<Row>>();
-                foreach (var row in data.Elements<Row>()) {
+                foreach (var row in EnumerateRowsWithCoordinates(data.Elements<Row>(), token)) {
                     if (canCancel) {
                         token.ThrowIfCancellationRequested();
                     }

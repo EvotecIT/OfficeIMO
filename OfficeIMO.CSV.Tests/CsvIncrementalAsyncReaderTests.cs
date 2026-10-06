@@ -16,6 +16,7 @@ public class CsvIncrementalAsyncReaderTests
 {
     [Theory]
     [InlineData(",", 1)]
+    [InlineData(",", 4096)]
     [InlineData("||", 3)]
     [InlineData("||", 4096)]
     public async Task Incremental_Reader_Matches_Canonical_Parsing_Through_Chunk_Boundaries(string delimiter, int chunk)
@@ -151,19 +152,30 @@ public class CsvIncrementalAsyncReaderTests
         Assert.True(limited.CanRead);
     }
 
-    [Fact]
-    public async Task Can_Mix_Synchronous_Lookahead_With_Async_And_Sync_Advances()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Can_Mix_Lookahead_And_Advances_Without_Changing_Retained_Values(bool inferSchema)
     {
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Name\nAlpha\nBeta\nGamma\n"));
-        using var reader = await CsvDocument.OpenDataReaderAsync(input);
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Name\nAlpha\nBeta\n\"Gamma \"\"quoted\"\"\"\nDelta\n"));
+        using var reader = await CsvDocument.OpenDataReaderAsync(input,
+            readerOptions: new CsvDataReaderOptions { InferSchema = inferSchema, SchemaSampleSize = 2 });
         Assert.True(reader.HasRows);
         Assert.True(await reader.ReadAsync());
         Assert.Equal("Alpha", reader.GetString(0));
+        var retainedSample = new object[1];
+        Assert.Equal(1, reader.GetValues(retainedSample));
         Assert.True(reader.Read());
         Assert.Equal("Beta", reader.GetString(0));
         Assert.True(await reader.ReadAsync());
-        Assert.Equal("Gamma", reader.GetString(0));
+        Assert.Equal("Gamma \"quoted\"", reader.GetString(0));
         Assert.Equal(3, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+        var retainedLiveRow = new object[1];
+        Assert.Equal(1, reader.GetValues(retainedLiveRow));
+        Assert.True(reader.Read());
+        Assert.Equal("Delta", reader.GetString(0));
+        Assert.Equal("Alpha", retainedSample[0]);
+        Assert.Equal("Gamma \"quoted\"", retainedLiveRow[0]);
         Assert.False(await reader.ReadAsync());
     }
 

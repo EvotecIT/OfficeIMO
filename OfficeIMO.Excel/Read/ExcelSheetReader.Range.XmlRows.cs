@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel {
                     seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
                 }
 
-                result[rr, cc] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"));
+                result[rr, cc] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader));
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;
                 }
@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel {
                     canUseOrderedFullWidthExit = false;
                 }
 
-                result[rowOffset, columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"));
+                result[rowOffset, columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader));
 
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;
@@ -475,7 +475,7 @@ namespace OfficeIMO.Excel {
                     canUseOrderedFullWidthExit = false;
                 }
 
-                result[rowOffset, columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"));
+                result[rowOffset, columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader));
 
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;

@@ -1,0 +1,178 @@
+{
+  "BaselineSource": "4c73bdcf356a1150eaf2c491345a8ac01a11d8b9",
+  "CandidateSource": "b854ad35b547d1ad5b98355349e7bcbf2bb8cb30",
+  "SnapshotHashes": [
+    {
+      "Snapshot": "baseline-excel",
+      "File": "OfficeIMO.Excel.dll",
+      "Sha256": "203D497961E09EF0AC3292C35054DFBF1303059C299C76F538E2BB40CBABF14D"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "File": "OfficeIMO.Excel.Benchmarks.dll",
+      "Sha256": "3E8A2353B9C8BC3CAF36C722E3599FE1E2E9A2CB25D73B1EBA5D37841C01C6F8"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "File": "OfficeIMO.Excel.dll",
+      "Sha256": "C532403562CAC1973D7FB82336E60E6984B9F07019092134BADF15CFCD281ADF"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "File": "OfficeIMO.Excel.Benchmarks.dll",
+      "Sha256": "3E8A2353B9C8BC3CAF36C722E3599FE1E2E9A2CB25D73B1EBA5D37841C01C6F8"
+    }
+  ],
+  "Native": {
+    "Runtime": "10.0.12",
+    "SDK": "10.0.112",
+    "BenchmarkDotNet": "0.15.8",
+    "Affinity": "0xFFFF",
+    "Priority": "Normal",
+    "Outliers": "Retained",
+    "Small": {
+      "Operations": 4,
+      "Scenarios": 19,
+      "Iterations": 12,
+      "Warmups": 24,
+      "Cases": 38
+    },
+    "Large": {
+      "Operations": 1,
+      "Scenarios": 4,
+      "Iterations": 5,
+      "Warmups": 5,
+      "Cases": 8
+    }
+  },
+  "Rotated": {
+    "Owner": "PowerForge Invoke-BenchmarkSuite",
+    "Masks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "Priority": "Normal",
+    "Outliers": "Retained",
+    "Small": {
+      "Operations": 4,
+      "Samples": 1824,
+      "Scenarios": 19,
+      "Iterations": 24,
+      "Warmups": 12
+    },
+    "Large": {
+      "Operations": 1,
+      "Samples": 192,
+      "Scenarios": 4,
+      "Iterations": 12,
+      "Warmups": 3
+    }
+  },
+  "Tests": [
+    {
+      "File": "typed-reader-final-full-net10.trx",
+      "Total": 5270,
+      "Passed": 5265,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "79307F9ACE6A18BA9C0E40BD2FE336298882E5E4303DDB4EF821E1F0DBE9B3F7"
+    },
+    {
+      "File": "coordinate-net8.0.trx",
+      "Total": 645,
+      "Passed": 645,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "8EA14E12E44C8283CF8C0FB643689792A9B41C6A982E04ED918D7015CD9D90C0"
+    },
+    {
+      "File": "coordinate-net472.trx",
+      "Total": 640,
+      "Passed": 640,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "884135549F35C2FF3992475E805F230B191E7E8ABC13FFA86C356AF24EB7EE6C"
+    },
+    {
+      "File": "linux/typed-reader-net10-linux.trx",
+      "Total": 645,
+      "Passed": 645,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "951EAE5E062CB213CDFD13E6B60A900C36178044DDC395590E4C200EC066D549"
+    }
+  ],
+  "Builds": [
+    "Product netstandard2.0: zero warnings or errors",
+    "Benchmark net8.0 and net10.0: zero warnings or errors"
+  ],
+  "Review": {
+    "CoordinateValidationAndSchema": {
+      "FindingCount": 0,
+      "Fingerprint": {
+        "Base": "6a533b30859485579b2c003a2ed231e9a4f0cf8a",
+        "Files": [
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.DataReaderValidation.cs",
+            "Sha256": "3B5E43859C04AFDE5531FAF72F49DCECD80C529E65B6485D7BE62EA83BC8897F"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.cs",
+            "Sha256": "704F8E730842BC002905FFE7A0A2CDFE80BC49A885D269B7305476D711ECEF10"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/OpenXmlReadNameTable.cs",
+            "Sha256": "00BAC5D608C37DA1B7CAF71AE97CA63CDB9C2AC168A30C6528407EFF5E4CDEDA"
+          }
+        ],
+        "ProductSha256": "F9EC21BCF7671A1F2E00BB762DA95CB15D159FFDF8D196A43E1427663794444D"
+      }
+    },
+    "TypedValues": {
+      "InitialFinding": "P2: IsDBNull reused streaming primitive state after switching to buffered unsorted rows.",
+      "Reproduction": "Five of eight transition cases failed before the fix; all eight pass afterward.",
+      "Disposition": "Fixed; one independent targeted confirmation reports no remaining findings.",
+      "Fingerprint": {
+        "Base": "6a533b30859485579b2c003a2ed231e9a4f0cf8a",
+        "Files": [
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Xml.cs",
+            "Sha256": "4973210F724FE9A312E25DDBAC84C67037D5D18146B12DD3F62E1607E0C96653"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.cs",
+            "Sha256": "581C7400650A43CEA592603457905696C536FAE511B314E088A364F444A435D7"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.XmlValues.cs",
+            "Sha256": "85D643E921BD6B95F8C0A8AF9F6C18FC172A71EFA3ED956BD4981DD339BD32C1"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.ValueAccess.cs",
+            "Sha256": "25BD06686BA976624382CDCADAEB30E432C77D59D3EF1E5A903A14CFC1E22851"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.XmlValues.cs",
+            "Sha256": "8DD71957295330574847510F5FD3E458D50690D5A62160E43A92DA59C009B7B5"
+          },
+          {
+            "Path": "OfficeIMO.Excel.Tests/Excel.Reader.TypedValueOrder.cs",
+            "Sha256": "052B08C2B36141663DAAEA119862F5BF4BA11D7704938B5BB143B7249EFCDD15"
+          }
+        ],
+        "ProductSha256": "C532403562CAC1973D7FB82336E60E6984B9F07019092134BADF15CFCD281ADF",
+        "Tests": "307 NET10 DataReader/unsorted/getter cases pass after IsDBNull fix. Transition repro: 5 failed / 3 passed before, all 8 passed after. Prior full suite: 5257 passed / 5 skipped."
+      }
+    }
+  },
+  "Correctness": {
+    "GetterOrder": "Eight UTF-8/UTF-16, 1900/1904, buffered/streaming cases fail before and pass after. Decimal materialization remains canonical after typed reads; date-formatted numeric serials remain available regardless of getter order, including out-of-range dates.",
+    "Validation": "Existing eager metadata, trailing XML, cancellation and buffer limits are retained."
+  },
+  "Limits": [
+    "Managed allocation is not retained or peak process memory.",
+    "Timing is host-dependent and every unfavorable observation is retained.",
+    "The implicit-row coordinate gap remains open at this checkpoint.",
+    "Windows .NET 10 timing and Ubuntu/WSL correctness do not establish native Linux or macOS timing."
+  ]
+}

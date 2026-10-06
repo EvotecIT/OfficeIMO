@@ -7,8 +7,6 @@ namespace OfficeIMO.Excel {
     /// Range enumeration for <see cref="ExcelSheetReader"/>.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private const int CompletedEnumerateRangeOutsideRowProbeLimit = 16;
-
         /// <summary>
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
@@ -31,12 +29,13 @@ namespace OfficeIMO.Excel {
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
                     if (TryConvertCell(cell, out var value))
                         yield return new ExcelCellValueInfo(rIndex, cIndex, value);
@@ -52,8 +51,6 @@ namespace OfficeIMO.Excel {
             bool fillBlanks = _opt.FillBlanksInRanges;
             bool hasCustomConverter = _opt.CellValueConverter != null;
             int nextRowIndex = 1;
-            int outsideRowsAfterCompletedRange = 0;
-            var seenRows = CreateCompletedRowTracker(r2 - r1 + 1);
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -64,25 +61,17 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
-                    if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                        outsideRowsAfterCompletedRange++;
-                        if (outsideRowsAfterCompletedRange >= CompletedEnumerateRangeOutsideRowProbeLimit) {
-                            break;
-                        }
-                    }
-
                     SkipXmlElement(reader, "row");
                     continue;
                 }
 
-                outsideRowsAfterCompletedRange = 0;
                 if (reader.IsEmptyElement) {
                     continue;
                 }
@@ -167,12 +156,11 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                seenRows.MarkSeen(rowIndex - r1);
             }
         }
 
         private bool TryReadXmlCellValueForEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);

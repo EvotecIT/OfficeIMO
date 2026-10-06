@@ -23,9 +23,11 @@ namespace OfficeIMO.Excel {
                 return indexedReader!;
             }
 
-            RequireSdkWorksheetPart();
+            if (!_hasSdkWorksheetPart && !CanUseRangeStreamXmlReader()) {
+                RequireSdkWorksheetPart();
+            }
 
-            if (TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
+            if (_hasSdkWorksheetPart && TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
                 return new ExcelRangeDataReader(
                     Array.Empty<RangeChunk>(),
                     firstRow: 1,
@@ -37,14 +39,20 @@ namespace OfficeIMO.Excel {
                     ct);
             }
 
-            ValidateDataReaderProjection(ct);
+            bool rowsStrictlyIncreasing = ValidateDataReaderProjection(ct);
+            if (!_hasSdkWorksheetPart && (!rowsStrictlyIncreasing || _usedRangeA1 == null)) {
+                RequireSdkWorksheetPart();
+            }
             string usedRange = GetUsedRangeA1(ct);
-            return ReadRangeAsDataReader(
+            return ReadRangeAsDataReaderCore(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
                 chunkRows: Math.Min(1024, _opt.MaxDataReaderChunkRows),
                 schemaSampleRows: schemaSampleRows,
-                ct: ct);
+                mode: null,
+                ct: ct,
+                trackCellPresence: false,
+                rowsAlreadyQualified: rowsStrictlyIncreasing);
         }
 
         private bool TryCreateIndexedUsedRangeDataReader(
@@ -116,6 +124,20 @@ namespace OfficeIMO.Excel {
             int schemaSampleRows = 1024,
             OfficeIMO.Excel.ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
+            return ReadRangeAsDataReaderCore(a1Range, headersInFirstRow, chunkRows, schemaSampleRows, mode, ct, trackCellPresence: false);
+        }
+
+        // Only the typed mapper distinguishes omitted cells from present nulls.
+        // Ordinary data readers expose DBNull for both without retaining this metadata.
+        private IDataReader ReadRangeAsDataReaderCore(
+            string a1Range,
+            bool headersInFirstRow,
+            int chunkRows,
+            int schemaSampleRows,
+            OfficeIMO.Excel.ExcelExecutionMode? mode,
+            CancellationToken ct,
+            bool trackCellPresence,
+            bool rowsAlreadyQualified = false) {
             if (chunkRows <= 0 || chunkRows > _opt.MaxDataReaderChunkRows) {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows),
                     $"Chunk row count must be between 1 and {_opt.MaxDataReaderChunkRows}.");
@@ -153,7 +175,8 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
                 }
 
-                return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct);
+                return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct,
+                    trackCellPresence: trackCellPresence, rowsAlreadyQualified: rowsAlreadyQualified);
             }
 
             long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
@@ -161,7 +184,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
             }
 
-            IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct);
+            IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);
             return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, ct);
         }
 
@@ -169,7 +192,8 @@ namespace OfficeIMO.Excel {
             string a1Range,
             int chunkRows,
             OfficeIMO.Excel.ExcelExecutionMode? mode,
-            CancellationToken ct) {
+            CancellationToken ct,
+            bool trackCellPresence) {
             if (chunkRows <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
             }
@@ -198,7 +222,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
-                foreach (var chunk in ReadSortedDomRangeStream(sheetData, r1, c1, r2, c2, chunkRows, ct)) {
+                foreach (var chunk in ReadSortedDomRangeStream(sheetData, r1, c1, r2, c2, chunkRows, ct, trackCellPresence)) {
                     yield return chunk;
                 }
 
@@ -212,7 +236,8 @@ namespace OfficeIMO.Excel {
                          r2,
                          c2,
                          chunkRows,
-                         ct)) {
+                         ct,
+                         trackCellPresence)) {
                 yield return chunk;
             }
         }
@@ -256,11 +281,12 @@ namespace OfficeIMO.Excel {
             int r2,
             int c2,
             int chunkRows,
-            CancellationToken ct) {
+            CancellationToken ct,
+            bool trackCellPresence) {
             int currentWindow = -1;
             var rows = new List<Row>();
 
-            foreach (var row in sheetData.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 if (ct.CanBeCanceled) {
                     ct.ThrowIfCancellationRequested();
                 }
@@ -276,7 +302,7 @@ namespace OfficeIMO.Excel {
 
                 int window = (rowIndex - r1) / chunkRows;
                 if (currentWindow >= 0 && window != currentWindow) {
-                    yield return ConvertSortedDomChunk(rows, currentWindow, r1, c1, r2, c2, chunkRows, ct);
+                    yield return ConvertSortedDomChunk(rows, currentWindow, r1, c1, r2, c2, chunkRows, ct, trackCellPresence);
                     rows.Clear();
                 }
 
@@ -285,7 +311,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (rows.Count > 0) {
-                yield return ConvertSortedDomChunk(rows, currentWindow, r1, c1, r2, c2, chunkRows, ct);
+                yield return ConvertSortedDomChunk(rows, currentWindow, r1, c1, r2, c2, chunkRows, ct, trackCellPresence);
             }
         }
 
@@ -296,9 +322,10 @@ namespace OfficeIMO.Excel {
             int r2,
             int c2,
             int chunkRows,
-            CancellationToken ct) {
+            CancellationToken ct,
+            bool trackCellPresence) {
             var windows = new SortedDictionary<int, List<Row>>();
-            foreach (Row row in sheetData.Elements<Row>()) {
+            foreach (Row row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 ct.ThrowIfCancellationRequested();
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < r1 || rowIndex > r2) {
@@ -324,7 +351,8 @@ namespace OfficeIMO.Excel {
                     r2,
                     c2,
                     chunkRows,
-                    ct);
+                    ct,
+                    trackCellPresence);
             }
         }
 
@@ -336,7 +364,8 @@ namespace OfficeIMO.Excel {
             int r2,
             int c2,
             int chunkRows,
-            CancellationToken ct) {
+            CancellationToken ct,
+            bool trackCellPresence) {
             int startRow = r1 + (windowIndex * chunkRows);
             int endRow = Math.Min(startRow + chunkRows - 1, r2);
             int height = endRow - startRow + 1;
@@ -346,8 +375,10 @@ namespace OfficeIMO.Excel {
             }
 
             var values = new object?[height][];
+            bool[][]? presence = trackCellPresence ? new bool[height][] : null;
             for (int i = 0; i < height; i++) {
                 values[i] = new object?[width];
+                if (presence != null) presence[i] = new bool[width];
             }
 
             foreach (var row in rows) {
@@ -361,19 +392,20 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
-                    int column = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int column = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (column < c1 || column > c2) {
                         continue;
                     }
 
-                    if (TryConvertCellForDataReader(cell, out object? value)) {
-                        values[rowOffset][column - c1] = value ?? values[rowOffset][column - c1];
-                    }
+                    TryConvertCellForDataReader(cell, out object? value);
+                    values[rowOffset][column - c1] = value;
+                    if (presence != null) presence[rowOffset][column - c1] = true;
                 }
             }
 
-            return new RangeChunk(startRow, height, c1, width, values);
+            return new RangeChunk(startRow, height, c1, width, values) { CellPresence = presence };
         }
 
         private bool TryConvertCellForDataReader(Cell cell, out object? value) {
@@ -410,6 +442,18 @@ namespace OfficeIMO.Excel {
         }
 
         private object? ConvertRawForDataReader(CellRaw raw) {
+            if (_opt.CellValueConverter == null && _opt.TreatDatesUsingNumberFormat
+                && (raw.TypeHint == null || raw.TypeHint == CellValues.Number)
+                && (!raw.HasFormula || _opt.UseCachedFormulaResult)
+                && string.IsNullOrEmpty(raw.InlineText)
+                && raw.StyleIndex is uint dateStyle && Styles.IsDateLike(dateStyle)
+                && raw.RawText != null
+                && (TryParseInvariantDouble(raw.RawText, out double rawSerial)
+                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawSerial))) {
+                // Defer date range validation until a date is requested; numeric getters
+                // must work even when a date-formatted serial is outside DateTime's range.
+                return new ExcelDataReaderDateSerial(rawSerial, _dateSystem, Styles.IsDateSystemShiftStyle(dateStyle));
+            }
             raw = ConvertRaw(raw);
             if (!raw.CustomValueHandled && raw.TypedValue is DateTime
                 && raw.TypeHint != CellValues.Date && raw.StyleIndex is uint style
@@ -437,6 +481,12 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExcelRangeDataReader : DbDataReader {
+            internal bool IsCellPresent(int ordinal) {
+                if (ReferenceEquals(_currentRow, _blankRow)) return false;
+                int rowOffset = _nextRow - 1 - (_currentChunk?.StartRow ?? 0);
+                return _currentChunk?.CellPresence is not { } presence
+                    || (uint)rowOffset < (uint)presence.Length && presence[rowOffset][ordinal];
+            }
             private readonly IEnumerator<RangeChunk> _chunks;
             private readonly int _lastRow;
             private readonly int _fieldCount;

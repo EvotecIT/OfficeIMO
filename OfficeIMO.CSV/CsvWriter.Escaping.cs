@@ -291,6 +291,8 @@ internal static partial class CsvWriter
     {
 #if NET8_0_OR_GREATER
         if (delimiter == ',') return text.AsSpan().IndexOfAny(DefaultCommaQuoteCharacters);
+        if (delimiter == ';') return text.AsSpan().IndexOfAny(NonCommaQuoteCharacters.Semicolon);
+        if (delimiter == '\t') return text.AsSpan().IndexOfAny(NonCommaQuoteCharacters.Tab);
 #endif
         for (int i = 0; i < text.Length; i++)
         {
@@ -385,6 +387,8 @@ internal static partial class CsvWriter
     {
 #if NET8_0_OR_GREATER
         if (delimiter == ',') return text.IndexOfAny(DefaultCommaQuoteCharacters) >= 0;
+        if (delimiter == ';') return text.IndexOfAny(NonCommaQuoteCharacters.Semicolon) >= 0;
+        if (delimiter == '\t') return text.IndexOfAny(NonCommaQuoteCharacters.Tab) >= 0;
 #endif
         foreach (char ch in text)
         {
