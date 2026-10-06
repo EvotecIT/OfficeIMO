@@ -1,9 +1,10 @@
 using System.IO.Compression;
 using System.Xml.Linq;
+using System.Text.Json;
 
 /// <summary>Independent stored-cache and preservation checks for the small report artifact lane.</summary>
 internal static class ReportVerifier {
-    internal static void Verify(string path) {
+    internal static void Verify(string path, string fixtureJson) {
         using var zip = ZipFile.OpenRead(path);
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         XDocument Read(string name) { using var stream = zip.GetEntry(name)!.Open(); return XDocument.Load(stream); }
@@ -21,6 +22,13 @@ internal static class ReportVerifier {
             var regions = Read("xl/worksheets/sheet2.xml");
             if (!regions.Descendants(ns + "mergeCell").Select(m => (string)m.Attribute("ref")!).SequenceEqual(new[] { "A1:B2", "A3:B3" })) throw new InvalidDataException("Explicit merges differ.");
             if (Read("xl/tables/table2.xml").Root?.Attribute("ref")?.Value != "A2:B3") throw new InvalidDataException("Second report table differs.");
+            using var corpus = JsonDocument.Parse(fixtureJson);
+            var image = corpus.RootElement.GetProperty("cases").EnumerateArray().Single(c => c.GetProperty("name").GetString() == "report-table").GetProperty("sheets")[0].GetProperty("images")[0];
+            byte[] expectedPng = Convert.FromBase64String(image.GetProperty("pngBase64").GetString()!);
+            using var media = zip.Entries.Single(e => e.FullName.StartsWith("xl/media/", StringComparison.Ordinal)).Open();
+            using var payload = new MemoryStream(); media.CopyTo(payload);
+            if (!payload.ToArray().SequenceEqual(expectedPng)) throw new InvalidDataException("ChartForgeX PNG bytes differ.");
+            if (!Read("xl/worksheets/sheet4.xml").Descendants(ns + "drawing").Any()) throw new InvalidDataException("Report chart drawing missing.");
         } else if (Path.GetFileName(path).StartsWith("report-dates-", StringComparison.Ordinal)) {
             double[] expected = { 92604, 2, 46302, 46301, 46303 };
             for (int i = 0; i < expected.Length; i++) {

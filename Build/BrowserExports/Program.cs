@@ -59,9 +59,9 @@ foreach (HtmlBrowserEngine engine in engines) {
     await session.Page.AddScriptTagAsync(new() { Content = layers });
     JsonElement layerResult = await session.Page.EvaluateAsync<JsonElement>("args => runLayerScenarios(args)", new { fixtureJson, moduleBase = moduleUrl });
     await session.Page.AddScriptTagAsync(new() { Content = reportContracts });
-    JsonElement reportResult = await session.Page.EvaluateAsync<JsonElement>("() => runReportContracts()");
+    JsonElement reportResult = await session.Page.EvaluateAsync<JsonElement>("fixture => runReportContracts(fixture)", fixtureJson);
     foreach (string name in produced.Where(name => name.EndsWith(".xlsx", StringComparison.Ordinal))) WorkbookVerifier.Verify(Path.Combine(output, name));
-    foreach (string name in produced.Where(name => name.StartsWith("report-", StringComparison.Ordinal))) ReportVerifier.Verify(Path.Combine(output, name));
+    foreach (string name in produced.Where(name => name.StartsWith("report-", StringComparison.Ordinal))) ReportVerifier.Verify(Path.Combine(output, name), fixtureJson);
     using (JsonDocument corpus = JsonDocument.Parse(fixtureJson)) {
         foreach (JsonElement spec in corpus.RootElement.GetProperty("cases").EnumerateArray())
             foreach (string kind in moduleUrl is null ? new[] { "classic" } : new[] { "classic", "esm" })

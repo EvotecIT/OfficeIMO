@@ -59,7 +59,7 @@ internal static class JavaScriptWorkbookContract {
             Require(styles.Fonts!.Elements<Font>().Any(f => XmlConvert.DecodeName(f.FontName?.Val?.Value ?? "") == "Font_x0041_"), "Literal font name differs.");
             Require(styles.NumberingFormats!.Elements<NumberingFormat>().Any(f => XmlConvert.DecodeName(f.FormatCode?.Value ?? "") == "\"_x003A_\"0"), "Literal number-format code differs.");
         }
-        if (fixture.GetProperty("name").GetString() == "report-table") VerifyReport(sdk.WorkbookPart!);
+        if (fixture.GetProperty("name").GetString() == "report-table") VerifyReport(sdk.WorkbookPart!, fixture);
         if (fixture.TryGetProperty("parts", out JsonElement parts)) {
             using Package package = Package.Open(path, FileMode.Open, FileAccess.Read);
             foreach (JsonElement part in parts.EnumerateArray()) {
@@ -94,7 +94,7 @@ internal static class JavaScriptWorkbookContract {
             Require(workbook.CustomXmlParts.Count() == 1, "Custom XML part relationship differs.");
         }
     }
-    private static void VerifyReport(WorkbookPart workbook) {
+    private static void VerifyReport(WorkbookPart workbook, JsonElement fixture) {
         WorksheetPart sheet = workbook.WorksheetParts.Single();
         Worksheet worksheet = sheet.Worksheet ?? throw new InvalidDataException("Report worksheet is absent.");
         Table table = sheet.TableDefinitionParts.Single().Table!;
@@ -117,11 +117,14 @@ internal static class JavaScriptWorkbookContract {
         Require(link.IsExternal && link.Uri.ToString() == "https://example.com/report?site=lodz&view=health", "Report hyperlink differs.");
         Require(XmlConvert.DecodeName(worksheet.Descendants<Hyperlink>().Single().Tooltip?.Value ?? "") == "Open Łódź _x0041_ report", "Literal hyperlink tooltip differs.");
         var anchor = sheet.DrawingsPart!.WorksheetDrawing!.Elements<DocumentFormat.OpenXml.Drawing.Spreadsheet.OneCellAnchor>().Single();
-        Require(anchor.FromMarker?.RowId?.Text == "5" && anchor.FromMarker.ColumnId?.Text == "0" && anchor.Extent?.Cx?.Value == 1714500 && anchor.Extent.Cy?.Value == 762000,
+        var source = fixture.GetProperty("sheets")[0].GetProperty("images")[0];
+        Require(anchor.FromMarker?.RowId?.Text == (source.GetProperty("row").GetInt32() - 1).ToString(CultureInfo.InvariantCulture) && anchor.FromMarker.ColumnId?.Text == (source.GetProperty("column").GetInt32() - 1).ToString(CultureInfo.InvariantCulture) && anchor.Extent?.Cx?.Value == source.GetProperty("width").GetInt64() * 9525 && anchor.Extent.Cy?.Value == source.GetProperty("height").GetInt64() * 9525,
             "Report image anchor or size differs.");
         using var bytes = new MemoryStream();
         using (Stream image = sheet.DrawingsPart.ImageParts.Single().GetStream(FileMode.Open, FileAccess.Read)) image.CopyTo(bytes);
-        Require(bytes.ToArray().SequenceEqual(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfKsAAAAASUVORK5CYII=")), "Report image bytes differ.");
+        Require(bytes.ToArray().SequenceEqual(Convert.FromBase64String(source.GetProperty("pngBase64").GetString()!)), "Report image bytes differ.");
+        string hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes.ToArray())).ToLowerInvariant();
+        Require(hash == source.GetProperty("producer").GetProperty("sha256").GetString(), "Chart producer hash differs.");
     }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidDataException(message); }
 }

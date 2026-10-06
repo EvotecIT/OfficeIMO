@@ -1,5 +1,6 @@
 // Small final-contract lane complements the streamed scale matrix with native-reader artifacts.
-async function runReportContracts() {
+async function runReportContracts(fixtureJson) {
+  const chart = JSON.parse(fixtureJson).cases.find(spec => spec.name === "report-table").sheets[0].images[0];
   const operations = ["sum", "count", "average", "min", "max"];
   for (const compression of ["auto", "store"]) {
     for (const streamed of [false, true]) {
@@ -10,6 +11,10 @@ async function runReportContracts() {
       await regions.addRows([["top", ""], [null, new OfficeIMO.ExportCell(null)], ["bottom", new OfficeIMO.Cell("")]]); await regions.close();
       const third = reports.addSheet("Other report", { title: { text: "Other report" }, columns: [{ header: "Metric" }, { header: "Value", type: "number" }], table: { name: "OtherReport" } });
       await third.addRows([["Count", 2]]);
+      await third.close();
+      const charts = reports.addSheet("Charts", { title: { text: "Report latency" }, columns: Array.from({ length: 6 }, (_, i) => ({ header: "Column " + i, width: 12 })), includeHeader: false, print: {} });
+      await charts.addRows(Array.from({ length: 18 }, () => Array(6).fill(null)));
+      charts.addImage({ data: Uint8Array.from(atob(chart.pngBase64), ch => ch.charCodeAt(0)), row: 3, column: 1, width: chart.width, height: chart.height, description: "ChartForgeX report latency" });
       let blob; if (streamed) { await reports.finish(); blob = new Blob(chunks); } else blob = await reports.toBlob();
       await emit("report-regions-" + compression + "-" + (streamed ? "stream" : "blob") + ".xlsx", blob);
       const invalid = OfficeIMO.createWorkbook({ compression });
