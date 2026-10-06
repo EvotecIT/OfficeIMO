@@ -227,11 +227,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Get or set the background color of a cell using OfficeIMO color.
+        /// An automatic or unspecified fill has no RGB color and returns null.
         /// </summary>
         public Color? ShadingFillColor {
             get {
-                if (ShadingFillColorHex != "") {
-                    return Helpers.ParseColor(ShadingFillColorHex);
+                string fill = ShadingFillColorHex;
+                if (fill != "" && !string.Equals(fill, "auto", StringComparison.OrdinalIgnoreCase)) {
+                    return Helpers.ParseColor(fill);
                 }
 
                 return null;

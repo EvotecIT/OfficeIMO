@@ -6,6 +6,20 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void TableCellShading_AutomaticFillHasNoRgbColorAndRoundTrips() {
+        using WordDocument source = WordDocument.Create();
+        WordTableCell cell = source.AddTable(1, 1).Rows[0].Cells[0];
+        cell.ShadingFillColorHex = "auto";
+        Assert.Equal("AUTO", cell.ShadingFillColorHex);
+        Assert.Null(cell.ShadingFillColor);
+        cell.ShadingFillColorHex = cell.ShadingFillColorHex;
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        Assert.Equal("AUTO", loaded.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Null(loaded.Tables[0].Rows[0].Cells[0].ShadingFillColor);
+        Assert.Empty(loaded.DocumentValidationErrors);
+    }
+
     [Theory]
     [InlineData("direct-shading")]
     [InlineData("no-style")]
