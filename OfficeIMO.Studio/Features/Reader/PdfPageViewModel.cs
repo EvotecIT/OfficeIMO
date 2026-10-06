@@ -167,7 +167,8 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     }
 
     private void RerenderIfRasterScaleChanged(double previousRenderScale) {
-        if (Scene?.RequiresRasterFallback != true || Math.Abs(previousRenderScale - GetRenderScale()) < 0.001D) {
+        // A presentation change also supersedes the first load, before its scene is available.
+        if (Scene is { RequiresRasterFallback: false } || Math.Abs(previousRenderScale - GetRenderScale()) < 0.001D) {
             return;
         }
 

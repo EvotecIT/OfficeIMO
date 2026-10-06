@@ -101,7 +101,9 @@ internal sealed class PdfDocumentSession {
             if (!ViewInfo.CanExtractContent) {
                 PdfPageInfo info = Pages[pageNumber - 1];
                 bool rotated = Math.Abs(info.RotationDegrees) % 180 == 90;
-                var display = new OfficeIMO.Drawing.OfficeDrawing(rotated ? info.Height : info.Width, rotated ? info.Width : info.Height);
+                double width = (info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D);
+                double height = (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D);
+                var display = new OfficeIMO.Drawing.OfficeDrawing(rotated ? height : width, rotated ? width : height);
                 return new PdfPageScene(pageNumber, display, null, [], RequiresRasterFallback: true);
             }
             OfficeIMO.Drawing.OfficeDrawing drawing = _document.Render.Drawing(pageNumber);
