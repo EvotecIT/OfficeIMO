@@ -20,6 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         byte[]? bytes = null;
         string contentType = string.Empty;
         OfficeImageInfo? imageInfo = null;
+        bool normalizationRejected = false;
         if (TryReadInlineSvgSource(element, style.Font.Size, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
             bytes = inlineSvg;
             contentType = "image/svg+xml";
@@ -33,16 +34,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         }
-        if (bytes != null
-            && OfficeImageOrientationNormalizer.TryNormalizeToPng(
-                bytes,
-                style.ApplyEmbeddedImageOrientation,
-                out byte[] orientedPng,
-                out OfficeImageInfo? orientedInfo)) {
-            bytes = orientedPng;
-            contentType = "image/png";
-            imageInfo = orientedInfo;
-        }
+        NormalizeImageOrientation(element, style.ApplyEmbeddedImageOrientation, sourceDescription,
+            ref bytes, ref contentType, ref imageInfo, out normalizationRejected);
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
         double intrinsicWidth = hasIntrinsicSize
             ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? imageInfo.DpiX)
@@ -98,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 addedObject = true;
             }
         }
-        if (!addedObject && placement.IsVisible) {
+        if (!addedObject && placement.IsVisible && !normalizationRejected) {
             OfficeShape placeholder = OfficeShape.Rectangle(placement.Width, placement.Height);
             // Keep the missing image's hit area without painting over its authored CSS background.
             placeholder.FillColor = OfficeColor.Transparent;
