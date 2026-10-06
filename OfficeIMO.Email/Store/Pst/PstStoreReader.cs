@@ -399,9 +399,11 @@ internal sealed partial class PstStoreReader {
                     location));
                 continue;
             }
+            EmailStoreItemSummary summary = CreateSummary(row, string.Concat(location, "/item/", FormatId(nid), "/summary"));
+            summary.RequiresSourceRead = true;
             yield return new ItemSelection(
                 itemNode, folderNid, isAssociated, isOrphaned: false,
-                CreateSummary(row, string.Concat(location, "/item/", FormatId(nid), "/summary")));
+                summary);
         }
     }
 

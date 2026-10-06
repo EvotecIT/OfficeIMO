@@ -138,13 +138,15 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     /// <summary>
     /// Reads only the small set of source properties needed for browsing and search when the format supports it.
-    /// A summary already carried by <paramref name="reference"/> is returned without another source read.
+    /// A complete summary already carried by <paramref name="reference"/> is returned without another source read.
+    /// Partial PST/OST contents-table rows are enriched from the bounded message metadata properties.
     /// </summary>
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
         CancellationToken cancellationToken = default) {
         if (reference == null) throw new ArgumentNullException(nameof(reference));
         ThrowIfDisposed();
-        return reference.Summary ?? _backend.ReadSummary(reference, cancellationToken);
+        return reference.Summary is { RequiresSourceRead: false } summary
+            ? summary : _backend.ReadSummary(reference, cancellationToken);
     }
 
     /// <summary>
