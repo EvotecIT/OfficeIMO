@@ -582,7 +582,7 @@ reuses the existing country/worldwide profile and describes use of the collatera
 independently of product sales rights.
 
 There may be at most 64 items. Each text variant accepts up to 65,536 UTF-16 code
-units, and texts plus source titles share a 524,288-unit export budget. Source
+units, and texts, source titles and rating units share a 524,288-unit export budget. Source
 titles and other attribution fields retain the 4096-unit field bound. Short product
 and collection descriptions additionally permit at most 350 Unicode scalar values,
 so a supplementary character counts once. The complete ONIX document still has its
@@ -593,8 +593,37 @@ carry its permitted-use dates; reversed intervals are rejected. These dates,
 restricted-recipient labels and territory declarations are metadata assertions,
 not access controls: export includes the text and does not enforce embargoes or
 filter a recipient's copy. The publisher remains responsible for accurate attribution,
-permission to use the text and recipient acceptance. Review ratings, media resources and license terms are outside this collateral-text profile. No text or
+permission to use the text and recipient acceptance. Media resources and license terms are outside this collateral-text profile. No text or
 attribution is inferred from EPUB content, and export does not change the book.
+
+#### Review ratings
+
+Attach a publisher-supplied score to `ReviewQuote`, `PreviousEditionReview` or
+`PreviousWorkReview` text with `ReviewRating`:
+
+```csharp
+var review = new BookOnixCollateralText {
+    Type = BookOnixTextType.ReviewQuote,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Texts = [new("A supplied review quotation.", "eng")],
+    ReviewRating = new(4.5m, Limit: 5) {
+        Units = [new("stars", "eng"), new("gwiazdki", "pol")]
+    },
+    SourceCorporate = "Example Journal"
+};
+```
+
+The decimal score must be nonnegative. An optional `Limit` must be a positive
+integer at least as large as the score. Missing limits and units stay absent;
+export does not assume a five-star scale or convert between scales. Numeric
+output uses an invariant decimal point and retains decimal precision.
+
+Up to 16 plain-text unit translations are supported, each at most 50 UTF-16 code
+units. Repeated units require distinct explicit ONIX list 74 languages; a single
+unit may omit its language. Units share the collateral text budget. Ratings may
+accompany plain text or XHTML review variants, but not descriptions or endorsements.
+The publisher supplies and verifies the score, source and permission to quote it;
+OfficeIMO does not fetch reviews, calculate aggregates or validate a reviewer's judgment.
 
 #### XHTML collateral variants
 

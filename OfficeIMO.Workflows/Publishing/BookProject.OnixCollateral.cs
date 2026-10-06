@@ -32,6 +32,7 @@ public sealed partial class BookProject {
             if (item.Texts.Count == 0) throw new ArgumentException("Collateral requires text.", nameof(item.Texts));
             bool shortText = item.Type is BookOnixTextType.ShortDescription or BookOnixTextType.CollectionShortDescription;
             content.Add(BuildOnixCollateralValues(item.Texts, "Text", 65536, shortText, ref textBudget, cancellationToken));
+            content.Add(BuildOnixReviewRating(item.ReviewRating, item.Type, ref textBudget, cancellationToken));
             ArgumentNullException.ThrowIfNull(item.Authors);
             if (item.Authors.Count > 16 || item.Authors.Distinct(StringComparer.Ordinal).Count() != item.Authors.Count)
                 throw new ArgumentException("Supply at most 16 distinct text authors.", nameof(item.Authors));

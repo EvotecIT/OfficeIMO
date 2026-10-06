@@ -209,6 +209,10 @@ The `audience-grades` fixture covers US preschool-to-kindergarten, Canadian grad
 supported grade code in all three systems against the supplied schema. Grading
 systems remain explicit; these synthetic assertions do not establish age equivalence
 or educational suitability.
+The `review-ratings` fixture covers the three review roles, fractional and zero scores,
+optional limits and units, translated unit labels, XHTML text and source attribution.
+Single-record composition preserves the result bytes. Scores and sources are synthetic;
+schema validation does not establish review authenticity or permission to quote it.
 The collateral fixtures cover all supported text/recipient types, multilingual plain
 text, attribution, source links, territory, usage dates, long descriptions and the
 350-scalar Unicode boundary. All quotations and attributions are synthetic. The `collateral-xhtml` fixture exercises
@@ -250,6 +254,7 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/review-ratings.onix \
   /path/to/new-onix-evidence/complexity.onix \
   /path/to/new-onix-evidence/complexity-audience.onix \
   /path/to/new-onix-evidence/adult-unrated.onix \
