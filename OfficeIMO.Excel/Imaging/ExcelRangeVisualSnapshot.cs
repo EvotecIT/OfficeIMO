@@ -916,7 +916,8 @@ namespace OfficeIMO.Excel {
             bool flipHorizontal,
             bool flipVertical,
             bool isFullyOpaque,
-            string source) {
+            string source,
+            Uri? hyperlinkUri) {
             Name = name ?? string.Empty;
             Order = order;
             ContentType = contentType ?? string.Empty;
@@ -934,7 +935,10 @@ namespace OfficeIMO.Excel {
             FlipVertical = flipVertical;
             IsFullyOpaque = isFullyOpaque;
             Source = source ?? string.Empty;
+            HyperlinkUri = hyperlinkUri;
         }
+
+        internal Uri? HyperlinkUri { get; }
 
         /// <summary>Drawing name.</summary>
         public string Name { get; }

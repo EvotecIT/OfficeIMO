@@ -405,6 +405,27 @@ Use `SetInCellImage`, `GetInCellImages`, and `RemoveInCellImage` for native rich
 value images. Their metadata follows cell sorting, filtering, sizing, copying,
 moving, and structural edits; they are distinct from floating drawing images.
 
+### Floating picture hyperlinks
+
+`ExcelImage.HyperlinkUri` reads, sets, changes, or removes a native DrawingML
+picture click link. The target is stored in the workbook; OfficeIMO does not
+open it or fetch it.
+
+```csharp
+ExcelImage picture = sheet.AddImage(2, 1, File.ReadAllBytes("photo.png"),
+    "image/png", widthPixels: 320, heightPixels: 160);
+picture.HyperlinkUri = new Uri("https://example.org/photos/1");
+picture.HyperlinkUri = null; // Remove the click link.
+```
+
+Image bytes, anchors, and shared drawing relationships are preserved. Read-only
+workbooks support inspection but reject mutation. A save that reloads the package
+invalidates existing picture handles; obtain current images from
+`document.Sheets` after that save. Removed worksheets cannot be rebound by name.
+SVG image export preserves targets allowed by the shared safe-link policy and
+reports unsupported interactive targets. Raster output retains the picture
+without click behavior.
+
 ### File-backed editing for large workbooks
 
 ```csharp
