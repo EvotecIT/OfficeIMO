@@ -9,7 +9,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryRenderNativeParagraphFlowBreaks(
         INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker,
         System.Func<WordParagraph, (int Level, string Marker)?> getMarker,
-        Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options,
+        NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options,
         IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap,
         WordParagraph? nextParagraph) {

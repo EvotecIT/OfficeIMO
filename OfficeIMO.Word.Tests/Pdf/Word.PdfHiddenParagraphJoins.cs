@@ -202,7 +202,7 @@ public partial class Word {
         using var pdf = OpenJoinedParagraphPdf(document);
         Assert.Contains("NOTETEXT", pdf.GetPage(1).Text);
         // One marker belongs to the body and another labels its rendered note.
-        Assert.Equal(2, pdf.GetPage(1).Letters.Count(letter => letter.Value == "1"));
+        Assert.Equal(2, pdf.GetPage(1).Letters.Count(letter => letter.Value == (endnote ? "i" : "1")));
     }
 
     private static PdfPigDocument OpenJoinedParagraphPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdfBytes(

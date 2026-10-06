@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -11,7 +10,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, Dictionary<long, int> footnoteNumbersById) {
+        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, NativeNoteNumbering footnoteNumbersById) {
             var footnotes = new List<PdfFootnote>();
             foreach (WordElement element in elements) {
                 CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0, tableDepth: 0);
@@ -23,7 +22,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void CollectNativeFootnotes(
             WordElement element,
             List<PdfFootnote> footnotes,
-            Dictionary<long, int> footnoteNumbersById,
+            NativeNoteNumbering footnoteNumbersById,
             int structuredDocumentTagDepth,
             int tableDepth) {
             switch (element) {
@@ -97,7 +96,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFootnote(WordFootNote footNote, List<PdfFootnote> footnotes, Dictionary<long, int> footnoteNumbersById) {
+        private static void AddNativeFootnote(WordFootNote footNote, List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
             long? referenceId = footNote.ReferenceId;
             if (!referenceId.HasValue || referenceId.Value == 0) {
                 return;
@@ -108,15 +107,13 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnoteNumbersById.Keys.Count(key => key > 0) + 1;
-            footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
-                Number = number,
+                Label = footnoteNumbersById.Add(key, endnote: false),
                 Text = GetNativeFootnoteText(footNote)
             });
         }
 
-        private static void AddNativeEndnote(WordEndNote endNote, List<PdfFootnote> footnotes, Dictionary<long, int> footnoteNumbersById) {
+        private static void AddNativeEndnote(WordEndNote endNote, List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
             long? referenceId = endNote.ReferenceId;
             if (!referenceId.HasValue || referenceId.Value == 0) {
                 return;
@@ -127,10 +124,8 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnoteNumbersById.Keys.Count(key => key < 0) + 1;
-            footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
-                Number = number,
+                Label = footnoteNumbersById.Add(key, endnote: true),
                 Text = GetNativeEndnoteText(endNote)
             });
         }
@@ -157,7 +152,7 @@ namespace OfficeIMO.Word.Pdf {
             return string.Join(" ", parts);
         }
 
-        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById, HashSet<long>? seenKeys = null) {
+        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById, HashSet<long>? seenKeys = null) {
             var numbers = new List<int>();
             seenKeys ??= new HashSet<long>();
             for (int i = index + 1; i < elements.Count && (elements[i] is WordFootNote || elements[i] is WordEndNote); i++) {
@@ -170,7 +165,7 @@ namespace OfficeIMO.Word.Pdf {
             return numbers;
         }
 
-        private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, Dictionary<long, int> footnoteNumbersById) {
+        private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, NativeNoteNumbering footnoteNumbersById) {
             var numbers = new List<int>();
             var seenKeys = new HashSet<long>();
             AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById, seenKeys);
@@ -179,7 +174,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // Paragraph and traversal wrappers can expose the same reference twice.
-            // Different footnote/endnote identities may nevertheless share a display number.
+            // Tokens retain identity even when displayed labels repeat.
             var unmatched = numbers.GroupBy(number => number).ToDictionary(group => group.Key, group => group.Count());
             foreach (int number in followingFootnoteNumbers) {
                 if (unmatched.TryGetValue(number, out int count) && count > 0) unmatched[number] = count - 1;
@@ -188,7 +183,7 @@ namespace OfficeIMO.Word.Pdf {
             return numbers;
         }
 
-        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, Dictionary<long, int> footnoteNumbersById, HashSet<long> seenKeys) {
+        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<long> seenKeys) {
             WordFootNote? footNote = paragraph.FootNote;
             long? footnoteKey = footNote?.ReferenceId.HasValue == true && footNote.ReferenceId.Value != 0 ? GetNativeFootnoteKey(footNote.ReferenceId.Value) : null;
             if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number) && seenKeys.Add(footnoteKey.Value)) {
@@ -226,7 +221,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (PdfFootnote footnote in footnotes) {
                 pdf.Paragraph(builder => {
                     builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
-                    builder.Text(footnote.Number.ToString(CultureInfo.InvariantCulture));
+                    builder.Text(footnote.Label);
                     builder.Baseline(PdfCore.PdfTextBaseline.Normal);
                     if (!string.IsNullOrWhiteSpace(footnote.Text)) {
                         builder.Text(" ");
