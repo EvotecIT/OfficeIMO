@@ -54,7 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, textHeight, out double x, out double y, out double width, out double height)) continue;
                 IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
                     new HtmlRenderText(text, x, y, width, height, box.Font, box.Color, box.Alignment,
-                        lineHeight, _paintOrder++, source: marginBoxSource, semanticRole: "page-margin")
+                        lineHeight, _paintOrder++, source: marginBoxSource, semanticRole: "page-margin", wrappedLines: lines)
                 };
                 if (textHeight > height + 0.0001D) {
                     if (_reportedMarginTextOverflow.Add(marginBoxSource)) {

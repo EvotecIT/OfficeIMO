@@ -7,6 +7,31 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlPdf_PageMarginTimestampPaintsWithinItsWrappedFrame() {
+        const string footer = "Data as of 21 Sep 2026 01:59 UTC · Generated 1 Oct 2026 22:41 UTC";
+        string html = "<style>@page { size:A4; margin:16mm 14mm 18mm; "
+            + "@bottom-left { content:'" + footer + "'; font:8pt/1.2 Calibri, Carlito, 'Segoe UI', sans-serif; } "
+            + "@bottom-center {content:'Internal';font:8pt sans-serif} "
+            + "@bottom-right {content:'Page 1';font:8pt sans-serif} } body,p {margin:0}</style><p>Body</p>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        var page = Assert.Single(PdfCore.PdfReadDocument.Open(pdf,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).Pages);
+        var spans = page.GetTextSpans().Where(span => span.Y < 50D && span.X < 210D).ToArray();
+        string actual = string.Concat(string.Concat(spans.Select(span => span.Text)).Where(c => !char.IsWhiteSpace(c)));
+        Assert.Equal(string.Concat(footer.Where(c => !char.IsWhiteSpace(c))), actual);
+        Assert.True(spans.Select(span => Math.Round(span.Y, 2)).Distinct().Count() >= 2,
+            "The full footer must paint on multiple baselines rather than extending into its peer margin boxes.");
+        Assert.All(spans, span => Assert.InRange(span.X + span.Advance, 0D, 211.6536D));
+        HtmlRenderPage rendered = Assert.Single(HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+        var drawingLines = rendered.CreateDrawing().Elements.OfType<OfficeDrawingText>()
+            .Where(text => text.Y > 1000D && text.X < 280D).ToArray();
+        Assert.True(drawingLines.Select(text => text.Y).Distinct().Count() >= 2);
+        Assert.Equal(string.Concat(footer.Where(c => !char.IsWhiteSpace(c))),
+            string.Concat(string.Concat(drawingLines.Select(text => text.Text)).Where(c => !char.IsWhiteSpace(c))));
+    }
+
     [Theory]
     [InlineData("top-left")]
     [InlineData("top-center")]
@@ -48,7 +73,11 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(pdf,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true });
-        string actual = string.Concat(document.ExtractText().Where(c => !char.IsWhiteSpace(c)));
+        var marginSpans = Assert.Single(document.Pages).GetTextSpans().Where(span =>
+            span.X >= margin.X * 0.75D - 0.01D && span.X < (margin.X + margin.Width) * 0.75D - 0.01D
+            && span.Y <= (page.Height - margin.Y) * 0.75D + 0.01D
+            && span.Y >= (page.Height - margin.Y - margin.Height) * 0.75D - 0.01D);
+        string actual = string.Concat(string.Concat(marginSpans.Select(span => span.Text)).Where(c => !char.IsWhiteSpace(c)));
         Assert.Contains("ReportCreatedToday", actual, StringComparison.Ordinal);
         PdfCore.PdfReadDocument body = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Equal("BodyOnly", body.ExtractText().Trim());
