@@ -239,6 +239,7 @@ public static partial class OfficeMarkupParser {
 
     private static void PopulateColumn(OfficeMarkupColumnBlock column, OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics, MarkdownReaderOptions markdownOptions) {
+        column.HasParsedBody = true;
         if (string.IsNullOrWhiteSpace(column.Body)) return;
         var nested = MarkdownReader.ParseProjectionWithBlockSpans(column.Body, markdownOptions);
         MapMarkdownBlocks(nested.Blocks, column.Blocks, profile, diagnostics, markdownOptions);

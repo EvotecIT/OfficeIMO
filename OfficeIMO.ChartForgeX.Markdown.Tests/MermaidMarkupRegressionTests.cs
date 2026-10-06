@@ -73,6 +73,41 @@ public sealed class MermaidMarkupRegressionTests {
         Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("Complete"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void IntentionallyEmptyColumnsDoNotRestoreAuthoredContent(bool removeInTransform) {
+        var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
+        if (removeInTransform) reader.DocumentTransforms.Add(new RemoveDiagramDocument());
+        var parsed = OfficeMarkupParser.Parse("@slide title=\"Report\"\n\n::columns\n\n::left\n" + Fence
+            + "\n\n::right\nSummary", new OfficeMarkupParserOptions {
+                Profile = OfficeMarkupProfile.Presentation, MarkdownOptions = reader
+            });
+        var column = parsed.Document.DescendantsAndSelf().OfType<OfficeMarkupColumnBlock>().First();
+        if (!removeInTransform) column.Blocks.Clear();
+        Assert.Empty(column.Blocks);
+        using var deck = parsed.Document.ToPowerPointPresentation(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        Assert.Empty(deck.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
+        Assert.DoesNotContain(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("A --> B"));
+        Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Summary");
+    }
+
+    [Fact]
+    public void ManuallyAuthoredColumnBodiesKeepTheirDefaultParsingPath() {
+        var document = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
+        document.Blocks.Add(new OfficeMarkupColumnsBlock());
+        document.Blocks.Add(new OfficeMarkupColumnBlock("left", Fence));
+        document.Blocks.Add(new OfficeMarkupColumnBlock("right", "Summary"));
+        using var deck = document.ToPowerPointPresentation(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("A --> B"));
+    }
+
+    private sealed class RemoveDiagramDocument : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) =>
+            document.DescendantObjectsOfType<ImageBlock>().Any() ? new MarkdownDoc() : document;
+    }
+
     private static OfficeMarkupParseResult Parse(string source, OfficeMarkupProfile profile) {
         var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
         reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());

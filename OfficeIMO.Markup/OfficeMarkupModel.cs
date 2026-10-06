@@ -605,8 +605,10 @@ public sealed class OfficeMarkupColumnBlock : OfficeMarkupBlock {
     /// <summary>Gets the column body, or empty when null was supplied.</summary>
     public string Body { get; }
     /// <summary>Gets the parsed body blocks, including caller-applied Markdown transforms.</summary>
-    /// <remarks>Exporters use these blocks when present; otherwise they parse Body with default Markdown options.</remarks>
+    /// <remarks>Parser-produced blocks remain authoritative when empty. Manually constructed Body-only columns use default Markdown parsing.</remarks>
     public IList<OfficeMarkupBlock> Blocks => _blocks;
+    // An empty transform result is different from an unparsed, manually authored Body.
+    internal bool HasParsedBody { get; set; }
     /// <summary>Gets or sets an optional width expression.</summary>
     public string? Width { get; set; }
 }

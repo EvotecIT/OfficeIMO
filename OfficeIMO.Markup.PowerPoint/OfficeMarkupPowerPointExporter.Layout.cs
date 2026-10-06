@@ -197,7 +197,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         new string((value ?? string.Empty).Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
     private static IEnumerable<OfficeMarkupBlock> GetColumnBlocks(OfficeMarkupBlock block) {
-        if (block is OfficeMarkupColumnBlock column && column.Blocks.Count > 0) return column.Blocks;
+        if (block is OfficeMarkupColumnBlock column && (column.HasParsedBody || column.Blocks.Count > 0)) return column.Blocks;
         var body = GetColumnBody(block);
         return string.IsNullOrWhiteSpace(body) ? Array.Empty<OfficeMarkupBlock>()
             : OfficeMarkupParser.Parse(body, new OfficeMarkupParserOptions {
