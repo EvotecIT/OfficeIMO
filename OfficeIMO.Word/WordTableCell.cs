@@ -134,6 +134,7 @@ namespace OfficeIMO.Word {
                 AddTableCellProperties();
                 if (value != "") {
                     var color = value.Replace("#", "").ToUpperInvariant();
+                    if (color == "AUTO") color = "auto";
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Fill = color;
                     _tableCellProperties.Shading.Val ??= ShadingPatternValues.Clear;
@@ -226,11 +227,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Get or set the background color of a cell using OfficeIMO color.
+        /// An automatic or unspecified fill has no RGB color and returns null.
         /// </summary>
         public Color? ShadingFillColor {
             get {
-                if (ShadingFillColorHex != "") {
-                    return Helpers.ParseColor(ShadingFillColorHex);
+                string fill = ShadingFillColorHex;
+                if (fill != "" && !string.Equals(fill, "auto", StringComparison.OrdinalIgnoreCase)) {
+                    return Helpers.ParseColor(fill);
                 }
 
                 return null;

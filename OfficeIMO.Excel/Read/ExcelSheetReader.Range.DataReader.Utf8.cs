@@ -214,12 +214,15 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct,
                 out byte[]? buffer,
                 out int length) {
-                if (owner.TryReadWorksheetPartBuffer(
+                if (owner._partBufferReader != null) {
+                    // An oversized snapshot part cannot be indexed. Let the
+                    // full projection validate it through the same ZIP entry
+                    // instead of buffering an unchecked SDK stream.
+                    return owner.TryReadWorksheetPartBuffer(
                         MaximumBufferSize,
                         ct,
                         out buffer,
-                        out length)) {
-                    return true;
+                        out length);
                 }
 
                 owner.RequireSdkWorksheetPart();

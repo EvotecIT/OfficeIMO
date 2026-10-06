@@ -12,6 +12,7 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
     private readonly IStudioLocalizer _localizer;
     private CancellationTokenSource? _loadCancellation;
     private long _loadGeneration;
+    private double _renderScaling = 1D;
     private bool _attached;
     private bool _disposed;
 
@@ -64,6 +65,33 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
 
     public bool HasError => !string.IsNullOrWhiteSpace(Error);
 
+    /// <summary>Applies the presenting display's scaling and reloads a raster thumbnail whose resolution changes.</summary>
+    internal void SetRenderScaling(double renderScaling) {
+        renderScaling = PdfRasterScale.NormalizeRenderScaling(renderScaling);
+        if (_disposed || Math.Abs(_renderScaling - renderScaling) < 0.001D) return;
+        double previousScale = GetRenderScale(Scene, _renderScaling);
+        _renderScaling = renderScaling;
+        // Until the scene arrives, the placeholder dimensions cannot predict its raster scale.
+        if (!_attached || Scene is { RequiresRasterFallback: false } ||
+            (Scene is not null && Math.Abs(previousScale - GetRenderScale(Scene, renderScaling)) < 0.001D)) return;
+        _ = LoadAsync();
+    }
+
+    /// <summary>The raster scale that fills the thumbnail box at the current display scaling.</summary>
+    internal double GetRenderScale(PdfPageScene? scene) => GetRenderScale(scene, _renderScaling);
+
+    private double GetRenderScale(PdfPageScene? scene, double renderScaling) {
+        double drawingWidth = scene?.Drawing.Width ?? ThumbnailWidth;
+        double drawingHeight = scene?.Drawing.Height ?? ThumbnailHeight;
+        double fit = Math.Min(ThumbnailWidth / Math.Max(1D, drawingWidth), ThumbnailHeight / Math.Max(1D, drawingHeight));
+        return PdfRasterScale.Compose(
+            fit,
+            renderScaling,
+            drawingWidth,
+            drawingHeight,
+            StudioPdfSecurityPolicy.MaximumRasterPixels);
+    }
+
     internal void Attach() {
         if (_disposed || _attached) return;
         _attached = true;
@@ -95,13 +123,14 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         var cancellation = new CancellationTokenSource();
         _loadCancellation = cancellation;
         CancellationToken token = cancellation.Token;
+        double renderScaling = _renderScaling;
         IsLoading = true;
         Error = null;
         try {
             PdfPageScene scene = await _sceneCoordinator.GetPageAsync(PageNumber, token).ConfigureAwait(false);
             Bitmap? image = null;
             if (scene.RequiresRasterFallback) {
-                PdfRenderedPage rendered = await _renderCoordinator.GetPageAsync(PageNumber, 0.25D, token).ConfigureAwait(false);
+                PdfRenderedPage rendered = await _renderCoordinator.GetPageAsync(PageNumber, GetRenderScale(scene, renderScaling), token).ConfigureAwait(false);
                 using var stream = new MemoryStream(rendered.Bytes, writable: false);
                 image = new Bitmap(stream);
             }

@@ -9,6 +9,15 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Owned HTML parser providers
+
+`IHtmlParserProvider.Parse` is replaced by `ParseDocument`, and providers implement
+`ParseFragment` with an owned context element. Rename direct calls to
+`AngleSharpHtmlParser.Instance.Parse` to `ParseDocument`. The conversion entrypoint
+`HtmlConversionDocument.Parse` retains its API. Custom providers return frozen owned
+snapshots for both operations; contextual fragments have an independent document and
+can be imported into a mutable destination with `ImportNode`.
+
 ## Long-document AI request budgets
 
 Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.

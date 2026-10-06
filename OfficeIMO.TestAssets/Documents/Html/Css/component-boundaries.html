@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSS component boundaries</title>
+  <style>
+    body { margin: 0; color: #16324f; font: 16px Arial, sans-serif; }
+    h1 { font-size: 24px; margin: 0 0 16px; }
+    .panel { padding: 16px; margin-bottom: 12px; background: #e8f1f5; border-left: 5px solid #006699; }
+    .label { font-weight: bold; }
+    .next { break-before: page; }
+  </style>
+</head>
+<body>
+  <h1>CSS component boundaries</h1>
+  <div class="panel" style="--payload: {ignored; display:none;};">
+    <span class="label">Curly block</span><br>Visible text after a nested semicolon.
+  </div>
+  <div class="panel" style="--payload: [ignored; display:none;];">
+    <span class="label">Square block</span><br>Visible text after a nested semicolon.
+  </div>
+  <div class="panel" style="--payload: {[ignored; display:none;]};">
+    <span class="label">Nested blocks</span><br>Visible text after a nested semicolon.
+  </div>
+  <div class="panel" style="--payload: [ignored\]; display:none;];">
+    <span class="label">Escaped delimiter</span><br>Visible text after an escaped closing bracket.
+  </div>
+  <div class="panel next">
+    <span class="label">Page break control</span><br>On the second page in paged output.
+  </div>
+</body>
+</html>
