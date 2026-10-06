@@ -3037,14 +3037,8 @@
       "rawSourceTableCells": 106,
       "allSourceOrderedTableCellsPreserved": true
     },
-    "reproducedRemainingGap": {
-      "source": "Titan photo: captured static WebP 1390 bytes, SHA 4a0689bd056202047a2600100552b3738dafd63019003d584826d951fdcc2b63",
-      "native": "Picture absent with explicit ResourceTypeUnsupported/Omission diagnostic. Core already supports decoding; an independent bounded Excel HTML raster-normalization candidate is being qualified.",
-      "notSilentLoss": true
-    },
     "resourceBoundary": "Unavailable site icons/fonts are distinct archive omissions; no network fallback or missing-capture resource promise. Source image counts precede CSS visibility.",
     "remaining": [
-      "Static WebP normalization and fresh same-route replay",
       "Additional held-out illustrated chapter resource/link acceptance",
       "Typed value classification for the declared planetary-table profile; raw generic HTML cells remain text under current contract",
       "Native Excel whole-page/application click/manual accessibility",
@@ -3057,6 +3051,112 @@
       "planetary-native-table-source-observations.json": "e481f39638f375d140f9147a39cf6e7af0fcc6ccae01ad3b6f413eab993e1776",
       "planetary-editable-clean-c1345119b/summary.json": "dc0fd658869480cce81f8a1c01cdb4d152d91638b2397756c26383c9ba4455bb",
       "planetary-editable-clean-c1345119b/excel/report.json": "1a9867af8598a573275f1ca00496cf04769f3346e08226d87f59b34eb23c6dd9"
+    },
+    "reproducedGapBeforeNormalization": {
+      "source": "Titan photo: captured static WebP 1390 bytes, SHA 4a0689bd056202047a2600100552b3738dafd63019003d584826d951fdcc2b63",
+      "native": "Picture absent with explicit ResourceTypeUnsupported/Omission diagnostic. Core already supports decoding; an independent bounded Excel HTML raster-normalization candidate is being qualified.",
+      "notSilentLoss": true,
+      "closedBy": "Combined1231730d9 replay/PR2852 owner; see excelRasterNormalization20261006"
+    }
+  },
+  "excelRasterNormalization20261006": {
+    "trigger": "Captured Titan static WebP was omitted by Excel HTML import although the managed Core decoder already supported it.",
+    "standalone": {
+      "pr": 2852,
+      "head": "710eea0fe646b28dba17a4759b304c3d30976533",
+      "owner": "Existing managed Core OfficeImagePngConverter; thin Excel.Html image preparation for generic, semantic inventory and editable-layout routes",
+      "runtimeDependenciesAdded": 0,
+      "api": "HtmlImportLimits.MaxDecodedImagePixels bounds normalization; default16000000; clone and positive validation",
+      "limits": "Source and retained PNG byte accounting charge their maximum, preserving per-image/total bytes and image/shape reservations. Animated/malformed WebP/AVIF reject with loss.",
+      "newDistinctRegressions": 12,
+      "focusedLimitTestsNet10": 52,
+      "fullHtmlPerFramework": {
+        "passed": 3229,
+        "failed": 6,
+        "boundary": "Same six previously observed font cases outside this candidate. Original TRX/failures retained; not a full-green standalone claim."
+      },
+      "normalPackages": 6,
+      "targets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "freshPublicControlsPerFramework": 6,
+      "independentSavedNativePixelArtifacts": 8,
+      "coreExternalRuntimeDependencies": 0,
+      "nativeReaderControls": 4,
+      "nativeReader": "LibreOfficeDev26.8alpha0,110dpi contact sheet inspected; not desktop Excel whole-page/click/manual accessibility",
+      "review": "One full read-only pass plus targeted confirmation. Primary-reproduced source-byte undercount fixed, failing regression retained; no remaining actionable findings.",
+      "initialHostedState": "Exact710 head,88queued2skipped,zero complete-page threads. Current-head CI/native Windows and delayed feedback remain required.",
+      "evidenceRoot": "../OfficeIMO-excel-html-raster-normalization/Ignore/ExcelRasterNormalizationQualification",
+      "receiptSha256": "f29d4b5f3350a22fe823fd49fcef035139b60e9bc895799961723fa73f2128ce"
+    },
+    "combined": {
+      "source": "1231730d936a117b6d0c56660197f99beff7604a",
+      "adoption": "Only standalone normalization patch; resolved Generic AddImage to keep current hyperlink assignment and normalized contentType, retained both existing HTML corpus glob and new fixtures. No advancing-master merge or shared rewrite.",
+      "HtmlTests": {
+        "net8.0": 4408,
+        "net10.0": 4408
+      },
+      "normalStandardAndEditableRunnerBuild": "0warnings0errors",
+      "runnerOwnership": "Clean-source route requires all ten loaded owner versions +123; twelve loaded-copy hashes equal normal project outputs",
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "route": "Existing HtmlEditableEvidence --target excel --max-css-rules10000 --require-clean-source; same declared markers and archive.",
+      "nativePictures": 16,
+      "nativePictureLinks": 15,
+      "previousPicturesPreserved": 15,
+      "allPreviousMediaTargetsAndDimensionsPreserved": true,
+      "titan": {
+        "storedPngSha256": "e7f33c6a8daeaf20c6112491118fdc9247f25a3f8672b2483d5328f030d13fac",
+        "size": [
+          290,
+          163
+        ],
+        "maxRgbError": 1,
+        "alphaError": 0,
+        "authoredTargetPreserved": true,
+        "normalizationDiagnosed": true,
+        "visual": "Captured/native image pair inspected"
+      },
+      "nativeRegularRows": 21,
+      "rawSourceCells": 106,
+      "sourceOrderAndCellTextPreserved": "Same predeclared HTML-whitespace comparison; raw native newlines remain in report.",
+      "namedTableParts": 0,
+      "HasLoss": true,
+      "remainingBoundaries": [
+        "Declared planetary numeric typing is not qualified; raw generic HTML stays text.",
+        "All-image inventory precedes computed visibility; site fonts/icons unavailable in archive remain capture gaps.",
+        "Native whole-page/application click/manual accessibility, wider targets and all corpus/profiles remain open.",
+        "Actual supported-platform timing and qualified long-lived synchronization remain open."
+      ],
+      "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+      "receiptHashes": {
+        "normalization-adoption-identity.json": "ae1106f40e996916ffa496f48bc4cf768da499890b25ff259808ff7df0e169f9",
+        "normalization-combined-validation-receipt.json": "c197b0f89b5a610401de2353322f37d324ec8795a6e70613096331f8bba8f8a3",
+        "normalization-runner-owner-hashes.json": "132cdef5ea4c99714875dcf3b7c16fbb69a9711946ea3f10d7fbdc32040252ae",
+        "planetary-native-picture-normalized-observations.json": "29f09ddf42c9f56d066a6c2f2fac328eb29bf7daab5bd05a18ae8599245588bc",
+        "planetary-normalized-native-comparison.json": "1b9a665c1cf013747b4d5361edfe8401529c9a4ec74af8c94cf0bc6728c57bb1",
+        "planetary-editable-normalized-clean-1231730d9/summary.json": "96f0abbc0389447c6fac2008e677e692a7b46a497d825405db4e33f4a25190c8",
+        "planetary-editable-normalized-clean-1231730d9/excel/report.json": "fdacfacb4a58ed1b0e0e477a8471f5459b12131499f78c96f68d5bb7e0e1e831"
+      }
+    },
+    "cleanup": {
+      "standaloneTargets": 68,
+      "standaloneBytes": 1665712414,
+      "mainTargets": 66,
+      "mainBytes": 1261197519,
+      "allAbsentVerified": true,
+      "nativeFilesystemErrorsRecoveredWithGuardedDotNet": 69,
+      "scope": "Completed compiler/test/runner output and isolated reader/private package expansions only. Source, final six-package feed, original failures, all independent artifacts and receipts retained.",
+      "turnTotalPreviouslyAndNow": {
+        "targets": 577,
+        "bytes": 12296135920
+      },
+      "results": [
+        "../OfficeIMO-excel-html-raster-normalization/Ignore/ExcelRasterNormalizationQualification/final-build-cleanup-results.json",
+        "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/normalization-main-build-cleanup-results.json"
+      ]
     }
   }
 }
