@@ -742,7 +742,7 @@ Audience categories, age ranges and grade ranges are independent assertions. Sup
 range for children's, teenage and school material when known; export does not guess
 one from a category or inspect the book to assess suitability. This profile does not
 represent other national grade schemes, national statutory
-ratings or reading-complexity schemes. Schema validity does not establish educational
+ratings. Schema validity does not establish educational
 suitability or recipient acceptance, and audience export does not change EPUB metadata.
 
 ### Adult-audience content advice
@@ -774,6 +774,41 @@ advice may be combined. Omitting `AdultRatings` makes no rating assertion, where
 `Unrated` explicitly communicates code 00. Optional `Headings` follow the same
 translation rules as category headings. OfficeIMO does not analyze the manuscript,
 assign a national statutory classification or establish reader suitability.
+
+### Reading and listening complexity
+
+Use `Audience.Complexities` for publisher-supplied [ONIX list 32](https://ns.editeur.org/onix/en/32)
+values, independently of audience categories, ages and grades:
+
+```csharp
+var readership = new BookOnixAudienceMetadata {
+    Complexities = [
+        new(BookOnixComplexityScheme.Lexile, "HL600L"),
+        new(BookOnixComplexityScheme.FleschKincaid, "5.7")
+    ]
+};
+```
+
+The supported schemes are `FryReadability`, `IoeBookBand`, `FountasAndPinnell`,
+`Lexile`, `Atos`, `FleschKincaid`, `GuidedReading`, `ReadingRecovery`, `Lix`,
+`LexileAudio` and `LexileSpanish`. Deprecated separate Lexile code/number schemes
+are omitted; use the combined measure. English-text, Spanish-text and listening
+measures remain distinct assertions.
+
+This profile accepts up to 64 distinct scheme/value pairs, each with at most
+20 characters and no control characters or surrounding whitespace. Fry values
+must be integers from 1 through 15; Reading Recovery values from 1 through 20.
+Fountas and Pinnell levels must be `A` through `Z` or `Z+`. ATOS accepts decimal
+scores from 0 through 17. Flesch-Kincaid accepts decimal scores, including negative
+values and values outside the typical grade range. Decimal syntax uses a period,
+without grouping separators or exponent notation, and is independent of system
+culture. Supplied spelling is preserved in the output.
+
+Other schemes carry the supplied external code without checking its vocabulary,
+assignment, licensing or applicability to the book. The publisher must obtain and
+verify those values. OfficeIMO does not calculate scores, equate different schemes,
+infer age suitability or certify a leveling result. Schema validation establishes
+the ONIX structure, not the correctness of an external measure.
 
 ### Collection membership
 

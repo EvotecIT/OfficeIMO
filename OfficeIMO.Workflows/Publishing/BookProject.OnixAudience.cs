@@ -11,9 +11,10 @@ public sealed partial class BookProject {
         ArgumentNullException.ThrowIfNull(audience.AgeRanges);
         ArgumentNullException.ThrowIfNull(audience.GradeRanges);
         ArgumentNullException.ThrowIfNull(audience.Descriptions);
-        if (audience.Categories.Count > 13 || audience.Codes.Count > 64 || audience.AdultRatings.Count > 14 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16)
-            throw new ArgumentException("Audience metadata exceeds its category, code, rating, range or description limit.", nameof(audience));
-        if (audience.Categories.Count == 0 && audience.Codes.Count == 0 && audience.AdultRatings.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0)
+        ArgumentNullException.ThrowIfNull(audience.Complexities);
+        if (audience.Categories.Count > 13 || audience.Codes.Count > 64 || audience.AdultRatings.Count > 14 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16 || audience.Complexities.Count > 64)
+            throw new ArgumentException("Audience metadata exceeds its category, code, rating, range, description or complexity limit.", nameof(audience));
+        if (audience.Categories.Count == 0 && audience.Codes.Count == 0 && audience.AdultRatings.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0 && audience.Complexities.Count == 0)
             throw new ArgumentException("Supply at least one audience assertion, or omit Audience.", nameof(audience));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
@@ -68,6 +69,7 @@ public sealed partial class BookProject {
             if (description.LanguageCode != null) element.Add(new XAttribute("language", description.LanguageCode));
             result.Add(element);
         }
+        result.AddRange(BuildOnixComplexity(audience.Complexities, cancellationToken));
         return result;
     }
 

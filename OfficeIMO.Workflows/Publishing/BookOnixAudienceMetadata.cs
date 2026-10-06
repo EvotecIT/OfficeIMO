@@ -64,6 +64,8 @@ public sealed record BookOnixAudienceMetadata {
     public IReadOnlyList<BookOnixAgeRange> AgeRanges { get; init; } = [];
     /// <summary>At most one ordered school/college grade range per supported grading system.</summary>
     public IReadOnlyList<BookOnixGradeRange> GradeRanges { get; init; } = [];
+    /// <summary>Up to 64 distinct publisher-supplied complexity assertions; no score calculation is performed.</summary>
+    public IReadOnlyList<BookOnixComplexity> Complexities { get; init; } = [];
     /// <summary>At most 16 plain-text descriptions. Repeated descriptions require distinct explicit languages.</summary>
     public IReadOnlyList<BookOnixAudienceDescription> Descriptions { get; init; } = [];
 }

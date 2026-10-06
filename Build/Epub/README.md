@@ -186,6 +186,10 @@ not evidence of allocation, ownership or a publisher's actual publication schedu
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
 assertions exercise serialization and do not establish readership or suitability.
+The `complexity` and `complexity-audience` fixtures cover all supported list 32
+schemes, complexity-only metadata, ordering after audience descriptions, distinct values
+in one scheme and preserved decimal spelling. Their values are synthetic publisher
+assertions, not independently assigned levels or evidence of scoring accuracy.
 The `adult-unrated`, `adult-general` and `adult-advice` fixtures cover explicit unrated
 and unrestricted-adult assertions, every supported content-advice code, translated
 headings and main flags scoped independently from general audience categories.
@@ -246,6 +250,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/complexity.onix \
+  /path/to/new-onix-evidence/complexity-audience.onix \
   /path/to/new-onix-evidence/adult-unrated.onix \
   /path/to/new-onix-evidence/adult-general.onix \
   /path/to/new-onix-evidence/adult-advice.onix \
