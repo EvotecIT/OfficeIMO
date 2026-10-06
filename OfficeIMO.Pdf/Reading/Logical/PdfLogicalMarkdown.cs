@@ -73,34 +73,33 @@ public static class PdfLogicalMarkdownExtensions {
         var items = new List<MarkdownItem>();
         int sequence = 0;
 
-        for (int i = 0; i < page.Headings.Count; i++) {
-            PdfLogicalHeading heading = page.Headings[i];
-            int level = Math.Min(Math.Max(heading.Level, 1), 6);
-            items.Add(new MarkdownItem(heading.Line.BaselineY, heading.Line.XStart, sequence++, new string('#', level) + " " + EscapeInline(heading.Text)));
-        }
-
-        for (int i = 0; i < page.Paragraphs.Count; i++) {
-            PdfLogicalParagraph paragraph = page.Paragraphs[i];
-            if (IsParagraphRepresentedByStructuredElement(paragraph, page)) {
-                continue;
+        IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
+            PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
+        foreach (PdfLogicalReadingOrderItem item in readingOrder) {
+            string markdown;
+            switch (item.Kind) {
+                case PdfLogicalReadingOrderKind.Heading:
+                    PdfLogicalHeading heading = page.Headings[item.SourceIndex];
+                    int level = Math.Min(Math.Max(heading.Level, 1), 6);
+                    markdown = new string('#', level) + " " + EscapeInline(heading.Text);
+                    break;
+                case PdfLogicalReadingOrderKind.Paragraph:
+                    markdown = EscapeInline(page.Paragraphs[item.SourceIndex].Text);
+                    break;
+                case PdfLogicalReadingOrderKind.ListItem:
+                    PdfLogicalListItem listItem = page.ListItems[item.SourceIndex];
+                    string indent = new string(' ', Math.Max(listItem.Level - 1, 0) * 2);
+                    markdown = indent + FormatListMarker(listItem.Marker) + " " + EscapeInline(listItem.Text);
+                    break;
+                case PdfLogicalReadingOrderKind.Table:
+                    markdown = RenderTable(page.Tables[item.SourceIndex], options);
+                    break;
+                case PdfLogicalReadingOrderKind.TextBlock:
+                    markdown = EscapeInline(page.TextBlocks[item.SourceIndex].Text);
+                    break;
+                default: continue;
             }
-
-            items.Add(new MarkdownItem(paragraph.YTop, paragraph.XStart, sequence++, EscapeInline(paragraph.Text)));
-        }
-
-        for (int i = 0; i < page.ListItems.Count; i++) {
-            PdfLogicalListItem listItem = page.ListItems[i];
-            string indent = new string(' ', Math.Max(listItem.Level - 1, 0) * 2);
-            items.Add(new MarkdownItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, indent + FormatListMarker(listItem.Marker) + " " + EscapeInline(listItem.Text)));
-        }
-
-        for (int i = 0; i < page.Tables.Count; i++) {
-            PdfLogicalTable table = page.Tables[i];
-            double x = table.Columns.Count > 0 ? table.Columns[0].From : 0;
-            string markdown = RenderTable(table, options);
-            if (markdown.Length > 0) {
-                items.Add(new MarkdownItem(table.YTop, x, sequence++, markdown));
-            }
+            if (markdown.Length > 0) items.Add(new MarkdownItem(null, 0, sequence++, markdown, canonical: true));
         }
 
         IReadOnlyList<IPdfLogicalElement> leaderRows = page.GetElements(PdfLogicalElementKind.LeaderRow);
@@ -113,8 +112,6 @@ public static class PdfLogicalMarkdownExtensions {
                 items.Add(new MarkdownItem(null, 0, sequence++, EscapeInline(leaderRow.Label) + " | " + EscapeInline(leaderRow.Value)));
             }
         }
-
-        AppendUnmatchedTextBlocks(page, items, ref sequence);
 
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
@@ -160,125 +157,6 @@ public static class PdfLogicalMarkdownExtensions {
         return items;
     }
 
-    private static void AppendUnmatchedTextBlocks(PdfLogicalPage page, List<MarkdownItem> items, ref int sequence) {
-        for (int i = 0; i < page.TextBlocks.Count; i++) {
-            PdfLogicalTextBlock block = page.TextBlocks[i];
-            if (IsTextBlockRepresented(block, page)) {
-                continue;
-            }
-
-            items.Add(new MarkdownItem(block.BaselineY, block.XStart, sequence++, EscapeInline(block.Text)));
-        }
-    }
-
-    private static bool IsTextBlockRepresented(PdfLogicalTextBlock block, PdfLogicalPage page) {
-        if (block.Kind == PdfLogicalElementKind.Heading || block.Kind == PdfLogicalElementKind.ListItem) {
-            return true;
-        }
-
-        for (int i = 0; i < page.Paragraphs.Count; i++) {
-            PdfLogicalParagraph paragraph = page.Paragraphs[i];
-            for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
-                if (ReferenceEquals(paragraph.Lines[lineIndex], block)) {
-                    return true;
-                }
-            }
-        }
-
-        for (int i = 0; i < page.Tables.Count; i++) {
-            if (IsTextBlockRepresentedByTable(block, page.Tables[i])) {
-                return true;
-            }
-        }
-
-        if (IsTextBlockRepresentedByLeaderRow(block, page)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsParagraphRepresentedByStructuredElement(PdfLogicalParagraph paragraph, PdfLogicalPage page) {
-        if (paragraph.Lines.Count == 0) {
-            return false;
-        }
-
-        for (int i = 0; i < paragraph.Lines.Count; i++) {
-            PdfLogicalTextBlock line = paragraph.Lines[i];
-            bool represented = false;
-
-            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
-                if (IsTextBlockRepresentedByTable(line, page.Tables[tableIndex])) {
-                    represented = true;
-                    break;
-                }
-            }
-
-            if (!represented && IsTextBlockRepresentedByLeaderRow(line, page)) {
-                represented = true;
-            }
-
-            if (!represented) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool IsTextBlockRepresentedByTable(PdfLogicalTextBlock block, PdfLogicalTable table) {
-        double top = Math.Max(table.YTop, table.YBottom);
-        double bottom = Math.Min(table.YTop, table.YBottom);
-        if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {
-            return false;
-        }
-
-        string blockText = NormalizeMarkdownComparison(block.Text);
-        if (blockText.Length == 0) {
-            return true;
-        }
-
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            string rowText = NormalizeMarkdownComparison(string.Join(" ", table.Rows[rowIndex]));
-            if (rowText.Length == 0) {
-                continue;
-            }
-
-            if (ContainsOrdinal(rowText, blockText) ||
-                ContainsOrdinal(blockText, rowText)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsTextBlockRepresentedByLeaderRow(PdfLogicalTextBlock block, PdfLogicalPage page) {
-        IReadOnlyList<IPdfLogicalElement> leaderRows = page.GetElements(PdfLogicalElementKind.LeaderRow);
-        if (leaderRows.Count == 0) {
-            return false;
-        }
-
-        string blockText = NormalizeMarkdownComparison(block.Text);
-        for (int i = 0; i < leaderRows.Count; i++) {
-            if (leaderRows[i] is not PdfLogicalLeaderRow leaderRow) {
-                continue;
-            }
-
-            string label = NormalizeMarkdownComparison(leaderRow.Label);
-            string value = NormalizeMarkdownComparison(leaderRow.Value);
-            if (label.Length == 0 || value.Length == 0) {
-                continue;
-            }
-
-            if (ContainsOrdinal(blockText, label) && ContainsOrdinal(blockText, value)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static bool IsLeaderRowRepresentedByTable(PdfLogicalLeaderRow leaderRow, IReadOnlyList<PdfLogicalTable> tables) {
         string label = NormalizeMarkdownComparison(leaderRow.Label);
         string value = NormalizeMarkdownComparison(leaderRow.Value);
@@ -301,6 +179,8 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private static int CompareMarkdownItems(MarkdownItem left, MarkdownItem right) {
+        if (left.Canonical != right.Canonical) return left.Canonical ? -1 : 1;
+        if (left.Canonical) return left.Sequence.CompareTo(right.Sequence);
         bool leftHasY = left.Y.HasValue;
         bool rightHasY = right.Y.HasValue;
         if (leftHasY && rightHasY) {
@@ -615,11 +495,12 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private sealed class MarkdownItem {
-        public MarkdownItem(double? y, double x, int sequence, string markdown) {
+        public MarkdownItem(double? y, double x, int sequence, string markdown, bool canonical = false) {
             Y = y;
             X = x;
             Sequence = sequence;
             Markdown = markdown;
+            Canonical = canonical;
         }
 
         public double? Y { get; }
@@ -629,5 +510,7 @@ public static class PdfLogicalMarkdownExtensions {
         public int Sequence { get; }
 
         public string Markdown { get; }
+
+        public bool Canonical { get; }
     }
 }

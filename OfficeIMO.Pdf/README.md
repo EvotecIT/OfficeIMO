@@ -925,6 +925,8 @@ IReadOnlyList<PdfImagePlacement> placements = pdf.Images.Placements("1-2");
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Attachments.Extract();
 ```
 
+`result.ToMarkdown()` uses canonical reading order and emits detected tables once, including tables reconstructed from OCR geometry. `result.ExportStructured(PdfStructuredExportFormat.Json)` preserves positioned `lines` and includes canonical page `text` and detected `tables`. Each table contains its source kind, coordinate space, vertical bounds and original cell `rows`; these additive fields retain the `officeimo.pdf.logical.v1` schema identifier.
+
 For documents with many embedded images, `pdf.Images.Visit(image => { ... }, cancellationToken)`
 processes images one at a time. Inside the callback, `image.CopyTo(output, cancellationToken)`
 copies its file bytes to a stream without cloning the payload. Check `image.IsImageFile`
