@@ -294,7 +294,12 @@ namespace OfficeIMO.Tests {
             }
         }
 
+#if POWERPOINT_PERFORMANCE_EVIDENCE
         [Fact]
+#else
+        [Fact(Skip = "Opt-in measurement: build with PowerPointPerformanceEvidence=true.")]
+#endif
+        [Trait("Category", "Performance")]
         public void ImportedSmartArtRejectsLargeUnrepresentableTopologyWithoutQuadraticScan() {
             string filePath = Path.Combine(Path.GetTempPath(),
                 Guid.NewGuid() + ".pptx");
@@ -352,6 +357,9 @@ namespace OfficeIMO.Tests {
             }
         }
 
+#if POWERPOINT_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+#endif
         [Fact]
         public void ImportedSmartArtOrdersDeepConnectedTopologyWithoutRecursiveStackGrowth() {
             string filePath = Path.Combine(Path.GetTempPath(),
@@ -414,13 +422,15 @@ namespace OfficeIMO.Tests {
                     PowerPointPresentation.Load(filePath);
                 PowerPointSmartArt smartArt = Assert.Single(
                     imported.Slides[0].SmartArts);
+#if POWERPOINT_PERFORMANCE_EVIDENCE
                 Stopwatch stopwatch = Stopwatch.StartNew();
-
+#endif
                 Assert.Equal("Node 19999", smartArt.GetNodeText(extraNodeCount));
-
+#if POWERPOINT_PERFORMANCE_EVIDENCE
                 stopwatch.Stop();
                 Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
                     $"Deep topology ordering took {stopwatch.Elapsed}.");
+#endif
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

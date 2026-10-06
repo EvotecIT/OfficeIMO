@@ -10,26 +10,26 @@ internal static partial class PdfWriter {
         private const int MaximumEntries = 64;
         private const int MaximumTextLength = 256;
         private readonly PdfOptions options;
-        private readonly Dictionary<(string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading), LinkedListNode<Entry>> entries = new();
+        private readonly Dictionary<(string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading, bool WrapOversizedNoWrap), LinkedListNode<Entry>> entries = new();
         private readonly LinkedList<Entry> recent = new();
 
         public TableTextLayoutReuse(PdfOptions options) {
             this.options = options;
         }
 
-        public TableCellTextLayout Create(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, double runFontSizeScale, double minimumShrinkFontSize) {
+        public TableCellTextLayout Create(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, double runFontSizeScale, double minimumShrinkFontSize, bool wrapOversizedNoWrap = false) {
             if (!CanReuse(cell, runFontSizeScale)) {
-                return CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize);
+                return CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
             }
 
-            var key = (cell.Runs[0].Text, innerWidth, cell.NoWrap, baseFont, fontSize, leading);
+            var key = (cell.Runs[0].Text, innerWidth, cell.NoWrap, baseFont, fontSize, leading, wrapOversizedNoWrap);
             if (entries.TryGetValue(key, out LinkedListNode<Entry>? node)) {
                 recent.Remove(node);
                 recent.AddFirst(node);
                 return node.Value.Layout;
             }
 
-            TableCellTextLayout layout = CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize);
+            TableCellTextLayout layout = CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
             node = recent.AddFirst(new Entry(key, layout));
             entries.Add(key, node);
             if (entries.Count > MaximumEntries) {
@@ -65,12 +65,12 @@ internal static partial class PdfWriter {
         }
 
         private sealed class Entry {
-            public Entry((string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading) key, TableCellTextLayout layout) {
+            public Entry((string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading, bool WrapOversizedNoWrap) key, TableCellTextLayout layout) {
                 Key = key;
                 Layout = layout;
             }
 
-            public (string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading) Key { get; }
+            public (string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading, bool WrapOversizedNoWrap) Key { get; }
             public TableCellTextLayout Layout { get; }
         }
     }

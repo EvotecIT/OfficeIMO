@@ -5,6 +5,16 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed partial class ProvenanceCommandTests {
     [Fact]
+    public async Task CheckAcceptsRecognizedSubdivisionFlagAndRejectsHiddenTagPayload() {
+        using var scope = new TestDirectory();
+        string flag = "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F";
+        string input = scope.Write("flag.txt", flag);
+        Assert.Equal(0, (await RunAsync(["provenance", "check", input])).ExitCode);
+        File.WriteAllText(input, flag + "\U000E0061");
+        Assert.Equal(1, (await RunAsync(["provenance", "check", input])).ExitCode);
+    }
+
+    [Fact]
     public async Task AuditNdjsonAndCheckSarifUseTheSameReadOnlyEvidence() {
         using var scope = new TestDirectory();
         string first = scope.Write("first.txt", "review\u202Ethis"); string second = scope.Write("second.txt", "safe");

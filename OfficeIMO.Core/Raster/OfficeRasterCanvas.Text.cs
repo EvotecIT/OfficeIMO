@@ -46,7 +46,7 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
 
-        IOfficeFontProgram? font = ResolveTextFont(text!, fontFamily, style);
+        IOfficeFontProgram? font = ResolveTextFont(text!, fontFamily, style, size);
         double measured = font != null
             ? MeasureResolvedText(text!, font, size)
             : MeasureFallbackText(text!, size);
@@ -66,7 +66,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextFeatureSettings? featureSettings,
         OfficeTextDirection textDirection) {
         if (string.IsNullOrEmpty(text)) return 0D;
-        double size = Math.Max(1D, fontSize);
+        double size = Math.Max(0.1D, fontSize);
         if (_fonts != null) {
             IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(text, fontFamily, RequestedTextFace(style));
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
@@ -79,7 +79,7 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
 
-        IOfficeFontProgram? font = ResolveTextFont(text!, fontFamily, style);
+        IOfficeFontProgram? font = ResolveTextFont(text!, fontFamily, style, size);
         return font != null
             ? MeasureResolvedText(text!, font, size, featureSettings, textDirection)
             : MeasureFallbackText(text!, size);
@@ -205,11 +205,11 @@ public sealed partial class OfficeRasterCanvas {
             textDirection)) {
             return;
         }
-        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, style, size, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
             double measured = MeasureResolvedText(value, font, size, featureSettings, textDirection);
-            double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
+            double availableWidth = Math.Max(retainOverflow ? .01D : 1D, retainOverflow ? width : width - 6D);
             if (!retainOverflow) {
                 while (measured > availableWidth && value.Length > 0) {
                     value = OfficeTextElements.RemoveLast(value);
@@ -236,13 +236,13 @@ public sealed partial class OfficeRasterCanvas {
                 foreach (OfficeColorGlyphContours layer in colorLayers) {
                     if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(layer.Contours, textX, horizontalScale);
                     if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, top, size);
-                    FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
+                    FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
                 }
             } else {
                 List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings, textDirection);
                 if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(contours, textX, horizontalScale);
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, top, size);
-                FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
+                FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
             }
 
             OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
@@ -413,7 +413,7 @@ public sealed partial class OfficeRasterCanvas {
             decorationColor)) {
             return;
         }
-        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, fontStyle, fontHeight, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
@@ -505,7 +505,7 @@ public sealed partial class OfficeRasterCanvas {
             fontFamily)) {
             return;
         }
-        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(value, fontFamily, fontStyle, fontHeight, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
@@ -687,7 +687,7 @@ public sealed partial class OfficeRasterCanvas {
             List<OfficePoint> contour = contours[i];
             for (int j = 0; j < contour.Count; j++) {
                 OfficePoint point = contour[j];
-                contour[j] = new OfficePoint(point.X + ((baseY - point.Y) * 0.18D), point.Y);
+                contour[j] = new OfficePoint(point.X + OfficeSyntheticTextStyle.ItalicOffset(baseY, point.Y), point.Y);
             }
         }
     }
@@ -716,23 +716,27 @@ public sealed partial class OfficeRasterCanvas {
         return MeasureStrokeText(text, fontSize);
     }
 
-    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) =>
-        ResolveTextFont(text, fontFamily, style, out _);
+    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, double size) =>
+        ResolveTextFont(text, fontFamily, style, size, out _);
 
-    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
+    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, double size, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
         if (_fonts != null) {
-            IOfficeFontProgram? scoped = _fonts.ResolveForText(text ?? string.Empty, fontFamily, RequestedTextFace(style), out resolvedStyle);
+            IOfficeFontProgram? scoped = _fonts.ResolveForText(text ?? string.Empty, fontFamily, RequestedTextFace(style), size / FontMetricScale, out resolvedStyle);
             if (scoped != null) {
-                return scoped;
+                return ResolveMetricScale(scoped);
             }
         }
 
+        if (_scopedFontResolutionOnly) return null;
         if (string.IsNullOrWhiteSpace(fontFamily)) {
-            return _font;
+            return ResolveMetricScale(_font);
         }
 
-        return OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, RequestedTextFace(style), text, out resolvedStyle) ?? _font;
+        OfficeTrueTypeFont? installed = OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, RequestedTextFace(style), text, out resolvedStyle);
+        installed = installed?.ForInstalledOpticalSize(size / FontMetricScale, RequestedTextFace(style).Weight >= 600);
+        if (installed?.HasSelectedBoldWeight == true) resolvedStyle |= OfficeFontStyle.Bold;
+        return ResolveMetricScale(installed ?? _font);
     }
 
     private static double ResolveAnchoredTextX(double anchorX, double width, OfficeTextAlignment alignment) {

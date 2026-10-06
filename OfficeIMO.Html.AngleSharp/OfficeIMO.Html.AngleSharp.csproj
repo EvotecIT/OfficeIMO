@@ -18,7 +18,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.7.1" />
+    <PackageReference Include="AngleSharp" Version="1.8.3" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />

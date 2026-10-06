@@ -70,7 +70,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (layoutIndex >= layoutCells.Count) return;
                 PowerPointHtmlTableCell layoutCell = layoutCells[layoutIndex++];
                 PptCore.PowerPointTableCell targetCell = target.GetCell(layoutCell.Row, layoutCell.Column);
-                ApplySemanticTableCellFormatting(targetCell, cell, hyperlinkPolicy);
+                ApplySemanticTableCellFormatting(targetCell, cell, hyperlinkPolicy,
+                    target.FirstRow && layoutCell.Row == 0);
             }
         }
     }
@@ -78,7 +79,8 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ApplySemanticTableCellFormatting(
         PptCore.PowerPointTableCell targetCell,
         HtmlSemanticTableCell cell,
-        HtmlUrlPolicy hyperlinkPolicy) {
+        HtmlUrlPolicy hyperlinkPolicy,
+        bool useHeaderTextColor = false) {
         if (RequiresSemanticTableRunProjection(cell.Runs)) {
             ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs, hyperlinkPolicy);
         }
@@ -90,6 +92,11 @@ public static partial class HtmlPowerPointConverterExtensions {
         string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
         if (color.Length > 0) {
             foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+        }
+        if (cell.IsHeader && useHeaderTextColor) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) {
+                if (run.Hyperlink != null) run.HyperlinkUsesTextColor = true;
+            }
         }
         ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
     }

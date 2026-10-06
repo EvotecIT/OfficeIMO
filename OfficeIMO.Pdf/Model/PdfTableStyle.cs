@@ -65,6 +65,21 @@ public class PdfTableStyle {
     public bool ConsumesVerticalFlow { get; set; } = true;
     /// <summary>Document adapters can retain glyph positions while containing their painting in the cell.</summary>
     internal bool ClipTextToCellBounds { get; set; }
+    internal bool PreservePartialCellLines { get; set; }
+    /// <summary>
+    /// Document adapters can measure vertical cell margins from the inner edge
+    /// of the border paint instead of the cell's grid boundary.
+    /// </summary>
+    internal bool CellVerticalPaddingFromBorderInterior { get; set; }
+
+    /// <summary>Document adapters can retain a perimeter independent of the cell borders.</summary>
+    internal PdfTableBorderFrame? BorderFrame { get; set; }
+
+    /// <summary>
+    /// Expands an authored automatic table width only for content that cannot
+    /// wrap within the preferred grid, rather than for the unwrapped line width.
+    /// </summary>
+    internal bool AutoFitWidthUsesContentMinimum { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -655,6 +670,7 @@ public class PdfTableStyle {
             BorderColor = BorderColor,
             ConsumesVerticalFlow = ConsumesVerticalFlow,
             ClipTextToCellBounds = ClipTextToCellBounds,
+            PreservePartialCellLines = PreservePartialCellLines,
             Position = Position,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,
@@ -687,6 +703,8 @@ public class PdfTableStyle {
             CellPaddingRight = CellPaddingRight,
             CellPaddingTop = CellPaddingTop,
             CellPaddingBottom = CellPaddingBottom,
+            CellVerticalPaddingFromBorderInterior = CellVerticalPaddingFromBorderInterior,
+            BorderFrame = BorderFrame?.Clone(),
             CellSpacing = CellSpacing,
             MinRowHeight = MinRowHeight,
             RowMinHeights = RowMinHeights,
@@ -708,6 +726,7 @@ public class PdfTableStyle {
             MinimumShrinkFontSize = MinimumShrinkFontSize,
             LeftIndent = LeftIndent,
             AutoFitColumns = AutoFitColumns,
+            AutoFitWidthUsesContentMinimum = AutoFitWidthUsesContentMinimum,
             RightAlignNumeric = RightAlignNumeric,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,

@@ -6,14 +6,14 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
-    private static bool TryRenderNativeParagraphPageBreaks(
+    private static bool TryRenderNativeParagraphFlowBreaks(
         INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker,
         System.Func<WordParagraph, (int Level, string Marker)?> getMarker,
         Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options,
         IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap,
         bool renderSpacingOnlyEmptyParagraphLineBox, WordParagraph? nextParagraph) {
-        if (!TrySplitNativeParagraphAtVisiblePageBreak(paragraph, out WordParagraph? before, out WordParagraph? after)) return false;
+        if (!TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after)) return false;
 
         if (HasNativePageBreakBefore(paragraph)) pdf.PageBreak();
         if (paragraph._paragraph != null && string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
@@ -27,7 +27,8 @@ public static partial class WordPdfConverterExtensions {
                     options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, null);
                 marker = null;
             }
-            pdf.PageBreak(preserveEmptyPage: true);
+            if (breakType == W.BreakValues.Column) pdf.ColumnBreak();
+            else pdf.PageBreak(preserveEmptyPage: true);
             if (after == null) return true;
             after.PageBreakBeforeOverride = false;
             after.LineSpacingBeforePoints = 0;
@@ -38,7 +39,7 @@ public static partial class WordPdfConverterExtensions {
             indentation.FirstLineChars = null;
             indentation.Hanging = null;
             indentation.HangingChars = null;
-            if (!TrySplitNativeParagraphAtVisiblePageBreak(after, out before, out WordParagraph? remaining)) {
+            if (!TrySplitNativeParagraphAtVisibleFlowBreak(after, out breakType, out before, out WordParagraph? remaining)) {
                 RenderNativeParagraph(pdf, after, marker, getMarker, System.Array.Empty<int>(), footnoteNumbersById,
                     options, headingDestinations, nativeDefaults, nativeFontMap, false, nextParagraph);
                 return true;
@@ -48,8 +49,18 @@ public static partial class WordPdfConverterExtensions {
         }
     }
 
-    private static bool TrySplitNativeParagraphAtVisiblePageBreak(WordParagraph paragraph, out WordParagraph? before, out WordParagraph? after) {
-        return TrySplitNativeParagraphAtVisibleBreak(paragraph, W.BreakValues.Page, out before, out after);
+    private static bool TrySplitNativeParagraphAtVisibleFlowBreak(WordParagraph paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after) {
+        foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+            if (IsNativeHiddenTextRun(run, paragraph)) continue;
+            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
+            W.Break? boundary = children.OfType<W.Break>().FirstOrDefault(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column);
+            if (boundary?.Type?.Value is W.BreakValues type) {
+                breakType = type;
+                return TrySplitNativeParagraphAtVisibleBreak(paragraph, type, out before, out after);
+            }
+        }
+        breakType = W.BreakValues.Page; before = null; after = null;
+        return false;
     }
 
     private static bool TrySplitNativeParagraphAtVisibleBreak(WordParagraph paragraph, W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after) {

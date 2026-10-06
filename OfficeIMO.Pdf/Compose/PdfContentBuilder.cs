@@ -54,8 +54,10 @@ public sealed class PdfContentBuilder {
     /// <summary>Adds a row whose columns can use relative, fixed, automatic, or percentage sizing.</summary>
     public PdfContentBuilder Row(System.Action<PdfRowBuilder> build) { _doc.Row(build); return this; }
     /// <summary>Adds a deferred simple-text table whose rows are materialized in bounded batches.</summary>
+    /// <remarks>Minimum first-page and final-page body row groups can enlarge a batch so its pagination constraints remain intact.</remarks>
     public PdfContentBuilder TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
     /// <summary>Adds a deferred explicit-cell table whose rows are materialized in bounded batches.</summary>
+    /// <remarks>Minimum first-page and final-page body row groups can enlarge a batch so its pagination constraints remain intact.</remarks>
     public PdfContentBuilder TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
     /// <summary>Adds a two-column key/value table.</summary>
     public PdfContentBuilder KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }

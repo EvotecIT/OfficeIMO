@@ -26,6 +26,7 @@ public static partial class HtmlExcelConverterExtensions {
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
+        var budget = new HtmlImportBudget(resolved.Limits);
         bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
             && (resolved.Mode == HtmlImportMode.Semantic
                 || OfficeHtmlSemanticEnvelope.Inspect(adapterDocument, "excel").IsPresent
@@ -33,7 +34,8 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions && !targetSemantic
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, HtmlEditableLayoutRegionKinds.All)
             ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
-                document, mediaContext: mediaContext, preserveNestedImagePlacement: false,
+                document, renderOptions: new HtmlRenderOptions { ImageNormalizationBudget = budget },
+                mediaContext: mediaContext, preserveNestedImagePlacement: false,
                 preserveMixedInlineEdgeSequences: false)
             : null;
         HtmlSemanticDocument semanticDocument = editableLayout == null
@@ -42,7 +44,7 @@ public static partial class HtmlExcelConverterExtensions {
         IEnumerable<HtmlDiagnostic> diagnostics = editableLayout == null
             ? document.Diagnostics
             : document.Diagnostics.Concat(editableLayout.Diagnostics);
-        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, diagnostics, editableLayout);
+        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, budget, diagnostics, editableLayout);
     }
 
     private static HtmlToExcelResult ImportDocument(
@@ -50,6 +52,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticDocument semanticDocument,
         HtmlInputTrust trust,
         HtmlToExcelOptions options,
+        HtmlImportBudget budget,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null,
         HtmlEditableLayoutProjection? editableLayout = null) {
         options.Limits.Validate();
@@ -59,7 +62,6 @@ public static partial class HtmlExcelConverterExtensions {
         if (initialDiagnostics != null) {
             foreach (HtmlDiagnostic diagnostic in initialDiagnostics) result.AddImportDiagnostic(diagnostic);
         }
-        var budget = new HtmlImportBudget(options.Limits);
         OfficeHtmlSemanticEnvelopeInfo envelope = OfficeHtmlSemanticEnvelope.Inspect(document, "excel");
         IReadOnlyList<IElement> sheetSections = OfficeHtmlSemanticEnvelope
             .SelectOwnedContainers(document, envelope, "section.officeimo-sheet");
@@ -324,22 +326,9 @@ public static partial class HtmlExcelConverterExtensions {
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
         }
-        if (!IsSupportedExcelImage(dataUri, result, image.GetAttribute("src"))) return;
-
-        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An embedded worksheet image was omitted because the shared import limit was reached.",
-                lossKind: OfficeConversionLossKind.Omission,
-                detail: imageLimit);
-            return;
-        }
-
+        if (!TryPrepareExcelImage(dataUri, result, budget, image.GetAttribute("src"),
+                out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) return;
         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: OfficeConversionLossKind.Omission);
-            return;
-        }
 
         ReadImagePlacement(item, budget, result, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY);
         string name = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
@@ -353,31 +342,36 @@ public static partial class HtmlExcelConverterExtensions {
             int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
             xPixels = NormalizeImportInt(xPixels, 0, -maxGeometry, maxGeometry, budget, result, "image x position");
             yPixels = NormalizeImportInt(yPixels, 0, -maxGeometry, maxGeometry, budget, result, "image y position");
-            importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, dataUri.MediaType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, contentType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsAbsoluteImageAnchor(item)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                 "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
-            importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsTwoCellImageAnchor(item)) {
-            importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
+            importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, contentType, row, column, width, height, offsetX, offsetY, name, description);
         } else {
-            importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         }
 
         ApplyImageTransforms(item, importedImage, budget, result);
+        ApplyImageHyperlink(importedImage, item.GetAttribute("data-officeimo-image-hyperlink"), result);
         for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
             if (!IsElement(parent, "a")) continue;
-            ReportImageHyperlinkLoss(parent.GetAttribute("href"), result);
+            ApplyImageHyperlink(importedImage, parent.GetAttribute("href"), result);
             break;
         }
         result.Images++;
         imageReservation.Commit();
     }
 
-    private static void ReportImageHyperlinkLoss(string? target, HtmlToExcelResult result) {
+    private static void ApplyImageHyperlink(ExcelImage image, string? target, HtmlToExcelResult result) {
         if (string.IsNullOrWhiteSpace(target)) return;
+        if (Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+            image.HyperlinkUri = uri;
+            return;
+        }
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-            "A worksheet image hyperlink was not retained because Excel picture hyperlinks are not yet supported.",
+            "A worksheet image hyperlink was omitted because its target was not a valid URI.",
             lossKind: OfficeConversionLossKind.Omission, source: target);
     }
 
