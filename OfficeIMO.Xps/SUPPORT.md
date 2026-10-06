@@ -341,8 +341,19 @@ LibTIFF fails on 174 files and cannot display the other 18 despite returning zer
 no full-file native acceptance is claimed. The 768 XPS/OpenXPS exports cover
 510,720 probes per route: MuPDF PDF/SVG errors reach 4/255 and 2/255 without
 warnings. GhostXPS opens all packages but can render blank images (255/255).
-Unspecified extras, multi-scan chunky 4×2 alpha and wider native acceptance remain
-outside this qualification; table-only state isolation is covered separately below.
+Multi-scan chunky 4×2 alpha and wider native acceptance remain outside this
+qualification; unspecified extras and table-only state isolation are covered below.
+
+The [unspecified-extra corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticExtra/README.md)
+qualifies 114 lossless-arithmetic TIFFs with one extra channel declared unspecified.
+These are single-byte declaration changes to independently referenced straight-alpha
+fixtures; JPEG data and reference colors remain unchanged. Opacity is exactly 255
+and colors agree within 3/255, including six explicit-profile CMYK cases. This
+covers the source full-resolution/subsampled layouts, not a new independent
+producer corpus. LibTIFF fails all 114 files because of codec, precision or layout
+limits. Across 456 XPS/OpenXPS exports and 303,240 probes per route, MuPDF PDF/SVG
+errors reach 2/255 without warnings. GhostXPS opens 452 packages with errors up to
+255/255 and crashes on four twelve-bit CMYK strip exports.
 
 Lossless arithmetic JPEG does not consume quantization or Huffman tables.
 The `JPEGTables` DAC/DRI controls reset before each image, as required by

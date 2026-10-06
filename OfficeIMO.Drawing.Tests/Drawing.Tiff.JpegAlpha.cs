@@ -39,6 +39,7 @@ public sealed class TiffJpegAlphaTests {
     [InlineData("TiffJpegArithmetic12")]
     [InlineData("TiffJpegArithmeticLosslessColor")]
     [InlineData("TiffJpegArithmeticLosslessChroma")]
+    [InlineData("TiffJpegArithmeticExtra")]
     public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
@@ -63,15 +64,16 @@ public sealed class TiffJpegAlphaTests {
     }
 
     [Theory]
-    [InlineData("TiffJpegArithmeticAlpha")]
-    [InlineData("TiffJpegArithmeticLowAlpha")]
-    [InlineData("TiffJpegArithmetic12")]
-    [InlineData("TiffJpegArithmeticLosslessColor")]
-    public void ArithmeticCmykAlphaMatchesIndependentProfiledCompositing(string folder) {
+    [InlineData("TiffJpegArithmeticAlpha", 48)]
+    [InlineData("TiffJpegArithmeticLowAlpha", 32)]
+    [InlineData("TiffJpegArithmetic12", 64)]
+    [InlineData("TiffJpegArithmeticLosslessColor", 24)]
+    [InlineData("TiffJpegArithmeticExtra", 6)]
+    public void ArithmeticCmykAlphaMatchesIndependentProfiledCompositing(string folder, int count) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var profile));
         string[] references = Directory.GetFiles(corpus, "*.icc-rgba");
-        Assert.Equal(folder == "TiffJpegArithmeticLowAlpha" ? 32 : folder == "TiffJpegArithmetic12" ? 64 : folder == "TiffJpegArithmeticLosslessColor" ? 24 : 48, references.Length);
+        Assert.Equal(count, references.Length);
         foreach (string reference in references) {
             byte[] expected = File.ReadAllBytes(reference);
             Assert.True(OfficeIccRasterConverter.TryDecodeToSrgb(File.ReadAllBytes(reference.Substring(0, reference.Length - ".icc-rgba".Length)),
