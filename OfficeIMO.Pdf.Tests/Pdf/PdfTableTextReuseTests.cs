@@ -8,6 +8,44 @@ public sealed class PdfTableTextReuseTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void RepeatedImportedNoWrapCellsRetainThePageFrameWrappingPolicy(bool rowColumn) {
+        byte[] Render(bool explicitSize) {
+            var options = new PdfOptions {
+                PageWidth = 400, PageHeight = 400,
+                MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+            };
+            var style = TableStyles.Minimal();
+            style.HeaderRowCount = 0;
+            style.FontSize = 10;
+            style.CellPaddingX = style.CellPaddingY = 0;
+            style.ColumnWidthPoints = new List<double?> { 90, 270 };
+            // Imported Word tables retain this policy after their grid widths
+            // are resolved. Oversized no-wrap text must fit that page frame.
+            style.AutoFitWidthUsesContentMinimum = true;
+            var rows = Enumerable.Range(0, 3).Select(index => new[] {
+                new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon",
+                    fontSize: explicitSize ? 10 : null) }).WithNoWrap(),
+                new PdfTableCell("R" + index.ToString("D3"))
+            }).ToArray();
+            PdfDocument document = PdfDocument.Create(options);
+            if (rowColumn) document.Compose(root => root.Page(page => page.Content(content =>
+                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+            else document.Table(rows, style: style);
+            return document.ToBytes();
+        }
+        byte[] actual = Render(false);
+        AssertSameLetters(Render(true), actual);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(actual);
+        var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
+        Assert.Equal(3, words.Count(word => word.Text == "epsilon"));
+        Assert.All(words.Where(word => !word.Text.StartsWith("R", StringComparison.Ordinal)),
+            word => Assert.InRange(word.BoundingBox.Right, 20D, 110.01D));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RepeatedCellsRetainTextAndGeometryAcrossUnequalColumnContinuations(bool embedded) {
         byte[] Render(bool explicitSize) {
             var options = new PdfOptions {

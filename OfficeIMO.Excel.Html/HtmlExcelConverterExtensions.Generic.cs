@@ -58,7 +58,7 @@ public static partial class HtmlExcelConverterExtensions {
                     importedFormulaCells: null,
                     useSemanticValues: false,
                     semanticTable: table.Table);
-                FormatSimpleGenericTableSheet(sheet, table.Table!);
+                FormatGenericTableSheet(sheet, table.Table!);
                 if (preserveCaption) {
                     PreserveGenericTableCaption(sheet, table.Table!, result, budget);
                 }
@@ -273,20 +273,8 @@ public static partial class HtmlExcelConverterExtensions {
             if (options.ImportImages) {
                 foreach (HtmlEditableLayoutPicture image in
                          HtmlEditableLayoutProjector.EnumeratePictures(region.Visuals, includeBackgroundImages: false)) {
-                    if (!ExcelSheet.IsSupportedImageContentType(image.ContentType)) {
-                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
-                            "A layout-region image used an unsupported native Excel image type.",
-                            lossKind: OfficeConversionLossKind.Omission, source: image.Source,
-                            detail: "mediaType=" + image.ContentType);
-                        continue;
-                    }
-                    if (!budget.TryReserveImageWithShape(image.Bytes.LongLength,
-                            out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
-                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                            "A layout-region image was omitted because the shared image or drawing limit was reached.",
-                            lossKind: OfficeConversionLossKind.Omission, source: image.Source, detail: imageLimit);
-                        continue;
-                    }
+                    if (!TryPrepareExcelImage(image.Bytes, image.ContentType, result, budget, image.Source,
+                            out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) continue;
                     using HtmlImportBudgetReservation imageReservationScope = imageReservation;
                     double imageLeft = NormalizeEditableLayoutGeometry(
                         image.X - region.SemanticTableOriginX, 0D, 0D, maximumGeometry,
@@ -304,8 +292,8 @@ public static partial class HtmlExcelConverterExtensions {
                     ExcelImage nativeImage = sheet.AddImageAbsolute(
                         (int)Math.Round(imageLeft),
                         (int)Math.Round(imageTop),
-                        image.Bytes,
-                        image.ContentType,
+                        bytes,
+                        contentType,
                         (int)Math.Round(imageWidth),
                         (int)Math.Round(imageHeight),
                         altText: image.AlternativeText);
@@ -520,27 +508,16 @@ public static partial class HtmlExcelConverterExtensions {
                 lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
             return;
         }
-        if (!IsSupportedExcelImage(dataUri, result, resource.Source)) return;
-        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An embedded generic worksheet image was omitted because the shared image or drawing limit was reached.",
-                lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
-            return;
-        }
+        if (!TryPrepareExcelImage(dataUri, result, budget, resource.Source,
+                out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) return;
         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "An embedded generic worksheet image could not be decoded.",
-                lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
-            return;
-        }
         if (row > A1.MaxRows) return;
         int width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
         int height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
-        sheet.AddImage(row, 1, bytes, dataUri.MediaType, width, height,
+        ExcelImage importedImage = sheet.AddImage(row, 1, bytes, contentType, width, height,
             name: null,
             altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
-        ReportImageHyperlinkLoss(resource.Hyperlink, result);
+        ApplyImageHyperlink(importedImage, resource.Hyperlink, result);
         result.Images++;
         imageReservation.Commit();
         row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));

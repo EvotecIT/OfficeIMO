@@ -558,7 +558,7 @@
                     </StackPanel>
                   </Grid>
                   <ListBox Grid.Row="2" Margin="-4,8,-4,0" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}" BorderThickness="0" Background="Transparent">
-                    <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfSearchHit"><TextBlock Text="{Binding Label}" Margin="4" TextWrapping="Wrap" FontSize="12" /></DataTemplate></ListBox.ItemTemplate>
+                    <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfSearchResult"><TextBlock Text="{Binding Label}" Margin="4" TextWrapping="Wrap" FontSize="12" /></DataTemplate></ListBox.ItemTemplate>
                   </ListBox>
                 </Grid>
               </TabItem>

@@ -180,8 +180,14 @@ public static class OfficeTextIntegrityInspector {
 
         cancellationToken.ThrowIfCancellationRequested();
         var findings = new List<OfficeTextIntegrityFinding>();
+        int nextCancellationOffset = 0;
+        int recognizedFlagEnd = 0;
         for (int offset = 0; offset < text.Length;) {
-            if ((offset & 0x3FF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (offset >= nextCancellationOffset) {
+                cancellationToken.ThrowIfCancellationRequested();
+                nextCancellationOffset = offset + 1024;
+            }
+            if (IsRecognizedSubdivisionFlag(text, offset)) recognizedFlagEnd = offset + 14;
             char current = text[offset];
             int codePoint;
             int length;
@@ -206,12 +212,26 @@ public static class OfficeTextIntegrityInspector {
             }
 
             if (TryClassify(codePoint, offset, options, out OfficeTextIntegrityFindingKind kind, out OfficeTextIntegrityRisk risk)) {
+                if (kind == OfficeTextIntegrityFindingKind.UnicodeTag && offset < recognizedFlagEnd)
+                    risk = OfficeTextIntegrityRisk.ContextDependent;
                 Add(findings, options, kind, risk, offset, length, codePoint, location);
             }
             offset += length;
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new OfficeTextIntegrityReport(findings.AsReadOnly());
+    }
+
+    // Unicode RGI emoji tag sequences: England, Scotland and Wales. A syntactically
+    // plausible arbitrary tag payload is not enough to downgrade hidden text.
+    private static bool IsRecognizedSubdivisionFlag(string text, int offset) {
+        const string england = "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F";
+        const string scotland = "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F";
+        const string wales = "\U0001F3F4\U000E0067\U000E0062\U000E0077\U000E006C\U000E0073\U000E007F";
+        return text.Length - offset >= england.Length && text[offset] == '\uD83C' &&
+            (string.CompareOrdinal(text, offset, england, 0, england.Length) == 0 ||
+             string.CompareOrdinal(text, offset, scotland, 0, scotland.Length) == 0 ||
+             string.CompareOrdinal(text, offset, wales, 0, wales.Length) == 0);
     }
 
     private static bool TryClassify(

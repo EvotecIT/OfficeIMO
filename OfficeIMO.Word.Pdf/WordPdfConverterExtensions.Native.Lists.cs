@@ -100,7 +100,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            if (runs.Any(run => !IsNativeHiddenTextRun(run, paragraph) && run.GetNonTextBreakPositions()?.Values.Contains(WordBreakType.Page) == true)) return false;
+            if (runs.Any(run => !IsNativeHiddenTextRun(run, paragraph) &&
+                run.GetNonTextBreakPositions()?.Values.Any(type => type == WordBreakType.Page || type == WordBreakType.Column) == true)) return false;
             if (runs.Any(run => run.IsImage) || HasNativeParagraphShapeGroups(runs)) {
                 return false;
             }
@@ -463,7 +464,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (element is W.Run sourceRun) {
                         W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun, out var visibleSourceChildren);
                         if (visibleRun != null)
-                            runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
+                            AppendNativeVisibleRunContent(runs, new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
                                 _hyperlink = frame.Hyperlink,
                                 _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun,
                                 _visibleRunSourceChildren = visibleSourceChildren

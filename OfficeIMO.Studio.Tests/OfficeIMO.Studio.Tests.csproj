@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Studio\OfficeIMO.Studio.csproj" />
     <Compile Include="..\OfficeIMO.TestAssets\SparseAnnotationTestSource.cs" Link="Shared\SparseAnnotationTestSource.cs" />
   </ItemGroup>

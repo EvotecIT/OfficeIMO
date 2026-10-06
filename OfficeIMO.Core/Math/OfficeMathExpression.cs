@@ -78,7 +78,9 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         int rowCount,
         int columnCount,
         string? separatorCharacter,
-        bool naryUpperOnly) {
+        bool naryUpperOnly,
+        bool? stretchy = null,
+        bool? largeOperator = null) {
         Kind = kind;
         Text = text;
         Character = character;
@@ -87,6 +89,8 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         ColumnCount = columnCount;
         SeparatorCharacter = separatorCharacter;
         _naryUpperOnly = naryUpperOnly;
+        Stretchy = stretchy;
+        LargeOperator = largeOperator;
         _children = new ReadOnlyCollection<OfficeMathExpression>(children?.ToList() ?? new List<OfficeMathExpression>());
         Validate();
     }
@@ -96,6 +100,10 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
 
     /// <summary>Token text for text, identifier, number, operator, or function nodes.</summary>
     public string? Text { get; }
+
+    // Selected MathML operator overrides stay with the immutable, format-neutral node.
+    internal bool? Stretchy { get; }
+    internal bool? LargeOperator { get; }
 
     /// <summary>Primary delimiter, accent, or n-ary operator character.</summary>
     public string? Character { get; }
@@ -235,7 +243,9 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
             expression.RowCount,
             expression.ColumnCount,
             expression.SeparatorCharacter,
-            expression._naryUpperOnly);
+            expression._naryUpperOnly,
+            expression.Stretchy,
+            expression.LargeOperator);
     }
 
     private OfficeMathExpression WithText(string text) => new OfficeMathExpression(
@@ -247,13 +257,16 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         RowCount,
         ColumnCount,
         SeparatorCharacter,
-        _naryUpperOnly);
+        _naryUpperOnly,
+        Stretchy,
+        LargeOperator);
 
     /// <inheritdoc />
     public bool Equals(OfficeMathExpression? other) {
         if (other == null || Kind != other.Kind || Text != other.Text || Character != other.Character ||
             SecondaryCharacter != other.SecondaryCharacter || SeparatorCharacter != other.SeparatorCharacter || RowCount != other.RowCount ||
-            ColumnCount != other.ColumnCount || _naryUpperOnly != other._naryUpperOnly || _children.Count != other._children.Count) return false;
+            ColumnCount != other.ColumnCount || _naryUpperOnly != other._naryUpperOnly || Stretchy != other.Stretchy ||
+            LargeOperator != other.LargeOperator || _children.Count != other._children.Count) return false;
         for (int index = 0; index < _children.Count; index++) {
             if (!_children[index].Equals(other._children[index])) return false;
         }
@@ -274,6 +287,8 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
             hash = (hash * 397) ^ RowCount;
             hash = (hash * 397) ^ ColumnCount;
             hash = (hash * 397) ^ _naryUpperOnly.GetHashCode();
+            hash = (hash * 397) ^ Stretchy.GetHashCode();
+            hash = (hash * 397) ^ LargeOperator.GetHashCode();
             for (int index = 0; index < _children.Count; index++) hash = (hash * 397) ^ _children[index].GetHashCode();
             return hash;
         }

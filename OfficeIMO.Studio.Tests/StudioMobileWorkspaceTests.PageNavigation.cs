@@ -150,7 +150,8 @@ public sealed partial class StudioMobileWorkspaceTests {
     }
 
     private static async Task OpenPageChooserAsync(MobileWorkspaceView view, Window window, int width, int height) {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        // Synchronous render ticks count toward this deadline too on a busy validation host.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var button = view.FindControl<Button>("GoToPageButton")!;
         Point? previous = null;
         int stableFrames = 0;

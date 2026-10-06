@@ -220,7 +220,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     "body");
             }
 
-            if (bodyContentCount == 0) {
+            // A final table still needs a body paragraph. A following authored
+            // paragraph already supplies that boundary and must not get an extra blank.
+            if (bodyContentCount == 0 || text[text.Length - 1] == '\a') {
                 text.Append('\r');
             }
 
@@ -263,6 +265,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 HasEvenAndOddHeaders(mainPart),
                 settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
                 settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
+                settings?.GetFirstChild<Compatibility>()?.Elements<NoColumnBalance>().Any(IsOnOffEnabled) == true,
                 ReadDocumentEndnotePosition(sections),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
@@ -459,6 +462,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref LegacyDocSectionFormat finalSectionFormat,
             ref int bodyContentCount,
             string containerDescription) {
+            if (child is BookmarkStart && text.Length > 0 && text[text.Length - 1] == '\a' &&
+                FindFollowingBodyBlock(child) is Table) {
+                // A range starting at the next table excludes its required separator.
+                // Ends closing the preceding table keep their original position.
+                text.Append('\r');
+            }
             switch (child) {
                 case Paragraph paragraph:
                     AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, pictures, styleIndexes, footnotes, endnotes);
@@ -475,6 +484,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     break;
                 case Table table:
+                    // Adjacent rows otherwise belong to the same binary DOC table.
+                    if (text.Length > 0 && text[text.Length - 1] == '\a') text.Append('\r');
                     AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
                     bodyContentCount++;
                     break;
@@ -499,7 +510,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks.AddStart(bookmarkStart, text.Length);
                     break;
                 case BookmarkEnd bookmarkEnd:
-                    bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    int? precedingTableEnd = text.Length > 1 && text[text.Length - 1] == '\r' && text[text.Length - 2] == '\a' &&
+                        FindPrecedingBodyBlock(child) is Table && FindFollowingBodyBlock(child) is Table
+                        ? text.Length - 1
+                        : null;
+                    bookmarks.AddEnd(bookmarkEnd, text.Length, precedingTableEnd);
                     break;
                 case SectionProperties sectionProperties:
                     finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);

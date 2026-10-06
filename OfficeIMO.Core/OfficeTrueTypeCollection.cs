@@ -29,6 +29,7 @@ internal static class OfficeTrueTypeCollection {
 
             // Installed collections can contain CFF faces. The TrueType consumer cannot
             // use them; reject them before copying potentially large shared tables.
+            // ExtractFace remains the format-neutral single-face extraction boundary.
             if (!HasTrueTypeOutlines(data, (int)offset)) continue;
             byte[] font = ExtractTrueTypeCollectionFont(data, (int)offset);
             extractedBytes = checked(extractedBytes + font.Length);
@@ -73,7 +74,7 @@ internal static class OfficeTrueTypeCollection {
         data[2] == (byte)'c' &&
         data[3] == (byte)'f';
 
-    private static byte[] ExtractTrueTypeCollectionFont(byte[] collectionData, int fontOffset) {
+    private static byte[] ExtractTrueTypeCollectionFont(byte[] collectionData, int fontOffset, int maximumFontBytes = MaxExtractedTrueTypeCollectionFontBytes) {
         EnsureRange(collectionData, fontOffset, 12);
         ushort tableCount = ReadUInt16(collectionData, fontOffset + 4);
         if (tableCount == 0) {
@@ -99,7 +100,7 @@ internal static class OfficeTrueTypeCollection {
             outputOffset = Align4(checked(outputOffset + (int)length));
         }
 
-        if (outputOffset > MaxExtractedTrueTypeCollectionFontBytes) {
+        if (outputOffset > System.Math.Min(maximumFontBytes, MaxExtractedTrueTypeCollectionFontBytes)) {
             throw new System.NotSupportedException("TrueType collection font data exceeds supported limits.");
         }
 
@@ -168,6 +169,21 @@ internal static class OfficeTrueTypeCollection {
         public int Length { get; }
 
         public int TargetOffset { get; }
+    }
+
+    internal static byte[] ExtractFace(byte[] data, int faceIndex, int maximumFontBytes) {
+        if (!IsTrueTypeCollection(data)) {
+            if (data.Length > maximumFontBytes) throw new System.NotSupportedException("Font data exceeds the supported byte limit.");
+            return (byte[])data.Clone();
+        }
+        EnsureRange(data, 0, 12);
+        uint count = ReadUInt32(data, 8);
+        if (count == 0 || count > MaxTrueTypeCollectionFontsToInspect || faceIndex < 0 || faceIndex >= count)
+            throw new System.NotSupportedException("TrueType collection face index is invalid.");
+        EnsureRange(data, 12, checked((int)count * 4));
+        uint offset = ReadUInt32(data, 12 + faceIndex * 4);
+        if (offset > int.MaxValue) throw new System.NotSupportedException("TrueType collection font offset is too large.");
+        return ExtractTrueTypeCollectionFont(data, (int)offset, maximumFontBytes);
     }
 
     private static void EnsureRange(byte[] data, int offset, int length) {

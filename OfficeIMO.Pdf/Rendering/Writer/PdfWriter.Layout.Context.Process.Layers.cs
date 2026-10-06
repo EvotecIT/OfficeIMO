@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
             activeLayers.Add(layer.Definition);
             BeginLayerContent(layer.Definition);
             try {
-                ProcessBlocks(layer.Blocks);
+                ProcessBlocks(layer.Blocks, layer);
             } finally {
                 if (currentPage != null) sb.Append("EMC\n");
                 activeLayers.RemoveAt(activeLayers.Count - 1);

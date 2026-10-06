@@ -272,6 +272,8 @@ public sealed partial class PdfDocument {
     private void AddBlock(IPdfBlock block) {
         EnsureGeneratedDocument();
         Guard.NotNull(block, nameof(block));
+        if (block is TableBlock { Style: { BorderFrame: not null, Position: null, ConsumesVerticalFlow: true } } table)
+            block = new ContainerBlock(table);
         CurrentBlockSink(block);
     }
 
