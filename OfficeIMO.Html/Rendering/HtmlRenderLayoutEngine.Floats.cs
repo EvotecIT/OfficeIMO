@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> runs) {
         double measuredOuterWidth = IsReplacedImageElement(element)
             ? ResolveFloatingImageOuterWidth(element, style)
-            : ResolvePositionedOuterWidth(element, style, containingWidth, null, null);
+            : ResolvePositionedOuterWidth(element, style, containingWidth, null, null, depth);
         double outerWidth = Math.Min(Math.Max(1D, containingWidth), measuredOuterWidth);
         HtmlRenderBoxStyle floatStyle = style.Clone();
         if (!floatStyle.ExplicitWidth.HasValue) SetPositionedExplicitWidth(floatStyle, outerWidth);

@@ -71,7 +71,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
-        string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style);
+        string text = ApplyTextTransform(ResolveDisclosureTextContent(cell, depth), style);
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
         string normalized = string.Join(" ", tokens);
         double insets = style.HorizontalInsets;
@@ -106,6 +106,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         int depth,
         out HtmlRenderBoxStyle elementStyle) {
+        if (IsInsideClosedDisclosure(element)) {
+            elementStyle = cellStyle;
+            return false;
+        }
         var ancestors = new Stack<IElement>();
         for (IElement? current = element.ParentElement;
              current != null && !ReferenceEquals(current, cell);

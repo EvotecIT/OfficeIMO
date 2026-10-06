@@ -253,7 +253,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
         double? top = ResolveOutOfFlowInset(style.Top, containingHeight, style, source, "top");
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
-        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right);
+        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right, request.Depth);
         if (!style.ExplicitWidth.HasValue) SetPositionedExplicitWidth(style, outerWidth);
         if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue) {
             double targetOuterHeight = Math.Max(0.01D, containingHeight - top.Value - bottom.Value);
@@ -329,7 +329,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return parentStyle ?? request.ParentStyle;
     }
 
-    private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
+    private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right, int depth) {
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
@@ -340,7 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
         if (IsReplacedImageElementTag(tag)) return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
-        string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style);
+        string content = ApplyTextTransform(CollapseFlexText(ResolveDisclosureTextContent(element, depth)), style);
         double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
         double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Select(token => MeasureInlineText(token, style))
