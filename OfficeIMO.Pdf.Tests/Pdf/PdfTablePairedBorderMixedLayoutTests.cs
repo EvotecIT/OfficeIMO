@@ -110,6 +110,21 @@ public partial class PdfDocumentVisualQualityTests {
         Top = top, Right = right, Bottom = bottom, Left = false
     };
 
+    [Fact]
+    public void TablePairedBorders_RoundedEdgeJoinsStraightNeighbourWithoutInteriorStubs() {
+        var style = MixedPairedBorderStyle();
+        style.CornerRadius = 10;
+        for (int row = 0; row < 2; row++)
+            for (int column = 0; column < 2; column++) style.CellBorders![(row, column)] = new PdfCellBorder {
+                Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
+            };
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(RenderMixedPairedTable("flow", style)));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(126, 34));
+        foreach (var border in style.CellBorders!.Values) { border.Left = false; border.Right = false; border.Bottom = false; }
+        raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(RenderMixedPairedTable("flow", style)));
+        Assert.NotEqual(OfficeColor.Red, raster.GetPixel(130, 40));
+    }
+
     private static PdfTableStyle MixedPairedBorderStyle() => new() {
         HeaderRowCount = 0, BorderColor = null, HeaderFill = null, RowStripeFill = null,
         CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 1, PreferredWidth = 200,
