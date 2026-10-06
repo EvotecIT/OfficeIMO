@@ -9,6 +9,38 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelWorksheetTableInspectionTests {
     [Fact]
+    public void RemovedWorksheetDoesNotInspectReplacementWithSameName() {
+        using var workbook = ExcelDocument.Create();
+        var original = workbook.AddWorksheet("Orders");
+        workbook.AddWorksheet("Plain");
+        workbook.RemoveWorksheet("Orders");
+        var replacement = workbook.AddWorksheet("Orders");
+        replacement.CellValue(1, 1, "Item");
+        replacement.CellValue(2, 1, "Beta");
+        replacement.AddTable("A1:A2", true, "ReplacementItems", ExcelTableStyle.TableStyleMedium9);
+        Assert.Throws<System.InvalidOperationException>(() => original.GetTables());
+        Assert.Equal("ReplacementItems", Assert.Single(replacement.GetTables()).Name);
+    }
+
+    [Fact]
+    public void SavedPackageRejectsStaleWorksheetInspectionAndFreshHandleKeepsMetadata() {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-TableInspection-" + System.Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using var workbook = ExcelDocument.Create();
+            var sheet = workbook.AddWorksheet("Orders");
+            sheet.CellValue(1, 1, "Item");
+            sheet.CellValue(2, 1, "Alpha");
+            sheet.AddTable("A1:A2", true, "OrderItems", ExcelTableStyle.TableStyleMedium9);
+            workbook.Save(path);
+            Assert.Throws<System.InvalidOperationException>(() => sheet.GetTables());
+            Assert.Equal("OrderItems", Assert.Single(workbook.Sheets[0].GetTables()).Name);
+            Assert.Equal("OrderItems", Assert.Single(workbook.GetTables()).Name);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void WorksheetSnapshotIncludesDeferredDataTableDefinition() {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddWorksheet("Orders");

@@ -9,6 +9,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlExcelNamedTableLossTests {
     [Theory]
+    [InlineData(ExcelHtmlExportProfile.SemanticTables)]
+    [InlineData(ExcelHtmlExportProfile.VisualReview)]
+    public void StaleWorksheetExportCannotClaimNoNamedTableLoss(ExcelHtmlExportProfile profile) {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-NamedTableExport-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using var workbook = ExcelDocument.Create();
+            var original = AddTableSheet(workbook, "Orders", "OrderItems");
+            workbook.Save(path);
+            var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
+            Assert.Throws<InvalidOperationException>(() => original.ToHtmlResult(options));
+            Assert.True(workbook.ToHtmlResult(options).Report.HasLoss);
+            Assert.True(workbook.Sheets[0].ToHtmlResult(options).Report.HasLoss);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Theory]
     [InlineData(false, ExcelHtmlExportProfile.SemanticTables)]
     [InlineData(true, ExcelHtmlExportProfile.SemanticTables)]
     [InlineData(false, ExcelHtmlExportProfile.VisualReview)]

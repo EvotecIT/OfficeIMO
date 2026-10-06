@@ -343,6 +343,8 @@ rows can still be faster sequentially.
 
 Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.
 
+If saving reloads the package, obtain a current worksheet from `document.Sheets` before inspecting it. A stale or removed worksheet handle raises `InvalidOperationException` rather than returning an empty table snapshot.
+
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");
 var rows = new DataTable();
