@@ -26,6 +26,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "collateral-xhtml", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-unicode", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "audience-codes", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience-grades", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience-months", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -125,8 +126,9 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         TitleSortingFixtures.Verify(result, profile.Name == "title-no-prefix", schemas);
     if (profile.Name is "collection-hierarchy" or "collection-frequency")
         CollectionHierarchyFixtures.Verify(result, profile.Name == "collection-frequency", schemas);
-    if (profile.Name == "collateral-xhtml" && !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
-        throw new InvalidDataException("XHTML record composition changed mixed content or whitespace.");
+    if ((profile.Name == "collateral-xhtml" || profile.Name == "audience-codes") &&
+        !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
+        throw new InvalidDataException("Record composition changed retained content or whitespace.");
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);
     if (profile.Name is "early" or "priced") {
         // Existing single-record fixtures deliberately share an ISBN. Create a distinct second edition

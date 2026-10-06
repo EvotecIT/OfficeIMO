@@ -2,6 +2,15 @@ using OfficeIMO.Workflows;
 
 internal static class AudienceFixtures {
     internal static BookOnixAudienceMetadata? Create(string profile) => profile switch {
+        "audience-codes" => new() {
+            Categories = [new(BookOnixAudienceType.Children, true)],
+            Codes = Enum.GetValues<BookOnixAudienceScheme>().Select(scheme => new BookOnixAudienceCode(scheme,
+                scheme == BookOnixAudienceScheme.Cefr ? "B2" : scheme == BookOnixAudienceScheme.IntendedLanguage ? "pol" :
+                scheme == BookOnixAudienceScheme.Isced2011 ? "253" : "01") {
+                SchemeName = scheme == BookOnixAudienceScheme.Proprietary ? "Synthetic publisher & recipient scheme" : null,
+                IsMain = true
+            }).ToArray(),
+            Descriptions = [new("Synthetic external code assertions; schema proof does not validate external scheme membership", "eng")] },
         "audience-grades" => new() {
             Categories = [new(BookOnixAudienceType.PrimaryAndSecondaryEducation, true)],
             GradeRanges = [new(BookOnixGradeSystem.UnitedStates, BookOnixGrade.Preschool, BookOnixGrade.Kindergarten),

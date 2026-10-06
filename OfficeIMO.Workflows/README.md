@@ -655,6 +655,38 @@ text, not HTML, with optional ONIX list 74 language codes. Up to 16 descriptions
 are allowed, with distinct languages including unspecified; text fields retain the
 4096-character bound. Omit `Audience` when making no assertion.
 
+Use `Codes` to add national, educational or proprietary readership codes alongside
+those general categories:
+
+```csharp
+var audience = new BookOnixAudienceMetadata {
+    Categories = [new(BookOnixAudienceType.AdditionalLanguageTeaching, IsMain: true)],
+    Codes = [
+        new(BookOnixAudienceScheme.Cefr, "B2") { IsMain = true },
+        new(BookOnixAudienceScheme.IntendedLanguage, "pol"),
+        new(BookOnixAudienceScheme.Proprietary, "adult-learners") {
+            SchemeName = "Publisher readership scheme", IsMain = true
+        }
+    ]
+};
+```
+
+The supported [list 29](https://ns.editeur.org/onix/en/29) schemes are `Proprietary`,
+`Btlf`, `Electre`, `Anele`, `Avi`, `Aws`, `FinnishSchoolLevel`, `CbgAgeGuidance`,
+`BookData`, `AviRevised`, `JapaneseChildren`, `Cefr`, `IntendedLanguage`,
+`SwedishCurriculum` and `Isced2011`. Up to 64 codes are allowed. A proprietary code
+requires a distinctive `SchemeName` agreed with recipients; other schemes do not
+accept that field. Code values are preserved without interpretation or trimming,
+with surrounding whitespace rejected. Duplicate scheme/name/value assertions are
+rejected. At most one code per list 29 type may be main, including across differently
+named proprietary schemes; a general ONIX category can also be main independently.
+
+CEFR values are A1, A2, B1, B2, C1 and C2. Japanese children's codes require two
+ASCII digits, and intended-language values require three lowercase ASCII letters.
+Other external values receive text/XML validation only. These checks do not verify
+current membership in externally maintained vocabularies, code allocation, or
+recipient acceptance. Obtain those values from the scheme owner or recipient.
+
 Age ranges distinguish interest in years or months from reading age in years.
 At least one nonnegative integer bound is required. Equal bounds mean an exact age;
 a lone minimum means “from”, a lone maximum means “to”, and different minimum/maximum
@@ -680,7 +712,7 @@ Age and grade ranges may coexist. No age-to-grade conversion is performed.
 Audience categories, age ranges and grade ranges are independent assertions. Supply an appropriate
 range for children's, teenage and school material when known; export does not guess
 one from a category or inspect the book to assess suitability. This profile does not
-represent proprietary/national audience codes, other national grade schemes, adult-content
+represent other national grade schemes, adult-content
 ratings or reading-complexity schemes. Schema validity does not establish educational
 suitability or recipient acceptance, and audience export does not change EPUB metadata.
 

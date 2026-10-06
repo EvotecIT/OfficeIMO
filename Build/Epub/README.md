@@ -186,6 +186,10 @@ not evidence of allocation, ownership or a publisher's actual publication schedu
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
 assertions exercise serialization and do not establish readership or suitability.
+The `audience-codes` fixture covers all supported additional audience scheme identifiers,
+proprietary scheme-name escaping, main-audience flags across schemes and retained code values.
+External code values are synthetic; schema validation does not establish their membership
+in the scheme owner's current vocabulary or recipient acceptance.
 The `audience-grades` fixture covers US preschool-to-kindergarten, Canadian grades
 9–12 and an open-ended Chinese tertiary range. The generator also validates every
 supported grade code in all three systems against the supplied schema. Grading
@@ -232,6 +236,7 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/audience-codes.onix \
   /path/to/new-onix-evidence/audience-grades.onix \
   /path/to/new-onix-evidence/collateral.onix \
   /path/to/new-onix-evidence/collateral-unicode.onix \

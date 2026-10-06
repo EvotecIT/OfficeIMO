@@ -6,12 +6,13 @@ public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixAudience(BookOnixAudienceMetadata? audience, CancellationToken cancellationToken) {
         if (audience == null) return [];
         ArgumentNullException.ThrowIfNull(audience.Categories);
+        ArgumentNullException.ThrowIfNull(audience.Codes);
         ArgumentNullException.ThrowIfNull(audience.AgeRanges);
         ArgumentNullException.ThrowIfNull(audience.GradeRanges);
         ArgumentNullException.ThrowIfNull(audience.Descriptions);
-        if (audience.Categories.Count > 13 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16)
-            throw new ArgumentException("Audience metadata exceeds its category, range or description limit.", nameof(audience));
-        if (audience.Categories.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0)
+        if (audience.Categories.Count > 13 || audience.Codes.Count > 64 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16)
+            throw new ArgumentException("Audience metadata exceeds its category, code, range or description limit.", nameof(audience));
+        if (audience.Categories.Count == 0 && audience.Codes.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0)
             throw new ArgumentException("Supply at least one audience assertion, or omit Audience.", nameof(audience));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
@@ -35,6 +36,7 @@ public sealed partial class BookProject {
             result.Add(new XElement(ns + "Audience", category.IsMain ? new XElement(ns + "MainAudience") : null,
                 new XElement(ns + "AudienceCodeType", "01"), new XElement(ns + "AudienceCodeValue", code)));
         }
+        result.AddRange(BuildOnixAudienceCodes(audience.Codes, cancellationToken));
         var rangeTypes = new HashSet<BookOnixAgeRangeType>();
         foreach (var range in audience.AgeRanges) {
             cancellationToken.ThrowIfCancellationRequested();
