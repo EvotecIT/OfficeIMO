@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## HTML widths larger than their container
+
+The shared HTML renderer honors explicit `width` and `min-width` values that exceed
+the containing block. It no longer silently reduces these boxes to the available
+width. If a document relied on that reduction, use `max-width:100%` and remove any
+conflicting `min-width`, or choose an explicit overflow policy. Check fixed-layout
+EPUB canvas and clipping diagnostics after changing the layout.
+
 ## EPUB chapter selector reconciliation
 
 Replace `EpubChapterMergeOptions.RewriteSecondChapterIdSelectors` with

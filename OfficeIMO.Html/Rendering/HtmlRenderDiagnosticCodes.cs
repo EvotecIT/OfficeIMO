@@ -94,6 +94,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PositionStaticAnchorFallback = "HtmlRenderPositionStaticAnchorFallback";
     /// <summary>A scrollable overflow box was captured at its initial static scroll position.</summary>
     public const string OverflowScrollSnapshot = "HtmlRenderOverflowScrollSnapshot";
+    /// <summary>Inspection found rendered element bounds outside a rectangular scene clip.</summary>
+    public const string ClippedElementBounds = "HtmlRenderClippedElementBounds";
+    /// <summary>Inspection encountered path-shaped clipping whose precise geometry was not measured.</summary>
+    public const string ClipGeometryNotInspected = "HtmlRenderClipGeometryNotInspected";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
     public const string OverflowValueUnsupported = "HtmlRenderOverflowValueUnsupported";
     /// <summary>An overflow-clip-margin value used its initial padding-box zero fallback.</summary>
@@ -263,6 +267,8 @@ public static class HtmlRenderDiagnosticCodes {
         ReplacedElementValueUnsupported,
         OverflowClipMarginValueUnsupported,
         OverflowScrollSnapshot,
+        ClippedElementBounds,
+        ClipGeometryNotInspected,
         OverflowValueUnsupported,
         TransformValueUnsupported,
         ClipPathValueUnsupported,

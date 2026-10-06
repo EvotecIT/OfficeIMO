@@ -3,11 +3,49 @@ using OfficeIMO.Epub;
 using OfficeIMO.Epub.Image;
 using OfficeIMO.Html;
 using System.Xml.Linq;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class EpubFixedLayoutInspectionTests {
+    [Fact]
+    public void ExcessiveClippingWorkFailsInsteadOfReturningPartialDiagnostics() {
+        var book = Book(20); var xml = book.GetContentXml("page"); XNamespace html = "http://www.w3.org/1999/xhtml";
+        var frame = xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame"); frame.RemoveNodes();
+        for (int i = 0; i < 1025; i++) frame.Add(new XElement(html + "div", new XAttribute("style", "height:1px;overflow:hidden"),
+            new XElement(html + "div", new XAttribute("style", "height:2px;background:#124e80"), " ")));
+        book.SetContentXml("page", xml);
+        var error = Assert.Throws<NotSupportedException>(() => Read(book).InspectFixedLayoutPage(0));
+        Assert.Contains("1024-clip", error.Message);
+    }
+
+    [Theory]
+    [InlineData(80, 80, "overflow:hidden", true, false)]
+    [InlineData(80, 10, "overflow:hidden", false, false)]
+    [InlineData(80, 80, "overflow-x:clip;overflow-y:visible", false, false)]
+    [InlineData(200, 10, "overflow-x:visible;overflow-y:clip", false, false)]
+    [InlineData(200, 10, "overflow-x:clip;overflow-y:visible", true, false)]
+    [InlineData(80, 80, "overflow:hidden;border-radius:10px", false, true)]
+    [InlineData(80, 80, "overflow:hidden;transform:rotate(30deg)", true, false)]
+    public void ClippingInspectionDistinguishesHiddenBoundsFromUnmeasuredPaths(int width, int height,
+        string style, bool clipped, bool unmeasured) {
+        var book = Book(20); var xml = book.GetContentXml("page");
+        var frame = xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame");
+        frame.SetAttributeValue("style", style);
+        frame.Elements().Single().SetAttributeValue("style", $"width:{width}px;height:{height}px;background:#124e80");
+        book.SetContentXml("page", xml);
+        var inspection = Read(book).InspectFixedLayoutPage(0);
+        Assert.Equal(clipped, inspection.HasClippedElementBounds);
+        Assert.Equal(unmeasured, inspection.ClippingDiagnostics.Any(d => d.Code == HtmlRenderDiagnosticCodes.ClipGeometryNotInspected));
+        if (clipped) {
+            var diagnostic = Assert.Single(inspection.ClippingDiagnostics, d => d.Code == HtmlRenderDiagnosticCodes.ClippedElementBounds);
+            Assert.Equal("div#frame", diagnostic.Source);
+            Assert.Equal(HtmlDiagnosticSeverity.Info, diagnostic.Severity);
+        }
+        if (unmeasured) Assert.True(inspection.HasRenderingWarnings);
+    }
+
     [Theory]
     [InlineData(10, "", "", false)]
     [InlineData(80, "", "", true)]

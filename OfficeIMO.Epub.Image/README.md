@@ -47,9 +47,9 @@ beyond the automatic output clip. Explicit authored clips remain in effect.
 Negative and transformed coordinates are included; excessive inspection surfaces
 fail instead of returning incomplete results. No output image is encoded.
 
-Inspect `HasCanvasOverflow`, `Rendering.Diagnostics`, `PackageDiagnostics` and
+Inspect `HasCanvasOverflow`, `ClippingDiagnostics`, `Rendering.Diagnostics`, `PackageDiagnostics` and
 `PreparationDiagnostics` together. `HasRenderingWarnings` summarizes diagnosed
-rendering loss and package/preparation warnings. Suppressing package diagnostics for
+rendering loss and package/preparation/inspection warnings. Suppressing package diagnostics for
 image export does not suppress them in this inspection. Missing raw XHTML, a
 reflowable chapter, an unsupported viewport or encrypted content rejects inspection;
 text fallback cannot establish fixed geometry.
@@ -75,8 +75,20 @@ targets without one rendered region, including hidden or unsupported targets,
 reject inspection rather than produce an empty successful result. Region selection
 does not modify the retained XHTML or the rendered painting.
 
+`HasClippedElementBounds` identifies rendered element rectangles that extend outside
+rectangular scene clips. `ClippingDiagnostics` gives the source, clip rectangle,
+clipped axes and finding count. These informational findings include intentional
+image and background crops; they do not automatically mean the design is wrong.
+Descendant transforms and clips are included, and an unclipped axis is not treated
+as a boundary. The automatic output clip is excluded. Inspection rejects pages with
+more than 1024 scene clips instead of silently truncating the checks.
+
+Path-shaped clips, including rounded overflow boxes, produce
+`HtmlRenderClipGeometryNotInspected` warnings. Their precise clipping geometry is
+not covered by the rectangular check.
+
 This is managed layout evidence. It does not measure glyph ink, shadows/filters,
-or content hidden by authored clipping. SVG spine inspection, native-reader presentation and accessible reading
+or pixel visibility within clipped element rectangles. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 
 <!-- officeimo-operation-catalog:start -->

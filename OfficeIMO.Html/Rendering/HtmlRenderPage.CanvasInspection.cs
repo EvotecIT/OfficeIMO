@@ -25,35 +25,42 @@ public sealed partial class HtmlRenderPage {
         foreach (HtmlRenderVisual visual in visuals) {
             cancellationToken.ThrowIfCancellationRequested();
             if (visual is HtmlRenderLayoutRegion region && region.SourceKey == elementId) yield return region;
-            IEnumerable<HtmlRenderVisual> children = visual switch {
-                HtmlRenderLayoutRegion r => r.Visuals,
-                HtmlRenderSemanticGroup g => g.Visuals,
-                HtmlRenderLogicalTextGroup g => g.Visuals,
-                HtmlRenderEffectGroup g => g.Visuals,
-                HtmlRenderClipGroup g => g.Visuals,
-                HtmlRenderPathClipGroup g => g.Visuals,
-                HtmlRenderFormField f => f.Visuals,
-                _ => Array.Empty<HtmlRenderVisual>()
-            };
-            foreach (HtmlRenderLayoutRegion child in FindRegions(children, elementId, cancellationToken)) yield return child;
+            foreach (HtmlRenderLayoutRegion child in FindRegions(InspectionChildren(visual), elementId, cancellationToken)) yield return child;
         }
     }
+
+    private static IEnumerable<HtmlRenderVisual> InspectionChildren(HtmlRenderVisual visual) => visual switch {
+        HtmlRenderLayoutRegion r => r.Visuals,
+        HtmlRenderSemanticGroup g => g.Visuals,
+        HtmlRenderLogicalTextGroup g => g.Visuals,
+        HtmlRenderEffectGroup g => g.Visuals,
+        HtmlRenderClipGroup g => g.Visuals,
+        HtmlRenderPathClipGroup g => g.Visuals,
+        HtmlRenderFormField f => f.Visuals,
+        _ => Array.Empty<HtmlRenderVisual>()
+    };
 
     // Preserve automatic surface overflow for inspection. Explicit scene clips remain authoritative.
     internal OfficeDrawingQualityReport InspectCanvasBounds(double width, double height, int maximumWidth,
         int maximumHeight, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var content = _scene.Where(visual => visual.Source != "render-surface").ToArray();
-        var bounds = ResolveDrawingBufferBounds(content, width, height, _fonts, cancellationToken);
-        double left = Math.Min(0D, bounds.Left), top = Math.Min(0D, bounds.Top);
-        double expandedWidth = Math.Max(width, bounds.Right) - left;
-        double expandedHeight = Math.Max(height, bounds.Bottom) - top;
+        return InspectBounds(content, 0D, 0D, width, height, maximumWidth, maximumHeight, cancellationToken);
+    }
+
+    private OfficeDrawingQualityReport InspectBounds(IReadOnlyList<HtmlRenderVisual> content,
+        double targetLeft, double targetTop, double width, double height, int maximumWidth,
+        int maximumHeight, CancellationToken cancellationToken) {
+        var bounds = ResolveDrawingBufferBounds(content, Math.Max(0D, targetLeft + width), Math.Max(0D, targetTop + height), _fonts, cancellationToken);
+        double left = Math.Min(targetLeft, bounds.Left), top = Math.Min(targetTop, bounds.Top);
+        double expandedWidth = Math.Max(targetLeft + width, bounds.Right) - left;
+        double expandedHeight = Math.Max(targetTop + height, bounds.Bottom) - top;
         if (double.IsNaN(expandedWidth) || double.IsInfinity(expandedWidth) || double.IsNaN(expandedHeight) || double.IsInfinity(expandedHeight) || expandedWidth > maximumWidth || expandedHeight > maximumHeight)
             throw new NotSupportedException("Rendered overflow exceeds the inspection surface limits.");
         var expanded = new HtmlRenderPage(PageNumber, expandedWidth, expandedHeight,
             content.Select((visual, index) => visual.Translate(-left, -top, index)), fonts: _fonts);
         OfficeDrawing drawing = expanded.CreateDrawing(cancellationToken);
-        return OfficeDrawingQualityAnalyzer.AnalyzeAtOffset(drawing, -left, -top, width, height,
+        return OfficeDrawingQualityAnalyzer.AnalyzeAtOffset(drawing, targetLeft - left, targetTop - top, width, height,
             new OfficeDrawingQualityOptions(detectTextOverlap: false), cancellationToken);
     }
 }

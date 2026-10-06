@@ -91,8 +91,8 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_BreakAllUsesRemainingSpaceBeforeMovingAWordThatFitsAnEmptyLine() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='width:40px;font-size:12px;word-break:break-all'>A WWW</div>",
-            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D });
+            "<div style='width:28px;font-family:monospace;font-size:12px;word-break:break-all'>A WWW</div>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D) });
         string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
             .GroupBy(fragment => fragment.Y)
             .OrderBy(group => group.Key)
