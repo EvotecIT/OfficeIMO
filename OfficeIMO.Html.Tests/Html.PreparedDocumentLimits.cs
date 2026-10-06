@@ -11,7 +11,7 @@ public sealed class HtmlPreparedDocumentLimitTests {
     public void PreparedStylesUseTheSameDefaultCssBudgetAsRawInput() {
         int rules = HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules!.Value + 1;
         string source = "<style>" + string.Concat(Enumerable.Repeat(".unused{color:red}", rules)) + "p{color:blue}</style><p>Text</p>";
-        HtmlDocument owned = AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+        HtmlDocument owned = AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
         Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(owned)).LimitSource);
         Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(source)).LimitSource);
     }

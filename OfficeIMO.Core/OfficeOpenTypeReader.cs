@@ -156,6 +156,9 @@ internal sealed class OfficeOpenTypeReader {
                 : 0;
     }
 
+    /// <summary>Prefers the typographic family name for exact installed-face matching.</summary>
+    internal string? ReadFamilyName() => ReadFirstName(16) ?? ReadFirstName(1);
+
     internal string? ReadDisplayName() => ReadFirstName(4) ?? ReadFirstName(1) ?? ReadFirstName(6) ?? ReadFirstName(2);
 
     internal ushort ReadUInt16(int offset) {

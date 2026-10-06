@@ -321,7 +321,7 @@ internal static partial class PdfWriter {
                 int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                 int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
                 double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
-                int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight);
+                int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, tableStyle.PreservePartialCellLines);
                 double verticalOffset = 0;
                 double visibleTextHeight = 0D;
                 if (visibleLineCount > 0) {
@@ -376,7 +376,7 @@ internal static partial class PdfWriter {
                         markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
                     }
 
-                    if (cell.Viewport != null)
+                    if (cell.Viewport != null || tableStyle.PreservePartialCellLines)
                         OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                             paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
                             xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts, cellFont);
@@ -503,6 +503,7 @@ internal static partial class PdfWriter {
             }
 
             double rowAdvance = rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) : 0D);
+            RecordTableFrameContentBottom(tbColumn, rowBottom);
             state.Y -= rowAdvance;
             state.Remaining -= rowAdvance;
             state.Consumed += rowAdvance;

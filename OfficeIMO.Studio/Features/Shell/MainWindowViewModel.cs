@@ -374,7 +374,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
             PdfDocumentSession session = PdfDocumentSession.FromWorkspace(candidateWorkspace);
 
-            candidateSceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
+            candidateSceneCoordinator = new PageSceneCoordinator((page, token) => session.LoadPageSceneAsync(page, token, OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback));
             candidateRenderCoordinator = new PageRenderCoordinator(session.RenderPageAsync);
             candidatePages = session.Pages
                 .Select(page => new PdfPageViewModel(

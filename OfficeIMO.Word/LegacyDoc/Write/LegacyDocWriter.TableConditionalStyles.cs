@@ -105,7 +105,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     || cellNoWrap != null
                     || cellHideMark != null
                     || cellMargins.HasAny
-                    || cellShading.HasAny
+                    || cellShading.IsSpecified
                     || cellBorders.HasAny
                     || paragraphFormatting.HasFormatting
                     || runFormatting.HasFormatting) {
@@ -326,7 +326,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         continue;
                     }
 
-                    if (!cell.Shading.HasAny && conditionalStyle.CellShading.HasAny) {
+                    if (!cell.Shading.IsSpecified && conditionalStyle.CellShading.IsSpecified) {
                         cell = cell.WithShading(conditionalStyle.CellShading);
                     }
 
