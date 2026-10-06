@@ -904,6 +904,15 @@ function deduplicate(items, item) {
     items.push(item);
     return items.length - 1;
 }
+/** @internal Observe unsupported promises immediately, even when cell precedence skips the patch. */
+function validateStylePatch(patch) {
+    if (!patch || typeof patch !== "object" || Array.isArray(patch))
+        throw new TypeError("A style patch must be a CellStyle object.");
+    if (typeof patch.then === "function") {
+        void Promise.resolve(patch).catch(() => { });
+        throw new TypeError("Style patches must be synchronous CellStyle objects.");
+    }
+}
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 class StyleRegistry {
     policy;
@@ -993,12 +1002,7 @@ class StyleRegistry {
     validateStyle(id) { return index(id, this.styles.length, "cell style"); }
     /** Overlay presentation while retaining the base number format, font fields and border edges. Numeric component indexes replace a component. */
     compose(base, overlay) {
-        if (!overlay || typeof overlay !== "object" || Array.isArray(overlay))
-            throw new TypeError("A style patch must be a CellStyle object.");
-        if (typeof overlay.then === "function") {
-            void Promise.resolve(overlay).catch(() => { });
-            throw new TypeError("Style patches must be synchronous CellStyle objects.");
-        }
+        validateStylePatch(overlay);
         const source = this.styles[this.validateStyle(base)];
         return this.add({
             font: source.font, fill: source.fill, border: source.border, numberFormat: source.numberFormat,
@@ -1045,7 +1049,7 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
     }
 }
-const _exports = Object.freeze({ spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, colorArgb: colorArgb, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, colorArgb: colorArgb, validateStylePatch: validateStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
@@ -1148,7 +1152,7 @@ return _exports;
 })();
 
 const _m17 = (() => {
-const { cleanXml, escapeXml, xmlDeclaration } = _m7;
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m7;
 
 const { officeRelationshipsNamespace } = _m8;
 
@@ -1191,7 +1195,7 @@ function copyImage(image, policy) {
 }
 function hyperlinksXml(links, policy) {
     return '<hyperlinks>' + links.map((link, i) => '<hyperlink ref="' + link.cell + '" r:id="link' + (i + 1) + '"' +
-        (link.tooltip === undefined ? "" : ' tooltip="' + escapeXml(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
+        (link.tooltip === undefined ? "" : ' tooltip="' + escapeOoxmlAttribute(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
 }
 function drawingXml(images, policy) {
     const ns = "http://schemas.openxmlformats.org/drawingml/2006/";
@@ -1226,7 +1230,7 @@ const { officeRelationshipsNamespace } = _m8;
 
 const { Cell, cellText, columnName, inlineText, excelDate } = _m14;
 
-const { spreadsheetNamespace, colorArgb } = _m13;
+const { spreadsheetNamespace, colorArgb, validateStylePatch } = _m13;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m17;
 
@@ -1343,11 +1347,11 @@ class Worksheet {
             if (explicitStyle === undefined) {
                 if ((row - this.headerRows) % 2 === 0 && this.options.alternatingRowStyle)
                     style = this.book.styles.compose(style, this.options.alternatingRowStyle);
-                if (rowStyle)
+                if (rowStyle !== undefined)
                     style = this.book.styles.compose(style, rowStyle);
             }
             const patch = context && this.options.cellStyle?.({ ...context, value: value, column: Object.freeze({ ...col.column }), columnIndex: i + 1 });
-            if (patch)
+            if (patch !== undefined)
                 style = this.book.styles.compose(style, patch);
         }
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
@@ -1371,6 +1375,8 @@ class Worksheet {
         const context = !header ? Object.freeze({ row: number, sheetName: this.name,
             values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell ? values[i].value : values[i])) }) : undefined;
         const rowStyle = context && this.options.rowStyle?.(context);
+        if (rowStyle !== undefined)
+            validateStylePatch(rowStyle);
         await buffer.write('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>');
         for (let i = 0; i < this.columns.length; i++)
             await buffer.write(this.cell(values[i], i, number, header, rowStyle, context));

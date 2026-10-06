@@ -113,6 +113,7 @@ internal static class JavaScriptWorkbookContract {
         Require(font.Bold is not null && font.Color?.Rgb?.Value == "FFC00000" && fill.Descendants<ForegroundColor>().Any(f => f.Rgb?.Value == "FFFCE4D6"), "Report highlighting differs.");
         var link = sheet.HyperlinkRelationships.Single();
         Require(link.IsExternal && link.Uri.ToString() == "https://example.com/report?site=lodz&view=health", "Report hyperlink differs.");
+        Require(XmlConvert.DecodeName(worksheet.Descendants<Hyperlink>().Single().Tooltip?.Value ?? "") == "Open Łódź _x0041_ report", "Literal hyperlink tooltip differs.");
         var anchor = sheet.DrawingsPart!.WorksheetDrawing!.Elements<DocumentFormat.OpenXml.Drawing.Spreadsheet.OneCellAnchor>().Single();
         Require(anchor.FromMarker?.RowId?.Text == "5" && anchor.FromMarker.ColumnId?.Text == "0" && anchor.Extent?.Cx?.Value == 1714500 && anchor.Extent.Cy?.Value == 762000,
             "Report image anchor or size differs.");

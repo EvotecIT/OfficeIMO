@@ -1,4 +1,4 @@
-import { cleanXml, escapeXml, xmlDeclaration } from "../xml/index.js";
+import { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
 
@@ -48,7 +48,7 @@ export function copyImage(image: WorksheetImage, policy: InvalidCharacterPolicy)
 
 export function hyperlinksXml(links: readonly Hyperlink[], policy: InvalidCharacterPolicy): string {
   return '<hyperlinks>' + links.map((link, i) => '<hyperlink ref="' + link.cell + '" r:id="link' + (i + 1) + '"' +
-    (link.tooltip === undefined ? "" : ' tooltip="' + escapeXml(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
+    (link.tooltip === undefined ? "" : ' tooltip="' + escapeOoxmlAttribute(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
 }
 
 export function drawingXml(images: readonly WorksheetImage[], policy: InvalidCharacterPolicy): string {

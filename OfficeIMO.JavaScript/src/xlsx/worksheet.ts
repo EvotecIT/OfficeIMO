@@ -8,7 +8,7 @@ import type { PreparedEntry } from "../zip/entry.js";
 import { xmlDeclaration } from "../xml/index.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
 import { Cell, cellText, columnName, inlineText, excelDate } from "./values.js";
-import { spreadsheetNamespace, colorArgb } from "./styles.js";
+import { spreadsheetNamespace, colorArgb, validateStylePatch } from "./styles.js";
 import type { Workbook } from "./workbook.js";
 import type { SheetOptions, XlsxRows } from "./types.js";
 import type { RowStyleContext } from "./types.js";
@@ -102,10 +102,10 @@ export class Worksheet {
     if (!header) {
       if (explicitStyle === undefined) {
         if ((row - this.headerRows) % 2 === 0 && this.options.alternatingRowStyle) style = this.book.styles.compose(style, this.options.alternatingRowStyle);
-        if (rowStyle) style = this.book.styles.compose(style, rowStyle);
+        if (rowStyle !== undefined) style = this.book.styles.compose(style, rowStyle);
       }
       const patch = context && this.options.cellStyle?.({ ...context, value: value as CellValue, column: Object.freeze({ ...col.column }), columnIndex: i + 1 });
-      if (patch) style = this.book.styles.compose(style, patch);
+      if (patch !== undefined) style = this.book.styles.compose(style, patch);
     }
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
     if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
@@ -122,6 +122,7 @@ export class Worksheet {
     const context = !header ? Object.freeze({ row: number, sheetName: this.name,
       values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell ? (values[i] as Cell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
+    if (rowStyle !== undefined) validateStylePatch(rowStyle);
     await buffer.write('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>');
     for (let i = 0; i < this.columns.length; i++) await buffer.write(this.cell(values[i], i, number, header, rowStyle, context));
     await buffer.write('</row>');

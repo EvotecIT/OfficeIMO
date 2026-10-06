@@ -897,7 +897,7 @@ _modules.set("783005f3e603c2cd73d725db9be9e89e4d3f00da0b7e7ff7cece023ef92b7638",
 return _exports;
 })();
 
-const _m13 = _modules.get("ea9da3d9287b7ccdd3b5eadb067b45fc4a52636828986ee1c5e7e0692aea92f9") ?? (() => {
+const _m13 = _modules.get("d3c0b495660ac514e8abb256513dd694acb2c05ffa6e4a721e17cf41e5700f92") ?? (() => {
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m7;
 
 const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -919,6 +919,15 @@ function deduplicate(items, item) {
         return found;
     items.push(item);
     return items.length - 1;
+}
+/** @internal Observe unsupported promises immediately, even when cell precedence skips the patch. */
+function validateStylePatch(patch) {
+    if (!patch || typeof patch !== "object" || Array.isArray(patch))
+        throw new TypeError("A style patch must be a CellStyle object.");
+    if (typeof patch.then === "function") {
+        void Promise.resolve(patch).catch(() => { });
+        throw new TypeError("Style patches must be synchronous CellStyle objects.");
+    }
 }
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 class StyleRegistry {
@@ -1009,12 +1018,7 @@ class StyleRegistry {
     validateStyle(id) { return index(id, this.styles.length, "cell style"); }
     /** Overlay presentation while retaining the base number format, font fields and border edges. Numeric component indexes replace a component. */
     compose(base, overlay) {
-        if (!overlay || typeof overlay !== "object" || Array.isArray(overlay))
-            throw new TypeError("A style patch must be a CellStyle object.");
-        if (typeof overlay.then === "function") {
-            void Promise.resolve(overlay).catch(() => { });
-            throw new TypeError("Style patches must be synchronous CellStyle objects.");
-        }
+        validateStylePatch(overlay);
         const source = this.styles[this.validateStyle(base)];
         return this.add({
             font: source.font, fill: source.fill, border: source.border, numberFormat: source.numberFormat,
@@ -1061,8 +1065,8 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
     }
 }
-const _exports = Object.freeze({ spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, colorArgb: colorArgb, StyleRegistry: StyleRegistry });
-_modules.set("ea9da3d9287b7ccdd3b5eadb067b45fc4a52636828986ee1c5e7e0692aea92f9", _exports);
+const _exports = Object.freeze({ spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, colorArgb: colorArgb, validateStylePatch: validateStylePatch, StyleRegistry: StyleRegistry });
+_modules.set("d3c0b495660ac514e8abb256513dd694acb2c05ffa6e4a721e17cf41e5700f92", _exports);
 return _exports;
 })();
 
@@ -1166,8 +1170,8 @@ _modules.set("106e8382a79b4ecc2a000b5b59d79ee2eb5d1f40478080fe26bb9effb9fa87be",
 return _exports;
 })();
 
-const _m17 = _modules.get("223f664bb898a0daafaafb1e9819fc38652d0e811cb64ea6a3f0b28161e3c7f2") ?? (() => {
-const { cleanXml, escapeXml, xmlDeclaration } = _m7;
+const _m17 = _modules.get("a64d37f4013cabe662264ec1508ff67f552f7fbd6be4a0a531c52a07d9d98156") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m7;
 
 const { officeRelationshipsNamespace } = _m8;
 
@@ -1210,7 +1214,7 @@ function copyImage(image, policy) {
 }
 function hyperlinksXml(links, policy) {
     return '<hyperlinks>' + links.map((link, i) => '<hyperlink ref="' + link.cell + '" r:id="link' + (i + 1) + '"' +
-        (link.tooltip === undefined ? "" : ' tooltip="' + escapeXml(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
+        (link.tooltip === undefined ? "" : ' tooltip="' + escapeOoxmlAttribute(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
 }
 function drawingXml(images, policy) {
     const ns = "http://schemas.openxmlformats.org/drawingml/2006/";
@@ -1225,11 +1229,11 @@ function drawingXml(images, policy) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("223f664bb898a0daafaafb1e9819fc38652d0e811cb64ea6a3f0b28161e3c7f2", _exports);
+_modules.set("a64d37f4013cabe662264ec1508ff67f552f7fbd6be4a0a531c52a07d9d98156", _exports);
 return _exports;
 })();
 
-const _m15 = _modules.get("7a2ce5a7f059b7d486e464a190b46904d3c774ab1349b6465ad197721dd123c2") ?? (() => {
+const _m15 = _modules.get("f43fb215d0d7b9a13a04a9fce43839acf00b51e4f1cb85a8556b609611f73e72") ?? (() => {
 const { checkAbort, inputRows } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -1246,7 +1250,7 @@ const { officeRelationshipsNamespace } = _m8;
 
 const { Cell, cellText, columnName, inlineText, excelDate } = _m14;
 
-const { spreadsheetNamespace, colorArgb } = _m13;
+const { spreadsheetNamespace, colorArgb, validateStylePatch } = _m13;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m17;
 
@@ -1363,11 +1367,11 @@ class Worksheet {
             if (explicitStyle === undefined) {
                 if ((row - this.headerRows) % 2 === 0 && this.options.alternatingRowStyle)
                     style = this.book.styles.compose(style, this.options.alternatingRowStyle);
-                if (rowStyle)
+                if (rowStyle !== undefined)
                     style = this.book.styles.compose(style, rowStyle);
             }
             const patch = context && this.options.cellStyle?.({ ...context, value: value, column: Object.freeze({ ...col.column }), columnIndex: i + 1 });
-            if (patch)
+            if (patch !== undefined)
                 style = this.book.styles.compose(style, patch);
         }
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
@@ -1391,6 +1395,8 @@ class Worksheet {
         const context = !header ? Object.freeze({ row: number, sheetName: this.name,
             values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell ? values[i].value : values[i])) }) : undefined;
         const rowStyle = context && this.options.rowStyle?.(context);
+        if (rowStyle !== undefined)
+            validateStylePatch(rowStyle);
         await buffer.write('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>');
         for (let i = 0; i < this.columns.length; i++)
             await buffer.write(this.cell(values[i], i, number, header, rowStyle, context));
@@ -1517,11 +1523,11 @@ class Worksheet {
     async discard(error) { await this.entry?.discard(error); this.output.discard(); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("7a2ce5a7f059b7d486e464a190b46904d3c774ab1349b6465ad197721dd123c2", _exports);
+_modules.set("f43fb215d0d7b9a13a04a9fce43839acf00b51e4f1cb85a8556b609611f73e72", _exports);
 return _exports;
 })();
 
-const _m18 = _modules.get("43ae8a2821536f5e34fc04a17ef7b79b70ccc5101655c4a9aeccce1312cb37c3") ?? (() => {
+const _m18 = _modules.get("4a43f533076c4c6c54aa9a6e55bbde7c8be6e57d27afc8679bbebeddda60deb2") ?? (() => {
 const { escapeOoxmlAttribute, xmlDeclaration } = _m7;
 
 const { cellText, columnName } = _m14;
@@ -1552,11 +1558,11 @@ function tableXml(table, rowCount, policy) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("43ae8a2821536f5e34fc04a17ef7b79b70ccc5101655c4a9aeccce1312cb37c3", _exports);
+_modules.set("4a43f533076c4c6c54aa9a6e55bbde7c8be6e57d27afc8679bbebeddda60deb2", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("c6d1b903f9a6120b9fad8179a2825effd7297c1da5cf44dc7725c89a5884d21c") ?? (() => {
+const _m12 = _modules.get("2a4d706f7e8b68f5f462154e4ab79207cdb169e0168736af6b45009c012835d2") ?? (() => {
 const { checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -1725,14 +1731,14 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("c6d1b903f9a6120b9fad8179a2825effd7297c1da5cf44dc7725c89a5884d21c", _exports);
+_modules.set("2a4d706f7e8b68f5f462154e4ab79207cdb169e0168736af6b45009c012835d2", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("cd37e7cc620538dddbb4384d63a1418971254ee0bcc8b048d2d7712b9ef561c1") ?? (() => {
+const _m11 = _modules.get("b44829104d7559380bc0d98c984cbc9e7bc8250d778cff10e725d136bd7dbe19") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m12.Workbook, createWorkbook: _m12.createWorkbook, Worksheet: _m15.Worksheet, Cell: _m14.Cell, StyleRegistry: _m13.StyleRegistry, NumberFormats: _m13.NumberFormats, saveBlob: _m1.saveBlob });
-_modules.set("cd37e7cc620538dddbb4384d63a1418971254ee0bcc8b048d2d7712b9ef561c1", _exports);
+_modules.set("b44829104d7559380bc0d98c984cbc9e7bc8250d778cff10e725d136bd7dbe19", _exports);
 return _exports;
 })();
 
@@ -1834,10 +1840,10 @@ _modules.set("54a9c2561ec3e271cbdb92d4fe978aaef85f898275566edd563a04d140b41c13",
 return _exports;
 })();
 
-const _m0 = _modules.get("006341f272575bb7a7c1b061e0c20ade029bcfbbd6fef52a6201c020f51e1c98") ?? (() => {
+const _m0 = _modules.get("b148f4be1ace1c072df23d6e17672966108791ce6a9a697b289d7c73198ddeb9") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m5, xml: _m7, opc: _m8, xlsx: _m11, csv: _m19, Workbook: _m11.Workbook, Worksheet: _m11.Worksheet, Cell: _m11.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, createWorkbook: _m11.createWorkbook, writeCsv: _m19.writeCsv, writeCsvTo: _m19.writeCsvTo, saveBlob: _m1.saveBlob });
-_modules.set("006341f272575bb7a7c1b061e0c20ade029bcfbbd6fef52a6201c020f51e1c98", _exports);
+_modules.set("b148f4be1ace1c072df23d6e17672966108791ce6a9a697b289d7c73198ddeb9", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

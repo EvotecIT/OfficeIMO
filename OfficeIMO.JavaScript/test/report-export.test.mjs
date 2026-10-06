@@ -91,13 +91,22 @@ test("formatter and presentation failures return producers and prevent partial o
   await assert.rejects(book.toBlob(), e => e === error);
   const asynchronous = new Workbook().addWorksheet("Async", { columns: [{ header: "V" }], rowStyle: async () => { throw error; } });
   await assert.rejects(asynchronous.addRows([["value"]]), /synchronous CellStyle/);
+  const styledBook = new Workbook({ compression: "store" }), styled = styledBook.addWorksheet("Styled", {
+    columns: [{ header: "V" }], rowStyle: async () => { throw error; }
+  });
+  await assert.rejects(styled.addRows([[new Cell("value", 0)]]), /synchronous CellStyle/);
+  await assert.rejects(styledBook.toBlob(), /synchronous CellStyle/);
+  for (const callback of ["rowStyle", "cellStyle"]) {
+    const invalid = new Workbook().addWorksheet("Invalid", { columns: [{ header: "V" }], [callback]: () => null });
+    await assert.rejects(invalid.addRows([[new Cell("value", 0)]]), /CellStyle object/);
+  }
   await assert.rejects(writeCsv([["value"]], { columns: [{ header: "V", valueFormatter: async () => { throw error; } }] }), /synchronous/);
 });
 
 test("report hyperlinks and PNG anchors use valid independent package relationships", async () => {
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfKsAAAAASUVORK5CYII=", "base64");
   const original = Buffer.from(png), book = new Workbook({ compression: "store" });
-  const sheet = book.addWorksheet("Links", { columns: [{ header: "Name" }], hyperlinks: [{ cell: "A2", target: "https://example.com/?x=1&y=2", tooltip: "Łódź <report>" }] });
+  const sheet = book.addWorksheet("Links", { columns: [{ header: "Name" }], hyperlinks: [{ cell: "A2", target: "https://example.com/?x=1&y=2", tooltip: "Łódź <report> _x0041_" }] });
   await sheet.addRows([["Łódź"]]);
   sheet.addImage({ data: png, row: 4, column: 2, width: 180, height: 80, description: "Chart <🧪>" });
   png.fill(0);
@@ -108,7 +117,7 @@ test("report hyperlinks and PNG anchors use valid independent package relationsh
   const zip = await readZip(await book.toBlob());
   assert.deepEqual(zip.get("xl/media/sheet1-image1.png").bytes, original);
   const xml = zip.get("xl/worksheets/sheet1.xml").content;
-  assert.match(xml, /hyperlink ref="A2" r:id="link1" tooltip="Łódź &lt;report&gt;"/);
+  assert.match(xml, /hyperlink ref="A2" r:id="link1" tooltip="Łódź &lt;report&gt; _x005F_x0041_"/);
   assert.match(xml, /drawing r:id="drawing"/);
   const relationships = zip.get("xl/worksheets/_rels/sheet1.xml.rels").content;
   assert.match(relationships, /Target="https:\/\/example.com\/\?x=1&amp;y=2" TargetMode="External"/);

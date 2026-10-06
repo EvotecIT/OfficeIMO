@@ -34,6 +34,15 @@ function deduplicate<T>(items: T[], item: T): number {
 }
 interface RegisteredStyle { font: number; fill: number; border: number; numberFormat: number; wrapText: boolean; alignment: string; verticalAlignment: string; }
 
+/** @internal Observe unsupported promises immediately, even when cell precedence skips the patch. */
+export function validateStylePatch(patch: CellStyle): void {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new TypeError("A style patch must be a CellStyle object.");
+  if (typeof (patch as { then?: unknown }).then === "function") {
+    void Promise.resolve(patch).catch(() => {});
+    throw new TypeError("Style patches must be synchronous CellStyle objects.");
+  }
+}
+
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 export class StyleRegistry {
   private readonly fonts: Font[] = [{ name: "Calibri", size: 11, bold: false, italic: false, underline: false, strike: false, color: "" }];
@@ -102,11 +111,7 @@ export class StyleRegistry {
   validateStyle(id: number): number { return index(id, this.styles.length, "cell style"); }
   /** Overlay presentation while retaining the base number format, font fields and border edges. Numeric component indexes replace a component. */
   compose(base: number, overlay: CellStyle): number {
-    if (!overlay || typeof overlay !== "object" || Array.isArray(overlay)) throw new TypeError("A style patch must be a CellStyle object.");
-    if (typeof (overlay as { then?: unknown }).then === "function") {
-      void Promise.resolve(overlay).catch(() => {});
-      throw new TypeError("Style patches must be synchronous CellStyle objects.");
-    }
+    validateStylePatch(overlay);
     const source = this.styles[this.validateStyle(base)]!;
     return this.add({
       font: source.font, fill: source.fill, border: source.border, numberFormat: source.numberFormat,
