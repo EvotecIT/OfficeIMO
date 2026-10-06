@@ -243,26 +243,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = initialGeometry.ContentWidth;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
         _layoutStyles[root] = rootStyle.Clone();
-        _surfaceRootElement = root;
-        _surfaceRootStyle = rootStyle;
-        _viewportOverflowElement = root;
-        _viewportOverflowStyle = rootStyle;
-        IElement? documentRoot = _document.DocumentElement;
-        if (documentRoot != null && !ReferenceEquals(documentRoot, root)) {
-            HtmlRenderBoxStyle documentRootStyle = _styleResolver.Resolve(documentRoot, contentWidth);
-            if (HasDeclaredCanvasBackground(documentRootStyle)) {
-                _surfaceRootElement = documentRoot;
-                _surfaceRootStyle = documentRootStyle;
-            }
-            if (HasNonVisibleOverflow(documentRootStyle)) {
-                _viewportOverflowElement = documentRoot;
-                _viewportOverflowStyle = documentRootStyle;
-            }
-        }
+        ConfigureRootSurface(root, rootStyle, contentWidth);
 
         IReadOnlyList<HtmlRenderFlowBlock> blocks = rootStyle.Display == "none"
             ? Array.Empty<HtmlRenderFlowBlock>()
-            : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+            : BuildRootBlocks(root, contentWidth, rootStyle);
         blocks = AddDocumentTopDestination(blocks, contentWidth);
         if (_options.Mode == HtmlRenderMode.Paged && blocks.Count > 0 && blocks[0].PageName != null) {
             HtmlCssPageGeometry namedGeometry = _pageRules.ResolveGeometry(1, blocks[0].PageName, _options);
@@ -272,10 +257,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentWidth = namedGeometry.ContentWidth;
                 rootStyle = _styleResolver.Resolve(root, contentWidth);
                 _layoutStyles[root] = rootStyle.Clone();
-                _surfaceRootStyle = rootStyle;
+                ConfigureRootSurface(root, rootStyle, contentWidth);
                 blocks = rootStyle.Display == "none"
                     ? Array.Empty<HtmlRenderFlowBlock>()
-                    : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+                    : BuildRootBlocks(root, contentWidth, rootStyle);
                 blocks = AddDocumentTopDestination(blocks, contentWidth);
             }
         }
@@ -683,6 +668,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return block;
         }
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
+        if (ReferenceEquals(block.OwnerElement, root)) {
+            return LayoutRootBox(root, geometry.ContentWidth, _styleResolver.Resolve(root, geometry.ContentWidth));
+        }
         if (!ReferenceEquals(block.OwnerElement.ParentElement, root)) {
             ReportPageContinuationReflowPending(block, geometry);
             return block;
@@ -737,6 +725,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         reflowed = source;
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
+        if (ReferenceEquals(source.OwnerElement, root) && ContainsElementOrSelf(root, continuation.OwnerElement)) {
+            reflowed = LayoutRootBox(root, geometry.ContentWidth, _styleResolver.Resolve(root, geometry.ContentWidth),
+                continuation.OwnerElement, continuation.LogicalCharacters);
+            return true;
+        }
         if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
         if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);

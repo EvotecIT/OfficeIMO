@@ -50,7 +50,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             staticAnchor,
             artifactBoundaries,
             flattenedSemanticBoundaries);
-        if (IsRootLayoutContainer(containingBlock)) {
+        if (IsRootLayoutContainer(containingBlock)
+            && (!_layoutStyles.TryGetValue(containingBlock, out HtmlRenderBoxStyle? rootStyle) || rootStyle.Position == "static")) {
             _rootPositionedElements.Add(request);
             return;
         }
