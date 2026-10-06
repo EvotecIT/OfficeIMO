@@ -6,7 +6,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns all Excel tables defined in the workbook.
         /// </summary>
-        public IReadOnlyList<ExcelTableInfo> GetTables() {
+        public IReadOnlyList<ExcelTableInfo> GetTables() => GetTables(null);
+
+        internal IReadOnlyList<ExcelTableInfo> GetTables(WorksheetPart? selectedWorksheet) {
             return Locking.ExecuteRead(EnsureLock(), () => {
                 var result = new List<ExcelTableInfo>();
                 var workbookPart = _spreadSheetDocument?.WorkbookPart;
@@ -28,6 +30,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (var worksheetPart in workbookPart.WorksheetParts) {
+                    if (selectedWorksheet != null && !ReferenceEquals(selectedWorksheet, worksheetPart)) {
+                        continue;
+                    }
                     var relId = workbookPart.GetIdOfPart(worksheetPart);
                     if (string.IsNullOrWhiteSpace(relId)) {
                         continue;

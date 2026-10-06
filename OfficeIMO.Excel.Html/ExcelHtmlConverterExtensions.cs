@@ -20,6 +20,7 @@ public static partial class ExcelHtmlConverterExtensions {
         ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
+        ReportNamedTableLoss(workbook.GetTables(), diagnostics);
         string html = operation.ExportProfile == ExcelHtmlExportProfile.VisualReview
             ? ConvertWorkbookVisual(workbook, operation, diagnostics)
             : ConvertWorkbookSemantic(workbook, operation, diagnostics);
@@ -39,6 +40,7 @@ public static partial class ExcelHtmlConverterExtensions {
         ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
+        ReportNamedTableLoss(sheet.GetTables(), diagnostics);
         string html = operation.ExportProfile == ExcelHtmlExportProfile.VisualReview
             ? ConvertSheetVisual(sheet, operation, diagnostics)
             : ConvertSheetSemantic(sheet, operation, diagnostics);
