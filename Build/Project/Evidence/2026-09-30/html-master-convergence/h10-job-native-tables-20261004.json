@@ -2987,13 +2987,28 @@
       "mainTargets": 84,
       "mainBytes": 1620778412,
       "mainAbsentVerified": true,
-      "mainReceipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/picture-main-build-cleanup-results.json"
+      "mainReceipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/picture-main-build-cleanup-results.json",
+      "nativeReaderProfiles": 2,
+      "nativeReaderProfileBytes": 367624,
+      "nativeReaderProfilesAbsent": true
     },
     "remaining": [
       "Exact-head standalone hosted CI and delayed feedback/authorized merge/unique-proof preservation",
       "Native Excel whole-page image/link appearance and explicit named-table reconstruction",
       "Wider native targets/corpus/all profiles/manual accessibility",
       "Actual unchanged supported-platform timing and qualified long-lived synchronization"
-    ]
+    ],
+    "nativeReaderAppearance": {
+      "reader": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "controls": 4,
+      "pagesBeforeAndAfter": 8,
+      "allPagePngBytesEqualAt110Dpi": true,
+      "allRawUtf8LfTextEqual": true,
+      "visualInspection": "Generic and semantic linked-picture before/after crop sheet inspected; native image and labels retained without displacement.",
+      "evidence": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/native-reader-picture-appearance",
+      "observationsSha256": "479b3999e4d9f911413b410030d1ff70fe3ed85d6e94379a3b7f7fd69bd5f530",
+      "pdfLinkObservation": "No picture-link annotations in any LibreOffice-generated PDF, including linked native inputs. This proves paint/text only, not reader click support or an OfficeIMO defect. Native XLSX targets and SVG click controls are independently verified.",
+      "boundary": "One independent reader and four bounded controls; desktop Excel/application click behavior, whole-article/native accessibility remain open."
+    }
   }
 }
