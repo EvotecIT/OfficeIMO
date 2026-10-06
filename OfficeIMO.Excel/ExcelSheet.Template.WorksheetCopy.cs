@@ -374,11 +374,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (partContainer is WorksheetPart worksheetPart) {
-                foreach (var relationship in worksheetPart.HyperlinkRelationships) {
-                    if (!string.IsNullOrWhiteSpace(relationship.Id)) {
-                        existing.Add(relationship.Id);
-                    }
+            foreach (var relationship in partContainer.HyperlinkRelationships) {
+                if (!string.IsNullOrWhiteSpace(relationship.Id)) {
+                    existing.Add(relationship.Id);
                 }
             }
 
@@ -467,6 +465,12 @@ namespace OfficeIMO.Excel {
             DrawingsPart targetDrawingsPart,
             string sourceSheetName,
             string targetSheetName) {
+            // Reserve the native IDs before assigning IDs to media/chart parts. Click and
+            // hover references in the copied XML can share these relationships.
+            foreach (var relationship in sourceDrawingsPart.HyperlinkRelationships) {
+                targetDrawingsPart.AddHyperlinkRelationship(relationship.Uri, relationship.IsExternal, relationship.Id);
+            }
+
             foreach (var relationship in sourceDrawingsPart.Parts.ToList()) {
                 if (relationship.OpenXmlPart is ChartPart sourceChartPart) {
                     string targetRelationshipId = GetUnusedRelationshipId(targetDrawingsPart);
