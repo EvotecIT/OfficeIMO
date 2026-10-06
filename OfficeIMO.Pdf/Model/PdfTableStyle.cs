@@ -70,6 +70,12 @@ public class PdfTableStyle {
     /// of the border paint instead of the cell's grid boundary.
     /// </summary>
     internal bool CellVerticalPaddingFromBorderInterior { get; set; }
+
+    /// <summary>
+    /// Expands an authored automatic table width only for content that cannot
+    /// wrap within the preferred grid, rather than for the unwrapped line width.
+    /// </summary>
+    internal bool AutoFitWidthUsesContentMinimum { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -714,6 +720,7 @@ public class PdfTableStyle {
             MinimumShrinkFontSize = MinimumShrinkFontSize,
             LeftIndent = LeftIndent,
             AutoFitColumns = AutoFitColumns,
+            AutoFitWidthUsesContentMinimum = AutoFitWidthUsesContentMinimum,
             RightAlignNumeric = RightAlignNumeric,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,

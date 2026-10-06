@@ -177,7 +177,7 @@ internal static partial class PdfWriter {
                             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                             double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, columnGap);
                             double innerWidth = Math.Max(1, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
+                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
                             rowLines[ri][cell.Column] = lines;
                             if (cell.RowSpan <= 1 && cell.Viewport == null) {
                                 maxLines = Math.Max(maxLines, lines.LineCount);
