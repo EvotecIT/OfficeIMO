@@ -82,6 +82,8 @@ document.SaveAsPdf("report.pdf", new WordToPdfOptions {
 
 Table borders follow the Word style and direct cell settings: `nil` suppresses a shared edge while `none` yields to the opposing border. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
 
+Inline pictures in table cells retain their position among the paragraph's text, including multiple pictures in one run. Their authored display dimensions and alternative descriptions pass to the shared PDF layout; exact-height lines can clip them. Mixed picture runs retain visible text, and hidden runs suppress their pictures in body content, tables, headers and footers. Nested-table content is flattened, so preserving its pictures does not preserve nested table frames.
+
 Ordinary underlining includes spaces between words. Word's explicit *underline words only* style continues to leave those spaces clear.
 
 Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
