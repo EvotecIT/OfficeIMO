@@ -1,5 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using System.IO.Compression;
+using System.Xml.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -180,6 +182,78 @@ public sealed class ExcelPictureHyperlinkTests {
             Assert.Single(part.WorksheetDrawing!.Descendants<A.HyperlinkOnHover>());
             Assert.DoesNotContain(part.Parts, item => item.RelationshipId == "rId1");
             Assert.Single(part.ChartParts);
+        }
+    }
+
+    [Fact]
+    public void TemplateSheetsPreserveDistinctMediaWithPermutedRelationshipIds() {
+        byte[] blue = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
+        byte[] red = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
+        using var original = ExcelDocument.Create();
+        ExcelSheet template = original.AddWorksheet("Template");
+        template.CellValue(1, 1, "Region {{Name}}");
+        var target = new Uri("https://example.org/template#photo");
+        template.AddImage(3, 1, blue, "image/png", 32, 16).HyperlinkUri = target;
+        template.AddImage(5, 1, red, "image/png", 32, 16).HyperlinkUri = target;
+        using var serialized = original.ToStream();
+        using var edited = new MemoryStream();
+        serialized.CopyTo(edited);
+        edited.Position = 0;
+        using (var zip = new ZipArchive(edited, ZipArchiveMode.Update, leaveOpen: true)) {
+            const string relationshipsPath = "xl/drawings/_rels/drawing1.xml.rels";
+            const string drawingPath = "xl/drawings/drawing1.xml";
+            XDocument relationships;
+            using (var stream = zip.GetEntry(relationshipsPath)!.Open()) relationships = XDocument.Load(stream);
+            var imageRelationships = relationships.Root!.Elements()
+                .Where(element => element.Attribute("Type")!.Value.EndsWith("/image", StringComparison.Ordinal)).ToArray();
+            Assert.Equal(2, imageRelationships.Length);
+            var hyperlink = relationships.Root.Elements().Single(element => element.Attribute("Type")!.Value.EndsWith("/hyperlink", StringComparison.Ordinal));
+            var map = new Dictionary<string, string> {
+                [imageRelationships[0].Attribute("Id")!.Value] = "rId2",
+                [imageRelationships[1].Attribute("Id")!.Value] = "rId1",
+                [hyperlink.Attribute("Id")!.Value] = "rId3"
+            };
+            foreach (var relation in relationships.Root.Elements()) relation.SetAttributeValue("Id", map[relation.Attribute("Id")!.Value]);
+            relationships.Root.ReplaceNodes(imageRelationships[0], imageRelationships[1], hyperlink);
+            XDocument drawing;
+            using (var stream = zip.GetEntry(drawingPath)!.Open()) drawing = XDocument.Load(stream);
+            foreach (var attribute in drawing.Descendants().Attributes().Where(attribute =>
+                attribute.Name.NamespaceName == "http://schemas.openxmlformats.org/officeDocument/2006/relationships")) {
+                if (map.TryGetValue(attribute.Value, out string? id)) attribute.Value = id;
+            }
+            zip.GetEntry(relationshipsPath)!.Delete();
+            using (var stream = zip.CreateEntry(relationshipsPath).Open()) relationships.Save(stream);
+            zip.GetEntry(drawingPath)!.Delete();
+            using (var stream = zip.CreateEntry(drawingPath).Open()) drawing.Save(stream);
+        }
+        byte[] bytes = edited.ToArray();
+        using (var native = SpreadsheetDocument.Open(new MemoryStream(bytes), false)) {
+            Assert.Empty(new OpenXmlValidator().Validate(native));
+            Assert.Equal(new[] { "rId2", "rId1" }, native.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.Parts.Select(item => item.RelationshipId));
+        }
+        using var document = ExcelDocument.Load(new MemoryStream(bytes));
+        Assert.Equal(blue, document.Sheets[0].Images.First().ToBytes());
+        Assert.Equal(red, document.Sheets[0].Images.Last().ToBytes());
+        document.ApplyTemplateSheets("Template", new IDictionary<string, object?>[] {
+            new Dictionary<string, object?> { ["Name"] = "North" },
+            new Dictionary<string, object?> { ["Name"] = "South" }
+        }, (values, index) => (string)values["Name"]!);
+        foreach (ExcelSheet sheet in document.Sheets) {
+            ExcelImage[] images = sheet.Images.ToArray();
+            Assert.Equal(blue, images[0].ToBytes());
+            Assert.Equal(red, images[1].ToBytes());
+            Assert.All(images, image => Assert.Equal(target.OriginalString, image.HyperlinkUri!.OriginalString));
+        }
+        using var saved = document.ToStream();
+        byte[] clonedBytes = saved.ToArray();
+        using (var native = SpreadsheetDocument.Open(new MemoryStream(clonedBytes), false)) {
+            Assert.Empty(new OpenXmlValidator().Validate(native));
+        }
+        using var reopened = ExcelDocument.Load(new MemoryStream(clonedBytes));
+        foreach (ExcelSheet sheet in reopened.Sheets) {
+            Assert.Equal(blue, sheet.Images.First().ToBytes());
+            Assert.Equal(red, sheet.Images.Last().ToBytes());
+            Assert.All(sheet.Images, image => Assert.Equal(target.OriginalString, image.HyperlinkUri!.OriginalString));
         }
     }
 
