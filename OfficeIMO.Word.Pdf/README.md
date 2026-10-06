@@ -108,6 +108,8 @@ Line spacing follows document defaults, table styles, paragraph styles and direc
 
 Empty paragraphs retain a blank line when their paragraph mark is visible, including paragraphs whose text runs are all hidden. Their line metrics use the paragraph mark and inherited typography. A hidden mark removes the empty line and its paragraph spacing; an explicit visible mark overrides a hidden paragraph style. An image, shape or inline group rendered in paragraph flow reserves its object height once; a following empty paragraph retains its own blank line. Visible text on either side of a hidden paragraph mark still retains separate paragraph boundaries in PDF.
 
+Object-only paragraphs retain direct and inherited spacing before and after their flow objects, collapsing that spacing with adjacent paragraphs. Hidden shapes with a resolved flow height reserve that height without drawing the shape. Positioned-shape placement remains subject to the renderer's supported anchor and wrapping mappings.
+
 ### Export to bytes or streams
 
 ```csharp

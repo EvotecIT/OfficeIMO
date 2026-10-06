@@ -236,7 +236,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null) {
             if (image == null) {
                 return false;
             }
@@ -283,6 +283,7 @@ namespace OfficeIMO.Word.Pdf {
             if (image.WrapText == WordImageTextWrapping.InFrontOfText && options != null)
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's anchor, clipping, rotation, or page bounds are outside the fixed-placement export contract; it was placed in document flow.");
+            paragraphSpacing?.BeforeFlowObject();
             pdf.Image(preparedBytes, width, height, align);
             return true;
         }

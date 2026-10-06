@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
         private static bool RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
-            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount) {
+            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) {
             bool renderedFlowObject = false;
             foreach (WordParagraph run in runs) {
                 foreach (W.Drawing drawing in run.EnumerateEffectiveRunContent().OfType<W.Drawing>()) {
@@ -36,6 +36,7 @@ namespace OfficeIMO.Word.Pdf {
                     bool native = TryAddNativeGroupChildren(scene, group, 0D, 0D, scene.Width, scene.Height, run, drawing, theme, options, 0);
                     if (layout.Placement == WordDrawingPlacementKind.Inline) {
                         if (native) {
+                            paragraphSpacing?.BeforeFlowObject();
                             pdf.Drawing(scene, align, spacingAfter: 0D);
                             renderedFlowObject = true;
                         }
@@ -46,6 +47,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (!TryGetNativeGroupPosition(pdf, paragraph, layout, options, out double x, out double y,
                             out bool paragraphRelative, out double? horizontalMarginOrigin)) {
                         if (native) {
+                            paragraphSpacing?.BeforeFlowObject();
                             pdf.Drawing(scene, align, spacingAfter: 0D);
                             renderedFlowObject = true;
                             WarnNativeGroup(options, "NativeShapeGroupFlowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");

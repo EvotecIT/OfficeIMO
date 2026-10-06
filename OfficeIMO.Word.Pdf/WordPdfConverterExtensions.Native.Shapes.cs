@@ -13,12 +13,22 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool RenderNativeShape(INativePdfFlow pdf, WordShape shape, double spacingAfter = 6D) {
+        private static bool RenderNativeShape(INativePdfFlow pdf, WordShape shape, double spacingAfter = 6D, NativeObjectParagraphSpacing? paragraphSpacing = null) {
+            if (shape == null) {
+                return false;
+            }
+            // Hidden flow shapes retain their occupied line height while omitting paint.
+            if (shape.Hidden == true && GetNativeShapeDimensions(shape) is { Height: > 0D } dimensions) {
+                paragraphSpacing?.BeforeFlowObject();
+                pdf.Spacer(dimensions.Height + spacingAfter);
+                return true;
+            }
             OfficeShape? nativeShape = CreateNativeShape(shape);
             if (nativeShape == null) {
                 return false;
             }
 
+            paragraphSpacing?.BeforeFlowObject();
             pdf.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter);
             return true;
         }
