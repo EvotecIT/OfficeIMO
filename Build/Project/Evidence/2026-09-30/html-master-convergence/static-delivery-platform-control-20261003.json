@@ -7397,5 +7397,17 @@
       ]
     },
     "interpretation": "Most of the measured difference is PNG-route raster painting. The representative columns screen page adds7721576 bytes in raster painting,119976 bytes in encoding; normal-route bytes are independently matched within each graph. This does not prove contour coverage alone is the cause or quantify hosted time by stage."
+  },
+  "checkpointStorage": {
+    "relocatedUtc": "2026-10-06T11:40:40.405648+00:00",
+    "originalWorktree": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-static-delivery",
+    "originalHead": "208d31c762ff25e0f5b1f050274c5467d6f1a77f",
+    "worktreeRemoved": true,
+    "sourceBundle": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives/OfficeIMO-html-static-delivery.bundle",
+    "sourceBundleSha256": "34df1117159deeb30e64bada48c8ffd08961a9b6570621725f914655251df1c1",
+    "artifactArchive": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives/OfficeIMO-html-static-delivery.zip",
+    "artifactArchiveSha256": "d671bceeddfaeeb0e3a33b3d3b61ecdda9c30f97550751bccf31da9dd19ea074",
+    "preservationManifest": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives/OfficeIMO-html-static-delivery-preservation-manifest.json",
+    "recovery": "Original Ignore-relative evidence paths are entries in this verified archive; original source commits are retained in the verified incremental bundle. Historical result hashes and failed measurements are unchanged."
   }
 }

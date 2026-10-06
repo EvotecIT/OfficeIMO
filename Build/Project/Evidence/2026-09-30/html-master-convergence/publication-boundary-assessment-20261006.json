@@ -1,37 +1,20 @@
 {
   "recordedUtc": "2026-10-06T07:08:23.236770+00:00",
-  "scope": "Current branch/PR inventory and publication-boundary reassessment; no product edits, new renderer qualification, full HTML PR, release or integration adoption",
+  "scope": "Current publication and branch consolidation of completed owned contracts; no full HTML/runtime PR, release, timing qualification or long-lived adoption",
   "source": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
   "master": "3e297566715341b5205494e0721ce6c64b238aee",
   "programWorktrees": {
-    "feature/html-master-convergence": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
+    "feature/html-master-convergence": "f6aa381c4ce7425f483b33a4c37e04711c17f993",
     "feature/html-engine": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
     "feature/html-unknown-page-qualification": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
-    "feature/html-h10-job-qualification": "28a9f587556d40651faf2143a609aafc7c33be4a",
-    "feature/html-static-delivery": "208d31c762ff25e0f5b1f050274c5467d6f1a77f",
-    "feature/html-math-geometry": "897707b2e0015dd9e0533503e691091aa80081a3",
-    "feature/html-contour-qualification": "4bc99baefea8b944c18b1b5798982ec1914ed216"
+    "fix/xlsb-neutral-workbook-views": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
+    "fix/excel-html-raster-normalization": "a5cbbce0630f5b891bf71b4ea639960c08b2ab7f",
+    "feature/html-owned-css-contracts": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+    "fix/pdf-canvas-text-opacity": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
+    "feature/math-font-metrics": "0e934cf2d0e628cc89ed0b582d6666952134cb5d"
   },
-  "workingTrees": "Seven program worktrees were clean and matched their remote branches at inspection",
+  "workingTrees": "The five focused publication worktrees are clean and pushed; main product source is unchanged by the documentation/evidence reconciliation.",
   "unsubmittedBoundaries": [
-    {
-      "owner": "Html.Core / Html.AngleSharp",
-      "examples": [
-        "source-preserving CSS tokens, syntax, typed values and selector contracts",
-        "owned DOM/import and provider projection changes"
-      ],
-      "assessment": "Existing packages on master; incremental owner extraction required, not another parser product"
-    },
-    {
-      "owner": "Core math/fonts",
-      "examples": [
-        "static OpenType MATH constants",
-        "glyph variants and assemblies",
-        "italic/accent/math-kern placement",
-        "math-auto token transform"
-      ],
-      "assessment": "Strong retained independent proof; current-master extraction and its own normal packed public consumers remain required"
-    },
     {
       "owner": "Html / Html.Pdf / Mhtml / Tool",
       "examples": [
@@ -63,7 +46,14 @@
       "feature/html-math-geometry": "Only patch-unique commit 897707b2e changes qualification workflow/docs/test font setup, no product source",
       "feature/html-contour-qualification": "Only patch-unique commit 4bc99baef changes qualification workflow selection"
     },
-    "requiredBeforeRemoval": "Preserve unique evidence, workflow/test qualification changes and referenced frozen archives; update references before removing ordinary owned worktrees. Do not delete the shared integration boundary merely because its head is old."
+    "requiredBeforeRemoval": "Preserve unique evidence, workflow/test qualification changes and referenced frozen archives; update references before removing ordinary owned worktrees. Do not delete the shared integration boundary merely because its head is old.",
+    "retiredCheckpointBranches": [
+      "feature/html-h10-job-qualification",
+      "feature/html-contour-qualification",
+      "feature/html-static-delivery",
+      "feature/html-math-geometry"
+    ],
+    "storage": "Unique ignored evidence and exclusive Git history are byte-verified under Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives; all four ordinary worktrees/local checkpoint branches are removed. Static/math remote checkpoint branches are removed; publication worktrees and referenced frozen archives remain."
   },
   "overlappingPublishedWork": {
     "prs": [
@@ -75,106 +65,77 @@
   },
   "publishedProgramPrs": [
     {
-      "number": 2841,
-      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2841",
-      "head": "e39b35a6f8dcf9d31f47ca617358e596dc6c0dc2",
-      "checkedUtc": "2026-10-06T07:02:08.760980+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
-      "checks": {
-        "SUCCESS": 88,
-        "QUEUED": 1,
-        "SKIPPED": 4,
-        "IN_PROGRESS": 1
-      },
-      "feedback": []
-    },
-    {
       "number": 2845,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2845",
-      "head": "c6a622c2e5827060b49515763111774786357c5f",
-      "checkedUtc": "2026-10-06T07:02:11.339401+00:00",
+      "head": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
+      "base": "master",
+      "checkedUtc": "2026-10-06T11:04:26.994564+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
-        "SUCCESS": 89,
-        "SKIPPED": 5,
-        "FAILURE": 2
+        "IN_PROGRESS": 9,
+        "SUCCESS": 50,
+        "QUEUED": 29,
+        "SKIPPED": 4
       },
-      "feedback": []
-    },
-    {
-      "number": 2850,
-      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2850",
-      "head": "6b846359362ec869679768928b1693027e7d91a8",
-      "checkedUtc": "2026-10-06T07:02:16.745856+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 2,
-      "checks": {
-        "SUCCESS": 88,
-        "SKIPPED": 3
-      },
-      "feedback": [
-        {
-          "path": "OfficeIMO.Pdf.Tests/Pdf/PdfOcrTests.cs",
-          "line": 191,
-          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2850#discussion_r4191530626",
-          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
-        },
-        {
-          "path": "OfficeIMO.Drawing.Tests/Drawing.Raster.CodecRobustness.cs",
-          "line": 44,
-          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2850#discussion_r4191530631",
-          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
-        }
-      ]
-    },
-    {
-      "number": 2851,
-      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2851",
-      "head": "716a1b8e1822ab626e2c5e1e60cac4cfcd7c22ef",
-      "checkedUtc": "2026-10-06T07:02:19.880374+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 1,
-      "checks": {
-        "SUCCESS": 91,
-        "SKIPPED": 5
-      },
-      "feedback": [
-        {
-          "path": "OfficeIMO.Excel/ExcelImage.Hyperlinks.cs",
-          "line": 19,
-          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2851#discussion_r4191715141",
-          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
-        }
-      ]
+      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
     },
     {
       "number": 2852,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852",
-      "head": "710eea0fe646b28dba17a4759b304c3d30976533",
-      "checkedUtc": "2026-10-06T07:02:22.773616+00:00",
+      "head": "a5cbbce0630f5b891bf71b4ea639960c08b2ab7f",
+      "base": "master",
+      "checkedUtc": "2026-10-06T11:04:30.505808+00:00",
       "threadPages": 1,
-      "unresolvedThreads": 2,
+      "unresolvedThreads": 0,
       "checks": {
-        "FAILURE": 1,
-        "SUCCESS": 90,
+        "SUCCESS": 88,
+        "QUEUED": 2,
+        "SKIPPED": 2
+      },
+      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+    },
+    {
+      "number": 2864,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2864",
+      "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+      "base": "master",
+      "checkedUtc": "2026-10-06T11:29:25.038541+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 0,
+      "checks": {
+        "QUEUED": 11,
+        "SKIPPED": 2
+      },
+      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+    },
+    {
+      "number": 2866,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2866",
+      "head": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
+      "base": "master",
+      "checkedUtc": "2026-10-06T11:29:28.242573+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 0,
+      "checks": {
+        "QUEUED": 88,
+        "SKIPPED": 2
+      },
+      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+    },
+    {
+      "number": 2867,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2867",
+      "head": "0e934cf2d0e628cc89ed0b582d6666952134cb5d",
+      "base": "fix/pdf-canvas-text-opacity",
+      "checkedUtc": "2026-10-06T11:29:31.230742+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 0,
+      "checks": {
+        "QUEUED": 96,
         "SKIPPED": 3
       },
-      "feedback": [
-        {
-          "path": "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImagePreparation.cs",
-          "line": 84,
-          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852#discussion_r4191982189",
-          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
-        },
-        {
-          "path": "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImagePreparation.cs",
-          "line": 66,
-          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852#discussion_r4191982200",
-          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
-        }
-      ]
+      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
     }
   ],
   "mergedThisAudit": {
@@ -191,5 +152,81 @@
     "ordinaryWorktreeAndLocalBranchRemoved": true
   },
   "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
-  "nextDeliverable": "Consolidated remediation of current feedback, then current-master static extraction preparation. Do not add new source classes or engine features merely while external gates run."
+  "nextDeliverable": "Settle and merge the five focused PRs in real dependency order, preserve proof and remove their owned worktrees. Then reconcile the accepted masters and other-task overlaps before qualifying a selected static renderer/job PR. Larger H10/runtime/performance goals remain incomplete.",
+  "wrapUpUtc": "2026-10-06T11:40:40.405648+00:00",
+  "wrapUpSource": "f6aa381c4ce7425f483b33a4c37e04711c17f993",
+  "focusedMerges": [
+    {
+      "number": 2841,
+      "mergeCommit": "8d7b46eb5afc99def6bcbcc7fa8bc5ce03b419e1",
+      "evidence": "Ignore/MasterConvergenceQualification/merged-powerpoint-hyperlink-colors-e39b35a6f",
+      "worktreeAndLocalBranchRemoved": true
+    },
+    {
+      "number": 2850,
+      "mergeCommit": "3442933e48559943e71daa03347bf9100d3b2d5f",
+      "evidence": "Ignore/MasterConvergenceQualification/merged-cancellation-scheduling-a21212ccf",
+      "worktreeAndLocalBranchRemoved": true
+    },
+    {
+      "number": 2851,
+      "mergeCommit": "50428f9e111533fe219c3fb579e222938ff7cbf1",
+      "evidence": "Ignore/MasterConvergenceQualification/merged-excel-picture-hyperlinks-7083460c0",
+      "worktreeAndLocalBranchRemoved": true
+    }
+  ],
+  "checkpointConsolidation": {
+    "removed": [
+      "feature/html-h10-job-qualification",
+      "feature/html-contour-qualification",
+      "feature/html-static-delivery",
+      "feature/html-math-geometry"
+    ],
+    "retained": "Complete unique evidence and verified source bundles; long-lived integration/H10 archive checkouts remain while referenced sources and qualified adoption are open."
+  },
+  "ownedDomCssPublication": {
+    "number": 2864,
+    "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+    "focusedEachFramework": 198,
+    "broadEachFramework": {
+      "passed": 3420,
+      "knownBaselineFontFailures": 6
+    },
+    "packedGraph": 16,
+    "foundationFourTargetPacks": true,
+    "ciFinding": "Regenerated all 12 affected Windows/non-Windows release locks: only AngleSharp version/request/hash changes; normal non-Windows Studio locked restore and cross-host four-target library graph locked restores pass. Native Windows Studio CI remains required.",
+    "providerBoundary": "AngleSharp 1.8.3/Css 1.0.1 retained; no renderer/runtime replacement"
+  },
+  "publishedExtractionBoundaries": [
+    {
+      "number": 2864,
+      "owner": "Html.Core / Html.AngleSharp owned DOM and CSS",
+      "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+      "localProof": "198 focused and 3420 broad passes per framework, six exact known font failures each; 16 packed consumers and normal four-target foundation packs; 12 regenerated release locks and locked restores",
+      "remaining": "exact-head hosted CI and delayed feedback"
+    },
+    {
+      "number": 2866,
+      "owner": "Pdf drawing-text opacity",
+      "head": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
+      "localProof": "9127 PDF tests per framework; normal four-target Core/Pdf graph and eight fresh independent public package controls; transformed tagged decoration alpha independently verified",
+      "remaining": "exact-head hosted CI and delayed feedback"
+    },
+    {
+      "number": 2867,
+      "owner": "Core mathematical drawing and shared font metrics",
+      "head": "0e934cf2d0e628cc89ed0b582d6666952134cb5d",
+      "basePr": 2866,
+      "stack": 2868,
+      "localProof": "3428 Drawing tests per framework; independent font/SVG controls; normal four-target Core/Pdf packages and fresh colored-math public PDF consumers per framework, searchable formula once and zero black duplicate pixels",
+      "remaining": "bottom-to-top exact-head hosted CI, delayed feedback and stack merge"
+    }
+  ],
+  "wrapUpCleanup": {
+    "currentGeneratedTargets": 276,
+    "currentGeneratedBytesRemoved": 5010757804,
+    "obsoleteCheckpointGeneratedBytesRemoved": 9242074709,
+    "decisiveProof": "Final feeds, independent artifacts, sources, failure logs and exact identity receipts retained; no shared-cache cleanup",
+    "checkpointArchivesBytes": 795840287
+  }
 }

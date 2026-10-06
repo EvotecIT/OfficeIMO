@@ -1158,5 +1158,17 @@
       "preservedFiles": 42,
       "preservedBytes": 2694003
     }
+  },
+  "checkpointStorage": {
+    "relocatedUtc": "2026-10-06T11:40:40.405648+00:00",
+    "originalWorktree": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-math-auto",
+    "originalHead": "897707b2e0015dd9e0533503e691091aa80081a3",
+    "worktreeRemoved": true,
+    "sourceBundle": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives/OfficeIMO-html-math-auto.bundle",
+    "sourceBundleSha256": "f7785042b65f6b95bf2b113925c236dcd7461e32e216ae5056fa0209ab3ed0e5",
+    "artifactArchive": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives/OfficeIMO-html-math-auto.zip",
+    "artifactArchiveSha256": "d483fab72659da7ad985fb14a067029d2bbdf5aa231c4bb53ab7e6521240c10a",
+    "preservationManifest": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/checkpoint-archives/OfficeIMO-html-math-auto-preservation-manifest.json",
+    "recovery": "Original Ignore-relative evidence paths are entries in this verified archive; original source commits are retained in the verified incremental bundle. Historical result hashes and failed measurements are unchanged."
   }
 }
