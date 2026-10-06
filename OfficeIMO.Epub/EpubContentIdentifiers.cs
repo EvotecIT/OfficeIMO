@@ -46,6 +46,22 @@ internal static class EpubContentIdentifiers {
         }
     }
 
+    internal static void RewriteReferences(XElement root, IReadOnlyDictionary<string, string> replacements, CancellationToken token) {
+        foreach (XElement element in root.DescendantsAndSelf()) {
+            token.ThrowIfCancellationRequested();
+            bool xhtml = element.Name.NamespaceName == "http://www.w3.org/1999/xhtml";
+            bool svg = element.Name.NamespaceName == "http://www.w3.org/2000/svg";
+            if (!xhtml && !svg) continue;
+            foreach (XAttribute attribute in element.Attributes().Where(attribute => attribute.Name.NamespaceName.Length == 0 &&
+                (ReferenceAttributes.Contains(attribute.Name.LocalName) || xhtml && IsHtmlIdReference(element.Name.LocalName, attribute.Name.LocalName)))) {
+                attribute.Value = System.Text.RegularExpressions.Regex.Replace(attribute.Value, @"[^ \t\r\n\f]+", match => {
+                    token.ThrowIfCancellationRequested();
+                    return replacements.TryGetValue(match.Value, out string? value) ? value : match.Value;
+                });
+            }
+        }
+    }
+
     private static bool IsHtmlIdReference(string element, string attribute) => attribute == "itemref" ||
         (attribute == "headers" && (element == "td" || element == "th")) ||
         (attribute == "for" && (element == "label" || element == "output")) ||

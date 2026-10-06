@@ -698,11 +698,43 @@ publication.MergeChapters("chapter-1", "chapter-2", "second-chapter-start",
 This policy retains the first head and appends every second-head `style` and stylesheet
 `link` in source order after URL rebasing. It preserves duplicates because repeating a
 stylesheet can affect the cascade. Media, title and other stylesheet attributes remain;
-all other head content and attributes must still match apart from title text. Duplicate
-content IDs, scaffold differences and package-refinement conflicts still fail atomically.
+all other head content and attributes must still match apart from title text. Unresolved
+duplicate content IDs, scaffold differences and package-refinement conflicts still fail atomically.
 Later rules can restyle **both** chapters. This is an explicit cascade choice, not CSS
 isolation or a promise to preserve each chapter's original appearance. Assess the merged
-result in the intended readers. There is no automatic identifier-renaming policy. The same reflowable, resource-inspection, retention and atomicity limits as
+result in the intended readers.
+
+Supply an explicit second-chapter map when body IDs collide:
+
+```csharp
+publication.MergeChapters("chapter-1", "chapter-2", "second-chapter-start",
+    new EpubChapterMergeOptions {
+        SecondChapterIdMap = new Dictionary<string, string> {
+            ["heading"] = "second-heading", ["description"] = "second-description"
+        }
+    });
+```
+
+The map repairs incoming fragment URLs, local links, ARIA relationships, table-header
+references and other supported document-local ID references. Matching `id`/`xml:id`
+values move together; matching image-map and legacy anchor names also move, with
+local `usemap` repair. First-chapter IDs remain unchanged. Replacements must be
+unique XML-compatible names of at most 1024 characters. The map accepts at most
+10,000 entries and cannot rename head IDs or shared merge-container IDs. Unknown
+source IDs and unresolved destination collisions reject the entire merge.
+
+CSS selectors are preserved, not rewritten. Prepare ID-dependent rules for the
+chosen replacements before merging, for example `#heading, #second-heading { ... }`
+when both sections should share that rule. Attribute selectors that depend on
+rewritten IDs or URLs also need caller reconciliation. Inspect the final cascade
+and layout; repairing identifier relationships does not prove visual equivalence.
+A fragment-only URL in any retained stylesheet, such as `url(#paint)`, that names
+a changed ID rejects the merge: a shared rule cannot choose between the original
+and replacement definitions. Reconcile that rule first or use a document-qualified
+URL when it intentionally selects one chapter's resource. Inline styles and
+SVG presentation URLs retain their owning chapter during reference repair.
+
+The same reflowable, resource-inspection, retention and atomicity limits as
 splitting apply. Reader layout and accessibility assessment remain separate checks.
 
 `EpubWriteReport` identifies preserved, regenerated, and removed entries. Its

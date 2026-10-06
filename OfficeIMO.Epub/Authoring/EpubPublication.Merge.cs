@@ -11,8 +11,8 @@ public sealed partial class EpubPublication {
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
         MergeChapters(firstManifestId, secondManifestId, boundaryId, new EpubChapterMergeOptions(), cancellationToken);
 
-    /// <summary>Merges consecutive reflowable chapters with explicit style reconciliation. The selected
-    /// cascade applies to both chapters; scaffold, identifier and package-refinement conflicts still fail atomically.</summary>
+    /// <summary>Merges consecutive reflowable chapters with explicit style and identifier reconciliation. The selected
+    /// cascade applies to both chapters; unresolved scaffold, identifier and package-refinement conflicts fail atomically.</summary>
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
         CancellationToken cancellationToken = default) {
         if (options == null) throw new ArgumentNullException(nameof(options));
@@ -40,9 +40,13 @@ public sealed partial class EpubPublication {
             throw new NotSupportedException("Chapter root-level annotations conflict.");
         var shared = FindMergeSeam(firstBody, secondBody, cancellationToken);
         foreach (XAttribute id in second.Root.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")) shared.Add(id.Value);
+        var idMap = PrepareMergeIdentifierMap(second.Root, firstIds, secondIds, shared, boundaryId, options.SecondChapterIdMap, cancellationToken);
+        VerifyMergeStylesheetFragments(idMap, cancellationToken);
+        ApplyMergeIdentifierMap(second.Root, idMap, cancellationToken);
         VerifyMergeLocalReferences(second.Root, shared, secondPath, cancellationToken);
         (string Path, string? Fragment) Map(EpubReference reference) => reference.ContainerPath == secondPath ?
-            (firstPath, string.IsNullOrEmpty(reference.Fragment) || shared.Contains(reference.Fragment!) ? boundaryId : reference.Fragment) :
+            (firstPath, string.IsNullOrEmpty(reference.Fragment) || shared.Contains(reference.Fragment!) ? boundaryId :
+                idMap.TryGetValue(reference.Fragment!, out string? replacement) ? replacement : reference.Fragment) :
             (reference.ContainerPath!, reference.Fragment);
         RewriteMovedXml(first, firstPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
         RewriteMovedXml(second, secondPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);

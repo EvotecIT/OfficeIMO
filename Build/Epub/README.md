@@ -205,6 +205,9 @@ and native highlighting/playback acceptance.
 `merged-chapters.epub` merges those split reading positions back into one resource,
 retaining both TOC entries and repairing the incoming reference. Check its chapter
 order, section links and return links alongside the split fixture.
+`merged-identifiers.epub` starts with repeated chapter-local heading and description
+IDs, then merges with an explicit replacement map. Verify distinct section labels
+and links in both directions; its stylesheet deliberately covers both heading IDs.
 
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
