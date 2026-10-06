@@ -1009,6 +1009,11 @@ namespace OfficeIMO.Word.Pdf {
             if (allBorders.Any(border => border!.Val?.Value != style)) {
                 return null;
             }
+            // The uniform grid stores only color and width. Patterned strokes
+            // need the existing per-cell border representation.
+            if (ToNativeBorderDashStyle(style) != OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid) {
+                return null;
+            }
 
             uint size = allBorders[0]!.Size?.Value ?? 4U;
             if (allBorders.Any(border => (border!.Size?.Value ?? 4U) != size)) {

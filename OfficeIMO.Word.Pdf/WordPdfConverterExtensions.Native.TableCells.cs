@@ -206,17 +206,16 @@ namespace OfficeIMO.Word.Pdf {
                 : CreateNativeCellBorderSide(border.Val?.Value, border.Color?.Value, border.Size);
 
         private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToNativeBorderDashStyle(W.BorderValues? borderStyle) {
-            string value = borderStyle?.ToString() ?? string.Empty;
-            if (value.IndexOf("dot", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                value.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (borderStyle == W.BorderValues.DotDash || borderStyle == W.BorderValues.DotDotDash ||
+                borderStyle == W.BorderValues.DashDotStroked) {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot;
             }
 
-            if (value.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (borderStyle == W.BorderValues.Dashed || borderStyle == W.BorderValues.DashSmallGap) {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash;
             }
 
-            if (value.IndexOf("dot", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (borderStyle == W.BorderValues.Dotted) {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot;
             }
 
