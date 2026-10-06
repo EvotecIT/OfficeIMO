@@ -732,6 +732,14 @@ merge. The wrapper prevents joining the second chapter's containers with the fir
 colliding container IDs need explicit replacements. Qualify language switching and
 bidirectional presentation in the intended readers.
 
+For chapters marked with `SetDocumentMatter`, set `PreserveDocumentMatter = true`
+to retain each body's `frontmatter`, `bodymatter` or `backmatter` scope on an enclosing
+`section`. Unmarked chapters remain unmarked, and the second navigation boundary stays
+inside its matter section. Other body semantic tokens and attributes must still match;
+conflicting matter designations reject the merge. This EPUB 3 option can combine with
+the language/direction wrapper. Added sections can change CSS selector matching and
+layout; they do not isolate styles or establish equivalent reader presentation.
+
 Supply an explicit second-chapter map when body IDs collide:
 
 ```csharp

@@ -33,6 +33,11 @@ public sealed class EpubChapterMergeOptions {
     /// Explicit auto direction on either source root/body is unsupported. Wrapper structure can affect CSS;
     /// this option does not isolate styles or establish equivalent reader layout.</summary>
     public bool PreserveSecondChapterLanguageAndDirection { get; set; }
+    /// <summary>Preserve each source body's frontmatter, bodymatter or backmatter partition on a section
+    /// around its content before merging. Other body semantic tokens and attributes must remain compatible.
+    /// The second chapter's boundary is placed inside its partition. Added sections can affect CSS selectors;
+    /// this option does not isolate styles or establish equivalent reader layout.</summary>
+    public bool PreserveDocumentMatter { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }
 }

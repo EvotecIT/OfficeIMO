@@ -409,6 +409,13 @@ private copies for both chapters. These are expected reader
 checks; passing native preflight or an independent validator does not prove rendering.
 
 
+`merge-matter-source.epub` and `merge-matter.epub` exercise front/body-matter
+partition preservation through chapter merging. Compare the body declarations in
+the source with the two enclosing sections in the merged chapter, reciprocal links,
+and both navigation entries. EPUBCheck and Ace check package and automated
+accessibility rules; intended-reader presentation and assistive-technology behavior
+need separate qualification.
+
 `merge-language.epub` merges an English chapter with an Arabic chapter while
 retaining an explicit French/LTR passage. Check Arabic right-to-left paragraph
 layout, French left-to-right layout, reciprocal links and both TOC targets. Inspect

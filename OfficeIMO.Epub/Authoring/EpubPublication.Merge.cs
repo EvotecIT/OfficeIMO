@@ -33,6 +33,12 @@ public sealed partial class EpubPublication {
         XDocument first = EditableXhtml(firstManifestId), second = EditableXhtml(secondManifestId);
         VerifyMergeDocument(first); VerifyMergeDocument(second);
         XElement firstBody = first.Root!.Element(Html + "body")!, secondBody = second.Root!.Element(Html + "body")!;
+        XElement? secondMatter = null;
+        if (options.PreserveDocumentMatter) {
+            if (PackageVersion != "3.0") throw new NotSupportedException("Document partition semantics require EPUB 3.");
+            PrepareMergeMatterScope(firstBody);
+            secondMatter = PrepareMergeMatterScope(secondBody);
+        }
         var firstIds = EpubContentIdentifiers.Collect(first.Root, firstPath, true, cancellationToken);
         var secondIds = EpubContentIdentifiers.Collect(second.Root, secondPath, true, cancellationToken);
         if (firstIds.Contains(boundaryId) || secondIds.Contains(boundaryId)) throw new ArgumentException("The merge boundary ID already exists in chapter content.", nameof(boundaryId));
@@ -70,9 +76,13 @@ public sealed partial class EpubPublication {
         if (!first.Nodes().Where(node => node != first.Root).Select(node => node.ToString()).SequenceEqual(second.Nodes().Where(node => node != second.Root).Select(node => node.ToString()), StringComparer.Ordinal))
             throw new NotSupportedException("Resolve conflicting chapter heads or document instructions before merging. Styles and metadata are not silently combined or discarded.");
         var boundary = new XElement(Html + "span", new XAttribute("id", boundaryId), new XAttribute("title", secondHead.Element(Html + "title")!.Value));
-        if (languageWrapper == null) JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
+        if (secondMatter != null) secondMatter.AddFirst(boundary);
+        if (languageWrapper == null) {
+            if (secondMatter == null) JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
+            else firstBody.Add(secondBody.Nodes());
+        }
         else {
-            languageWrapper.Add(boundary);
+            if (secondMatter == null) languageWrapper.Add(boundary);
             languageWrapper.Add(secondBody.Nodes());
             firstBody.Add(languageWrapper);
         }
