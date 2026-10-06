@@ -22,7 +22,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
                 if (tableBounds[index] is PdfVisualBounds bounds &&
                     centerX >= bounds.Left - 1D && centerX <= bounds.Right + 1D &&
                     centerY >= bounds.Top - 1D && centerY <= bounds.Bottom + 1D &&
-                    tableTexts[index].IndexOf(text, StringComparison.Ordinal) >= 0) {
+                    ContainsTableProjectionText(tableTexts[index], text)) {
                     represented = true;
                     break;
                 }
@@ -30,6 +30,14 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (!represented) return false;
         }
         return true;
+    }
+
+    private static bool ContainsTableProjectionText(string value, string text) {
+#if NETSTANDARD2_0 || NETFRAMEWORK
+        return value.IndexOf(text, StringComparison.Ordinal) >= 0;
+#else
+        return value.Contains(text, StringComparison.Ordinal);
+#endif
     }
 
     private static string NormalizeTableProjectionText(string text, Action<long>? consumeWork) {
