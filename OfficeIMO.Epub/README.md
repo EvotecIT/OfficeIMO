@@ -497,6 +497,11 @@ landscape/portrait pages and LTR/RTL progression. EPUBCheck and browser canvas
 inspection are separate from native reader spread, rotation, scaling and
 assistive-technology qualification. Those reader checks remain open.
 
+The [image adapter's fixed-layout inspection](../OfficeIMO.Epub.Image/README.md#fixed-layout-canvas-inspection)
+compares managed rendered element geometry against an XHTML page's declared viewport.
+It retains renderer/package diagnostics and does not establish per-region overflow,
+pixel-level bounds or native-reader presentation.
+
 ### Reflowable typography
 
 Choose a reusable baseline when importing a manuscript:

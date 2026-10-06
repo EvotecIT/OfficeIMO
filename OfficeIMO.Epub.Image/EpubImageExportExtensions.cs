@@ -4,7 +4,7 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Epub.Image;
 
 /// <summary>EPUB image-export entry points backed by OfficeIMO.Html.</summary>
-public static class EpubImageExportExtensions {
+public static partial class EpubImageExportExtensions {
     private static readonly HashSet<string> PackageOmissionDiagnosticCodes =
         new HashSet<string>(StringComparer.Ordinal) {
             "epub.archive.duplicate-path",

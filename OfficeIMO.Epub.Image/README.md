@@ -28,6 +28,37 @@ External URLs never select retained package bytes. Use asynchronous export with
 `ResourceResolver` to supply policy-approved external resources; synchronous
 export reports external images that still need resolution.
 
+## Fixed-layout canvas inspection
+
+Inspect one retained XHTML chapter declared `pre-paginated` before exporting it:
+
+```csharp
+EpubFixedLayoutInspection inspection = book.InspectFixedLayoutPage(0);
+foreach (OfficeDrawingQualityIssue issue in inspection.CanvasQuality.Issues) {
+    Console.WriteLine(issue.Message);
+}
+```
+
+The chapter must declare one viewport with positive numeric `width` and `height`.
+Inspection renders at that viewport with zero margins, using the existing package
+resource resolver and caller-supplied font/resource limits. It compares rendered
+element rectangles with the declared page canvas, including content extending
+beyond the automatic output clip. Explicit authored clips remain in effect.
+Negative and transformed coordinates are included; excessive inspection surfaces
+fail instead of returning incomplete results. No output image is encoded.
+
+Inspect `HasCanvasOverflow`, `Rendering.Diagnostics`, `PackageDiagnostics` and
+`PreparationDiagnostics` together. `HasRenderingWarnings` summarizes diagnosed
+rendering loss and package/preparation warnings. Suppressing package diagnostics for
+image export does not suppress them in this inspection. Missing raw XHTML, a
+reflowable chapter, an unsupported viewport or encrypted content rejects inspection;
+text fallback cannot establish fixed geometry.
+
+This is managed layout evidence. It does not measure glyph ink, shadows/filters,
+content hidden by authored clipping, or overflow inside individual positioned
+regions. SVG spine inspection, native-reader presentation and accessible reading
+order require separate qualification. A clean report does not certify a publication.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

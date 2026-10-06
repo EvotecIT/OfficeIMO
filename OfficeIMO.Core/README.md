@@ -679,6 +679,8 @@ var drawing = new OfficeDrawing(width: 420, height: 180)
     .AddText("Shared vector intent", 34, 98, 240, 24);
 
 OfficeDrawingQualityReport report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
+// Compare the same scene with a smaller delivery canvas without changing it.
+OfficeDrawingQualityReport target = OfficeDrawingQualityAnalyzer.Analyze(drawing, 200, 200);
 if (report.HasIssues) {
     foreach (var issue in report.Issues) {
         Console.WriteLine($"{issue.Kind}: {issue.Message}");
