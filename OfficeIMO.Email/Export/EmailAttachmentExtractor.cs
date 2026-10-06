@@ -25,6 +25,9 @@ public static class EmailAttachmentExtractor {
         if (destinationDirectory == null) throw new ArgumentNullException(nameof(destinationDirectory));
         cancellationToken.ThrowIfCancellationRequested();
         var effective = options ?? new EmailAttachmentExtractionOptions();
+        var selected = effective.SelectedAttachmentIndexes == null ? null : new HashSet<int>(effective.SelectedAttachmentIndexes);
+        if (selected != null && selected.Any(i => i >= document.Attachments.Count))
+            throw new ArgumentOutOfRangeException(nameof(options), "An attachment index is outside the source collection.");
         Directory.CreateDirectory(destinationDirectory);
         using var directoryHandle = OfficePathIdentity.OpenDirectoryForIdentity(destinationDirectory, out string root);
         var entries = new List<EmailAttachmentExtractionEntry>();
@@ -45,6 +48,7 @@ public static class EmailAttachmentExtractor {
             try {
                 for (int index = 0; index < current.Attachments.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (depth == 0 && selected != null && !selected.Contains(index)) continue;
                     if (visitedAttachments >= effective.MaxAttachments || consumed >= effective.MaxTotalBytes) {
                         truncated = true;
                         diagnostics.Add(new EmailDiagnostic("EMAIL_EXTRACTION_BUDGET", "Attachment count or total byte budget stopped traversal.", location: prefix));
@@ -65,10 +69,28 @@ public static class EmailAttachmentExtractor {
                             itemDiagnostics.Add(new EmailDiagnostic("EMAIL_EXTRACTION_CONTENT_UNAVAILABLE", "Decoded content is unavailable; linked attachment paths are never opened.", location: sourcePath));
                         } else {
                             long maximum = Math.Min(effective.MaxAttachmentBytes, effective.MaxTotalBytes - consumed);
-                            string name = EmailStoreExportPathBuilder.SanitizeSegmentByUtf8Bytes(attachment.FileName, 160, 180, "attachment");
-                            if (attachment.EmbeddedDocument != null) name = Path.GetFileNameWithoutExtension(name) + ".eml";
-                            string path = Path.Combine(root, entries.Count.ToString("D4", CultureInfo.InvariantCulture) + "-" +
-                                EmailStoreExportPathBuilder.GetStableHash(sourcePath) + "-" + name);
+                            string namePrefix = string.IsNullOrEmpty(effective.FileNamePrefix) ? string.Empty :
+                                EmailStoreExportPathBuilder.SanitizeSegmentByUtf8Bytes(effective.FileNamePrefix, 36, 48, "message") + "-" +
+                                EmailStoreExportPathBuilder.GetStableHash(effective.FileNamePrefix!) + "-";
+                            string identity = namePrefix + entries.Count.ToString("D4", CultureInfo.InvariantCulture) + "-" +
+                                EmailStoreExportPathBuilder.GetStableHash(sourcePath) + "-";
+                            // Bound the complete segment, reserving the identity before truncating the untrusted name.
+                            int nameBudget = Math.Min(180, EmailStoreExportPathBuilder.MaximumPortableComponentBytes -
+                                EmailStoreExportPathBuilder.AtomicTemporarySuffixBytes - Encoding.UTF8.GetByteCount(identity));
+                            string originalName = attachment.FileName ?? "attachment";
+                            // Mail filenames are untrusted text, not platform paths (.NET Framework rejects quotes and NUL).
+                            int lastDot = originalName.LastIndexOf('.');
+                            string stem = lastDot > 0 ? originalName.Substring(0, lastDot) : originalName;
+                            string extension = lastDot > 0 ? originalName.Substring(lastDot) : string.Empty;
+                            if (extension.Length > 16 || Encoding.UTF8.GetByteCount(extension) > 24 ||
+                                extension != EmailStoreExportPathBuilder.SanitizeSegmentByUtf8Bytes(extension.TrimStart('.'), 16, 24, string.Empty).Insert(0, "."))
+                                extension = string.Empty;
+                            if (attachment.EmbeddedDocument != null) extension = ".eml";
+                            string name = EmailStoreExportPathBuilder.SanitizeSegmentByUtf8Bytes(
+                                extension.Length == 0 ? originalName : stem,
+                                Math.Min(160 - extension.Length, nameBudget - Encoding.UTF8.GetByteCount(extension)),
+                                nameBudget - Encoding.UTF8.GetByteCount(extension), "attachment") + extension;
+                            string path = Path.Combine(root, identity + name);
                             OfficePathIdentity.EnsurePathMatchesOpenedDirectory(root, directoryHandle);
                             await OfficeFileCommit.WriteAsync(path, async (output, token) => {
                                 using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);

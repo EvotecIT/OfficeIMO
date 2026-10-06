@@ -250,7 +250,7 @@ public static class EmailBodyProjection {
     private static Uri? ResolveBaseUri(string? value) =>
         Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) ? uri : null;
 
-    private static string CreateSafeEmailHtml(HtmlConversionDocument document) {
+    internal static string CreateSafeEmailHtml(HtmlConversionDocument document) {
         AngleSharp.Html.Dom.IHtmlDocument safe = document.CreateNativeDocumentForConversion();
         EmailHtmlActiveContent.Remove(safe);
         string styles = string.Concat(safe.Head?.QuerySelectorAll("style")
