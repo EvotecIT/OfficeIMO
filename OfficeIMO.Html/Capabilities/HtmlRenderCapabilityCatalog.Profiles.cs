@@ -38,22 +38,22 @@ public static partial class HtmlRenderCapabilityCatalog {
     }).ToArray();
 
     private static readonly HtmlCapabilityProviderPin[] DocumentProviders = {
-        Provider(HtmlCapabilityProviderIds.OfficeIMOHtmlCore, "OfficeIMO.Html.Core", "3.4.3", HtmlCapabilityProviderOwnership.OfficeIMO),
-        Provider(HtmlCapabilityProviderIds.AngleSharpHtml, "AngleSharp HTML parser adapter", "AngleSharp 1.7.1 / OfficeIMO.Html.AngleSharp 3.4.3", HtmlCapabilityProviderOwnership.ThirdParty)
+        Provider(HtmlCapabilityProviderIds.OfficeIMOHtmlCore, "OfficeIMO.Html.Core", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
+        Provider(HtmlCapabilityProviderIds.AngleSharpHtml, "AngleSharp HTML parser adapter", "AngleSharp 1.8.3 / OfficeIMO.Html.AngleSharp 3.4.4", HtmlCapabilityProviderOwnership.ThirdParty)
     };
 
     private static readonly HtmlCapabilityProviderPin[] StaticProviders = {
-        Provider(HtmlCapabilityProviderIds.OfficeIMOHtmlCore, "OfficeIMO.Html.Core", "3.4.3", HtmlCapabilityProviderOwnership.OfficeIMO),
-        Provider(HtmlCapabilityProviderIds.OfficeIMOHtml, "OfficeIMO.Html", "3.4.3", HtmlCapabilityProviderOwnership.OfficeIMO),
-        Provider(HtmlCapabilityProviderIds.OfficeIMOCore, "OfficeIMO.Core drawing and text", "3.4.3", HtmlCapabilityProviderOwnership.OfficeIMO),
-        Provider(HtmlCapabilityProviderIds.AngleSharpHtml, "AngleSharp HTML parser adapter", "AngleSharp 1.7.1 / OfficeIMO.Html.AngleSharp 3.4.3", HtmlCapabilityProviderOwnership.ThirdParty),
-        Provider(HtmlCapabilityProviderIds.AngleSharpCss, "AngleSharp.Css parser", "1.0.1", HtmlCapabilityProviderOwnership.ThirdParty),
+        Provider(HtmlCapabilityProviderIds.OfficeIMOHtmlCore, "OfficeIMO.Html.Core", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
+        Provider(HtmlCapabilityProviderIds.OfficeIMOHtml, "OfficeIMO.Html", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
+        Provider(HtmlCapabilityProviderIds.OfficeIMOCore, "OfficeIMO.Core drawing and text", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
+        Provider(HtmlCapabilityProviderIds.AngleSharpHtml, "AngleSharp HTML parser adapter", "AngleSharp 1.8.3 / OfficeIMO.Html.AngleSharp 3.4.4", HtmlCapabilityProviderOwnership.ThirdParty),
+        Provider(HtmlCapabilityProviderIds.AngleSharpCss, "AngleSharp.Css parser", "1.1.2", HtmlCapabilityProviderOwnership.ThirdParty),
         Provider(HtmlCapabilityProviderIds.CallerTextShaper, "Caller-selected text shaper", "caller-selected; optional", HtmlCapabilityProviderOwnership.Caller)
     };
 
     private static readonly HtmlCapabilityProviderPin[] PagedProviders = StaticProviders.Concat(new[] {
-        Provider(HtmlCapabilityProviderIds.OfficeIMOHtmlPdf, "OfficeIMO.Html.Pdf", "3.4.3", HtmlCapabilityProviderOwnership.OfficeIMO),
-        Provider(HtmlCapabilityProviderIds.OfficeIMOPdf, "OfficeIMO.Pdf", "3.4.3", HtmlCapabilityProviderOwnership.OfficeIMO)
+        Provider(HtmlCapabilityProviderIds.OfficeIMOHtmlPdf, "OfficeIMO.Html.Pdf", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
+        Provider(HtmlCapabilityProviderIds.OfficeIMOPdf, "OfficeIMO.Pdf", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO)
     }).ToArray();
 
     private static readonly HtmlCapabilitySpecificationPin[] DocumentSpecifications = {

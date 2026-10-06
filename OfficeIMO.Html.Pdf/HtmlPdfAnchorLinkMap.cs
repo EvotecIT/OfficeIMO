@@ -5,55 +5,64 @@ namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Finds paint links covered by anchor-owned fragments without conflating equal URLs.</summary>
 internal sealed class HtmlPdfAnchorLinkMap {
-    private readonly Dictionary<string, LinkRegionSet> _byUri;
+    private readonly HashSet<HtmlRenderVisual> _coveredVisuals;
     private readonly HashSet<HtmlRenderAnchorFragment> _activeFragments;
 
-    private HtmlPdfAnchorLinkMap(Dictionary<string, LinkRegionSet> byUri,
+    private HtmlPdfAnchorLinkMap(HashSet<HtmlRenderVisual> coveredVisuals,
         HashSet<HtmlRenderAnchorFragment> activeFragments) {
-        _byUri = byUri;
+        _coveredVisuals = coveredVisuals;
         _activeFragments = activeFragments;
     }
 
     internal static HtmlPdfAnchorLinkMap Create(HtmlRenderPage page) {
-        var grouped = new Dictionary<string, List<HtmlRenderAnchorFragment>>(StringComparer.Ordinal);
+        var grouped = new Dictionary<(object Space, string Uri), List<HtmlRenderAnchorFragment>>();
+        var linkedVisuals = new Dictionary<HtmlRenderVisual, (object Space, string Uri)>();
         var activeFragments = new HashSet<HtmlRenderAnchorFragment>();
-        Collect(page.Scene, grouped, activeFragments);
-        return new HtmlPdfAnchorLinkMap(grouped.ToDictionary(
+        Collect(page.Scene, new object(), grouped, linkedVisuals, activeFragments);
+        var regions = grouped.ToDictionary(
             pair => pair.Key,
-            pair => new LinkRegionSet(pair.Value),
-            StringComparer.Ordinal), activeFragments);
+            pair => new LinkRegionSet(pair.Value));
+        var covered = new HashSet<HtmlRenderVisual>();
+        foreach (var entry in linkedVisuals) {
+            HtmlRenderVisual visual = entry.Key;
+            if (regions.TryGetValue(entry.Value, out LinkRegionSet? set)
+                && set.Contains(visual is HtmlRenderText text && text.LinkBounds.HasValue
+                    ? text.LinkBounds.Value
+                    : new HtmlRenderRectangle(visual.X, visual.Y, visual.Width, visual.Height))) covered.Add(visual);
+        }
+        return new HtmlPdfAnchorLinkMap(covered, activeFragments);
     }
 
     internal bool IsActive(HtmlRenderAnchorFragment fragment) => _activeFragments.Contains(fragment);
 
-    internal bool Covers(HtmlRenderVisual visual) =>
-        visual is not HtmlRenderAnchorFragment
-        && visual.LinkUri != null
-        && _byUri.TryGetValue(visual.LinkUri, out LinkRegionSet? regions)
-        && regions.Contains(visual is HtmlRenderText text && text.LinkBounds.HasValue
-            ? text.LinkBounds.Value
-            : new HtmlRenderRectangle(visual.X, visual.Y, visual.Width, visual.Height));
+    internal bool Covers(HtmlRenderVisual visual) => _coveredVisuals.Contains(visual);
 
     private static void Collect(IEnumerable<HtmlRenderVisual> visuals,
-        IDictionary<string, List<HtmlRenderAnchorFragment>> grouped,
+        object space,
+        IDictionary<(object Space, string Uri), List<HtmlRenderAnchorFragment>> grouped,
+        IDictionary<HtmlRenderVisual, (object Space, string Uri)> linkedVisuals,
         ISet<HtmlRenderAnchorFragment> activeFragments) {
         foreach (HtmlRenderVisual visual in visuals) {
             if (visual is HtmlRenderAnchorFragment fragment) {
-                if (!grouped.TryGetValue(fragment.LinkUri!, out List<HtmlRenderAnchorFragment>? regions)) {
+                var key = (space, fragment.LinkUri!);
+                if (!grouped.TryGetValue(key, out List<HtmlRenderAnchorFragment>? regions)) {
                     regions = new List<HtmlRenderAnchorFragment>();
-                    grouped.Add(fragment.LinkUri!, regions);
+                    grouped.Add(key, regions);
                 }
                 regions.Add(fragment);
                 activeFragments.Add(fragment);
-            } else if (visual is HtmlRenderSemanticGroup semantic) Collect(semantic.Visuals, grouped, activeFragments);
-            else if (visual is HtmlRenderLogicalTextGroup logical) Collect(logical.Visuals, grouped, activeFragments);
-            else if (visual is HtmlRenderLayoutRegion layout) Collect(layout.Visuals, grouped, activeFragments);
-            else if (visual is HtmlRenderClipGroup clip) Collect(clip.Visuals, grouped, activeFragments);
+            } else if (visual is HtmlRenderSemanticGroup semantic) Collect(semantic.Visuals, space, grouped, linkedVisuals, activeFragments);
+            else if (visual is HtmlRenderLogicalTextGroup logical) Collect(logical.Visuals, space, grouped, linkedVisuals, activeFragments);
+            else if (visual is HtmlRenderLayoutRegion layout) Collect(layout.Visuals, space, grouped, linkedVisuals, activeFragments);
+            else if (visual is HtmlRenderClipGroup clip) Collect(clip.Visuals, space, grouped, linkedVisuals, activeFragments);
             // PDF annotation rectangles do not inherit a nonrectangular path clip.
             // Keep the existing per-visual link handling inside that path instead.
             else if (visual is HtmlRenderPathClipGroup) continue;
-            else if (visual is HtmlRenderEffectGroup effect) Collect(effect.Visuals, grouped, activeFragments);
-            else if (visual is HtmlRenderFormField field) Collect(field.Visuals, grouped, activeFragments);
+            // Child rectangles are local to this effect. An equal URI in another
+            // transform space does not establish annotation coverage here.
+            else if (visual is HtmlRenderEffectGroup effect) Collect(effect.Visuals, effect, grouped, linkedVisuals, activeFragments);
+            else if (visual is HtmlRenderFormField field) Collect(field.Visuals, space, grouped, linkedVisuals, activeFragments);
+            else if (visual.LinkUri != null) linkedVisuals[visual] = (space, visual.LinkUri);
         }
     }
 

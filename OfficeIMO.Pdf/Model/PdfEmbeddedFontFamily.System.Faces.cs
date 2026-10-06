@@ -77,7 +77,8 @@ public sealed partial class PdfEmbeddedFontFamily {
         string programId = System.BitConverter.ToString(sha256.ComputeHash(data)).Replace("-", string.Empty);
 #endif
         string boundedFaceName = faceName.Length <= 32 ? faceName : faceName.Substring(0, 32);
-        selected = new PdfEmbeddedFontFamily("OfficeIMO-SystemFace-" + boundedFaceName + "-" + programId, data);
+        selected = new PdfEmbeddedFontFamily("OfficeIMO-SystemFace-" + boundedFaceName + "-" + programId, data,
+            hasPhysicalSlant: face.Descriptor.Slant != OfficeFontSlant.Normal);
         lock (SelectedSystemFacesLock) {
             if (SelectedSystemFaces.Count < MaxSelectedSystemFaces) SelectedSystemFaces[face] = selected;
         }

@@ -271,4 +271,45 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         Assert.Contains("repeat.png", prepared.Value.SourceHtml, StringComparison.Ordinal);
         Assert.True(prepared.Value.SourceHtml.Length <= 1200);
     }
+    [Fact]
+    public void SourceRejectedImagesDoNotConsumeAdmissionForALaterSmallImage() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        var archive = new MhtmlDocument("<img src='large.png'><img src='small.png'><img src='small.png'>",
+            new[] { new MhtmlResource(new byte[4096], "image/png", contentLocation:"https://example.test/large.png"),
+                new MhtmlResource(png, "image/png", contentLocation:"https://example.test/small.png") },
+            contentLocation:"https://example.test/index.html",
+            htmlOptions:new HtmlConversionDocumentOptions {Limits=new HtmlConversionLimits {MaxInputCharacters=1200}});
+        var result = archive.CreateEmbeddedImageDocumentResult(new HtmlRenderOptions {
+            MaxResourceCount=1, MaxTotalResourceBytes=4096 });
+        Assert.Equal(1, result.EmbeddedResourceCount);
+        Assert.Equal(png.Length, result.EmbeddedResourceBytes);
+        Assert.Contains(result.Report.Diagnostics, d=>d.Code==HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded);
+        Assert.Contains("large.png", result.Value.SourceHtml);
+        Assert.Equal(2, result.Value.SourceHtml.Split(new[]{"data:image/png;base64,"},StringSplitOptions.None).Length-1);
+        Assert.Contains("small.png", archive.Html);
+    }
+
+    [Fact]
+    public void CharacterLimitRejectionDoesNotRejectALaterSmallerAliasExpansion() {
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        string absolute = "https://example.test/" + new string('x', Convert.ToBase64String(png).Length + 100) + "/a.png";
+        string html = "<img src='a.png'><img src='" + absolute + "'>";
+        int limit = HtmlConversionDocument.Parse(html).Document.OuterHtml.Length + 512;
+        var archive = new MhtmlDocument(html,
+            new[] { new MhtmlResource(png, "image/png", contentLocation: absolute) },
+            contentLocation: absolute.Replace("a.png", "index.html"),
+            htmlOptions: new HtmlConversionDocumentOptions {
+                Limits = new HtmlConversionLimits { MaxInputCharacters = limit }
+            });
+
+        MhtmlImageEmbeddingResult result = archive.CreateEmbeddedImageDocumentResult();
+
+        Assert.Equal(1, result.EmbeddedResourceCount);
+        Assert.Equal(png.Length, result.EmbeddedResourceBytes);
+        Assert.Equal("a.png", result.Value.Document.QuerySelectorAll("img")[0].GetAttribute("src"));
+        Assert.StartsWith("data:image/png;base64,", result.Value.Document.QuerySelectorAll("img")[1].GetAttribute("src"));
+        Assert.Contains(result.Report.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded);
+        Assert.Equal(html, archive.Html);
+    }
 }

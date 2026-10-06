@@ -33,7 +33,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private int _nextLogicalTextOrder;
     private int _nextSemanticNodeId;
     private readonly HtmlRenderOperationBudget _operationBudget;
-    private readonly bool _ownsOperationBudget;
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
     private readonly Dictionary<IElement, List<PositionedElementRequest>> _localPositionedElements = new Dictionary<IElement, List<PositionedElementRequest>>();
@@ -120,7 +119,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _initialLogicalTextOrder = Math.Max(0, logicalTextOrderStart);
         _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
         _operationBudget = operationBudget ?? new HtmlRenderOperationBudget();
-        _ownsOperationBudget = operationBudget == null;
         _computedStyles = computedStyles;
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
@@ -486,7 +484,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _positionedSourceOrder = 0;
         _nextLogicalTextOrder = _initialLogicalTextOrder;
         _nextSemanticNodeId = _initialSemanticNodeId;
-        if (_ownsOperationBudget) _operationBudget.Reset();
+        // Convergence and print fitting remain part of this render operation.
         _fixedPositionedElements.Clear();
         _rootPositionedElements.Clear();
         _localPositionedElements.Clear();
