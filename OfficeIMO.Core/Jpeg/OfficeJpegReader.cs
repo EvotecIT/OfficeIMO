@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (eight-bit SOF0/SOF1/SOF2; two-through-sixteen-bit SOF3, Huffman).
+/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (eight-bit SOF0; eight/twelve-bit SOF1/SOF2; two-through-sixteen-bit SOF3, Huffman).
 /// </summary>
 internal static partial class OfficeJpegReader {
     private static readonly byte[] ZigZag = {
@@ -316,7 +316,7 @@ internal static partial class OfficeJpegReader {
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
-                frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker == 0xC3);
+                frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker);
                 if (preserveRaw16 && (marker != 0xC3 || frame.Precision != 16 ||
                     requestedColorTransform != 0 || !returnColorComponents))
                     throw new FormatException("Raw sixteen-bit samples require a sixteen-bit lossless JPEG frame.");

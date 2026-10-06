@@ -173,6 +173,7 @@ internal static partial class OfficeJpegReader {
         public int BlocksPerCol;
         public int PrevDc;
         public int SampleMaximum = 255;
+        public double[] WideWorkspace;
 
         public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes, int precision = 8) {
             Component = component;
@@ -187,33 +188,12 @@ internal static partial class OfficeJpegReader {
             BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            WideWorkspace = precision == 12
+                ? new double[OfficeRasterGuards.EnsureByteArrayLength(64 * sizeof(double), ref aggregateBytes, JpegDimensionsLimitMessage) / sizeof(double)]
+                : Array.Empty<double>();
             PrevDc = 0;
         }
 
-        public static BaselineComponentState FromDecodedBuffer(
-            Component component,
-            int blocksPerRow,
-            int blocksPerCol,
-            int stride,
-            byte[] buffer) {
-            return new BaselineComponentState {
-                Component = component,
-                BlocksPerRow = blocksPerRow,
-                BlocksPerCol = blocksPerCol,
-                Stride = stride,
-                Buffer = buffer,
-                BlockCoeffs = Array.Empty<int>(),
-                BlockPixels = Array.Empty<byte>(),
-                BlockWorkspace = Array.Empty<int>()
-            };
-        }
-
-        private BaselineComponentState() {
-            Buffer = Array.Empty<byte>();
-            BlockCoeffs = Array.Empty<int>();
-            BlockPixels = Array.Empty<byte>();
-            BlockWorkspace = Array.Empty<int>();
-        }
     }
 
     private sealed class ProgressiveState {
@@ -252,7 +232,7 @@ internal static partial class OfficeJpegReader {
                     blocksPerRow,
                     blocksPerCol,
                     quantTables[comp.QuantId],
-                    ref aggregateBytes);
+                    ref aggregateBytes, frame.Precision);
             }
 
             return new ProgressiveState {
@@ -304,16 +284,16 @@ internal static partial class OfficeJpegReader {
         private BaselineComponentState[] CreateBaselineStates(CancellationToken cancellationToken) {
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
+                var samples = compState.Samples;
                 for (var by = 0; by < compState.BlocksPerCol; by++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (var bx = 0; bx < compState.BlocksPerRow; bx++) {
                         var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
                         for (int coefficient = 0; coefficient < 64; coefficient++) {
-                            compState.BlockCoeffs[coefficient] =
+                            samples.BlockCoeffs[coefficient] =
                                 checked(compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient]);
                         }
-                        InverseDct(compState.BlockCoeffs, compState.BlockPixels, compState.BlockWorkspace);
-                        WriteBlock(compState.Buffer, compState.Stride, bx, by, compState.BlockPixels);
+                        WriteDctBlock(samples, bx, by);
                     }
                 }
             }
@@ -321,12 +301,7 @@ internal static partial class OfficeJpegReader {
             var baselineStates = new BaselineComponentState[Components.Length];
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
-                baselineStates[i] = BaselineComponentState.FromDecodedBuffer(
-                    compState.Component,
-                    compState.BlocksPerRow,
-                    compState.BlocksPerCol,
-                    compState.Stride,
-                    compState.Buffer);
+                baselineStates[i] = compState.Samples;
             }
 
             return baselineStates;
@@ -339,11 +314,7 @@ internal static partial class OfficeJpegReader {
         public int BlocksPerCol;
         public short[] Coeffs;
         public int[] Quantization;
-        public byte[] Buffer;
-        public int[] BlockCoeffs;
-        public byte[] BlockPixels;
-        public int[] BlockWorkspace;
-        public int Stride;
+        public BaselineComponentState Samples;
         public int PrevDc;
 
         public ProgressiveComponentState(
@@ -351,19 +322,14 @@ internal static partial class OfficeJpegReader {
             int blocksPerRow,
             int blocksPerCol,
             int[] quantization,
-            ref long aggregateBytes) {
+            ref long aggregateBytes, int precision) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Quantization = quantization;
-            Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
             var coeffLength = OfficeRasterGuards.EnsureInt16ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
-            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8, ref aggregateBytes, JpegDimensionsLimitMessage);
             Coeffs = new short[coeffLength];
-            Buffer = new byte[bufferLength];
-            BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
-            BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
-            BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
+            Samples = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, precision);
             PrevDc = 0;
         }
     }

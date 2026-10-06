@@ -173,7 +173,7 @@ public static partial class OfficeImageReader {
                 if (hasFrame || requireManagedFrame && marker is not (0xC0 or 0xC1 or 0xC2 or 0xC3) ||
                     !TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _) ||
                     requireManagedFrame && !OfficeJpegReader.IsSupportedRgbaFrameHeader(
-                        data, segmentStart, segmentDataLength, marker == 0xC3)) return false;
+                        data, segmentStart, segmentDataLength, marker)) return false;
                 hasFrame = true;
             } else if (marker == 0xE0 && HasJpegSegmentPrefix(
                 data,

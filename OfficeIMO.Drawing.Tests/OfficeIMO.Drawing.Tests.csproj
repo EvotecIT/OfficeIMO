@@ -135,4 +135,5 @@
   <ItemGroup><None Update="TestAssets/TiffJpegChroma16/*.tif;TestAssets/TiffJpegChroma16/*.rgba;TestAssets/TiffJpegChroma16/*.jpg;TestAssets/TiffJpegChroma16/*.raw;TestAssets/TiffJpegChroma16/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegLegacy/**/*.tif;TestAssets/TiffJpegLegacy/**/*.tiff;TestAssets/TiffJpegLegacy/**/*.png;TestAssets/TiffJpegLegacy/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/JpegLosslessPrecision/*.jpg;TestAssets/JpegLosslessPrecision/*.raw;TestAssets/JpegLosslessPrecision/*.rgba;TestAssets/JpegLosslessPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/JpegDct12/*.jpg;TestAssets/JpegDct12/*.rgba;TestAssets/JpegDct12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

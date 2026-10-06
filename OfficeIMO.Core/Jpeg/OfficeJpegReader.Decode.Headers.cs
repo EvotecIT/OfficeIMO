@@ -4,9 +4,10 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegReader {
-    private static JpegFrame ParseFrameHeader(OfficeByteView data, bool lossless = false) {
+    private static JpegFrame ParseFrameHeader(OfficeByteView data, byte frameMarker = 0xC0) {
         var precision = data[0];
-        if (lossless ? precision < 2 || precision > 16 : precision != 8) throw new FormatException("Unsupported JPEG precision.");
+        if (frameMarker == 0xC3 ? precision < 2 || precision > 16 :
+            precision != 8 && !(precision == 12 && (frameMarker == 0xC1 || frameMarker == 0xC2))) throw new FormatException("Unsupported JPEG precision.");
         var height = ReadUInt16BE(data, 1);
         var width = ReadUInt16BE(data, 3);
         var components = data[5];
@@ -52,9 +53,9 @@ internal static partial class OfficeJpegReader {
         return frame;
     }
 
-    internal static bool IsSupportedRgbaFrameHeader(byte[] data, int offset, int length, bool lossless = false) {
+    internal static bool IsSupportedRgbaFrameHeader(byte[] data, int offset, int length, byte frameMarker = 0xC0) {
         try {
-            JpegFrame frame = ParseFrameHeader(new OfficeByteView(data).Slice(offset, length), lossless);
+            JpegFrame frame = ParseFrameHeader(new OfficeByteView(data).Slice(offset, length), frameMarker);
             return frame.ComponentCount is 1 or 3 or 4;
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException ||
                                      ex is IndexOutOfRangeException || ex is OverflowException) {

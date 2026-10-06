@@ -434,15 +434,13 @@ internal static partial class OfficeJpegReader {
         return (int)Math.Round(value);
     }
 
-    private static void DecodeBlock(
+    private static void DecodeBlockCoefficients(
         ref JpegBitReader reader,
         HuffmanTable dcTable,
         HuffmanTable acTable,
         int[] quant,
         ref int prevDc,
-        int[] coeffs,
-        byte[] pixels,
-        int[] workspace) {
+        int[] coeffs) {
         Array.Clear(coeffs, 0, 64);
 
         var t = DecodeHuffman(ref reader, dcTable, useFast: true);
@@ -473,7 +471,6 @@ internal static partial class OfficeJpegReader {
             k++;
         }
 
-        InverseDct(coeffs, pixels, workspace);
     }
 
     private static int DecodeHuffman(ref JpegBitReader reader, HuffmanTable table, bool useFast) {

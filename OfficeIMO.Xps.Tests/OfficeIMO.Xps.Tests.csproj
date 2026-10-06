@@ -56,4 +56,5 @@
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChroma16/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChroma16/manifest.csv" Link="Fixtures/TiffJpegChroma16/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/manifest.csv" Exclude="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/*.reference.tif" Link="Fixtures/TiffJpegLegacy/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegLosslessPrecision/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegLosslessPrecision/manifest.csv" Link="Fixtures/JpegLosslessPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/manifest.csv" Link="Fixtures/JpegDct12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

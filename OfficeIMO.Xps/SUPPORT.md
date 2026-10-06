@@ -124,7 +124,7 @@ quantization without overflowing its fixed-point transform. Both XPS dialects
 produce 320 documents with 212,800 pixel-center probes per route; independent
 MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
 still differs by up to 255, including blank planar/tiled output. Native Windows
-acceptance and twelve-bit or arithmetic JPEG remain unqualified.
+acceptance and twelve-bit or arithmetic JPEG-in-TIFF remain unqualified.
 
 Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
 with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
@@ -173,6 +173,22 @@ Independent MuPDF output differs by at most 4/255 for PDF and 2/255 for SVG;
 GhostXPS opens every export without a process failure but differs by up to
 255/255, including blank output. These comparisons do not establish native
 Windows acceptance.
+
+Standalone twelve-bit Huffman DCT JPEG supports extended sequential and progressive
+frames. The shared decoder retains native-width sample planes through IDCT and
+chroma reconstruction before projecting to eight-bit output. Baseline SOF0 remains
+eight-bit, and twelve-bit frames require explicit Huffman tables. The
+[twelve-bit corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/README.md) contains
+60 independently encoded/decoded gray, RGB and YCbCr images, with sequential and
+progressive scans, 1×1/2×1/2×2 chroma, restart intervals, partial blocks and quality
+1/75/100. All 79,800 nearest/high-quality pixel comparisons agree within 1/255. The 120
+XPS/OpenXPS exports cover 79,800 probes per route; independent MuPDF PDF/SVG
+rendering differs by at most 2/255 without warnings. GhostXPS opens every export
+but differs by up to 255/255, including blank images. SVG/PDF export uses the
+existing high-precision JPEG normalization path. This does not
+extend JPEG-in-TIFF to packed twelve-bit samples. Twelve-bit CMYK/YCCK and
+unusual sampling combinations have no independent corpus qualification here;
+arithmetic JPEG and native Windows acceptance remain outside the qualified contract.
 
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before
