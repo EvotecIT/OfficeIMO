@@ -113,4 +113,36 @@ public partial class Word {
     private static string GetHeaderJoinStoryXml(WordDocument document, bool footer) => footer
         ? document._wordprocessingDocument.MainDocumentPart!.FooterParts.First().Footer.OuterXml
         : document._wordprocessingDocument.MainDocumentPart!.HeaderParts.First().Header.OuterXml;
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void SaveAsPdf_HeaderFooterJoinComparesEffectiveDocumentDefaultSize(bool footer, bool sameSize) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.DocDefaults = new W.DocDefaults(new W.RunPropertiesDefault(new W.RunPropertiesBaseStyle(
+            new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial", EastAsia = "Arial", ComplexScript = "Arial" },
+            new W.FontSize { Val = "24" }, new W.FontSizeComplexScript { Val = "24" })));
+        W.Style normal = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
+        normal.StyleRunProperties!.RemoveAllChildren<W.FontSize>();
+        normal.StyleRunProperties.RemoveAllChildren<W.FontSizeComplexScript>();
+        document.AddParagraph("BODY"); document.AddHeadersAndFooters();
+        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
+        story.AddParagraph("BETA").FontSize = sameSize ? 12 : 14;
+        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        if (sameSize) {
+            Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "ALPHABETA");
+            Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        } else {
+            var words = pdf.GetPage(1).GetWords().ToArray();
+            Assert.True(Assert.Single(words, word => word.Text == "ALPHA").BoundingBox.Bottom >
+                Assert.Single(words, word => word.Text == "BETA").BoundingBox.Bottom);
+            Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        }
+    }
 }

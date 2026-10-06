@@ -33,6 +33,9 @@ public static partial class WordPdfConverterExtensions {
                 foreach (WordParagraph run in GetNativeRuns(paragraph)) {
                     if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(run.Text)) continue;
                     NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraph, nativeDefaults: defaults, nativeFontMap: fontMap);
+                    // An ordinary inherited size can remain unspecified in the
+                    // run projection; compare its effective document value.
+                    style = style with { FontSize = style.FontSize ?? defaults.FontSize };
                     if (visibleStyle.HasValue && visibleStyle.Value != style) { supported = false; break; }
                     visibleStyle = style;
                 }
