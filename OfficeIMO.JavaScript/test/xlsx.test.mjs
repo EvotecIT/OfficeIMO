@@ -114,7 +114,7 @@ test("XLSX cancels mid-stream and never finalizes a partial workbook", async () 
   setTimeout(() => controller.abort(), 10);
   await assert.rejects(writing, { name: "AbortError" });
   assert.equal(closed, true);
-  assert.throws(() => book.toBlob(), { name: "AbortError" });
+  await assert.rejects(book.toBlob(), { name: "AbortError" });
 });
 
 test("classic scripts compose in either order without a module loader", async () => {
