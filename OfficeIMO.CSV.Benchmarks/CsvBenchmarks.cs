@@ -697,8 +697,7 @@ public partial class CsvBenchmarks
     [Benchmark]
     public int OfficeIMO_ReadDataReaderGetStrings()
     {
-        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        using var csv = document.CreateDataReader();
+        using var csv = CsvDocument.OpenTextDataReader(_csvText);
         var fieldCount = 0;
         while (csv.Read())
         {
