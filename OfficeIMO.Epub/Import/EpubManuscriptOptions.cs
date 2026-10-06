@@ -12,7 +12,7 @@ public sealed class EpubManuscriptOptions {
     public string? Identifier { get; set; }
     /// <summary>Optional primary creator.</summary>
     public string? Creator { get; set; }
-    /// <summary>Starts a chapter at headings of this level or higher. Zero keeps one chapter.</summary>
+    /// <summary>Proposes chapters at headings of this level or higher; document-local relationships keep connected content together. Zero keeps one chapter.</summary>
     public int ChapterHeadingLevel { get; set; } = 1;
     /// <summary>Bounds retained package content independently of HTML input limits.</summary>
     public EpubPublicationLoadOptions RetentionLimits { get; set; } = new EpubPublicationLoadOptions();

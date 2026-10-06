@@ -311,7 +311,12 @@ EpubManuscriptResult imported = EpubManuscript.ImportHtml(source,
 imported.RequireNoLoss().Save("book.epub");
 ```
 
-Set `ChapterHeadingLevel` to 0 for one chapter, or 1–6 for the split threshold.
+Set `ChapterHeadingLevel` to 0 for one chapter, or 1–6 for the proposed split threshold.
+The importer keeps document-local references and their targets together, including
+complete referenced containers. Unaffected headings still start chapters; all headings
+remain available in navigation. Each suppressed boundary reports
+`EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED` without fidelity loss. Missing targets remain
+failures that require source repair.
 Title, language and creator overrides take precedence over supported source metadata.
 Embedded data resources work without a resolver. `ImportHtmlAsync` accepts an explicit
 `ResourceResolver` for authorized external assets; the importer does not fetch the
@@ -1139,8 +1144,10 @@ modes and summary are warnings. EPUB 2 discovery metadata is explicitly unchecke
 Newly authored or rewritten content rejects duplicate IDs and unresolved document-local
 ARIA, table-header, form-control and microdata ID references, plus missing local image-map
 names. IDs may repeat in separate content documents.
-Manuscript splitting reports a failure when a relationship crosses the resulting
-chapter boundary; keep the related content in one chapter or repair the source.
+Manuscript import plans chapter boundaries around these relationships instead of
+separating their source and target. A relationship involving the whole body can keep
+the manuscript in one chapter. This applies to heading-based import; explicit editorial
+split operations retain their own validation contract.
 `AddDublinCoreMetadata` accepts the standard Dublin Core element names, with exact
 lowercase spelling; custom metadata belongs in the EPUB property vocabulary APIs.
 
