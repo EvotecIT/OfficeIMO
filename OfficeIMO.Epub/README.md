@@ -953,7 +953,11 @@ fixed-layout geometry. Independent reader and accessibility qualification still 
 `Preflight` returns structured native checks without writing a destination or invoking
 external tools. It uses the supplied save policy, inspects retained XHTML/SVG identifiers
 and document-local ARIA/table-header references, and checks HTML image alternative
-presence and EPUB 3 accessibility discovery declarations. The `media-overlays` check
+presence and EPUB 3 accessibility discovery declarations. The `document-language` check
+reports missing, malformed, or conflicting root `lang`/`xml:lang` declarations in
+XHTML and SVG, independently of the package language. Tags are checked for BCP 47
+syntax, not registry membership or whether they describe the actual text. Language
+changes within a document still require accessibility review. The `media-overlays` check
 verifies retained SMIL text/sequence targets, manifest associations, audio declarations,
 explicit clip intervals and duration sums. It also inspects unchanged imported content, even when saving preserves that
 content byte-for-byte.

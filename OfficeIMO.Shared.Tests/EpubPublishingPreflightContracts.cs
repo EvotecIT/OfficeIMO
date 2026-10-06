@@ -32,6 +32,50 @@ public sealed class EpubPublishingPreflightContracts {
     }
 
     [Theory]
+    [InlineData(null, null, "EPUB_PREFLIGHT_DOCUMENT_LANGUAGE_MISSING")]
+    [InlineData(" ", "", "EPUB_PREFLIGHT_DOCUMENT_LANGUAGE_MISSING")]
+    [InlineData("en_US", null, "EPUB_PREFLIGHT_DOCUMENT_LANGUAGE_INVALID")]
+    [InlineData("en", "pl", "EPUB_PREFLIGHT_DOCUMENT_LANGUAGE_CONFLICT")]
+    [InlineData("en", "", "EPUB_PREFLIGHT_DOCUMENT_LANGUAGE_INVALID")]
+    [InlineData("en", null, null)]
+    [InlineData(null, "pl", null)]
+    [InlineData("en-US", "en-us", null)]
+    [InlineData("x-house", "x-house", null)]
+    public void PreflightChecksRetainedDocumentLanguageWithoutChangingBytes(string? language, string? xmlLanguage, string? error) {
+        var book = EpubPublication.Create("Book", "en");
+        book.AddChapter("c", "EPUB/c.xhtml", "Chapter", "<h1>Chapter</h1>");
+        XDocument content = book.GetContentXml("c");
+        content.Root!.SetAttributeValue("lang", language);
+        content.Root.SetAttributeValue(XNamespace.Xml + "lang", xmlLanguage);
+        book.SetContentXml("c", content);
+        byte[] bytes = book.Write().Bytes;
+        var imported = EpubPublication.Load(new MemoryStream(bytes));
+        var check = Assert.Single(imported.Preflight().Checks, item => item.Code == "document-language");
+        Assert.Equal(error == null ? EpubPreflightStatus.Passed : EpubPreflightStatus.Failed, check.Status);
+        if (error != null) Assert.Contains(check.Diagnostics, item => item.Code == error && item.Path == "EPUB/c.xhtml");
+        Assert.Equal(bytes, imported.Write().Bytes);
+    }
+
+    [Fact]
+    public void LanguageCheckInspectsSvgAndReportsUnreadableContentWithoutHidingOtherDocuments() {
+        var book = EpubPublication.Create("Book", "en");
+        book.AddChapter("c", "EPUB/c.xhtml", "Chapter", "<h1>Chapter</h1>");
+        book.AddResource("svg", "EPUB/page.svg", "image/svg+xml",
+            System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg'><text>Words</text></svg>"));
+        book.AddResource("broken", "EPUB/broken.xhtml", "application/xhtml+xml",
+            System.Text.Encoding.UTF8.GetBytes("<html"));
+        var check = Assert.Single(book.Preflight().Checks, item => item.Code == "document-language");
+        Assert.Equal(EpubPreflightStatus.Failed, check.Status);
+        Assert.Contains(check.Diagnostics, item => item.Code == "EPUB_PREFLIGHT_DOCUMENT_LANGUAGE_MISSING" && item.Path == "EPUB/page.svg");
+        Assert.Contains(check.Diagnostics, item => item.Code == "EPUB_PREFLIGHT_LANGUAGE_CHECK_INCOMPLETE" && item.Path == "EPUB/broken.xhtml");
+        XDocument svg = book.GetContentXml("svg");
+        svg.Root!.SetAttributeValue(XNamespace.Xml + "lang", "en");
+        book.SetContentXml("svg", svg);
+        Assert.DoesNotContain(book.Preflight().Checks.Single(item => item.Code == "document-language").Diagnostics,
+            item => item.Path == "EPUB/page.svg");
+    }
+
+    [Theory]
     [InlineData("aria-describedby")]
     [InlineData("aria-labelledby")]
     [InlineData("aria-details")]
