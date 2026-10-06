@@ -78,7 +78,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
             baseFingerprint,
             recoveryFingerprint,
             revision,
-            DateTimeOffset.UtcNow) { SchemaVersion = 2 });
+            DateTimeOffset.UtcNow) { SchemaVersion = 2 }, RecoveryJsonContext.Default.RecoveryMetadata);
         if (metadata.Length > MaximumMetadataBytes) throw new InvalidDataException("Recovery metadata exceeds its size limit.");
         await WriteSnapshotAsync(snapshotPath, metadata, bytes, cancellationToken).ConfigureAwait(false);
         // Migrate only after the complete replacement has been published successfully.
@@ -121,7 +121,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
             if (!File.Exists(pdfPath) || !File.Exists(metadataPath)) return null;
             byte[]? metadataBytes = ReadBounded(metadataPath, MaximumMetadataBytes);
             if (metadataBytes is null) return null;
-            RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(metadataBytes);
+            RecoveryMetadata? metadata = JsonSerializer.Deserialize(metadataBytes, RecoveryJsonContext.Default.RecoveryMetadata);
             if (!IsValidMetadata(metadata, canonicalPath, baseFingerprint, schemaVersion: 1)) return null;
             byte[]? bytes = ReadBounded(pdfPath, MaximumSnapshotBytes);
             if (bytes is null) return null;
@@ -155,7 +155,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
             pdfLength <= 0 || pdfLength > MaximumSnapshotBytes || length != 20L + metadataLength + pdfLength) return null;
         byte[] metadataBytes = new byte[metadataLength];
         stream.ReadExactly(metadataBytes);
-        RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(metadataBytes);
+        RecoveryMetadata? metadata = JsonSerializer.Deserialize(metadataBytes, RecoveryJsonContext.Default.RecoveryMetadata);
         if (!IsValidMetadata(metadata, sourcePath, baseFingerprint, schemaVersion: 2)) return null;
         byte[] bytes = new byte[checked((int)pdfLength)];
         stream.ReadExactly(bytes);
@@ -225,6 +225,10 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         string RecoveryFingerprint,
         long Revision,
         DateTimeOffset UpdatedAt) {
-        public int SchemaVersion { get; init; } = 1;
+        // Keep the legacy default when source-generated JSON reads records without this field.
+        public int SchemaVersion { get; set; } = 1;
     }
+    [System.Text.Json.Serialization.JsonSerializable(typeof(RecoveryMetadata))]
+    private sealed partial class RecoveryJsonContext : System.Text.Json.Serialization.JsonSerializerContext;
+
 }

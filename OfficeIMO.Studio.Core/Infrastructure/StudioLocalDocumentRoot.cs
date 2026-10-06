@@ -15,7 +15,7 @@ internal sealed class StudioLocalDocumentRoot(string root) {
 
     /// <summary>Stores an imported document as a separate app-owned working copy.</summary>
     internal async Task<string> WriteWorkingCopyAsync(string name, byte[] bytes, CancellationToken token) {
-        StudioStorageAccess.ValidateOutputName(name);
+        StudioDocumentStorage.ValidateOutputName(name);
         string directory = System.IO.Path.Combine(Path, Guid.NewGuid().ToString("N"));
         string destination = System.IO.Path.Combine(directory, name);
         await Task.Run(() => {

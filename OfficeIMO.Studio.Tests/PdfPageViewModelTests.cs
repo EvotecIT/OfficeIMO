@@ -58,6 +58,53 @@ public sealed class PdfPageViewModelTests {
     }
 
     [Fact]
+    public async Task RasterFallbackRequestsZoomTimesDisplayScaling() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var scales = new List<double>();
+            using var coordinator = new PageRenderCoordinator((page, scale, _) => {
+                lock (scales) scales.Add(scale);
+                return Task.FromResult(new PdfRenderedPage(page, scale, TinyPng, 1, 1, TimeSpan.Zero, Array.Empty<string>()));
+            });
+            using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
+                Task.FromResult(TestPdfPageScenes.Create(page, requiresRasterFallback: true)));
+            using var viewModel = new PdfPageViewModel(1, 612, 792, 0, 0.95D, sceneCoordinator, coordinator);
+
+            viewModel.SetRenderScaling(2D);
+            viewModel.AttachToViewport();
+            await WaitUntilAsync(() => viewModel.PageImage is not null && !viewModel.IsRendering);
+
+            Assert.Equal([2D], scales);
+            Assert.Equal(2D, viewModel.RenderedScale);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task DisplayScalingChangeRerendersRasterFallback() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var scales = new List<double>();
+            using var coordinator = new PageRenderCoordinator((page, scale, _) => {
+                lock (scales) scales.Add(scale);
+                return Task.FromResult(new PdfRenderedPage(page, scale, TinyPng, 1, 1, TimeSpan.Zero, Array.Empty<string>()));
+            });
+            using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
+                Task.FromResult(TestPdfPageScenes.Create(page, requiresRasterFallback: true)));
+            using var viewModel = new PdfPageViewModel(1, 612, 792, 0, 1D, sceneCoordinator, coordinator);
+
+            viewModel.AttachToViewport();
+            await WaitUntilAsync(() => viewModel.PageImage is not null && !viewModel.IsRendering);
+            viewModel.SetRenderScaling(1.0001D);
+            viewModel.SetRenderScaling(3D);
+            await WaitUntilAsync(() => viewModel.RenderedScale == 3D && !viewModel.IsRendering);
+
+            Assert.Equal([1D, 3D], scales);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task DetachingReleasesDecodedBitmapButKeepsEncodedCache() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

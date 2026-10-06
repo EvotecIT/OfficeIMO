@@ -525,6 +525,17 @@
           "System.Security.Cryptography.Xml": "[10.0.10, )"
         }
       },
+      "officeimo.studio.core": {
+        "type": "Project",
+        "dependencies": {
+          "CommunityToolkit.Mvvm": "[8.4.2, )",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Reader.Pdf": "[3.4.4, )",
+          "OfficeIMO.Security": "[3.4.4, )",
+          "OfficeIMO.Workflows": "[3.4.4, )"
+        }
+      },
       "officeimo.visio": {
         "type": "Project",
         "dependencies": {

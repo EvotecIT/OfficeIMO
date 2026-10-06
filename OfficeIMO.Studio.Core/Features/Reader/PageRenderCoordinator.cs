@@ -141,13 +141,7 @@ internal sealed class PageRenderCoordinator : IDisposable {
 
         internal static RenderKey Create(int pageNumber, double scale) {
             if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
-            if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(scale));
-            }
-
-            double bounded = Math.Clamp(scale, 0.5D, 2.5D);
-            int percent = checked((int)Math.Round(bounded * 4D, MidpointRounding.AwayFromZero) * 25);
-            return new RenderKey(pageNumber, percent);
+            return new RenderKey(pageNumber, PdfRasterScale.ToPercent(scale));
         }
     }
 

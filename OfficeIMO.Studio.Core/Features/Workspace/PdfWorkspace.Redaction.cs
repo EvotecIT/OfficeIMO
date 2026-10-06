@@ -1,4 +1,4 @@
-using Avalonia;
+using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
 
@@ -34,15 +34,15 @@ internal sealed partial class PdfWorkspace {
                 throw new IOException("The saved PDF has changed. Its earlier redaction evidence cannot be exported as current proof.");
             }
         }
-        byte[] report = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        byte[] report = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(summary, new RedactionJsonContext(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }).PdfRedactionShareableSummary);
         await WriteWorkspaceOutputAsync(destination,
             (stream, token) => stream.WriteAsync(report.AsMemory(), token).AsTask(), cancellationToken, VerifyCopyAsync).ConfigureAwait(false);
     }
 
-    internal Task<IReadOnlyList<PdfRedactionMarkViewModel>> SearchRedactionMarksAsync(
+    internal Task<IReadOnlyList<PdfRedactionCandidate>> SearchRedactionMarksAsync(
         string text, bool regex, bool matchCase, IReadOnlyCollection<int>? pages, CancellationToken cancellationToken) {
         PdfDocument snapshot = CreateDocumentSnapshot();
-        return Task.Run<IReadOnlyList<PdfRedactionMarkViewModel>>(() => {
+        return Task.Run<IReadOnlyList<PdfRedactionCandidate>>(() => {
             var search = new PdfRedactionSearchOptions {
                 MatchCase = matchCase, MaximumCandidates = 2000,
                 RegexTimeout = TimeSpan.FromMilliseconds(250), CancellationToken = cancellationToken,
@@ -60,8 +60,8 @@ internal sealed partial class PdfWorkspace {
                     string preview = string.Join(" ", plan.Matches.Where(match => ReferenceEquals(match.Area, area) && match.Text is not null)
                         .Select(match => match.Text).Distinct());
                     if (preview.Length > 180) preview = preview[..180] + "…";
-                    return new PdfRedactionMarkViewModel(area,
-                        new Rect(bounds.TopLeft.X, bounds.TopLeft.Y,
+                    return new PdfRedactionCandidate(area,
+                        new StudioRectangle(bounds.TopLeft.X, bounds.TopLeft.Y,
                             bounds.BottomRight.X - bounds.TopLeft.X, bounds.BottomRight.Y - bounds.TopLeft.Y), preview);
                 }).ToArray();
         }, cancellationToken);
@@ -72,4 +72,6 @@ internal sealed partial class PdfWorkspace {
         PdfRedactionArea[] selection = areas.ToArray();
         return Task.Run(() => snapshot.Redactions.Plan(selection, cancellationToken), cancellationToken);
     }
+    [System.Text.Json.Serialization.JsonSerializable(typeof(PdfRedactionShareableSummary))]
+    private sealed partial class RedactionJsonContext : System.Text.Json.Serialization.JsonSerializerContext;
 }

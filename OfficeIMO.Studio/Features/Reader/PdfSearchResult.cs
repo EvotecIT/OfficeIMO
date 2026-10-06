@@ -3,10 +3,16 @@ using OfficeIMO.Studio.Infrastructure.Localization;
 
 namespace OfficeIMO.Studio.Features.Reader;
 
-public sealed record PdfSearchHit(int PageNumber, string Snippet) {
+public sealed record PdfSearchResult(int PageNumber, string Snippet) {
     private static readonly IStudioLocalizer DefaultLocalizer = new StudioLocalizer(CultureInfo.GetCultureInfo("en"));
 
     internal IStudioLocalizer Localizer { get; init; } = DefaultLocalizer;
+
+    internal static PdfSearchResult FromHit(PdfSearchHit hit, IStudioLocalizer localizer) => new(hit.PageNumber, hit.Snippet) {
+        Bounds = new(hit.Bounds.X, hit.Bounds.Y, hit.Bounds.Width, hit.Bounds.Height),
+        LineBounds = hit.LineBounds.Select(static line => new Avalonia.Rect(line.X, line.Y, line.Width, line.Height)).ToArray(),
+        OccurrenceNumber = hit.OccurrenceNumber, Localizer = localizer
+    };
 
     public Avalonia.Rect Bounds { get; init; }
 
@@ -19,6 +25,4 @@ public sealed record PdfSearchHit(int PageNumber, string Snippet) {
 
     public string Label => Localizer.Format("Search.ResultLabel", PageNumber, Snippet, OccurrenceNumber);
 
-    internal PdfSearchHit WithLocalizer(IStudioLocalizer localizer) =>
-        this with { Localizer = localizer ?? throw new ArgumentNullException(nameof(localizer)) };
 }

@@ -4,35 +4,16 @@ using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Infrastructure;
 
-/// <summary>A durable provider reference. The bookmark grants access; the location identifies the document.</summary>
-internal sealed record StudioStorageReference(string Location, string Name, string? Bookmark = null);
-
-internal sealed record StudioStorageSnapshot(byte[] Bytes, string Identity);
-internal sealed record StudioStoragePublication(string Fingerprint, string Identity);
-
 /// <summary>Owns desktop provider items for the window lifetime and opens permission-scoped streams per operation.</summary>
-internal sealed partial class StudioStorageAccess : IDisposable {
-    internal const long MaximumDocumentBytes = 512L * 1024 * 1024;
+internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
     private readonly Dictionary<string, IStorageFile> _files = new(StringComparer.Ordinal);
     private readonly Dictionary<string, StudioStorageReference> _references = new(StringComparer.Ordinal);
     private readonly HashSet<IStorageFile> _retiredFiles = new(ReferenceEqualityComparer.Instance);
     private readonly object _sync = new();
     private Func<IStorageProvider>? _provider;
     private bool _disposed;
-    private readonly string? _protectedRecoveryRoot;
 
-    internal StudioStorageAccess(string? protectedRecoveryRoot = null) => _protectedRecoveryRoot = protectedRecoveryRoot;
-
-    internal bool IsRecoveryLocation(string location, bool isDirectory = false) {
-        string? path = OfficeStorageIdentity.GetLocalPath(location);
-        return path is not null && _protectedRecoveryRoot is not null &&
-            (OfficePathIdentity.IsSameOrDescendant(path, _protectedRecoveryRoot) ||
-             isDirectory && OfficePathIdentity.IsSameOrDescendant(_protectedRecoveryRoot, path));
-    }
-
-    internal void EnsureWritableLocation(string location) {
-        if (IsRecoveryLocation(location)) throw new IOException("Recovery copies are protected. Use Save As to save your changes to another location.");
-    }
+    internal StudioStorageAccess(string? protectedRecoveryRoot = null) : base(protectedRecoveryRoot) { }
 
     internal void Attach(Func<IStorageProvider> provider) => _provider = provider ?? throw new ArgumentNullException(nameof(provider));
 
@@ -61,12 +42,6 @@ internal sealed partial class StudioStorageAccess : IDisposable {
             // RegisterAsync owns the current item even on failure; release items it never reached.
             for (int remaining = index + 1; remaining < distinct.Length; remaining++) distinct[remaining].Dispose();
         }
-    }
-
-    internal async Task<string> ReadIdentityAsync(string location, CancellationToken token) {
-        await using Stream stream = await OpenReadAsync(location, token).ConfigureAwait(false);
-        token.ThrowIfCancellationRequested();
-        return OpenedIdentity(location, stream);
     }
 
     internal async Task<string> RegisterAsync(IStorageFile file, CancellationToken token) {
@@ -101,7 +76,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         }
     }
 
-    internal void Remember(StudioStorageReference reference) {
+    internal override void Remember(StudioStorageReference reference) {
         if (reference.Bookmark?.Length > 32768 || reference.Name is null || reference.Name.Length > 4096) return;
         string location = OfficeStorageIdentity.Normalize(reference.Location);
         lock (_sync) {
@@ -110,12 +85,12 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         }
     }
 
-    internal StudioStorageReference Describe(string location) {
+    internal override StudioStorageReference Describe(string location) {
         lock (_sync) return _references.TryGetValue(OfficeStorageIdentity.Normalize(location), out var reference)
             ? reference : new(OfficeStorageIdentity.Normalize(location), OfficeStorageIdentity.GetFileName(location));
     }
 
-    internal bool UsesProviderPublication(string location) {
+    internal override bool UsesProviderPublication(string location) {
         string key = OfficeStorageIdentity.Normalize(location);
         lock (_sync) return _pendingDestinations.ContainsKey(key) || OfficeStorageIdentity.GetLocalPath(location) is null ||
             ((OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
@@ -133,22 +108,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
             ? new(Describe(location).Name, token => OpenReadAsync(location, token),
                 token => OpenWriteAsync(location, token), recoveryStore) : null;
 
-    internal async Task<StudioStorageSnapshot> ReadSnapshotAsync(string location, CancellationToken token,
-        long maximumBytes = MaximumDocumentBytes) {
-        if (maximumBytes < 1 || maximumBytes > MaximumDocumentBytes) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-        await using Stream stream = await OpenReadAsync(location, token).ConfigureAwait(false);
-        token.ThrowIfCancellationRequested();
-        string? localPath = OfficeStorageIdentity.GetLocalPath(location);
-        string identity = OpenedIdentity(location, stream);
-        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, token, maximumBytes).ConfigureAwait(false);
-        token.ThrowIfCancellationRequested();
-        if (localPath is not null && OfficePathIdentity.GetPhysicalIdentityKey(localPath) != identity) {
-            throw new IOException("The document changed while it was being opened. Select it again to read the current file.");
-        }
-        return new(bytes, identity);
-    }
-
-    internal async Task<Stream> OpenReadAsync(string location, CancellationToken token) {
+    internal override async Task<Stream> OpenReadAsync(string location, CancellationToken token) {
         ObjectDisposedException.ThrowIf(_disposed, this);
         token.ThrowIfCancellationRequested();
         OfficeMacFilePermission? permission = OpenNativePermission(location);
@@ -164,26 +124,6 @@ internal sealed partial class StudioStorageAccess : IDisposable {
             catch { await stream.DisposeAsync(); throw; }
             return permission is null ? stream : new PermissionStream(stream, permission);
         } catch { permission?.Dispose(); throw; }
-    }
-
-    internal Task<string> FingerprintAsync(string location, CancellationToken token) =>
-        OfficeStreamPublication.ReadFingerprintAsync(ct => OpenReadAsync(location, ct), MaximumDocumentBytes, token);
-
-    internal async Task<StudioStoragePublication> PublishAsync(string location, byte[] bytes, string? expectedFingerprint,
-        Func<CancellationToken, Task> authorize, CancellationToken token) {
-        EnsureWritableLocation(location);
-        string? identity = null;
-        string fingerprint = await OfficeStreamPublication.WriteVerifiedAsync(async ct => {
-            Stream stream = await OpenReadAsync(location, ct).ConfigureAwait(false);
-            try {
-                identity = OpenedIdentity(location, stream);
-                return stream;
-            } catch { stream.Dispose(); throw; }
-        }, async ct => {
-            await authorize(ct).ConfigureAwait(false);
-            return await OpenWriteAsync(location, ct).ConfigureAwait(false);
-        }, bytes, expectedFingerprint, MaximumDocumentBytes, token).ConfigureAwait(false);
-        return new(fingerprint, identity!);
     }
 
     private async Task<IStorageFile?> ResolveAsync(string location, CancellationToken token) {
@@ -232,7 +172,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         return OfficeStorageIdentity.Normalize(file.Path.AbsoluteUri);
     }
 
-    public void Dispose() {
+    public override void Dispose() {
         IStorageItem[] files;
         lock (_sync) {
             if (_disposed) return;

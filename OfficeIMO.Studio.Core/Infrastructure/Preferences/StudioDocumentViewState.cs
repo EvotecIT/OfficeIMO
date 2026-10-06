@@ -7,14 +7,14 @@ internal sealed record StudioPanePreference(bool Navigation, bool Inspector);
 
 /// <summary>Bounded presentation state; no document contents, passwords, or source paths are stored here.</summary>
 internal sealed record StudioDocumentViewState {
-    public double NavigationWidth { get; init; } = 238D;
-    public double InspectorWidth { get; init; } = 300D;
-    public int PageNumber { get; init; } = 1;
-    public double Zoom { get; init; } = 1D;
-    public ViewerZoomMode ZoomMode { get; init; } = ViewerZoomMode.FitWidth;
-    public ReaderLayoutMode ReaderLayout { get; init; } = ReaderLayoutMode.Continuous;
-    public bool FocusReading { get; init; }
-    public Dictionary<StudioDocumentMode, StudioPanePreference> Panes { get; init; } = new();
+    public double NavigationWidth { get; set; } = 238D;
+    public double InspectorWidth { get; set; } = 300D;
+    public int PageNumber { get; set; } = 1;
+    public double Zoom { get; set; } = 1D;
+    public ViewerZoomMode ZoomMode { get; set; } = ViewerZoomMode.FitWidth;
+    public ReaderLayoutMode ReaderLayout { get; set; } = ReaderLayoutMode.Continuous;
+    public bool FocusReading { get; set; }
+    public Dictionary<StudioDocumentMode, StudioPanePreference> Panes { get; set; } = new();
 
     internal StudioDocumentViewState Normalize() => this with {
         NavigationWidth = double.IsFinite(NavigationWidth) ? Math.Clamp(NavigationWidth, 200D, 320D) : 238D,

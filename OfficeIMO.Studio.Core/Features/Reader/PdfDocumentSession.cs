@@ -62,9 +62,9 @@ internal sealed class PdfDocumentSession {
                         cancellationToken.ThrowIfCancellationRequested();
                         var bounds = occurrence.VisualBounds;
                         matches.Add(new PdfSearchHit(index + 1, occurrence.Text) {
-                            Bounds = new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                            Bounds = new StudioRectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
                             LineBounds = occurrence.VisualLineBounds
-                                .Select(static line => new Avalonia.Rect(line.Left, line.Top, line.Width, line.Height))
+                                .Select(static line => new StudioRectangle(line.Left, line.Top, line.Width, line.Height))
                                 .ToArray(),
                             OccurrenceNumber = matches.Count + 1
                         });
@@ -90,7 +90,8 @@ internal sealed class PdfDocumentSession {
 
     internal async Task<PdfPageScene> LoadPageSceneAsync(
         int pageNumber,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Func<OfficeIMO.Drawing.OfficeDrawing, IReadOnlyList<string>>? analyzePresentation = null) {
         if (pageNumber <= 0 || pageNumber > Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -100,7 +101,9 @@ internal sealed class PdfDocumentSession {
             if (!ViewInfo.CanExtractContent) {
                 PdfPageInfo info = Pages[pageNumber - 1];
                 bool rotated = Math.Abs(info.RotationDegrees) % 180 == 90;
-                var display = new OfficeIMO.Drawing.OfficeDrawing(rotated ? info.Height : info.Width, rotated ? info.Width : info.Height);
+                double width = (info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D);
+                double height = (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D);
+                var display = new OfficeIMO.Drawing.OfficeDrawing(rotated ? height : width, rotated ? width : height);
                 return new PdfPageScene(pageNumber, display, null, [], RequiresRasterFallback: true);
             }
             OfficeIMO.Drawing.OfficeDrawing drawing = _document.Render.Drawing(pageNumber);
@@ -109,7 +112,7 @@ internal sealed class PdfDocumentSession {
             IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics =
                 _document.Render.CapabilityDiagnostics(pageNumber);
             IReadOnlyList<string> adapterDiagnostics =
-                OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback(drawing);
+                analyzePresentation?.Invoke(drawing) ?? [];
             cancellationToken.ThrowIfCancellationRequested();
 
             return new PdfPageScene(
@@ -163,8 +166,8 @@ internal sealed class PdfDocumentSession {
             ContinueOnError = true,
             MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRasterPixels,
             RenderTimeout = StudioPdfSecurityPolicy.RenderTimeout,
-            MaxTotalOutputBytes = 16L * 1024L * 1024L,
-            MaxOutputBytesPerPage = 16L * 1024L * 1024L
+            MaxTotalOutputBytes = StudioPdfSecurityPolicy.MaximumRasterOutputBytes,
+            MaxOutputBytesPerPage = StudioPdfSecurityPolicy.MaximumRasterOutputBytes
         };
 
         PdfPageRenderResult result;
