@@ -736,10 +736,21 @@ and their imports receive private copies in their existing directories, leaving 
 original stylesheets available to other chapters. These copies count against the
 publication's retained-entry and byte limits.
 
+Exact (`=`), whitespace-token (`~=`) and presence selectors on lowercase,
+unnamespaced document-local relationship attributes are also supported: ARIA
+references, `itemref`, `headers`, `for`, `form`, `list`, `name` and `usemap`.
+For example, `[aria-labelledby~=heading]` follows a renamed heading, and
+`[headers='column']` follows a renamed table header. Repair uses actual attribute
+changes, including ordinary `name` values and foreign-vocabulary attributes that
+remain unchanged. If a value needs different replacements on different elements,
+or a replacement would introduce additional attribute matches, merge rejects the
+conflict. This conservative check applies across the second chapter; it does not
+use other parts of a selector to narrow an ambiguous attribute match.
+
 The automatic profile rejects unknown at-rules,
-namespaced attribute selectors, partial or case-insensitive ID matches, selectors
-on ID relationships such as `itemref` or `aria-labelledby`, or resource-bearing
-attributes such as `href`, `cite`, `src`, `style` and SVG `fill`, stylesheet processing
+namespaced attribute selectors, partial or case-insensitive ID/relationship matches,
+case-variant relationship names, and resource-bearing attribute selectors such as
+`href`, `cite`, `src`, `style` and SVG `fill`, stylesheet processing
 instructions, integrity digests and stylesheet package refinements. Reconcile these
 explicitly before merging, or leave automatic rewriting disabled and prepare all
 ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;

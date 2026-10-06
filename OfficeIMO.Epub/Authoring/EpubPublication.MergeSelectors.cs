@@ -11,11 +11,12 @@ public sealed partial class EpubPublication {
 
     // Work on detached XML and staged resources only. No live package state changes before final validation.
     private MergeSelectorStyles PrepareMergeSelectors(XDocument second, string owner, IReadOnlyDictionary<string, string> ids,
-        ContentReferenceMap map, CancellationToken token) {
+        ContentReferenceMap map, List<(XAttribute Attribute, string Original)> relationships, CancellationToken token) {
         var result = new MergeSelectorStyles();
         if (!ids.Any(pair => pair.Key != pair.Value)) return result;
         if (second.DescendantNodes().OfType<XProcessingInstruction>().Any())
             throw new NotSupportedException("Selector reconciliation requires stylesheet elements instead of processing instructions.");
+        var relationshipSelectors = new MergeRelationshipSelectors(relationships, token);
         var clones = new Dictionary<string, string>(StringComparer.Ordinal);
         var usedIds = new HashSet<string>(Root.DescendantsAndSelf().Attributes("id").Select(attribute => attribute.Value), StringComparer.Ordinal);
         var usedPaths = new HashSet<string>(_entries.Keys.Concat(new[] { PackagePath })
@@ -39,7 +40,7 @@ public sealed partial class EpubPublication {
         return result;
 
         string Rewrite(string css, string path, int depth) {
-            string selectors = HtmlCssIdSelectorRewriter.Rewrite(css, ids, token);
+            string selectors = HtmlCssIdSelectorRewriter.Rewrite(css, ids, token, relationshipSelectors.Rewrite);
             return HtmlResourcePipeline.RewriteCssResourceUrls(selectors, (value, kind) => {
                 token.ThrowIfCancellationRequested();
                 return kind == HtmlResourceKind.Stylesheet ? Import(value, path, depth) :

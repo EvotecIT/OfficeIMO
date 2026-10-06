@@ -44,6 +44,8 @@ public sealed partial class EpubPublication {
         foreach (XAttribute id in second.Root.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")) shared.Add(id.Value);
         var idMap = PrepareMergeIdentifierMap(second.Root, firstIds, secondIds, shared, boundaryId, options.SecondChapterIdMap, cancellationToken);
         VerifyMergeStylesheetFragments(idMap, cancellationToken);
+        var relationshipAttributes = options.RewriteSecondChapterIdSelectors ?
+            CaptureMergeRelationshipAttributes(second.Root, cancellationToken) : null;
         ApplyMergeIdentifierMap(second.Root, idMap, cancellationToken);
         VerifyMergeLocalReferences(second.Root, shared, secondPath, cancellationToken);
         (string Path, string? Fragment) Map(EpubReference reference) => reference.ContainerPath == secondPath ?
@@ -53,7 +55,7 @@ public sealed partial class EpubPublication {
         RewriteMovedXml(first, firstPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
         RewriteMovedXml(second, secondPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
         MergeSelectorStyles selectorStyles = options.RewriteSecondChapterIdSelectors ?
-            PrepareMergeSelectors(second, firstPath, idMap, Map, cancellationToken) : new MergeSelectorStyles();
+            PrepareMergeSelectors(second, firstPath, idMap, Map, relationshipAttributes!, cancellationToken) : new MergeSelectorStyles();
         if (!SameMergeAttributes(first.Root, second.Root) || !SameMergeAttributes(firstBody, secondBody))
             throw new NotSupportedException("Root/body attributes resolve differently after reference repair; resolve their styling and semantics before merging.");
         XElement firstHead = first.Root.Element(Html + "head")!, secondHead = second.Root.Element(Html + "head")!;

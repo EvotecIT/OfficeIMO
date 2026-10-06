@@ -313,3 +313,12 @@ second chapter's paragraph color and border style apply to both chapters, while 
 first chapter's border radius remains. Validate the EPUB, inspect wide and compact
 rendering, and exercise both repaired chapter links. Browser rendering of extracted
 XHTML proves this cascade example; it does not qualify native reader presentation.
+
+`merge-relationships.epub` exercises exact and whitespace-token selectors for
+ARIA labels, table headers and microdata `itemref` values during chapter merge.
+The first and unmerged third sections and table cells stay blue; the second section
+and its cell are green. All sections retain their six-pixel left and three-pixel
+top borders. Follow the third-chapter link and return to the renamed second heading.
+The linked stylesheet import is privately cloned, while the third chapter keeps
+the original rules. Independent validator and reader results are separate from
+native preflight and source-preservation checks.

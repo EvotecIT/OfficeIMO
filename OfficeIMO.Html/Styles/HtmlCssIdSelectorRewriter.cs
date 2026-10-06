@@ -12,7 +12,8 @@ internal static class HtmlCssIdSelectorRewriter {
         "fill", "stroke", "filter", "clip-path", "mask", "marker", "marker-start", "marker-mid", "marker-end",
         "cursor", "ping", "archive"
     }, StringComparer.OrdinalIgnoreCase);
-    internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token) {
+    internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token,
+        Func<string, string, string, string>? rewriteRelationship = null) {
         var edits = new List<(int Start, int Length, string Value)>();
         var blocks = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
         Rules(0, css.Length, 0, false);
@@ -117,11 +118,17 @@ internal static class HtmlCssIdSelectorRewriter {
             Trivia(ref i, end);
             if (i < end && css[i] == '|' && (i + 1 == end || css[i + 1] != '='))
                 throw new NotSupportedException("Namespaced attribute selectors require explicit reconciliation.");
-            if (RelationshipAttributes.Contains(name))
+            bool relationship = RelationshipAttributes.Contains(name);
+            if (!relationship && !name.Equals("id", StringComparison.OrdinalIgnoreCase)) return;
+            if (relationship && rewriteRelationship == null)
                 throw new NotSupportedException("Selectors on identifier relationships or rewritten resource attributes require explicit reconciliation.");
-            if (!name.Equals("id", StringComparison.OrdinalIgnoreCase)) return;
-            if (i == end) return; // Presence remains true after replacement.
-            if (css[i++] != '=') throw new NotSupportedException("Only exact id attribute selectors can be reconciled.");
+            if (i == end) {
+                if (relationship) rewriteRelationship!(name, string.Empty, string.Empty);
+                return; // Presence remains true after replacement.
+            }
+            string operation = "=";
+            if (relationship && css[i] == '~') { operation = "~="; i++; }
+            if (i == end || css[i++] != '=') throw new NotSupportedException("Only exact ID or exact/token relationship selectors can be reconciled.");
             Trivia(ref i, end);
             int valueStart = i;
             string id;
@@ -138,8 +145,9 @@ internal static class HtmlCssIdSelectorRewriter {
                 Trivia(ref i, end);
             }
             if (i != end) throw Unsupported();
-            if (map.TryGetValue(id, out string? replacement) && replacement != id)
-                edits.Add((valueStart, valueEnd - valueStart, HtmlCssStringEncoder.Quote(replacement)));
+            string replacement = relationship ? rewriteRelationship!(name, operation, id) :
+                map.TryGetValue(id, out string? mapped) ? mapped : id;
+            if (replacement != id) edits.Add((valueStart, valueEnd - valueStart, HtmlCssStringEncoder.Quote(replacement)));
         }
 
         int Delimiter(int start, int end) {

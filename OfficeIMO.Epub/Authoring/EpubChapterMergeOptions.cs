@@ -21,7 +21,9 @@ public sealed class EpubChapterMergeOptions {
     /// <summary>Rewrite second-chapter ID selectors using the identifier map, retaining private copies of linked
     /// stylesheets and their imports. Requires AppendSecondStyles. Supports hash and exact id attribute selectors
     /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
-    /// values are preserved; unsupported syntax fails atomically. Reader support for nested CSS remains independent.</summary>
+    /// values are preserved. Exact and whitespace-token selectors on document-local relationships follow actual
+    /// attribute changes; ambiguous replacements and unsupported syntax fail atomically. URL-bearing selectors
+    /// require explicit repair. Reader support for nested CSS remains independent.</summary>
     public bool RewriteSecondChapterIdSelectors { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }

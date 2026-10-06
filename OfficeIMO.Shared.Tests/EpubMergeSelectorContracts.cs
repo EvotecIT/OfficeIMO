@@ -66,16 +66,18 @@ public sealed class EpubMergeSelectorContracts {
     [InlineData("[itemref='heading'] {color:red}")]
     [InlineData("[itemref~=heading] {color:red}")]
     [InlineData("[item\\72 ef='heading'] {color:red}")]
-    public void ItemReferencesCannotSilentlyLoseTheirSelectorDuringReconciliation(string css) {
+    public void ItemReferenceSelectorsFollowReconciledTargets(string css) {
         var book = Book();
         var content = book.GetContentXml("two");
         content.Root!.Element(Html + "body")!.Add(new XElement(Html + "section",
             new XAttribute("itemscope", ""), new XAttribute("itemref", "heading"), "Referenced content"));
         book.SetContentXml("two", content);
         AddStyle(book, "two", css);
-        byte[] before = book.Write().Bytes;
-        Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));
-        Assert.Equal(before, book.Write().Bytes);
+        book.MergeChapters("one", "two", "boundary", Options());
+        var reopened = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        var merged = reopened.GetContentXml("one");
+        Assert.Equal("second.heading", (string?)merged.Descendants(Html + "section").Single().Attribute("itemref"));
+        Assert.Contains("\"second\\2e heading\"", merged.Descendants(Html + "style").Single().Value);
     }
 
     [Theory]
