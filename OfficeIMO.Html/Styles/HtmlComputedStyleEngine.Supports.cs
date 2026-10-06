@@ -639,6 +639,7 @@ public static partial class HtmlComputedStyleEngine {
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
+        ResolveRelativeComputedFontWeight(resolved, parentProperties);
 
         inherited.IntersectWith(resolved.Keys);
         inheritedProperties = inherited;

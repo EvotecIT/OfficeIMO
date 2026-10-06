@@ -73,8 +73,7 @@ public static partial class HtmlComputedStyleEngine {
         "marker-mid",
         "marker-end",
         "text-anchor",
-        "dominant-baseline",
-        "baseline-shift"
+        "dominant-baseline"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "background",
