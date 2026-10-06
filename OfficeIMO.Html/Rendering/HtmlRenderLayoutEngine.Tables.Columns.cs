@@ -82,6 +82,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
+        if (style.MinWidth.HasValue) {
+            double authoredMinimum = style.MinWidth.Value + (style.BorderBox ? 0D : insets);
+            minimum = Math.Max(minimum, authoredMinimum);
+            preferred = Math.Max(preferred, minimum);
+        }
         foreach (IElement image in cell.QuerySelectorAll("img, svg").Where(candidate => BelongsToTableCell(candidate, cell))) {
             if (!TryResolveVisibleTableDescendantStyle(
                     image,

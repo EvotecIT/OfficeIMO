@@ -12,17 +12,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
         double fallback) {
+        double extent;
         if (style.ExplicitHeight.HasValue) {
             double height = style.ExplicitHeight.Value;
-            return Math.Max(1D, style.BorderBox ? height - style.VerticalInsets : height);
+            extent = style.BorderBox ? height - style.VerticalInsets : height;
+        } else {
+            double? containingHeight = ResolveContainingBlockHeight(parentStyle);
+            double surfaceHeight = containingHeight ?? (_options.Mode == HtmlRenderMode.Paged
+                ? _activePageGeometry.ContentHeight
+                : (_options.ViewportHeight ?? fallback) - _options.Margins.Top - _options.Margins.Bottom);
+            extent = surfaceHeight - style.VerticalInsets;
         }
-
-        double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        if (containingHeight.HasValue) return Math.Max(1D, containingHeight.Value - style.VerticalInsets);
-        double surfaceHeight = _options.Mode == HtmlRenderMode.Paged
-            ? _activePageGeometry.ContentHeight
-            : (_options.ViewportHeight ?? fallback) - _options.Margins.Top - _options.Margins.Bottom;
-        return Math.Max(1D, surfaceHeight - style.VerticalInsets);
+        if (style.MaxHeight.HasValue) {
+            extent = Math.Min(extent, style.MaxHeight.Value - (style.BorderBox ? style.VerticalInsets : 0D));
+        }
+        if (style.MinHeight.HasValue) {
+            extent = Math.Max(extent, style.MinHeight.Value - (style.BorderBox ? style.VerticalInsets : 0D));
+        }
+        return Math.Max(1D, extent);
     }
 
     private void ArrangeVerticalBlockChildren(
