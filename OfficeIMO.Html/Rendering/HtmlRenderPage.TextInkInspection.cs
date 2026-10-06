@@ -41,8 +41,13 @@ public sealed partial class HtmlRenderPage {
                         try { Visit(path.Visuals, transform); } finally { clips.RemoveAt(clips.Count - 1); }
                     } else if (ContainsText(path.Visuals)) NotInspected(path,
                         "Only bounded single-convex-contour text clipping is inspected; this complex, degenerate or over-budget path was not measured.");
-                } else if (visual is HtmlRenderDrawing) {
-                    NotInspected(visual, "Text within an embedded vector drawing is outside positioned XHTML text inspection.");
+                } else if (visual is HtmlRenderDrawing vector) {
+                    OfficeTransform placement = OfficeTransform.Scale(vector.Width / vector.InnerDrawing.Width,
+                        vector.Height / vector.InnerDrawing.Height).Then(OfficeTransform.Translate(vector.X, vector.Y)).Then(transform);
+                    measurement.InspectDrawingTextInk(vector.InnerDrawing, placement, clips, (ink, reason) => {
+                        if (++runs > 4096) throw new NotSupportedException("Text ink inspection exceeds its 4096-run work limit.");
+                        ReportInk(vector, ink, reason);
+                    });
                 } else if (visual is HtmlRenderText original && original.Text.Length > 0) {
                     if (++runs > 4096) throw new NotSupportedException("Text ink inspection exceeds its 4096-run work limit.");
                     if (original.Color.A == 0 || original.Width <= 0D || original.Height <= 0D) continue;
@@ -55,20 +60,26 @@ public sealed partial class HtmlRenderPage {
                         Math.Max(.1D, sourceSize * original.BaselineScale), text.Font, advance, text.Alignment, text.FeatureSettings, text.FontPalette,
                         sourceSize, text.UnderlineStyle, text.StrikethroughStyle, inkOnly: true,
                         inkTransform: transform, color: text.Color, decorationColor: text.DecorationColor, inkClips: clips);
-                    if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(text, "Text outlines were unavailable or exceeded bounded filled-geometry analysis; fallback box estimates cannot establish glyph ink."); continue; }
-                    if (ink.IsClipped) diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", HtmlRenderDiagnosticCodes.ClippedTextInkBounds,
-                        "Positioned text outline or conservative decoration bounds are cropped by an authored rectangular or convex path clip. The crop may be intentional; pixel visibility is not established.",
-                        HtmlDiagnosticSeverity.Info, text.Source));
-                    if (ink.HasInk && (ink.Left < -.01D || ink.Top < -.01D || ink.Right > width + .01D || ink.Bottom > height + .01D))
-                        diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", isRegion ? HtmlRenderDiagnosticCodes.TextInkOutsideRegion : HtmlRenderDiagnosticCodes.TextInkOutsideCanvas,
-                            "Measured text paint bounds extend outside the " + (isRegion ? "region border box" : "declared canvas") + ". Decorations use conservative stroke bounds.",
-                            HtmlDiagnosticSeverity.Warning, text.Source,
-                            string.Format(CultureInfo.InvariantCulture, isRegion ? "left={0};top={1};right={2};bottom={3};regionWidth={4};regionHeight={5}" :
-                                    "left={0};top={1};right={2};bottom={3};canvasWidth={4};canvasHeight={5}",
-                                ink.Left, ink.Top, ink.Right, ink.Bottom, width, height)));
+                    ReportInk(text, ink, null);
                 } else Visit(InspectionChildren(visual), transform);
                 if (diagnostics.Count > 4096) throw new NotSupportedException("Text ink inspection exceeds its diagnostic limit.");
             }
+        }
+
+        void ReportInk(HtmlRenderVisual visual,
+            (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped) ink, string? reason) {
+            if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(visual, reason ?? "Text outlines were unavailable or exceeded bounded filled-geometry analysis; fallback box estimates cannot establish glyph ink."); return; }
+            if (ink.IsClipped) diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", HtmlRenderDiagnosticCodes.ClippedTextInkBounds,
+                "Positioned text outline or conservative decoration bounds are cropped by a rectangular or convex path clip or drawing viewport. The crop may be intentional; pixel visibility is not established.",
+                HtmlDiagnosticSeverity.Info, visual.Source));
+            if (ink.HasInk && (ink.Left < -.01D || ink.Top < -.01D || ink.Right > width + .01D || ink.Bottom > height + .01D))
+                diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", isRegion ? HtmlRenderDiagnosticCodes.TextInkOutsideRegion : HtmlRenderDiagnosticCodes.TextInkOutsideCanvas,
+                    "Measured text paint bounds extend outside the " + (isRegion ? "region border box" : "declared canvas") + ". Decorations use conservative stroke bounds.",
+                    HtmlDiagnosticSeverity.Warning, visual.Source,
+                    string.Format(CultureInfo.InvariantCulture, isRegion ? "left={0};top={1};right={2};bottom={3};regionWidth={4};regionHeight={5}" :
+                            "left={0};top={1};right={2};bottom={3};canvasWidth={4};canvasHeight={5}",
+                        ink.Left, ink.Top, ink.Right, ink.Bottom, width, height)));
+            if (diagnostics.Count > 4096) throw new NotSupportedException("Text ink inspection exceeds its diagnostic limit.");
         }
 
         bool ContainsText(IEnumerable<HtmlRenderVisual> visuals) {

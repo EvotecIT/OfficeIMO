@@ -104,7 +104,7 @@ Path-shaped clips, including rounded overflow boxes, produce
 not covered by the rectangular element check. Text-ink inspection below can still
 measure supported convex paths; these are separate evidence scopes.
 
-`TextInkDiagnostics` separately compares positioned XHTML glyph outlines with the
+`TextInkDiagnostics` separately compares positioned XHTML and embedded vector text glyph outlines with the
 page canvas, using the shared drawing engine's font fallback, shaping, color-glyph
 layers, synthetic styles and affine transforms. Decorations use conservative stroke
 bounds. The measurement uses nominal CSS-pixel geometry at scale 1; it is not a
@@ -117,11 +117,18 @@ are compared with the page or region. Nested, transformed and single-axis clips
 are supported. Rounded rectangles, ellipses and convex polygons use the shared
 Drawing renderer's curve flattening at nominal scale 1, including affine transforms.
 `HtmlRenderClippedTextInkBounds` informational findings identify
-text outline or conservative decoration bounds cropped by a supported authored clip;
-review whether the crop is intentional. Automatic output clipping is excluded.
-Concave, self-intersecting, multi-contour, degenerate or over-budget paths, embedded vector drawings and unavailable text outlines produce
+text outline or conservative decoration bounds cropped by a supported clip or embedded drawing viewport;
+review whether the crop is intentional. Automatic page output clipping is excluded; embedded drawing viewports are included because those drawings paint into separate surfaces.
+Concave, self-intersecting, multi-contour, degenerate or over-budget paths and unavailable text outlines produce
 `HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
 Supported paths are limited to 512 commands and 512 flattened vertices.
+Embedded vector inspection follows positioned text through affine effect groups and
+supported convex drawing clips, with each drawing surface's fonts and viewport.
+Shape-only drawings do not produce text warnings. Rich/wrapped/vertical text,
+text represented by outline metadata, masks, vector patterns and embedded image
+resources remain explicitly unmeasured; the inspection does not recover text from
+arbitrary paths or raster pixels. Each vector traversal is limited to 4096 elements
+and line runs and 64 nested groups/clips.
 Inspection rejects more than 4096 text runs, 64 nested clips, or
 excessive contour-clipping work instead of returning a partial report.
 

@@ -3,7 +3,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Epub.Image;
 
-/// <summary>Rendered rectangle and positioned XHTML text-ink findings in one region's local border-box space.
+/// <summary>Rendered rectangle and positioned XHTML and embedded vector text-ink findings in one region's local border-box space.
 /// This does not measure shadows, filters or hidden clipped content.</summary>
 public sealed class EpubFixedLayoutRegionInspection {
     internal EpubFixedLayoutRegionInspection(string elementId, OfficeDrawingQualityReport quality, IReadOnlyList<HtmlDiagnostic> textInkDiagnostics) {
