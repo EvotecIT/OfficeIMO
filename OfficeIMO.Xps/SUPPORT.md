@@ -431,7 +431,7 @@ by at most 5/255 and 2/255 over 766,080 probes per route, without warnings.
 LibTIFF rejects all containers for precision or chunky YCbCr-alpha layout sizing.
 Four GhostXPS probes produce blank/different device-color output or crash with
 ICC; wider GhostXPS testing was not performed. Arithmetic lossless alpha at these
-precisions, subsampling and native whole-file/Windows acceptance remain open.
+precisions and native whole-file/Windows acceptance remain open.
 
 Subsampled JPEG-TIFF retains fractional chroma until color conversion, including
 centered and cosited 2×1/2×2/4×2/4×4 grids in chunky or separate planes.
@@ -447,8 +447,23 @@ conversion; a 15-precision regression checks the same independently decoded
 source strips. Default nearest-neighbor sampling is unchanged.
 Across 360 XPS/OpenXPS exports at 2/8/16 bits, MuPDF PDF/SVG differs by at most
 2/255 over 36,360 probes per route, without warnings. This run does not add
-GhostXPS or native Windows evidence. Subsampled alpha/profile combinations,
+GhostXPS or native Windows evidence. Further alpha/profile combinations,
 arithmetic coding at additional precisions and independent producer/whole-file
+acceptance remain open.
+
+The [subsampled-alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/README.md)
+qualifies 1,680 constructed Huffman lossless TIFFs at 2–16 bits with associated
+and unassociated full-resolution alpha, centered/cosited 2×1/2×2/4×2/4×4 chroma,
+strips/tiles and chunky/planar storage in both byte orders. Libjpeg-turbo verifies
+6,840 native JPEG segments; Pillow and LittleCMS provide fractional device and
+DCI-P3-profile references. Each color mode covers 169,680 pixels with exact alpha,
+RGB differences at most 1/255 for device color and 2/255 for profile conversion.
+Nonzero native alpha retains foreground color even when its final byte is zero.
+The XPS tests cover both dialects and black/white backgrounds. Across 384 external
+exports selected from 48 representative 2/8/16-bit inputs, MuPDF PDF/SVG differs
+by at most 4/255 and 2/255 over 71,808 probes per route, without warnings.
+This does not add native Windows or GhostXPS evidence; arithmetic-coded alpha
+at additional precisions, further profiles and independent producer/whole-file
 acceptance remain open.
 
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).

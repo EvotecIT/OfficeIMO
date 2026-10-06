@@ -15,15 +15,21 @@ public sealed class XpsTiffLosslessAlphaPrecisionTests {
     [InlineData(XpsFormat.OpenXps, false)]
     [InlineData(XpsFormat.Xps, true)]
     [InlineData(XpsFormat.OpenXps, true)]
-    public void NativePrecisionAlphaRetainsVisiblePaint(XpsFormat format, bool profiled) {
-        string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", "TiffJpegLosslessAlphaPrecision");
+    [InlineData(XpsFormat.Xps, false, "TiffJpegChromaAlpha")]
+    [InlineData(XpsFormat.OpenXps, false, "TiffJpegChromaAlpha")]
+    [InlineData(XpsFormat.Xps, true, "TiffJpegChromaAlpha")]
+    [InlineData(XpsFormat.OpenXps, true, "TiffJpegChromaAlpha")]
+    public void NativePrecisionAlphaRetainsVisiblePaint(XpsFormat format, bool profiled, string corpusName = "TiffJpegLosslessAlphaPrecision") {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", corpusName);
         foreach (string line in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] row = line.Split(',');
             if (profiled && row[1] is not ("2" or "6")) continue;
             byte[] expected = File.ReadAllBytes(Path.Combine(corpus, row[0] + (profiled ? ".icc-rgba" : ".rgba")));
+            int width = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[5]) : 35;
+            int height = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[6]) : 19;
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, row[0])), "image/tiff");
-            document.AddPage(105, 57).AddImage(resource, 0, 0, 105, 57);
+            document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
             if (profiled) {
                 string profile = document.AddResource("Profiles/source.icc", File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "icc-dci-p3-matrix.icc")), "application/vnd.ms-color.iccprofile");
                 var markup = document.Pages[0].GetMarkup();
@@ -45,8 +51,8 @@ public sealed class XpsTiffLosslessAlphaPrecisionTests {
                     OfficeDrawingRasterRenderer.Render(svgDrawing!, background: background),
                     OfficeDrawingRasterRenderer.Render(pdfDrawing, scale: 4D / 3D, background: background)
                 };
-                for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
-                    int at = (y * 35 + x) * 4, alpha = expected[at + 3], tolerance = profiled ? 3 : 2;
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                    int at = (y * width + x) * 4, alpha = expected[at + 3], tolerance = profiled ? 3 : 2;
                     Assert.Equal(alpha, transparent.GetPixel(x * 3 + 1, y * 3 + 1).A);
                     int Composite(int c) => (expected[at + c] * alpha + background.R * (255 - alpha) + 127) / 255;
                     foreach (var image in images) {

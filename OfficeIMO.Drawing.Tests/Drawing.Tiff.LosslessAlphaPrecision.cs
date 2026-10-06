@@ -7,8 +7,10 @@ public sealed class TiffLosslessAlphaPrecisionTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void NativeAlphaSurvivesUnassociationAndProfileConversion(bool profiled) {
-        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpegLosslessAlphaPrecision");
+    [InlineData(false, "TiffJpegChromaAlpha")]
+    [InlineData(true, "TiffJpegChromaAlpha")]
+    public void NativeAlphaSurvivesUnassociationAndProfileConversion(bool profiled, string corpusName = "TiffJpegLosslessAlphaPrecision") {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", corpusName);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "icc-dci-p3-matrix.icc")), out var profile));
         int cases = 0;
         bool testedColorBelowEightBitAlpha = false;
@@ -21,9 +23,11 @@ public sealed class TiffLosslessAlphaPrecisionTests {
             OfficeRasterImage? image;
             Assert.True(profiled ? OfficeIccRasterConverter.TryDecodeToSrgb(bytes, profile!, new(), out image) :
                 OfficeTiffCodec.TryDecode(bytes, out image), row[0]);
-            Assert.Equal((35, 19), (image!.Width, image.Height));
-            for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
-                int at = (y * 35 + x) * 4;
+            int width = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[5]) : 35;
+            int height = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[6]) : 19;
+            Assert.Equal((width, height), (image!.Width, image.Height));
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                int at = (y * width + x) * 4;
                 var pixel = image.GetPixel(x, y);
                 Assert.True(pixel.A == expected[at + 3], $"{row[0]} alpha at {x},{y}");
                 if (row[4] == "1" && row[1] is "2" or "6" && expected[at + 3] == 0 &&
@@ -34,7 +38,7 @@ public sealed class TiffLosslessAlphaPrecisionTests {
             }
             cases++;
         }
-        Assert.Equal(profiled ? 96 : 192, cases);
+        Assert.Equal(corpusName == "TiffJpegChromaAlpha" ? 1680 : profiled ? 96 : 192, cases);
         Assert.True(testedColorBelowEightBitAlpha);
     }
 }
