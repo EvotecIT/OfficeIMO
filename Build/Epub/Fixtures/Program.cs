@@ -92,6 +92,7 @@ WriteFixture("merge-body-scopes-source", MergeBodyScopeFixture.Create(false));
 WriteFixture("merge-body-scopes", MergeBodyScopeFixture.Create(true));
 WriteFixture("merge-matter-source", MergeMatterFixture.Create(false));
 WriteFixture("merge-matter", MergeMatterFixture.Create(true));
+WriteFixture("embedded-fonts", EmbeddedFontFixture.Create());
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));
@@ -102,6 +103,7 @@ void WriteFixture(string name, EpubPublication publication) {
         ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     }).Bytes;
     File.WriteAllBytes(Path.Combine(outputDirectory, name + ".epub"), bytes);
+    if (name == "embedded-fonts") EmbeddedFontFixture.WriteEvidence(outputDirectory, bytes);
     evidence.Add(new { fixture = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
         nativePreflight = InspectFixture(publication) });
 }

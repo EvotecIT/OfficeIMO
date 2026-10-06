@@ -131,6 +131,26 @@ acceptance in a reading system.
 
 The sample stays outside shipped packages and is not a runtime dependency.
 
+## Embedded-font fixture
+
+The main EPUB fixture runner also creates `embedded-fonts.epub`, with Latin,
+Arabic and Japanese paragraphs, isolated Latin identifiers in Arabic text, a
+technical table and wrapping code. It embeds the existing licensed Carlito,
+Noto Sans Arabic and OfficeIMO Japanese Common test assets, retaining their OFL
+notices in the publication. The Japanese font is a documented subset, not a
+claim of general CJK coverage.
+
+`embedded-fonts-evidence.json` records font and EPUB hashes, source provenance,
+and light/dark/enlarged/font-override preview paths. Generation verifies exact
+font preservation against both ZIP bytes and the existing font-pack manifest.
+The previews add simulated reader CSS to extracted content; they do not modify
+the EPUB. For a browser check, serve the extracted directory over loopback, inspect
+actual selected fonts as well as declared CSS, and check compact/wide wrapping,
+language direction, mixed-direction identifiers, table/code bounds and navigation.
+For native acceptance, separately check font selection and disabling publisher
+fonts, pagination, theme and size controls, and screen-reader language switching.
+Do not infer those results from browser screenshots or automated validators.
+
 ## ONIX fixtures
 
 The opt-in `OnixFixtureGenerator` exercises the workflow's bibliographic ONIX export
