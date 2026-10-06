@@ -6,8 +6,9 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeTiffCodec {
     private static bool TryDecodeJpegSegments(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
         bool littleEndian, int width, int height, int samples, int sampleBytes, int sampleBits, int photometric, int planar,
-        OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source, bool legacy = false) {
+        OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source, out TiffJpegColorTransform? jpegColor, bool legacy = false) {
         source = Array.Empty<byte>();
+        jpegColor = null;
         int interchangeOffset = 0, interchangeLength = 0, legacyProcess = 1;
         if (legacy && (!TryReadScalarOrDefault(bytes, entries, 512, littleEndian, 1, out legacyProcess) ||
             (legacyProcess != 1 && legacyProcess != 14) || (legacyProcess == 1 && sampleBits != 8 && sampleBits != 12) ||
@@ -32,6 +33,7 @@ public static partial class OfficeTiffCodec {
                 Math.Abs(coefficients[0] + coefficients[1] + coefficients[2] - 1) > .00001 ||
                 reference[1] <= reference[0] || reference[3] <= reference[2] || reference[5] <= reference[4]) return false;
         }
+        if (ycc) jpegColor = new TiffJpegColorTransform(maximum, coefficients, reference);
         bool strips = fullInterchange || entries.ContainsKey(273) || entries.ContainsKey(279);
         bool tiles = !fullInterchange && (entries.ContainsKey(324) || entries.ContainsKey(325) || entries.ContainsKey(322) || entries.ContainsKey(323));
         if (strips == tiles) return false;
@@ -114,7 +116,6 @@ public static partial class OfficeTiffCodec {
             if (!retainPixels) continue;
             if (ycc && planar == 1) {
                 if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
-                ConvertTiffJpegYcc(decoded, samples, sampleBytes, littleEndian, maximum, coefficients, reference, options);
             }
             if (planar == 2) {
                 if (ycc && (plane == 1 || plane == 2)) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
@@ -125,7 +126,6 @@ public static partial class OfficeTiffCodec {
                 CopyWithCancellation(decoded, row * sw * samples * sampleBytes, source, ((top + row) * width + left) * samples * sampleBytes,
                     columns * samples * sampleBytes, options.CancellationToken);
         }
-        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, samples, sampleBytes, littleEndian, maximum, coefficients, reference, options);
         return true;
     }
 

@@ -16,9 +16,10 @@ RGB and YCbCr include associated/straight alpha and native alpha values 0 and 1.
 independently decoded little-endian sample words. The producer verifies every word
 against the original samples with discarded point-transform bits cleared.
 `.rgba` projects the decoded words through declared color and alpha equations.
-`.reference.tif` rescales the same words to unsigned sixteen-bit storage, after
-YCbCr conversion, for ICC comparison. That rescaling can introduce one output
-level of rounding; the original compressed path retains native precision.
+`.reference.tif` rescales non-YCbCr words to unsigned sixteen-bit storage for
+ICC comparison; that rescaling can introduce one output level of rounding.
+YCbCr references use normalized floating-point RGB to preserve fractional color
+through conversion and unassociation. The original compressed words are unchanged.
 `SHA256SUMS` records all fixture and reference bytes.
 
 `decode-native.c` checks full-file LibTIFF consumption independently of the

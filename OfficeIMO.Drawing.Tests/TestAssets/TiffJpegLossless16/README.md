@@ -16,7 +16,8 @@ reconstructed words against the original source after that operation.
 
 `.tif.raw` contains independently decoded little-endian page components;
 `.rgba` is their color/alpha projection. `.reference.tif` stores the same native
-samples uncompressed (YCbCr is converted to RGB) for ICC comparison. `.tif.jpg`
+samples uncompressed for ICC comparison. YCbCr references use normalized
+floating-point RGB so fractional color survives conversion and unassociation. `.tif.jpg`
 and `.tif.jpg.raw` retain the first segment and its independently decoded words.
 The tests compare 239,904 JPEG component samples and 186,200 TIFF pixels exactly,
 including both raw output byte orders and ICC output against reference TIFFs.

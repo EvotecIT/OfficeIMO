@@ -4,9 +4,9 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     /// <summary>
-    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/24/32/64-bit samples, or packed 1/4-bit grayscale and 1/4/8-bit palette TIFF using
+    /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/12/16-bit or finite floating 16/24/32/64-bit samples, or packed 1/4-bit grayscale and 1/4/8-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
-    /// Bilevel CCITT, baseline/extended eight-bit and Huffman lossless eight/sixteen-bit JPEG TIFF
+    /// Bilevel CCITT, baseline eight-bit, extended-sequential eight/twelve-bit and Huffman/arithmetic lossless two-through-sixteen-bit JPEG TIFF
     /// are supported, including bounded legacy compression-6 layouts.
     /// Floating samples are normalized device components; BigTIFF payloads remain caller-codec responsibilities.
     /// </summary>
@@ -140,7 +140,7 @@ public static partial class OfficeTiffCodec {
                 var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
                 if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, sampleBits, packedBits, photometric,
                         compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, effective, decodeWorkBudget,
-                        retainPixels: true, out byte[] source)) return false;
+                        retainPixels: true, out byte[] source, out TiffJpegColorTransform? jpegColor)) return false;
 
                 int orientedWidth = orientation >= 5 ? height : width;
                 int orientedHeight = orientation >= 5 ? width : height;
@@ -153,7 +153,10 @@ public static partial class OfficeTiffCodec {
                         ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
                         int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
                         byte red, green, blue, alpha;
-                        if (floating) {
+                        if (jpegColor != null) {
+                            jpegColor.ConvertPixel(source, sourcePixel, sampleBytes, littleEndian,
+                                alphaIndex, alphaKind, colorComponents, out red, out green, out blue, out alpha);
+                        } else if (floating) {
                             ConvertFloatingPixel(source, sourcePixel, sampleBytes, littleEndian, photometric,
                                 alphaIndex, alphaKind, colorComponents,
                                 out red, out green, out blue, out alpha);

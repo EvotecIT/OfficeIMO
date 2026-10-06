@@ -406,6 +406,20 @@ but can render blank images. This full-resolution single-strip corpus does not
 qualify other precisions' alpha, color-profile, subsampling or wider-layout
 combinations, nor independent whole-file/native Windows acceptance.
 
+TIFF YCbCr conversion retains fractional RGB through alpha unassociation and ICC
+conversion, rounding only at final RGBA output. The [YCbCr precision corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegYccPrecision/README.md)
+qualifies 60 full-resolution Huffman/arithmetic TIFFs at 2–16 bits in both byte
+orders. Its 11,880 device-color pixels match within 1/255, and the same pixels
+with an explicit DCI-P3 matrix profile match LittleCMS within 2/255. Existing
+12/16-bit YCbCr-alpha references use floating-point RGB to retain the same
+fractional-color contract. Across 240 XPS/OpenXPS device/profile exports, MuPDF
+PDF/SVG differs by at most 2/255 over 47,520 probes per route, without warnings.
+GhostXPS returns zero for 144 exports but can paint blank images; 96 profiled
+cases terminate with SIGSEGV. LibTIFF's data-read check accepts four Huffman
+8/12-bit containers and rejects the remaining 56. Low-precision alpha,
+subsampling, additional profiles and independent full-file/native Windows
+color acceptance remain separate qualification gaps.
+
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
 The reconstructed cases retain independently encoded entropy for baseline and
 lossless data, including both byte orders, strip/tile layouts and separate planes;

@@ -24,10 +24,11 @@ public static partial class OfficeTiffCodec {
         OfficeRasterDecodeOptions options,
         TiffValidationBudget? validationBudget,
         bool retainPixels,
-        out byte[] source) {
+        out byte[] source, out TiffJpegColorTransform? jpegColor) {
         source = Array.Empty<byte>();
+        jpegColor = null;
         if (compression == 6 || compression == 7) return TryDecodeJpegSegments(encodedBytes, entries, littleEndian, width, height,
-            samples, sampleBytes, sampleBits, photometric, planarConfiguration, options, validationBudget, retainPixels, out source, legacy: compression == 6);
+            samples, sampleBytes, sampleBits, photometric, planarConfiguration, options, validationBudget, retainPixels, out source, out jpegColor, legacy: compression == 6);
         if (sampleBits == 12) return TryDecodePacked12Segments(encodedBytes, entries, littleEndian, width, height,
             samples, compression, planarConfiguration, options, validationBudget, retainPixels, out source);
         if (packedBits != 0) return TryDecodePackedSegments(encodedBytes, entries, littleEndian,

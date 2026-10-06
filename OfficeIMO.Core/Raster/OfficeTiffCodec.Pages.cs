@@ -259,7 +259,7 @@ public static partial class OfficeTiffCodec {
         }
         return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, sampleBits, packedBits, photometric,
             compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, options, validationBudget,
-            retainPixels: false, out _);
+            retainPixels: false, out _, out _);
     }
 
     private sealed class TiffValidationBudget {

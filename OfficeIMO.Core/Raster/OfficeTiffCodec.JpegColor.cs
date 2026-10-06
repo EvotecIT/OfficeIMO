@@ -15,18 +15,40 @@ public static partial class OfficeTiffCodec {
         }
     }
 
-    private static void ConvertTiffJpegYcc(byte[] pixels, int samples, int sampleBytes,
-        bool littleEndian, int maximum, double[] c, double[] r, OfficeRasterDecodeOptions options) {
-        int Clamp(double value) => (int)Math.Round(Math.Max(0, Math.Min(maximum, value)));
-        for (int i = 0; i < pixels.Length / sampleBytes; i += samples) {
-            if ((i & 4095) == 0) options.CancellationToken.ThrowIfCancellationRequested();
-            double y = (ReadTiffJpegSample(pixels, i, sampleBytes, littleEndian) - r[0]) * maximum / (r[1] - r[0]);
-            double cb = (ReadTiffJpegSample(pixels, i + 1, sampleBytes, littleEndian) - r[2]) * (maximum / 2) / (r[3] - r[2]);
-            double cr = (ReadTiffJpegSample(pixels, i + 2, sampleBytes, littleEndian) - r[4]) * (maximum / 2) / (r[5] - r[4]);
-            double red = y + cr * (2 - 2 * c[0]), blue = y + cb * (2 - 2 * c[2]);
-            WriteTiffJpegSample(pixels, i, sampleBytes, littleEndian, Clamp(red));
-            WriteTiffJpegSample(pixels, i + 1, sampleBytes, littleEndian, Clamp((y - c[0] * red - c[2] * blue) / c[1]));
-            WriteTiffJpegSample(pixels, i + 2, sampleBytes, littleEndian, Clamp(blue));
+    // Preserve fractional RGB through unassociation and ICC conversion. Rounding
+    // back to the JPEG precision loses visible color, especially at 2–7 bits.
+    private sealed class TiffJpegColorTransform {
+        private readonly int _maximum;
+        private readonly double[] _coefficients;
+        private readonly double[] _reference;
+
+        internal TiffJpegColorTransform(int maximum, double[] coefficients, double[] reference) {
+            _maximum = maximum;
+            _coefficients = coefficients;
+            _reference = reference;
+        }
+
+        internal void ConvertPixel(byte[] pixels, int offset, int sampleBytes, bool littleEndian,
+            int alphaIndex, int alphaKind, double[]? colorComponents,
+            out byte red, out byte green, out byte blue, out byte alpha) {
+            int sample = offset / sampleBytes;
+            int a = alphaIndex < 0 ? _maximum : ReadTiffJpegSample(pixels, sample + alphaIndex, sampleBytes, littleEndian);
+            alpha = QuantizeUnsigned16Component(a / (double)_maximum);
+            double y = (ReadTiffJpegSample(pixels, sample, sampleBytes, littleEndian) - _reference[0]) * _maximum / (_reference[1] - _reference[0]);
+            double cb = (ReadTiffJpegSample(pixels, sample + 1, sampleBytes, littleEndian) - _reference[2]) * (_maximum / 2) / (_reference[3] - _reference[2]);
+            double cr = (ReadTiffJpegSample(pixels, sample + 2, sampleBytes, littleEndian) - _reference[4]) * (_maximum / 2) / (_reference[5] - _reference[4]);
+            double r = y + cr * (2 - 2 * _coefficients[0]);
+            double b = y + cb * (2 - 2 * _coefficients[2]);
+            double g = (y - _coefficients[0] * r - _coefficients[2] * b) / _coefficients[1];
+            double Normalize(double value) => alphaKind == 1 && a == 0 ? 0D :
+                Math.Max(0D, Math.Min(1D, value / (alphaKind == 1 ? a : _maximum)));
+            r = Normalize(r); g = Normalize(g); b = Normalize(b);
+            if (colorComponents != null) {
+                colorComponents[0] = r; colorComponents[1] = g; colorComponents[2] = b;
+            }
+            red = QuantizeUnsigned16Component(r);
+            green = QuantizeUnsigned16Component(g);
+            blue = QuantizeUnsigned16Component(b);
         }
     }
 }
