@@ -86,6 +86,9 @@ internal static partial class OfficeJpegReader {
         if (componentCount == 2 || componentCount > 4) throw new FormatException("A raw component transform is required for this JPEG component count.");
 
         if (frame.ComponentCount == 4) {
+            // PDF Decode arrays own polarity. APP14 still selects the color transform,
+            // but only standalone/ICC-image callers need Adobe's inverted CMYK normalized.
+            bool invertAdobe = adobeTransform.HasValue && (!usePdfColorTransformDefault || outputRgba);
             var cIndex = FindComponentIndex(frame.Components, (byte)'C');
             var mIndex = FindComponentIndex(frame.Components, (byte)'M');
             var yIndex = FindComponentIndex(frame.Components, (byte)'Y');
@@ -128,10 +131,12 @@ internal static partial class OfficeJpegReader {
                     if (isYcck) {
                         SampleYccToRgb(frame, states, ycckY, ycckCb, ycckCr, x, y,
                             highQualityChroma, out byte r, out byte g, out byte b);
-                        if (adobeTransform.HasValue) {
-                            c = (byte)(255 - r);
-                            m = (byte)(255 - g);
-                            y0 = (byte)(255 - b);
+                        if (invertAdobe) {
+                            // YCCK conversion already complements the three native CMY
+                            // samples. Adobe inversion cancels that complement; K still inverts.
+                            c = r;
+                            m = g;
+                            y0 = b;
                             kVal = 255 - kVal;
                         } else {
                             c = (byte)(255 - r);
@@ -142,7 +147,7 @@ internal static partial class OfficeJpegReader {
                         c = (byte)SampleComponent(states, cIndex, x, y, maxH, maxV, 0, highQualityChroma);
                         m = (byte)SampleComponent(states, mIndex, x, y, maxH, maxV, 0, highQualityChroma);
                         y0 = (byte)SampleComponent(states, yIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                        if (adobeTransform.HasValue) {
+                        if (invertAdobe) {
                             c = (byte)(255 - c);
                             m = (byte)(255 - m);
                             y0 = (byte)(255 - y0);

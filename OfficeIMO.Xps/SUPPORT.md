@@ -230,9 +230,9 @@ progressive scans, 1×1/2×1/2×2 chroma, restart intervals, partial blocks and 
 XPS/OpenXPS exports cover 79,800 probes per route; independent MuPDF PDF/SVG
 rendering differs by at most 2/255 without warnings. GhostXPS opens every export
 but differs by up to 255/255, including blank images. SVG/PDF export uses the
-existing high-precision JPEG normalization path. Twelve-bit CMYK/YCCK and
-unusual sampling combinations have no independent corpus qualification here;
-native Windows acceptance remains outside the qualified contract.
+existing high-precision JPEG normalization path. CMYK/YCCK qualification is described
+below; unusual sampling combinations and native Windows acceptance remain outside
+the qualified contract.
 
 Sequential arithmetic JPEG supports eight/twelve-bit SOF9 frames through the shared
 managed decoder. Conditioning defaults and explicit DAC tables, all sixteen table
@@ -245,8 +245,8 @@ container production, not full-file native TIFF acceptance. The 360 XPS/OpenXPS
 JPEG/TIFF exports cover 239,400 pixel-center probes per route; MuPDF PDF/SVG
 rendering differs by at most 2/255 without warnings. GhostXPS opens all exports but
 differs by up to 255/255, including blank output. PDF and SVG normalize arithmetic
-JPEG to portable pixel images. Arithmetic CMYK/alpha
-and planar/tiled TIFF qualification, and native Windows acceptance remain open.
+JPEG to portable pixel images. Arithmetic CMYK/alpha and planar/tiled TIFF
+qualification, and native Windows acceptance remain open.
 
 Progressive arithmetic JPEG supports eight/twelve-bit SOF10 frames through the same
 Core decoder and portable PDF/SVG normalization. Initial/refinement DC and AC scans
@@ -262,8 +262,20 @@ Native nearest/high-quality references agree within 2/255 with smoothing disable
 The 300 XPS/OpenXPS exports cover 199,500 pixel-center probes per route; MuPDF
 PDF/SVG differs by at most 2/255 without warnings. GhostXPS opens all exports
 but differs by up to 255/255, including blank images.
-Arithmetic CMYK/YCCK and native Windows acceptance remain unqualified. Progressive
-JPEG remains outside the TIFF contract.
+Native Windows acceptance remains unqualified. Progressive JPEG remains outside
+the TIFF contract.
+
+The [Adobe color corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/README.md)
+qualifies 64 standalone eight/twelve-bit CMYK/YCCK JPEGs across Huffman/arithmetic,
+sequential/progressive, quality 30/90 and 1×1/2×1/2×2 YCCK sampling. Native
+libjpeg-turbo CMYK colorants agree within 2/255 for both chroma modes. An explicit
+CMYK ICC profile produces sRGB within 3/255 of LittleCMS. Adobe YCCK conversion
+normalizes all four colorants; direct PDF DCT decoding leaves component polarity
+to the PDF Decode array. XPS still requires an associated or embedded CMYK profile.
+The 128 XPS/OpenXPS exports cover 85,120 pixel-center probes per route; MuPDF
+PDF/SVG output agrees within 2/255 without warnings. GhostXPS opens all exports
+but differs by up to 223/255. This does not qualify default SWOP color, arithmetic
+CMYK TIFF, lossless arithmetic color interpretation, or native Windows behavior.
 
 Standalone arithmetic lossless JPEG supports SOF11 precisions 2–16, all seven
 predictors, point transforms and row-aligned restarts. Shared lossless sample
