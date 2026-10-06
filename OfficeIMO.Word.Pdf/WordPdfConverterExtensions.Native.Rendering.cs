@@ -70,6 +70,8 @@ namespace OfficeIMO.Word.Pdf {
         private static void RenderNativeBreak(INativePdfFlow pdf, WordBreak wordBreak) {
             if (wordBreak.BreakType == WordBreakType.Page) {
                 pdf.PageBreak(preserveEmptyPage: true);
+            } else if (wordBreak.BreakType == WordBreakType.Column) {
+                pdf.ColumnBreak();
             }
         }
 
@@ -84,7 +86,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            if (TryRenderNativeParagraphPageBreaks(pdf, paragraph, marker, getMarker, footnoteNumbersById,
+            if (TryRenderNativeParagraphFlowBreaks(pdf, paragraph, marker, getMarker, footnoteNumbersById,
                 options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextParagraph)) return;
 
             if (HasNativePageBreakBefore(paragraph)) {
@@ -219,6 +221,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfPanelStyle? panelStyle = CreateNativeParagraphPanelStyle(paragraph, paragraphStyle);
             if (panelStyle != null) {
+                paragraphStyle = JoinNativeAdjacentParagraphShading(nextParagraph, paragraphStyle, panelStyle, nativeDefaults);
                 pdf.PanelParagraph(builder => {
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
                 }, panelStyle, align, defaultColor, paragraphStyle);

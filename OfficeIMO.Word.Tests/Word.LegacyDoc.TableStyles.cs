@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleWholeTableAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_IgnoresWholeTableConditionAsWordDoesAndKeepsFirstRowFormatting() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocWholeTableConditional";
 
@@ -114,8 +114,8 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
-                Assert.Equal("FFFF00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
-                Assert.Equal("FFFF00", reloadedTable.Rows[1].Cells[1].ShadingFillColorHex);
+                Assert.Equal(string.Empty, reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal(string.Empty, reloadedTable.Rows[1].Cells[1].ShadingFillColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -317,6 +317,7 @@ namespace OfficeIMO.Tests {
                     var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
                     baseStyle.Append(new StyleName { Val = "Native DOC Base Conditional Table" });
                     baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                    baseStyle.Append(new StyleTableProperties(new TableStyleRowBandSize { Val = 1 }));
                     baseStyle.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
                             new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {

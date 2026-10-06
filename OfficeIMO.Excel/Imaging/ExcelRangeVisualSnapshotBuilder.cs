@@ -713,7 +713,8 @@ namespace OfficeIMO.Excel {
                     image.FlipHorizontal,
                     image.FlipVertical,
                     isFullyOpaque,
-                    source));
+                    source,
+                    image.HyperlinkUri));
             }
 
             return images;

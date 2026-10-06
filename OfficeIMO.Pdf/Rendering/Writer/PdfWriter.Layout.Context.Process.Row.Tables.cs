@@ -10,9 +10,11 @@ internal static partial class PdfWriter {
             public double Y, Remaining, Consumed;
         }
 
-        private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY) {
+        private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY, double closingPadding = 0D) {
         var tbColumn = table.Block;
+        if (closingPadding > 0D) closingPadding += table.Style.SpacingAfter;
         var tableStyle = table.Style;
+        StringBuilder? pairedBorders = null;
         double textClipBleed = tableStyle.ClipTextToCellBounds ? 0D : TableCellClipBleed;
         bool tableStartedInThisColumn = state.Line == 0 && state.Subline == 0;
         double flowYBeforeTable = state.Y;
@@ -164,7 +166,8 @@ internal static partial class PdfWriter {
             int best = 0;
             for (int candidate = 1; candidate <= remainingLines; candidate++) {
                 double candidateHeight = MeasureColumnTableRowSegmentHeight(rowIndex, startLine, candidate, suppressCellObjects: false);
-                if (candidateHeight > available + 0.001) {
+                double candidateClosingPadding = rowIndex == tbColumn.Rows.Count - 1 && candidate == remainingLines ? closingPadding : 0D;
+                if (candidateHeight + candidateClosingPadding > available + 0.001) {
                     break;
                 }
 
@@ -484,11 +487,12 @@ internal static partial class PdfWriter {
                         bool topRight = cellTouchesTop && cellTouchesRight;
                         bool bottomRight = cellTouchesBottom && cellTouchesRight;
                         bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
+                        StringBuilder borderOutput = HasPairedCellBorder(cellBorder) ? pairedBorders ??= new StringBuilder() : sb;
                         if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
-                            DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
+                            DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
                                 GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
                         } else {
-                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure,
+                            DrawCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure,
                                 GetCellBorderSegmentLengths(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap),
                                 GetCellBorderSegmentLengths(table.ColumnWidths, borderColumn, span, columnGap),
                                 GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
@@ -571,6 +575,7 @@ internal static partial class PdfWriter {
                 AtContinuationPageTop() &&
                 repeatHeaderHeight + placementHeight <= state.Remaining + 0.001;
             double neededForNextRow = placementHeight + (StartsTableViewportRowGroup(viewportRowGroups, rowIndex) ? 0D : GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap)) + (repeatHeaderBeforeRow ? repeatHeaderHeight : 0);
+            if (rowIndex == tbColumn.Rows.Count - 1) neededForNextRow += closingPadding;
             if (rowHeight > state.Remaining + 0.001 && state.Consumed > 0 && CanSplitColumnTableRowIntoRemainingSpace(rowIndex)) {
                 int take = Math.Min(table.RowLineCounts[rowIndex], GetColumnTableRowSegmentLineCountThatFits(rowIndex, 0, state.Remaining));
                 DrawColumnTableRowSegment(rowIndex, renderAsHeader: false, 0, take);
@@ -596,6 +601,7 @@ internal static partial class PdfWriter {
             rowStartLine = 0;
         }
 
+        if (pairedBorders != null) sb.Append(pairedBorders);
         if (rowIndex >= tbColumn.Rows.Count) {
             if (tableStyle.SpacingAfter > 0 && tableStyle.SpacingAfter <= state.Remaining) {
                 state.Y -= tableStyle.SpacingAfter;

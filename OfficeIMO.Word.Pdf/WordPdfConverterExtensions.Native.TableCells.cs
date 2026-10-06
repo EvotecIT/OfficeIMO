@@ -206,17 +206,16 @@ namespace OfficeIMO.Word.Pdf {
                 : CreateNativeCellBorderSide(border.Val?.Value, border.Color?.Value, border.Size);
 
         private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToNativeBorderDashStyle(W.BorderValues? borderStyle) {
-            string value = borderStyle?.ToString() ?? string.Empty;
-            if (value.IndexOf("dot", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                value.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (borderStyle == W.BorderValues.DotDash || borderStyle == W.BorderValues.DotDotDash ||
+                borderStyle == W.BorderValues.DashDotStroked) {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot;
             }
 
-            if (value.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (borderStyle == W.BorderValues.Dashed || borderStyle == W.BorderValues.DashSmallGap) {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash;
             }
 
-            if (value.IndexOf("dot", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (borderStyle == W.BorderValues.Dotted) {
                 return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot;
             }
 
@@ -309,6 +308,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 NativeParagraphStyleDefaults paragraphStyleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+                NativeParagraphPaginationDefaults pagination = ResolveNativeCellParagraphPagination(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
                 double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle, nativeFontMap);
                 NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults.LineSpacing);
                 double? lineHeight = nativeLineSpacing.Resolve(
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults.DefaultTabStopWidth,
                     tabStops,
                     paragraphFontSize,
-                    lineSpacing));
+                    lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false));
                 pendingSpacingAfter = spacingAfter;
             }
 
