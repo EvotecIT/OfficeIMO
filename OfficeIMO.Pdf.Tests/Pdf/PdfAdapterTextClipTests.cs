@@ -64,7 +64,9 @@ public sealed class PdfAdapterTextClipTests {
 
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
         Assert.Equal("ADWS", span.Text);
-        Assert.Null(span.ClipPath);
+        Assert.True(span.ClipPath.HasValue);
+        Assert.InRange(span.ClipPath.Value.Width, 199.99D, 200.01D);
+        Assert.InRange(span.ClipPath.Value.Height, 79.99D, 80.01D);
     }
 
     [Theory]
@@ -106,5 +108,46 @@ public sealed class PdfAdapterTextClipTests {
             Assert.InRange(span.ClipPath.Value.Width, 19.99D, 20.01D);
             Assert.InRange(span.ClipPath.Value.Height, 9.99D, 10.01D);
         });
+    }
+
+    [Theory]
+    [InlineData(90, 30, "ADWS", "")]
+    [InlineData(50, 30, "ADWS", "")]
+    [InlineData(10, 49, "gypqj", "")]
+    [InlineData(-2, 30, "ADWS", "")]
+    [InlineData(90, 30, "ADWS", "transform='translate(0.01 0)'")]
+    [InlineData(10, 49, "gypqj", "textLength='60' lengthAdjust='spacingAndGlyphs'")]
+    public void SvgViewportConstrainsPaintIndependentlyOfTheTextLayoutFrame(int x, int baseline, string text, string attributes) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='50'>" +
+            "<text x='" + x + "' y='" + baseline + "' font-family='Arial' font-size='20' " + attributes + ">" + text + "</text></svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
+        Assert.NotNull(drawing);
+        drawing = new OfficeDrawing(140, 90).AddDrawing(drawing.Clone(), 10, 10);
+        byte[] bytes = PdfDocument.Create().Drawing(drawing).ToBytes();
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
+        Assert.Equal(text, span.Text);
+        Assert.True(span.ClipPath.HasValue);
+        Assert.InRange(span.ClipPath.Value.Width, 99.99D, 100.01D);
+        Assert.InRange(span.ClipPath.Value.Height, 49.99D, 50.01D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NestedSvgAndSymbolViewportsConstrainTextPaint(bool symbol) {
+        const string text = "<text x='90' y='30' font-family='Arial' font-size='20'>ADWS</text>";
+        string content = symbol
+            ? "<defs><symbol id='label' viewBox='0 0 100 50'>" + text + "</symbol></defs><use href='#label' x='10' y='10' width='100' height='50'/>"
+            : "<svg x='10' y='10' width='100' height='50'>" + text + "</svg>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100'>" + content + "</svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
+        byte[] bytes = PdfDocument.Create().Drawing(drawing!).ToBytes();
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
+        Assert.Equal("ADWS", span.Text);
+        Assert.True(span.ClipPath.HasValue);
+        Assert.InRange(span.ClipPath.Value.Width, 99.99D, 100.01D);
+        Assert.InRange(span.ClipPath.Value.Height, 49.99D, 50.01D);
     }
 }
