@@ -269,7 +269,7 @@ internal static partial class PdfWriter {
             for (int itemIndex = items.Count - 1; itemIndex >= 0; itemIndex--) {
                 ColItem item = items[itemIndex];
                 if (item is ColGroupEnd end) {
-                    heights[itemIndex] = end.Group.Style?.PaddingY ?? 0D;
+                    heights[itemIndex] = end.Group.Style?.BottomPadding ?? 0D;
                     continue;
                 }
                 if (item is ColGroupStart start) {
@@ -348,10 +348,10 @@ internal static partial class PdfWriter {
 
         private double MeasureColItemFullHeight(ColItem item, double consumedBefore) {
             if (item is ColGroupStart groupStart) {
-                return ResolveColumnSpacingBefore(groupStart.Group.Style?.SpacingBefore ?? 0D, consumedBefore) + (groupStart.Group.Style?.PaddingY ?? 0D);
+                return ResolveColumnSpacingBefore(groupStart.Group.Style?.SpacingBefore ?? 0D, consumedBefore) + (groupStart.Group.Style?.TopPadding ?? 0D);
             }
             if (item is ColGroupEnd groupEnd) {
-                return (groupEnd.Group.Style?.PaddingY ?? 0D) + (groupEnd.Group.Style?.SpacingAfter ?? 0D);
+                return (groupEnd.Group.Style?.BottomPadding ?? 0D) + (groupEnd.Group.Style?.SpacingAfter ?? 0D);
             }
             if (item is ColPar paragraph) {
                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
@@ -409,9 +409,9 @@ internal static partial class PdfWriter {
 
         private double MeasureColItemFirstVisualHeight(ColItem item) {
             if (item is ColGroupStart groupStart) {
-                return (groupStart.Group.Style?.SpacingBefore ?? 0D) + (groupStart.Group.Style?.PaddingY ?? 0D) + MeasureColumnGroupFirstVisualHeight(groupStart.Group);
+                return (groupStart.Group.Style?.SpacingBefore ?? 0D) + (groupStart.Group.Style?.TopPadding ?? 0D) + MeasureColumnGroupFirstVisualHeight(groupStart.Group);
             }
-            if (item is ColGroupEnd groupEnd) return groupEnd.Group.Style?.PaddingY ?? 0D;
+            if (item is ColGroupEnd groupEnd) return groupEnd.Group.Style?.BottomPadding ?? 0D;
             if (item is ColPar paragraph) {
                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
                 return GetParagraphSpacingBefore(paragraphStyle) + (paragraph.Heights.Count == 0 ? 0D : paragraph.Heights[0]);

@@ -218,8 +218,11 @@ internal static partial class PdfWriter {
     private static double GetRichLineHeight(System.Collections.Generic.IReadOnlyList<double> heights, int lineIndex, double fallbackLeading) =>
         lineIndex >= 0 && lineIndex < heights.Count ? heights[lineIndex] : fallbackLeading;
 
-    private static int LimitTableCellLineCountToHeight(TableCellTextLayout lines, int startLine, int requestedLineCount, double fallbackLeading, double availableHeight) {
+    private static int LimitTableCellLineCountToHeight(TableCellTextLayout lines, int startLine, int requestedLineCount, double fallbackLeading, double availableHeight, bool preservePartialLines = false) {
         int maximumLineCount = System.Math.Max(0, System.Math.Min(requestedLineCount, lines.LineCount - startLine));
+        // Exact Word cell boxes can cut through a line. The render pass retains
+        // its original advance, removes wholly invisible ink and applies the clip.
+        if (preservePartialLines) return maximumLineCount;
         double consumedHeight = startLine == 0 ? lines.TopSpacing : 0D;
         int visibleLineCount = 0;
         for (int offset = 0; offset < maximumLineCount; offset++) {

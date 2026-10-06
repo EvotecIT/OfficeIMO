@@ -192,7 +192,7 @@ internal static partial class PdfWriter {
                             if (paragraphStyle?.KeepWithNext == true && line == 0 && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = spacingBefore + heights.Sum() + spacingAfter + nextHeight;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -202,7 +202,7 @@ internal static partial class PdfWriter {
 
                             if (paragraphStyle?.KeepTogether == true && line == 0) {
                                 double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (paragraphHeight > availableHeight + 0.001) {
                                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                                 }
@@ -229,7 +229,7 @@ internal static partial class PdfWriter {
                                 hsum += hAdd; take++;
                             }
 
-                            double resumedTopPadding = activeGroups.Sum(group => group.Style?.PaddingY ?? 0D);
+                            double resumedTopPadding = activeGroups.Sum(group => group.Style?.TopPadding ?? 0D);
                             bool canMoveParagraph = consumed > resumedTopPadding + 0.001D || y < GetCurrentFramePageStartY() - 0.001D;
                             if (TryApplyWidowControl(paragraphStyle, lines.Count, start, ref take, ref hsum, heights, canMoveParagraph)) {
                                 break;
@@ -263,14 +263,14 @@ internal static partial class PdfWriter {
                             double spacingBefore = (consumed > 0.001 || ch.ApplySpacingBeforeAtTop) ? ch.SpacingBefore : 0D;
                             double textHeight = MeasureRichLinesHeight(heights, lines.Count, leading);
                             double needed = spacingBefore + textHeight + ch.SpacingAfter;
-                            double fullFrameHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                            double fullFrameHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                             double requiredAtFrameStart = (ch.ApplySpacingBeforeAtTop ? ch.SpacingBefore : 0D) + textHeight + ch.SpacingAfter;
                             if (requiredAtFrameStart > fullFrameHeight + 0.001D)
                                 throw new ArgumentException("Heading height exceeds the available column content height.");
                             if (ch.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -323,7 +323,7 @@ internal static partial class PdfWriter {
                             double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(listItem.SpacingBefore, consumed) : 0D;
                             if (line == 0 && listItem.KeepTogether && listItem.IsFirstInKeepGroup) {
                                 double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (keepGroupHeight > availableHeight + 0.001) {
                                     throw new ArgumentException("List height exceeds the available page content height.");
                                 }
@@ -340,7 +340,7 @@ internal static partial class PdfWriter {
                                 if (nextItemIndex < items.Count) {
                                     double nextHeight = MeasureColKeepWithNextChainHeight(items, nextItemIndex);
                                     double keepHeight = listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore + nextHeight;
-                                    double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                    double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                     if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                         if (consumed > 0) break;
                                         remain = 0;
@@ -442,8 +442,8 @@ internal static partial class PdfWriter {
                         } else if (it is ColTable table) {
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
-                                GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D),
-                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.PaddingY ?? 0D), closingPadding);
+                                GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.TopPadding ?? 0D), closingPadding);
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
                             (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
                             if (!completed) break;
@@ -452,11 +452,11 @@ internal static partial class PdfWriter {
                             ValidateHorizontalRule(hr2);
                             double spacingBefore = ResolveColumnSpacingBefore(hr2.SpacingBefore, consumed);
                             double needed = spacingBefore + hr2.Thickness + hr2.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Horizontal rule", wCol, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            EnsureFixedFlowBlockFits("Horizontal rule", wCol, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
                             if (line == 0 && hr2.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -479,18 +479,18 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                             double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
                             double imageReservation = activeGroups.Sum(group => group.Style is { } style
-                                ? style.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) + Math.Max(style.PaddingY, style.FragmentBottomInset) : 0D);
+                                ? style.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) + Math.Max(style.BottomPadding, style.FragmentBottomInset) : 0D);
                             var imageBox = ResolveImageFlowBox(ib2, imageStyle, wCol, spacingBefore, imageStyle.SpacingAfter, imageReservation);
                             ciimg.Width = imageBox.Width;
                             ciimg.Height = imageBox.Height;
                             double needed = spacingBefore + ciimg.Height + imageStyle.SpacingAfter;
                             double continuationImageReservation = activeGroups.Sum(group => group.Style is { } style
-                                ? style.GetFragmentTopPadding(isContinuation: true) + Math.Max(style.PaddingY, style.FragmentBottomInset) : 0D);
+                                ? style.GetFragmentTopPadding(isContinuation: true) + Math.Max(style.BottomPadding, style.FragmentBottomInset) : 0D);
                             EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol, continuationImageReservation);
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -516,11 +516,11 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
                             double spacingBefore = ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + shape.Shape.Height + shapeStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
                             if (shapeStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -544,11 +544,11 @@ internal static partial class PdfWriter {
                             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
                             double spacingBefore = ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
                             if (drawingStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
-                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                                double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
                                     remain = 0;
@@ -572,7 +572,7 @@ internal static partial class PdfWriter {
                             double fieldHeight = GetFormFieldHeight(form.Block);
                             double spacingAfter = GetFormFieldSpacingAfter(form.Block);
                             double needed = spacingBefore + fieldHeight + spacingAfter;
-                            EnsureFixedFlowBlockFits(GetFormFieldBlockName(form.Block), fieldWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            EnsureFixedFlowBlockFits(GetFormFieldBlockName(form.Block), fieldWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
                             if (needed > remainingForFinalItem && consumed > 0) break;
                             if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
@@ -590,7 +590,7 @@ internal static partial class PdfWriter {
                             double annotationHeight = GetAnnotationHeight(annotation.Block);
                             double spacingAfter = GetAnnotationSpacingAfter(annotation.Block);
                             double needed = spacingBefore + annotationHeight + spacingAfter;
-                            EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D));
+                            EnsureFixedFlowBlockFits("Annotation", annotationWidth, needed, wCol, activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)));
                             if (needed > remainingForFinalItem && consumed > 0) break;
                             if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
@@ -616,7 +616,7 @@ internal static partial class PdfWriter {
                             idx++;
                         } else if (it is ColSpacer spacerItem) {
                             double needed = spacerItem.Block.Height;
-                            double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FragmentPaddingReservation ?? 0D) * 2D);
+                            double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                             if (needed > availableHeight + 0.001) {
                                 throw new ArgumentException("Spacer height exceeds the available page content height.");
                             }

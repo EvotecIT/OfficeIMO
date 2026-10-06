@@ -42,6 +42,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             double minimumScale = style.AutoFitWidthUsesContentMinimum ? 1D : NativeAutoFitGridMinimumScale;
+            if (style.BorderFrame != null)
+                tableWidth -= Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing;
             List<double?> derivedMinimums = layout.ColumnWidths
                 .Select(width => (double?)(tableWidth * width / gridWidth * minimumScale))
                 .ToList();
@@ -148,8 +150,8 @@ namespace OfficeIMO.Word.Pdf {
                 double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
                     style.PreferredWidth = preferredWidth.Value;
-                    // Separate-border tables retain their existing spacing
-                    // policy until their outer and cell frames are resolved.
+                    // Positive spacing receives its independent perimeter and
+                    // final cell-grid minimums after cell formatting is applied.
                     style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns && style.CellSpacing <= 0D;
                     style.PreserveWidth = true;
                 }
