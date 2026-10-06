@@ -55,7 +55,7 @@ through their contents; empty space in intermediate rendering buffers does not
 count as overflow. Excessive inspection surfaces
 fail instead of returning incomplete results. No output image is encoded.
 
-Inspect `HasCanvasOverflow`, `ClippingDiagnostics`, `Rendering.Diagnostics`, `PackageDiagnostics` and
+Inspect `HasCanvasOverflow`, `HasTextInkOverflow`, `TextInkDiagnostics`, `ClippingDiagnostics`, `Rendering.Diagnostics`, `PackageDiagnostics` and
 `PreparationDiagnostics` together. `HasRenderingWarnings` summarizes diagnosed
 rendering loss and package/preparation/inspection warnings. Suppressing package diagnostics for
 image export does not suppress them in this inspection. Missing raw XHTML, a
@@ -95,7 +95,16 @@ Path-shaped clips, including rounded overflow boxes, produce
 `HtmlRenderClipGeometryNotInspected` warnings. Their precise clipping geometry is
 not covered by the rectangular check.
 
-This is managed layout evidence. It does not measure glyph ink, shadows/filters,
+`TextInkDiagnostics` separately compares positioned XHTML glyph outlines with the
+page canvas, using the shared drawing engine's font fallback, shaping, color-glyph
+layers, synthetic styles and affine transforms. Decorations use conservative stroke
+bounds. The measurement uses nominal CSS-pixel geometry at scale 1; it is not a
+pixel scan. Empty space in a text frame is excluded. Transparent text is ignored.
+Authored clips, embedded vector drawings and unavailable text outlines produce
+`HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
+Pages exceeding 4096 inspected text runs are rejected.
+
+This is managed layout evidence. It does not measure regional or clipped glyph ink, shadows/filters,
 or pixel visibility within clipped element rectangles. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 

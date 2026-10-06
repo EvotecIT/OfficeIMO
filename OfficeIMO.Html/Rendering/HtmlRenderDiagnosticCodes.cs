@@ -98,6 +98,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ClippedElementBounds = "HtmlRenderClippedElementBounds";
     /// <summary>Inspection encountered path-shaped clipping whose precise geometry was not measured.</summary>
     public const string ClipGeometryNotInspected = "HtmlRenderClipGeometryNotInspected";
+    /// <summary>Measured positioned text paint bounds exceed the inspected canvas.</summary>
+    public const string TextInkOutsideCanvas = "HtmlRenderTextInkOutsideCanvas";
+    /// <summary>Text ink cannot be established for an inspected source.</summary>
+    public const string TextInkNotInspected = "HtmlRenderTextInkNotInspected";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
     public const string OverflowValueUnsupported = "HtmlRenderOverflowValueUnsupported";
     /// <summary>An overflow-clip-margin value used its initial padding-box zero fallback.</summary>
@@ -269,6 +273,8 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowScrollSnapshot,
         ClippedElementBounds,
         ClipGeometryNotInspected,
+        TextInkOutsideCanvas,
+        TextInkNotInspected,
         OverflowValueUnsupported,
         TransformValueUnsupported,
         ClipPathValueUnsupported,

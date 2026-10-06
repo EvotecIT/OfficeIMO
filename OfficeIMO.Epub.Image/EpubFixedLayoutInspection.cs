@@ -8,12 +8,13 @@ public sealed class EpubFixedLayoutInspection {
     internal EpubFixedLayoutInspection(string path, double width, double height, HtmlRenderDocument rendering,
         OfficeDrawingQualityReport quality, IEnumerable<EpubDiagnostic> packageDiagnostics,
         IReadOnlyList<OfficeImageExportDiagnostic> preparationDiagnostics, EpubFixedLayoutRegionInspection[] regions,
-        IReadOnlyList<HtmlDiagnostic> clippingDiagnostics) {
+        IReadOnlyList<HtmlDiagnostic> clippingDiagnostics, IReadOnlyList<HtmlDiagnostic> textInkDiagnostics) {
         Path = path; ViewportWidth = width; ViewportHeight = height; Rendering = rendering; CanvasQuality = quality;
         PackageDiagnostics = Array.AsReadOnly(packageDiagnostics.ToArray());
         PreparationDiagnostics = preparationDiagnostics;
         Regions = Array.AsReadOnly(regions);
         ClippingDiagnostics = clippingDiagnostics;
+        TextInkDiagnostics = textInkDiagnostics;
     }
     /// <summary>Package-relative chapter path.</summary>
     public string Path { get; }
@@ -32,6 +33,12 @@ public sealed class EpubFixedLayoutInspection {
     /// explicit warnings for path-shaped clips whose precise geometry was not inspected. This is not
     /// glyph-ink or pixel visibility measurement. Automatic output clipping is excluded.</summary>
     public IReadOnlyList<HtmlDiagnostic> ClippingDiagnostics { get; }
+    /// <summary>Positioned XHTML text paint bounds against the canvas, including affine transforms and
+    /// conservative decoration strokes at nominal CSS-pixel scale 1. Unmeasured clips, vector scenes and unavailable outlines are diagnosed.
+    /// This does not establish pixel visibility, regional containment or native-reader equivalence.</summary>
+    public IReadOnlyList<HtmlDiagnostic> TextInkDiagnostics { get; }
+    /// <summary>Whether measured text paint bounds extend outside the declared canvas.</summary>
+    public bool HasTextInkOverflow => TextInkDiagnostics.Any(d => d.Code == HtmlRenderDiagnosticCodes.TextInkOutsideCanvas);
     /// <summary>Whether rectangular scene clipping intersects rendered element bounds. This can be intentional.</summary>
     public bool HasClippedElementBounds => ClippingDiagnostics.Any(d => d.Code == HtmlRenderDiagnosticCodes.ClippedElementBounds);
     /// <summary>Package and extraction diagnostics retained regardless of image-export suppression options.</summary>
@@ -40,9 +47,10 @@ public sealed class EpubFixedLayoutInspection {
     public IReadOnlyList<OfficeImageExportDiagnostic> PreparationDiagnostics { get; }
     /// <summary>Whether a rendered element rectangle extends outside the declared viewport.</summary>
     public bool HasCanvasOverflow => CanvasQuality.Issues.Any(issue => issue.Kind == OfficeDrawingQualityIssueKind.ElementOutsideBounds);
-    /// <summary>Whether package, preparation, rendering or clipping inspection reports a warning/error or diagnosed rendering loss.
+    /// <summary>Whether package, preparation, rendering, clipping or text-ink inspection reports a warning/error or diagnosed rendering loss.
     /// False does not establish native-reader or pixel-level fidelity.</summary>
     public bool HasRenderingWarnings => Rendering.HasLoss || PackageDiagnostics.Any(d => d.Severity != EpubDiagnosticSeverity.Info) ||
         PreparationDiagnostics.Any(d => d.Severity != OfficeImageExportDiagnosticSeverity.Info) ||
-        ClippingDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info);
+        ClippingDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info) ||
+        TextInkDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info);
 }
