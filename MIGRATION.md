@@ -108,6 +108,12 @@ Numbers `MINA` uses its independently qualified native identifier and supports o
 
 The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
 
+## Excel HTML named-table reports
+
+Excel HTML export reports classify omitted native named-table definitions as loss, even when all worksheet cells are preserved. Callers requiring lossless conversion must account for table names, filters, styles and totals metadata that HTML does not restore.
+
+Worksheet exports and `ExcelSheet.GetTables()` require a handle belonging to the current workbook package. When a save reloads that package, reacquire the worksheet from `document.Sheets` before inspecting or exporting it; stale or removed handles raise `InvalidOperationException`. Workbook exports and `document.GetTables()` use the current package directly.
+
 ## Excel and iWork TEXTJOIN formulas
 
 Numbers `TEXTJOIN` expressions with qualified operands now retain editable XLSX formulas and typed caches. The shared Excel writer stores authored `TEXTJOIN` calls as `_xlfn.TEXTJOIN`, including nested calls. Code comparing exact formula strings from `GetFormulaText` must account for this prefix. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Formula-prefix expansion that exceeds the 8,192-character storage limit raises an argument error for direct Excel authoring; iWork conversion uses its destination fallback policy instead of truncating the expression.

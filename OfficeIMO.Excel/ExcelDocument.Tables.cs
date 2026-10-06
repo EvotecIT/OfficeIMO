@@ -16,6 +16,12 @@ namespace OfficeIMO.Excel {
                     return result;
                 }
 
+                if (selectedWorksheet != null
+                    && !workbookPart.WorksheetParts.Any(part => ReferenceEquals(part, selectedWorksheet))) {
+                    throw new InvalidOperationException(
+                        "The worksheet is no longer part of the current workbook package. Obtain a current worksheet from ExcelDocument.Sheets before inspecting or exporting it.");
+                }
+
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
                 var sheets = workbook.Sheets?.OfType<Sheet>().ToList() ?? new List<Sheet>();
                 var sheetLookup = new Dictionary<string, (string Name, int Index)>(StringComparer.OrdinalIgnoreCase);
