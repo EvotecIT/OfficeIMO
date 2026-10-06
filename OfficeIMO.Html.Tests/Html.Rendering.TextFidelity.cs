@@ -8,6 +8,23 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlText_MixedInlineEmphasisPreservesAuthoredWordBoundaries() {
+        const string html = "<p style='margin:0;font:16px Arial'>Before <strong>bold</strong> after <em>italic</em> tail</p>";
+
+        IReadOnlyList<HtmlRenderText> text = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 60D,
+            Margins = HtmlRenderMargins.All(0D)
+        }).Pages[0].Visuals
+            .OfType<HtmlRenderText>()
+            .OrderBy(visual => visual.PaintOrder)
+            .ToList();
+
+        Assert.Equal("Before bold after italic tail", string.Concat(text.Select(visual => visual.Text)));
+        Assert.Single(text.Select(visual => Math.Round(visual.Y, 3)).Distinct());
+    }
+
+    [Fact]
     public void HtmlImageExport_UsesPixelSvgAndExactSharedTextAdvances() {
         const string html = "<html style='margin:0'><body style='margin:0'>"
             + "<p style='margin:0;font:14px Arial'><strong>One model.</strong> Shared output.</p>"

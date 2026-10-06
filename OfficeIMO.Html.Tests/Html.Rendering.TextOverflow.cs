@@ -22,6 +22,48 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_WideBreadcrumbInsideFullWidthFlexChildRetainsIntermediateLinks() {
+        const string html = """
+            <style>
+              * { box-sizing: border-box; }
+              .container { width: 100%; padding-left: 10px; padding-right: 10px; }
+              .row { display: flex; flex-wrap: wrap; margin-left: -10px; margin-right: -10px; }
+              .row > * { flex-shrink: 0; width: 100%; max-width: 100%; padding-left: 10px; padding-right: 10px; }
+              .breadcrumb { font-size: 14px; }
+              .breadcrumb ol { display: block; margin: 0; padding: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+              .breadcrumb li { display: inline; }
+              .breadcrumb li:not(:last-child)::after { content: ""; display: inline-block; width: 2ex; height: 2ex; }
+              @media print { a[href]::after { content: " (" attr(href) ")"; overflow-wrap: break-word; } }
+            </style>
+            <div class="container"><div class="row"><div class="container">
+              <nav class="breadcrumb"><ol>
+                <li><a href="https://www.nps.gov/"><span>NPS.gov</span></a></li>
+                <li><a href="https://www.nps.gov/yell/index.htm"><span>Park Home</span></a></li>
+                <li><a href="https://www.nps.gov/yell/learn/index.htm"><span>Learn About the Park</span></a></li>
+                <li><a href="https://www.nps.gov/yell/learn/photosmultimedia/index.htm"><span>Photos &amp; Multimedia</span></a></li>
+                <li>Photo Gallery</li>
+              </ol></nav>
+            </div></div></div>
+            """;
+
+        HtmlRenderRequest request = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged,
+            HtmlRenderEncoder.Pdf,
+            new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) });
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html), request).Document;
+        HtmlRenderText[] text = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToArray();
+
+        Assert.True(text.Any(visual => visual.Text.Contains("Park Home", StringComparison.Ordinal)
+            && visual.LinkUri == "https://www.nps.gov/yell/index.htm"),
+            string.Join(" | ", text.Select(visual => $"{visual.Text} @ {visual.X:F1} ({visual.LinkUri})")));
+        Assert.True(text.Any(visual => visual.Text.Contains("Learn About the Park", StringComparison.Ordinal)
+            && visual.LinkUri == "https://www.nps.gov/yell/learn/index.htm"),
+            string.Join(" | ", text.Select(visual => $"{visual.Text} @ {visual.X:F1} ({visual.LinkUri})")));
+    }
+
+    [Fact]
     public void HtmlRender_EmitsEllipsisForOverflowingAtomicInlineContent() {
         const string html = "<div style='width:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=' width='200' height='10'></div>";
 
@@ -57,6 +99,62 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, lines.Select(line => line.Y).Distinct().Count());
         Assert.EndsWith("\u2026", lines[lines.Count - 1].Text, StringComparison.Ordinal);
         Assert.InRange(lines.Max(line => line.Y + line.Height) - lines.Min(line => line.Y), 35.9D, 36.1D);
+    }
+
+    [Theory]
+    [InlineData("break-word")]
+    [InlineData("anywhere")]
+    public void HtmlRender_UsesWhitespaceBeforeBreakingLongWordInClampedCard(string overflowWrap) {
+        string html = """
+            <style>
+              body { margin: 0; }
+              .card { width: 300px; font: 16px/23px Arial; overflow-wrap: OVERFLOW_WRAP; }
+              p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 7; overflow: hidden; margin: 0; }
+            </style>
+            <div class='card'><p>Jupiter's magnetosphere - a basic view. || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_print.jpg (1024x576) [245.3 KB] || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_searchweb.png (320x180) [132.5 KB] || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_thm.png</p></div>
+            """.Replace("OVERFLOW_WRAP", overflowWrap, StringComparison.Ordinal);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        string[] lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .GroupBy(run => Math.Round(run.Y, 2))
+            .OrderBy(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(run => run.X).Select(run => run.Text)))
+            .ToArray();
+
+        Assert.Equal(7, lines.Length);
+        Assert.DoesNotContain(lines, line => line.Contains("|| Jupiter_", StringComparison.Ordinal));
+        if (overflowWrap == "break-word") Assert.EndsWith("…", lines[6], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Exploring Planet Uranus Resource Page")]
+    [InlineData("<span>Exploring Planet Uranus Resource Page</span>")]
+    public void HtmlRender_ClampsLegacyWebKitBoxInsideHeading(string content) {
+        string html = "<h3 style='width:110px;margin:0'><a style='display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden'>" + content + "</a></h3>";
+
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> text = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal("-webkit-box", computed[document.QuerySelector("a")!].GetValue("display"));
+        Assert.Equal("vertical", computed[document.QuerySelector("a")!].GetValue("-webkit-box-orient"));
+        Assert.Single(text.Select(run => run.Y).Distinct());
+        Assert.All(text, run => Assert.True(run.Font.IsBold));
+        Assert.EndsWith("\u2026", string.Concat(text.Select(run => run.Text)), StringComparison.Ordinal);
+        Assert.DoesNotContain("Resource Page", string.Concat(text.Select(run => run.Text)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_LegacyVerticalWebKitBoxStacksChildItems() {
+        const string html = "<div style='display:-webkit-box;-webkit-box-orient:vertical;width:200px'><span>One</span><span>Two</span></div>";
+
+        IReadOnlyList<HtmlRenderText> text = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+
+        Assert.True(Assert.Single(text, run => run.Text == "Two").Y > Assert.Single(text, run => run.Text == "One").Y);
     }
 
     [Theory]

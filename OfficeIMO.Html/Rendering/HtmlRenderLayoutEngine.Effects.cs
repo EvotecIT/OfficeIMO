@@ -9,9 +9,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         double containingWidth,
         IElement element,
+        out bool createsStackingContext) =>
+        ApplyPaintEffects(block, style, containingWidth, HtmlRenderStyleResolver.DescribeSource(element), out createsStackingContext);
+
+    private HtmlRenderFlowBlock ApplyPaintEffects(
+        HtmlRenderFlowBlock block,
+        HtmlRenderBoxStyle style,
+        double containingWidth,
+        string source,
         out bool createsStackingContext) {
         createsStackingContext = false;
-        string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (style.UnsupportedOpacity.Length > 0) {
             _diagnostics.Add(
                 ComponentName,
@@ -34,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 boxWidth,
                 boxHeight,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _styleResolver.RootFontSize,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
@@ -54,31 +61,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         OfficeTransform transform = OfficeTransform.Identity;
         if (hasTransform) {
-            if (!HtmlCssTransformParser.TryParse(
-                    style.Transform,
-                    style.TransformOrigin,
-                    style.MarginLeft,
-                    style.MarginTop,
-                    boxWidth,
-                    boxHeight,
-                    style.Font.Size,
-                    _options.DefaultFontSize,
-                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
-                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
-                    style.ContainerUnitWidth ?? double.NaN,
-                    style.ContainerUnitHeight ?? double.NaN,
-                    out transform,
-                    out string detail)) {
+            if (!TryParsePaintTransform(style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight,
+                    out transform, out string detail, out bool retainedScale)) {
                 _diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.TransformValueUnsupported,
-                    "A CSS transform or transform-origin value used the identity fallback.",
+                    retainedScale
+                        ? "An unsupported CSS transform was omitted while the individual scale was retained."
+                        : "A CSS transform or transform-origin value used the identity fallback.",
                     HtmlDiagnosticSeverity.Warning,
                     source,
                     detail,
                     OfficeConversionLossKind.Omission);
-                hasTransform = false;
-                transform = OfficeTransform.Identity;
+                hasTransform = retainedScale;
             }
         }
 
@@ -114,7 +109,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             effectVisuals,
             0,
             source);
-        return block.WithVisuals(new[] { group });
+        // A visible fixed-height box keeps its CSS flow height, but translated
+        // overflowing children still need pages on which they can be painted.
+        double pagedPaintExtent = block.PagedPaintExtent;
+        double pagedBreakTranslation = 0D;
+        if (_options.Mode == HtmlRenderMode.Paged && block.PagedPaintExtent > block.Height + 0.0001D
+            && TryGetVerticalPaintTranslation(transform, out double translation) && translation > 0D) {
+            pagedPaintExtent = Math.Max(pagedPaintExtent, MaximumScrollBottom(new[] { group }));
+            pagedBreakTranslation = translation;
+        }
+        return block.WithVisuals(new[] { group }, pagedPaintExtent, pagedBreakTranslation);
     }
 
     private IReadOnlyList<HtmlRenderVisual> ReplaceDescendantFormFieldsForPaintEffect(
@@ -165,7 +169,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bounds.Width,
                 bounds.Height,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _styleResolver.RootFontSize,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
@@ -186,29 +190,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         OfficeTransform transform = OfficeTransform.Identity;
         bool hasTransform = style.Transform != "none";
-        if (hasTransform && !HtmlCssTransformParser.TryParse(
-                style.Transform,
-                style.TransformOrigin,
-                bounds.X,
-                bounds.Y,
-                bounds.Width,
-                bounds.Height,
-                style.Font.Size,
-                _options.DefaultFontSize,
-                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
-                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
-                style.ContainerUnitWidth ?? double.NaN,
-                style.ContainerUnitHeight ?? double.NaN,
-                out transform,
-                out string transformDetail)) {
+        if (hasTransform && !TryParsePaintTransform(style, bounds.X, bounds.Y, bounds.Width, bounds.Height,
+                out transform, out string transformDetail, out bool retainedScale)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.TransformValueUnsupported,
-                "A CSS transform or transform-origin value used the identity fallback.",
+                retainedScale
+                    ? "An unsupported CSS transform was omitted while the individual scale was retained."
+                    : "A CSS transform or transform-origin value used the identity fallback.",
                 HtmlDiagnosticSeverity.Warning,
                 source,
                 transformDetail);
-            hasTransform = false;
+            hasTransform = retainedScale;
         }
 
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
@@ -244,6 +237,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         };
     }
 
+    private bool TryParsePaintTransform(
+        HtmlRenderBoxStyle style,
+        double boxX,
+        double boxY,
+        double boxWidth,
+        double boxHeight,
+        out OfficeTransform transform,
+        out string detail,
+        out bool retainedScale) {
+        double viewportWidth = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth;
+        double viewportHeight = _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D;
+        bool parsed = HtmlCssTransformParser.TryParse(
+            style.Transform, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
+            style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
+            style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
+            out transform, out detail);
+        retainedScale = false;
+        if (parsed || style.IndividualScale == "none") return parsed;
+        retainedScale = HtmlCssTransformParser.TryParse(
+            style.IndividualScale, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
+            style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
+            style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
+            out OfficeTransform scaleTransform, out _);
+        transform = retainedScale ? scaleTransform : OfficeTransform.Identity;
+        return false;
+    }
+
     private IReadOnlyList<HtmlRenderVisual> ApplyInlineBoxDecoration(
         IElement element,
         HtmlRenderBoxStyle style,
@@ -259,16 +279,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool includeStartEdge = clone || index == 0 && !bounds.IsContinuation;
             bool includeEndEdge = clone || index == bounds.Fragments.Count - 1;
             HtmlRenderBoxStyle fragmentStyle = CreateInlineFragmentPaintStyle(style, includeStartEdge, includeEndEdge);
-            double leftInset = includeStartEdge ? fragmentStyle.BorderLeftWidth + fragmentStyle.PaddingLeft : 0D;
-            double rightInset = includeEndEdge ? fragmentStyle.BorderRightWidth + fragmentStyle.PaddingRight : 0D;
-            double topInset = fragmentStyle.BorderTopWidth + fragmentStyle.PaddingTop;
-            double bottomInset = fragmentStyle.BorderBottomWidth + fragmentStyle.PaddingBottom;
-            double x = fragment.X - leftInset;
-            double y = fragment.Y - topInset;
-            double width = Math.Max(0.01D, fragment.Width + leftInset + rightInset);
-            double height = Math.Max(0.01D, fragment.Height + topInset + bottomInset);
-            AddBoxPaint(backgroundsAndBorders, fragmentStyle, x, y, width, height, element);
-            AddBoxOutlinePaint(outlines, fragmentStyle, x, y, width, height, element);
+            InlineFragmentRect borderBox = ExpandInlineFragmentToBorderBox(
+                fragment, fragmentStyle, includeStartEdge, includeEndEdge);
+            int backgroundStart = backgroundsAndBorders.Count;
+            int outlineStart = outlines.Count;
+            AddBoxPaint(backgroundsAndBorders, fragmentStyle,
+                borderBox.X, borderBox.Y, borderBox.Width, borderBox.Height, element);
+            AddBoxOutlinePaint(outlines, fragmentStyle,
+                borderBox.X, borderBox.Y, borderBox.Width, borderBox.Height, element);
+            if (Math.Abs(borderBox.RelativePaintOffsetY) > 0.0001D) {
+                RestoreRelativeFlowCoordinates(backgroundsAndBorders, backgroundStart, borderBox.RelativePaintOffsetY);
+                RestoreRelativeFlowCoordinates(outlines, outlineStart, borderBox.RelativePaintOffsetY);
+            }
         }
 
         var decorated = new List<HtmlRenderVisual>(backgroundsAndBorders.Count + content.Count + outlines.Count);
@@ -276,6 +298,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         decorated.AddRange(content);
         decorated.AddRange(outlines);
         return decorated;
+    }
+
+    private static InlineFragmentRect ExpandInlineFragmentToBorderBox(
+        InlineFragmentRect fragment,
+        HtmlRenderBoxStyle style,
+        bool includeStartEdge,
+        bool includeEndEdge) {
+        double leftInset = includeStartEdge ? style.BorderLeftWidth + style.PaddingLeft : 0D;
+        double rightInset = includeEndEdge ? style.BorderRightWidth + style.PaddingRight : 0D;
+        double topInset = style.BorderTopWidth + style.PaddingTop;
+        double bottomInset = style.BorderBottomWidth + style.PaddingBottom;
+        return new InlineFragmentRect(
+            fragment.X - leftInset,
+            fragment.Y - topInset,
+            fragment.Width + leftInset + rightInset,
+            fragment.Height + topInset + bottomInset, fragment.RelativePaintOffsetY);
+    }
+
+    private static void RestoreRelativeFlowCoordinates(List<HtmlRenderVisual> visuals, int start, double offsetY) {
+        for (int index = start; index < visuals.Count; index++) {
+            // Inline decoration bounds already include the run's inset. Rebase
+            // only its flow origin, then apply that explicit paint displacement.
+            visuals[index] = visuals[index].Translate(0D, -offsetY, visuals[index].PaintOrder)
+                .TranslateRelativePaint(0D, offsetY, visuals[index].PaintOrder);
+        }
     }
 
     private static HtmlRenderBoxStyle CreateInlineFragmentPaintStyle(

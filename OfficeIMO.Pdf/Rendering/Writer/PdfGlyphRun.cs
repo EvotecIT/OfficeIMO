@@ -94,12 +94,20 @@ internal sealed class PdfGlyphRun {
 }
 
 internal sealed class PdfTextShowCommand {
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null,
+        OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false, double fontMetricScale = 1D) {
+        if (fontMetricScale <= 0D || double.IsNaN(fontMetricScale) || double.IsInfinity(fontMetricScale))
+            throw new ArgumentOutOfRangeException(nameof(fontMetricScale));
         LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
         VisualGlyphs = visualGlyphs;
         GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
+        Tracking = tracking;
+        UnitsPerEm = unitsPerEm;
+        TrackingBoundaries = trackingBoundaries;
+        NegativeTracking = negativeTracking;
+        FontMetricScale = fontMetricScale;
     }
 
     internal IReadOnlyList<PdfGlyphInfo>? LogicalGlyphs { get; }
@@ -109,6 +117,11 @@ internal sealed class PdfTextShowCommand {
     internal string GlyphHex { get; }
     internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
     internal string? ActualText { get; }
+    internal OfficeOpenTypeTracking? Tracking { get; }
+    internal int UnitsPerEm { get; }
+    internal bool[]? TrackingBoundaries { get; }
+    internal bool NegativeTracking { get; }
+    internal double FontMetricScale { get; }
     internal bool HasPositioning => PositionedGlyphs != null && PositionedGlyphs.Count > 0;
 }
 

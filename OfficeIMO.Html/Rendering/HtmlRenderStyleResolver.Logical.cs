@@ -23,62 +23,60 @@ internal sealed partial class HtmlRenderStyleResolver {
         string direction) {
         // Most elements only have physical properties. Preserve their computed
         // style without copying dictionaries or constructing mapping names.
-        bool hasLogicalProperty = false;
-        foreach (string name in computed.Properties.Keys) {
-            if (name.IndexOf("-inline", StringComparison.OrdinalIgnoreCase) >= 0
-                || name.IndexOf("-block", StringComparison.OrdinalIgnoreCase) >= 0
-                || name.StartsWith("inline-", StringComparison.OrdinalIgnoreCase)
-                || name.StartsWith("block-", StringComparison.OrdinalIgnoreCase)
-                || name.StartsWith("border-start-", StringComparison.OrdinalIgnoreCase)
-                || name.StartsWith("border-end-", StringComparison.OrdinalIgnoreCase)) {
-                hasLogicalProperty = true;
-                break;
-            }
-        }
+        bool hasLogicalProperty = computed.HasCascadeStateMatching(IsLogicalPropertyName);
         if (!hasLogicalProperty) return computed;
 
         var properties = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> property in computed.Properties) properties[property.Key] = property.Value;
         Dictionary<string, HtmlCssCascadePriority> priorities = computed.CopyCascadePriorities();
+        var mappings = new List<(string Source, string Target)>();
         ResolveLogicalSides(writingMode, direction, out string inlineStart, out string inlineEnd, out string blockStart, out string blockEnd);
 
-        MapPair(computed, properties, priorities, "margin-inline", "margin-" + inlineStart, "margin-" + inlineEnd);
-        MapSingle(computed, properties, priorities, "margin-inline-start", "margin-" + inlineStart);
-        MapSingle(computed, properties, priorities, "margin-inline-end", "margin-" + inlineEnd);
-        MapPair(computed, properties, priorities, "margin-block", "margin-" + blockStart, "margin-" + blockEnd);
-        MapSingle(computed, properties, priorities, "margin-block-start", "margin-" + blockStart);
-        MapSingle(computed, properties, priorities, "margin-block-end", "margin-" + blockEnd);
+        MapPair(computed, properties, priorities, mappings, "margin-inline", "margin-" + inlineStart, "margin-" + inlineEnd);
+        MapSingle(computed, properties, priorities, mappings, "margin-inline-start", "margin-" + inlineStart);
+        MapSingle(computed, properties, priorities, mappings, "margin-inline-end", "margin-" + inlineEnd);
+        MapPair(computed, properties, priorities, mappings, "margin-block", "margin-" + blockStart, "margin-" + blockEnd);
+        MapSingle(computed, properties, priorities, mappings, "margin-block-start", "margin-" + blockStart);
+        MapSingle(computed, properties, priorities, mappings, "margin-block-end", "margin-" + blockEnd);
 
-        MapPair(computed, properties, priorities, "padding-inline", "padding-" + inlineStart, "padding-" + inlineEnd);
-        MapSingle(computed, properties, priorities, "padding-inline-start", "padding-" + inlineStart);
-        MapSingle(computed, properties, priorities, "padding-inline-end", "padding-" + inlineEnd);
-        MapPair(computed, properties, priorities, "padding-block", "padding-" + blockStart, "padding-" + blockEnd);
-        MapSingle(computed, properties, priorities, "padding-block-start", "padding-" + blockStart);
-        MapSingle(computed, properties, priorities, "padding-block-end", "padding-" + blockEnd);
+        MapPair(computed, properties, priorities, mappings, "padding-inline", "padding-" + inlineStart, "padding-" + inlineEnd);
+        MapSingle(computed, properties, priorities, mappings, "padding-inline-start", "padding-" + inlineStart);
+        MapSingle(computed, properties, priorities, mappings, "padding-inline-end", "padding-" + inlineEnd);
+        MapPair(computed, properties, priorities, mappings, "padding-block", "padding-" + blockStart, "padding-" + blockEnd);
+        MapSingle(computed, properties, priorities, mappings, "padding-block-start", "padding-" + blockStart);
+        MapSingle(computed, properties, priorities, mappings, "padding-block-end", "padding-" + blockEnd);
 
-        MapPair(computed, properties, priorities, "inset-inline", inlineStart, inlineEnd);
-        MapSingle(computed, properties, priorities, "inset-inline-start", inlineStart);
-        MapSingle(computed, properties, priorities, "inset-inline-end", inlineEnd);
-        MapPair(computed, properties, priorities, "inset-block", blockStart, blockEnd);
-        MapSingle(computed, properties, priorities, "inset-block-start", blockStart);
-        MapSingle(computed, properties, priorities, "inset-block-end", blockEnd);
+        MapPair(computed, properties, priorities, mappings, "inset-inline", inlineStart, inlineEnd);
+        MapSingle(computed, properties, priorities, mappings, "inset-inline-start", inlineStart);
+        MapSingle(computed, properties, priorities, mappings, "inset-inline-end", inlineEnd);
+        MapPair(computed, properties, priorities, mappings, "inset-block", blockStart, blockEnd);
+        MapSingle(computed, properties, priorities, mappings, "inset-block-start", blockStart);
+        MapSingle(computed, properties, priorities, mappings, "inset-block-end", blockEnd);
 
         bool vertical = writingMode != "horizontal-tb";
-        MapSingle(computed, properties, priorities, "inline-size", vertical ? "height" : "width");
-        MapSingle(computed, properties, priorities, "block-size", vertical ? "width" : "height");
-        MapSingle(computed, properties, priorities, "min-inline-size", vertical ? "min-height" : "min-width");
-        MapSingle(computed, properties, priorities, "min-block-size", vertical ? "min-width" : "min-height");
-        MapSingle(computed, properties, priorities, "max-inline-size", vertical ? "max-height" : "max-width");
-        MapSingle(computed, properties, priorities, "max-block-size", vertical ? "max-width" : "max-height");
+        MapSingle(computed, properties, priorities, mappings, "inline-size", vertical ? "height" : "width");
+        MapSingle(computed, properties, priorities, mappings, "block-size", vertical ? "width" : "height");
+        MapSingle(computed, properties, priorities, mappings, "min-inline-size", vertical ? "min-height" : "min-width");
+        MapSingle(computed, properties, priorities, mappings, "min-block-size", vertical ? "min-width" : "min-height");
+        MapSingle(computed, properties, priorities, mappings, "max-inline-size", vertical ? "max-height" : "max-width");
+        MapSingle(computed, properties, priorities, mappings, "max-block-size", vertical ? "max-width" : "max-height");
 
-        MapBorderAxis(computed, properties, priorities, "inline", inlineStart, inlineEnd);
-        MapBorderAxis(computed, properties, priorities, "block", blockStart, blockEnd);
-        MapLogicalCornerRadius(computed, properties, priorities, "border-start-start-radius", blockStart, inlineStart);
-        MapLogicalCornerRadius(computed, properties, priorities, "border-start-end-radius", blockStart, inlineEnd);
-        MapLogicalCornerRadius(computed, properties, priorities, "border-end-start-radius", blockEnd, inlineStart);
-        MapLogicalCornerRadius(computed, properties, priorities, "border-end-end-radius", blockEnd, inlineEnd);
-        return computed.WithMappedProperties(properties, priorities);
+        MapBorderAxis(computed, properties, priorities, mappings, "inline", inlineStart, inlineEnd);
+        MapBorderAxis(computed, properties, priorities, mappings, "block", blockStart, blockEnd);
+        MapLogicalCornerRadius(computed, properties, priorities, mappings, "border-start-start-radius", blockStart, inlineStart);
+        MapLogicalCornerRadius(computed, properties, priorities, mappings, "border-start-end-radius", blockStart, inlineEnd);
+        MapLogicalCornerRadius(computed, properties, priorities, mappings, "border-end-start-radius", blockEnd, inlineStart);
+        MapLogicalCornerRadius(computed, properties, priorities, mappings, "border-end-end-radius", blockEnd, inlineEnd);
+        return computed.WithMappedProperties(properties, priorities, mappings);
     }
+
+    private static bool IsLogicalPropertyName(string name) =>
+        name.IndexOf("-inline", StringComparison.OrdinalIgnoreCase) >= 0
+        || name.IndexOf("-block", StringComparison.OrdinalIgnoreCase) >= 0
+        || name.StartsWith("inline-", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("block-", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("border-start-", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("border-end-", StringComparison.OrdinalIgnoreCase);
 
     private static void ResolveLogicalSides(
         string writingMode,
@@ -108,64 +106,78 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlComputedStyle computed,
         IDictionary<string, string> properties,
         Dictionary<string, HtmlCssCascadePriority> priorities,
+        List<(string Source, string Target)> mappings,
         string axis,
         string start,
         string end) {
         string prefix = "border-" + axis;
-        MapPair(computed, properties, priorities, prefix, "border-" + start, "border-" + end);
-        MapPair(computed, properties, priorities, prefix + "-width", "border-" + start + "-width", "border-" + end + "-width");
-        MapPair(computed, properties, priorities, prefix + "-style", "border-" + start + "-style", "border-" + end + "-style");
-        MapPair(computed, properties, priorities, prefix + "-color", "border-" + start + "-color", "border-" + end + "-color");
-        MapSingle(computed, properties, priorities, prefix + "-start", "border-" + start);
-        MapSingle(computed, properties, priorities, prefix + "-start-width", "border-" + start + "-width");
-        MapSingle(computed, properties, priorities, prefix + "-start-style", "border-" + start + "-style");
-        MapSingle(computed, properties, priorities, prefix + "-start-color", "border-" + start + "-color");
-        MapSingle(computed, properties, priorities, prefix + "-end", "border-" + end);
-        MapSingle(computed, properties, priorities, prefix + "-end-width", "border-" + end + "-width");
-        MapSingle(computed, properties, priorities, prefix + "-end-style", "border-" + end + "-style");
-        MapSingle(computed, properties, priorities, prefix + "-end-color", "border-" + end + "-color");
+        MapPair(computed, properties, priorities, mappings, prefix, "border-" + start, "border-" + end);
+        MapPair(computed, properties, priorities, mappings, prefix + "-width", "border-" + start + "-width", "border-" + end + "-width");
+        MapPair(computed, properties, priorities, mappings, prefix + "-style", "border-" + start + "-style", "border-" + end + "-style");
+        MapPair(computed, properties, priorities, mappings, prefix + "-color", "border-" + start + "-color", "border-" + end + "-color");
+        MapSingle(computed, properties, priorities, mappings, prefix + "-start", "border-" + start);
+        MapSingle(computed, properties, priorities, mappings, prefix + "-start-width", "border-" + start + "-width");
+        MapSingle(computed, properties, priorities, mappings, prefix + "-start-style", "border-" + start + "-style");
+        MapSingle(computed, properties, priorities, mappings, prefix + "-start-color", "border-" + start + "-color");
+        MapSingle(computed, properties, priorities, mappings, prefix + "-end", "border-" + end);
+        MapSingle(computed, properties, priorities, mappings, prefix + "-end-width", "border-" + end + "-width");
+        MapSingle(computed, properties, priorities, mappings, prefix + "-end-style", "border-" + end + "-style");
+        MapSingle(computed, properties, priorities, mappings, prefix + "-end-color", "border-" + end + "-color");
     }
 
     private static void MapLogicalCornerRadius(
         HtmlComputedStyle computed,
         IDictionary<string, string> properties,
         Dictionary<string, HtmlCssCascadePriority> priorities,
+        List<(string Source, string Target)> mappings,
         string logicalName,
         string firstSide,
         string secondSide) {
         string verticalSide = firstSide == "top" || firstSide == "bottom" ? firstSide : secondSide;
         string horizontalSide = firstSide == "left" || firstSide == "right" ? firstSide : secondSide;
-        MapSingle(computed, properties, priorities, logicalName, "border-" + verticalSide + "-" + horizontalSide + "-radius");
+        MapSingle(computed, properties, priorities, mappings, logicalName, "border-" + verticalSide + "-" + horizontalSide + "-radius");
     }
 
     private static void MapSingle(
         HtmlComputedStyle computed,
         IDictionary<string, string> properties,
         Dictionary<string, HtmlCssCascadePriority> priorities,
+        List<(string Source, string Target)> mappings,
         string logicalName,
         string physicalName) {
         string value = computed.GetValue(logicalName).Trim();
-        if (value.Length == 0 || !computed.ShouldOverride(logicalName, physicalName)) return;
-        properties[physicalName] = value;
+        if (!computed.HasCascadeState(logicalName) || !computed.ShouldOverride(logicalName, physicalName)) return;
+        if (value.Length == 0) properties.Remove(physicalName);
+        else properties[physicalName] = value;
         if (computed.TryGetCascadePriority(logicalName, out HtmlCssCascadePriority priority)) priorities[physicalName] = priority;
+        else priorities.Remove(physicalName);
+        mappings.Add((logicalName, physicalName));
     }
 
     private static void MapPair(
         HtmlComputedStyle computed,
         IDictionary<string, string> properties,
         Dictionary<string, HtmlCssCascadePriority> priorities,
+        List<(string Source, string Target)> mappings,
         string logicalName,
         string startName,
         string endName) {
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(computed.GetValue(logicalName));
-        if (values.Count == 0 || values.Count > 2) return;
+        bool hasCascadeState = computed.HasCascadeState(logicalName);
+        if (!hasCascadeState || values.Count > 2) return;
         if (computed.ShouldOverride(logicalName, startName)) {
-            properties[startName] = values[0];
+            if (values.Count == 0) properties.Remove(startName);
+            else properties[startName] = values[0];
             if (computed.TryGetCascadePriority(logicalName, out HtmlCssCascadePriority startPriority)) priorities[startName] = startPriority;
+            else priorities.Remove(startName);
+            mappings.Add((logicalName, startName));
         }
         if (computed.ShouldOverride(logicalName, endName)) {
-            properties[endName] = values.Count == 1 ? values[0] : values[1];
+            if (values.Count == 0) properties.Remove(endName);
+            else properties[endName] = values.Count == 1 ? values[0] : values[1];
             if (computed.TryGetCascadePriority(logicalName, out HtmlCssCascadePriority endPriority)) priorities[endName] = endPriority;
+            else priorities.Remove(endName);
+            mappings.Add((logicalName, endName));
         }
     }
 }

@@ -1,0 +1,369 @@
+{
+  "sourceCommit": "9c93ce68752918fa085e0162b5c7162e868bd227",
+  "baseCommit": "5c27041ae59f7c8e25df42b604b6829ffb9a7e55",
+  "scope": "Internal Main-8 post-CDEF Wiener and self-guided restoration with immutable stripe sources. Public AVIF and HTML/PDF preservation remain unqualified.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "dbfd0bae3d2bd8568480e4e543c281851e49998084cbbd1a423828a573943601",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1RestorationFilter.cs": "b01905ed5d6d701b6ceb885d7fc1821a8416e795de47f53472bd7892b73c2330",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Restorer.cs": "156bded8374df01f91d62958e992db10f012a4eacf291ba42195a84cdb345e1f",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.RestoredFrames.cs": "cd84c2e8877b2aaf3806744dceac1f9be578ebfbae7613d5448d13bf0071a9cd",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/restored-reference.json.gz": "b911cf839bb5f586125a2edd789c307d059755b0d3342329043221939ac765bb"
+  },
+  "reference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "assetsSha256": {
+      "GenerateRestoredFrames.py": "b3b3bfc6f148f6c048ad7f2d007b8dbc3afa1182e4196c84639a1b0da5b17f61",
+      "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+      "GenerateReconstructionFixtures.py": "a1e3c6fa9c46972f12f006e3f66b425b3d55d1387e0828fd471a9d61a69150f3",
+      "TraceRestoration.patch": "867792459d846fc08268504acac25781755907383b58bd23fae331000b4bf3c7",
+      "OfficeReconstructionProbe.inc": "315f4206a9ed85e4b9be71b8bd9767486ecad289f2fa1384fdaf0ac199addc4b",
+      "OfficeRestorationProbe.inc": "379446d2d767c7f4786eff6ec10b29cb54e6bf7bd35096af3bd06143ef810740",
+      "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+      "ReadRestorationKernels.c": "16899f6d10e99ba9ae71306b18a1d93d47fa06f794595d64788b7f5ef730323b",
+      "EncodeRestorationControls.c": "7ba8f870d0f39757e3b94ff6b254e81ece41e8a1ca0395a77368ec434d825843",
+      "cdef-reference.json.gz": "b789244cf8f076487f6120000627287234a3a26a381097d63e1778dc3885a243"
+    },
+    "fixtureSha256": "b911cf839bb5f586125a2edd789c307d059755b0d3342329043221939ac765bb",
+    "canonicalJsonSha256": "e1ebce418d40d907611a1069ce29aa19b07324318f94be095ffff14a014fd247",
+    "cases": 15,
+    "nativeUnitTypes": [
+      0,
+      1,
+      2
+    ],
+    "kernels": 160,
+    "changedKernelCases": 46
+  },
+  "sampleCoverage": {
+    "frames": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "width": 49,
+        "height": 33,
+        "samplesPerCroppedStage": 2467,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3"
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": false,
+        "width": 49,
+        "height": 33,
+        "samplesPerCroppedStage": 2467,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6"
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "width": 49,
+        "height": 33,
+        "samplesPerCroppedStage": 1617,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6"
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "width": 256,
+        "height": 128,
+        "samplesPerCroppedStage": 49152,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a"
+      },
+      {
+        "name": "lossless-copy",
+        "alpha": false,
+        "width": 640,
+        "height": 128,
+        "samplesPerCroppedStage": 122880,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "9d7eca4b07732cab2bd1da6dd6567690607cf17cf80cf280c723b442d27a0cae"
+      },
+      {
+        "name": "odd-color",
+        "alpha": false,
+        "width": 97,
+        "height": 65,
+        "samplesPerCroppedStage": 9539,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "2096d2012d270b7f092c119121880580f902d2ab9a7409b7e9f4b83a92ab98b2"
+      },
+      {
+        "name": "odd-mono",
+        "alpha": false,
+        "width": 97,
+        "height": 65,
+        "samplesPerCroppedStage": 6305,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "80416f86027a6d390fcf83e79cf7268912609887b8929778770e1458c4b53f85"
+      },
+      {
+        "name": "odd-tiled-color",
+        "alpha": false,
+        "width": 257,
+        "height": 137,
+        "samplesPerCroppedStage": 53011,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "fe5b5753ab60efc91d9eba9ba21926fab70a0da41c3522cc66e571e2870678d9"
+      },
+      {
+        "name": "svt-tiled-mixed-skip",
+        "alpha": false,
+        "width": 256,
+        "height": 136,
+        "samplesPerCroppedStage": 52224,
+        "restorationChangedSamples": 0,
+        "nativeUnitTypes": {},
+        "maxUnitRow": -1,
+        "maxUnitCol": -1,
+        "inputSha256": "a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f"
+      },
+      {
+        "name": "restore-control-0",
+        "alpha": false,
+        "width": 193,
+        "height": 137,
+        "samplesPerCroppedStage": 39827,
+        "restorationChangedSamples": 14857,
+        "nativeUnitTypes": {
+          "2": 2
+        },
+        "maxUnitRow": 0,
+        "maxUnitCol": 0,
+        "inputSha256": "3d24359fed4d557efe9c0371e05141f94e5c5e420d1e7747520bc86dd1e060b9"
+      },
+      {
+        "name": "restore-control-1",
+        "alpha": false,
+        "width": 193,
+        "height": 137,
+        "samplesPerCroppedStage": 39827,
+        "restorationChangedSamples": 1522,
+        "nativeUnitTypes": {
+          "2": 1
+        },
+        "maxUnitRow": 0,
+        "maxUnitCol": 0,
+        "inputSha256": "097d068969152190c04dac67cfaee4a9fe322a0d6941a2e7ce0a1b4b1622d073"
+      },
+      {
+        "name": "restore-control-2",
+        "alpha": false,
+        "width": 193,
+        "height": 137,
+        "samplesPerCroppedStage": 26441,
+        "restorationChangedSamples": 11173,
+        "nativeUnitTypes": {
+          "2": 1
+        },
+        "maxUnitRow": 0,
+        "maxUnitCol": 0,
+        "inputSha256": "b49a6a1a9ed29fc35de6b155ad3cdd0c51a275e6283c841553f793b4a299a4ba"
+      },
+      {
+        "name": "restore-control-3",
+        "alpha": false,
+        "width": 513,
+        "height": 257,
+        "samplesPerCroppedStage": 198147,
+        "restorationChangedSamples": 87228,
+        "nativeUnitTypes": {
+          "2": 2,
+          "1": 2
+        },
+        "maxUnitRow": 0,
+        "maxUnitCol": 1,
+        "inputSha256": "b991ffabbf1b6a19add65ba413887c07e9864637f05dc1b581155580daf59234"
+      },
+      {
+        "name": "restore-control-4",
+        "alpha": false,
+        "width": 513,
+        "height": 257,
+        "samplesPerCroppedStage": 198147,
+        "restorationChangedSamples": 67868,
+        "nativeUnitTypes": {
+          "2": 2,
+          "1": 2
+        },
+        "maxUnitRow": 0,
+        "maxUnitCol": 1,
+        "inputSha256": "64f37b7448855e5160bc0de2c3ae0b5afd8b7c49d6cd4e45c1906713af436bdf"
+      },
+      {
+        "name": "restore-control-5",
+        "alpha": false,
+        "width": 513,
+        "height": 513,
+        "samplesPerCroppedStage": 395267,
+        "restorationChangedSamples": 153965,
+        "nativeUnitTypes": {
+          "2": 3,
+          "0": 1,
+          "1": 2
+        },
+        "maxUnitRow": 1,
+        "maxUnitCol": 1,
+        "inputSha256": "627988de772cd132fb1bc386cdb90efb163728cf5809b1935bc81698c3fc5a6d"
+      }
+    ],
+    "frameSamplesPerCroppedStage": 1197318,
+    "restorationChangedSamples": 336613,
+    "kernelCases": 160,
+    "changedKernelCases": 46
+  },
+  "validation": {
+    "sdk": "10.0.303",
+    "host": "macOS",
+    "tests": [
+      {
+        "file": "restoration-focused-net10.trx",
+        "sha256": "0c43a96504be6ef5102bc7b16ab668b8549f7e1dfdae5c2365935528f8f28272",
+        "counts": {
+          "total": "18",
+          "executed": "18",
+          "passed": "18",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "drawing-restoration-net10.trx",
+        "sha256": "90f0d95c767101e842fc2ae57af62c080ad48439164a9e7b9526e52e857ce4c2",
+        "counts": {
+          "total": "3001",
+          "executed": "3001",
+          "passed": "3001",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "drawing-restoration-net8.trx",
+        "sha256": "77303ae2d0f35fa876a3a36a38347f6d7054d19e48d82a77ab3bee55ef74272e",
+        "counts": {
+          "total": "3001",
+          "executed": "3001",
+          "passed": "3001",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "corePackage": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "packageSha256": "566b4ca4c26acd58af806cb0bb40bb07c6d94d9cc99dded24104957c6ce4d6a6",
+      "targets": [
+        {
+          "target": "netstandard2.0",
+          "assemblySha256": "eaa864bc67c6590dfd89654e876303ead6eff7dfbaddbb4aa6587663fbfac070",
+          "restorationTypesPresent": true
+        },
+        {
+          "target": "net8.0",
+          "assemblySha256": "8a734cdfdaf7f0d1bb76fddc312919b933496f27b66eaceec49638cebd2790a8",
+          "restorationTypesPresent": true
+        },
+        {
+          "target": "net10.0",
+          "assemblySha256": "46429c4111e03ffb0e354f58bb4daeb7d7a5baa9e606465c3c96c71920367dff",
+          "restorationTypesPresent": true
+        }
+      ],
+      "runtimeDependencies": 0,
+      "nativeReferenceAssets": [],
+      "warnings": 0
+    },
+    "stripeSourceMutation": {
+      "change": "Use CDEF rather than deblocked samples outside the stripe",
+      "result": "5 native frame cases fail, earliest luma difference at (15,54) and chroma at (50,26); original source restored before final validation.",
+      "logSha256": "60c04eadf1b2b85cab54553fa2218d857b72ca560572b211939e7eda64eb4c24"
+    }
+  },
+  "review": {
+    "decision": "used",
+    "reason": "New codec arithmetic, stripe/unit ownership, resource bounds and cancellation contract",
+    "task": "av1_restoration_review",
+    "scope": "New restoration owners, reconstruction wiring, fixture provenance and tests",
+    "result": "No actionable P0-P3 findings",
+    "boundary": "candidate-reviewed",
+    "targetedConfirmation": "not needed",
+    "reviewerMutation": "none",
+    "hostedReview": "not requested"
+  },
+  "remaining": [
+    "Independent full-frame active restoration at smaller unit sizes and 128-pixel superblocks",
+    "Mid-filter cancellation and exceptional unit-grid/work-limit paths have source-level checks; limited direct new-test coverage",
+    "Applicable superresolution, color/alpha composition and public default raster integration",
+    "Frozen HTML/PDF decoded/rendered acceptance, H4/NASA and applicable unchanged performance ceilings at completed decoder boundary",
+    "Windows/net472 execution and Windows/Linux H10 operation budgets",
+    "Other confirmed frozen static PDF/layout/text/SVG/MathML/conformance gaps remain in Docs/ROADMAP.md"
+  ],
+  "cleanup": {
+    "removedTargets": 47,
+    "removedBytes": 80649421,
+    "retainedRestorationBytes": 85050447,
+    "purpose": "Final test results, native receipts, stripe-source mutation proof, and one pinned native source/build retained for superresolution."
+  },
+  "retainedArtifactDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-restoration-work-5c27041ae"
+}

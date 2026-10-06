@@ -242,11 +242,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<GridItem> items,
         double availableSize,
         double gap,
-        bool includeFractionTracks) {
+        bool includeFractionTracks,
+        bool autoTracksUseMaxContent = false) {
         var sizes = tracks.Select(track => track.IsCollapsed ? 0D : Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
         foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
             IReadOnlyList<GridTrack> spannedTracks = tracks.Skip(item.Column).Take(item.ColumnSpan).ToList();
-            bool usesMaxContentContribution = includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
+            bool usesMaxContentContribution = autoTracksUseMaxContent && spannedTracks.Any(track => track.Kind == GridTrackKind.Auto)
+                || includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
                 || GridTracksUseMaxContentContribution(spannedTracks);
             double required = usesMaxContentContribution
                 ? ResolveGridMaxContentContribution(item.Item, availableSize)
@@ -323,8 +325,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool GridTracksUseMaxContentContribution(IReadOnlyList<GridTrack> tracks) =>
         tracks.Any(track =>
             track.MaximumSizing == GridIntrinsicSizing.MaxContent
-            || track.MinimumSizing == GridIntrinsicSizing.MaxContent
-            || track.Kind == GridTrackKind.Auto);
+            || track.MinimumSizing == GridIntrinsicSizing.MaxContent);
 
     private double ResolveGridMinContentContribution(FlexItem item, double availableSize) {
         HtmlRenderBoxStyle style = item.Style;
@@ -337,7 +338,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             measured = MeasureGridMinContentRuns(textRuns);
         }
-        measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
+        measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
 
         return ResolveGridMeasuredContribution(style, measured);
     }
@@ -364,13 +365,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (run.IsReplaced) {
-                current += run.ReplacedWidth;
+                current += run.ReplacedMinWidth;
                 maximum = Math.Max(maximum, current);
-                if (!run.Style.PreventTextWrapping) current = 0D;
+                if (!run.Style.PreventTextWrapping && !run.IsInlineInset) current = 0D;
                 continue;
             }
             if (run.Style.PreventTextWrapping) {
-                current += MeasureInlineText(run.Text, run.Style);
+                current += run.Text.IndexOf('\t') >= 0
+                    ? MeasureTabExpandedText(run.Text, run.Style, current)
+                    : MeasureInlineText(run.Text, run.Style);
                 maximum = Math.Max(maximum, current);
                 continue;
             }
@@ -392,7 +395,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
                         string paintToken = hyphenation.PaintText;
                         var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
-                        IReadOnlyList<int> preferredBreaks = OfficeTextLineBreaks.GetBreakPositions(
+                        IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(
                             paintToken,
                             run.Style.WordBreak != "keep-all");
                         int segmentStart = 0;
@@ -431,17 +434,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 current = 0D;
                 continue;
             }
-            current += run.IsReplaced ? run.ReplacedWidth : MeasureInlineText(run.Text, run.Style);
+            current += run.IsReplaced
+                ? run.ReplacedWidth
+                : run.Text.IndexOf('\t') >= 0
+                    ? MeasureTabExpandedText(run.Text, run.Style, current)
+                    : MeasureMaxContentTextRun(run);
         }
         return Math.Max(maximum, current);
     }
 
-    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize) {
+    private double MeasureMaxContentTextRun(GridIntrinsicTextRun run) {
+        double fullWidth = MeasureInlineText(run.Text, run.Style);
+        if (!run.Text.Any(char.IsWhiteSpace)) return fullWidth;
+
+        // Inline layout measures separate words and spaces. Some font shapers
+        // return a slightly smaller width for the whole string, which can make
+        // an auto-sized flex/grid item wrap despite using its max-content width.
+        double inlineWidth = 0D;
+        foreach (string token in Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces)) {
+            inlineWidth += MeasureInlineText(!run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token, run.Style);
+        }
+        return Math.Max(fullWidth, inlineWidth);
+    }
+
+    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1, bool skipSizedNestedTables = false, bool includeDescendantInsets = false) {
         var rawRuns = new List<GridIntrinsicTextRun>();
         if (item.Element == null) {
-            rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
+            if (item.Style.Font.Size > 0D) rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
         } else {
-            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, 1, rawRuns);
+            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, depth, rawRuns, skipSizedNestedTables, includeDescendantInsets);
         }
 
         var normalized = new List<GridIntrinsicTextRun>();
@@ -508,7 +529,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static void AppendNormalizedGridIntrinsicText(List<GridIntrinsicTextRun> runs, string text, HtmlRenderBoxStyle style) {
         if (text.Length == 0) return;
-        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
+        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak
+            && !runs[runs.Count - 1].IsReplaced && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
             GridIntrinsicTextRun previous = runs[runs.Count - 1];
             runs[runs.Count - 1] = new GridIntrinsicTextRun(previous.Text + text, style);
         } else {
@@ -521,28 +543,95 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         double availableSize,
         int depth,
-        ICollection<GridIntrinsicTextRun> result) {
+        ICollection<GridIntrinsicTextRun> result,
+        bool skipSizedNestedTables,
+        bool includeDescendantInsets) {
         AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             if (node is IText text) {
-                if (text.Data.Length > 0) result.Add(new GridIntrinsicTextRun(text.Data, parentStyle));
+                if (text.Data.Length > 0 && parentStyle.Font.Size > 0D) result.Add(new GridIntrinsicTextRun(text.Data, parentStyle));
                 continue;
             }
             if (node is not IElement child || ShouldSkipElement(child)) continue;
             EnsureDepth(depth, child);
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
+            if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
+                && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
+                && childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
+                // Its width is measured separately, but it still separates text
+                // on either side into distinct block lines.
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                continue;
+            }
             if (string.Equals(child.LocalName, "br", StringComparison.OrdinalIgnoreCase)) {
                 result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }
-            bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
+            bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
+                && (!includeDescendantInsets || childStyle.FloatSide == "none");
+            bool isReplacedChild = IsReplacedImageElement(child)
+                || IsFormControlElement(child.LocalName.ToLowerInvariant());
+            if (includeDescendantInsets && establishesLineBoundary && !isReplacedChild) {
+                HtmlRenderBoxStyle intrinsicStyle = childStyle;
+                if (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage
+                    || childStyle.MinWidthWithIndefiniteReference.HasValue) {
+                    // A percentage of this indefinite intrinsic width is cyclic.
+                    // Retain definite constraints, including absolute max-width.
+                    intrinsicStyle = childStyle.Clone();
+                    if (childStyle.ExplicitWidthUsesPercentage) {
+                        intrinsicStyle.ExplicitWidth = null;
+                        intrinsicStyle.ExplicitWidthUsesPercentage = false;
+                    }
+                    if (childStyle.MaxWidthUsesPercentage) {
+                        intrinsicStyle.MaxWidth = null;
+                        intrinsicStyle.MaxWidthUsesPercentage = false;
+                    }
+                    if (childStyle.MinWidthWithIndefiniteReference.HasValue) {
+                        intrinsicStyle.MinWidth = childStyle.MinWidthWithIndefiniteReference;
+                    }
+                }
+                IReadOnlyList<GridIntrinsicTextRun> childRuns = ResolveGridInFlowTextRuns(
+                    new FlexItem(child, intrinsicStyle, 0), availableSize, depth + 1,
+                    skipSizedNestedTables, includeDescendantInsets);
+                double minimum = ResolveGridMeasuredContribution(intrinsicStyle, MeasureGridMinContentRuns(childRuns));
+                double maximum = ResolveGridMeasuredContribution(intrinsicStyle, MeasureGridMaxContentRuns(childRuns));
+                if (intrinsicStyle.ExplicitWidth.HasValue && !intrinsicStyle.ExplicitWidthUsesPercentage) {
+                    TryResolveDefiniteGridContribution(new FlexItem(child, intrinsicStyle, 0), availableSize, out double authored);
+                    minimum = authored;
+                    maximum = authored;
+                }
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                result.Add(GridIntrinsicTextRun.Replaced(minimum, Math.Max(minimum, maximum), intrinsicStyle));
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                continue;
+            }
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
-            if (IsReplacedImageElement(child)) {
-                double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
-                result.Add(GridIntrinsicTextRun.Replaced(width, childStyle));
+            if (IsFormControlElement(child.LocalName.ToLowerInvariant())) {
+                result.Add(GridIntrinsicTextRun.Replaced(
+                    ResolveFormControlIntrinsicOuterWidth(child, childStyle, availableSize), childStyle));
+            } else if (IsReplacedImageElement(child)) {
+                double width = ResolveIntrinsicReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+                // A cyclic percentage width or maximum can compress replaced content
+                // during minimum sizing; its definite constraints still apply.
+                double minimumWidth = childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage
+                    ? ResolveCompressibleReplacedMinimumWidth(childStyle)
+                    : width;
+                result.Add(GridIntrinsicTextRun.Replaced(minimumWidth, width, childStyle));
+            } else if (childStyle.Display == "inline-block") {
+                var atomic = new FlexItem(child, childStyle, 0);
+                GridIntrinsicContributions widths = ResolveInlineBlockIntrinsicContributions(atomic, availableSize, depth + 1);
+                result.Add(GridIntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));
             } else {
-                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result);
+                double leadingInset = includeDescendantInsets
+                    ? Math.Max(0D, childStyle.BorderLeftWidth + childStyle.PaddingLeft + childStyle.MarginLeft)
+                    : 0D;
+                double trailingInset = includeDescendantInsets
+                    ? Math.Max(0D, childStyle.BorderRightWidth + childStyle.PaddingRight + childStyle.MarginRight)
+                    : 0D;
+                if (leadingInset > 0D) result.Add(GridIntrinsicTextRun.InlineInset(leadingInset, childStyle));
+                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result, skipSizedNestedTables, includeDescendantInsets);
+                if (trailingInset > 0D) result.Add(GridIntrinsicTextRun.InlineInset(trailingInset, childStyle));
             }
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
         }
@@ -555,24 +644,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         double availableSize,
         ICollection<GridIntrinsicTextRun> result) {
-        if (!_generatedContent.TryGet(element, kind, out string content)
-            || content.Length == 0
+        if (!_generatedContent.TryGetContent(element, kind, out _)
             || !_styleResolver.TryResolvePseudo(element, kind, availableSize, parentStyle, out HtmlRenderBoxStyle style)
             || style.Display == "none"
             || style.Position == "absolute"
             || style.Position == "fixed") return;
         bool establishesLineBoundary = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item" || style.Display == "table" || style.Display == "flex" || style.Display == "grid";
         if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
-        result.Add(new GridIntrinsicTextRun(content, style));
+        var inlineRuns = new List<HtmlInlineRun>();
+        AddGeneratedInlineRun(element, kind, availableSize, null, parentStyle, null, 0D, 0D, inlineRuns);
+        foreach (HtmlInlineRun run in inlineRuns) {
+            if (run.AtomicBlock != null) {
+                result.Add(GridIntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
+            } else if (run.Text.Length > 0) {
+                result.Add(new GridIntrinsicTextRun(run.Text, run.Style));
+            }
+        }
         if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
     }
 
-    private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize) {
+    private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize, bool minimum = false) {
         if (item.Element == null) return 0D;
-        return ResolveDescendantReplacedGridContribution(item.Element, item.Style, availableSize, 1);
+        return ResolveDescendantReplacedGridContribution(item.Element, item.Style, availableSize, 1, minimum);
     }
 
-    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth) {
+    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth, bool minimum) {
         double maximum = 0D;
         foreach (IElement child in parent.Children) {
             EnsureDepth(depth, child);
@@ -581,9 +677,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             double contribution;
             if (IsReplacedImageElement(child)) {
-                contribution = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+                contribution = minimum && (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage)
+                    ? ResolveCompressibleReplacedMinimumWidth(childStyle)
+                    : ResolveIntrinsicReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
             } else {
-                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1);
+                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1, minimum);
                 contribution = descendant > 0D ? ResolveGridMeasuredContribution(childStyle, descendant) : 0D;
             }
             maximum = Math.Max(maximum, contribution);
@@ -591,9 +689,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return maximum;
     }
 
+    private static double ResolveCompressibleReplacedMinimumWidth(HtmlRenderBoxStyle style) {
+        if (style.MinWidthWithIndefiniteReference.HasValue) {
+            style = style.Clone();
+            style.MinWidth = style.MinWidthWithIndefiniteReference;
+        }
+        return ResolveGridMeasuredContribution(style, 0D);
+    }
+
     private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {
         HtmlRenderBoxStyle style = item.Style;
-        if (style.ExplicitWidth.HasValue) {
+        if (style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
@@ -601,7 +707,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
-            contribution = Math.Max(1D, ResolveReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
+            contribution = Math.Max(1D, ResolveIntrinsicReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
             return true;
         }
         if (item.TagName == "table") {
@@ -622,22 +728,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class GridIntrinsicTextRun {
-        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D) {
+        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
             IsReplaced = isReplaced;
+            IsInlineInset = isInlineInset;
             ReplacedWidth = replacedWidth;
+            ReplacedMinWidth = replacedMinWidth ?? replacedWidth;
         }
 
         internal static GridIntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
         internal static GridIntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
+        internal static GridIntrinsicTextRun Replaced(double minimum, double maximum, HtmlRenderBoxStyle style) =>
+            new(string.Empty, style, isReplaced: true, replacedWidth: maximum, replacedMinWidth: minimum);
+        internal static GridIntrinsicTextRun InlineInset(double width, HtmlRenderBoxStyle style) =>
+            new(string.Empty, style, isReplaced: true, replacedWidth: width, isInlineInset: true);
 
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsReplaced { get; }
+        internal bool IsInlineInset { get; }
         internal double ReplacedWidth { get; }
+        internal double ReplacedMinWidth { get; }
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {

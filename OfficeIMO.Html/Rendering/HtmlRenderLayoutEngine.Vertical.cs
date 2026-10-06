@@ -151,7 +151,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sourceWidth,
                 source);
         string logicalText = ResolveLogicalText(inline.Visuals, string.Empty);
-        HtmlRenderVisual verticalVisual = logicalText.Length == 0
+        HtmlRenderVisual verticalVisual = logicalText.Length == 0 || HtmlRenderLogicalText.ContainsFormula(inline.Visuals)
             ? new HtmlRenderEffectGroup(
                 0D,
                 0D,
@@ -186,10 +186,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double destinationHeight,
         string source) {
         var result = new List<HtmlRenderVisual>();
+        bool preserveFormulaContainers = HtmlRenderLogicalText.ContainsFormula(visuals);
         for (int index = 0; index < visuals.Count; index++) {
             HtmlRenderVisual visual = visuals[index];
             if (visual is HtmlRenderText text) {
-                AppendVerticalText(result, text, axisTransform, textOrientation, rightToLeftBlocks, source);
+                if (preserveFormulaContainers) {
+                    // Keep per-run logical text around transformed glyphs so a line-wide
+                    // replacement does not suppress the formula's own semantic container.
+                    var glyphs = new List<HtmlRenderVisual>();
+                    AppendVerticalText(glyphs, text, axisTransform, textOrientation, rightToLeftBlocks, source);
+                    result.Add(new HtmlRenderLogicalTextGroup(text.Text, 0D, 0D,
+                        destinationWidth, destinationHeight, glyphs, result.Count, text.Source));
+                } else {
+                    AppendVerticalText(result, text, axisTransform, textOrientation, rightToLeftBlocks, source);
+                }
                 continue;
             }
             if (visual is HtmlRenderSemanticGroup semantic) {
@@ -213,7 +223,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     semantic.ColumnSpan,
                     semantic.RowSpan,
                     semantic.HeaderScope,
-                    structureElementKey: semantic.StructureElementKey));
+                    structureElementKey: semantic.StructureElementKey, alternativeText: semantic.AlternativeText, mathMlSource: semantic.MathMlSource, logicalOrder: semantic.LogicalOrder));
                 continue;
             }
             if (visual is HtmlRenderLogicalTextGroup logical) {
@@ -264,7 +274,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var measured = new double[elements.Count];
         double measuredTotal = 0D;
         for (int index = 0; index < elements.Count; index++) {
-            measured[index] = Math.Max(0.01D, MeasureText(elements[index], visual.Font));
+            measured[index] = Math.Max(0.01D, MeasureText(elements[index], visual.Font, visual.FontDescriptor));
             measuredTotal += measured[index];
         }
 
@@ -312,7 +322,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 glyphWidth,
                 visual.DecorationColor,
                 visual.FeatureSettings,
-                visual.FontPalette);
+                visual.FontPalette,
+                fontDescriptor: visual.FontDescriptor);
             if (upright) {
                 destination.Add(glyph.Translate(0D, 0D, destination.Count));
                 continue;

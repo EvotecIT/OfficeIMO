@@ -27,9 +27,12 @@ internal sealed partial class ContentStreamBuilder {
 
     // Isolate source clusters so conservative ActualText redaction cannot discard
     // independent neighboring source characters.
-    private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double textRise) {
+    private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, PdfTextShowCommand command, double fontSize, double textRise) {
         double lineE = _lineE, lineF = _lineF;
+        double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
+            * 1000D / command.UnitsPerEm * (command.NegativeTracking ? -1D : 1D);
         for (int index = 0; index < glyphs.Count;) {
+            int firstGlyph = index;
             var cluster = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
             int logicalEnd = glyphs[index].LogicalClusterStart;
@@ -47,10 +50,13 @@ internal sealed partial class ContentStreamBuilder {
             TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;
             if (marked) _sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(logical.ToString())).Append(" >> BDC\n");
-            if (cluster.Any(glyph => glyph.HasPositioning)) AppendPositionedGlyphs(cluster, fontSize, textRise);
+            bool[]? boundaries = command.TrackingBoundaries?.Skip(firstGlyph).Take(cluster.Count).ToArray();
+            if (command.Tracking != null || cluster.Any(glyph => glyph.HasPositioning))
+                AppendPositionedGlyphs(cluster, fontSize, textRise, tracking1000, boundaries);
             else ShowHexText(string.Concat(cluster.Select(glyph => glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture))));
             if (marked) _sb.Append("EMC\n");
-            AdvanceTrackedText(cluster.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D);
+            AdvanceTrackedText((cluster.Sum(glyph => glyph.AdvanceWidth1000)
+                + tracking1000 * (boundaries?.Count(boundary => boundary) ?? 0)) * fontSize / 1000D);
         }
         _sb.Append("ET\nBT\n");
         TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);

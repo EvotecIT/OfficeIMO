@@ -52,50 +52,38 @@ public static partial class HtmlImageSourceResolver {
         return candidates.Items;
     }
 
-    /// <summary>
-    /// Resolves the candidates selected by the active render media environment.
-    /// </summary>
-    internal static IReadOnlyList<string> ResolveImageSourceCandidatesForRendering(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, HtmlRenderOptions options) {
-        var candidates = new CandidateAccumulator();
-        if (element == null) return candidates.Items;
+    private static HtmlResponsiveImageSelectionOptions CreateResponsiveSelectionOptions(HtmlRenderOptions options) {
+        double width = options.CssMediaWidth;
+        double height = options.CssMediaHeight;
+        return new HtmlResponsiveImageSelectionOptions {
+            ViewportWidth = width,
+            ViewportHeight = height,
+            DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            MediaContext = options.MediaContext,
+            MediaFeatures = options.MediaFeatures,
+            DefaultFontSize = options.DefaultFontSize,
+            MaxCandidates = options.ResponsiveImageCandidateLimit,
+            MaxSizesCharacters = options.ResponsiveImageSizesCharacterLimit
+        };
+    }
 
-        bool selectedPictureSource = false;
-        IElement? picture = element.ParentElement;
-        if (picture != null && picture.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
-            double mediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
-            double mediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
-            foreach (IElement child in picture.Children) {
-                if (ReferenceEquals(child, element)) break;
-                if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)
-                    || !HtmlComputedStyleEngine.IsApplicableMedia(
-                        child.GetAttribute("media") ?? string.Empty,
-                        options.MediaContext,
-                        mediaWidth,
-                        mediaHeight,
-                        options.MediaFeatures)
-                    || !HtmlPictureSourceSupport.IsSupportedConversionContentType(child.GetAttribute("type"))) {
-                    continue;
-                }
-
-                int candidateCount = 0;
-                int countBeforeSource = candidates.Items.Count;
-                AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit, ref candidateCount, SrcSetAttributes);
-                AddResolvedUrlAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit, ref candidateCount, PictureSourceAttributes);
-                if (candidates.Items.Count > countBeforeSource) {
-                    selectedPictureSource = true;
-                    break;
-                }
+    private static bool AddSelectedResolvedSrcSet(CandidateAccumulator candidates, IElement element, Uri? baseUri,
+        HtmlUrlPolicy? policy, HtmlResponsiveImageSelectionOptions options, string? defaultSource,
+        params string[] attributeNames) {
+        foreach (string attributeName in attributeNames) {
+            string? raw = element.GetAttribute(attributeName);
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            var allowed = new List<HtmlSrcSetCandidate>();
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw, options.MaxCandidates)) {
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
+                if (!string.IsNullOrWhiteSpace(resolved)) allowed.Add(new HtmlSrcSetCandidate(resolved, candidate.Descriptor));
             }
+            string resolvedDefault = HtmlUrlPolicyEvaluator.ResolveUrl(defaultSource, baseUri, policy);
+            HtmlResponsiveImageSelection selection = HtmlResponsiveImageSelector.Select(
+                allowed, element.GetAttribute("sizes"), resolvedDefault, options);
+            if (selection.HasValue) return candidates.Add(selection.Candidate.Url);
         }
-
-        if (!selectedPictureSource) {
-            AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
-            int responsiveCandidateCount = 0;
-            AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, options.ResponsiveImageCandidateLimit, ref responsiveCandidateCount, SrcSetAttributes);
-            AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
-        }
-
-        return candidates.Items;
+        return false;
     }
 
     /// <summary>

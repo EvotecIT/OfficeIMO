@@ -129,9 +129,14 @@ internal sealed class HtmlRenderBoxStyle {
     internal double LetterSpacing;
     internal double WordSpacing;
     internal double? ExplicitWidth;
+    internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
+    // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
+    internal bool AutoHeightLayoutStretch;
     internal double? MinWidth;
+    internal double? MinWidthWithIndefiniteReference;
     internal double? MaxWidth;
+    internal bool MaxWidthUsesPercentage;
     internal double? MinHeight;
     internal double? MaxHeight;
     internal string ObjectFit = "fill";
@@ -182,6 +187,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedOverflowY = string.Empty;
     internal string UnsupportedOverflowClipMargin = string.Empty;
     internal string Transform = "none";
+    internal string IndividualScale = "none";
     internal string TransformOrigin = "50% 50%";
     internal string ClipPath = "none";
     internal bool OpacityWasSpecified;
@@ -202,6 +208,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;
+    internal bool AvoidBreakBefore;
+    internal bool AvoidBreakAfter;
     internal int Orphans = 2;
     internal int Widows = 2;
     internal string? PageName;

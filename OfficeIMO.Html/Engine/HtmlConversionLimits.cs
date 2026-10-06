@@ -10,6 +10,7 @@ namespace OfficeIMO.Html;
 /// </remarks>
 public sealed class HtmlConversionLimits {
     internal const int DefaultMaxResponsiveImageCandidates = 64;
+    internal const int DefaultMaxResponsiveImageSizesCharacters = 64 * 1024;
 
     /// <summary>Creates conservative limits suitable for untrusted HTML ingestion.</summary>
     public static HtmlConversionLimits CreateUntrustedProfile() => new HtmlConversionLimits {
@@ -21,10 +22,16 @@ public sealed class HtmlConversionLimits {
         MaxCssBytes = 72L * 1024L * 1024L,
         MaxTotalCssBytes = 72L * 1024L * 1024L,
         MaxCssRules = 10_000,
+        MaxCssRuleCandidates = 40_000,
         MaxCssDeclarations = 100_000,
+        MaxCssTokens = 1_000_000,
         MaxCssNestingDepth = 64,
+        MaxCssSyntaxNodes = 1_000_000,
+        MaxCssSelectorCharacters = 64 * 1024,
+        MaxCssSelectorsPerRule = 256,
         MaxSelectorEvaluations = 10_000_000L,
         MaxResponsiveImageCandidates = DefaultMaxResponsiveImageCandidates,
+        MaxResponsiveImageSizesCharacters = DefaultMaxResponsiveImageSizesCharacters,
         MaxSemanticMetadataCharacters = 1024 * 1024
     };
 
@@ -48,20 +55,41 @@ public sealed class HtmlConversionLimits {
     /// <summary>Maximum UTF-8 bytes across embedded stylesheets, or <c>null</c> for no total limit.</summary>
     public long? MaxTotalCssBytes { get; set; }
 
-    /// <summary>Maximum active CSS rules, or <c>null</c> for no rule-count limit.</summary>
+    /// <summary>Maximum active, selector-expanded CSS style entries, or <c>null</c> for no limit.</summary>
+    /// <remarks>A qualified rule with several selectors consumes one entry per selector after nesting
+    /// is resolved. This bounds the entries retained for matching, not the stylesheet's raw block count.</remarks>
     public int? MaxCssRules { get; set; }
 
-    /// <summary>Maximum declarations across active CSS rules, or <c>null</c> for no declaration limit.</summary>
+    /// <summary>Maximum selector-expanded style entries examined before document-presence filtering, or <c>null</c> for no limit.</summary>
+    /// <remarks>This bounds parsing work even when selectors cannot match any element in the current document.</remarks>
+    public int? MaxCssRuleCandidates { get; set; }
+
+    /// <summary>Maximum declarations across active, selector-expanded style entries, or <c>null</c> for no limit.</summary>
     public int? MaxCssDeclarations { get; set; }
+
+    /// <summary>Maximum lexical tokens produced while parsing one inline declaration block, or <c>null</c> for no token limit.</summary>
+    public int? MaxCssTokens { get; set; }
 
     /// <summary>Maximum nested CSS grouping/rule-block depth. Defaults to 256 even for trusted input.</summary>
     public int? MaxCssNestingDepth { get; set; } = 256;
+
+    /// <summary>Maximum syntax nodes materialized while parsing one inline declaration block, or <c>null</c> for no node limit.</summary>
+    public int? MaxCssSyntaxNodes { get; set; }
+
+    /// <summary>Maximum UTF-16 characters in one selector list after CSS nesting is resolved.</summary>
+    public int? MaxCssSelectorCharacters { get; set; } = 64 * 1024;
+
+    /// <summary>Maximum selectors in one rule after CSS nesting is resolved.</summary>
+    public int? MaxCssSelectorsPerRule { get; set; } = 256;
 
     /// <summary>Maximum element/selector match attempts, or <c>null</c> for no evaluation limit.</summary>
     public long? MaxSelectorEvaluations { get; set; }
 
     /// <summary>Maximum responsive image candidates per source set, or <c>null</c> for no candidate limit.</summary>
     public int? MaxResponsiveImageCandidates { get; set; }
+
+    /// <summary>Maximum UTF-16 characters parsed from one responsive image <c>sizes</c> value, or <c>null</c> for no limit.</summary>
+    public int? MaxResponsiveImageSizesCharacters { get; set; }
 
     /// <summary>Maximum characters accepted from one semantic metadata field.</summary>
     public int? MaxSemanticMetadataCharacters { get; set; }
@@ -73,11 +101,17 @@ public sealed class HtmlConversionLimits {
         MaxHtmlDepth = MaxHtmlDepth,
         MaxCssBytes = MaxCssBytes,
         MaxTotalCssBytes = MaxTotalCssBytes,
-            MaxCssRules = MaxCssRules,
-            MaxCssDeclarations = MaxCssDeclarations,
-            MaxCssNestingDepth = MaxCssNestingDepth,
-            MaxSelectorEvaluations = MaxSelectorEvaluations,
+        MaxCssRules = MaxCssRules,
+        MaxCssRuleCandidates = MaxCssRuleCandidates,
+        MaxCssDeclarations = MaxCssDeclarations,
+        MaxCssTokens = MaxCssTokens,
+        MaxCssNestingDepth = MaxCssNestingDepth,
+        MaxCssSyntaxNodes = MaxCssSyntaxNodes,
+        MaxCssSelectorCharacters = MaxCssSelectorCharacters,
+        MaxCssSelectorsPerRule = MaxCssSelectorsPerRule,
+        MaxSelectorEvaluations = MaxSelectorEvaluations,
         MaxResponsiveImageCandidates = MaxResponsiveImageCandidates,
+        MaxResponsiveImageSizesCharacters = MaxResponsiveImageSizesCharacters,
         MaxSemanticMetadataCharacters = MaxSemanticMetadataCharacters
     };
 
@@ -94,10 +128,16 @@ public sealed class HtmlConversionLimits {
             MaxCssBytes = Minimum(left.MaxCssBytes, right.MaxCssBytes),
             MaxTotalCssBytes = Minimum(left.MaxTotalCssBytes, right.MaxTotalCssBytes),
             MaxCssRules = Minimum(left.MaxCssRules, right.MaxCssRules),
+            MaxCssRuleCandidates = Minimum(left.MaxCssRuleCandidates, right.MaxCssRuleCandidates),
             MaxCssDeclarations = Minimum(left.MaxCssDeclarations, right.MaxCssDeclarations),
+            MaxCssTokens = Minimum(left.MaxCssTokens, right.MaxCssTokens),
             MaxCssNestingDepth = Minimum(left.MaxCssNestingDepth, right.MaxCssNestingDepth),
+            MaxCssSyntaxNodes = Minimum(left.MaxCssSyntaxNodes, right.MaxCssSyntaxNodes),
+            MaxCssSelectorCharacters = Minimum(left.MaxCssSelectorCharacters, right.MaxCssSelectorCharacters),
+            MaxCssSelectorsPerRule = Minimum(left.MaxCssSelectorsPerRule, right.MaxCssSelectorsPerRule),
             MaxSelectorEvaluations = Minimum(left.MaxSelectorEvaluations, right.MaxSelectorEvaluations),
             MaxResponsiveImageCandidates = Minimum(left.MaxResponsiveImageCandidates, right.MaxResponsiveImageCandidates),
+            MaxResponsiveImageSizesCharacters = Minimum(left.MaxResponsiveImageSizesCharacters, right.MaxResponsiveImageSizesCharacters),
             MaxSemanticMetadataCharacters = Minimum(left.MaxSemanticMetadataCharacters, right.MaxSemanticMetadataCharacters)
         };
     }
@@ -109,10 +149,16 @@ public sealed class HtmlConversionLimits {
         ValidatePositive(MaxCssBytes, nameof(MaxCssBytes));
         ValidatePositive(MaxTotalCssBytes, nameof(MaxTotalCssBytes));
         ValidatePositive(MaxCssRules, nameof(MaxCssRules));
+        ValidatePositive(MaxCssRuleCandidates, nameof(MaxCssRuleCandidates));
         ValidatePositive(MaxCssDeclarations, nameof(MaxCssDeclarations));
+        ValidatePositive(MaxCssTokens, nameof(MaxCssTokens));
         ValidatePositive(MaxCssNestingDepth, nameof(MaxCssNestingDepth));
+        ValidatePositive(MaxCssSyntaxNodes, nameof(MaxCssSyntaxNodes));
+        ValidatePositive(MaxCssSelectorCharacters, nameof(MaxCssSelectorCharacters));
+        ValidatePositive(MaxCssSelectorsPerRule, nameof(MaxCssSelectorsPerRule));
         ValidatePositive(MaxSelectorEvaluations, nameof(MaxSelectorEvaluations));
         ValidatePositive(MaxResponsiveImageCandidates, nameof(MaxResponsiveImageCandidates));
+        ValidatePositive(MaxResponsiveImageSizesCharacters, nameof(MaxResponsiveImageSizesCharacters));
         ValidatePositive(MaxSemanticMetadataCharacters, nameof(MaxSemanticMetadataCharacters));
     }
 

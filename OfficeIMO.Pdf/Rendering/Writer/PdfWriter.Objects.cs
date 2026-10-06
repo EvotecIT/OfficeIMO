@@ -222,6 +222,8 @@ internal static partial class PdfWriter {
         public PdfFormFieldStyle? AppearanceStyle { get; set; }
         public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
         public double FontSize { get; set; }
+        // Keep appearance streams in authored coordinates; the widget rectangle scales them.
+        public double AppearanceScale { get; set; } = 1D;
         public bool IsChecked { get; set; }
         public string CheckedValueName { get; set; } = "Yes";
         public string ExportValue { get; set; } = string.Empty;
@@ -370,6 +372,7 @@ internal static partial class PdfWriter {
         public int? AnnotationStructParentIndex { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationStructParentIndexes { get; set; }
         public bool SpansPages { get; set; }
+        public int? LogicalOrder { get; set; }
         public int ObjectId { get; set; }
         public IReadOnlyList<PdfEmbeddedFile> AssociatedFiles { get; set; } = Array.Empty<PdfEmbeddedFile>();
         public IReadOnlyList<int> AssociatedFileIds { get; set; } = Array.Empty<int>();

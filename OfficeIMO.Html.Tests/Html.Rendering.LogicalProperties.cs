@@ -107,6 +107,44 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.FromRgb(red, green, blue), border.Shape.StrokeColor);
     }
 
+    [Fact]
+    public void HtmlRender_UprightVerticalCharacterUnitUsesOneEmFallback() {
+        const string html = "<div id='upright' style='writing-mode:vertical-rl;text-orientation:upright;"
+            + "font-size:20px;inline-size:10ch;block-size:20px;background:red'>0</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            ViewportHeight = 260D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+        HtmlRenderShape background = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "div#upright" && shape.Shape.FillColor == OfficeColor.Red);
+        Assert.Equal(200D, background.Height, 3);
+    }
+
+    [Fact]
+    public void HtmlRender_UprightVerticalCharacterUnitSizesBorderRadiusAndShadow() {
+        const string html = "<div id='upright-strokes' style='writing-mode:vertical-rl;text-orientation:upright;"
+            + "font-size:20px;width:100px;height:100px;border:1ch solid blue;"
+            + "border-radius:1ch;box-shadow:1ch 0 green;background:red'></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            ViewportHeight = 300D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+        IReadOnlyList<HtmlRenderShape> shapes = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderShape>().ToList();
+
+        Assert.Contains(shapes, shape => shape.Source == "div#upright-strokes"
+            && shape.Shape.FillColor == OfficeColor.Red && Math.Abs(shape.Shape.CornerRadius - 20D) < 0.001D);
+        Assert.Contains(shapes, shape => shape.Source == "div#upright-strokes"
+            && shape.Shape.StrokeColor == OfficeColor.Blue
+            && Math.Abs(shape.Shape.StrokeWidth - 20D) < 0.001D);
+        Assert.Contains(shapes, shape => shape.Source == "div#upright-strokes:box-shadow"
+            && shape.Shape.Shadow is not null && Math.Abs(shape.Shape.Shadow.OffsetX - 20D) < 0.001D);
+    }
+
     [Theory]
     [InlineData("ltr", "div#logical:border-bottom")]
     [InlineData("rtl", "div#logical:border-top")]
@@ -324,15 +362,15 @@ public sealed partial class HtmlRenderingTests {
             .OfType<HtmlRenderText>()
             .ToList();
         HtmlRenderText firstLetter = Assert.Single(text, item => item.Text == "H");
-        double firstLineY = text.Min(item => item.Y);
+        HtmlRenderText firstLineRemainder = Assert.Single(text, item =>
+            item.Text.Contains("ello", StringComparison.Ordinal)
+            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC)
+            && item.Font.IsBold);
 
         Assert.Equal(30D, firstLetter.Font.Size, 3);
         Assert.Equal(OfficeColor.FromRgb(0xCC, 0x00, 0x00), firstLetter.Color);
-        Assert.Contains(text, item => item.Y <= firstLineY + 0.001D
-            && item.Text.Contains("ello", StringComparison.Ordinal)
-            && item.Color == OfficeColor.FromRgb(0x00, 0x00, 0xCC)
-            && item.Font.IsBold);
-        Assert.Contains(text, item => item.Y > firstLineY + 0.001D
+        Assert.True(firstLetter.Y < firstLineRemainder.Y);
+        Assert.Contains(text, item => item.Y > firstLineRemainder.Y + 0.001D
             && item.Color == OfficeColor.Black);
     }
 

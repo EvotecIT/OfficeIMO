@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
 
     private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         options?.BeginTextShapingAttempt();
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
                 options.Language,
                 featureSettings,
                 textDirection);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
+            if (!fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            return glyphRun.ToTextShowCommand();
+            return fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
         }
 
         if (options != null &&
@@ -96,8 +96,11 @@ internal static partial class PdfWriter {
 
     private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
         PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
-        return new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs,
-            advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount);
+        return command.ActualText == null ? command
+            : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs, tracking: command.Tracking,
+                advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount,
+                unitsPerEm: command.UnitsPerEm, trackingBoundaries: command.TrackingBoundaries,
+                negativeTracking: command.NegativeTracking, fontMetricScale: command.FontMetricScale);
     }
 
     private static PdfTextShowCommand EncodeTextShowCommand(
@@ -106,7 +109,7 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? namedFont,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         options?.BeginTextShapingAttempt();
         if (namedFont.HasValue &&
             options != null &&
@@ -129,7 +132,7 @@ internal static partial class PdfWriter {
                 options.Language,
                 featureSettings,
                 textDirection);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
+            if (!fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -139,7 +142,7 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            return glyphRun.ToTextShowCommand();
+            return fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
         }
 
         if (namedFont.HasValue &&
@@ -167,7 +170,7 @@ internal static partial class PdfWriter {
             return glyphRun.ToTextShowCommand();
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection);
+        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection, fontMetricScale);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
@@ -2008,18 +2011,18 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts), runFontSize, textRise, suppressActualText);
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                         // Composite fonts encode spaces as two-byte CIDs, to which Tw
                         // does not apply. Position the next word at the expanded gap.
@@ -2064,7 +2067,7 @@ internal static partial class PdfWriter {
                 }
 
                 double segmentStartX = xCursor;
-                PdfTextShowCommand textCommand = EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection);
+                PdfTextShowCommand textCommand = EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
                 if (linkMarkedContentId.HasValue) {
                     content.EndText();
                     if (textMarkedContentOpen) {
@@ -2129,7 +2132,7 @@ internal static partial class PdfWriter {
                             }
                         } else {
                             VisitWordDecorationAdvances(s.Text,
-                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection),
+                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale),
                                 (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
                                     lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
                         }
@@ -2167,7 +2170,7 @@ internal static partial class PdfWriter {
                     currentTextRise = separatorTextRise;
                 }
 
-                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts, last.FeatureSettings), separatorFontSize, separatorTextRise, suppressActualText);
+                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts, last.FeatureSettings, fontMetricScale: last.FontMetricScale), separatorFontSize, separatorTextRise, suppressActualText);
             }
 
             if (Math.Abs(currentTextRise) > 0.0001) {

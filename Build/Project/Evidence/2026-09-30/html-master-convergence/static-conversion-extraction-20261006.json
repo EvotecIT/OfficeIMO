@@ -1,0 +1,79 @@
+{
+  "base": "d32b576f495fe962ff497b4af22c408590e14d25",
+  "selectedCheckpoint": "e6b2ff24c2478d343d36249649b833f207e875c8",
+  "scope": "Static HTML renderer and canonical conversion jobs over released retained providers; no interactive runtime or worker graph. Accepted current master owner behavior is preserved through explicit three-way reconciliation.",
+  "implementation": [
+    "print, screen-media and screen-snapshot profiles through HtmlConversionDocument/HtmlRenderRequest and Tool",
+    "bounded virtual MHTML/ZIP resources, deadline and truthful loss reporting",
+    "static layout, semantic source order, math/font, clipping and overflow contracts",
+    "Core ZIP/SVG/shadow and PDF tracking/ActualText/appearance prerequisites",
+    "native adapter caption/image/run ownership corrections"
+  ],
+  "proof": {
+    "htmlNet8": {
+      "passed": 4502,
+      "failed": 0,
+      "skipped": 0
+    },
+    "htmlNet10": {
+      "passed": 4502,
+      "failed": 0,
+      "skipped": 0
+    },
+    "drawingNet10": {
+      "passed": 3443,
+      "failed": 0,
+      "skipped": 4
+    },
+    "toolNet10": {
+      "passed": 287,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pdfFocusedNet10": {
+      "passed": 209,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "qualifyingCaveat": "HTML suites preceded the narrow later PDF ActualText Form-reader and scaled-widget appearance reconciliation. Affected PDF focused proof is current; combined broad/packed/artifact/platform proof is still open.",
+  "originalFailuresRetained": [
+    "initial prerequisite compile failures",
+    "first combined HTML 4492 pass/10 fail",
+    "first focused PDF 208 pass/1 fail (AAB vs AB)"
+  ],
+  "remaining": [
+    "broad PDF and affected net8/native owner checks",
+    "normal release locks and nineteen packed graphs/public consumers",
+    "exact committed-source API/Tool corpus and independent PDF/profile/paint observations",
+    "risk-scoped read-only integration review",
+    "current supported-platform CI/package proof",
+    "publication, delayed feedback and authorized merge",
+    "qualified long-lived adoption and scoped cleanup"
+  ],
+  "historicalEvidence": "321 already-referenced HTML evidence files are preserved to keep owner documentation links resolvable. They are historical evidence, not current extraction qualification.",
+  "broaderLimits": "No browser parity, native-app/manual accessibility parity or timing acceptance is claimed. Prior timing failures remain open; ceilings are unchanged.",
+  "retainedEvidence": "Ignore/StaticConversionExtractionQualification",
+  "testReceipts": [
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/drawing-net10.trx",
+      "sha256": "84cbbe30a04759efef21634358df53d305c9d883fdef4d2ffdf28e1f1ed8fc4a"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/html-final-net10.trx",
+      "sha256": "97555899e7560778b2dd90ee758e94fd8ea1cc8de0ea7ac87880d199bcebdf67"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/html-final-net8.trx",
+      "sha256": "e06352957661c61bcd37fde30b4f628c4addeb5d576b4c459b7978925110b813"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/pdf-focused-final-net10.trx",
+      "sha256": "463174ca80ee79e2fc686e07ba99a04b68d700748e815238cfc212b3ab3e0b67"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/tool-net10.trx",
+      "sha256": "d550fa37b274cfdf79a803a8de86e3d4b730ca904739c61c33e0e84a76e68647"
+    }
+  ]
+}

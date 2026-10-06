@@ -87,6 +87,23 @@ internal static class HtmlCssTransformParser {
     internal static bool IsSupportedTransformSyntax(string value) =>
         TryParseFunctionList(value.Trim().ToLowerInvariant(), 100D, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out _, out _);
 
+    internal static bool TryParseIndividualScale(string value, out string transformFunction) {
+        transformFunction = string.Empty;
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "none") return true;
+        if (normalized.Contains(',')) return false;
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(normalized);
+        if (parts.Count < 1 || parts.Count > 2
+            || !TryScaleFactor(parts[0], out double x)) return false;
+        double y = x;
+        if (parts.Count == 2 && !TryScaleFactor(parts[1], out y)) return false;
+        transformFunction = "scale(" + x.ToString("R", CultureInfo.InvariantCulture) + "," + y.ToString("R", CultureInfo.InvariantCulture) + ")";
+        return true;
+    }
+
+    internal static bool IsSupportedIndividualScaleSyntax(string value) =>
+        TryParseIndividualScale(value, out _);
+
     internal static bool IsSupportedOriginSyntax(string value) =>
         TryResolveOrigin(value, 100D, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out _, out _);
 
@@ -260,6 +277,19 @@ internal static class HtmlCssTransformParser {
         double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
         && !double.IsNaN(number)
         && !double.IsInfinity(number);
+
+    private static bool TryScaleFactor(string value, out double factor) {
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            if (TryNumber(normalized.Substring(0, normalized.Length - 1), out double percentage)) {
+                factor = percentage / 100D;
+                return IsFinite(factor);
+            }
+            factor = 0D;
+            return false;
+        }
+        return TryNumber(normalized, out factor);
+    }
 
     private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length) =>
         HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length)

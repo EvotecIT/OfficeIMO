@@ -8,6 +8,38 @@ namespace OfficeIMO.Tests;
 
 public class HtmlExcelRasterNormalization {
     [Theory]
+    [InlineData("display:flex;width:120px", true)]
+    [InlineData("display:grid;grid-template-columns:120px;width:120px", true)]
+    [InlineData("display:flex;flex-direction:column;width:120px;height:240px", true)]
+    [InlineData("display:flex;align-items:flex-start;width:120px", false)]
+    public void ExcelHtml_OrientedPictureSurvivesLayoutRelayoutWithOneDecodeSlot(string containerStyle, bool projected) {
+        byte[] exif = Convert.FromBase64String("TU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAA=");
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red),
+            new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: exif) });
+        var limits = HtmlImportLimits.CreateDefault();
+        limits.MaxImages = 1;
+        string html = "<div style='" + containerStyle + "'><img src='data:image/jpeg;base64,"
+            + Convert.ToBase64String(jpeg) + "' style='width:120px' alt='Retained picture'></div><p>After</p>";
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using ExcelDocument workbook = result.RequireValue();
+        using var output = new MemoryStream();
+        workbook.Save(output);
+        output.Position = 0;
+        using ExcelDocument reopened = ExcelDocument.Load(output);
+        ExcelImage picture = Assert.Single(reopened.Sheets.SelectMany(sheet => sheet.Images));
+        if (projected) {
+            Assert.Equal("image/png", picture.ContentType);
+            Assert.True(OfficeRasterImageDecoder.TryDecode(picture.ToBytes(), out OfficeRasterImage? decoded));
+            Assert.Equal(1, decoded!.Width);
+            Assert.Equal(2, decoded.Height);
+        } else {
+            Assert.Equal(jpeg, picture.ToBytes());
+        }
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+    }
+
+    [Theory]
     [InlineData("pixels")]
     [InlineData("attempts")]
     public void ExcelHtml_OrientedLayoutNormalizationUsesTheImportWorkBudget(string limit) {

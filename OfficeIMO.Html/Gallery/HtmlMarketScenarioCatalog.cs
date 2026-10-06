@@ -15,7 +15,11 @@ public static class HtmlMarketScenarioCatalog {
         new HtmlMarketScenario("email-render", "Email Render", HtmlConversionProfile.Semantic, new[] { "inline-styles", "images", "links", "resource-policy" }, "Ingest email-like HTML safely while reporting blocked resources."),
         new HtmlMarketScenario("dashboard-print", "Dashboard Print", HtmlConversionProfile.HighFidelityPrint, new[] { "cards", "charts", "computed-style", "print-layout" }, "Create a visual-first review artifact from dashboard HTML."),
         new HtmlMarketScenario("multilingual-bidi", "Multilingual BiDi", HtmlConversionProfile.Document, new[] { "language", "direction", "tables", "fonts" }, "Validate right-to-left and mixed-language document conversion."),
-        new HtmlMarketScenario("static-standards-showcase", "Static Standards Showcase", HtmlConversionProfile.HighFidelityPrint, new[] { "running-elements", "row-subgrid", "clip-path", "pdf-tags", "bookmarks" }, "Exercise the strict managed page, layout, vector-effect, navigation, and tagged-PDF contracts in one artifact.")
+        new HtmlMarketScenario("static-standards-showcase", "Static Standards Showcase", HtmlConversionProfile.HighFidelityPrint, new[] { "running-elements", "row-subgrid", "clip-path", "pdf-tags", "bookmarks" }, "Exercise the strict managed page, layout, vector-effect, navigation, and tagged-PDF contracts in one artifact."),
+        new HtmlMarketScenario("book-extract", "Book Extract", HtmlConversionProfile.HighFidelityPrint, new[] { "long-form", "columns", "footnotes", "named-pages", "running-content" }, "Render long-form chapters and an appendix through explicit paged-document rules."),
+        new HtmlMarketScenario("application-form", "Application Form", HtmlConversionProfile.Document, new[] { "forms", "controls", "grid", "links", "pdf-fields" }, "Turn a dedicated business form into a visual artifact and an interactive searchable PDF."),
+        new HtmlMarketScenario("chart-report", "Chart Report", HtmlConversionProfile.HighFidelityPrint, new[] { "svg", "gradients", "filters", "clip-path", "tables" }, "Keep static data graphics and their semantic labels in screen and document outputs."),
+        new HtmlMarketScenario("browser-local-workbench", "Browser-local Workbench", HtmlConversionProfile.HighFidelityPrint, new[] { "application-shell", "grid", "flex", "sticky", "dark-theme" }, "Capture a browser-local application shell through explicit screen, print, and screen-to-page intents.")
     }.AsReadOnly();
 
     /// <summary>Gets all curated market scenarios.</summary>

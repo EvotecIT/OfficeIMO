@@ -908,8 +908,8 @@ internal static partial class PdfWriter {
             if (page.FormFields.Count > 0) {
                 foreach (var field in page.FormFields) {
                     string formField;
-                    double appearanceWidth = field.X2 - field.X1;
-                    double appearanceHeight = field.Y2 - field.Y1;
+                    double appearanceWidth = (field.X2 - field.X1) / field.AppearanceScale;
+                    double appearanceHeight = (field.Y2 - field.Y1) / field.AppearanceScale;
                     if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
                         if (field.RadioWidgets.Count > 0) {
                             string selectedValue = positionedRadioValues[field.Name];
@@ -932,8 +932,8 @@ internal static partial class PdfWriter {
                                     throw new ArgumentException("Canvas radio button options must be unique within one field name.");
                                 }
                                 RadioButtonWidgetAnnotation widgetFrame = field.RadioWidgets[optionIndex];
-                                double widgetWidth = widgetFrame.X2 - widgetFrame.X1;
-                                double widgetHeight = widgetFrame.Y2 - widgetFrame.Y1;
+                                double widgetWidth = (widgetFrame.X2 - widgetFrame.X1) / field.AppearanceScale;
+                                double widgetHeight = (widgetFrame.Y2 - widgetFrame.Y1) / field.AppearanceScale;
                                 string positionedOffAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(widgetWidth, widgetHeight, selected: false, widgetFrame.Style);
                                 byte[] positionedOffBytes = PdfEncoding.Latin1GetBytes(positionedOffAppearance);
                                 string positionedOffDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedOffBytes.Length);
@@ -953,7 +953,7 @@ internal static partial class PdfWriter {
                                     selectedValue,
                                     positionedOffAppearanceId,
                                     positionedSelectedAppearanceId,
-                                    widgetFrame.Style,
+                                    ScaleFormWidgetStyle(widgetFrame.Style, field.AppearanceScale),
                                     widgetStructureReference?.StructParentIndex);
                                 int widgetObjectId = AddObject(objects, widget);
                                 CompleteAnnotationStructureReference(page, widgetStructureReference, widgetObjectId);
@@ -1021,7 +1021,7 @@ internal static partial class PdfWriter {
                         string checkedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, checkedAppearanceBytes.Length);
                         int checkedAppearanceId = AddStreamObject(objects, checkedAppearanceDictionary, checkedAppearanceBytes);
 
-                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex, field.ExportValue);
+                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, ScaleFormWidgetStyle(field.Style, field.AppearanceScale), formWidgetStructureReference?.StructParentIndex, field.ExportValue);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
                         string appearanceContent = BuildChoiceFieldAppearanceContent(
                             appearanceWidth,
@@ -1039,12 +1039,12 @@ internal static partial class PdfWriter {
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = field.ChoiceOptions.Count > 0
                             ? PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize,
-                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize * field.AppearanceScale,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, ScaleFormWidgetStyle(field.Style, field.AppearanceScale),
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex)
                             : PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize,
-                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize * field.AppearanceScale,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, ScaleFormWidgetStyle(field.Style, field.AppearanceScale),
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex);
                     } else {
                         string appearanceContent = BuildFormFieldTextAppearanceContent(
@@ -1059,7 +1059,7 @@ internal static partial class PdfWriter {
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceFontResources, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId, field.Style, formWidgetStructureReference?.StructParentIndex);
+                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize * field.AppearanceScale, appearanceId, ScaleFormWidgetStyle(field.Style, field.AppearanceScale), formWidgetStructureReference?.StructParentIndex);
                     }
 
                     int formFieldId = AddObject(objects, formField);
@@ -1595,7 +1595,7 @@ internal static partial class PdfWriter {
         }
 
         int documentStructElementId = ReserveObject(objects);
-        var documentChildElementIds = new List<int>();
+        var documentChildren = new List<PageStructElement>();
         var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
@@ -1658,10 +1658,10 @@ internal static partial class PdfWriter {
                             contentStreamObjectId,
                             additionalContentStreamObjectIds);
                 } else {
-                    var elementChildIds = new List<int>();
+                    var elementChildren = new List<PageStructElement>();
                     for (int childIndex = 0; childIndex < page.StructElements.Count; childIndex++) {
                         if (page.StructElements[childIndex].ParentElementIndex == elementIndex) {
-                            elementChildIds.Add(page.StructElements[childIndex].ObjectId);
+                            elementChildren.Add(page.StructElements[childIndex]);
                         }
                     }
 
@@ -1669,7 +1669,7 @@ internal static partial class PdfWriter {
                         LayoutResult.Page childPage = pages[childPageIndex];
                         for (int childIndex = 0; childIndex < childPage.StructElements.Count; childIndex++) {
                             if (ReferenceEquals(childPage.StructElements[childIndex].ParentElement, element)) {
-                                elementChildIds.Add(childPage.StructElements[childIndex].ObjectId);
+                                elementChildren.Add(childPage.StructElements[childIndex]);
                             }
                         }
                     }
@@ -1678,7 +1678,7 @@ internal static partial class PdfWriter {
                         parentObjectId,
                         pageIds[pageIndex],
                         element.StructureType,
-                        elementChildIds,
+                        OrderStructureChildren(elementChildren),
                         element.TableHeaderScope,
                         element.TableColumnSpan,
                         element.TableRowSpan,
@@ -1708,7 +1708,7 @@ internal static partial class PdfWriter {
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
                 if (!element.ParentElementIndex.HasValue && element.ParentElement == null) {
-                    documentChildElementIds.Add(element.ObjectId);
+                    documentChildren.Add(element);
                 }
             }
 
@@ -1736,6 +1736,7 @@ internal static partial class PdfWriter {
             }
         }
 
+        List<int> documentChildElementIds = OrderStructureChildren(documentChildren);
         if (documentChildElementIds.Count == 0) {
             ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
             ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));

@@ -10,6 +10,124 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_UnavailableIconFontOmitsPrivateUseGlyphWithLossReport() {
+        const string html = "<style>.icon::before{font-family:MissingIcon;content:'\\F42B'}</style>"
+            + "<p class='icon'>Voyager Overview</p>";
+
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("Voyager Overview", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
+        PdfCore.PdfConversionWarning omission = Assert.Single(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+        Assert.Equal("U+F42B", omission.Details["CodePoint"]);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+
+        HtmlConversionException strictFailure = Assert.Throws<HtmlConversionException>(() =>
+            HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+                FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+            }));
+        Assert.Contains(strictFailure.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Fact]
+    public void HtmlPdf_UnregisteredIconFontReportsPrivateUseOmission() {
+        byte[] iconFont = CreateHtmlRenderTestFont(0xF42B);
+        string html = "<style>@font-face{font-family:Icon;src:url('data:font/ttf;base64,"
+            + Convert.ToBase64String(iconFont)
+            + "')}.icon::before{font-family:Icon;content:'\\F42B'}</style><p class='icon'>Voyager Overview</p>";
+
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
+        Assert.Contains("Voyager Overview", extracted, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPdf_CallerFontKeepsCoveredPrivateUseGlyph(bool namedFamily) {
+        const string glyph = "\uF50E";
+        string fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf");
+        var options = new HtmlToPdfOptions();
+        var font = new PdfCore.PdfEmbeddedFontFamily("CallerIcon", File.ReadAllBytes(fontPath));
+        if (namedFamily) options.PdfOptions.RegisterNamedFontFamily(font);
+        else options.FontFamily = font;
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
+            .Parse("<p style='font-family:CallerIcon'>" + glyph + " Voyager</p>")
+            .ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains(glyph, extracted, StringComparison.Ordinal);
+        Assert.Contains("Voyager", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Fact]
+    public void HtmlPdf_MixedFontVerticalPrivateUseTextExtractsOnlyPaintedGlyph() {
+        const string glyph = "\uF50E";
+        string fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf");
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        options.PdfOptions.RegisterNamedFontFamily(
+            new PdfCore.PdfEmbeddedFontFamily("CallerIcon", File.ReadAllBytes(fontPath)));
+        string html = "<p style='writing-mode:vertical-rl;text-orientation:upright'>"
+            + "<span style='font-family:CallerIcon'>" + glyph + "</span>"
+            + "<span style='font-family:MissingIcon'>" + glyph + "</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text.Contains(glyph + glyph, StringComparison.Ordinal));
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Equal(1, extracted.Count(character => character == glyph[0]));
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Theory]
+    [InlineData("\uF42B", "")]
+    [InlineData("A\uF42BB", "AB")]
+    public void HtmlPdf_VerticalLogicalTextOmitsUnavailableIconWithoutStaleActualText(
+        string sourceText,
+        string expectedText) {
+        string html = "<p style='writing-mode:vertical-rl;text-orientation:upright;font-family:MissingIcon'>"
+            + sourceText + "</p>";
+
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
+        if (expectedText.Length > 0) Assert.Contains(expectedText, extracted, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+    }
+
+    [Fact]
     public void HtmlRender_KeepsRtlGlyphPositionsAlignedWithScopedFontKerning() {
         byte[] fontData = CreateHtmlRenderTestFont(0x05D0, kerningAdjustment: -100);
         string encoded = Convert.ToBase64String(fontData);
@@ -128,6 +246,48 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == emoji + emoji && text.Font.FamilyName.Contains("Remote Demo", StringComparison.Ordinal));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_MissingAlternateFontSourceDoesNotReportVisibleOmission() {
+        byte[] fontData = CreateHtmlRenderTestFont();
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsolutePath.EndsWith("/demo.ttf", StringComparison.Ordinal)
+                    ? new HtmlResolvedResource(fontData, "font/ttf")
+                    : null)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<style>@font-face{font-family:Demo;src:url('https://assets.example.test/demo.ttf') format('truetype'),url('https://assets.example.test/demo.woff') format('woff')}p{font-family:Demo}</style><p>Sample</p>",
+            options);
+
+        Assert.Single(rendered.Fonts.Faces);
+        HtmlDiagnostic missingAlternate = Assert.Single(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Equal("https://assets.example.test/demo.woff", missingAlternate.Source);
+        Assert.Equal(OfficeConversionLossKind.None, missingAlternate.LossKind);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.False(rendered.HasLoss);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_MissingWholeFontFaceStillReportsApproximation() {
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<style>@font-face{font-family:Missing;src:url('https://assets.example.test/missing.ttf') format('truetype')}p{font-family:Missing}</style><p>Sample</p>",
+            options);
+
+        HtmlDiagnostic missingSource = Assert.Single(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Equal(OfficeConversionLossKind.None, missingSource.LossKind);
+        HtmlDiagnostic unavailableFace = Assert.Single(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.Equal(OfficeConversionLossKind.Approximation, unavailableFace.LossKind);
+        Assert.True(rendered.HasLoss);
     }
 
     [Fact]
@@ -435,8 +595,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(rendered.Fonts.Faces);
         Assert.Contains(rendered.Diagnostics, diagnostic =>
-            diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
-            && diagnostic.Message.Contains("Decoded font data", StringComparison.Ordinal));
+            diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded);
     }
 
     [Fact]

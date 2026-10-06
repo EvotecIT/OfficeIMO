@@ -26,28 +26,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData("data")]
-        [InlineData("file")]
-        [InlineData("remote")]
-        public async Task HtmlToWord_WebpDecodedPixelLimitAppliesBeforeNormalization(string route) {
+        [InlineData("data", false)]
+        [InlineData("file", false)]
+        [InlineData("remote", false)]
+        [InlineData("data", true)]
+        [InlineData("file", true)]
+        [InlineData("remote", true)]
+        public async Task HtmlToWord_NormalizedRasterPixelLimitAppliesBeforeNormalization(string route, bool avif) {
             byte[] bytes = Convert.FromBase64String("UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
-            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".webp");
+            // Frozen 49x33 AVIF from the independent static-image corpus.
+            if (avif) bytes = Convert.FromBase64String("AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADrbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAOcGl0bQAAAAAAAQAAAB5pbG9jAAAAAEQAAAEAAQAAAAEAAAETAAAAOgAAAChpaW5mAAAAAAABAAAAGmluZmUCAAAAAAEAAGF2MDFDb2xvcgAAAABqaXBycAAAAEtpcGNvAAAAFGlzcGUAAAAAAAAAMQAAACEAAAAQcGl4aQAAAAADCAgIAAAADGF2MUOBAAwAAAAAE2NvbHJuY2x4AAEADQAGgAAAABdpcG1hAAAAAAAAAAEAAQQBAoMEAAAAQm1kYXQSAAoJGBVwgaICGg0IMitEgf39qkAggg+QAADPzBAOzmhbr/5Sjc9uvYEuL65Q9kjfQOnL0iQ1J5+x");
+            int pixels = avif ? 49 * 33 : 256;
+            string extension = avif ? "avif" : "webp";
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "." + extension);
             using var client = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) })));
             var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
-            options.MaxDecodedImagePixels = 255;
+            options.MaxDecodedImagePixels = pixels - 1;
             options.HttpClient = client;
             File.WriteAllBytes(path, bytes);
             try {
-                string source = route == "data" ? "data:image/webp;base64," + Convert.ToBase64String(bytes)
-                    : route == "file" ? new Uri(path).AbsoluteUri : "https://example.test/image.webp";
+                string source = route == "data" ? "data:image/" + extension + ";base64," + Convert.ToBase64String(bytes)
+                    : route == "file" ? new Uri(path).AbsoluteUri : "https://example.test/image." + extension;
                 var conversion = await HtmlConversionDocument.Parse("<img src='" + source + "' alt='Retained description'>",
                     HtmlConversionDocumentOptions.CreateTrustedProfile()).ToWordDocumentResultAsync(options);
                 using var doc = conversion.Value;
                 Assert.Empty(doc.Images);
                 Assert.Contains(doc.Paragraphs, p => p.Text.Contains("Retained description"));
                 Assert.Contains(conversion.Report.Diagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));
-                options.MaxDecodedImagePixels = 256;
+                options.MaxDecodedImagePixels = pixels;
                 using var accepted = await HtmlConversionDocument.Parse("<img src='" + source + "'>",
                     HtmlConversionDocumentOptions.CreateTrustedProfile()).ToWordDocumentAsync(options);
                 Assert.Single(accepted.Images);

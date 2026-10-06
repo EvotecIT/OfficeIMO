@@ -1,0 +1,187 @@
+{
+  "sourceCommit": "d9e3443794f12dd0093b461851294890557d12d7",
+  "scope": "Internal reduced-still AV1 leaf prelude. Public AVIF decode and support catalog remain unchanged.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1BlockPrelude.cs": "1c9b6bcc35808cf55b024102faac92e7a7985703c3f00dc522b32416873218c6",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1BlockPreludeReader.Syntax.cs": "f319d4eb42a22b34c2dde60d86752b7a25e4a1c299844c889a92fc3681023d94",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1BlockPreludeReader.cs": "966df36811bf83bcd8c32e7f85a9e8f755dfdbb56595f3a315713fc8d8e6b7dd",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Preludes.cs": "55f04a2c4accb4fba8ae2844123d5957be55058132a4d529d69f5980f3b17485",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "95e5e8c16b838768a8fd0c0d801a45a73826b7e362fa1e84f75a43d7a50d50be",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePreludeFixtures.c": "dc8ec7079bfad3f3a4f38828b1f09b2d9742678682c57c0b8f7f19fd9f5b2e99",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePreludeFixtures.py": "eb9b5962968a12469f1870ae602d88cd425f8d65e4aa4087ecf80be09746aec8",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/prelude-reference.json": "d572357c5b8d96d944966b01018fa8a7281464b1b192be60844a46a9f07039d3"
+  },
+  "syntaxReferences": {
+    "spec": "AV1 5.11.7-13, 5.11.55-56 and 8.3.2",
+    "aomTag": "v3.13.1",
+    "tables": "av1/common/entropymode.c",
+    "nativeOwner": "Hash-pinned AOM entropy APIs; original component-syntax harness, not a full native AV1 decoder."
+  },
+  "oracle": {
+    "receipt": {
+      "generatorSha256": "eb9b5962968a12469f1870ae602d88cd425f8d65e4aa4087ecf80be09746aec8",
+      "harnessSha256": "dc8ec7079bfad3f3a4f38828b1f09b2d9742678682c57c0b8f7f19fd9f5b2e99",
+      "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "partitionReceiptSha256": "89c2403241d20ac6eb72b4f6f22f2b53e1c4f9f07149c7de76f40554dfaa4dbf",
+      "fixtureSha256": "d572357c5b8d96d944966b01018fa8a7281464b1b192be60844a46a9f07039d3",
+      "cases": 24,
+      "nativeSelfCheck": true,
+      "prefixes": 3
+    },
+    "freshReplayReceipt": {
+      "generatorSha256": "eb9b5962968a12469f1870ae602d88cd425f8d65e4aa4087ecf80be09746aec8",
+      "harnessSha256": "dc8ec7079bfad3f3a4f38828b1f09b2d9742678682c57c0b8f7f19fd9f5b2e99",
+      "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "partitionReceiptSha256": "89c2403241d20ac6eb72b4f6f22f2b53e1c4f9f07149c7de76f40554dfaa4dbf",
+      "fixtureSha256": "d572357c5b8d96d944966b01018fa8a7281464b1b192be60844a46a9f07039d3",
+      "cases": 24,
+      "nativeSelfCheck": true,
+      "prefixes": 3
+    },
+    "freshReplayByteIdentical": true,
+    "leaves": 440,
+    "frozenFirstLeafPrefixes": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "offset": 302,
+        "length": 31,
+        "baseQ": 32,
+        "cdef": true,
+        "deltaQ": true,
+        "pixels": 32,
+        "skip": 0,
+        "segment": 0,
+        "cdefIndex": 0,
+        "q": 18
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "offset": 447,
+        "length": 43,
+        "baseQ": 24,
+        "cdef": false,
+        "deltaQ": false,
+        "pixels": 32,
+        "skip": 0,
+        "segment": 0,
+        "cdefIndex": -1,
+        "q": 24
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "offset": 298,
+        "length": 1189,
+        "baseQ": 112,
+        "cdef": false,
+        "deltaQ": false,
+        "pixels": 16,
+        "skip": 0,
+        "segment": 0,
+        "cdefIndex": -1,
+        "q": 112
+      }
+    ],
+    "componentCoverage": [
+      "Adaptive and disabled CDF updates",
+      "Tile-local shifted contexts",
+      "64/128 superblocks",
+      "Segment pre-skip and post-skip with prediction",
+      "Skip contexts and segment-forced skip",
+      "CDEF sharing/reset, broadcast and suppression",
+      "Quantizer escape/sign/clamp 1..255 and running state",
+      "Single/multi monochrome/color filter deltas and clamp -63..63",
+      "Lossless zero quantizer and full-superblock skip suppression",
+      "Rectangular leaves",
+      "Leaf completion lifetime, segment bounds, memory/pixel guards and cancellation"
+    ]
+  },
+  "validation": {
+    "focusedTests": [
+      {
+        "target": "net8",
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prelude-work-13ecbc4cc/prelude-final-net8.trx",
+        "sha256": "523ba193ca4f5789135cd2587f7dac5e321d73ed87822f4d57de1527063a694f",
+        "counters": {
+          "total": "58",
+          "executed": "58",
+          "passed": "58",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "target": "net10",
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prelude-work-13ecbc4cc/prelude-final-net10.trx",
+        "sha256": "e815786024035f2dd20204330724dd988213729aec6359ed6873768a24b24aaa",
+        "counters": {
+          "total": "58",
+          "executed": "58",
+          "passed": "58",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "coreNetstandard20": {
+      "command": "dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore",
+      "succeeded": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "sdk": "10.0.303",
+    "publicDefaultDecodePathChanged": false,
+    "newRuntimeDependencies": false
+  },
+  "localReview": {
+    "selectedFor": "Entropy syntax/state, resource bounds and decoder correctness",
+    "reviewer": "/root/av1_prelude_review",
+    "baseCommit": "13ecbc4ccd35654d74e0f87424c9aa82afec720a",
+    "stagedDiffFingerprint": "1719d2d78d35826b2579a293d8361a32b88df2d8",
+    "result": "No actionable P0-P3 findings",
+    "boundary": "current",
+    "confirmationUsed": false
+  },
+  "unqualified": [
+    "Positive smaller active-segment ranges beyond rejection proof",
+    "Mixed recursive/A/B leaf replay and clipped frame-edge prelude replay",
+    "Complete tile traversal with evolving prediction/residual state",
+    "Intra modes, transforms/coefficients, reconstruction, filters and color/alpha composition",
+    "Public raster decode and original static-gap HTML/PDF acceptance",
+    "Completed-decoder H4/NASA/unchanged performance gates",
+    "Windows/net472 execution and Windows/Linux operation budgets"
+  ],
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prelude-work-13ecbc4cc",
+  "supportCatalogChanged": false,
+  "goalComplete": false,
+  "cleanup": {
+    "removedBytes": 503178,
+    "removedTargets": 16,
+    "retainedBytes": 421463,
+    "retainedPurpose": "Final framework results, hash receipts and small native reference for subsequent syntax/reconstruction stages."
+  }
+}

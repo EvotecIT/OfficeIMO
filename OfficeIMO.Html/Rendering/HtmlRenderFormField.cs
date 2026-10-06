@@ -165,11 +165,14 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     /// <summary>Ordered static fallback paint used by non-interactive backends.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, LayoutY);
+
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
+        Clone(X + offsetX, Y + offsetY, visuals, paintOrder, LayoutY);
 
     private HtmlRenderFormField Clone(double x, double y, IEnumerable<HtmlRenderVisual> visuals, int paintOrder, double layoutY) =>
         new(FieldKind, Name, MappingName, Value, Placeholder, _values, _options, _optionValues, _selectedOptionIndices, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, PlaceholderTextColor, TextAlignment, BackgroundColor, BorderColor, BorderStyle, BorderWidth, CornerRadius, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
