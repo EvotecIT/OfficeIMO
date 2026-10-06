@@ -55,13 +55,13 @@ namespace OfficeIMO.Excel {
         private int CheckRead(int read, bool requestedBytes) {
             _consumed += read;
             if (_consumed > _declaredLength) {
-                throw new InvalidDataException(
+                throw ExcelPackagePartLengthFailure.Create(
                     $"Package part '{_partName}' exceeds its declared decompressed length of {_declaredLength} bytes.");
             }
             if (read == 0 && requestedBytes && _consumed != _declaredLength) {
                 // Integrity failures must propagate through the XML/SDK fallback
                 // routes, which can recover from ordinary IO failures.
-                throw new InvalidDataException(
+                throw ExcelPackagePartLengthFailure.Create(
                     $"Package part '{_partName}' ended after {_consumed} of {_declaredLength} declared bytes.");
             }
             return read;
