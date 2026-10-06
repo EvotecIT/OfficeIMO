@@ -1,0 +1,29 @@
+{
+  "producer": {
+    "reportlab": "4.4.9",
+    "pypdf": "6.10.0"
+  },
+  "text": "alpha beta gamma Żółć",
+  "passwords": {
+    "user": "open",
+    "owner": "owner"
+  },
+  "files": {
+    "source-font-aes-128.pdf": {
+      "bytes": 27153,
+      "sha256": "d223f5165b086a12091311e1aa4ec6e6775559a9dd578c534b751df15c8b87da"
+    },
+    "source-font-aes-256.pdf": {
+      "bytes": 27401,
+      "sha256": "544694a13181314781e47d7482d62ed78a8ef682aa53c1f657f78ce004e4e12f"
+    },
+    "source-font-rc4-40.pdf": {
+      "bytes": 26569,
+      "sha256": "a86d623654ca0da247ca3f6795b723a9f0b43dad8dd297da0e21d9dea584515e"
+    },
+    "source-font-reportlab.pdf": {
+      "bytes": 26319,
+      "sha256": "ce30c174816807e0e1dc9c5fc1f8631b9bf14a63cb9a29d1f49a75da337cbefc"
+    }
+  }
+}

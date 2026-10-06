@@ -65,7 +65,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
     }
 
     internal static byte[] SetPageBoxesWithReadOptions(byte[] pdf, IReadOnlyList<PdfProductionFixupProposal> proposals,
@@ -93,7 +93,7 @@ internal static partial class PdfPageEditor {
         int[] pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
         return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides,
-            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken),
+            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document, cancellationToken),
             fileVersion: fileVersion, cancellationToken: cancellationToken);
     }
 

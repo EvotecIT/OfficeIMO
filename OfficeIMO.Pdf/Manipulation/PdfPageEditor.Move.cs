@@ -24,7 +24,7 @@ internal static partial class PdfPageEditor {
         int[] ordered = plan.SourcePageNumbers.Select(page => document.Pages[page - 1].ObjectNumber).ToArray();
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
     }
 
     /// <summary>

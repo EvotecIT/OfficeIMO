@@ -304,9 +304,6 @@ internal static partial class PdfIncrementalUpdater {
             security.AllowsModification != true) {
             annotationBlockers.Add("AnnotationPermission");
         }
-        if (security.HasEncryption) {
-            signaturePreparationBlockers.Add("EncryptedRawSignatureObject");
-        }
         bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {

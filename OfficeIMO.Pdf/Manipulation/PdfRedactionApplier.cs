@@ -252,6 +252,7 @@ internal static partial class PdfRedactionApplier {
             .ToDictionary(static item => item.Key, static item => (PdfStream)item.Value.Value);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
+        PdfSourceEncryptionContext? sourceEncryption = PdfSourceEncryptionContext.Create(document, effectiveOptions.CancellationToken);
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, sourceStreamIdentities, mutationScope, paintMarks, imageTargets);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
@@ -265,7 +266,10 @@ internal static partial class PdfRedactionApplier {
         generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, sourceStreamIdentities, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.UncheckedMetadata;
-        return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, effectiveOptions.CancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, effectiveOptions.CancellationToken);
+        return sourceEncryption?.Protect(rewritten,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth),
+            cancellationToken: effectiveOptions.CancellationToken) ?? rewritten;
     }
 
     /// <summary>
