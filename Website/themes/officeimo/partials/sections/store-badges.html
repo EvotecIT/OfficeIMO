@@ -5,8 +5,8 @@
     {{~ if store.status == "available" ~}}
       {{~ if store.url && store.badge ~}}
       <a class="imo-store-badge" href="{{ store.url }}" rel="noopener" data-store="{{ store.id }}">
-        <img class="imo-theme-light-only" src="{{ store.badge }}" width="{{ store.badgeWidth }}" height="{{ store.badgeHeight }}" alt="{{ store.badgeAlt }}" decoding="async" />
-        <img class="imo-theme-dark-only" src="{{ store.badgeDark ?? store.badge }}" width="{{ store.badgeWidth }}" height="{{ store.badgeHeight }}" alt="{{ store.badgeAlt }}" decoding="async" />
+        <img class="imo-theme-light-only" src="{{ store.badge }}" width="{{ store.badgeWidth }}" height="{{ store.badgeHeight }}" alt="{{ store.badgeAlt }}" loading="lazy" decoding="async" />
+        <img class="imo-theme-dark-only" src="{{ store.badgeDark ?? store.badge }}" width="{{ store.badgeWidth }}" height="{{ store.badgeHeight }}" alt="{{ store.badgeAlt }}" loading="lazy" decoding="async" />
       </a>
       {{~ else if store.command ~}}
       <div class="imo-store-command" data-store="{{ store.id }}">

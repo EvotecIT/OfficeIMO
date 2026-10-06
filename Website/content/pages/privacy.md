@@ -80,7 +80,7 @@ These requests go directly from your environment to the service you chose. Evote
   - **What we record:** for each completed download, the time, the file and version, your IP address, your country (from the IP address), and the browser type, for example "Chrome" or "PowerShell".
   - **Why:** only to count downloads and to protect the service from abuse.
   - **How long:** detailed records are deleted automatically after 72 hours. After that we keep only daily totals per file, country, and browser type, with no IP addresses.
-  - **Server logs:** like any web server, the service also keeps access logs (IP address, time, file, and browser details) for security. These are deleted automatically after a short period.
+  - **Server logs:** the download server keeps request and error logs for security. Request logs include your IP address, time, file, and browser details. Logs rotate daily; the server keeps the current files and two daily archives. Empty files rotate too, so an inactive download server does not retain old archives indefinitely.
 - **Other files** are downloaded from GitHub Releases.
 - **Package managers:** NuGet, the PowerShell Gallery, and WinGet handle package downloads under their own policies.
 
