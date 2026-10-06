@@ -195,6 +195,8 @@ shared outlines, including caps, joins, dashes, opacity, clipping, and affine tr
 Gradient fills and strokes preserve color-stop alpha through native transparency masks,
 including header and footer shapes. Gradient direction follows the same local coordinates
 before and after an affine transform.
+Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
+gradient clipping, affine transforms, and header and footer shapes.
 
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
 the selected shaping provider supplies vertical advances and complete logical
