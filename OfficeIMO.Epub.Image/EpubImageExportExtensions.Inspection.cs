@@ -17,7 +17,30 @@ public static partial class EpubImageExportExtensions {
     /// chapter selection and image-output settings do not apply. External asynchronous resources remain diagnosed.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     public static EpubFixedLayoutInspection InspectFixedLayoutPage(this EpubDocument source, int chapterIndex,
-        EpubImageExportOptions? options = null, CancellationToken cancellationToken = default) {
+        EpubImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        InspectFixedLayout(source, chapterIndex, Array.Empty<string>(), options, cancellationToken);
+
+    /// <summary>Inspects the page canvas and selected identified positioned, floating, flex or grid regions
+    /// in one render pass. Region findings use local border-box coordinates, before the region's own and
+    /// ancestor transforms. Descendant transforms and authored clips are retained. Ancestor clips do not
+    /// redefine local containment. Missing, duplicate, hidden or unsupported region targets fail explicitly.</summary>
+    /// <param name="source">Publication loaded with raw HTML and resource payloads retained.</param>
+    /// <param name="chapterIndex">Zero-based fixed-layout XHTML chapter index.</param>
+    /// <param name="regionElementIds">One to 1024 distinct HTML element IDs to inspect.</param>
+    /// <param name="options">Font, resource and safety settings, as for page inspection.</param>
+    /// <param name="cancellationToken">Cooperative cancellation.</param>
+    public static EpubFixedLayoutInspection InspectFixedLayoutRegions(this EpubDocument source, int chapterIndex,
+        IReadOnlyList<string> regionElementIds, EpubImageExportOptions? options = null, CancellationToken cancellationToken = default) {
+        if (regionElementIds == null) throw new ArgumentNullException(nameof(regionElementIds));
+        if (regionElementIds.Count == 0 || regionElementIds.Count > 1024) throw new ArgumentOutOfRangeException(nameof(regionElementIds));
+        string[] ids = regionElementIds.ToArray();
+        if (ids.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 1024) || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
+            throw new ArgumentException("Region IDs must be nonempty, distinct and at most 1024 characters each.", nameof(regionElementIds));
+        return InspectFixedLayout(source, chapterIndex, ids, options, cancellationToken);
+    }
+
+    private static EpubFixedLayoutInspection InspectFixedLayout(EpubDocument source, int chapterIndex,
+        IReadOnlyList<string> regionIds, EpubImageExportOptions? options, CancellationToken cancellationToken) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         cancellationToken.ThrowIfCancellationRequested();
         if (chapterIndex < 0 || chapterIndex >= source.Chapters.Count) throw new ArgumentOutOfRangeException(nameof(chapterIndex));
@@ -34,11 +57,13 @@ public static partial class EpubImageExportExtensions {
         effective.Mode = HtmlRenderMode.Continuous;
         effective.ViewportWidth = width; effective.ViewportHeight = height; effective.Margins = HtmlRenderMargins.All(0D);
         EpubChapterRenderPreparation preparation = PrepareChapter(chapter, effective, BuildResourceIndex(source, cancellationToken));
-        HtmlRenderDocument rendering = HtmlRenderEngine.Render(preparation.Document, preparation.Options, cancellationToken);
+        HtmlRenderDocument rendering = HtmlRenderEngine.RenderForRegionInspection(preparation.Document, preparation.Options, regionIds, cancellationToken);
         HtmlRenderPage page = rendering.Pages.Single();
         OfficeDrawingQualityReport quality = page.InspectCanvasBounds(width, height, effective.MaxSurfaceWidth,
             effective.MaxSurfaceHeight, cancellationToken);
-        return new EpubFixedLayoutInspection(chapter.Path, width, height, rendering, quality, source.Diagnostics, preparation.Diagnostics);
+        var regions = regionIds.Select(id => new EpubFixedLayoutRegionInspection(id,
+            page.InspectRegionBounds(id, effective.MaxSurfaceWidth, effective.MaxSurfaceHeight, cancellationToken))).ToArray();
+        return new EpubFixedLayoutInspection(chapter.Path, width, height, rendering, quality, source.Diagnostics, preparation.Diagnostics, regions);
     }
 
     private static (double Width, double Height) ReadInspectionViewport(string source, int maximumCharacters) {

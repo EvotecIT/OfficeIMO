@@ -9,6 +9,63 @@ namespace OfficeIMO.Tests;
 
 public sealed class EpubFixedLayoutInspectionTests {
     [Theory]
+    [InlineData(10, "", "", false)]
+    [InlineData(80, "", "", true)]
+    [InlineData(80, "overflow:hidden", "", false)]
+    [InlineData(10, "transform:translateX(30px)", "", false)]
+    [InlineData(10, "transform:rotate(30deg)", "", false)]
+    [InlineData(80, "transform:rotate(30deg)", "", true)]
+    [InlineData(10, "", "transform:translateY(30px)", true)]
+    public void SelectedRegionMeasuresLocalContentWithoutLosingItsIdentity(int childHeight, string regionStyle, string childStyle, bool overflow) {
+        var book = Book(20); var xml = book.GetContentXml("page");
+        var frame = xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame");
+        frame.SetAttributeValue("style", regionStyle);
+        frame.Elements().Single().SetAttributeValue("style", "width:80px;height:" + childHeight + "px;background:#124e80;" + childStyle);
+        book.SetContentXml("page", xml);
+        var source = Read(book); string? before = source.Chapters[0].Html;
+        var report = source.InspectFixedLayoutRegions(0, new[] { "frame" });
+        Assert.Equal("frame", Assert.Single(report.Regions).ElementId);
+        Assert.Equal(overflow, report.Regions[0].HasOverflow);
+        Assert.Equal(before, source.Chapters[0].Html);
+        Assert.Empty(source.InspectFixedLayoutPage(0).Regions);
+    }
+
+    [Fact]
+    public void RegionSelectionCannotSilentlySucceedWithoutGeometry() {
+        var source = Read(Book(20));
+        Assert.Throws<InvalidDataException>(() => source.InspectFixedLayoutRegions(0, new[] { "missing" }));
+        Assert.Throws<ArgumentException>(() => source.InspectFixedLayoutRegions(0, new[] { "frame", "frame" }));
+        var book = Book(20); var xml = book.GetContentXml("page");
+        xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame").SetAttributeValue("style", "display:none");
+        book.SetContentXml("page", xml);
+        Assert.Throws<NotSupportedException>(() => Read(book).InspectFixedLayoutRegions(0, new[] { "frame" }));
+    }
+
+    [Fact]
+    public void RegionMarkersDoNotChangePaintingOrIncludeSiblingContent() {
+        var book = Book(20); var xml = book.GetContentXml("page"); XNamespace html = "http://www.w3.org/1999/xhtml";
+        xml.Root!.Element(html + "body")!.Add(new XElement(html + "div", new XAttribute("id", "other"),
+            new XAttribute("style", "position:absolute;left:140px;top:100px;width:20px;height:20px;background:#804e12")));
+        book.SetContentXml("page", xml); var source = Read(book);
+        var plain = source.InspectFixedLayoutPage(0);
+        var selected = source.InspectFixedLayoutRegions(0, new[] { "other", "frame" });
+        Assert.Equal(new[] { "other", "frame" }, selected.Regions.Select(r => r.ElementId));
+        Assert.False(selected.Regions[0].HasOverflow); Assert.True(selected.Regions[1].HasOverflow);
+        Assert.Equal(plain.Rendering.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes,
+            selected.Rendering.Pages[0].CreateDrawing().ExportImage(OfficeImageExportFormat.Png).Bytes);
+    }
+
+    [Fact]
+    public void AncestorClippingAndTransformsDoNotRedefineLocalRegionContainment() {
+        var book = Book(20); var xml = book.GetContentXml("page"); XNamespace html = "http://www.w3.org/1999/xhtml";
+        var frame = xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame");
+        frame.SetAttributeValue("style", "position:absolute;left:20px;top:20px;width:100px;height:20px");
+        var wrapper = new XElement(html + "div", new XAttribute("style", "position:relative;width:100px;height:30px;overflow:hidden;transform:rotate(10deg)"));
+        frame.ReplaceWith(wrapper); wrapper.Add(frame); book.SetContentXml("page", xml);
+        Assert.True(Read(book).InspectFixedLayoutRegions(0, new[] { "frame" }).Regions[0].HasOverflow);
+    }
+
+    [Theory]
     [InlineData(20, false)]
     [InlineData(180, true)]
     public void RenderedChildGeometryIsComparedWithDeclaredCanvas(int top, bool overflow) {

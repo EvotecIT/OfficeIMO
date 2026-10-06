@@ -23,6 +23,11 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderDocument Render(
         HtmlConversionDocument document,
         HtmlRenderOptions? options,
+        CancellationToken cancellationToken) => RenderForRegionInspection(document, options, Array.Empty<string>(), cancellationToken);
+
+    // Mark the isolated render DOM, not the authored source or destination-native projection.
+    internal static HtmlRenderDocument RenderForRegionInspection(
+        HtmlConversionDocument document, HtmlRenderOptions? options, IReadOnlyList<string> regionIds,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
@@ -34,6 +39,14 @@ public static class HtmlRenderEngine {
             HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
             operationCancellationToken.ThrowIfCancellationRequested();
             IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+            var identifiedElements = regionIds.Count == 0 ? null : renderDocument.QuerySelectorAll("[id]").ToLookup(e => e.Id, StringComparer.Ordinal);
+            foreach (string id in regionIds) {
+                operationCancellationToken.ThrowIfCancellationRequested();
+                var matches = identifiedElements![id].ToArray();
+                if (matches.Length != 1) throw new InvalidDataException("Region inspection requires one element with id: " + id);
+                HtmlEditableLayoutProjector.SetRegionSourceKey(matches[0], id);
+            }
+            if (regionIds.Count > 0) resolved.EnableEditableLayoutRegions = true;
             return RenderDocument(
                 renderDocument,
                 resolved,

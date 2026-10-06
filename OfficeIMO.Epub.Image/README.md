@@ -54,9 +54,29 @@ image export does not suppress them in this inspection. Missing raw XHTML, a
 reflowable chapter, an unsupported viewport or encrypted content rejects inspection;
 text fallback cannot establish fixed geometry.
 
+Inspect identified layout regions in the same render pass when a page contains
+positioned text or image containers:
+
+```csharp
+EpubFixedLayoutInspection inspection = book.InspectFixedLayoutRegions(
+    0, new[] { "caption", "illustration" });
+foreach (EpubFixedLayoutRegionInspection region in inspection.Regions) {
+    Console.WriteLine($"{region.ElementId}: overflow={region.HasOverflow}");
+}
+```
+
+Region findings compare rendered element rectangles with the region's local border
+box. Moving or rotating the entire region does not change this local containment;
+descendant transforms do. Authored clips inside the region remain in effect, while
+ancestor clips do not redefine its local box. The page-level canvas findings still
+include the whole scene's transforms and clips. Supply up to 1024 distinct IDs of
+positioned, floating, flex or grid containers. Missing or duplicate source IDs and
+targets without one rendered region, including hidden or unsupported targets,
+reject inspection rather than produce an empty successful result. Region selection
+does not modify the retained XHTML or the rendered painting.
+
 This is managed layout evidence. It does not measure glyph ink, shadows/filters,
-content hidden by authored clipping, or overflow inside individual positioned
-regions. SVG spine inspection, native-reader presentation and accessible reading
+or content hidden by authored clipping. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 
 <!-- officeimo-operation-catalog:start -->

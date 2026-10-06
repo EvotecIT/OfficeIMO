@@ -7,10 +7,11 @@ namespace OfficeIMO.Epub.Image;
 public sealed class EpubFixedLayoutInspection {
     internal EpubFixedLayoutInspection(string path, double width, double height, HtmlRenderDocument rendering,
         OfficeDrawingQualityReport quality, IEnumerable<EpubDiagnostic> packageDiagnostics,
-        IReadOnlyList<OfficeImageExportDiagnostic> preparationDiagnostics) {
+        IReadOnlyList<OfficeImageExportDiagnostic> preparationDiagnostics, EpubFixedLayoutRegionInspection[] regions) {
         Path = path; ViewportWidth = width; ViewportHeight = height; Rendering = rendering; CanvasQuality = quality;
         PackageDiagnostics = Array.AsReadOnly(packageDiagnostics.ToArray());
         PreparationDiagnostics = preparationDiagnostics;
+        Regions = Array.AsReadOnly(regions);
     }
     /// <summary>Package-relative chapter path.</summary>
     public string Path { get; }
@@ -23,6 +24,8 @@ public sealed class EpubFixedLayoutInspection {
     /// <summary>Rendered element rectangle findings against the declared canvas. This is not glyph-ink,
     /// shadow/filter, clipped-content or individual-region overflow measurement.</summary>
     public OfficeDrawingQualityReport CanvasQuality { get; }
+    /// <summary>Requested region inspections in caller order. Empty when only the page canvas was inspected.</summary>
+    public IReadOnlyList<EpubFixedLayoutRegionInspection> Regions { get; }
     /// <summary>Package and extraction diagnostics retained regardless of image-export suppression options.</summary>
     public IReadOnlyList<EpubDiagnostic> PackageDiagnostics { get; }
     /// <summary>Source preparation diagnostics, including unavailable source content.</summary>
