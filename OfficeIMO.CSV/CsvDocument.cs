@@ -459,6 +459,10 @@ public sealed partial class CsvDocument
     }
 
     /// <summary>Asynchronously saves the document to a caller-owned writable stream.</summary>
+    /// <remarks>
+    /// Successful saves replace and rewind seekable streams. Non-seekable streams receive output at their
+    /// current position. The destination stays open and can contain partial output if saving fails.
+    /// </remarks>
     public Task SaveAsync(Stream destination, CsvSaveOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
@@ -466,7 +470,8 @@ public sealed partial class CsvDocument
         options = ResolveSaveOptions(options);
         if (options.Append || options.NoClobber)
             throw new ArgumentException("Append and NoClobber apply only to path saves.", nameof(options));
-        return SaveToStreamAsync(destination, options, cancellationToken);
+        return OfficeStreamWriter.WriteAsync(destination,
+            (stream, token) => SaveToStreamAsync(stream, options, token), cancellationToken);
     }
 
     private async Task SaveToStreamAsync(Stream destination, CsvSaveOptions options, CancellationToken cancellationToken, string? initialSeparator = null)
