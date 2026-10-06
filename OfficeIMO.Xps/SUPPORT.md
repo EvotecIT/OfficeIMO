@@ -724,7 +724,13 @@ previous vector paint. A separate 30-document native probe covers plain,
 with standard, embedded TrueType and embedded CFF fonts. PDFKit and MuPDF extract
 and find the source word in every case; MuPDF paint is byte-identical to the
 pre-change vector renders. Contiguous selection cells share a text run with
-explicit scalar advances, preserving cluster widths. Sideways selection cells
+explicit scalar advances, preserving cluster widths. Logical cells follow explicit
+advances even where glyph ink overhangs them; zero-advance clusters retain an
+ink-based selection region. A further 24 native cases cover repeated characters
+with different advances and a Unicode scalar absent from the selected PDF font,
+with plain/sheared
+text, both dialects and all three font choices. PDFKit finds every source string;
+MuPDF renders match the pre-change paint. Sideways selection cells
 share the run baseline while retaining explicit glyph offsets. Distinct CFF glyph
 IDs retain Unicode ownership; unavailable glyphs keep separate fallback mappings.
 Discontinuous baselines remain separate runs. Wider interactive selection and

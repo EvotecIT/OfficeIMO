@@ -68,6 +68,7 @@ internal sealed partial class XpsSvgConverter {
             double clusterLeft = double.PositiveInfinity, clusterTop = double.PositiveInfinity;
             double clusterRight = double.NegativeInfinity, clusterBottom = double.NegativeInfinity;
             double sidewaysTop = double.PositiveInfinity, sidewaysBottom = double.NegativeInfinity;
+            double selectionLeft = double.PositiveInfinity, selectionRight = double.NegativeInfinity;
             for (int g = 0; g < glyphCount; g++) {
                 string[] fields = (g == 0 ? entry : entries[entryIndex + g]).Split(',');
                 if (fields.Length > 4 || fields[0].Contains("(")) throw new InvalidDataException("Malformed XPS glyph mapping.");
@@ -91,6 +92,7 @@ internal sealed partial class XpsSvgConverter {
                 double cellLeft = rtl ? x - u - advance : gx;
                 double cellRight = rtl ? x - u : gx + advance;
                 clusterLeft = Math.Min(clusterLeft, cellLeft); clusterRight = Math.Max(clusterRight, cellRight);
+                selectionLeft = Math.Min(selectionLeft, cellLeft); selectionRight = Math.Max(selectionRight, cellRight);
                 if (sideways) {
                     // Sideways glyph ink varies in height, but its logical selection
                     // cell shares the run baseline. Preserve explicit vertical offsets.
@@ -129,7 +131,11 @@ internal sealed partial class XpsSvgConverter {
             if (_visualDepth == 0 && textIndex < text.Length) {
                 // Keep native clusters intact: a ligature or a surrogate pair must not
                 // be split into unrelated PDF replacement-text sequences.
-                double left = clusterLeft, right = clusterRight;
+                // Ink may overhang a narrow advance (for example an explicitly kerned
+                // glyph). Selection follows its advance cell, not overlapping ink.
+                // A zero-advance cluster still uses its ink for a selectable region.
+                double left = selectionRight > selectionLeft ? selectionLeft : clusterLeft;
+                double right = selectionRight > selectionLeft ? selectionRight : clusterRight;
                 double top = double.IsPositiveInfinity(clusterTop) ? y - size / 2 : clusterTop;
                 double bottom = double.IsNegativeInfinity(clusterBottom) ? y + size / 2 : clusterBottom;
                 if (sideways) { top = sidewaysTop; bottom = sidewaysBottom; }

@@ -69,6 +69,30 @@ public sealed class XpsSearchablePdfTests {
         Assert.Equal("AA", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Replace("\n", "").Trim());
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void ExplicitAdvancesKeepSelectionCellsAdjacentDespiteInkOverhang(bool rtl, bool sideways) {
+        var doc = Create(XpsFormat.OpenXps); var page = doc.Pages[0];
+        var xml = page.GetMarkup(); var run = xml.Elements().Single();
+        run.SetAttributeValue("UnicodeString", "AAA");
+        run.SetAttributeValue("Indices", "36,50;36,70;36,90");
+        run.SetAttributeValue("BidiLevel", rtl ? "1" : "0");
+        run.SetAttributeValue("IsSideways", sideways ? "true" : "false");
+        run.SetAttributeValue("OriginX", "100"); page.ReplaceMarkup(xml);
+        var spans = page.ToSvg().TextSpans;
+        double[] widths = { 12, 16.8, 21.6 };
+        for (int i = 0; i < spans.Count; i++) {
+            Assert.Equal(widths[i], Math.Abs(spans[i].BottomRight.X - spans[i].BottomLeft.X), 8);
+            if (i > 0) Assert.Equal(spans[i - 1].BottomRight, spans[i].BottomLeft);
+        }
+        run.SetAttributeValue("RenderTransform", "1,0.2,0.3,1,5,6"); page.ReplaceMarkup(xml);
+        spans = page.ToSvg().TextSpans;
+        for (int i = 1; i < spans.Count; i++) Assert.Equal(spans[i - 1].BottomRight, spans[i].BottomLeft);
+        Assert.Equal("AAA", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Trim());
+    }
+
     [Fact]
     public void RtlAndZeroAdvanceClustersKeepNativePositions() {
         var page = Create(XpsFormat.Xps).Pages[0]; var xml = page.GetMarkup(); var run = xml.Elements().Single();
