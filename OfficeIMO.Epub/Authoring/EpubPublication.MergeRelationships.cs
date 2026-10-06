@@ -15,13 +15,13 @@ public sealed partial class EpubPublication {
         "cursor", "ping", "archive"
     }, StringComparer.Ordinal);
 
-    private static List<(XAttribute Attribute, string Original)> CaptureMergeRelationshipAttributes(XElement root, CancellationToken token) {
-        var result = new List<(XAttribute, string)>();
+    private static List<(XAttribute Attribute, string Original, string ElementName)> CaptureMergeRelationshipAttributes(XElement root, CancellationToken token) {
+        var result = new List<(XAttribute, string, string)>();
         foreach (XAttribute attribute in root.DescendantsAndSelf().Attributes()) {
             token.ThrowIfCancellationRequested();
             if (attribute.Name.NamespaceName.Length == 0 &&
                 (MergeRelationshipNames.Contains(attribute.Name.LocalName) || MergeResourceAttributeNames.Contains(attribute.Name.LocalName)))
-                result.Add((attribute, attribute.Value));
+                result.Add((attribute, attribute.Value, attribute.Parent!.Name.LocalName));
         }
         return result;
     }
@@ -30,46 +30,56 @@ public sealed partial class EpubPublication {
     // ordinary name/for attributes that the content rewriter intentionally leaves unchanged.
     private sealed class MergeRelationshipSelectors {
         internal static readonly char[] Separators = { ' ', '\t', '\r', '\n', '\f' };
-        private readonly Dictionary<string, (MergeAttributeValues Exact, MergeAttributeValues Tokens)> _attributes =
-            new Dictionary<string, (MergeAttributeValues, MergeAttributeValues)>(StringComparer.Ordinal);
-        private readonly HashSet<string> _removedNames = new HashSet<string>(StringComparer.Ordinal);
-        private readonly HashSet<string> _changedTokenShapes = new HashSet<string>(StringComparer.Ordinal);
+        private sealed class AttributeValues {
+            internal readonly MergeAttributeValues Exact = new MergeAttributeValues();
+            internal readonly MergeAttributeValues Tokens = new MergeAttributeValues();
+            internal bool Removed;
+            internal bool ChangedTokenShapes;
+        }
+        private readonly Dictionary<(string Element, string Name), AttributeValues> _attributes =
+            new Dictionary<(string, string), AttributeValues>();
         private readonly CancellationToken _token;
 
-        internal MergeRelationshipSelectors(List<(XAttribute Attribute, string Original)> attributes, CancellationToken token) {
+        internal MergeRelationshipSelectors(List<(XAttribute Attribute, string Original, string ElementName)> attributes, CancellationToken token) {
             _token = token;
             foreach (var attribute in attributes) {
                 token.ThrowIfCancellationRequested();
                 string name = attribute.Attribute.Name.LocalName;
-                if (!_attributes.TryGetValue(name, out var values)) {
-                    values = (new MergeAttributeValues(), new MergeAttributeValues());
-                    _attributes.Add(name, values);
-                }
                 string? current = attribute.Attribute.Document == null ? null : attribute.Attribute.Value;
-                if (current == null) _removedNames.Add(name);
-                values.Exact.Add(attribute.Original, current);
-                if (!MergeRelationshipNames.Contains(name)) continue;
-                string[] before = attribute.Original.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
-                string[] after = (current ?? string.Empty).Split(Separators, StringSplitOptions.RemoveEmptyEntries);
-                if (before.Length != after.Length) { _changedTokenShapes.Add(name); continue; }
-                for (int i = 0; i < before.Length; i++) { token.ThrowIfCancellationRequested(); values.Tokens.Add(before[i], after[i]); }
+                Add(string.Empty); // No proven element context: retain the conservative document-wide check.
+                Add(attribute.ElementName);
+
+                void Add(string element) {
+                    var key = (element, name);
+                    if (!_attributes.TryGetValue(key, out AttributeValues? values)) {
+                        values = new AttributeValues(); _attributes.Add(key, values);
+                    }
+                    values.Removed |= current == null;
+                    values.Exact.Add(attribute.Original, current);
+                    if (!MergeRelationshipNames.Contains(name)) return;
+                    string[] before = attribute.Original.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+                    string[] after = (current ?? string.Empty).Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+                    if (before.Length != after.Length) { values.ChangedTokenShapes = true; return; }
+                    for (int i = 0; i < before.Length; i++) { token.ThrowIfCancellationRequested(); values.Tokens.Add(before[i], after[i]); }
+                }
             }
         }
 
-        internal HtmlCssAttributeSelectorEdit Rewrite(string name, string operation, string value) {
+        internal HtmlCssAttributeSelectorEdit Rewrite(string name, string operation, string value, string? elementType) {
             _token.ThrowIfCancellationRequested();
             bool relationship = MergeRelationshipNames.Contains(name);
             if (!relationship && !MergeResourceAttributeNames.Contains(name))
                 throw new NotSupportedException("Case-variant relationship selectors require explicit reconciliation.");
+            if (!_attributes.TryGetValue((elementType ?? string.Empty, name), out AttributeValues? values))
+                return HtmlCssAttributeSelectorEdit.Operand(value);
             if (operation.Length == 0) {
-                if (_removedNames.Contains(name)) throw new NotSupportedException("An attribute-presence selector refers to removed document scaffolding.");
+                if (values.Removed) throw new NotSupportedException("An attribute-presence selector refers to removed document scaffolding.");
                 return HtmlCssAttributeSelectorEdit.Operand(value);
             }
-            if (!_attributes.TryGetValue(name, out var values)) return HtmlCssAttributeSelectorEdit.Operand(value);
             // A whitespace-containing or empty ~= operand cannot match a token before or after repair.
             if (operation == "~=" && (value.Length == 0 || value.IndexOfAny(Separators) >= 0)) return HtmlCssAttributeSelectorEdit.Operand(value);
             if (operation == "=" && values.Exact.TryRewrite(value, out string replacement) ||
-                operation == "~=" && relationship && !_changedTokenShapes.Contains(name) && values.Tokens.TryRewrite(value, out replacement))
+                operation == "~=" && relationship && !values.ChangedTokenShapes && values.Tokens.TryRewrite(value, out replacement))
                 return HtmlCssAttributeSelectorEdit.Operand(replacement);
             return values.Exact.Expand(operation, value, _token);
         }

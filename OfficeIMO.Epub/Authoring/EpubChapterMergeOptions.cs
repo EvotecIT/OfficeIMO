@@ -24,7 +24,7 @@ public sealed class EpubChapterMergeOptions {
     /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
     /// values are preserved. Partial id attribute comparisons use actual source and repaired values; destination-only hash
     /// identifiers stay nonmatching with their original specificity. Attribute comparisons on document-local relationships and resource-bearing attributes follow actual
-    /// repaired values, including rebased URLs and private stylesheet paths. Partial or multivalued matches can
+    /// repaired values, using an explicit unprefixed type in the same compound selector when available, including rebased URLs and private stylesheet paths. Partial or multivalued matches can
     /// expand into at most 256 exact alternatives and 64 KiB of CSS, using :is when needed. Irreducible
     /// ambiguities and unsupported syntax fail atomically. Reader support for :is, :where and nested CSS remains independent.</summary>
     public bool RewriteChapterSelectors { get; set; }

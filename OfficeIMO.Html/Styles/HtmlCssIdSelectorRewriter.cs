@@ -13,7 +13,7 @@ internal static class HtmlCssIdSelectorRewriter {
         "cursor", "ping", "archive"
     }, StringComparer.OrdinalIgnoreCase);
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token,
-        Func<string, string, string, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null) {
+        Func<string, string, string, string?, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null) {
         var edits = new List<(int Start, int Length, string Value)>();
         var introducedIds = new HashSet<string>(map.Where(pair => pair.Key != pair.Value).Select(pair => pair.Value), StringComparer.Ordinal);
         var blocks = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
@@ -98,12 +98,34 @@ internal static class HtmlCssIdSelectorRewriter {
         }
 
         void Selector(int start, int end) {
+            string? elementType = null;
+            bool compoundStart = true;
+            var functions = new Stack<string?>();
             for (int i = start; i < end;) {
                 token.ThrowIfCancellationRequested();
+                if (css[i] == '/' && i + 1 < end && css[i + 1] == '*') { SkipLiteral(ref i, end); continue; }
+                if (css[i] is ' ' or '\t' or '\r' or '\n' or '\f' or ',' or '>' or '+' or '~') {
+                    elementType = null; compoundStart = true; i++; continue;
+                }
+                if (css[i] == '(') {
+                    functions.Push(elementType); elementType = null; compoundStart = true; i++; continue;
+                }
+                if (css[i] == ')') {
+                    elementType = functions.Count == 0 ? null : functions.Pop(); compoundStart = false; i++; continue;
+                }
+                if (compoundStart) {
+                    int typeEnd = i;
+                    if (HtmlCssIdentifierParser.TryRead(css, ref typeEnd, out string type)) {
+                        elementType = type; compoundStart = false; i = typeEnd; continue;
+                    }
+                    compoundStart = false;
+                }
+                // A namespace prefix or universal selector is not evidence for a particular local name.
+                if (css[i] == '|') elementType = null;
                 if (SkipLiteral(ref i, end)) continue;
                 if (css[i] == '[') {
                     int close = Closing(i, end, ']');
-                    Attribute(i + 1, close); i = close + 1; continue;
+                    Attribute(i + 1, close, elementType); i = close + 1; continue;
                 }
                 if (css[i++] != '#') continue;
                 int nameStart = i;
@@ -118,7 +140,7 @@ internal static class HtmlCssIdSelectorRewriter {
             }
         }
 
-        void Attribute(int start, int end) {
+        void Attribute(int start, int end, string? elementType) {
             int i = start; Trivia(ref i, end);
             if (!HtmlCssIdentifierParser.TryRead(css, ref i, out string name)) throw Unsupported();
             Trivia(ref i, end);
@@ -129,7 +151,7 @@ internal static class HtmlCssIdSelectorRewriter {
             if (relationship && rewriteRelationship == null)
                 throw new NotSupportedException("Selectors on identifier relationships or rewritten resource attributes require explicit reconciliation.");
             if (i == end) {
-                if (relationship) rewriteRelationship!(name, string.Empty, string.Empty);
+                if (relationship) rewriteRelationship!(name, string.Empty, string.Empty, elementType);
                 return; // Presence remains true after replacement.
             }
             string operation = "=";
@@ -153,7 +175,7 @@ internal static class HtmlCssIdSelectorRewriter {
             if (i != end) throw Unsupported();
             if (!relationship && operation != "=" && rewriteRelationship == null)
                 throw new NotSupportedException("Partial ID selectors require source attribute evidence.");
-            HtmlCssAttributeSelectorEdit replacement = rewriteRelationship != null ? rewriteRelationship(name, operation, id) :
+            HtmlCssAttributeSelectorEdit replacement = rewriteRelationship != null ? rewriteRelationship(name, operation, id, elementType) :
                 HtmlCssAttributeSelectorEdit.Operand(map.TryGetValue(id, out string? mapped) ? mapped : id);
             if (replacement.ExactValues != null) {
                 string expanded = ExpandAttribute(name, replacement.ExactValues);

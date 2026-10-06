@@ -11,7 +11,7 @@ public sealed partial class EpubPublication {
 
     // Work on detached XML and staged resources only. No live package state changes before final validation.
     private void PrepareMergeSelectors(XDocument chapter, string owner, IReadOnlyDictionary<string, string> ids,
-        ContentReferenceMap map, List<(XAttribute Attribute, string Original)> relationships, MergeSelectorStyles result, CancellationToken token) {
+        ContentReferenceMap map, List<(XAttribute Attribute, string Original, string ElementName)> relationships, MergeSelectorStyles result, CancellationToken token) {
         if (chapter.DescendantNodes().OfType<XProcessingInstruction>().Any())
             throw new NotSupportedException("Selector reconciliation requires stylesheet elements instead of processing instructions.");
         var inlineStyles = new List<XElement>();

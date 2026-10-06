@@ -782,8 +782,14 @@ selectors that name a newly assigned ID. A destination-only hash selector uses
 
 Merge rejects matching removed scaffolding and repairs that cannot distinguish
 originally matching and nonmatching attributes after their values converge. The
-check covers each source chapter and does not use other selector components to
-resolve ambiguity. Both chapters share the final cascade: selector repair does not
+check covers each source chapter. An explicit unprefixed element type in the same
+compound selector narrows the attribute evidence: `map[name=map]` can be repaired
+without treating an unrelated `input[name=second-map]` as a conflicting map.
+Escaped type names and intervening comments/classes/pseudo-classes retain that
+context. Context does not cross combinators, selector-list branches or functional
+pseudo-class boundaries; an explicit type within a function establishes its own
+context. Namespace-qualified types, class-only constraints and inferred ancestor
+constraints retain the conservative document-wide check. Both chapters share the final cascade: selector repair does not
 isolate styles or guarantee the same layout.
 
 The automatic profile rejects unknown at-rules,

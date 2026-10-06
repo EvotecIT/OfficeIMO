@@ -77,6 +77,8 @@ WriteFixture("merged-chapters", merged);
 WriteFixture("merged-styles", MergeStyleFixture.Create());
 WriteFixture("merged-identifiers", MergeIdentifierFixture.Create());
 WriteFixture("css-preservation", CssPreservationFixture.Create());
+WriteFixture("merge-context-selectors-source", MergeContextSelectorsFixture.Create(false));
+WriteFixture("merge-context-selectors", MergeContextSelectorsFixture.Create());
 WriteFixture("merge-id-selectors-source", MergeIdSelectorsFixture.Create(false));
 WriteFixture("merge-id-selectors", MergeIdSelectorsFixture.Create());
 WriteFixture("merge-selectors", MergeSelectorsFixture.Create());
