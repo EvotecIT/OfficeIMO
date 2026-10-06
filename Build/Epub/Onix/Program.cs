@@ -23,6 +23,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
+    (Name: "edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "no-edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discoverability", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discount-coded", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discounted", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -42,6 +44,10 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         SenderName = "Example Press", PublisherName = "Example Press", RecordReference = "fixture-" + profile.Name,
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
         TitleId = profile.Name == "discoverability" ? "selected-title" : null,
+        Edition = profile.Name == "edition" ? new() { Number = 2, VersionNumber = "1.2",
+            Types = [BookOnixEditionType.Revised, BookOnixEditionType.Annotated],
+            Statements = [new("Second revised and annotated edition", "eng"), new("Drugie wydanie", "pol")] }
+            : profile.Name == "no-edition" ? new() { NoEdition = true } : null,
         Subjects = profile.Name == "discoverability" ? SubjectFixtures.Create() : [],
         Subtitle = "Explicit publishing assertions", PublicationDate = new DateOnly(2026, 10, 5),
         NoContributors = profile.Name == "early",
@@ -51,6 +57,12 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             new("Other Creator", BookOnixContributorRole.Other)],
         Commercial = commercial, Accessibility = AccessibilityFixtures.Create(profile.Name)
     };
+    if (profile.Name == "edition") {
+        // Exercise every supported list 21 mapping against the authoritative schema.
+        foreach (var type in Enum.GetValues<BookOnixEditionType>())
+            project.ExportOnix(options with { Edition = new() { Types = [type] } }, schemas,
+                new EpubWriteOptions { ModifiedAt = timestamp });
+    }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);
     if (profile.Name is "early" or "priced") {

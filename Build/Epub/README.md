@@ -117,7 +117,10 @@ schemes, and structurally formatted BIC and ISNI codes. These synthetic codes do
 not assert allocation, ownership or any actual trade agreement. The `discoverability`
 fixture selects an alternate EPUB title and covers all supported subject schemes,
 main-subject markers, version assertions and multilingual headings. Classification
-assignments are synthetic and do not establish vocabulary membership or suitability. Accessibility fixtures exercise unknown status, publisher contact
+assignments are synthetic and do not establish vocabulary membership or suitability.
+The `edition` and `no-edition` fixtures cover numbered minor revisions, multilingual
+plain-text statements and explicit absence of edition information. The generator
+also validates each supported edition type against the schema. Accessibility fixtures exercise unknown status, publisher contact
 and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
 declarations, including distinct certifier, credentialling organization, independent
 report, intermediary and compatibility-report roles. Those assertions are synthetic
@@ -145,7 +148,9 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/taxed.onix \
   /path/to/new-onix-evidence/discounted.onix \
   /path/to/new-onix-evidence/discount-coded.onix \
-  /path/to/new-onix-evidence/discoverability.onix
+  /path/to/new-onix-evidence/discoverability.onix \
+  /path/to/new-onix-evidence/edition.onix \
+  /path/to/new-onix-evidence/no-edition.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

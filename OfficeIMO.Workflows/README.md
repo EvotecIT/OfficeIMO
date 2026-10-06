@@ -485,6 +485,37 @@ validation checks ONIX structure and list values, not membership of individual
 subject codes, supplied scheme versions, classification suitability or discoverability
 in a recipient's catalog.
 
+### Edition metadata
+
+`Edition` describes the publication edition independently of project revision history:
+
+```csharp
+var options = existingOptions with {
+    Edition = new() {
+        Types = [BookOnixEditionType.Revised, BookOnixEditionType.Annotated],
+        Number = 2,
+        VersionNumber = "1.2",
+        Statements = [new("Second revised and annotated edition", "eng"),
+                      new("Drugie wydanie", "pol")]
+    }
+};
+```
+
+Numbered editions use a positive integer. A minor version requires that number and
+is preserved as text. Statements are complete display descriptions, serialized as
+plain text with optional ONIX list 74 language codes. They are not interpreted as
+HTML. Up to 16 statements are allowed, with distinct languages (including unspecified),
+and each text field is limited to 4096 characters.
+
+The supported [list 21](https://ns.editeur.org/onix/en/21) characteristics are abridged,
+unabridged, annotated, revised, enlarged, illustrated, critical and new. Types must
+be distinct; abridged and unabridged conflict. `New` cannot accompany a more specific
+type or edition number. Set `Edition = new() { NoEdition = true }` only when explicitly
+asserting that no edition information applies; it cannot accompany edition details.
+Omitting `Edition` makes no assertion. These values do not change EPUB metadata,
+assign a new ISBN, establish the truth of an edition claim, or substitute for a
+recipient's business rules.
+
 ### Multi-product ONIX messages
 
 Compose exported records into one message with `BookOnixMessage.Create`:
