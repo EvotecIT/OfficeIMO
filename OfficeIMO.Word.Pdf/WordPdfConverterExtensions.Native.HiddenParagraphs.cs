@@ -33,6 +33,19 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph last = paragraphs[paragraphs.Count - 1];
         PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(first, nativeDefaults, nativeFontMap);
         PdfCore.PdfParagraphStyle finalStyle = CreateNativeParagraphStyle(last, nativeDefaults, nativeFontMap);
+        // Seed rich line measurement with the smallest visible source font, just
+        // as an ordinary rich paragraph does. Hidden marks and preceding large
+        // runs must not enlarge later wrapped or explicitly broken lines.
+        List<WordParagraph> visibleParagraphs = paragraphs.Where(paragraph => GetNativeRuns(paragraph).Any(run =>
+            IsNativeRenderableTextRun(run, paragraph))).ToList();
+        if (visibleParagraphs.Count > 0) {
+            style.FontSize = visibleParagraphs.Min(paragraph => ResolveNativeParagraphLayoutFontSize(paragraph,
+                nativeDefaults, GetNativeParagraphStyleDefaults(paragraph)));
+            double naturalLineHeight = visibleParagraphs.Max(paragraph => ResolveNativeParagraphSingleLineHeight(paragraph,
+                nativeDefaults, GetNativeParagraphStyleDefaults(paragraph), nativeFontMap: nativeFontMap));
+            style.LineSpacing = ResolveNativeParagraphLineSpacing(first, GetNativeParagraphStyleDefaults(first),
+                nativeDefaults).ToPdfLineSpacing(naturalLineHeight);
+        }
         style.SpacingAfter = ShouldSuppressNativeContextualSpacingAfter(last,
             GetNextNativeRenderableElement(elements, lastIndex) as WordParagraph) ? 0D : finalStyle.SpacingAfter;
         style.KeepWithNext = finalStyle.KeepWithNext;
@@ -42,7 +55,9 @@ public static partial class WordPdfConverterExtensions {
                 mapsCheckBoxes: false, mapsFormFields: false, mapsPictureControls: false, mapsRepeatingSections: false);
             if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) pdf.Bookmark(paragraph.Bookmark!.Name!);
         }
-        if (!paragraphs.Any(paragraph => GetNativeRuns(paragraph).Any(run =>
+        bool hasNoteReferences = paragraphs.Any(paragraph => GetNativeParagraphFootnoteNumbers(paragraph,
+            GetNativeRuns(paragraph), Array.Empty<int>(), footnoteNumbersById).Count > 0);
+        if (!hasNoteReferences && !paragraphs.Any(paragraph => GetNativeRuns(paragraph).Any(run =>
                 IsNativeRenderableTextRun(run, paragraph) ||
                 (IsNativeTextWrappingBreak(run) && !IsNativeHiddenTextRun(run, paragraph))))) {
             RenderNativeEmptyParagraph(pdf, last, style, nativeDefaults, nativeFontMap);

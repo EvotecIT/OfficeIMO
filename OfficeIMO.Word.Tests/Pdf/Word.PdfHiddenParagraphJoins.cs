@@ -150,6 +150,61 @@ public partial class Word {
         paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(new W.Vanish { Val = hidden });
     }
 
+    [Theory]
+    [InlineData("body", false)]
+    [InlineData("body", true)]
+    [InlineData("columns", false)]
+    [InlineData("columns", true)]
+    [InlineData("block", false)]
+    [InlineData("block", true)]
+    public void SaveAsPdf_JoinedParagraphContinuationDoesNotInheritLargeLineMinimum(string route, bool nativeDoc) {
+        using WordDocument source = CreateJoinedParagraphDocument();
+        W.Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        foreach (var item in new[] { ("LargeContinuation", "32"), ("SmallContinuation", "16") })
+            styles.Append(new W.Style { StyleId = item.Item1, Type = W.StyleValues.Paragraph,
+                StyleName = new W.StyleName { Val = item.Item1 }, BasedOn = new W.BasedOn { Val = "Normal" },
+                StyleRunProperties = new W.StyleRunProperties(new W.FontSize { Val = item.Item2 },
+                    new W.FontSizeComplexScript { Val = item.Item2 }) });
+        WordParagraph alpha = source.AddParagraph("ALPHA"); alpha.SetStyleId("LargeContinuation"); HideJoinMark(alpha, true);
+        WordParagraph beta = source.AddParagraph("BETA"); beta.SetStyleId("SmallContinuation");
+        beta._run!.Append(new W.Break(), new W.Text("TAIL"), new W.Break(), new W.Text("END"));
+        if (route == "columns") source.Sections[0].ColumnCount = 2;
+        if (route == "block") {
+            alpha._paragraph.Remove(); beta._paragraph.Remove();
+            source._wordprocessingDocument.MainDocumentPart!.Document.Body!.InsertAt(
+                new W.SdtBlock(new W.SdtProperties(new W.Tag { Val = "JoinedText" }),
+                    new W.SdtContentBlock(alpha._paragraph, beta._paragraph)), 0);
+        }
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        using var pdf = OpenJoinedParagraphPdf(document);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var tail = Assert.Single(words, word => word.Text == "TAIL"); var end = Assert.Single(words, word => word.Text == "END");
+        Assert.InRange(tail.BoundingBox.Bottom - end.BoundingBox.Bottom, 9D, 10D);
+        Assert.Contains("ALPHABETA", pdf.GetPage(1).Text);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public void SaveAsPdf_JoinedParagraphOnlyNoteReferencesRemainVisible(bool endnote, bool nativeDoc, bool finalParagraph) {
+        using WordDocument source = CreateJoinedParagraphDocument();
+        WordParagraph first = source.AddParagraph(); HideJoinMark(first, true);
+        WordParagraph last = source.AddParagraph();
+        WordParagraph reference = finalParagraph ? last : first;
+        if (endnote) reference.AddEndNote("NOTETEXT"); else reference.AddFootNote("NOTETEXT");
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        using var pdf = OpenJoinedParagraphPdf(document);
+        Assert.Contains("NOTETEXT", pdf.GetPage(1).Text);
+        // One marker belongs to the body and another labels its rendered note.
+        Assert.Equal(2, pdf.GetPage(1).Letters.Count(letter => letter.Value == "1"));
+    }
+
     private static PdfPigDocument OpenJoinedParagraphPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdfBytes(
         new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }));
 }
