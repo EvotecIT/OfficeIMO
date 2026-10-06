@@ -2106,9 +2106,10 @@ namespace OfficeIMO.Tests {
 
                 if (includeBlankParagraph) {
                     WordParagraph blank = document.AddParagraph();
-                    blank.FontSize = 20;
                     blank.LineSpacingBeforePoints = blankSpacingBefore;
                     blank.LineSpacingAfterPoints = 0;
+                    blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
+                        new ParagraphMarkRunProperties(new FontSize { Val = "40" });
                 }
 
                 WordParagraph after = document.AddParagraph(afterMarker);

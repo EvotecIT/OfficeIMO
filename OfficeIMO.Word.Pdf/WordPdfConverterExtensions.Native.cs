@@ -273,7 +273,6 @@ namespace OfficeIMO.Word.Pdf {
                                 sectionContentWidth,
                                 nativeDefaults,
                                 nativeFontMap,
-                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, i),
                                 nextElement: GetNextNativeRenderableElement(elements, i));
                         }
 
@@ -440,19 +439,6 @@ namespace OfficeIMO.Word.Pdf {
             if (string.IsNullOrEmpty(existingParagraph.Bookmark?.Name) &&
                 !string.IsNullOrEmpty(candidate.Bookmark?.Name)) {
                 return true;
-            }
-
-            return false;
-        }
-
-        private static bool IsPreviousNativeElementTable(IReadOnlyList<WordElement> elements, int index) {
-            for (int previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
-                WordElement previous = elements[previousIndex];
-                if (previous is WordFootNote) {
-                    continue;
-                }
-
-                return previous is WordTable;
             }
 
             return false;

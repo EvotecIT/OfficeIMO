@@ -12,11 +12,11 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, bool renderSpacingOnlyEmptyParagraphLineBox = false, WordElement? nextElement = null) {
+        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, WordElement? nextElement = null) {
             nativeFontMap ??= new NativeFontMap();
             switch (element) {
                 case WordParagraph paragraph:
-                    RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), getMarker, footnoteNumbers, footnoteNumbersById, options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextElement as WordParagraph);
+                    RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), getMarker, footnoteNumbers, footnoteNumbersById, options, headingDestinations, nativeDefaults, nativeFontMap, nextElement as WordParagraph);
                     break;
                 case WordTableOfContent tableOfContent:
                     RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeParagraph(INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, bool renderSpacingOnlyEmptyParagraphLineBox, WordParagraph? nextParagraph) {
+        private static void RenderNativeParagraph(INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, WordParagraph? nextParagraph) {
             if (paragraph == null) {
                 return;
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (TryRenderNativeParagraphFlowBreaks(pdf, paragraph, marker, getMarker, footnoteNumbersById,
-                options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextParagraph)) return;
+                options, headingDestinations, nativeDefaults, nativeFontMap, nextParagraph)) return;
 
             if (HasNativePageBreakBefore(paragraph)) {
                 pdf.PageBreak();
@@ -150,12 +150,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             int groupedImageCount = 0;
-            RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style, ref groupedImageCount);
+            bool renderedFlowObject = RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style, ref groupedImageCount);
             if (currentShape != null) {
-                RenderNativeShape(pdf, currentShape);
+                renderedFlowObject |= RenderNativeShape(pdf, currentShape, spacingAfter: 0D);
             }
 
-            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount);
+            renderedFlowObject |= RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount);
             needsAnchorLine = style.AnchoredCanvas != null &&
                 !runs.Any(run => IsNativeRenderableTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text)) &&
                 string.IsNullOrWhiteSpace(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
@@ -173,7 +173,9 @@ namespace OfficeIMO.Word.Pdf {
 
             if (!needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0) {
-                if (renderedChart && chartOnly) {
+                // A flow object already occupies this paragraph's line. A real empty
+                // paragraph following it still contributes its own visible mark.
+                if (renderedFlowObject || renderedChart) {
                     return;
                 }
                 RenderNativeEmptyParagraph(
@@ -181,8 +183,7 @@ namespace OfficeIMO.Word.Pdf {
                     paragraph,
                     style,
                     nativeDefaults,
-                    nativeFontMap,
-                    renderSpacingOnlyEmptyParagraphLineBox);
+                    nativeFontMap);
                 return;
             }
 
@@ -260,9 +261,8 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph,
             PdfCore.PdfParagraphStyle style,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap,
-            bool renderSpacingOnlyLineBox) {
-            if (!ShouldRenderNativeEmptyParagraphLineBox(paragraph, renderSpacingOnlyLineBox)) {
+            NativeFontMap nativeFontMap) {
+            if (!ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
                 // A hidden mark contributes neither a line nor its paragraph spacing.
                 return;
             }
@@ -277,7 +277,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph, bool renderSpacingOnlyLineBox) {
+        private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph) {
             // Empty text still has a paragraph mark. Its visibility, rather than
             // the presence of direct spacing or run formatting, determines the line.
             bool hiddenMark = ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?
@@ -660,7 +660,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount) {
+        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
@@ -685,13 +685,15 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
             var anchoredCanvas = new PdfCore.PdfPageCanvas();
+            bool renderedFlowObject = false;
             if (anchorStyle.AnchoredCanvas != null) anchoredCanvas.AddItems(anchorStyle.AnchoredCanvas.Items);
             foreach (var image in images.OrderBy(item => item.Position)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
-                RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas);
+                renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas);
             }
             if (anchoredCanvas.Items.Count > 0)
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);
+            return renderedFlowObject;
         }
 
         private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, W.Run? currentRun) {

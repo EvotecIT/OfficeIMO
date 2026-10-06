@@ -280,7 +280,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (listMarker is { Marker.Length: > 0 } marker) {
                     paragraphRuns.InsertRange(0, CreateNativeCellListMarkerRuns(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, indentation.FirstLine, nativeFontMap));
                 }
-                if (paragraphRuns.Count == 0 && !ShouldRenderNativeEmptyParagraphLineBox(paragraph, renderSpacingOnlyLineBox: false)) {
+                if (paragraphRuns.Count == 0 && !ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
                     continue;
                 }
 
@@ -379,7 +379,7 @@ namespace OfficeIMO.Word.Pdf {
                     return null;
                 }
 
-                if (paragraphRunsByElement?[nextIndex]?.Count > 0 || ShouldRenderNativeEmptyParagraphLineBox(next, renderSpacingOnlyLineBox: false)) {
+                if (paragraphRunsByElement?[nextIndex]?.Count > 0 || ShouldRenderNativeEmptyParagraphLineBox(next)) {
                     return next;
                 }
             }

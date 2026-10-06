@@ -13,13 +13,14 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeShape(INativePdfFlow pdf, WordShape shape) {
+        private static bool RenderNativeShape(INativePdfFlow pdf, WordShape shape, double spacingAfter = 6D) {
             OfficeShape? nativeShape = CreateNativeShape(shape);
             if (nativeShape == null) {
-                return;
+                return false;
             }
 
-            pdf.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: 6);
+            pdf.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter);
+            return true;
         }
 
         private static OfficeShape? CreateNativeShape(WordShape shape) {

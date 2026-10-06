@@ -59,7 +59,6 @@ public static partial class WordPdfConverterExtensions {
                     paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                     GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById), footnoteNumbersById,
                     options, tableOfContentsEntries, headingDestinations, firstColumnWidth, nativeDefaults, nativeFontMap,
-                    renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, index),
                     nextElement: GetNextNativeRenderableElement(elements, index));
             }
         }, columnOptions));
