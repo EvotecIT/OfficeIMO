@@ -134,6 +134,7 @@ namespace OfficeIMO.Word {
                 AddTableCellProperties();
                 if (value != "") {
                     var color = value.Replace("#", "").ToUpperInvariant();
+                    if (color == "AUTO") color = "auto";
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Fill = color;
                     _tableCellProperties.Shading.Val ??= ShadingPatternValues.Clear;
