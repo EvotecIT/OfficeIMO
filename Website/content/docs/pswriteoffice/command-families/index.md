@@ -10,22 +10,24 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 
 | Family | Exported commands | Guide |
 | --- | ---: | --- |
-| Excel | 158 | [Excel automation](/docs/pswriteoffice/excel/) |
-| Word | 92 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 81 | [PDF automation](/docs/pswriteoffice/pdf/) |
-| PowerPoint | 58 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
-| Markdown | 25 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| Visio | 21 | [Visio diagrams](/docs/pswriteoffice/visio/) |
-| Reader and extraction | 13 | [Reader and extraction](/docs/pswriteoffice/reader/) |
+| Excel | 162 | [Excel automation](/docs/pswriteoffice/excel/) |
+| Word | 97 | [Word automation](/docs/pswriteoffice/word/) |
+| PDF | 93 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| PowerPoint | 61 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
+| Markdown | 26 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| Visio | 24 | [Visio diagrams](/docs/pswriteoffice/visio/) |
+| Reader, extraction, and OCR | 15 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
+| Archive migration and evidence | 6 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
-| RTF | 5 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| RTF | 6 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | CSV | 5 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| OpenDocument | 5 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| Email | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| OpenDocument | 11 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | AsciiDoc | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | LaTeX | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| HTML assets | 1 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| HTML assets | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Cross-format visuals | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
+| Protection capabilities | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Shared authoring primitives | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 
 The total is generated from the module manifest. Aliases are intentionally counted separately because they provide a shorter DSL without replacing the canonical command names in help and automation.

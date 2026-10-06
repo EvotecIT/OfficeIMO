@@ -20,9 +20,9 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlImageDataUri dataUri,
         HtmlToExcelResult result,
         string? source = null) {
-        if (ExcelSheet.IsSupportedImageContentType(dataUri.MediaType)) return true;
+        if (IsImportableExcelImageType(dataUri.MediaType)) return true;
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
-            "An embedded worksheet image was omitted because its media type is not supported by Excel image parts.",
+            "An embedded worksheet image was omitted because its media type is not supported for Excel import.",
             lossKind: OfficeConversionLossKind.Omission,
             source: source,
             detail: "mediaType=" + dataUri.MediaType);
