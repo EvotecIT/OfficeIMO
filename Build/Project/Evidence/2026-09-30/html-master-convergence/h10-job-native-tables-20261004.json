@@ -2557,6 +2557,22 @@
       "Named native app/wider corpus/resources/allintents/manualaccessibility",
       "Qualified long-lived branch synchronization"
     ],
-    "retainedProofRoot": "Ignore/MasterConvergenceQualification/next-native-owner-adoption"
+    "retainedProofRoot": "Ignore/MasterConvergenceQualification/next-native-owner-adoption",
+    "cleanup": {
+      "targets": 143,
+      "bytesRemoved": 3536137080,
+      "allAbsent": true,
+      "nativeFilesystemRecoveries": 77,
+      "retainedNativeEvidenceBytes": 56295546,
+      "preserved": [
+        "Eight normal four-target package feed",
+        "All fresh private-feed/installed-origin/source/DLL hash receipts",
+        "Original measurement and scratch setup failures",
+        "Full final framework TRX",
+        "Independent native fixtures/screens/PDFs and structure/source-order observations",
+        "Probe source and source archives"
+      ],
+      "scope": "No unrelated worktree/source edit/sharedcache/UI state changed."
+    }
   }
 }
