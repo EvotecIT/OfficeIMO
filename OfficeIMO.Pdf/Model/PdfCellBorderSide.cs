@@ -27,11 +27,15 @@ public sealed class PdfCellBorderSide {
     /// <summary>Border line style.</summary>
     public PdfCellBorderLineStyle LineStyle { get; set; }
 
+    // Layout metadata belongs to the prepared table snapshot, not authored style.
+    internal bool CenteredPair { get; set; }
+
     /// <summary>Creates a copy of this table cell border side.</summary>
     public PdfCellBorderSide Clone() => new PdfCellBorderSide {
         Color = Color,
         Width = Width,
         DashStyle = DashStyle,
-        LineStyle = LineStyle
+        LineStyle = LineStyle,
+        CenteredPair = CenteredPair
     };
 }
