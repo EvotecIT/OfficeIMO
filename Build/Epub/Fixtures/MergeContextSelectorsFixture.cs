@@ -5,7 +5,6 @@ internal static class MergeContextSelectorsFixture {
         var book = EpubPublication.Create("Merge selector context qualification", "en", "urn:officeimo:fixture:merge-context-selectors");
         book.AddStylesheet("base", "EPUB/base.css", "html{font:18px/1.5 sans-serif;color:#202020;background:white} body{margin:2rem} p{padding:.5rem}");
         book.AddStylesheet("rules", "EPUB/rules.css", """
-            map {display:block}
             map[name=map] p {color:#185b3a;font-weight:bold;border-left:6px solid #185b3a}
             map[name=second-map] p {color:#b00020}
             output[name=second-map] {display:block;color:#123e64;border-left:6px solid #123e64;padding:.5rem;margin:1rem 0}

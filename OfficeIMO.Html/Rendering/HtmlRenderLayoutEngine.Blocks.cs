@@ -345,6 +345,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
             : new List<HtmlRenderFlowBlock>();
 
+        if (!usesBlockFormatting || !usesVerticalBlockFormatting && children.Count == 0) {
+            HtmlListMarker? marker = tag == "li" ? ResolveListMarker(element, style, contentWidth) : null;
+            int skipped = ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0;
+            double extent = IsVerticalWritingMode(style.WritingMode)
+                ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth) : contentWidth;
+            inlineLayout = LayoutInlineNodes(element.ChildNodes, extent, style, depth, marker, element, skipped);
+            if (inlineLayout.InterruptedFlow != null) {
+                children = new List<HtmlRenderFlowBlock> { inlineLayout.InterruptedFlow };
+                inlineLayout = null;
+                usesBlockFormatting = true;
+                usesVerticalBlockFormatting = IsVerticalWritingMode(style.WritingMode);
+            }
+        }
+
         if (!usesVerticalBlockFormatting && children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
             HtmlRenderFlowBlock first = children[0];
             double childMargin = first.CollapsibleMarginTop;
@@ -435,14 +449,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
-            HtmlListMarker? marker = tag == "li" ? ResolveListMarker(element, style, contentWidth) : null;
-            int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)
-                ? continuationLogicalCharacters
-                : 0;
-            double inlineExtent = IsVerticalWritingMode(style.WritingMode)
-                ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth)
-                : contentWidth;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, inlineExtent, style, depth, marker, element, inlineSkipLogicalCharacters);
+            HtmlInlineLayout inline = inlineLayout!;
             if (IsVerticalWritingMode(style.WritingMode)) {
                 inline = TransformSidewaysVerticalInlineLayout(inline, style, element);
             }
@@ -653,6 +660,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (nodes.Count == 0) return 0D;
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
         nodes.Clear();
+        if (inline.InterruptedFlow != null) {
+            blocks.Add(inline.InterruptedFlow);
+            return inline.Height;
+        }
         if (inline.Height <= 0D || inline.Visuals.Count == 0) return 0D;
         var block = new HtmlRenderFlowBlock(
             width,

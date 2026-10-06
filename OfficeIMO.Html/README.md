@@ -163,6 +163,8 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All` or the generated support matrix for the exact declared subset.
 
+Block elements inside inline wrappers, including maps and links, retain their block boxes. Surrounding inline text continues before and after the block, while borders, padding, adjoining margins, ancestor opacity, and explicit page breaks remain in the shared scene used by HTML and EPUB image exports.
+
 The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
 including nested scripts. Logical replacement text owns its painted content once, so independent
 PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image

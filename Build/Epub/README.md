@@ -249,7 +249,7 @@ is outside the normal solution and shipped packages.
 `merge-context-selectors.epub` and its unmerged source exercise map and output
 `name` values that converge during identifier repair. Explicit type selectors keep
 the map content green and bold, and the unrelated output content blue at normal weight.
-The map has explicit block layout; both keep their respective borders. The output is static and has no interactive controls.
+The map keeps its default inline layout; its block paragraph and the output retain their respective borders. The output is static and has no interactive controls.
 The third chapter keeps the original shared stylesheet.
 
 `merge-id-selectors.epub` and its unmerged `merge-id-selectors-source.epub` qualify

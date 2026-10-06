@@ -70,7 +70,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlInlineRun> runs,
         double width,
         HtmlRenderBoxStyle paragraphStyle,
-        IElement? formattingContainer) {
+        IElement? formattingContainer,
+        InlinePaintCapture? paintCapture = null) {
         var context = new InlineFloatContext(width);
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
@@ -268,7 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && lines[0].Width > lines[0].AvailableWidth + 0.0001D) {
             ApplyEndEllipsis(lines[0], width, completeLogicalProgress: 0);
         }
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom);
+        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom, paintCapture: paintCapture);
     }
 
     private static bool FinalizeFloatNoWrapRange(
@@ -378,7 +379,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<InlineFloatPlacement>? floatPlacements = null,
         double minimumHeight = 0D,
         bool supportsContinuationReflow = false,
-        bool isInlineContinuation = false) {
+        bool isInlineContinuation = false,
+        InlinePaintCapture? paintCapture = null) {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
@@ -615,8 +617,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double height = Math.Max(flowY, minimumHeight);
         if (height > 0D) breakOffsets.Add(height);
+        paintCapture?.Capture(visuals, ownedVisuals, inlineBounds);
         return new HtmlInlineLayout(
-            ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation),
+            paintCapture == null
+                ? ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation)
+                : visuals.Concat(ownedVisuals.Values.SelectMany(items => items)).ToArray(),
             height,
             breakOffsets,
             runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),

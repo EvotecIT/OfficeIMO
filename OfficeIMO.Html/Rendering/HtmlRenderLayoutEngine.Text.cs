@@ -83,8 +83,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals.Add(visual.Translate(offsetX, 0D, visuals.Count));
             }
         }
+        double bodyOffsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase) ? 0D : gutter;
         foreach (HtmlRenderVisual visual in body.Visuals) {
-            double bodyOffsetX = string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase) ? 0D : gutter;
             visuals.Add(visual.Translate(bodyOffsetX, 0D, visuals.Count));
         }
         return new HtmlInlineLayout(
@@ -93,7 +93,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             body.BreakOffsets,
             body.RunningStringAssignments,
             body.BreakProgress,
-            body.SupportsContinuationReflow);
+            body.SupportsContinuationReflow,
+            interruptedFlow: body.InterruptedFlow?.TranslatePaint(bodyOffsetX, 0D)
+                .WithVisuals(visuals, width, Math.Max(marker.Height, body.Height)));
     }
 
     private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>
@@ -253,6 +255,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AssignLogicalTextOrders(runs);
             if (style.FloatSide == "footnote") AddFootnoteRun(element, width, inheritedStyle, depth, style, runs);
             else AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
+            return;
+        }
+
+        if (HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+            AssignLogicalTextOrders(runs);
+            HtmlRenderFlowBlock block = LayoutElement(element, width, style, inheritedStyle, depth + 1);
+            runs.Add(new HtmlInlineRun(block, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                inheritedPaintOffsetX, inheritedPaintOffsetY, element, isBlockInterruption: true));
             return;
         }
 
@@ -557,11 +567,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer = null,
-        int skipLogicalCharacters = 0) {
+        int skipLogicalCharacters = 0,
+        InlinePaintCapture? paintCapture = null) {
         AssignLogicalTextOrders(runs);
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
+        if (runs.Any(run => run.IsBlockInterruption)) {
+            return LayoutInterruptedInlineRuns(runs, width, paragraphStyle, formattingContainer);
+        }
         if (runs.Any(run => run.FloatingBlock != null)) {
-            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer);
+            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer, paintCapture);
         }
         bool supportsContinuationReflow = runs.All(run =>
             run.AtomicBlock == null
@@ -787,7 +801,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paragraphStyle,
             formattingContainer,
             supportsContinuationReflow: supportsContinuationReflow,
-            isInlineContinuation: skipLogicalCharacters > 0);
+            isInlineContinuation: skipLogicalCharacters > 0,
+            paintCapture: paintCapture);
     }
 
     private void ExpandLeaderSegments(IEnumerable<InlineLine> lines, double width) {

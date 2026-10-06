@@ -225,10 +225,10 @@ internal sealed class HtmlRenderFlowBlock {
             layoutViewportWidth: LayoutViewportWidth,
             layoutViewportHeight: LayoutViewportHeight);
 
-    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
+    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? width = null, double? height = null) =>
         new HtmlRenderFlowBlock(
-            Width,
-            Height,
+            width ?? Width,
+            height ?? Height,
             visuals,
             BreakBefore,
             BreakAfter,
@@ -246,7 +246,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginBottom: CollapsibleMarginBottom,
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
-            unclampedHeight: UnclampedHeight,
+            unclampedHeight: height ?? UnclampedHeight,
             runningStringAssignments: RunningStringAssignments,
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
@@ -546,7 +546,8 @@ internal sealed class HtmlInlineRun {
         IElement? ownerElement = null,
         bool isReplacedImage = false,
         double? atomicBaseline = null,
-        bool isBookmarkMarker = false) {
+        bool isBookmarkMarker = false,
+        bool isBlockInterruption = false) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
         LogicalText = string.Empty;
@@ -559,6 +560,7 @@ internal sealed class HtmlInlineRun {
         IsReplacedImage = isReplacedImage;
         AtomicBaseline = atomicBaseline;
         IsBookmarkMarker = isBookmarkMarker;
+        IsBlockInterruption = isBlockInterruption;
         SemanticRole = style.SemanticRole;
     }
 
@@ -599,6 +601,7 @@ internal sealed class HtmlInlineRun {
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
     internal bool IsBookmarkMarker { get; }
+    internal bool IsBlockInterruption { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
@@ -667,7 +670,8 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<double>? breakOffsets = null,
         IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
         IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
-        bool supportsContinuationReflow = false) {
+        bool supportsContinuationReflow = false,
+        HtmlRenderFlowBlock? interruptedFlow = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
@@ -675,6 +679,7 @@ internal sealed class HtmlInlineLayout {
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
         BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
         SupportsContinuationReflow = supportsContinuationReflow;
+        InterruptedFlow = interruptedFlow;
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
@@ -683,6 +688,7 @@ internal sealed class HtmlInlineLayout {
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
     internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }
     internal bool SupportsContinuationReflow { get; }
+    internal HtmlRenderFlowBlock? InterruptedFlow { get; }
 }
 
 internal readonly struct HtmlInlineBreakProgress {
