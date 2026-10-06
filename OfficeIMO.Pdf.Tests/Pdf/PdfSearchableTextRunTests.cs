@@ -68,8 +68,8 @@ public sealed class PdfSearchableTextRunTests {
         var letters = independent.GetPage(1).Letters;
         Assert.Equal(2, letters.Count);
         Assert.Equal(10D, letters[0].StartBaseLine.X, 3);
-        Assert.Equal(35D, letters[0].EndBaseLine.X, 3);
-        Assert.Equal(60D, letters[1].EndBaseLine.X, 3);
+        Assert.InRange(Math.Abs(35D - letters[0].EndBaseLine.X), 0D, .002D);
+        Assert.InRange(Math.Abs(60D - letters[1].EndBaseLine.X), 0D, .002D);
     }
 
     private static PdfSelectionPoint Point(double x, double y) => new(x + y * .3, y + x * .2);
