@@ -209,6 +209,14 @@ The `audience-grades` fixture covers US preschool-to-kindergarten, Canadian grad
 supported grade code in all three systems against the supplied schema. Grading
 systems remain explicit; these synthetic assertions do not establish age equivalence
 or educational suitability.
+The `supporting-resources` fixture covers a cover in two sizes, an audio reading,
+a trailer, a multilingual sample, an application link and a multimode resource.
+It carries translated credits and alternative text, file details, version dates,
+usage constraints and licenses. `resource-types` and `resource-formats` exercise
+all 55 supported content types and 37 format codes as synthetic schema corpora;
+they do not claim meaningful assets behind the example URLs. Single-record
+composition must preserve each record's bytes. No remote resource is fetched,
+measured, hashed, executed or installed, and no recipient acceptance is implied.
 The `collateral-usage` and `collateral-usage-quantities` fixtures exercise the
 retained vocabulary, all supported quantity units, media timecodes, calendar dates
 and composition with license metadata. The quantities fixture is a synthetic schema
@@ -271,6 +279,9 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/supporting-resources.onix \
+  /path/to/new-onix-evidence/resource-types.onix \
+  /path/to/new-onix-evidence/resource-formats.onix \
   /path/to/new-onix-evidence/collateral-usage.onix \
   /path/to/new-onix-evidence/collateral-usage-quantities.onix \
   /path/to/new-onix-evidence/collateral-licenses.onix \

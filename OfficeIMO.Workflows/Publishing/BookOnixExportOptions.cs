@@ -78,6 +78,8 @@ public sealed record BookOnixExportOptions {
     public BookOnixAudienceMetadata? Audience { get; init; }
     /// <summary>At most 64 explicit collateral text items; recipient and usage declarations do not enforce access control.</summary>
     public IReadOnlyList<BookOnixCollateralText> CollateralTexts { get; init; } = [];
+    /// <summary>At most 64 explicit supporting resources; links and publisher assertions are never fetched or enforced.</summary>
+    public IReadOnlyList<BookOnixSupportingResource> SupportingResources { get; init; } = [];
     /// <summary>Optional explicit publishing status, territorial rights, supplier availability and pricing.</summary>
     public BookOnixCommercialMetadata? Commercial { get; init; }
     /// <summary>Optional explicit accessibility assertions; never inferred from EPUB metadata or automated checks.</summary>

@@ -90,7 +90,7 @@ public sealed record BookOnixCollateralText {
     public required BookOnixTextType Type { get; init; }
     /// <summary>One to 13 distinct recipient codes; must be explicitly supplied.</summary>
     public required IReadOnlyList<BookOnixContentAudience> Audiences { get; init; }
-    /// <summary>One to 16 language variants; repeated variants require distinct explicit languages; at most 65,536 UTF-16 code units each, with a 524,288-unit aggregate per export including source titles, rating units, license names and license expression links.</summary>
+    /// <summary>One to 16 language variants; repeated variants require distinct explicit languages; at most 65,536 UTF-16 code units each, with a 524,288-unit aggregate per export including source titles, rating units, license names, license expression links, supporting-resource notes, filenames and links.</summary>
     public required IReadOnlyList<BookOnixCollateralTextValue> Texts { get; init; }
     /// <summary>Optional publisher-supplied score for review text types only; no scale or units are inferred.</summary>
     public BookOnixReviewRating? ReviewRating { get; init; }

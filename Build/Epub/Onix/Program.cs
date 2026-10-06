@@ -26,6 +26,9 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "collateral-xhtml", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-unicode", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "supporting-resources", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "resource-types", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "resource-formats", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-usage", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-usage-quantities", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-licenses", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -75,6 +78,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         TitleSorting = profile.Name == "title-sorting" ? new() { Prefix = "The " } : profile.Name == "title-no-prefix" ? new() : null,
         AlternativeTitles = profile.Name == "alternative-titles" ? AlternativeTitleFixtures.Create() : [],
         Audience = ComplexityFixtures.Create(profile.Name) ?? AdultAudienceFixtures.Create(profile.Name) ?? AudienceFixtures.Create(profile.Name),
+        SupportingResources = ResourceFixtures.Create(profile.Name),
         CollateralTexts = profile.Name.StartsWith("collateral-usage", StringComparison.Ordinal) ? UsageFixtures.Create(profile.Name == "collateral-usage-quantities") : profile.Name.StartsWith("collateral-license", StringComparison.Ordinal) ? LicenseFixtures.Create(profile.Name == "collateral-license-transition") : profile.Name == "review-ratings" ? ReviewRatingFixtures.Create() : profile.Name == "collateral-xhtml" ? CollateralXhtmlFixtures.Create() : CollateralFixtures.Create(profile.Name),
         Collections = profile.Name == "collection-identifiers" ? CollectionIdentifierFixtures.Create() :
             profile.Name == "collection-brand-universe" ? BrandUniverseFixtures.Create() :
@@ -139,7 +143,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         TitleSortingFixtures.Verify(result, profile.Name == "title-no-prefix", schemas);
     if (profile.Name is "collection-hierarchy" or "collection-frequency")
         CollectionHierarchyFixtures.Verify(result, profile.Name == "collection-frequency", schemas);
-    if ((profile.Name.StartsWith("collateral-usage", StringComparison.Ordinal) || profile.Name.StartsWith("collateral-license", StringComparison.Ordinal) || profile.Name == "review-ratings" || profile.Name == "collateral-xhtml" || profile.Name == "audience-codes" || profile.Name == "audience-headings" || profile.Name.StartsWith("adult-", StringComparison.Ordinal) || profile.Name.StartsWith("complexity", StringComparison.Ordinal)) &&
+    if ((profile.Name == "supporting-resources" || profile.Name.StartsWith("resource-", StringComparison.Ordinal) || profile.Name.StartsWith("collateral-usage", StringComparison.Ordinal) || profile.Name.StartsWith("collateral-license", StringComparison.Ordinal) || profile.Name == "review-ratings" || profile.Name == "collateral-xhtml" || profile.Name == "audience-codes" || profile.Name == "audience-headings" || profile.Name.StartsWith("adult-", StringComparison.Ordinal) || profile.Name.StartsWith("complexity", StringComparison.Ordinal)) &&
         !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
         throw new InvalidDataException("Record composition changed retained content or whitespace.");
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);

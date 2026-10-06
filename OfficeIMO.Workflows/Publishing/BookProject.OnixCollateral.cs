@@ -6,10 +6,12 @@ using System.Xml.Linq;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
-    private static XElement? BuildOnixCollateral(IReadOnlyList<BookOnixCollateralText> items, CancellationToken cancellationToken) {
+    private static XElement? BuildOnixCollateral(IReadOnlyList<BookOnixCollateralText> items, IReadOnlyList<BookOnixSupportingResource> resources, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(items);
         if (items.Count > 64) throw new ArgumentException("At most 64 collateral text items are supported.", nameof(items));
-        if (items.Count == 0) return null;
+        ArgumentNullException.ThrowIfNull(resources);
+        if (resources.Count > 64) throw new ArgumentException("At most 64 supporting resources are supported.", nameof(resources));
+        if (items.Count == 0 && resources.Count == 0) return null;
         XNamespace ns = OnixNamespace;
         var result = new XElement(ns + "CollateralDetail");
         int textBudget = 524288;
@@ -17,16 +19,9 @@ public sealed partial class BookProject {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(item);
             if (!Enum.IsDefined(item.Type)) throw new ArgumentOutOfRangeException(nameof(item.Type));
-            ArgumentNullException.ThrowIfNull(item.Audiences);
-            if (item.Audiences.Count is < 1 or > 13 || item.Audiences.Distinct().Count() != item.Audiences.Count ||
-                (item.Audiences.Count != 1 && item.Audiences.Contains(BookOnixContentAudience.Unrestricted)))
-                throw new ArgumentException("Supply distinct collateral recipients; Unrestricted cannot accompany other codes.", nameof(item.Audiences));
             var content = new XElement(ns + "TextContent", new XElement(ns + "SequenceNumber", result.Elements().Count() + 1),
                 new XElement(ns + "TextType", ((int)item.Type).ToString("00", CultureInfo.InvariantCulture)));
-            foreach (var audience in item.Audiences) {
-                if (!Enum.IsDefined(audience)) throw new ArgumentOutOfRangeException(nameof(item.Audiences));
-                content.Add(new XElement(ns + "ContentAudience", ((int)audience).ToString("00", CultureInfo.InvariantCulture)));
-            }
+            content.Add(BuildOnixContentAudiences(item.Audiences));
             if (item.Territory != null) content.Add(ReadOnixTerritory(item.Territory).ToXml());
             ArgumentNullException.ThrowIfNull(item.Texts);
             if (item.Texts.Count == 0) throw new ArgumentException("Collateral requires text.", nameof(item.Texts));
@@ -64,6 +59,7 @@ public sealed partial class BookProject {
             AddDate("15", item.UsableUntil); AddDate("17", item.UpdatedOn);
             result.Add(content);
         }
+        AddOnixSupportingResources(result, resources, ref textBudget, cancellationToken);
         return result;
     }
 
@@ -84,7 +80,7 @@ public sealed partial class BookProject {
             XmlConvert.VerifyXmlChars(value.Text);
             if (!Enum.IsDefined(value.Format)) throw new ArgumentOutOfRangeException(nameof(value.Format));
             if (elementName != "Text" && value.Format != BookOnixCollateralTextFormat.PlainText)
-                throw new ArgumentException("Source titles accept plain text only.", nameof(values));
+                throw new ArgumentException("This ONIX element accepts plain text only.", nameof(values));
             XElement? fragment = value.Format == BookOnixCollateralTextFormat.Xhtml
                 ? ReadOnixCollateralXhtml(value.Text, cancellationToken) : null;
             if (shortText) {

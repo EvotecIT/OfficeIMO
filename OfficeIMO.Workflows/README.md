@@ -582,7 +582,7 @@ reuses the existing country/worldwide profile and describes use of the collatera
 independently of product sales rights.
 
 There may be at most 64 items. Each text variant accepts up to 65,536 UTF-16 code
-units, and texts, source titles, rating units, license names and license expression links share
+units, and texts, source titles, rating units, license names, license expression links, supporting-resource notes, filenames and links share
 a 524,288-unit export budget. Source
 titles and other attribution fields retain the 4096-unit field bound. Short product
 and collection descriptions additionally permit at most 350 Unicode scalar values,
@@ -594,7 +594,7 @@ carry its permitted-use dates; reversed intervals are rejected. These dates,
 restricted-recipient labels and territory declarations are metadata assertions,
 not access controls: export includes the text and does not enforce embargoes or
 filter a recipient's copy. The publisher remains responsible for accurate attribution,
-permission to use the text and recipient acceptance. Media resources are outside this collateral-text profile. No text or
+permission to use the text and recipient acceptance. Use `SupportingResources` for separately hosted media and files. No text or
 attribution is inferred from EPUB content, and export does not change the book.
 
 #### Review ratings
@@ -625,6 +625,76 @@ unit may omit its language. Units share the collateral text budget. Ratings may
 accompany plain text or XHTML review variants, but not descriptions or endorsements.
 The publisher supplies and verifies the score, source and permission to quote it;
 OfficeIMO does not fetch reviews, calculate aggregates or validate a reviewer's judgment.
+
+#### Supporting resources
+
+Set `SupportingResources` on `BookOnixExportOptions` to describe publisher-supplied
+cover images, contributor recordings, trailers, samples and promotional files.
+Resources may accompany collateral text or appear on their own:
+
+```csharp
+var cover = new BookOnixSupportingResource {
+    Type = BookOnixResourceContentType.FrontCover,
+    Mode = BookOnixResourceMode.Image,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Credits = [new("Publisher and cover artist", "eng")],
+    AlternativeTexts = [new("A blue cover with the title in white", "eng")],
+    Versions = [new() {
+        Form = BookOnixResourceForm.Downloadable,
+        FileFormatCode = "D502", // ONIX JPEG code
+        ImageWidth = 1200,
+        ImageHeight = 1800,
+        FileName = "cover.jpg",
+        Links = [new("https://example.org/cover.jpg")],
+        UpdatedOn = new DateOnly(2026, 10, 6)
+    }]
+};
+var resourceOptions = options with { SupportingResources = [cover] };
+```
+
+The profile supports 55 current [list 158 content types](https://ns.editeur.org/onix/en/158),
+excluding transitional thumbnail code 27 and deprecated codes 53 and 99. Use
+`FrontCover` for a thumbnail version of a current cover. All six
+[list 159 modes](https://ns.editeur.org/onix/en/159) and three
+[list 161 forms](https://ns.editeur.org/onix/en/161) are explicit. `Linkable`
+describes sender-hosted content, `Downloadable` describes a copy the recipient
+hosts, and `EmbeddableApplication` describes an application supplied for embedding.
+Export performs none of those operations.
+
+Each export accepts up to 64 resources, with one to 16 versions per resource and
+one to 16 distinct URL/language pairs per version. Links must be absolute HTTP(S)
+URLs without credentials and use the existing 4096-character field bound.
+Alternate URLs may share a language or all omit it. When language tags differ,
+every link must carry an explicit ONIX list 74 language; mixing tagged and untagged
+links is rejected. Links are preserved without fetching them.
+
+`Credits`, `Captions`, `CopyrightHolders` and `AlternativeTexts` accept up to 16
+plain-text translations each, at most 4096 UTF-16 code units per note. Repeated
+notes require distinct explicit languages. These properties reuse
+`BookOnixCollateralTextValue`; XHTML notes are outside this profile. Audio and
+video resources may declare a nonnegative whole-number `LengthMinutes` estimate.
+
+Each version can declare a [list 178 format code](https://ns.editeur.org/onix/en/178),
+positive image dimensions, a filename of at most 255 UTF-16 code units, a
+nonnegative exact `ByteLength`, and a 64-hex-digit `Sha256`. Format, mode, URL and
+file details are supplied separately; export does not infer them, download the
+asset, calculate its digest or verify its contents. Filenames cannot be paths.
+Resource notes, links, filenames and license text share the existing aggregate
+collateral budget. The complete ONIX document retains its size limit.
+
+Versions reuse `UsageConstraints` and `Licenses`, with the same validation and
+schema qualification limits as collateral text. `UsableFrom`, `UsableUntil` and
+`UpdatedOn` describe that version's dates; reversed usage intervals are rejected.
+The optional resource `Territory` and recipient declarations describe permitted
+use without controlling access. Resource and text sequences are emitted in their
+respective supplied order.
+
+Resource metadata does not insert assets into the EPUB or change its bytes.
+Alternative text and rights declarations remain publisher assertions, not proof
+of accessibility or permission. Contributor identity links, image background and
+perspective features, XHTML feature notes, and additional version features such
+as previous-filename instructions are outside this profile. Recipient download,
+rendering and acceptance require separate qualification.
 
 #### Collateral usage constraints
 
