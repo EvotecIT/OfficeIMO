@@ -5,13 +5,14 @@ First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tabl
 ## Semantic round trips
 
 ```csharp
-using OfficeIMO.Excel;
 using OfficeIMO;
+using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Excel.Html;
 
-using ExcelDocument workbook = ExcelDocument.Load("report.xlsx",
-    new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly
+});
 string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
@@ -23,6 +24,8 @@ imported.Save("report-roundtrip.xlsx");
 ```
 
 Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, supported chart inventory, and inert pivot-definition review metadata. HTML `rowspan` and `colspan` values become native Excel merged ranges. Pivot refresh, drill, caches, slicers, and timelines remain native workbook behavior and are not executed in HTML.
+
+Named Excel tables export as worksheet cells without their native table definitions. Table names, table-scoped filters, table styles and totals metadata are not restored; workbook and worksheet export reports mark this omission. Ordinary HTML table IDs do not create named Excel tables.
 
 `HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
 
