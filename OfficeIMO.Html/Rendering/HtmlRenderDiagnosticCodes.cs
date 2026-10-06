@@ -102,6 +102,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string TextInkOutsideCanvas = "HtmlRenderTextInkOutsideCanvas";
     /// <summary>Positioned text paint bounds extend beyond an inspected region border box.</summary>
     public const string TextInkOutsideRegion = "HtmlRenderTextInkOutsideRegion";
+    /// <summary>Positioned text outline bounds are cropped by an authored rectangular clip.</summary>
+    public const string ClippedTextInkBounds = "HtmlRenderClippedTextInkBounds";
     /// <summary>Text ink cannot be established for an inspected source.</summary>
     public const string TextInkNotInspected = "HtmlRenderTextInkNotInspected";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
@@ -277,6 +279,7 @@ public static class HtmlRenderDiagnosticCodes {
         ClipGeometryNotInspected,
         TextInkOutsideCanvas,
         TextInkOutsideRegion,
+        ClippedTextInkBounds,
         TextInkNotInspected,
         OverflowValueUnsupported,
         TransformValueUnsupported,

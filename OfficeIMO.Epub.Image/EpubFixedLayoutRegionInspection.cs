@@ -14,7 +14,7 @@ public sealed class EpubFixedLayoutRegionInspection {
     /// <summary>Bounds findings after descendant transforms and authored clips, before region/ancestor transforms.</summary>
     public OfficeDrawingQualityReport Quality { get; }
     /// <summary>Positioned XHTML text paint bounds at nominal CSS-pixel scale 1, in local coordinates.
-    /// Includes descendant transforms and conservative decoration bounds. Authored clips, vector text and
+    /// Includes descendant transforms, rectangular contour clipping and conservative decoration bounds. Path-shaped clips, vector text and
     /// unavailable outlines are diagnosed as unmeasured; ancestor transforms and clips are excluded.</summary>
     public IReadOnlyList<HtmlDiagnostic> TextInkDiagnostics { get; }
     /// <summary>Whether measured text paint bounds extend outside this region's local border box.</summary>

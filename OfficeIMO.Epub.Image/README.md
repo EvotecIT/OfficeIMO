@@ -87,7 +87,7 @@ Each region also exposes `TextInkDiagnostics` and `HasTextInkOverflow` for posit
 XHTML text in that same local space. A glyph can extend outside its container while
 both the layout box and the page-level ink check still fit. Descendant transforms
 are included; region and ancestor transforms do not change local containment.
-Clipped text remains explicitly unmeasured, including clips on the region itself.
+Rectangular clips on the region and its descendants constrain the measured contours.
 Ancestor clips do not suppress local ink findings. Regional ink warnings contribute
 to the enclosing report's `HasRenderingWarnings`.
 
@@ -108,12 +108,18 @@ page canvas, using the shared drawing engine's font fallback, shaping, color-gly
 layers, synthetic styles and affine transforms. Decorations use conservative stroke
 bounds. The measurement uses nominal CSS-pixel geometry at scale 1; it is not a
 pixel scan. Empty space in a text frame is excluded. Transparent text is ignored.
-Authored clips, embedded vector drawings and unavailable text outlines produce
+Rectangular clips intersect the individual measured contours before their bounds
+are compared with the page or region. Nested, transformed and single-axis clips
+are supported. `HtmlRenderClippedTextInkBounds` informational findings identify
+text outline or conservative decoration bounds cropped by an authored rectangle;
+review whether the crop is intentional. Automatic output clipping is excluded.
+Path-shaped clips, embedded vector drawings and unavailable text outlines produce
 `HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
-Pages exceeding 4096 inspected text runs are rejected.
+Inspection rejects more than 4096 text runs, 64 nested rectangular clips, or
+excessive contour-clipping work instead of returning a partial report.
 
-This is managed layout evidence. It does not measure clipped glyph ink, shadows/filters,
-or pixel visibility within clipped element rectangles. SVG spine inspection, native-reader presentation and accessible reading
+This is managed layout evidence. It does not resolve winding cancellation between overlapping glyph contours, shadows/filters,
+or pixel visibility within clipped contours or element rectangles. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 
 <!-- officeimo-operation-catalog:start -->
