@@ -16,6 +16,8 @@ public sealed record BookOnixCollectionTitleElement {
     public required BookOnixCollectionLevel Level { get; init; }
     /// <summary>Full title text, without a subtitle. Required when PartNumber is omitted.</summary>
     public string? Title { get; init; }
+    /// <summary>Optional explicit sorting prefix or no-prefix assertion; omission retains unsplit TitleText.</summary>
+    public BookOnixTitleSorting? TitleSorting { get; init; }
     /// <summary>Optional subtitle at this level.</summary>
     public string? Subtitle { get; init; }
     /// <summary>Optional part designation, including its caption, such as Volume II.</summary>

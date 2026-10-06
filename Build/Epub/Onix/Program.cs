@@ -36,6 +36,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "no-collection", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "no-edition", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "title-sorting", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "title-no-prefix", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discoverability", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discount-coded", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discounted", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -44,7 +46,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "accessibility-unknown", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "accessibility-provenance", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "accessibility-claims", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed) }) {
-    var project = BookProject.Create("Publishing & metadata — " + profile.Name, profile.Language);
+    var project = BookProject.Create(profile.Name == "title-sorting" ? "The history & future" : "Publishing & metadata — " + profile.Name, profile.Language);
     project.Publication.Identifier = "urn:officeimo:fixture:onix:" + profile.Name;
     project.Publication.AddIdentifier("digital-isbn", new EpubIdentifierMetadata { Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13 });
     if (profile.Name == "discoverability") project.Publication.AddTitle("selected-title", new() {
@@ -55,9 +57,11 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         SenderName = "Example Press", PublisherName = "Example Press", RecordReference = "fixture-" + profile.Name,
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
         TitleId = profile.Name == "discoverability" ? "selected-title" : null,
+        TitleSorting = profile.Name == "title-sorting" ? new() { Prefix = "The " } : profile.Name == "title-no-prefix" ? new() : null,
         Audience = AudienceFixtures.Create(profile.Name),
         CollateralTexts = profile.Name == "collateral-xhtml" ? CollateralXhtmlFixtures.Create() : CollateralFixtures.Create(profile.Name),
-        Collections = profile.Name == "collection" ? CollectionFixtures.Create() : CollectionHierarchyFixtures.Create(profile.Name),
+        Collections = profile.Name == "collection" ? CollectionFixtures.Create() :
+            profile.Name == "title-sorting" ? TitleSortingFixtures.Collections() : CollectionHierarchyFixtures.Create(profile.Name),
         NoCollection = profile.Name == "no-collection",
         Edition = profile.Name == "edition" ? new() { Number = 2, VersionNumber = "1.2",
             Types = [BookOnixEditionType.Revised, BookOnixEditionType.Annotated],
@@ -108,6 +112,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     if (profile.Name == "collection") CollectionFixtures.Verify(result, schemas);
+    if (profile.Name is "title-sorting" or "title-no-prefix")
+        TitleSortingFixtures.Verify(result, profile.Name == "title-no-prefix", schemas);
     if (profile.Name is "collection-hierarchy" or "collection-frequency")
         CollectionHierarchyFixtures.Verify(result, profile.Name == "collection-frequency", schemas);
     if (profile.Name == "collateral-xhtml" && !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))

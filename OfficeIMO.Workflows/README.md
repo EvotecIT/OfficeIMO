@@ -452,6 +452,35 @@ credit/commercial lists and schema sets must not be mutated concurrently with ex
 Omitting it retains the first-title default. Missing identifiers are rejected;
 selection does not change EPUB metadata. `Subtitle` remains an explicit assertion.
 
+`TitleSorting` distinguishes an unknown prefix from a publisher's explicit sorting
+instruction. It is available on `BookOnixExportOptions`, a simple `BookOnixCollection`,
+and each `BookOnixCollectionTitleElement`:
+
+```csharp
+var prefixed = existingOptions with {
+    // For a selected EPUB title such as "The history of publishing":
+    TitleSorting = new() { Prefix = "The " }
+};
+var unprefixed = existingOptions with { TitleSorting = new() };
+```
+
+Omitting `TitleSorting` retains the unsplit `TitleText` output. `new()` asserts
+`NoPrefix` and writes the full title as `TitleWithoutPrefix`. Supplying `Prefix`
+writes it as `TitlePrefix` and removes that exact leading text from
+`TitleWithoutPrefix`. Include any separator to remove in the prefix, such as the
+space in `"The "`. Matching is ordinal and case-sensitive; text, punctuation and
+remaining whitespace are preserved. Prefix plus remainder reconstructs the full
+title exactly. Empty, whitespace-only, mismatched and exhaustive prefixes are
+rejected. OfficeIMO does not infer sorting rules from language or strip articles
+automatically.
+
+For products, the assertion applies to the selected title from the exported EPUB.
+For collections, the declared title language applies to both prefix and remainder.
+Sorting cannot be attached to a part-only element. With `TitleElements`, place
+sorting on each element, not on the collection's simple-title fields. The choice
+is explicit because `TitleText` is deprecated but still accepted in ONIX 3.1;
+existing callers retain their output until they supply a sorting assertion.
+
 Declare discoverability metadata in `Subjects`:
 
 ```csharp
@@ -679,8 +708,8 @@ between the product, collections and EPUB metadata; place them according to the
 recipient's requirements. An empty list makes no assertion. `NoContributors = true`
 explicitly asserts no collection contributors and cannot accompany credits.
 
-For a hierarchy, use `TitleElements` instead of the simple `Title`, `Subtitle` and
-`LanguageCode` fields:
+For a hierarchy, use `TitleElements` instead of the simple `Title`, `Subtitle`,
+`LanguageCode` and `TitleSorting` fields:
 
 ```csharp
 var collection = new BookOnixCollection {
@@ -706,8 +735,7 @@ parent levels. List order determines display order and writes consecutive
 a title, a part designation (including its caption), or both. Its optional language
 applies to its title, subtitle and part designation; languages are not inherited
 between levels. The product title remains separate. Alternative title types,
-master brands, universes and prefix-separated sorting titles are not represented
-by this profile.
+master brands and universes are not represented by this profile.
 
 `Frequency` declares the schedule of successive products in the collection. It
 supports the [ONIX list 259 values](https://ns.editeur.org/onix/en/259), including

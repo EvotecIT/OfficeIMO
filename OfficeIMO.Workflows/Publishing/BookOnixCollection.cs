@@ -56,11 +56,13 @@ public sealed record BookOnixCollection {
     public required BookOnixCollectionType Type { get; init; }
     /// <summary>Simple top-level collection title, separate from the product title. Mutually exclusive with TitleElements.</summary>
     public string? Title { get; init; }
+    /// <summary>Optional explicit sorting prefix or no-prefix assertion; omission retains unsplit TitleText.</summary>
+    public BookOnixTitleSorting? TitleSorting { get; init; }
     /// <summary>Optional subtitle of the collection.</summary>
     public string? Subtitle { get; init; }
     /// <summary>Optional ONIX list 74 language for the collection title and subtitle.</summary>
     public string? LanguageCode { get; init; }
-    /// <summary>One to three title elements in display order, with one per level. Mutually exclusive with Title, Subtitle and LanguageCode.</summary>
+    /// <summary>One to three title elements in display order, with one per level. Mutually exclusive with Title, Subtitle, LanguageCode and TitleSorting.</summary>
     public IReadOnlyList<BookOnixCollectionTitleElement> TitleElements { get; init; } = [];
     /// <summary>Optional explicit frequency of publication of successive products in the collection.</summary>
     public BookOnixCollectionFrequency? Frequency { get; init; }

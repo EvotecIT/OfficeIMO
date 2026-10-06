@@ -54,6 +54,8 @@ public sealed record BookOnixExportOptions {
     public required string LanguageCode { get; init; }
     /// <summary>Publisher of this edition; not inferred from arbitrary Dublin Core dates or rights statements.</summary>
     public required string PublisherName { get; init; }
+    /// <summary>Optional explicit sorting prefix or no-prefix assertion; omission retains unsplit TitleText.</summary>
+    public BookOnixTitleSorting? TitleSorting { get; init; }
     /// <summary>Optional subtitle for the ONIX product-level title.</summary>
     public string? Subtitle { get; init; }
     /// <summary>Explicit publication date, when known.</summary>

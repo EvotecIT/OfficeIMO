@@ -9,11 +9,11 @@ public sealed partial class BookProject {
         if (collection.TitleElements.Count > 3)
             throw new ArgumentException("At most three collection title elements are supported.", nameof(collection.TitleElements));
         bool hierarchical = collection.TitleElements.Count != 0;
-        if (hierarchical && (collection.Title != null || collection.Subtitle != null || collection.LanguageCode != null))
-            throw new ArgumentException("TitleElements cannot accompany the simple Title, Subtitle or LanguageCode fields.", nameof(collection));
+        if (hierarchical && (collection.Title != null || collection.Subtitle != null || collection.LanguageCode != null || collection.TitleSorting != null))
+            throw new ArgumentException("TitleElements cannot accompany the simple Title, Subtitle, LanguageCode or TitleSorting fields.", nameof(collection));
         IReadOnlyList<BookOnixCollectionTitleElement> titles = hierarchical ? collection.TitleElements : [new() {
             Level = BookOnixCollectionLevel.Collection, Title = collection.Title,
-            Subtitle = collection.Subtitle, LanguageCode = collection.LanguageCode
+            Subtitle = collection.Subtitle, LanguageCode = collection.LanguageCode, TitleSorting = collection.TitleSorting
         }];
         XNamespace ns = OnixNamespace;
         var result = new XElement(ns + "TitleDetail", new XElement(ns + "TitleType", "01"));
@@ -27,7 +27,6 @@ public sealed partial class BookProject {
                 throw new ArgumentException("Collection title levels must be distinct.", nameof(collection.TitleElements));
             if (title.Title == null && title.PartNumber == null)
                 throw new ArgumentException("Each collection title element requires a title or part designation.", nameof(collection.TitleElements));
-            if (title.Title != null) RequireOnixText(title.Title, nameof(title.Title));
             if (title.PartNumber != null) RequireOnixText(title.PartNumber, nameof(title.PartNumber));
             if (title.Subtitle != null) RequireOnixText(title.Subtitle, nameof(title.Subtitle));
             if (title.LanguageCode != null) RequireOnixLanguageCode(title.LanguageCode, nameof(title.LanguageCode));
@@ -35,7 +34,7 @@ public sealed partial class BookProject {
                 hierarchical ? new XElement(ns + "SequenceNumber", ++sequence) : null,
                 new XElement(ns + "TitleElementLevel", level));
             AddText("PartNumber", title.PartNumber);
-            AddText("TitleText", title.Title);
+            element.Add(BuildOnixTitleText(title.Title, title.TitleSorting, title.LanguageCode));
             AddText("Subtitle", title.Subtitle);
             result.Add(element);
 

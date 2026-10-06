@@ -71,7 +71,7 @@ public sealed partial class BookProject {
         string isbn = OfficeIsbn.Normalize(identifier.Value, isbn13: true);
 
         var titleElement = new XElement(onix + "TitleElement", new XElement(onix + "TitleElementLevel", "01"),
-            new XElement(onix + "TitleText", title));
+            BuildOnixTitleText(title, options.TitleSorting));
         if (options.Subtitle != null) titleElement.Add(new XElement(onix + "Subtitle", options.Subtitle));
         var descriptive = new XElement(onix + "DescriptiveDetail",
             new XElement(onix + "ProductComposition", "00"), new XElement(onix + "ProductForm", "ED"),

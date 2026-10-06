@@ -153,6 +153,10 @@ not assert allocation, ownership or any actual trade agreement. The `discoverabi
 fixture selects an alternate EPUB title and covers all supported subject schemes,
 main-subject markers, version assertions and multilingual headings. Classification
 assignments are synthetic and do not establish vocabulary membership or suitability.
+The `title-sorting` and `title-no-prefix` fixtures cover explicit prefixes (including
+spaces and apostrophes), no-prefix assertions, product and collection title paths,
+per-element language, part-only hierarchy elements and byte-preserving ONIX message
+composition. The schema must reject simultaneous prefix and no-prefix assertions.
 The `edition` and `no-edition` fixtures cover numbered minor revisions, multilingual
 plain-text statements and explicit absence of edition information. The generator
 also validates each supported edition type against the schema. The `collection`
