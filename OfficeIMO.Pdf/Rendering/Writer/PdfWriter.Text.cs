@@ -598,9 +598,17 @@ internal static partial class PdfWriter {
             currentLineAscent = Math.Max(currentLineAscent, currentRunAscent);
             currentLineDescent = Math.Max(currentLineDescent, currentRunDescent);
             currentLineHasInline |= currentRunIsInline;
-            if (currentLineHasInline)
+            if (currentLineHasInline || lineSpacing?.FontLineBoxMultiplier != null) {
+                // Imported automatic spacing uses each visible font's line
+                // box. A fallback can be taller than the paragraph font used
+                // to establish its natural multiplier and initial advance.
+                double fontAdvance = currentLineAscent + currentLineDescent;
+                if (lineSpacing?.FontLineBoxMultiplier is double natural &&
+                    lineSpacing.Rule == PdfLineSpacingRule.Multiple && !currentLineHasInline)
+                    fontAdvance *= lineSpacing.Value / natural;
                 currentLineHeight = Math.Max(currentLineHeight,
-                    currentLineAscent + currentLineDescent + (currentFrame?.Gap ?? 0));
+                    fontAdvance + (currentFrame?.Gap ?? 0));
+            }
         }
 
         void StartNewLine() {

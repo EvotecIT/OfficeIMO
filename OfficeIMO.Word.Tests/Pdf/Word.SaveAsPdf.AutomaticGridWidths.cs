@@ -125,6 +125,38 @@ public partial class Word {
         Assert.Contains(words, word => word.Text == new string('W', characters));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_AutomaticGridKeepsFallbackFontLinesInsideCellBorders(bool minimumSpacing) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0].Paragraphs[0];
+        paragraph.Text = "A " + string.Concat(Enumerable.Repeat("東京", 24));
+        paragraph.LineSpacingRule = minimumSpacing ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
+        paragraph.LineSpacing = 240;
+        var options = new OfficeIMO.Pdf.PdfOptions();
+        options.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
+        options.RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(new[] {
+            new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Tall CJK",
+                OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 100, 300, ' ', '東', '京'))
+        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, PdfOptions = options,
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        var page = pdf.GetPage(1);
+        var letters = page.Letters.Where(letter => letter.Value == "東" || letter.Value == "京").ToList();
+        Assert.Equal(48, letters.Count);
+        double[] baselines = letters.Select(letter => letter.StartBaseLine.Y).Distinct().OrderByDescending(value => value).ToArray();
+        Assert.True(baselines.Length >= 3);
+        for (int index = 1; index < baselines.Length; index++)
+            Assert.Equal(19.2D, baselines[index - 1] - baselines[index], 3);
+        double bottom = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
+            .Where(rectangle => rectangle.HasValue).Min(rectangle => rectangle!.Value.Bottom);
+        Assert.All(letters, letter => Assert.True(letter.BoundingBox.Bottom >= bottom,
+            $"Fallback glyph below table clip: {letter.BoundingBox.Bottom} < {bottom}"));
+    }
+
     private static WordTable CreateAutomaticWidthControl(WordDocument document, params int[] gridTwips) {
         WordTable table = document.AddTable(1, gridTwips.Length);
         table.ConditionalFormattingFirstRow = false;
