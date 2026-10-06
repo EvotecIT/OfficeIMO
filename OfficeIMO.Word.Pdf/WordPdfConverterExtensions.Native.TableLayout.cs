@@ -41,8 +41,9 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            double minimumScale = style.AutoFitWidthUsesContentMinimum ? 1D : NativeAutoFitGridMinimumScale;
             List<double?> derivedMinimums = layout.ColumnWidths
-                .Select(width => (double?)(tableWidth * width / gridWidth * NativeAutoFitGridMinimumScale))
+                .Select(width => (double?)(tableWidth * width / gridWidth * minimumScale))
                 .ToList();
             if (style.ColumnMinWidthPoints == null || style.ColumnMinWidthPoints.Count == 0) {
                 style.ColumnMinWidthPoints = derivedMinimums;
@@ -147,6 +148,7 @@ namespace OfficeIMO.Word.Pdf {
                 double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
                     style.PreferredWidth = preferredWidth.Value;
+                    style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns;
                     style.PreserveWidth = true;
                 }
             }

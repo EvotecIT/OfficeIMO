@@ -196,6 +196,19 @@ internal static partial class PdfWriter {
                         preferredWidths[c] = requestedPerColumn;
                     }
                 }
+                if (style.AutoFitWidthUsesContentMinimum) {
+                    // Imported grids grow for unbreakable words and objects.
+                    // Generic PDF technical-text heuristics are not a minimum
+                    // width contract for an authored document table.
+                    double wordWidth = MeasureImportedTableMinimumTextWidth(cell, rowStandardFont, rowSize, options);
+                    // Subtracting the padding again during layout must not
+                    // round the inner width below the measured word width.
+                    double minimum = Math.Max(1D, Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding + .001D) / cell.ColumnSpan;
+                    for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols; c++)
+                        minimumWidths[c] = Math.Max(minimumWidths[c], Math.Max(minimum,
+                            GetOptionalColumnWidth(style.ColumnMinWidthPoints, c, "Table minimum column widths must be positive finite values.") ?? 0D));
+                    continue;
+                }
                 double tokenWidth = 0D;
                 if (tokens.Length == 0) {
                     tokenWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowStandardFont, rowSize, options);

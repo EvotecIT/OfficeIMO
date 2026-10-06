@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D) {
-        double wrapWidth = GetTableCellWrapWidth(innerWidth, cell.NoWrap);
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
+        double wrapWidth = ResolveImportedTableCellWrapWidth(cell, innerWidth, baseFont, fontSize, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         if (cell.Paragraphs.Count > 0) {
             return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, innerWidth, baseFont, fontSize, leading, options);
         }
