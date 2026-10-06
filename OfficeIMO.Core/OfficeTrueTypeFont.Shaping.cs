@@ -132,6 +132,8 @@ public sealed partial class OfficeTrueTypeFont {
         variationWorkBudget ??= _variations?.CreateWorkBudget();
 
         var glyphs = new PositionedGlyph[result.Glyphs.Count];
+        var indexes = new int[result.Glyphs.Count];
+        long totalAdvance = 0;
         for (int index = 0; index < result.Glyphs.Count; index++) {
             OfficeShapedGlyph glyph = result.Glyphs[index];
             if (glyph.GlyphId <= 0 || glyph.GlyphId >= _numGlyphs) {
@@ -153,6 +155,7 @@ public sealed partial class OfficeTrueTypeFont {
                     nameof(result));
             }
 
+            indexes[index] = glyph.TextIndex;
             glyphs[index] = new PositionedGlyph(
                 (ushort)glyph.GlyphId,
                 checked(
@@ -164,6 +167,11 @@ public sealed partial class OfficeTrueTypeFont {
                 glyph.AdvanceHeight ?? 0,
                 glyph.OffsetX,
                 glyph.OffsetY);
+            totalAdvance += glyphs[index].AdvanceWidth;
+        }
+        bool[]? boundaries = TrackingBoundaries(text, indexes, totalAdvance < 0);
+        if (boundaries != null) {
+            for (int index = 0; index < glyphs.Length; index++) glyphs[index].TrackingBoundary = boundaries[index];
         }
 
         return new ShapedTextRun(this, glyphs, result.Direction);
@@ -174,6 +182,7 @@ public sealed partial class OfficeTrueTypeFont {
         internal readonly PositionedGlyph[] _glyphs;
         private readonly long _advanceWidth;
         private readonly long _advanceHeight;
+        private readonly int _trackingGlyphCount;
 
         internal ShapedTextRun(OfficeTrueTypeFont font, PositionedGlyph[] glyphs, OfficeTextDirection direction) {
             _font = font;
@@ -184,6 +193,7 @@ public sealed partial class OfficeTrueTypeFont {
             for (int index = 0; index < glyphs.Length; index++) {
                 width = checked(width + glyphs[index].AdvanceWidth);
                 height = checked(height + glyphs[index].AdvanceHeight);
+                if (glyphs[index].TrackingBoundary) _trackingGlyphCount++;
             }
             _advanceWidth = width;
             _advanceHeight = height;
@@ -191,8 +201,12 @@ public sealed partial class OfficeTrueTypeFont {
 
         internal OfficeTextDirection Direction { get; }
 
-        internal double Measure(double fontSize) => Math.Abs(
-            (Direction == OfficeTextDirection.TopToBottom ? _advanceHeight : _advanceWidth) * _font.ScaleFor(fontSize));
+        internal double Measure(double fontSize) => Direction == OfficeTextDirection.TopToBottom
+            ? Math.Abs(_advanceHeight * _font.ScaleFor(fontSize))
+            : Math.Abs(_advanceWidth * _font.ScaleFor(fontSize) + SignedTracking(fontSize) * _trackingGlyphCount);
+
+        private double SignedTracking(double fontSize) =>
+            (_advanceWidth < 0L ? -1D : 1D) * _font.HorizontalTracking(fontSize);
 
         internal List<List<OfficePoint>> GetContours(
             double x,
@@ -228,7 +242,8 @@ public sealed partial class OfficeTrueTypeFont {
                 return contours;
             }
             bool negativeDirection = _advanceWidth < 0L;
-            double cursor = negativeDirection ? x - (_advanceWidth * scale) : x;
+            double tracking = SignedTracking(fontSize);
+            double cursor = negativeDirection ? x - (_advanceWidth * scale + tracking * _trackingGlyphCount) : x;
             double baseline = y + (_font._ascender * scale);
             int pointCount = 0;
             variationWorkBudget ??= _font._variations?.CreateWorkBudget();
@@ -236,7 +251,7 @@ public sealed partial class OfficeTrueTypeFont {
                 cancellationToken.ThrowIfCancellationRequested();
                 PositionedGlyph glyph = _glyphs[index];
                 if (negativeDirection) {
-                    cursor += glyph.AdvanceWidth * scale;
+                    cursor += glyph.AdvanceWidth * scale + (glyph.TrackingBoundary ? tracking : 0D);
                 }
                 double glyphX = cursor + (glyph.OffsetX * scale);
                 double glyphBaseline = baseline - (glyph.OffsetY * scale);
@@ -251,15 +266,16 @@ public sealed partial class OfficeTrueTypeFont {
                     attachmentPoints: null);
                 contours.AddRange(glyphContours);
                 if (!negativeDirection) {
-                    cursor += glyph.AdvanceWidth * scale;
+                    cursor += glyph.AdvanceWidth * scale + (glyph.TrackingBoundary ? tracking : 0D);
                 }
             }
             return contours;
         }
     }
 
-    internal readonly struct PositionedGlyph {
+    internal struct PositionedGlyph {
         internal PositionedGlyph(ushort glyphId, int advanceWidth, int advanceHeight, int offsetX, int offsetY) {
+            TrackingBoundary = true;
             GlyphId = glyphId;
             AdvanceWidth = advanceWidth;
             AdvanceHeight = advanceHeight;
@@ -267,6 +283,7 @@ public sealed partial class OfficeTrueTypeFont {
             OffsetY = offsetY;
         }
 
+        internal bool TrackingBoundary { get; set; }
         internal ushort GlyphId { get; }
         internal int AdvanceWidth { get; }
         internal int AdvanceHeight { get; }

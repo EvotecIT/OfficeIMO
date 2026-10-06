@@ -633,6 +633,7 @@ namespace OfficeIMO.Excel {
 
         private static bool IsRecoverableOpenException(Exception ex) {
             return !ExcelReadLimitFailure.Is(ex)
+                   && !ExcelPackagePartLengthFailure.Is(ex)
                    && (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException);
         }
 

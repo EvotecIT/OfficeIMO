@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
             }
             var container = (ContainerBlock)wrapper;
             PdfPanelStyle style = ResolveContainerStyle(container);
-            var frame = ResolveContainerFrame(style, scope.ParentOptions.MarginLeft, frameWidth);
+            var frame = ResolveContainerFrame(container, style, scope.ParentOptions.MarginLeft, frameWidth);
             if (style.KeepTogether) {
                 double? keptHeight = MeasureWholeBlockHeight(container, frame.X, frameWidth, currentOpts.DefaultFontSize);
                 return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;
@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
             PdfPanelStyle style = container.Style;
             double before = container.IsContinuation || used <= parentPadding + .001D ? 0D : style.SpacingBefore;
             if (!container.IsContinuation) {
-                double minimumStart = style.PaddingY + style.FragmentPaddingReservation + style.FragmentBottomInset + container.FirstVisualHeight;
+                double minimumStart = style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + container.FirstVisualHeight;
                 if (minimumStart > height - parentPadding + .001D) return false;
                 if (used > parentPadding + .001D && used + before + minimumStart > height + .001D) {
                     finishColumn?.Invoke(used);
@@ -117,8 +117,8 @@ internal static partial class PdfWriter {
             }
             used += before + Math.Min(style.GetFragmentTopPadding(container.IsContinuation), Math.Max(0D, height - used));
             if (!PackColumnBalanceUnits(container.Units, height - style.FragmentBottomInset, columnCount, parentPadding + style.GetFragmentTopPadding(isContinuation: true), ref columns, ref used, finishColumn)) return false;
-            if (!style.RepeatFragmentDecoration && used + style.PaddingY > height + .001D) return false;
-            used += style.RepeatFragmentDecoration ? Math.Min(style.PaddingY, Math.Max(0D, height - used)) : style.PaddingY;
+            if (!style.RepeatFragmentDecoration && used + style.BottomPadding > height + .001D) return false;
+            used += style.RepeatFragmentDecoration ? Math.Min(style.BottomPadding, Math.Max(0D, height - used)) : style.BottomPadding;
             double after = style.SpacingAfter;
             while (after > .001D) {
                 double take = Math.Min(after, Math.Max(0D, height - used));

@@ -37,7 +37,7 @@ public sealed class StudioSearchTests {
                 var model = window.ViewModel;
                 model.SearchQuery = query;
                 await model.SearchCommand.ExecuteAsync(null);
-                PdfSearchHit hit = Assert.Single(model.SearchResults);
+                PdfSearchResult hit = Assert.Single(model.SearchResults);
                 Assert.Equal(2, hit.LineBounds.Count);
                 Assert.True(hit.LineBounds[0].Bottom <= hit.LineBounds[1].Top + 0.5D);
                 Assert.Equal(hit.LineBounds, model.Pages[0].ActiveSearchHighlights);

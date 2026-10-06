@@ -11,10 +11,33 @@ namespace OfficeIMO.Html;
 
 /// <summary>Explicit structural bridge for the existing native-DOM CSS/layout implementation. Never reparses serialized source.</summary>
 internal static class NativeDomBridge {
-    private static readonly ConditionalWeakTable<HtmlDocument, NativeState> OwnedStates = new ConditionalWeakTable<HtmlDocument, NativeState>();
+    // The owned document is the public source of truth. Keep its replaceable native projection
+    // reclaimable so a long-lived owned snapshot does not permanently retain a second tree and
+    // two node maps. A caller actively holding the native document can keep that exact projection;
+    // the bridge can rebuild its maps without keeping either graph alive by itself.
+    private static readonly ConditionalWeakTable<HtmlDocument, NativeStateReference> OwnedStates = new ConditionalWeakTable<HtmlDocument, NativeStateReference>();
     private static readonly ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>> CallbackSnapshots = new ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>>();
     private static readonly ConditionalWeakTable<HtmlDocument, CallbackState> CallbackSources = new ConditionalWeakTable<HtmlDocument, CallbackState>();
+    // A retained detached native node is a lease on its node maps. Ephemeron keys let the
+    // complete projection disappear once callers release those nodes, even though the state
+    // points back to them. Attached native trees can instead rebuild maps from their structure.
+    private static readonly ConditionalWeakTable<INode, NativeState> DetachedProjectionLeases = new ConditionalWeakTable<INode, NativeState>();
     private static readonly object CacheSync = new object();
+    private sealed class NativeStateReference {
+        private readonly WeakReference<NativeState> _state;
+        private readonly WeakReference<IHtmlDocument> _native;
+        private readonly long _revision;
+        internal NativeStateReference(NativeState state) {
+            _state = new WeakReference<NativeState>(state);
+            _native = new WeakReference<IHtmlDocument>(state.Native);
+            _revision = state.Revision;
+        }
+        internal bool TryGet(out NativeState? state) => _state.TryGetTarget(out state);
+        internal bool TryGetNative(long revision, out IHtmlDocument? native) {
+            native = null;
+            return revision == _revision && _native.TryGetTarget(out native);
+        }
+    }
 
     internal sealed class NativeState {
         internal NativeState(IHtmlDocument native, HtmlDocument owned) { Native = native; Owned = owned; Revision = owned.Revision; }
@@ -64,9 +87,58 @@ internal static class NativeDomBridge {
         cancellationToken.ThrowIfCancellationRequested();
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
-            OwnedStates.Add(owned, state);
+            OwnedStates.Add(owned, new NativeStateReference(state));
         }
         return owned;
+    }
+
+    internal static HtmlDocumentFragment ImportFragment(
+        IEnumerable<INode> nativeNodes,
+        HtmlDocumentMode mode,
+        HtmlParseOptions? options = null,
+        CancellationToken cancellationToken = default,
+        int sourceIndexOffset = 0) {
+        if (nativeNodes == null) throw new ArgumentNullException(nameof(nativeNodes));
+        var owned = new HtmlDocument(AngleSharpDomServices.Instance, AngleSharpHtmlParser.Instance.Id, mode);
+        HtmlDocumentFragment fragment = owned.CreateFragment();
+        var pending = new Stack<(INode Native, HtmlNode Owned, int Depth)>();
+        int nodes = 0;
+        foreach (INode native in nativeNodes) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int depth = native is IElement ? 1 : 0;
+            RecordImportedNode(options, ref nodes, depth, native is IElement);
+            HtmlNode converted = ImportNode(native, owned, cancellationToken, sourceIndexOffset);
+            fragment.AppendChild(converted);
+            pending.Push((native, converted, depth));
+        }
+        while (pending.Count != 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var current = pending.Pop();
+            foreach (INode child in current.Native.ChildNodes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int depth = current.Depth + (child is IElement ? 1 : 0);
+                RecordImportedNode(options, ref nodes, depth, child is IElement);
+                HtmlNode converted = ImportNode(child, owned, cancellationToken, sourceIndexOffset);
+                current.Owned.AppendChild(converted);
+                pending.Push((child, converted, depth));
+            }
+            if (current.Native is IHtmlTemplateElement template && current.Owned is HtmlElement element) {
+                RecordImportedNode(options, ref nodes, current.Depth, isElement: false);
+                HtmlDocumentFragment content = owned.GetOrCreateTemplateContent(element);
+                pending.Push((template.Content, content, current.Depth));
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        owned.Freeze();
+        return fragment;
+    }
+
+    private static void RecordImportedNode(HtmlParseOptions? options, ref int nodes, int depth, bool isElement) {
+        nodes++;
+        if (options?.MaxNodes is int maxNodes && nodes > maxNodes)
+            throw new HtmlParseLimitException(nameof(options.MaxNodes), nodes, maxNodes);
+        if (isElement && options?.MaxDepth is int maxDepth && depth > maxDepth)
+            throw new HtmlParseLimitException(nameof(options.MaxDepth), depth, maxDepth);
     }
 
     private sealed class CallbackState {
@@ -148,7 +220,10 @@ internal static class NativeDomBridge {
                 INode native = ExportNode(root, state.Native);
                 detached.Add(native, root);
                 ExportChildren(detached, root, native);
-                foreach (var pair in detached.ToOwned) state.Add(pair.Key, pair.Value);
+                foreach (var pair in detached.ToOwned) {
+                    state.Add(pair.Key, pair.Value);
+                    DetachedProjectionLeases.Add(pair.Key, state);
+                }
             }
             return state;
         }
@@ -157,30 +232,80 @@ internal static class NativeDomBridge {
     internal static NativeState GetState(HtmlDocument document, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument? retainedNative = null;
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (OwnedStates.TryGetValue(document, out NativeState? state) && state.Revision == document.Revision) return state;
+            if (TryGetCurrentState(document, out NativeState? state)) return state!;
+            if (OwnedStates.TryGetValue(document, out NativeStateReference? reference))
+                reference.TryGetNative(document.Revision, out retainedNative);
         }
         // Concurrent first readers may build candidates, but only one complete state is installed.
         // No tree traversal or provider materialization may hold the process-wide cache lock.
-        NativeState candidate = Export(document, cancellationToken);
+        NativeState candidate = retainedNative == null
+            ? Export(document, cancellationToken)
+            : RebuildState(retainedNative, document, cancellationToken) ?? Export(document, cancellationToken);
         lock (CacheSync) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (OwnedStates.TryGetValue(document, out NativeState? state) && state.Revision == document.Revision) return state;
+            if (TryGetCurrentState(document, out NativeState? state)) return state!;
             OwnedStates.Remove(document);
-            OwnedStates.Add(document, candidate);
+            OwnedStates.Add(document, new NativeStateReference(candidate));
             return candidate;
         }
     }
 
-    private static HtmlNode ImportNode(INode source, HtmlDocument document, CancellationToken cancellationToken) {
+    private static bool TryGetCurrentState(HtmlDocument document, out NativeState? state) {
+        state = null;
+        return OwnedStates.TryGetValue(document, out NativeStateReference? reference)
+            && reference.TryGet(out state)
+            && state != null
+            && state.Revision == document.Revision;
+    }
+
+    private static NativeState? RebuildState(IHtmlDocument native, HtmlDocument owned, CancellationToken cancellationToken) {
+        var state = new NativeState(native, owned);
+        var pending = new Stack<(INode Native, HtmlNode Owned)>();
+        pending.Push((native, owned));
+        while (pending.Count != 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var current = pending.Pop();
+            if (!NodesMatch(current.Native, current.Owned)
+                || current.Native.ChildNodes.Length != current.Owned.ChildNodes.Count) return null;
+            state.Add(current.Native, current.Owned);
+            for (int index = 0; index < current.Native.ChildNodes.Length; index++)
+                pending.Push((current.Native.ChildNodes[index], current.Owned.ChildNodes[index]));
+            if (current.Native is IHtmlTemplateElement nativeTemplate && current.Owned is HtmlElement ownedTemplate) {
+                if (ownedTemplate.TemplateContent == null) return null;
+                pending.Push((nativeTemplate.Content, ownedTemplate.TemplateContent));
+            } else if (current.Owned is HtmlElement { TemplateContent: not null }) return null;
+        }
+        return state;
+    }
+
+    private static bool NodesMatch(INode native, HtmlNode owned) {
+        if (native is IElement nativeElement && owned is HtmlElement ownedElement)
+            return string.Equals(nativeElement.LocalName, ownedElement.LocalName, StringComparison.Ordinal)
+                && string.Equals(nativeElement.NamespaceUri ?? string.Empty, ownedElement.NamespaceUri, StringComparison.Ordinal);
+        return native.NodeType switch {
+            NodeType.Document => owned.Kind == HtmlNodeKind.Document,
+            NodeType.DocumentFragment => owned.Kind == HtmlNodeKind.DocumentFragment,
+            NodeType.DocumentType => owned.Kind == HtmlNodeKind.DocumentType,
+            NodeType.Text => owned.Kind == HtmlNodeKind.Text,
+            NodeType.Comment => owned.Kind == HtmlNodeKind.Comment,
+            _ => false
+        };
+    }
+
+    private static HtmlNode ImportNode(INode source, HtmlDocument document, CancellationToken cancellationToken, int sourceIndexOffset = 0) {
         if (source is IElement element) {
             HtmlElement result = document.CreateElement(element.LocalName, element.NamespaceUri ?? string.Empty, element.Prefix);
             foreach (IAttr attribute in element.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                result.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+                result.SetAttribute(new HtmlAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri));
             }
-            if (element.SourceReference?.Position.Index is int index && index >= 0) document.SetSourceIndex(result, index);
+            if (element.SourceReference?.Position.Index is int index && index >= sourceIndexOffset)
+                document.SetSourceIndex(result, index - sourceIndexOffset);
+            result.FormState = NativeFormState.Get(element);
+            result.SourceMarkup = NativeSourceMarkup.Get(element);
             return result;
         }
         if (source is IDocumentType type) return document.CreateDocumentType(type.Name, type.PublicIdentifier, type.SystemIdentifier);
@@ -220,6 +345,7 @@ internal static class NativeDomBridge {
                 pending.Push((element.TemplateContent, template.Content));
             }
         }
+        NativeFormState.ApplyTree(nativeRoot, cancellationToken);
     }
 
     private static INode ExportNode(HtmlNode source, IHtmlDocument document, CancellationToken cancellationToken = default) {
@@ -241,6 +367,11 @@ internal static class NativeDomBridge {
                 if (attribute.NamespaceUri.Length == 0) constructable.SetOwnAttribute(attribute.Name, attribute.Value);
                 else constructable.SetAttribute(attribute.NamespaceUri, attribute.Name, attribute.Value);
             }
+            // Parser factories defer initialization until attributes have been supplied.
+            // Complete that lifecycle before exposing the node to clone/layout consumers.
+            constructable.SetupElement();
+            NativeFormState.Attach(result, element.FormState);
+            NativeSourceMarkup.Attach(result, element.SourceMarkup);
             return result;
         }
         if (source is HtmlDocumentType type) {

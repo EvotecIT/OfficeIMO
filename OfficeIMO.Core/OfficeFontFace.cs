@@ -6,8 +6,9 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// One caller-supplied font face that can be reused by drawing renderers.
 /// </summary>
-public sealed class OfficeFontFace {
+public sealed partial class OfficeFontFace {
     private readonly byte[] _data;
+    private readonly bool _automaticOpticalSizing;
 
     internal OfficeFontFace(
         string familyName,
@@ -19,7 +20,8 @@ public sealed class OfficeFontFace {
         IOfficeFontProgram parsedFont,
         OfficeFontContainerFormat containerFormat,
         bool canEmbedAsStaticPdfFont,
-        bool useDataSnapshot = false) {
+        bool useDataSnapshot = false,
+        bool automaticOpticalSizing = true) {
         FamilyName = familyName;
         ResourceFamilyName = resourceFamilyName;
         Descriptor = descriptor;
@@ -29,6 +31,7 @@ public sealed class OfficeFontFace {
         ParsedFont = parsedFont;
         ContainerFormat = containerFormat;
         CanEmbedAsStaticPdfFont = canEmbedAsStaticPdfFont;
+        _automaticOpticalSizing = automaticOpticalSizing;
     }
 
     /// <summary>CSS/Office family name used to select the face.</summary>
@@ -73,10 +76,10 @@ public sealed class OfficeFontFace {
         (ParsedFont as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping;
 
     internal OfficeFontFace Clone() =>
-        new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
+        new OfficeFontFace(FamilyName, ResourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true, automaticOpticalSizing: _automaticOpticalSizing);
 
     internal OfficeFontFace CreateAlias(string familyName, string resourceFamilyName) =>
-        new OfficeFontFace(familyName, resourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true);
+        new OfficeFontFace(familyName, resourceFamilyName, _data, Style, Descriptor, UnicodeRanges, ParsedFont, ContainerFormat, CanEmbedAsStaticPdfFont, useDataSnapshot: true, automaticOpticalSizing: _automaticOpticalSizing);
 
     internal bool Covers(string text) => UnicodeRanges.ContainsFontCoverageText(text) && ParsedFont.HasGlyphs(text);
 

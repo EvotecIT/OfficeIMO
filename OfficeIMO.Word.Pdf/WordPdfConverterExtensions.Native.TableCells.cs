@@ -240,7 +240,7 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             double? pendingSpacingAfter = null;
@@ -250,7 +250,7 @@ namespace OfficeIMO.Word.Pdf {
                 footnoteNumbersById,
                 tableStyleDefaults,
                 nativeDefaults,
-                nativeFontMap);
+                nativeFontMap, inlineImages);
             for (int i = 0; i < cellElements.Count; i++) {
                 if (cellElements[i] is WordTable nestedTable) {
                     AppendNativeNestedTableText(
@@ -261,6 +261,7 @@ namespace OfficeIMO.Word.Pdf {
                         getMarker,
                         tableNestingDepth,
                         ignoreFallbackTableStyle,
+                        inlineImages,
                         runs,
                         paragraphs);
                     pendingSpacingAfter = null;
@@ -273,7 +274,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
-                    ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap)
+                    ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap, inlineImages)
                     : paragraphRunsByElement[i]!;
                 (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
@@ -350,7 +351,7 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<long, int>? footnoteNumbersById,
             NativeTableStyleDefaults tableStyleDefaults,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap? nativeFontMap) {
+            NativeFontMap? nativeFontMap, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages) {
             if (elements.Count < 2) {
                 return null;
             }
@@ -363,7 +364,7 @@ namespace OfficeIMO.Word.Pdf {
                         footnoteNumbersById,
                         tableStyleDefaults,
                         nativeDefaults,
-                        nativeFontMap);
+                        nativeFontMap, inlineImages);
                 }
             }
 
@@ -514,7 +515,7 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, GetNativeDocumentDefaults(paragraph._document));
         }
 
-        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, Dictionary<long, int>? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null) {
+        private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, Dictionary<long, int>? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
             var result = new List<PdfCore.PdfTextRun>();
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
@@ -522,18 +523,25 @@ namespace OfficeIMO.Word.Pdf {
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
+            bool hasInlineImages = inlineImages != null && runs.Any(run =>
+                !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateImages().Any(image =>
+                    image._Image != null && inlineImages.ContainsKey(image._Image)));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
 
-            if (hasRenderableRuns && !hasEquationContent) {
+            if ((hasRenderableRuns || hasInlineImages) && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
-                    if (run.IsImage && run.Image != null) {
+                    if (IsNativeHiddenTextRun(run, paragraph)) {
                         continue;
                     }
-
-                    if (IsNativeHiddenTextRun(run, paragraph)) {
+                    if (run.IsImage && run.Image != null) {
+                        if (inlineImages != null) {
+                            foreach (WordImage image in run.EnumerateImages())
+                                if (image._Image != null && inlineImages.TryGetValue(image._Image, out PdfCore.PdfTextRun? inline))
+                                    result.Add(inline);
+                        }
                         continue;
                     }
 

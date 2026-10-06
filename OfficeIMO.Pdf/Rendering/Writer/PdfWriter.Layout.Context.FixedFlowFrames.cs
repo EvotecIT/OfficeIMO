@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
             if (activeColumnFlow is not { } scope) return containerWidth;
             double maximum = scope.Widths.Max();
             for (int index = scope.ContainerDepth; index < activeContainerScopes.Count; index++)
-                maximum = ResolveContainerFrame(activeContainerScopes[index].Style, 0D, maximum).ContentWidth;
+                maximum = ResolveContainerFrame(activeContainerScopes[index].Container, activeContainerScopes[index].Style, 0D, maximum).ContentWidth;
             return maximum - Math.Max(0D, width - containerWidth);
         }
 
