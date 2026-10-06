@@ -209,6 +209,15 @@ The `audience-grades` fixture covers US preschool-to-kindergarten, Canadian grad
 supported grade code in all three systems against the supplied schema. Grading
 systems remain explicit; these synthetic assertions do not establish age equivalence
 or educational suitability.
+The `collateral-licenses` and `collateral-license-transition` fixtures cover translated
+license names, all supported expression formats, escaped links, inclusive day dates
+and an open-ended transition. `dated-license-probe.json` separately reports whether
+the supplied schema accepts two licenses each with their own start and end dates.
+The retained 3.1.2 schema rejects repeated date roles across sibling licenses. The
+probe reports that rejection explicitly, preserves every requested date and leaves
+the project unchanged; it does not count as successful multi-period qualification.
+A schema that accepts the dates produces `dated-license-probe.onix` for independent
+validation. Terms and links are synthetic assertions; no license is fetched or enforced.
 The `review-ratings` fixture covers the three review roles, fractional and zero scores,
 optional limits and units, translated unit labels, XHTML text and source attribution.
 Single-record composition preserves the result bytes. Scores and sources are synthetic;
@@ -254,6 +263,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/collateral-licenses.onix \
+  /path/to/new-onix-evidence/collateral-license-transition.onix \
   /path/to/new-onix-evidence/review-ratings.onix \
   /path/to/new-onix-evidence/complexity.onix \
   /path/to/new-onix-evidence/complexity-audience.onix \

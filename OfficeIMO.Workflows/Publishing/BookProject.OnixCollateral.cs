@@ -52,6 +52,7 @@ public sealed partial class BookProject {
                 RequireOnixHttpUrl(link, nameof(item.SourceLinks));
                 content.Add(new XElement(ns + "TextSourceLink", link));
             }
+            content.Add(BuildOnixLicenses(item.Licenses, ref textBudget, cancellationToken));
             if (item.UsableFrom > item.UsableUntil) throw new ArgumentException("Collateral usage dates are reversed.", nameof(item));
             void AddDate(string role, DateOnly? date) {
                 if (date == null) return;

@@ -582,7 +582,8 @@ reuses the existing country/worldwide profile and describes use of the collatera
 independently of product sales rights.
 
 There may be at most 64 items. Each text variant accepts up to 65,536 UTF-16 code
-units, and texts, source titles and rating units share a 524,288-unit export budget. Source
+units, and texts, source titles, rating units, license names and license expression links share
+a 524,288-unit export budget. Source
 titles and other attribution fields retain the 4096-unit field bound. Short product
 and collection descriptions additionally permit at most 350 Unicode scalar values,
 so a supplementary character counts once. The complete ONIX document still has its
@@ -593,7 +594,7 @@ carry its permitted-use dates; reversed intervals are rejected. These dates,
 restricted-recipient labels and territory declarations are metadata assertions,
 not access controls: export includes the text and does not enforce embargoes or
 filter a recipient's copy. The publisher remains responsible for accurate attribution,
-permission to use the text and recipient acceptance. Media resources and license terms are outside this collateral-text profile. No text or
+permission to use the text and recipient acceptance. Media resources and usage-constraint quantities are outside this collateral-text profile. No text or
 attribution is inferred from EPUB content, and export does not change the book.
 
 #### Review ratings
@@ -624,6 +625,55 @@ unit may omit its language. Units share the collateral text budget. Ratings may
 accompany plain text or XHTML review variants, but not descriptions or endorsements.
 The publisher supplies and verifies the score, source and permission to quote it;
 OfficeIMO does not fetch reviews, calculate aggregates or validate a reviewer's judgment.
+
+#### Collateral licenses
+
+Use `Licenses` to describe the publisher-supplied terms for an excerpt, description
+or other collateral item. These assertions are separate from product sales rights
+and do not change the EPUB package:
+
+```csharp
+var licensedExcerpt = new BookOnixCollateralText {
+    Type = BookOnixTextType.Excerpt,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Texts = [new("An excerpt supplied by the publisher.")],
+    Licenses = [new() {
+        Names = [new("Publisher excerpt terms", "eng")],
+        Expressions = [new(BookOnixLicenseExpressionType.HumanReadable,
+                           "https://example.org/excerpt-terms")],
+        ValidFrom = new DateOnly(2026, 1, 1),
+        ValidUntil = new DateOnly(2026, 12, 31)
+    }]
+};
+```
+
+Each item supports up to 16 licenses. Each license requires one to 16 plain-text
+names, at most 100 UTF-16 code units each. Repeated names require distinct explicit
+ONIX list 74 languages; a single name may omit its language. Names and expression
+links share the collateral text budget.
+
+A license accepts up to 16 distinct expression format/link pairs. Supported
+[list 218 formats](https://ns.editeur.org/onix/en/218) are `HumanReadable`,
+`ProfessionalReadable`, `AdditionalHumanReadable`, `AdditionalProfessionalReadable`,
+`OnixPl`, `Odrl` and `AdditionalOdrl`. This profile accepts absolute HTTP(S) links
+without credentials, using the existing 4096-character field bound. Links are
+preserved and never fetched or interpreted. Additional-license formats describe
+separately obtainable terms; their presence does not assert that they were acquired.
+
+`ValidFrom` and `ValidUntil` are optional inclusive dates, emitted as roles 14 and 15
+with day precision. Reversed dates are rejected; equal dates describe one day.
+When neither date is supplied, ONIX treats the license as effective when the
+message is sent. Date periods are not rewritten into another role to satisfy a schema.
+
+The supplied schema remains authoritative for export validation. The retained
+ONIX 3.1.2 schema rejects repeated license date roles across sibling licenses,
+including two licenses each with their own start and end dates, despite the
+specification allowing multiple validity periods. Such input raises a schema
+validation error; OfficeIMO does not discard dates or bypass validation. Single
+licenses and open-ended transitions with distinct date roles are qualified against
+that schema. Multi-period acceptance with a current schema remains unqualified.
+License metadata does not establish legal permission, enforce an embargo, select
+a currently applicable license or validate the linked terms.
 
 #### XHTML collateral variants
 
