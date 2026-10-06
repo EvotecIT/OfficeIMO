@@ -1993,7 +1993,8 @@ internal static partial class PdfWriter {
                         syntheticOblique,
                         runFontSize,
                         textRise,
-                        color ?? PdfColor.Black);
+                        color ?? PdfColor.Black,
+                        hasLinkTarget && s.LeadingSpace && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.InlineElement == null);
                 }
 
                 if (s.LeadingSpace) {
@@ -2237,7 +2238,8 @@ internal static partial class PdfWriter {
         bool syntheticOblique,
         double fontSize,
         double textRise,
-        PdfColor fillColor) {
+        PdfColor fillColor,
+        bool isLinkLeadingWhitespace) {
         if (textMarkedContentOpen ||
             structurePage == null ||
             !textStructElementIndex.HasValue ||
@@ -2256,7 +2258,8 @@ internal static partial class PdfWriter {
             structurePage.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = "Span",
-                ParentElementIndex = textStructElementIndex
+                ParentElementIndex = textStructElementIndex,
+                IsLinkLeadingWhitespace = isLinkLeadingWhitespace
             });
         } else {
             if (element.AdditionalMarkedContentIds == null) {
@@ -2339,7 +2342,8 @@ internal static partial class PdfWriter {
     private static bool TryMergeLinkStructureElements(LayoutResult.Page structurePage, int targetStructElementIndex, int mergedStructElementIndex) {
         if (targetStructElementIndex < 0 || targetStructElementIndex >= structurePage.StructElements.Count ||
             mergedStructElementIndex < 0 || mergedStructElementIndex >= structurePage.StructElements.Count ||
-            mergedStructElementIndex != targetStructElementIndex + 1 ||
+            mergedStructElementIndex > targetStructElementIndex + 2 ||
+            mergedStructElementIndex <= targetStructElementIndex ||
             mergedStructElementIndex != structurePage.StructElements.Count - 1) {
             return false;
         }
@@ -2351,15 +2355,27 @@ internal static partial class PdfWriter {
         if (target.ParentElementIndex != merged.ParentElementIndex) {
             return false;
         }
+        PageStructElement? whitespace = null;
+        if (mergedStructElementIndex == targetStructElementIndex + 2) {
+            whitespace = structurePage.StructElements[targetStructElementIndex + 1];
+            if (!whitespace.IsLinkLeadingWhitespace || !whitespace.MarkedContentId.HasValue ||
+                whitespace.ParentElementIndex != target.ParentElementIndex) {
+                return false;
+            }
+        }
         if (merged.MarkedContentId.HasValue) {
             if (target.AdditionalMarkedContentIds == null) {
                 target.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
             }
 
+            // A word's own leading space belongs between the two word MCIDs. It
+            // can join that Link, but unrelated text must keep its separate owner.
+            if (whitespace != null) target.AdditionalMarkedContentIds.Add(whitespace.MarkedContentId!.Value);
             target.AdditionalMarkedContentIds.Add(merged.MarkedContentId.Value);
         }
 
         structurePage.StructElements.RemoveAt(mergedStructElementIndex);
+        if (whitespace != null) structurePage.StructElements.RemoveAt(targetStructElementIndex + 1);
         return true;
     }
 

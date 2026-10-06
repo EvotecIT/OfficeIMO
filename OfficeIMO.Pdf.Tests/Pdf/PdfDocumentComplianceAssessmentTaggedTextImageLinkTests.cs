@@ -137,15 +137,15 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(pdf).TaggedContent);
         var links = tagged.StructureElements.Where(element => element.StructureType == "Link").ToArray();
-        Assert.Equal(2, links.Length);
+        Assert.Single(links);
         Assert.All(links, link => {
-            Assert.Equal(1, link.MarkedContentReferenceCount);
+            Assert.Equal(3, link.MarkedContentReferenceCount);
             Assert.Equal(1, link.ObjectReferenceCount);
         });
         var paragraph = Assert.Single(tagged.StructureElements, element => element.StructureType == "P");
         var children = paragraph.ChildElementObjectNumbers.Select(number =>
             tagged.StructureElements.Single(element => element.ObjectNumber == number)).ToArray();
-        Assert.Equal(new[] { "Span", "Link", "Span", "Link" }, children.Select(element => element.StructureType));
+        Assert.Equal(new[] { "Span", "Link" }, children.Select(element => element.StructureType));
         // A space between linked words is content, not permission to move the later
         // word before that space. Each clickable word keeps its annotation owner.
         Assert.Equal(new[] { 0, 1, 2, 3 }, children.SelectMany(element =>

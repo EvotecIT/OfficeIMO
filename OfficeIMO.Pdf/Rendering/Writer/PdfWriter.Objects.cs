@@ -367,6 +367,7 @@ internal static partial class PdfWriter {
         public int TableRowSpan { get; set; } = 1;
         public int? ParentElementIndex { get; set; }
         public PageStructElement? ParentElement { get; set; }
+        public bool IsLinkLeadingWhitespace { get; set; }
         public int? AnnotationObjectId { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationObjectIds { get; set; }
         public int? AnnotationStructParentIndex { get; set; }
