@@ -22,12 +22,12 @@ internal static partial class PdfOcr {
 
         byte[] bytes = image.GetBytes(cancellationToken);
         var decodeOptions = new OfficeRasterDecodeOptions {
-            MaximumEncodedBytes = (int)Math.Min(effective.MaxRenderedBytesPerPage, int.MaxValue),
             MaximumDecodedPixels = Math.Min(effective.MaxPixelsPerPage, 50_000_000L),
             FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
             ImageCodec = effective.ImageCodec,
             CancellationToken = cancellationToken
         };
+        decodeOptions.MaximumEncodedBytes = (int)Math.Min(effective.MaxRenderedBytesPerPage, decodeOptions.MaximumEncodedBytes);
         if (!OfficeRasterImageDecoder.TryDecode(bytes, decodeOptions, out _, out OfficeRasterDecodeInfo decoded))
             throw new NotSupportedException(decoded.Diagnostic ?? "The image is malformed, unsupported, or exceeds recognition limits.");
 

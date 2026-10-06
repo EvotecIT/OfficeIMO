@@ -57,7 +57,7 @@ public sealed class PdfImageOcrTests {
         }
         string markdown = review.Ocr.Document.ToMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false });
         if (expectedTable.Length > 0) {
-            Assert.Equal(1, Regex.Matches(markdown, "Return credit").Count);
+            Assert.Single(Regex.Matches(markdown, "Return credit").Cast<Match>());
             Assert.Contains("| Return credit | 3 | ", markdown);
             Assert.True(markdown.IndexOf("Reviewed Service Ledger", StringComparison.Ordinal) < markdown.IndexOf("| Return credit", StringComparison.Ordinal));
             Assert.True(markdown.IndexOf("| Return credit", StringComparison.Ordinal) < markdown.IndexOf("Report complete.", StringComparison.Ordinal));
@@ -117,6 +117,64 @@ public sealed class PdfImageOcrTests {
             Assert.Equal(fixture.GetProperty("files").GetProperty(suffix).GetString(), actual);
             return bytes;
         }
+    }
+
+    [Fact]
+    public async Task LargerCallerByteBudgetRetainsDecoderCeilingWithoutRejectingSmallImage() {
+        int calls = 0;
+        var engine = new DelegateOcrEngine("large-budget", (_, _) => { calls++; return Task.FromResult(new OcrResult()); });
+        await new PdfImageDocumentSource(PdfPngTestImages.CreateRgbPng(10, 10)).ReadWithOcrAsync(engine,
+            new PdfOcrMergeOptions { MaxRenderedBytesPerPage = 256L * 1024 * 1024 });
+        Assert.Equal(1, calls);
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("crop")]
+    [InlineData("cleanup")]
+    [InlineData("orientation")]
+    [InlineData("perspective")]
+    public async Task JpegPreparationKeepsPayloadMetadataConsistent(string preparation) {
+        byte[] jpeg = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(200, 100, OfficeColor.White), OfficeImageExportFormat.Jpeg);
+        int calls = 0;
+        var engine = new DelegateOcrEngine("image-preparation", (request, _) => {
+            calls++;
+            bool original = preparation == "none" || request.Operation == OcrOperation.DetectOrientation;
+            Assert.Equal(original ? "image/jpeg" : "image/png", request.MediaType);
+            Assert.EndsWith(original ? ".jpg" : ".png", request.FileName);
+            Assert.Equal(request.MediaType, OfficeImageReader.Identify(request.Payload).MimeType);
+            if (original) Assert.Equal(jpeg, request.Payload);
+            return Task.FromResult(request.Operation == OcrOperation.DetectOrientation
+                ? new OcrResult { Orientation = new OcrOrientationResult { ClockwiseRotationDegrees = 90, Confidence = 1 } }
+                : new OcrResult());
+        }, new OcrEngineCapabilities { SupportsOrientationDetection = true, SupportedMediaTypes = new[] { "image/png", "image/jpeg" } });
+        var options = PreparationOptions(preparation);
+        await new PdfImageDocumentSource(jpeg).ReadWithOcrAsync(engine, options);
+        Assert.Equal(preparation == "orientation" ? 2 : 1, calls);
+    }
+
+    [Theory]
+    [InlineData("crop")]
+    [InlineData("cleanup")]
+    public async Task PreparedPngIsRejectedBeforeUnsupportedProviderExecution(string preparation) {
+        byte[] jpeg = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(200, 100, OfficeColor.White), OfficeImageExportFormat.Jpeg);
+        int calls = 0;
+        var engine = new DelegateOcrEngine("jpeg-only", (_, _) => { calls++; return Task.FromResult(new OcrResult()); },
+            new OcrEngineCapabilities { SupportedMediaTypes = new[] { "image/jpeg" } });
+        await Assert.ThrowsAsync<NotSupportedException>(() => new PdfImageDocumentSource(jpeg).ReadWithOcrAsync(engine, PreparationOptions(preparation)));
+        Assert.Equal(0, calls);
+    }
+
+    private static PdfOcrMergeOptions PreparationOptions(string preparation) {
+        var options = new PdfOcrMergeOptions();
+        if (preparation == "crop") options.Regions = new[] { new PdfOcrPageRegion(1, 0, 0, .5, 1) };
+        if (preparation == "cleanup") options.ScanProcessing = new() { Deskew = false, NormalizeBackground = false, ColorMode = OfficeScanColorMode.PreserveColor };
+        if (preparation == "orientation") options.DetectOrientation = true;
+        if (preparation == "perspective") options.Perspective = new() {
+            TopLeft = new OfficePoint(0, 0), TopRight = new OfficePoint(1, 0),
+            BottomRight = new OfficePoint(1, 1), BottomLeft = new OfficePoint(0, 1)
+        };
+        return options;
     }
 
     [Fact]
