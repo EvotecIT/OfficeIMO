@@ -66,6 +66,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FlexValueUnsupported = "HtmlRenderFlexValueUnsupported";
     /// <summary>A float or clear property value used a documented deterministic fallback.</summary>
     public const string FloatValueUnsupported = "HtmlRenderFloatValueUnsupported";
+    /// <summary>A text-indent value could not be rendered.</summary>
+    public const string TextIndentValueUnsupported = "HtmlRenderTextIndentValueUnsupported";
     /// <summary>Multi-column generation exceeded the configured safety limit.</summary>
     public const string MultiColumnLimitExceeded = "HtmlRenderMultiColumnLimitExceeded";
     /// <summary>A multi-column property value used a documented deterministic fallback.</summary>

@@ -169,7 +169,8 @@ internal static class HtmlRenderCssValues {
         if (string.IsNullOrWhiteSpace(value)) return false;
 
         string normalized = value!.Trim().ToLowerInvariant();
-        if (normalized == "0") return allowUnitlessZero;
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            && number == 0D) return allowUnitlessZero;
         if (!allowPercentage && normalized.IndexOf('%') >= 0) return false;
         if (normalized.IndexOf('(') >= 0) return true;
 

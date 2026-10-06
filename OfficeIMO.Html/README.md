@@ -187,6 +187,13 @@ options.UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(new[] {
 
 The managed renderer also honors author soft hyphens and the bounded CSS controls `hyphenate-character`, `hyphenate-limit-chars`, `hyphenate-limit-lines`, `hyphenate-limit-last: always`, and `hyphenate-limit-zone`. Inserted hyphen glyphs do not replace the source word in logical text.
 
+`text-indent` accepts positive and negative lengths, percentages, and supported
+CSS length math. It affects the first formatted line, including wrapping beside
+floats and right-to-left alignment. Inherited lengths retain the declaring
+element's font context; percentages use the receiving block's inline size. Page
+continuations do not restart the indent. The `hanging` and `each-line` keywords
+are not implemented and produce `TextIndentValueUnsupported` diagnostics.
+
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.

@@ -51,6 +51,7 @@ public static partial class HtmlComputedStyleEngine {
         "page",
         "quotes",
         "text-align",
+        "text-indent",
         "text-shadow",
         "text-transform",
         "visibility",

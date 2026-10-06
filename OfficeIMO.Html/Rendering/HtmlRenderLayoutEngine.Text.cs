@@ -13,7 +13,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         HtmlListMarker? marker,
         IElement? generatedContentOwner,
-        int skipLogicalCharacters = 0) {
+        int skipLogicalCharacters = 0,
+        bool applyTextIndent = true) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
         if (marker != null && !marker.IsOutside) {
@@ -33,6 +34,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
         }
 
+        // Suppress indentation of later anonymous blocks without changing the
+        // inheritance context used above by descendant inline-block elements.
+        if (!applyTextIndent) parentStyle = WithoutTextIndent(parentStyle);
         ApplyPendingInlineTextTransforms(runs);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
         ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
@@ -49,6 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
+        outsideMarkerStyle.TextIndent = null;
         outsideMarkerStyle.PreserveWhitespace = true;
         outsideMarkerStyle.BreakSpaces = true;
         var markerRuns = new List<HtmlInlineRun> {
@@ -590,6 +595,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool canonicalPreviousWasCollapsibleSpace = false;
         var lines = new List<InlineLine>();
         var line = new InlineLine();
+        if (skipLogicalCharacters == 0) line.Indent(paragraphStyle.TextIndent?.Resolve(width) ?? 0D, paragraphStyle.Direction == "rtl");
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
         bool noWrapRangeStartedAfterContent = false;
@@ -632,7 +638,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!paragraphStyle.PreventTextWrapping
                     && !runPreventsWrapping
                     && line.HasFlowContent
-                    && line.Width + atomicWidth > width) {
+                    && line.Width + atomicWidth > line.ResolveAvailableWidth(width)) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -713,7 +719,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping
                     && !whitespace
                     && run.Style.WordBreak != "break-all"
-                    && measured > Math.Max(0D, width - line.Width)
+                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width)
                     && TryAddHyphenatedToken(
                         lines,
                         ref line,
@@ -727,7 +733,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (!preventTokenWrapping
                     && !whitespace
-                    && measured > Math.Max(0D, width - line.Width)
+                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width)
                     && TryAddPreferredBreakToken(
                         lines,
                         ref line,
@@ -740,16 +746,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
-                    && measured > Math.Max(0D, width - line.Width);
+                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width);
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
-                    && (measured > width || breakAllIntoRemainingSpace)) {
+                    && (measured > line.ResolveAvailableWidth(width) || breakAllIntoRemainingSpace)) {
                     AddBrokenToken(lines, ref line, run, paintToken, logicalPaintToken, width, visibleTokenStart);
                     continue;
                 }
 
-                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > width) {
+                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > line.ResolveAvailableWidth(width)) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -787,7 +793,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else if (paragraphStyle.TextOverflow == "ellipsis"
             && paragraphStyle.OverflowX != "visible") {
             foreach (InlineLine overflowingLine in lines.Where(candidate =>
-                         candidate.Width > (candidate.HasExplicitPlacement ? candidate.AvailableWidth : width) + 0.0001D)) {
+                         candidate.Width > candidate.ResolveAvailableWidth(width) + 0.0001D)) {
                 int lineLogicalProgress = overflowingLine.Segments
                     .Select(segment => segment.LogicalEndProgress)
                     .DefaultIfEmpty(completeLogicalProgress)
@@ -813,7 +819,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(item => item.index)
                 .ToList();
             if (leaders.Count == 0) continue;
-            double availableWidth = line.HasExplicitPlacement ? line.AvailableWidth : width;
+            double availableWidth = line.ResolveAvailableWidth(width);
             double share = Math.Max(0D, availableWidth - line.Width) / leaders.Count;
             foreach (int index in leaders) line.SetSegmentWidth(index, share);
         }
@@ -943,7 +949,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (line.HasFlowContent && run.Style.HyphenateLimitZone > 0D
-            && width - line.Width <= run.Style.HyphenateLimitZone + 0.0001D) {
+            && line.ResolveAvailableWidth(width) - line.Width <= run.Style.HyphenateLimitZone + 0.0001D) {
             TrimTrailingWhitespace(line);
             lines.Add(line);
             line = new InlineLine();
@@ -951,7 +957,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int start = 0;
         while (start < token.PaintText.Length) {
-            double available = Math.Max(0D, width - line.Width);
+            double available = Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width);
             bool hyphenationAllowed = !run.Style.HyphenateLimitLines.HasValue
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
@@ -1052,12 +1058,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
-            if (chunkWidth > width && AllowsEmergencyTokenBreak(run.Style)) {
+            if (chunkWidth > line.ResolveAvailableWidth(width) && AllowsEmergencyTokenBreak(run.Style)) {
                 AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start);
                 start = end;
                 continue;
             }
-            if (line.HasFlowContent && line.Width + chunkWidth > width) {
+            if (line.HasFlowContent && line.Width + chunkWidth > line.ResolveAvailableWidth(width)) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1138,7 +1144,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ApplyEndEllipsis(InlineLine line, double width, int completeLogicalProgress) {
-        double availableWidth = line.HasExplicitPlacement ? line.AvailableWidth : width;
+        double availableWidth = line.ResolveAvailableWidth(width);
         TrimTrailingWhitespace(line);
         HtmlInlineRun? ellipsisRun = line.Segments
             .LastOrDefault(segment => segment.Run.AtomicBlock == null && segment.Text.Length > 0)?.Run;
@@ -1249,7 +1255,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int partLogicalLength = 0;
         IReadOnlyList<string> paintElements = OfficeTextElements.Split(token);
         IReadOnlyList<string> logicalElements = OfficeTextElements.Split(logicalToken);
-        double partLimit = line.HasFlowContent ? Math.Max(0D, width - line.Width) : width;
+        double partLimit = Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width);
         for (int index = 0; index < paintElements.Count; index++) {
             string value = paintElements[index];
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
@@ -1281,7 +1287,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (part.Length > 0) {
-            if (line.HasFlowContent && line.Width + partWidth > width) {
+            if (line.HasFlowContent && line.Width + partWidth > line.ResolveAvailableWidth(width)) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1493,7 +1499,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int rangeStart,
         bool startedAfterContent,
         double width) {
-        if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > width + 0.0001D) {
+        if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > line.ResolveAvailableWidth(width) + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
             while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart);
             TrimTrailingWhitespace(line);
@@ -1523,86 +1529,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (alignment == OfficeTextAlignment.Center) return Math.Max(0D, (width - lineWidth) / 2D);
         if (alignment == OfficeTextAlignment.Right) return Math.Max(0D, width - lineWidth);
         return 0D;
-    }
-
-    private sealed class InlineLine {
-        private int _flowContentCount;
-
-        internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
-        internal double Width { get; private set; }
-        internal bool HasFlowContent => _flowContentCount > 0;
-        internal bool HasExplicitPlacement { get; private set; }
-        internal double X { get; private set; }
-        internal double Y { get; private set; }
-        internal double AvailableWidth { get; private set; }
-        internal bool EndsWithHyphenation { get; set; }
-
-        internal void Place(double x, double y, double availableWidth) {
-            HasExplicitPlacement = true;
-            X = Math.Max(0D, x);
-            Y = Math.Max(0D, y);
-            AvailableWidth = Math.Max(0.01D, availableWidth);
-        }
-
-        internal void Add(InlineSegment segment) {
-            Segments.Add(segment);
-            Width += segment.Width;
-            if (segment.Run.RunningStringElement == null
-                && segment.Run.RunningElementAssignment == null
-                && !segment.Run.IsBookmarkMarker) _flowContentCount++;
-        }
-
-        internal void RemoveAt(int index) {
-            if (Segments[index].Run.RunningStringElement == null
-                && Segments[index].Run.RunningElementAssignment == null
-                && !Segments[index].Run.IsBookmarkMarker) _flowContentCount--;
-            Width -= Segments[index].Width;
-            Segments.RemoveAt(index);
-        }
-
-        internal void SetSegmentWidth(int index, double width) {
-            double normalized = Math.Max(0D, width);
-            Width += normalized - Segments[index].Width;
-            Segments[index].SetWidth(normalized);
-        }
-
-        internal double ResolveLineHeight(double fallback) {
-            if (!HasFlowContent) return 0D;
-            double height = fallback;
-            for (int i = 0; i < Segments.Count; i++) {
-                height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
-            }
-            if (!HasReplacedImage) return Math.Max(0.01D, height);
-
-            double ascent = 0D;
-            double descent = 0D;
-            for (int i = 0; i < Segments.Count; i++) {
-                HtmlInlineRun run = Segments[i].Run;
-                if (run.AtomicBlock != null) {
-                    double atomicBaseline = Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height));
-                    ascent = Math.Max(ascent, atomicBaseline);
-                    descent = Math.Max(descent, run.AtomicBlock.Height - atomicBaseline);
-                } else {
-                    ascent = Math.Max(ascent, ResolveTextAscent(run.Style));
-                    descent = Math.Max(descent, Math.Max(0D, run.Style.LineHeight - ResolveTextAscent(run.Style)));
-                }
-            }
-            return Math.Max(0.01D, ascent + descent);
-        }
-
-        internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
-
-        internal double ResolveBaseline(double fallback) {
-            if (!HasReplacedImage) return ResolveLineHeight(fallback);
-            double ascent = 0D;
-            for (int i = 0; i < Segments.Count; i++) {
-                HtmlInlineRun run = Segments[i].Run;
-                ascent = Math.Max(ascent, run.AtomicBlock == null
-                    ? ResolveTextAscent(run.Style)
-                    : Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height)));
-            }
-            return ascent;
-        }
     }
 
     private readonly struct HyphenationToken {

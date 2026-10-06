@@ -658,7 +658,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
         if (nodes.Count == 0) return 0D;
-        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
+        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null, applyTextIndent: blocks.Count == 0);
         nodes.Clear();
         if (inline.InterruptedFlow != null) {
             blocks.Add(inline.InterruptedFlow);

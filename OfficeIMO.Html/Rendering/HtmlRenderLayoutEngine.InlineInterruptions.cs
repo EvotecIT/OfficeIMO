@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         void Flush() {
             if (pending.Count == 0) return;
             var capture = new InlinePaintCapture(this);
-            HtmlInlineLayout inline = LayoutInlineRuns(pending, width, paragraphStyle, formattingContainer, paintCapture: capture);
+            HtmlInlineLayout inline = LayoutInlineRuns(pending, width, blocks.Count == 0 ? paragraphStyle : WithoutTextIndent(paragraphStyle), formattingContainer, paintCapture: capture);
             pending.Clear();
             if (inline.Height <= 0D || inline.Visuals.Count == 0) return;
             captures.Add(capture);

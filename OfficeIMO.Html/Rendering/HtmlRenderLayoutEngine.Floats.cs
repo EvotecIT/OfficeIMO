@@ -72,7 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer,
         InlinePaintCapture? paintCapture = null) {
-        var context = new InlineFloatContext(width);
+        var context = new InlineFloatContext(width) { FirstLineIndent = paragraphStyle.TextIndent?.Resolve(width) ?? 0D, IndentAtRight = paragraphStyle.Direction == "rtl" };
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
         double y = 0D;
@@ -339,6 +339,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (line.Segments.Count > 0 || includeEmpty) {
             lines.Add(line);
             y = line.Y + line.ResolveLineHeight(defaultLineHeight);
+            if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;
         }
         line = CreateFloatLine(context, ref y, defaultLineHeight);
     }
@@ -347,6 +348,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
         var line = new InlineLine();
         line.Place(band.Left, y, band.Width);
+        line.Indent(context.FirstLineIndent, context.IndentAtRight);
         return line;
     }
 
@@ -365,8 +367,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
             line = new InlineLine();
             line.Place(band.Left, y, band.Width);
+            line.Indent(context.FirstLineIndent, context.IndentAtRight);
             foreach (InlineSegment marker in runningStringMarkers) line.Add(marker);
-            if (requiredWidth <= band.Width + 0.0001D) return;
+            if (requiredWidth <= line.AvailableWidth + 0.0001D) return;
             next = context.NextBottomAfter(y);
         }
     }
@@ -433,9 +436,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             double baseline = current.ResolveBaseline(paragraphStyle.LineHeight);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
-            double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
-            double lineX = current.HasExplicitPlacement ? current.X : 0D;
-            double offsetX = ResolveLineOffset(paragraphStyle.Alignment, availableWidth, current.Width);
+            double availableWidth = current.ResolveAvailableWidth(width);
+            double lineX = (current.HasExplicitPlacement ? current.X : 0D) + current.IndentOffset;
+            double offsetX = current.ResolveAlignmentOffset(paragraphStyle.Alignment, width);
             double lineStart = lineX + offsetX;
             double lineRight = lineX + availableWidth;
             IReadOnlyList<InlineSegment> paintLineSegments = resolvedBidiLines?[lineIndex] ?? mergedLines[lineIndex];
@@ -698,6 +701,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class InlineFloatContext {
         private readonly double _width;
         private readonly List<InlineFloatPlacement> _placements = new List<InlineFloatPlacement>();
+
+        internal double FirstLineIndent;
+        internal bool IndentAtRight;
 
         internal InlineFloatContext(double width) {
             _width = Math.Max(1D, width);

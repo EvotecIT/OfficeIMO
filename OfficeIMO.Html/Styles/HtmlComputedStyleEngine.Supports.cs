@@ -151,6 +151,10 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
+        if (string.Equals(propertyName, "text-indent", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: true, allowUnitlessZero: true)
+                && TryValidateCssLength(normalized, out _);
+        }
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end");
         }

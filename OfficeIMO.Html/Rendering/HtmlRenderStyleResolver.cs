@@ -170,6 +170,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             Color = color,
             DecorationColor = ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
+            TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),

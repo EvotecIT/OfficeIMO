@@ -1029,8 +1029,8 @@ apply hanging indents, line/entry spacing and flush/margin second-field alignmen
 using publisher CSS derived from `BibliographyLayout`. They provide separate
 per-source links for a passage citing two works and light, dark and large-text
 browser previews. These are illustrative CSS profiles, not automatic styling of
-arbitrary CSL output. Managed image export currently loses the hanging indent,
-ignores character-relative gutter lengths and places floated labels above block
+arbitrary CSL output. Managed image export preserves the hanging indent but
+currently ignores character-relative gutter lengths and places floated labels above block
 entries; the [roadmap](../Docs/ROADMAP.md#full-create-read-edit-and-write-products)
 tracks these renderer fixes. Native reader presentation and assistive-technology
 navigation require separate qualification.
