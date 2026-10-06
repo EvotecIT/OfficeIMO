@@ -76,7 +76,7 @@ These requests go directly from your environment to the service you chose. Evote
 ## Downloads and app stores
 
 - **Microsoft Store, Mac App Store, and App Store:** when you install OfficeIMO Studio from a store, the store operator handles the download and your account under its own privacy policy. Stores may share aggregated install statistics with us. They don't share your identity.
-- **Direct downloads:** Windows installers are served from downloads.officeimo.com, which Evotec operates and Cloudflare delivers. Downloading needs no account and sets no cookies.
+- **Direct downloads:** Windows installers are served from downloads.officeimo.com, which Evotec hosts because the Microsoft Store requires a publisher-hosted installer, and which Cloudflare delivers. The same installers are also on GitHub Releases, if you prefer to download from there. Downloading needs no account and sets no cookies.
   - **What we record:** for each completed download, the time, the file and version, your IP address, your country (from the IP address), and the browser type, for example "Chrome" or "PowerShell".
   - **Why:** only to count downloads and to protect the service from abuse.
   - **How long:** detailed records are deleted automatically after 72 hours. After that we keep only daily totals per file, country, and browser type, with no IP addresses.

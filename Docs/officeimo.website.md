@@ -82,17 +82,18 @@ If the synced repo does not contain the generated help snapshot, the build falls
 
 ## Studio installer downloads
 
-The downloads page links signed Windows Studio MSIs to `downloads.officeimo.com`.
-Evotec Control manages the release lifecycle and download activity through the
-shared Licensing distribution service. The branded hostname serves the immutable
-release objects directly over HTTPS.
+The downloads page links signed Windows Studio MSIs to `downloads.officeimo.com`,
+a download host run by Evotec. Microsoft Store submissions of MSI installers need a
+stable, publisher-hosted download URL, so the installers are served from there over
+HTTPS. The same installers are also published on GitHub Releases, and the downloads
+page links both, so people can choose either source.
 
 [`Website/data/studio_installer_downloads.json`](../Website/data/studio_installer_downloads.json)
 maps verified GitHub release asset URLs to their branded download URLs and records
 the exact sizes and SHA-256 values. The downloads page uses the branded link only
 when the release asset matches an entry. Portable archives, Linux packages and
-other assets keep their GitHub release links. Installer bytes are held by the
-distribution service and are not included in the website build.
+other assets keep their GitHub release links. Installer files are held by the
+download host and are not included in the website build.
 
 When adding a release, publish and verify its signed artifacts through Control,
 promote the exact release to public stable, and add its verified URL mapping.
