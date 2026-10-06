@@ -134,12 +134,7 @@ public partial class Word {
         paragraph.Text = "A " + string.Concat(Enumerable.Repeat("東京", 24));
         paragraph.LineSpacingRule = minimumSpacing ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
         paragraph.LineSpacing = 240;
-        var options = new OfficeIMO.Pdf.PdfOptions();
-        options.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
-        options.RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(new[] {
-            new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Tall CJK",
-                OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 100, 300, ' ', '東', '京'))
-        }));
+        var options = CreateAutomaticGridFallbackFontOptions();
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
             IncludePageNumbers = false, PdfOptions = options,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
@@ -155,6 +150,41 @@ public partial class Word {
             .Where(rectangle => rectangle.HasValue).Min(rectangle => rectangle!.Value.Bottom);
         Assert.All(letters, letter => Assert.True(letter.BoundingBox.Bottom >= bottom,
             $"Fallback glyph below table clip: {letter.BoundingBox.Bottom} < {bottom}"));
+    }
+
+    [Theory]
+    [InlineData(false, 360)]
+    [InlineData(true, 360)]
+    [InlineData(false, 120)]
+    [InlineData(true, 120)]
+    public void SaveAsPdf_TableListSpacerPreservesFallbackFontAutomaticMultiple(bool numbered, int spacing) {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0];
+        WordParagraph paragraph = numbered ? cell.AddList(WordListStyle.Numbered).AddItem(string.Empty) : cell.Paragraphs[0];
+        paragraph.Text = "東京\n東京\n東京";
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = spacing;
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, PdfOptions = CreateAutomaticGridFallbackFontOptions(),
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "東" || letter.Value == "京").ToList();
+        Assert.Equal(6, letters.Count);
+        double[] baselines = letters.Select(letter => letter.StartBaseLine.Y).Distinct().OrderByDescending(value => value).ToArray();
+        Assert.Equal(3, baselines.Length);
+        for (int index = 1; index < baselines.Length; index++)
+            Assert.Equal(19.2D * spacing / 240D, baselines[index - 1] - baselines[index], 3);
+    }
+
+    private static OfficeIMO.Pdf.PdfOptions CreateAutomaticGridFallbackFontOptions() {
+        var options = new OfficeIMO.Pdf.PdfOptions();
+        options.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial", CreateBaselineMetricFont()));
+        options.RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(new[] {
+            new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Tall CJK",
+                OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 100, 300, ' ', '東', '京'))
+        }));
+        return options;
     }
 
     private static WordTable CreateAutomaticWidthControl(WordDocument document, params int[] gridTwips) {

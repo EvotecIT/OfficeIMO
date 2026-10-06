@@ -576,8 +576,10 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? currentRunNamedFont = null;
         double currentRunAscent = 0;
         double currentRunDescent = 0;
-        double currentLineAscent = 0;
-        double currentLineDescent = 0;
+        double currentLineTextAscent = 0;
+        double currentLineTextDescent = 0;
+        double currentLineInlineAscent = 0;
+        double currentLineInlineDescent = 0;
         bool currentRunIsInline = false;
         bool currentLineHasInline = false;
         PdfColor? currentRunDecorationColor = null;
@@ -595,20 +597,16 @@ internal static partial class PdfWriter {
 
         void RegisterLineMetrics() {
             if (lineSpacing?.IsExact == true) return;
-            currentLineAscent = Math.Max(currentLineAscent, currentRunAscent);
-            currentLineDescent = Math.Max(currentLineDescent, currentRunDescent);
-            currentLineHasInline |= currentRunIsInline;
-            if (currentLineHasInline || lineSpacing?.FontLineBoxMultiplier != null) {
-                // Imported automatic spacing uses each visible font's line
-                // box. A fallback can be taller than the paragraph font used
-                // to establish its natural multiplier and initial advance.
-                double fontAdvance = currentLineAscent + currentLineDescent;
-                if (lineSpacing?.FontLineBoxMultiplier is double natural &&
-                    lineSpacing.Rule == PdfLineSpacingRule.Multiple && !currentLineHasInline)
-                    fontAdvance *= lineSpacing.Value / natural;
-                currentLineHeight = Math.Max(currentLineHeight,
-                    fontAdvance + (currentFrame?.Gap ?? 0));
+            if (currentRunIsInline) {
+                currentLineInlineAscent = Math.Max(currentLineInlineAscent, currentRunAscent);
+                currentLineInlineDescent = Math.Max(currentLineInlineDescent, currentRunDescent);
+            } else {
+                currentLineTextAscent = Math.Max(currentLineTextAscent, currentRunAscent);
+                currentLineTextDescent = Math.Max(currentLineTextDescent, currentRunDescent);
             }
+            currentLineHasInline |= currentRunIsInline;
+            currentLineHeight = Math.Max(currentLineHeight,
+                CombinedContentHeight(0, includeCurrentRun: false) + (currentFrame?.Gap ?? 0));
         }
 
         void StartNewLine() {
@@ -618,8 +616,10 @@ internal static partial class PdfWriter {
             completedHeight += currentLineHeight;
             lines.Add(new RichLine());
             lineWidth = 0;
-            currentLineAscent = 0;
-            currentLineDescent = 0;
+            currentLineTextAscent = 0;
+            currentLineTextDescent = 0;
+            currentLineInlineAscent = 0;
+            currentLineInlineDescent = 0;
             currentLineHasInline = false;
             currentContentHeight = lineHeight;
             currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, currentContentHeight, 0);
@@ -653,9 +653,32 @@ internal static partial class PdfWriter {
             currentLineHeight = height + frame.Gap;
         }
 
-        double CombinedContentHeight(double contentHeight) => lineSpacing?.IsExact == true || !(currentLineHasInline || currentRunIsInline) ? contentHeight
-            : Math.Max(contentHeight, Math.Max(currentLineAscent, currentRunAscent)
-                + Math.Max(currentLineDescent, currentRunDescent));
+        double CombinedContentHeight(double contentHeight, bool includeCurrentRun = true) {
+            if (lineSpacing?.IsExact == true) return contentHeight;
+            bool hasInline = currentLineHasInline || includeCurrentRun && currentRunIsInline;
+            double textAscent = Math.Max(currentLineTextAscent,
+                includeCurrentRun && !currentRunIsInline ? currentRunAscent : 0);
+            double textDescent = Math.Max(currentLineTextDescent,
+                includeCurrentRun && !currentRunIsInline ? currentRunDescent : 0);
+            double inlineAscent = Math.Max(currentLineInlineAscent,
+                includeCurrentRun && currentRunIsInline ? currentRunAscent : 0);
+            double inlineDescent = Math.Max(currentLineInlineDescent,
+                includeCurrentRun && currentRunIsInline ? currentRunDescent : 0);
+            double combined = Math.Max(textAscent, inlineAscent) + Math.Max(textDescent, inlineDescent);
+            if (lineSpacing?.FontLineBoxMultiplier is not double natural)
+                return hasInline ? Math.Max(contentHeight, combined) : contentHeight;
+
+            // Imported spacing scales the visible fonts' natural advance.
+            // Horizontal list spacers must not suppress that multiplier.
+            double textAdvance = textAscent + textDescent;
+            if (lineSpacing.Rule == PdfLineSpacingRule.Multiple)
+                textAdvance *= lineSpacing.Value / natural;
+            contentHeight = Math.Max(contentHeight, textAdvance);
+            // Inline objects retain their unscaled bounds when they extend
+            // beyond the text line box; a spacer inside it adds no height.
+            return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
+                ? Math.Max(contentHeight, combined) : contentHeight;
+        }
 
         PdfTabStop? ResolveNextExplicitTabStop() {
             if (explicitTabStops == null || explicitTabStops.Length == 0) {
@@ -773,6 +796,8 @@ internal static partial class PdfWriter {
                 currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
                 double inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset + inlineElement.Height)
                     + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset);
+                if (lineSpacing?.FontLineBoxMultiplier != null)
+                    inlineHeight = Math.Max(lineHeight, currentRunAscent + currentRunDescent);
                 PrepareLineFrame(inlineHeight, inlineElement.Width);
                 double currentMaxWidth = CurrentMaxWidth();
                 if (inlineElement.Width > currentMaxWidth + 0.001D) {
