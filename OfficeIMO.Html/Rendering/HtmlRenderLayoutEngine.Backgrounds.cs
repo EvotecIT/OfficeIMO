@@ -15,6 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         bool paintBorders = true) {
         if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
+        int backgroundStart = visuals.Count;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -24,6 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (paintBorders || style.UnsupportedBorderPaint.Length > 0) {
             AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
         }
+        foreach (HtmlRenderVisual visual in visuals.Skip(backgroundStart)) visual.PaintPhase = HtmlRenderPaintPhase.BlockBackground;
     }
 
     private void AddBoxOutlinePaint(

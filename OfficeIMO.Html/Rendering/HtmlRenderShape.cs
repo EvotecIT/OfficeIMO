@@ -14,9 +14,9 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
     /// <summary>Shared dependency-free vector shape.</summary>
     public OfficeShape Shape { get; }
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderShape(Shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderShape(Shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY);
 }

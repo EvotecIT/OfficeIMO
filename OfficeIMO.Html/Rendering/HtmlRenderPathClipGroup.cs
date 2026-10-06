@@ -47,7 +47,7 @@ public sealed class HtmlRenderPathClipGroup : HtmlRenderVisual {
     /// <summary>Ordered child visuals in the same surface coordinate system as the group.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderPathClipGroup(
             ClipX + offsetX,
             ClipY + offsetY,
@@ -57,7 +57,7 @@ public sealed class HtmlRenderPathClipGroup : HtmlRenderVisual {
             Source,
             LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderPathClipGroup(
             ClipX + offsetX,
             ClipY + offsetY,

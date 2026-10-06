@@ -51,9 +51,23 @@ public abstract class HtmlRenderVisual {
     /// </summary>
     internal double LayoutY { get; }
 
-    internal abstract HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder);
+    internal HtmlRenderPaintPhase PaintPhase { get; set; }
 
-    internal abstract HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder);
+    internal HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) {
+        HtmlRenderVisual translated = TranslateCore(offsetX, offsetY, paintOrder);
+        translated.PaintPhase = PaintPhase;
+        return translated;
+    }
+
+    internal abstract HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder);
+
+    internal HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) {
+        HtmlRenderVisual translated = TranslatePaintCore(offsetX, offsetY, paintOrder);
+        translated.PaintPhase = PaintPhase;
+        return translated;
+    }
+
+    internal abstract HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder);
 
     private static void ValidateFinite(double value, string parameterName) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {
@@ -67,3 +81,5 @@ public abstract class HtmlRenderVisual {
         }
     }
 }
+
+internal enum HtmlRenderPaintPhase { Content, BlockBackground, Float, Atomic }

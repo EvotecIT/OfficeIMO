@@ -71,8 +71,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer,
-        InlinePaintCapture? paintCapture = null) {
-        var context = new InlineFloatContext(width) { FirstLineIndent = paragraphStyle.TextIndent?.Resolve(width) ?? 0D, IndentAtRight = paragraphStyle.Direction == "rtl" };
+        InlinePaintCapture? paintCapture = null,
+        InlineFloatContext? sharedContext = null) {
+        var context = sharedContext ?? new InlineFloatContext(width);
+        context.FirstLineIndent = paragraphStyle.TextIndent?.Resolve(width) ?? 0D;
+        context.IndentAtRight = paragraphStyle.Direction == "rtl";
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
         double y = 0D;
@@ -269,7 +272,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && lines[0].Width > lines[0].AvailableWidth + 0.0001D) {
             ApplyEndEllipsis(lines[0], width, completeLogicalProgress: 0);
         }
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom, paintCapture: paintCapture);
+        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, sharedContext == null ? context.Bottom : 0D, paintCapture: paintCapture);
     }
 
     private static bool FinalizeFloatNoWrapRange(
@@ -407,10 +410,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (run.Style.PaintVisible) {
                     foreach (HtmlRenderVisual visual in block.Visuals) {
+                        HtmlRenderVisual floated = visual.Translate(placement.X, placement.Y, visuals.Count);
+                        floated.PaintPhase = HtmlRenderPaintPhase.Float;
                         AddInlineOwnedVisual(
                             visuals,
                             ownedVisuals,
-                            visual.Translate(placement.X, placement.Y, visuals.Count),
+                            floated,
                             run.OwnerElement,
                             formattingContainer);
                     }
@@ -696,82 +701,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             new[] { paint },
             paintOrder,
             run.Source);
-    }
-
-    private sealed class InlineFloatContext {
-        private readonly double _width;
-        private readonly List<InlineFloatPlacement> _placements = new List<InlineFloatPlacement>();
-
-        internal double FirstLineIndent;
-        internal bool IndentAtRight;
-
-        internal InlineFloatContext(double width) {
-            _width = Math.Max(1D, width);
-        }
-
-        internal double Bottom => _placements.Count == 0 ? 0D : _placements.Max(item => item.Bottom);
-
-        internal InlineFloatPlacement Place(HtmlInlineRun run, double requestedY) {
-            HtmlRenderFlowBlock block = run.FloatingBlock!;
-            double boxWidth = Math.Min(_width, Math.Max(0.01D, block.Width));
-            double boxHeight = Math.Max(0.01D, block.Height);
-            double y = Math.Max(requestedY, Clearance(run.ClearSide));
-            while (true) {
-                InlineFloatBand band = ResolveBand(y, boxHeight);
-                if (boxWidth <= band.Width + 0.0001D) {
-                    double x = run.FloatSide == "right" ? band.Right - boxWidth : band.Left;
-                    var placement = new InlineFloatPlacement(run, x, y, boxWidth, boxHeight);
-                    _placements.Add(placement);
-                    return placement;
-                }
-                double next = NextBottomAfter(y);
-                if (next <= y + 0.0001D) {
-                    double x = run.FloatSide == "right" ? Math.Max(0D, _width - boxWidth) : 0D;
-                    var placement = new InlineFloatPlacement(run, x, y, boxWidth, boxHeight);
-                    _placements.Add(placement);
-                    return placement;
-                }
-                y = next;
-            }
-        }
-
-        internal InlineFloatBand ResolveUsableBand(ref double y, double height) {
-            InlineFloatBand band = ResolveBand(y, height);
-            while (band.Width <= 0.01D) {
-                double next = NextBottomAfter(y);
-                if (next <= y + 0.0001D) break;
-                y = next;
-                band = ResolveBand(y, height);
-            }
-            return band;
-        }
-
-        internal InlineFloatBand ResolveBand(double y, double height) {
-            double left = 0D;
-            double right = _width;
-            double bottom = y + Math.Max(0.01D, height);
-            foreach (InlineFloatPlacement placement in _placements) {
-                if (placement.Y >= bottom - 0.0001D || placement.Bottom <= y + 0.0001D) continue;
-                if (placement.Run.FloatSide == "right") right = Math.Min(right, placement.X);
-                else left = Math.Max(left, placement.Right);
-            }
-            return new InlineFloatBand(left, Math.Max(left, right));
-        }
-
-        internal double NextBottomAfter(double y) => _placements
-            .Where(item => item.Bottom > y + 0.0001D)
-            .Select(item => item.Bottom)
-            .DefaultIfEmpty(y)
-            .Min();
-
-        private double Clearance(string clearSide) {
-            if (clearSide == "none") return 0D;
-            return _placements
-                .Where(item => clearSide == "both" || item.Run.FloatSide == clearSide)
-                .Select(item => item.Bottom)
-                .DefaultIfEmpty(0D)
-                .Max();
-        }
     }
 
     private sealed class InlineFloatPlacement {

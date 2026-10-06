@@ -14,7 +14,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlListMarker? marker,
         IElement? generatedContentOwner,
         int skipLogicalCharacters = 0,
-        bool applyTextIndent = true) {
+        bool applyTextIndent = true,
+        InlineFloatContext? floatContext = null) {
         var runs = new List<HtmlInlineRun>();
         IElement? formattingContainer = generatedContentOwner ?? nodes.FirstOrDefault()?.ParentElement;
         if (marker != null && !marker.IsOutside) {
@@ -49,7 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AssignSemanticFragmentOrders(runs);
 
         if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
-            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
+            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, floatContext: floatContext);
         }
 
         HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
@@ -67,7 +68,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
         double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
         HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
-        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, Math.Max(1D, width - gutter), parentStyle, formattingContainer, skipLogicalCharacters);
+        double bodyWidth = Math.Max(1D, width - gutter);
+        double bodyOffsetX = parentStyle.Direction == "rtl" ? 0D : gutter;
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, bodyWidth, parentStyle, formattingContainer,
+            skipLogicalCharacters, floatContext: floatContext?.At(bodyWidth, bodyOffsetX, 0D));
         return CombineOutsideListMarker(markerLayout, bodyLayout, width, gutter, gap, parentStyle);
     }
 
@@ -573,14 +577,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer = null,
         int skipLogicalCharacters = 0,
-        InlinePaintCapture? paintCapture = null) {
+        InlinePaintCapture? paintCapture = null,
+        InlineFloatContext? floatContext = null) {
         AssignLogicalTextOrders(runs);
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
         if (runs.Any(run => run.IsBlockInterruption)) {
             return LayoutInterruptedInlineRuns(runs, width, paragraphStyle, formattingContainer);
         }
-        if (runs.Any(run => run.FloatingBlock != null)) {
-            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer, paintCapture);
+        if (floatContext?.HasFloats == true || runs.Any(run => run.FloatingBlock != null)) {
+            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer, paintCapture, floatContext);
         }
         bool supportsContinuationReflow = runs.All(run =>
             run.AtomicBlock == null

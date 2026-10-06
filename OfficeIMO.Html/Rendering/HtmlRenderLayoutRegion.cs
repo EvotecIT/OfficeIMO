@@ -91,7 +91,7 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
     /// <summary>Ordered visual children for destination-specific native projection or fidelity fallback.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) {
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) {
         var translated = new HtmlRenderLayoutRegion(SourceKey, RegionKind, SourceText, Position, FloatSide, ZIndex,
             BackgroundLayerCount, BoxShadowLayerCount, BackgroundColor,
             X + offsetX, Y + offsetY, Width, Height,
@@ -107,7 +107,7 @@ public sealed class HtmlRenderLayoutRegion : HtmlRenderVisual {
         return translated;
     }
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) {
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) {
         var translated = new HtmlRenderLayoutRegion(SourceKey, RegionKind, SourceText, Position, FloatSide, ZIndex,
             BackgroundLayerCount, BoxShadowLayerCount, BackgroundColor,
             X + offsetX, Y + offsetY, Width, Height,

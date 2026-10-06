@@ -201,6 +201,12 @@ Inherited text spacing, explicit line heights, border spacing and text-shadow
 offsets retain their computed lengths when a descendant changes font; unitless
 line heights continue to scale with the descendant's font.
 
+Horizontal block flow shares float exclusions across ordinary nested and sibling
+blocks. Side-specific `clear` advances the following block; independent formatting
+contexts fit beside a float or move below it when their width cannot fit. Block
+backgrounds paint below floats, and normal text paints above them. Float paint
+metadata survives page fragmentation without repeating its text label.
+
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.
