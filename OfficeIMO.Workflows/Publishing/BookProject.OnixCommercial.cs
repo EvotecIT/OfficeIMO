@@ -4,6 +4,11 @@ using System.Xml.Linq;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
+    internal static void RequireOnixMarketReference(string reference) {
+        RequireOnixText(reference, nameof(reference));
+        if (reference.Length > 100)
+            throw new ArgumentException("Market references cannot exceed 100 UTF-16 code units.", nameof(reference));
+    }
     private sealed record OnixCommercialParts(XElement? Status, XElement[] Rights, XElement[] Supplies);
 
     private static OnixCommercialParts BuildOnixCommercial(BookOnixCommercialMetadata? commercial,
@@ -44,8 +49,13 @@ public sealed partial class BookProject {
             rights.Add(new XElement(ns + "SalesRights", new XElement(ns + "SalesRightsType", code), territory.ToXml()));
         }
         var supplies = new List<XElement>();
+        var marketReferences = new HashSet<string>(StringComparer.Ordinal);
         foreach (BookOnixSupply supply in commercial.Supplies) {
             token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(supply);
+            if (supply.MarketReference is { } reference) {
+                RequireOnixMarketReference(reference);
+                if (!marketReferences.Add(reference)) throw new ArgumentException("Market references must be unique within a product.", nameof(commercial));
+            }
             supplies.Add(BuildOnixSupply(supply, grants, token));
         }
         return new(status, rights.ToArray(), supplies.ToArray());
@@ -89,7 +99,9 @@ public sealed partial class BookProject {
             token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(price);
             detail.Add(BuildOnixPrice(price, market));
         }
-        return new XElement(ns + "ProductSupply", new XElement(ns + "Market", market.ToXml()), detail);
+        return new XElement(ns + "ProductSupply",
+            supply.MarketReference != null ? new XElement(ns + "MarketReference", supply.MarketReference) : null,
+            new XElement(ns + "Market", market.ToXml()), detail);
     }
 
     private static XElement BuildOnixPrice(BookOnixPrice price, OnixTerritory market) {

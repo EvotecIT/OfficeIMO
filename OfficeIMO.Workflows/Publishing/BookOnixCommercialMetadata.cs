@@ -133,6 +133,8 @@ public sealed record BookOnixPrice {
 
 /// <summary>One explicit market, supplier and availability declaration, with prices or an unpriced reason.</summary>
 public sealed record BookOnixSupply {
+    /// <summary>Optional permanent identity within this product, at most 100 UTF-16 code units. Never inferred from territory or supplier.</summary>
+    public string? MarketReference { get; init; }
     /// <summary>Market to which this supply declaration applies.</summary>
     public required BookOnixTerritory Territory { get; init; }
     /// <summary>Supplier's name.</summary>

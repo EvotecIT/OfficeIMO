@@ -1234,8 +1234,8 @@ identity, source-integrity, schema, count and byte limits as `Create`. `Products
 holds the original complete exports and EPUB evidence, not partial record copies.
 
 Every selected replacement must exist in the source and is copied in full,
-including unchanged fields. `ProductSupply` copies **all** source markets; per-market
-updates using `MarketReference` are not supported. Only `CollateralDetail`,
+including unchanged fields. `ProductSupply` block selection copies **all** unnamed
+source markets. Named markets use the explicit selections below. Only `CollateralDetail`,
 `PromotionDetail`, `ContentDetail`, `RelatedMaterial` and `ProductionDetail` can be
 cleared. Empty selections, duplicate blocks and overlapping replace/clear requests
 are rejected. A missing replacement is an error, never an inferred clear.
@@ -1250,6 +1250,37 @@ sequence deliveries or transmit deletions. Supply a complete current block, reta
 stable record references, and agree update handling with the recipient before
 delivery. See [BIC's block-update guidance](https://bic.org.uk/wp-content/uploads/2025/06/BIC_DRE_Delta-Files-vs.-Block-Updates.pdf).
 Schema validation is not recipient acceptance.
+
+
+Set `BookOnixSupply.MarketReference` to a permanent, product-scoped identifier to
+address markets individually. References are optional for complete exports, unique
+within a product and limited to 100 UTF-16 code units. OfficeIMO preserves them
+exactly and does not derive them from territory, supplier or array position.
+
+```csharp
+// The complete source export contains named supply declarations.
+var marketUpdate = BookOnixMessage.CreateBlockUpdates([
+    new(current) {
+        ReplaceMarketReferences = ["uk-direct"],
+        RemoveMarketReferences = ["former-eu-distributor"]
+    }
+], schemas);
+```
+
+A selected replacement copies the complete matching `ProductSupply`. A removal
+emits only its `MarketReference`; omitted named markets remain unchanged at the
+recipient. Removal references may be absent from the current source, allowing a
+previously supplied market to be retired. This does not verify recipient state or
+change publishing status, availability or sales rights.
+
+Per-market operations require every source supply to be named, accept at most 32
+combined replacements/removals, and reject missing replacement references,
+duplicates and replace/remove overlap. They may accompany other block changes,
+but cannot accompany a whole `ProductSupply` selection. Whole supply selection
+rejects named markets to avoid implying that omitted named markets are deleted.
+Replacements retain selection order, followed by removals in selection order.
+Existing feeds must agree stable market identities with their recipient before
+switching from unnamed to named supply updates.
 
 ## Optional checkpoints
 

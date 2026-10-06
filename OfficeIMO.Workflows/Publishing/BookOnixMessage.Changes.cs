@@ -8,7 +8,8 @@ public sealed partial class BookOnixMessage {
     /// <summary>
     /// Composes 1–1000 explicit block updates (notification 04). Selected blocks are copied whole;
     /// unselected blocks are omitted, and only ClearBlocks emits empty blocks. All source headers must match.
-    /// ProductSupply copies every source repeat, without per-market selection. Missing selected blocks fail.
+    /// ProductSupply block selection copies every unnamed source repeat. Named markets use explicit reference selections.
+    /// Missing selected blocks or markets fail; market removals are explicit reference-only supply declarations.
     /// Retains the source EPUB association and the same integrity, schema, cancellation and size gates as Create.
     /// Does not compare recipient state or transmit instructions. Do not mutate inputs or schemas during composition.
     /// </summary>
@@ -20,14 +21,18 @@ public sealed partial class BookOnixMessage {
         var sources = new BookOnixExportResult[updates.Count];
         var replacements = new HashSet<BookOnixBlock>[updates.Count];
         var clears = new HashSet<BookOnixBlock>[updates.Count];
+        var markets = new OnixMarketSelection[updates.Count];
         for (int index = 0; index < updates.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             var update = updates[index]; ArgumentNullException.ThrowIfNull(update); ArgumentNullException.ThrowIfNull(update.Source);
             sources[index] = update.Source;
             replacements[index] = ReadBlocks(update.ReplaceBlocks);
             clears[index] = ReadBlocks(update.ClearBlocks);
-            if (replacements[index].Count + clears[index].Count == 0 || replacements[index].Overlaps(clears[index]))
-                throw new ArgumentException("Select at least one block; replace and clear cannot overlap.", nameof(updates));
+            markets[index] = ReadMarkets(update);
+            if (replacements[index].Count + clears[index].Count + markets[index].Replace.Length + markets[index].Remove.Length == 0 || replacements[index].Overlaps(clears[index]))
+                throw new ArgumentException("Select at least one block or market; replace and clear cannot overlap.", nameof(updates));
+            if (markets[index].HasChanges && replacements[index].Contains(BookOnixBlock.ProductSupply))
+                throw new ArgumentException("Whole supply and per-market replacements cannot be combined.", nameof(updates));
             if (clears[index].Any(block => block is BookOnixBlock.DescriptiveDetail or BookOnixBlock.PublishingDetail or BookOnixBlock.ProductSupply))
                 throw new ArgumentException("Only optional resettable blocks may be cleared.", nameof(updates));
         }
@@ -40,12 +45,13 @@ public sealed partial class BookOnixMessage {
                 else if (replacements[index].Contains(block)) {
                     var elements = record.Elements(ns + block.ToString()).ToArray();
                     if (elements.Length == 0) throw new ArgumentException("Selected replacement block is absent: " + block + ". Use an explicit clear where permitted.", nameof(updates));
-                    // The current exporter does not author MarketReference. Guard this boundary if it is extended later.
+                    // Named markets carry selective-update semantics, unlike the legacy all-markets block.
                     if (block == BookOnixBlock.ProductSupply && elements.Any(element => element.Element(ns + "MarketReference") != null))
-                        throw new ArgumentException("Market-referenced supply needs an explicit per-market update contract.", nameof(updates));
+                        throw new ArgumentException("Use ReplaceMarketReferences to update named markets explicitly.", nameof(updates));
                     result.Add(elements.Select(element => new XElement(element)));
                 }
             }
+            AppendMarketChanges(result, record, markets[index], cancellationToken);
             return result;
         }, cancellationToken);
     }
