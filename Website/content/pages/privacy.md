@@ -17,7 +17,7 @@ This page explains what data each part of OfficeIMO handles, who receives it, an
 
 OfficeIMO is developed by **Evotec Services sp. z o.o.** ("Evotec", "we"), a company registered in Poland. We are the controller of the limited personal data described here. Registration details are on [Evotec's company page](https://evotec.xyz/company-facts/).
 
-For privacy questions or requests, email [support@evotec.pl](mailto:support@evotec.pl).
+For privacy questions or requests, email [contact@evotec.pl](mailto:contact@evotec.pl).
 
 ## At a glance
 
@@ -76,7 +76,12 @@ These requests go directly from your environment to the service you chose. Evote
 ## Downloads and app stores
 
 - **Microsoft Store, Mac App Store, and App Store:** when you install OfficeIMO Studio from a store, the store operator handles the download and your account under its own privacy policy. Stores may share aggregated install statistics with us. They don't share your identity.
-- **Direct downloads:** Windows installers are served from downloads.officeimo.com, operated by Evotec. It records download requests (time, file, IP address, and browser details) to deliver files, protect the service from abuse, and count downloads. We keep these records for a limited period. Other files are downloaded from GitHub Releases.
+- **Direct downloads:** Windows installers are served from downloads.officeimo.com, which Evotec operates and Cloudflare delivers. Downloading needs no account and sets no cookies.
+  - **What we record:** for each completed download, the time, the file and version, your IP address, your country (from the IP address), and the browser type, for example "Chrome" or "PowerShell".
+  - **Why:** only to count downloads and to protect the service from abuse.
+  - **How long:** detailed records are deleted automatically after 72 hours. After that we keep only daily totals per file, country, and browser type, with no IP addresses.
+  - **Server logs:** like any web server, the service also keeps access logs (IP address, time, file, and browser details) for security. These are deleted automatically after a short period.
+- **Other files** are downloaded from GitHub Releases.
 - **Package managers:** NuGet, the PowerShell Gallery, and WinGet handle package downloads under their own policies.
 
 ## Support and GitHub
@@ -96,7 +101,7 @@ Under the EU General Data Protection Regulation (GDPR) you can ask us to:
 - stop processing it (object)
 - provide a copy of it
 
-Email [support@evotec.pl](mailto:support@evotec.pl) with your request. You can also complain to the Polish data protection authority, the [President of the Personal Data Protection Office (UODO)](https://uodo.gov.pl/en), or to the authority in your own country.
+Email [contact@evotec.pl](mailto:contact@evotec.pl) with your request. You can also complain to the Polish data protection authority, the [President of the Personal Data Protection Office (UODO)](https://uodo.gov.pl/en), or to the authority in your own country.
 
 ## Changes to this policy
 

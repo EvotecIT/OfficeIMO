@@ -98,7 +98,7 @@ open in your default web browser.
 
 Files, screenshots, or logs attached to a public GitHub issue are public. Remove
 personal information and credentials before sharing an example. For private
-support or privacy questions, contact [support@evotec.pl](mailto:support@evotec.pl).
+support or privacy questions, contact [contact@evotec.pl](mailto:contact@evotec.pl).
 
 OfficeIMO's MIT license and public-source policy cover the software and public
 project material. They do not make your documents, credentials, or local
