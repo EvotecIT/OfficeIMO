@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
             hasCells = false;
             if (_canStreamWorksheetPart) {
                 try {
-                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    using var stream = OpenDataReaderWorksheetStream(ct);
                     if (TryPrepareWorksheetStream(stream)) {
                         using var reader = OpenWorksheetXmlReader(stream);
                         while (reader.Read()) {

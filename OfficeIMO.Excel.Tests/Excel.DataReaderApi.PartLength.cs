@@ -67,7 +67,10 @@ public partial class Excel {
                 + "<row r=\"500002\"><c r=\"A500002\"><v>43</v></c></row></sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             byte[] bytes = File.ReadAllBytes(path);
-            OpenXmlPartLengthTests.SetDeclaredLength(bytes, "xl/worksheets/sheet1.xml", 40 * 1024 * 1024);
+            // SDK-backed readers can fall back to a worksheet stream when the
+            // declared part is too large for the indexed buffer.
+            OpenXmlPartLengthTests.SetDeclaredLength(bytes, "xl/worksheets/sheet1.xml",
+                (sdkReader ? 80 : 40) * 1024 * 1024);
             File.WriteAllBytes(path, bytes);
 
             Exception? error = Record.Exception(() => {
@@ -88,6 +91,61 @@ public partial class Excel {
 #endif
             Assert.True(rejected,
                 error?.ToString() ?? $"The corrupt worksheet exposed a {(sdkReader ? "SDK" : "native")} data reader.");
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void IndexedSdkDataReader_RejectsOverstatedWorksheetPackageLength() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            string xml = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+                + "<dimension ref=\"A1:B2\"/><sheetData>"
+                + "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Id</t></is></c>"
+                + "<c r=\"B1\" t=\"inlineStr\"><is><t>Value</t></is></c></row>"
+                + "<row r=\"2\"><c r=\"A2\"><v>42</v></c></row>"
+                + new string(' ', 70000) + "</sheetData></worksheet>";
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+            byte[] bytes = File.ReadAllBytes(path);
+            OpenXmlPartLengthTests.SetDeclaredLength(bytes, "xl/worksheets/sheet1.xml", 80 * 1024 * 1024);
+            File.WriteAllBytes(path, bytes);
+
+            Exception? error = Record.Exception(() => {
+                using var document = ExcelDocumentReader.Open(path);
+                using var reader = document.GetSheet("Data").ReadUsedRangeAsDataReader();
+                while (reader.Read()) { }
+            });
+            bool rejected = error is InvalidDataException or EndOfStreamException;
+#if NETFRAMEWORK
+            rejected |= error is FileFormatException;
+#endif
+            Assert.True(rejected, error?.ToString() ?? "The corrupt worksheet exposed an indexed SDK data reader.");
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void EmptySdkDataReader_RejectsOverstatedWorksheetPackageLength() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string xml = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData/></worksheet>";
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
+            byte[] bytes = File.ReadAllBytes(path);
+            OpenXmlPartLengthTests.SetDeclaredLength(bytes, "xl/worksheets/sheet1.xml", 80 * 1024 * 1024);
+            File.WriteAllBytes(path, bytes);
+
+            Exception? error = Record.Exception(() => {
+                using var document = ExcelDocumentReader.Open(path);
+                using var reader = document.GetSheet("Data").ReadUsedRangeAsDataReader();
+                Assert.False(reader.Read());
+            });
+            bool rejected = error is InvalidDataException or EndOfStreamException;
+#if NETFRAMEWORK
+            rejected |= error is FileFormatException;
+#endif
+            Assert.True(rejected, error?.ToString() ?? "The corrupt empty worksheet exposed a SDK data reader.");
         } finally {
             File.Delete(path);
         }
