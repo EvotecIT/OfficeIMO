@@ -57,7 +57,7 @@ public static partial class EpubImageExportExtensions {
             throw new InvalidDataException("The declared viewport exceeds the configured render surface limit.");
         effective.Mode = HtmlRenderMode.Continuous;
         effective.ViewportWidth = width; effective.ViewportHeight = height; effective.Margins = HtmlRenderMargins.All(0D);
-        EpubChapterRenderPreparation preparation = PrepareChapter(chapter, effective, BuildResourceIndex(source, cancellationToken));
+        EpubChapterRenderPreparation preparation = PrepareChapter(chapter, effective, BuildResourceIndex(source, cancellationToken), cancellationToken);
         HtmlRenderDocument rendering = HtmlRenderEngine.RenderForRegionInspection(preparation.Document, preparation.Options, regionIds, cancellationToken);
         HtmlRenderPage page = rendering.Pages.Single();
         OfficeDrawingQualityReport quality = page.InspectCanvasBounds(width, height, effective.MaxSurfaceWidth,

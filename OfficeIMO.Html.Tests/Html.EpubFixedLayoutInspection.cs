@@ -10,11 +10,28 @@ namespace OfficeIMO.Tests;
 
 public sealed class EpubFixedLayoutInspectionTests {
     [Fact]
+    public void EmptyXhtmlSiblingsPaintLikeExplicitlyClosedElements() {
+        var book = Book(40); var xml = book.GetContentXml("page"); XNamespace html = "http://www.w3.org/1999/xhtml";
+        var frame = xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame");
+        frame.ReplaceNodes(new XElement(html + "div", new XAttribute("style", "width:80px;height:10px;background:#124e80")),
+            new XElement(html + "div", new XAttribute("style", "width:40px;height:10px;background:#804e12")));
+        book.SetContentXml("page", xml);
+        byte[] empty = Read(book).InspectFixedLayoutPage(0).Rendering.Pages[0].CreateDrawing()
+            .ExportImage(OfficeImageExportFormat.Png).Bytes;
+        foreach (var child in frame.Elements()) child.Add(new XText(string.Empty));
+        Assert.All(frame.Elements(), child => Assert.False(child.IsEmpty));
+        book.SetContentXml("page", xml);
+        byte[] closed = Read(book).InspectFixedLayoutPage(0).Rendering.Pages[0].CreateDrawing()
+            .ExportImage(OfficeImageExportFormat.Png).Bytes;
+        Assert.Equal(closed, empty);
+    }
+
+    [Fact]
     public void ExcessiveClippingWorkFailsInsteadOfReturningPartialDiagnostics() {
         var book = Book(20); var xml = book.GetContentXml("page"); XNamespace html = "http://www.w3.org/1999/xhtml";
         var frame = xml.Descendants().Single(e => (string?)e.Attribute("id") == "frame"); frame.RemoveNodes();
         for (int i = 0; i < 1025; i++) frame.Add(new XElement(html + "div", new XAttribute("style", "height:1px;overflow:hidden"),
-            new XElement(html + "div", new XAttribute("style", "height:2px;background:#124e80"), " ")));
+            new XElement(html + "div", new XAttribute("style", "height:2px;background:#124e80"))));
         book.SetContentXml("page", xml);
         var error = Assert.Throws<NotSupportedException>(() => Read(book).InspectFixedLayoutPage(0));
         Assert.Contains("1024-clip", error.Message);

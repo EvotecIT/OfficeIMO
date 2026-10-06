@@ -123,7 +123,8 @@ public sealed partial class EpubPublication {
                     var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
                     // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
                     limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
-                    var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
+                    var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(
+                        OfficeIMO.Html.HtmlXmlDocumentParser.CreateDocument(content, limits, token, skipProcessingInstructions: true),
                         new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                     if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
                     hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token, CheckStylesheet);

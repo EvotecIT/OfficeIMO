@@ -1,5 +1,12 @@
 # Upgrading OfficeIMO
 
+## EPUB XHTML image export
+
+Image export parses retained `application/xhtml+xml` chapters as XML. Repair malformed
+XHTML and replace DTD-defined entities with numeric references or Unicode characters
+before exporting. Use lowercase XHTML names and remove unsupported processing
+instructions. XML errors are no longer silently recovered using HTML parsing.
+
 ## HTML widths larger than their container
 
 The shared HTML renderer honors explicit `width` and `min-width` values that exceed

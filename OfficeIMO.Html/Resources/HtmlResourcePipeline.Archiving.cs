@@ -13,9 +13,12 @@ public static partial class HtmlResourcePipeline {
         var svg = System.Xml.Linq.XElement.Load(reader, System.Xml.Linq.LoadOptions.PreserveWhitespace);
         if (svg.Name != System.Xml.Linq.XName.Get("svg", "http://www.w3.org/2000/svg"))
             throw new InvalidDataException("SVG resource requires an SVG document root.");
-        var document = HtmlConversionDocument.Parse("<html><body>" + svg.ToString(System.Xml.Linq.SaveOptions.DisableFormatting) + "</body></html>",
-            new HtmlConversionDocumentOptions { BaseUri = uri, ResourceUrlPolicy = options.ResourceUrlPolicy ?? HtmlResourceUrlPolicy.Create(null), Limits = options.Limits });
-        return BuildArchiveManifest(document.CreateSourceDocumentForConversion(), new HtmlResourcePipelineOptions {
+        HtmlConversionInputGuard.ValidateSource(svg.ToString(System.Xml.Linq.SaveOptions.DisableFormatting), options.Limits);
+        System.Xml.Linq.XNamespace xhtml = Dom.HtmlElement.HtmlNamespace;
+        var document = HtmlXmlDocumentParser.CreateDocument(new System.Xml.Linq.XDocument(
+            new System.Xml.Linq.XElement(xhtml + "html", new System.Xml.Linq.XElement(xhtml + "body", svg))),
+            options.Limits, CancellationToken.None);
+        return BuildArchiveManifest(document, new HtmlResourcePipelineOptions {
             BaseUri = uri, ResourceUrlPolicy = options.ResourceUrlPolicy, Limits = options.Limits, MediaContext = options.MediaContext
         });
     }

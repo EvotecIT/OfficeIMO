@@ -40,10 +40,9 @@ internal static class HtmlDocumentParser {
         return element.Attributes.FirstOrDefault(attribute =>
             string.Equals(attribute.LocalName, localName, StringComparison.OrdinalIgnoreCase) &&
             (xlink
-                ? string.Equals(attribute.Prefix, "xlink", StringComparison.OrdinalIgnoreCase) ||
-                  string.Equals(attribute.NamespaceUri, xlinkNamespace, StringComparison.Ordinal)
-                : !string.Equals(attribute.Prefix, "xlink", StringComparison.OrdinalIgnoreCase) &&
-                  !string.Equals(attribute.NamespaceUri, xlinkNamespace, StringComparison.Ordinal)));
+                ? string.Equals(attribute.NamespaceUri, xlinkNamespace, StringComparison.Ordinal) ||
+                  (string.IsNullOrEmpty(attribute.NamespaceUri) && string.Equals(attribute.Prefix, "xlink", StringComparison.OrdinalIgnoreCase))
+                : string.IsNullOrEmpty(attribute.Prefix) && string.IsNullOrEmpty(attribute.NamespaceUri)));
     }
 
     private static string NormalizeSvgHrefAttributeOrder(string html, CancellationToken cancellationToken) {

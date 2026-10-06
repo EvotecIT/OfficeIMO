@@ -2,6 +2,12 @@
 
 `OfficeIMO.Epub.Image` is the thin visual adapter between the bounded EPUB package model and the existing OfficeIMO HTML/Drawing renderer. It adds no image encoder or layout engine.
 
+Retained `application/xhtml+xml` chapters are parsed as XML. Empty non-void elements
+remain siblings, and CSS text and SVG/MathML namespaces retain their XML meaning.
+Malformed XML, noncanonical XHTML names, processing instructions, and DTD-defined
+entity references are rejected instead of being recovered as HTML. `text/html`
+chapters and the extracted-text fallback keep HTML parsing.
+
 Load raw chapter HTML and resource payloads when visual fidelity matters:
 
 ```csharp
