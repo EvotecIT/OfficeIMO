@@ -281,20 +281,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph, bool renderSpacingOnlyLineBox) {
-            if (paragraph.FontSizePoints.HasValue ||
-                paragraph.LineSpacingBeforePoints.HasValue ||
-                paragraph.LineSpacingPoints.HasValue ||
-                paragraph.LineSpacing.HasValue) {
-                return true;
-            }
-
-            if (paragraph._paragraph != null &&
-                paragraph._paragraph.ParagraphProperties == null &&
-                !paragraph._paragraph.Elements<W.Run>().Any()) {
-                return true;
-            }
-
-            return paragraph._paragraph?.ParagraphProperties?.ParagraphMarkRunProperties != null;
+            // Empty text still has a paragraph mark. Its visibility, rather than
+            // the presence of direct spacing or run formatting, determines the line.
+            bool hiddenMark = ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?
+                .ParagraphMarkRunProperties?.GetFirstChild<W.Vanish>()) ??
+                GetNativeParagraphStyleDefaults(paragraph).Hidden ?? false;
+            return !hiddenMark;
         }
 
         private static double MeasureNativeEmptyParagraphHeight(
