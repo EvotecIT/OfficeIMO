@@ -17,7 +17,8 @@ public static partial class WordPdfConverterExtensions {
         private bool hasEndnotes;
         private W.NumberFormatValues footnoteFormat;
         private W.NumberFormatValues endnoteFormat;
-        private bool pageRestart;
+        private bool footnotePageRestart;
+        private bool endnotePageRestart;
         private bool pageRestartReported;
 
         internal NativeNoteNumbering(WordDocument document, WordToPdfOptions? options) {
@@ -38,7 +39,8 @@ public static partial class WordPdfConverterExtensions {
                 nextFootnote = foot?.NumberingStart?.Val?.Value ?? documentFoot?.NumberingStart?.Val?.Value ?? 1;
             if (!hasEndnotes || endRestart == W.RestartNumberValues.EachSection)
                 nextEndnote = end?.NumberingStart?.Val?.Value ?? documentEnd?.NumberingStart?.Val?.Value ?? 1;
-            pageRestart = footRestart == W.RestartNumberValues.EachPage || endRestart == W.RestartNumberValues.EachPage;
+            footnotePageRestart = footRestart == W.RestartNumberValues.EachPage;
+            endnotePageRestart = endRestart == W.RestartNumberValues.EachPage;
         }
 
         internal bool ContainsKey(long key) => tokensById.ContainsKey(key);
@@ -53,15 +55,15 @@ public static partial class WordPdfConverterExtensions {
             OfficeNumberStyle style;
             if (format == W.NumberFormatValues.LowerRoman) style = OfficeNumberStyle.LowerRoman;
             else if (format == W.NumberFormatValues.UpperRoman) style = OfficeNumberStyle.UpperRoman;
-            else if (format == W.NumberFormatValues.LowerLetter) style = OfficeNumberStyle.LowerLetter;
-            else if (format == W.NumberFormatValues.UpperLetter) style = OfficeNumberStyle.UpperLetter;
+            else if (format == W.NumberFormatValues.LowerLetter) style = OfficeNumberStyle.RepeatedLowerLetter;
+            else if (format == W.NumberFormatValues.UpperLetter) style = OfficeNumberStyle.RepeatedUpperLetter;
             else {
                 style = OfficeNumberStyle.Decimal;
                 if (format != W.NumberFormatValues.Decimal && options != null)
                     AddNativeExportWarning(options, "NativeNoteNumberFormatUnsupported", endnote ? "endnote" : "footnote",
                         "The note numbering format is outside the supported decimal, Roman and letter formats; a decimal label was used.");
             }
-            if (pageRestart && !pageRestartReported && options != null) {
+            if ((endnote ? endnotePageRestart : footnotePageRestart) && !pageRestartReported && options != null) {
                 AddNativeExportWarning(options, "NativeNotePageRestartApproximated", "notes",
                     "Page-based note numbering restart requires note pagination; numbering continues through the section.");
                 pageRestartReported = true;

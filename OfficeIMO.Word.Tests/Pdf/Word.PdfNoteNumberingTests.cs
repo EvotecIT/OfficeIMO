@@ -101,4 +101,22 @@ public sealed class WordPdfNoteNumberingTests {
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Contains("FOOTREFC", Regex.Replace(pdf.GetPage(1).Text, @"\s+", ""));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LetterNotesAfterZUseWordsRepeatedLetterSequence(bool native) {
+        using WordDocument source = WordDocument.Create();
+        source.Sections[0].AddFootnoteProperties(WordNumberFormat.LowerLetter,
+            WordFootnotePosition.PageBottom, WordNoteNumberRestart.Continuous, startNumber: 28);
+        source.Sections[0].AddEndnoteProperties(WordNumberFormat.UpperLetter,
+            WordEndnotePosition.DocumentEnd, WordNoteNumberRestart.Continuous, startNumber: 28);
+        source.AddParagraph("FOOTREF").AddFootNote("FOOTBODY");
+        source.AddParagraph("ENDREF").AddEndNote("ENDBODY");
+        string text = ReadPdfText(source, native);
+        Assert.Contains("FOOTREFbb", text);
+        Assert.Contains("ENDREFBB", text);
+        Assert.Contains("bbFOOTBODY", text);
+        Assert.Contains("BBENDBODY", text);
+    }
 }

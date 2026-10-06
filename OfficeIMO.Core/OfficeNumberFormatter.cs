@@ -5,7 +5,7 @@ using System.Text;
 namespace OfficeIMO.Core;
 
 /// <summary>Common positive integer labels used by page and note numbering.</summary>
-internal enum OfficeNumberStyle { Decimal, LowerRoman, UpperRoman, LowerLetter, UpperLetter }
+internal enum OfficeNumberStyle { Decimal, LowerRoman, UpperRoman, LowerLetter, UpperLetter, RepeatedLowerLetter, RepeatedUpperLetter }
 
 /// <summary>Formats labels independently of their source identity and placement.</summary>
 internal static class OfficeNumberFormatter {
@@ -17,6 +17,8 @@ internal static class OfficeNumberFormatter {
             OfficeNumberStyle.UpperRoman => Roman(number),
             OfficeNumberStyle.LowerLetter => Letters(number, false),
             OfficeNumberStyle.UpperLetter => Letters(number, true),
+            OfficeNumberStyle.RepeatedLowerLetter => RepeatedLetters(number, false),
+            OfficeNumberStyle.RepeatedUpperLetter => RepeatedLetters(number, true),
             _ => throw new ArgumentOutOfRangeException(nameof(style))
         };
     }
@@ -41,4 +43,8 @@ internal static class OfficeNumberFormatter {
         }
         return result.ToString();
     }
+
+    // Word note labels repeat the current letter after Z: AA, BB, ... ZZ, AAA.
+    private static string RepeatedLetters(int number, bool uppercase) =>
+        new((char)((uppercase ? 'A' : 'a') + (number - 1) % 26), (number - 1) / 26 + 1);
 }
