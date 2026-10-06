@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegReader {
     // T.81 Annex H: sample prediction, without DCT or quantization. The current
-    // sample-plane renderer accepts eight/sixteen-bit frames; point transforms retain the
+    // sample-plane renderer accepts two through sixteen-bit frames; point transforms retain the
     // original sample scale, with the discarded low bits restored as zero.
     private static void DecodeLosslessScan(OfficeByteView data, ScanHeader scan,
         JpegFrame frame, BaselineState state, HuffmanTable[] dcTables,

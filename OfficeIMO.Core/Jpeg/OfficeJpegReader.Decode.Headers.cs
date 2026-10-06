@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 internal static partial class OfficeJpegReader {
     private static JpegFrame ParseFrameHeader(OfficeByteView data, bool lossless = false) {
         var precision = data[0];
-        if (precision != 8 && !(lossless && precision == 16)) throw new FormatException("Unsupported JPEG precision.");
+        if (lossless ? precision < 2 || precision > 16 : precision != 8) throw new FormatException("Unsupported JPEG precision.");
         var height = ReadUInt16BE(data, 1);
         var width = ReadUInt16BE(data, 3);
         var components = data[5];

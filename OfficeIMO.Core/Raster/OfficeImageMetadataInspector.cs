@@ -91,8 +91,12 @@ internal static partial class OfficeImageMetadataInspector {
             if (length < 2 || offset > data.Length - length) break;
             int payload = offset + 2;
             int count = length - 2;
-            if (OfficeImageReader.IsStartOfFrame((byte)marker) && count == 18 && data[payload + 5] == 4)
-                snapshot.HasDeviceCmyk = true;
+            if (OfficeImageReader.IsStartOfFrame((byte)marker) && count >= 6 &&
+                count == 6 + 3 * data[payload + 5]) {
+                snapshot.JpegSamplePrecision = data[payload];
+                snapshot.JpegFrameMarker = marker;
+                if (data[payload + 5] == 4) snapshot.HasDeviceCmyk = true;
+            }
             if (marker == 0xE0 && Matches(data, payload, count, "JFIF\0")) {
                 bool physical = count >= 12 && data[payload + 7] >= 1 && data[payload + 7] <= 2;
                 MarkResolution(snapshot, physical);

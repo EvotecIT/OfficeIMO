@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Dependency-free eight-bit DCT and eight/sixteen-bit Huffman lossless JPEG decoder plus JPEG encoder.</summary>
+/// <summary>Dependency-free eight-bit DCT and two-through-sixteen-bit Huffman lossless JPEG decoder plus JPEG encoder.</summary>
 public static partial class OfficeJpegCodec {
     /// <summary>Returns whether the payload starts with the JPEG start-of-image marker.</summary>
     public static bool IsJpeg(byte[]? encodedBytes) =>

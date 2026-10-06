@@ -172,13 +172,15 @@ internal static partial class OfficeJpegReader {
         public int BlocksPerRow;
         public int BlocksPerCol;
         public int PrevDc;
+        public int SampleMaximum = 255;
 
         public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes, int precision = 8) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
-            int sampleBytes = precision == 16 ? 2 : 1;
+            SampleMaximum = (1 << precision) - 1;
+            int sampleBytes = precision > 8 ? 2 : 1;
             var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8 * sampleBytes, ref aggregateBytes, JpegDimensionsLimitMessage);
             Buffer = sampleBytes == 1 ? new byte[bufferLength] : Array.Empty<byte>();
             WideBuffer = sampleBytes == 2 ? new ushort[bufferLength / 2] : null;

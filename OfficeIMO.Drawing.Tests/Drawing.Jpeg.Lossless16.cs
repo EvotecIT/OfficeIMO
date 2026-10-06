@@ -63,7 +63,8 @@ public sealed class JpegLossless16Tests {
 
     [Theory]
     [InlineData(0xC1, 16)]
-    [InlineData(0xC3, 12)]
+    [InlineData(0xC3, 1)]
+    [InlineData(0xC3, 17)]
     public void UnsupportedProcessOrPrecisionDoesNotProducePixels(int marker, int precision) {
         byte[] jpeg = File.ReadAllBytes(Path.Combine(Corpus, "p1-d1-l4-t1-s1-r0-a1.tif.jpg"));
         int frame = Array.FindIndex(jpeg, 1, value => value == 0xC3);

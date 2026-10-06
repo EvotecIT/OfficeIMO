@@ -174,6 +174,25 @@ GhostXPS opens every export without a process failure but differs by up to
 255/255, including blank output. These comparisons do not establish native
 Windows acceptance.
 
+Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
+bits. Native sample values survive prediction and chroma interpolation before
+projection to the public eight-bit raster buffer. YCbCr conversion uses the
+precision-specific chroma midpoint before projection, preserving neutral colors
+at low precision. The [precision corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegLosslessPrecision/README.md)
+contains 140 independently encoded/decoded gray/RGB files and 15 component-encoded
+YCbCr files. All native component samples match the projected public output;
+YCbCr paint also matches the declared conversion equations within one channel
+value. Point transforms restore discarded bits as zero. This standalone JPEG
+contract does not extend TIFF packed sample widths beyond its eight/sixteen-bit
+JPEG contract. XPS SVG export normalizes lossless/high-precision JPEG to PNG;
+PDF export also normalizes those streams instead of passing them through DCTDecode.
+The corpus checks 60,775 native component samples and produces 310 XPS/OpenXPS
+exports with 57,970 pixel-center probes per route. Independent MuPDF PDF/SVG
+rendering differs by at most 2/255 without warnings. GhostXPS opens all exports
+but differs by up to 255/255, including blank images. The new precision corpus
+uses full-resolution components; wider subsampled producer and native Windows
+acceptance remain separate evidence gaps.
+
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
 The reconstructed cases retain independently encoded entropy for baseline and
 lossless data, including both byte orders, strip/tile layouts and separate planes;

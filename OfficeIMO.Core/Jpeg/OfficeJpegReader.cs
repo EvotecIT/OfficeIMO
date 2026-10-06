@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (SOF0/SOF1/SOF2/SOF3, 8-bit, Huffman).
+/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (eight-bit SOF0/SOF1/SOF2; two-through-sixteen-bit SOF3, Huffman).
 /// </summary>
 internal static partial class OfficeJpegReader {
     private static readonly byte[] ZigZag = {

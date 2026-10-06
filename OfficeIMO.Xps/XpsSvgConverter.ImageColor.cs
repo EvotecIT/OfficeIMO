@@ -52,7 +52,11 @@ internal sealed partial class XpsSvgConverter {
             !OfficeRasterImageDecoder.TryDecodePngDefault(bytes, ImageDecodeOptions(), out raster)) {
             Loss("PNG static image could not be decoded within the native resource limits"); return false;
         }
-        if ((format == OfficeImageFormat.Tiff || format == OfficeImageFormat.JpegXr) &&
+        // SVG consumers commonly support only eight-bit DCT JPEG. Preserve the
+        // managed sample projection when the source uses lossless/high precision.
+        bool normalizeJpeg = format == OfficeImageFormat.Jpeg &&
+            (metadata.JpegSamplePrecision != 8 || metadata.JpegFrameMarker is not (0xC0 or 0xC1 or 0xC2));
+        if ((format == OfficeImageFormat.Tiff || format == OfficeImageFormat.JpegXr || normalizeJpeg) &&
             (!OfficeRasterImageDecoder.TryDecode(bytes, ImageDecodeOptions(), out raster, out _) || raster == null)) {
             Loss("Unsupported image encoding or ICC channel configuration"); return false;
         }
