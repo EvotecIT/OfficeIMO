@@ -106,6 +106,33 @@ public partial class Word {
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 77.3D, 77.5D);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void SaveAsPdf_HiddenTableJoinRetainsInlinePictureBoundaryAndDiagnostic(bool nativeDoc, bool nested) {
+        using WordDocument source = CreateJoinedParagraphDocument();
+        WordTable table = source.AddTable(1, 1);
+        if (nested) table = table.Rows[0].Cells[0].AddTable(1, 1);
+        WordTableCell cell = table.Rows[0].Cells[0];
+        WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
+        alpha.AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 18, 12);
+        HideJoinMark(alpha, true);
+        cell.AddParagraph("BETA");
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported" && warning.Source == "table cell");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var page = pdf.GetPage(1);
+        Assert.Contains("ALPHA", page.Text);
+        Assert.Contains("BETA", page.Text);
+        Assert.Single(page.GetImages());
+        Assert.NotEqual(page.Letters.First(letter => letter.Value == "A").StartBaseLine.Y,
+            Assert.Single(page.Letters, letter => letter.Value == "B").StartBaseLine.Y);
+        Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml);
+    }
+
     [Fact]
     public void SaveAsPdf_UnstyledTableRetainsExplicitPdfDefaultPadding() {
         using WordDocument document = CreateJoinedParagraphDocument();
