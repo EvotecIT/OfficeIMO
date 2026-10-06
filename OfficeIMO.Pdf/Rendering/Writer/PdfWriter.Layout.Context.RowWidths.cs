@@ -94,6 +94,7 @@ internal static partial class PdfWriter {
         private double MeasureBlockPreferredWidth(IPdfBlock block, double availableWidth) {
             switch (block) {
                 case ContainerBlock container:
+                    if (container.FrameTable != null) return ResolveContainerFrame(container, container.Style, 0D, availableWidth).Width;
                     double inset = ResolveContainerStyle(container).PaddingX * 2D;
                     double content = container.Blocks.Count == 0 ? 0D : container.Blocks.Max(child => MeasureBlockPreferredWidth(child, Math.Max(0D, availableWidth - inset)));
                     return Math.Min(ResolveContainerStyle(container).MaxWidth ?? availableWidth, content + inset);

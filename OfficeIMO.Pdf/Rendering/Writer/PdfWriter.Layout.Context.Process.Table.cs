@@ -694,7 +694,7 @@ internal static partial class PdfWriter {
                     int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                     int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
                     double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
-                    int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight);
+                    int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, style.PreservePartialCellLines);
                     double verticalOffset = 0;
                     double visibleTextHeight = 0D;
                     if (visibleLineCount > 0) {
@@ -758,7 +758,7 @@ internal static partial class PdfWriter {
                                 : RegisterTextStructureElement(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
                         }
 
-                        if (cell.Viewport != null)
+                        if (cell.Viewport != null || style.PreservePartialCellLines)
                             OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                                 paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
                                 xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts, cellFont);
@@ -836,6 +836,7 @@ internal static partial class PdfWriter {
                     }
                 }
                 if (style?.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
+                RecordTableFrameContentBottom(tb, rowBottom);
                 y -= rowHeight;
                 if (wholeRowSegment) {
                     y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
