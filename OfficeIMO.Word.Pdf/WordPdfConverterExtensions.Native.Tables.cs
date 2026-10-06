@@ -357,6 +357,11 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTableStyle style = wordStyle ?? CreateNativeDefaultTableStyle(options);
             style.ClipTextToCellBounds = true;
             if (!usesConfiguredDefaultStyle) {
+                // Word tables do not infer a two-row first/last-fragment group from
+                // the shared renderer's presentation defaults. Source paragraph and
+                // row rules govern pagination unless a PDF table policy is configured.
+                style.MinimumBodyRowsOnFirstPage = 0;
+                style.MinimumBodyRowsOnLastPage = 0;
                 style.FontSize ??= nativeDefaults.FontSize;
                 double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)
                     ? ResolveNativeTableStyleParagraphLineHeight(
@@ -371,6 +376,11 @@ namespace OfficeIMO.Word.Pdf {
             int repeatedHeaderRowCount = GetNativeTableRepeatedHeaderRowCount(table, rowCount);
             style.HeaderRowCount = GetNativeTableVisualHeaderRowCount(table, rowCount, repeatedHeaderRowCount);
             style.RepeatHeaderRowCount = repeatedHeaderRowCount;
+            if (!usesConfiguredDefaultStyle && repeatedHeaderRowCount > 0) {
+                // A repeated source header starts with body content. Removing
+                // presentation row groups must not leave a header by itself.
+                style.MinimumBodyRowsOnFirstPage = 1;
+            }
             if (repeatedHeaderRowCount > 0) {
                 style.PageContinuationSpacingBefore = Math.Max(style.PageContinuationSpacingBefore, NativeTablePageContinuationSpacingBefore);
             }
@@ -678,6 +688,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static NativeTableStyleDefaults ApplyNativeTableConditionalStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
             if (!conditionalStyle.CellFill.HasValue &&
+                conditionalStyle.ParagraphPagination == default &&
                 !conditionalStyle.TextColor.HasValue &&
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
@@ -712,6 +723,7 @@ namespace OfficeIMO.Word.Pdf {
                 ParagraphLineSpacingPoints = conditionalStyle.ParagraphLineSpacingPoints ?? tableStyleDefaults.ParagraphLineSpacingPoints,
                 ParagraphLineSpacingRule = conditionalStyle.ParagraphLineSpacingRule ?? tableStyleDefaults.ParagraphLineSpacingRule,
                 LineSpacing = conditionalStyle.LineSpacing.Inherit(tableStyleDefaults.LineSpacing),
+                ParagraphPagination = conditionalStyle.ParagraphPagination.Inherit(tableStyleDefaults.ParagraphPagination),
                 ParagraphSpacingBefore = conditionalStyle.ParagraphSpacingBefore ?? tableStyleDefaults.ParagraphSpacingBefore,
                 ParagraphSpacingAfter = conditionalStyle.ParagraphSpacingAfter ?? tableStyleDefaults.ParagraphSpacingAfter,
                 ParagraphAlignment = conditionalStyle.ParagraphAlignment ?? tableStyleDefaults.ParagraphAlignment,
@@ -901,7 +913,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return ConvertNativeTwipsToPoints(indentation.Width.Value);
+            return indentation.Width.Value / 20D;
         }
 
         private static double? GetNativeTableHorizontalPositionIndent(W.TablePositionProperties? position) {

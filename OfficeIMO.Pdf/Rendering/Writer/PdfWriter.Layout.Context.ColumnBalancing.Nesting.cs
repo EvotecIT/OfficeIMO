@@ -72,28 +72,28 @@ internal static partial class PdfWriter {
                 double? keptHeight = MeasureWholeBlockHeight(container, frame.X, frameWidth, currentOpts.DefaultFontSize);
                 return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;
             }
-            List<ColumnBalanceUnit>? units = MeasureWithContainerPaddingReservation(style.PaddingY, () =>
-                MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(container.Blocks), scope, frame.ContentWidth));
+            List<ColumnBalanceUnit>? units = MeasureWithContainerPaddingReservation(style, () =>
+                MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(container.Blocks), scope, frame.ContentWidth), isContinuation: remainder != null);
             if (units == null) return null;
             double firstHeight = remainder != null || container.Blocks.Count == 0 ? 0D :
-                MeasureWithContainerPaddingReservation(style.PaddingY, () => MeasureNextBlockFirstVisualHeight(
+                MeasureWithContainerPaddingReservation(style, () => MeasureNextBlockFirstVisualHeight(
                     container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize,
                     allowTableFragments: true, suppressParagraphSpacingBefore: true));
             return new() { new(new ColumnBalanceContainer(style, units, firstHeight, remainder != null)) };
         }
 
         private static bool PackColumnBalanceUnits(IReadOnlyList<ColumnBalanceUnit> units, double height, int columnCount,
-            double continuationPadding, ref int columns, ref double used) {
+            double continuationPadding, ref int columns, ref double used, Action<double>? finishColumn = null) {
             foreach (ColumnBalanceUnit unit in units) {
                 if (unit.Container is { } container) {
-                    if (!PackColumnBalanceContainer(container, height, columnCount, continuationPadding, ref columns, ref used)) return false;
+                    if (!PackColumnBalanceContainer(container, height, columnCount, continuationPadding, ref columns, ref used, finishColumn)) return false;
                 } else if (unit.Paragraph is { } paragraph) {
-                    if (!PackColumnBalanceParagraph(paragraph, height, columnCount, continuationPadding, ref columns, ref used)) return false;
+                    if (!PackColumnBalanceParagraph(paragraph, height, columnCount, continuationPadding, ref columns, ref used, finishColumn)) return false;
                 } else if (unit.RowFragment is { } row) {
-                    if (!PackColumnBalanceRowFragment(row, height, columnCount, ref columns, ref used, continuationPadding, unit.SpacingBefore)) return false;
+                    if (!PackColumnBalanceRowFragment(row, height, columnCount, ref columns, ref used, continuationPadding, unit.SpacingBefore, finishColumn)) return false;
                 } else {
                     double before = used > continuationPadding + .001D ? unit.SpacingBefore : 0D;
-                    if (used + before + unit.Height > height + .001D) { columns++; used = continuationPadding + unit.ContinuationHeight; before = 0D; }
+                    if (used + before + unit.Height > height + .001D) { finishColumn?.Invoke(used); columns++; used = continuationPadding + unit.ContinuationHeight; before = 0D; }
                     if (columns > columnCount || used + unit.Height > height + .001D) return false;
                     used += before + unit.Height;
                 }
@@ -103,25 +103,28 @@ internal static partial class PdfWriter {
 
         /// <summary>Matches container fragment starts, repeated top padding and bounded bottom padding during column packing.</summary>
         private static bool PackColumnBalanceContainer(ColumnBalanceContainer container, double height, int columnCount,
-            double parentPadding, ref int columns, ref double used) {
+            double parentPadding, ref int columns, ref double used, Action<double>? finishColumn = null) {
             PdfPanelStyle style = container.Style;
             double before = container.IsContinuation || used <= parentPadding + .001D ? 0D : style.SpacingBefore;
             if (!container.IsContinuation) {
-                double minimumStart = style.PaddingY * 2D + container.FirstVisualHeight;
+                double minimumStart = style.PaddingY + style.FragmentPaddingReservation + style.FragmentBottomInset + container.FirstVisualHeight;
                 if (minimumStart > height - parentPadding + .001D) return false;
                 if (used > parentPadding + .001D && used + before + minimumStart > height + .001D) {
+                    finishColumn?.Invoke(used);
                     if (++columns > columnCount) return false;
                     used = parentPadding; before = 0D;
                 }
             }
-            used += before + Math.Min(style.PaddingY, Math.Max(0D, height - used));
-            if (!PackColumnBalanceUnits(container.Units, height, columnCount, parentPadding + style.PaddingY, ref columns, ref used)) return false;
-            used += Math.Min(style.PaddingY, Math.Max(0D, height - used));
+            used += before + Math.Min(style.GetFragmentTopPadding(container.IsContinuation), Math.Max(0D, height - used));
+            if (!PackColumnBalanceUnits(container.Units, height - style.FragmentBottomInset, columnCount, parentPadding + style.GetFragmentTopPadding(isContinuation: true), ref columns, ref used, finishColumn)) return false;
+            if (!style.RepeatFragmentDecoration && used + style.PaddingY > height + .001D) return false;
+            used += style.RepeatFragmentDecoration ? Math.Min(style.PaddingY, Math.Max(0D, height - used)) : style.PaddingY;
             double after = style.SpacingAfter;
             while (after > .001D) {
                 double take = Math.Min(after, Math.Max(0D, height - used));
                 used += take; after -= take;
                 if (after <= .001D) break;
+                finishColumn?.Invoke(used);
                 if (++columns > columnCount) return false;
                 used = parentPadding;
                 if (height <= parentPadding + .001D) return false;

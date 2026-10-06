@@ -448,11 +448,18 @@ internal static partial class PdfWriter {
                     rowIndex, startLine, lineCount, suppressCellObjects);
 
             int GetTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available,
-                bool requireDefaultFirstFragment = false, bool? canMoveToNextFrame = null) =>
-                GetPreparedTableRowSegmentLineCountThatFits(tb, style, preparedRows, cols, colPixel, colGapPx,
+                bool requireDefaultFirstFragment = false, bool? canMoveToNextFrame = null) {
+                int take = GetPreparedTableRowSegmentLineCountThatFits(tb, style, preparedRows, cols, colPixel, colGapPx,
                     rowIndex, startLine, available, MaximumContinuationHeight(),
                     (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - 0.001D) ||
                         MaximumContinuationHeight() > maxContentHeight + 0.001D, requireDefaultFirstFragment);
+                if (rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex] && GetClosingContainerPadding() > 0D)
+                    take = GetPreparedTableRowSegmentLineCountThatFits(tb, style, preparedRows, cols, colPixel, colGapPx,
+                        rowIndex, startLine, available - GetClosingTextPadding(style.SpacingAfter), MaximumContinuationHeight(),
+                        (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - .001D) ||
+                            MaximumContinuationHeight() > maxContentHeight + .001D, requireDefaultFirstFragment);
+                return take;
+            }
 
             bool CanSplitTableRowIntoRemainingSpace(int rowIndex) =>
                 rowIndex >= headerRowCount &&
@@ -887,7 +894,8 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                if (ShouldBreakBefore(placementHeight)) {
+                double closingPadding = rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D;
+                if (ShouldBreakBefore(placementHeight + closingPadding)) {
                     if (CanSplitTableRowIntoRemainingSpace(rowIndex)) {
                         DrawSplitTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
                         y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);

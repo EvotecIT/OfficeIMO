@@ -24,9 +24,10 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static bool DrawPanelBorder(StringBuilder sb, PdfPanelStyle style, double x, double y, double w, double h, bool artifact = false) {
+    private static bool DrawPanelBorder(StringBuilder sb, PdfPanelStyle style, double x, double y, double w, double h, bool artifact = false,
+        bool drawTop = true, bool drawBottom = true) {
         double radius = style.CornerRadius;
-        if (!style.HasSideBorders) {
+        if (!style.HasSideBorders && drawTop && drawBottom) {
             if (style.BorderColor.HasValue && style.BorderWidth > 0) {
                 DrawRoundedRowRect(sb, style.BorderColor.Value, style.BorderWidth, x, y, w, h, radius, true, true, true, true, artifact);
                 return true;
@@ -35,12 +36,17 @@ internal static partial class PdfWriter {
             return false;
         }
 
+        PdfPanelBorder? top = drawTop ? ResolvePanelSideBorder(style.TopBorderSnapshot, style) : null;
+        PdfPanelBorder? right = ResolvePanelSideBorder(style.RightBorderSnapshot, style);
+        PdfPanelBorder? bottom = drawBottom ? ResolvePanelSideBorder(style.BottomBorderSnapshot, style) : null;
+        PdfPanelBorder? left = ResolvePanelSideBorder(style.LeftBorderSnapshot, style);
+        x -= IsRenderablePanelBorderSide(left) ? left!.Offset : 0D;
+        y -= IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D;
+        w += (IsRenderablePanelBorderSide(left) ? left!.Offset : 0D) + (IsRenderablePanelBorderSide(right) ? right!.Offset : 0D);
+        h += (IsRenderablePanelBorderSide(top) ? top!.Offset : 0D) + (IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D);
+        if (w <= 0D || h <= 0D) throw new ArgumentException("Panel border offsets must leave positive border dimensions.");
         double x2 = x + w;
         double y2 = y + h;
-        PdfPanelBorder? top = ResolvePanelSideBorder(style.TopBorderSnapshot, style);
-        PdfPanelBorder? right = ResolvePanelSideBorder(style.RightBorderSnapshot, style);
-        PdfPanelBorder? bottom = ResolvePanelSideBorder(style.BottomBorderSnapshot, style);
-        PdfPanelBorder? left = ResolvePanelSideBorder(style.LeftBorderSnapshot, style);
 
         // Rounded box: draw each side as a rounded-rectangle stroke clipped to that side and its two
         // corners, so the sides meet at the corner tangents and share the box's rounded corners (the CSS
@@ -49,10 +55,10 @@ internal static partial class PdfWriter {
             // Panel side borders are standalone (no thin border underneath), so each sits centred on the
             // path (outerBorderWidth == its own width -> no inset).
             bool drawnRounded = false;
-            if (IsRenderablePanelBorderSide(top)) { DrawRoundedSideStroke(sb, top!.Color!.Value, top.Width, top.Width, RoundedRectSide.Top, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(right)) { DrawRoundedSideStroke(sb, right!.Color!.Value, right.Width, right.Width, RoundedRectSide.Right, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(bottom)) { DrawRoundedSideStroke(sb, bottom!.Color!.Value, bottom.Width, bottom.Width, RoundedRectSide.Bottom, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(left)) { DrawRoundedSideStroke(sb, left!.Color!.Value, left.Width, left.Width, RoundedRectSide.Left, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(top)) { DrawRoundedSideStroke(sb, top!.Color!.Value, top.Width, top.Width, RoundedRectSide.Top, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(right)) { DrawRoundedSideStroke(sb, right!.Color!.Value, right.Width, right.Width, RoundedRectSide.Right, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(bottom)) { DrawRoundedSideStroke(sb, bottom!.Color!.Value, bottom.Width, bottom.Width, RoundedRectSide.Bottom, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(left)) { DrawRoundedSideStroke(sb, left!.Color!.Value, left.Width, left.Width, RoundedRectSide.Left, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
             return drawnRounded;
         }
 

@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
             }
 
             double availableHeight = GetMaximumBlockContinuationHeight() - reservedHeight - imageMeasurementReservedHeight
-                - activeContainerScopes.Sum(scope => scope.Style.PaddingY) - spacingBefore - spacingAfter;
+                - activeContainerScopes.Sum(scope => scope.Style.GetActiveFragmentImageReservation(scope.IsContinuation)) - spacingBefore - spacingAfter;
             double scale = 1D;
             if (imageWidth > frameWidth) {
                 scale = Math.Min(scale, frameWidth / imageWidth);
@@ -339,7 +339,7 @@ internal static partial class PdfWriter {
                 }
 
                 return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.PaddingY +
-                       MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                       MeasureWithContainerPaddingReservation(style, () =>
                            MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
             }
 
@@ -567,6 +567,8 @@ internal static partial class PdfWriter {
             double remaining = height;
             while (remaining > 0.001D) {
                 double available = y - currentOpts.MarginBottom;
+                double closingPadding = GetClosingContainerPadding();
+                if (remaining <= available && remaining + closingPadding > available) available -= closingPadding;
                 if (available <= 0.5D) {
                     NewPage();
                     continue;

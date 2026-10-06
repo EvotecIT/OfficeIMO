@@ -106,7 +106,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (tableDepth == 1) {
-                text.Append('\r');
                 AppendTrailingTableBoundaryBookmarks(table, bookmarks, text.Length);
             }
         }
@@ -187,6 +186,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            ThrowIfUnsupportedTableGapShading(tableProperties, tableStyleDefinitions);
             foreach (OpenXmlElement property in tableProperties.ChildElements) {
                 switch (property) {
                     case TableStyle tableStyle:
@@ -276,11 +276,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return null;
             }
 
-            if (width.Value < 0 || width.Value > short.MaxValue) {
-                throw new NotSupportedException("Native DOC saving supports table indentation only as nonnegative Word 97-2003 signed twip values.");
+            if (width.Value < short.MinValue || width.Value > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports table indentation only as Word 97-2003 signed twip values.");
             }
 
-            return width.Value == 0 ? null : width.Value;
+            // An explicit zero overrides an inherited indent; only omission permits style fallback.
+            return width.Value;
         }
 
         private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableProperties? tableProperties) {
@@ -373,7 +374,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (width == 0) {
-                return null;
+                return 0;
             }
 
             if (spacing.Type?.Value != TableWidthUnitValues.Dxa) {
@@ -1340,7 +1341,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting) {
             paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
+                .WithInheritedParagraphFormatting(ReadSupportedCellParagraphStyleFormatting(paragraph, mainPart))
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
+            tableStyleRunFormatting = ReadSupportedCellParagraphStyleRunFormatting(paragraph, mainPart)
+                .WithInheritedFormatting(tableStyleRunFormatting);
 
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
             for (int index = 0; index < children.Length; index++) {
@@ -1431,42 +1435,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     RowCantSplit ?? inherited.RowCantSplit,
                     RowIsHeader ?? inherited.RowIsHeader);
             }
-        }
-
-        private readonly struct LegacyDocTableBorders {
-            internal LegacyDocTableBorders(
-                LegacyDocTableCellBorder top,
-                LegacyDocTableCellBorder left,
-                LegacyDocTableCellBorder bottom,
-                LegacyDocTableCellBorder right,
-                LegacyDocTableCellBorder insideHorizontal,
-                LegacyDocTableCellBorder insideVertical) {
-                Top = top;
-                Left = left;
-                Bottom = bottom;
-                Right = right;
-                InsideHorizontal = insideHorizontal;
-                InsideVertical = insideVertical;
-            }
-
-            internal LegacyDocTableCellBorder Top { get; }
-
-            internal LegacyDocTableCellBorder Left { get; }
-
-            internal LegacyDocTableCellBorder Bottom { get; }
-
-            internal LegacyDocTableCellBorder Right { get; }
-
-            internal LegacyDocTableCellBorder InsideHorizontal { get; }
-
-            internal LegacyDocTableCellBorder InsideVertical { get; }
-
-            internal bool HasAny => Top.HasAny
-                || Left.HasAny
-                || Bottom.HasAny
-                || Right.HasAny
-                || InsideHorizontal.HasAny
-                || InsideVertical.HasAny;
         }
 
         private readonly struct LegacyDocWritableTableCell {

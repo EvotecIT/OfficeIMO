@@ -8042,7 +8042,7 @@ namespace OfficeIMO.Tests {
                     var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
                     style.Append(new StyleName { Val = "Native DOC Palette Shading Table" });
                     style.Append(new BasedOn { Val = "TableNormal" });
-                    style.Append(new StyleTableProperties(
+                    style.Append(new StyleTableCellProperties(
                         new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
@@ -8125,7 +8125,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(360, formattedCellParagraph.IndentationBefore);
                 Assert.Equal("Plain", plainCellParagraph.Text);
                 Assert.Null(plainCellParagraph.ParagraphAlignment);
-                Assert.Null(plainCellParagraph.LineSpacingAfter);
+                Assert.Equal(0, plainCellParagraph.LineSpacingAfter);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8970,7 +8970,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_IgnoresZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_PreservesZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -8986,15 +8986,15 @@ namespace OfficeIMO.Tests {
                 }
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
-                Assert.False(
+                Assert.True(
                     ContainsBytePattern(wordDocumentStream, 0x33, 0xD6, 0x06),
-                    "Expected native DOC save to omit sprmTCellSpacingDefault for zero auto table cell spacing.");
+                    "Expected native DOC save to preserve explicit zero spacing as sprmTCellSpacingDefault.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Null(reloadedTable.StyleDetails!.CellSpacing);
+                Assert.Equal((short)0, reloadedTable.StyleDetails!.CellSpacing);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("No spacing", row.Cells[0].Paragraphs[0].Text);
             } finally {
@@ -9161,7 +9161,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("NoTop", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Null(reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal(WordBorderStyle.Nil, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
                 Assert.Equal("Inherited", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].Borders.TopColorHex);
@@ -9259,13 +9259,15 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
 
                     var firstColumnTableProperties = new TableStyleConditionalFormattingTableProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" },
                         new TableBorders(
                             new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U },
                             new BottomBorder { Val = BorderValues.Double, Color = "0000FF", Size = 8U },
                             new RightBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
                             new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00FF00", Size = 6U }));
-                    style.Append(new TableStyleProperties(firstColumnTableProperties) { Type = TableStyleOverrideValues.FirstColumn });
+                    style.Append(new TableStyleProperties(firstColumnTableProperties,
+                        new TableStyleConditionalFormattingTableCellProperties(new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" })) {
+                        Type = TableStyleOverrideValues.FirstColumn
+                    });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
                     WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
@@ -10186,7 +10188,7 @@ namespace OfficeIMO.Tests {
                     var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
                     baseStyle.Append(new StyleName { Val = "Native DOC Base Shading Table" });
                     baseStyle.Append(new BasedOn { Val = "TableNormal" });
-                    baseStyle.Append(new StyleTableProperties(
+                    baseStyle.Append(new StyleTableCellProperties(
                         new Shading {
                             Val = ShadingPatternValues.Clear,
                             Fill = "FF0000"

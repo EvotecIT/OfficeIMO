@@ -21,12 +21,13 @@ internal static partial class PdfWriter {
         /// <summary>Places an unscaled object in a fitting frame, skipping narrower or unused partial columns.</summary>
         private double PlaceFixedFlowBlock(string name, double objectWidth, double objectHeight,
             double spacingBefore, double spacingAfter, ref double containerWidth) {
-            EnsureFixedFlowBlockFits(name, objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(containerWidth));
+            double closingPadding = GetClosingContainerPadding();
+            EnsureFixedFlowBlockFits(name, objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(containerWidth), closingPadding);
             double before = ResolveTopLevelSpacingBefore(spacingBefore);
-            while (objectWidth > containerWidth + .001D || before + objectHeight + spacingAfter > y - currentOpts.MarginBottom + .001D) {
+            while (objectWidth > containerWidth + .001D || before + objectHeight + spacingAfter + closingPadding > y - currentOpts.MarginBottom + .001D) {
                 AdvanceFixedFlowFrame(ref containerWidth);
                 before = 0D;
-                EnsureFixedFlowBlockFits(name, objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(containerWidth));
+                EnsureFixedFlowBlockFits(name, objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(containerWidth), closingPadding);
             }
             return before;
         }
