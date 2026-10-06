@@ -256,6 +256,7 @@ public partial class Word {
         for (int cycle = 0; cycle < 2; cycle++) {
             byte[] stream = ReadCompoundStream(bytes, "WordDocument");
             Assert.Equal(0x00D9, BitConverter.ToUInt16(stream, 0x02));
+            Assert.Equal(0xF, (BitConverter.ToUInt16(stream, 0x0A) >> 4) & 0xF);
             Assert.Equal(0x006C, BitConverter.ToUInt16(stream, 0x98));
             Assert.Equal(2, BitConverter.ToUInt16(stream, 0x3FA));
             Assert.Equal(0x00D9, BitConverter.ToUInt16(stream, 0x3FC));
@@ -284,6 +285,7 @@ public partial class Word {
         byte[] bytes = source.ToBytes(WordFileFormat.Doc);
         byte[] stream = ReadCompoundStream(bytes, "WordDocument");
         Assert.Equal(0x00C1, BitConverter.ToUInt16(stream, 0x02));
+        Assert.Equal(0, (BitConverter.ToUInt16(stream, 0x0A) >> 4) & 0xF);
         Assert.Equal(0x005D, BitConverter.ToUInt16(stream, 0x98));
         Assert.Equal(0, BitConverter.ToUInt16(stream, 0x382));
         using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));

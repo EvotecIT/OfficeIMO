@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             var stream = new byte[Math.Max(FibLength, streamLength)];
             WriteUInt16(stream, 0x00, WordDocumentMagic);
-            bool hasNestedTables = papxPages.Any(page => page.Any(segment => segment.Formatting.TableDepth > 1));
+            bool hasNestedTables = body.HasNestedTables;
             // Word 97 interprets nested cell marks as ordinary paragraph marks.
             // Declare the Word 2000 format and its matching FIB extension when needed.
             ushort fibVersion = hasNestedTables ? (ushort)0x00D9 : Word97FibVersion;
@@ -35,6 +35,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x02, fibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
             ushort fibFlags = DefaultFibFlags;
+            // Since Word 2000, these four bits are a required sentinel, not a save count.
+            if (hasNestedTables) fibFlags = unchecked((ushort)(fibFlags | 0x00F0));
             if (body.HasPictures) fibFlags = unchecked((ushort)(fibFlags | HasPicturesFibFlag));
             if (isTemplate) fibFlags = unchecked((ushort)(fibFlags | TemplateFibFlag));
             WriteUInt16(stream, 0x0A, fibFlags);
@@ -55,6 +57,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (hasNestedTables) {
                 WriteUInt16(stream, fibExtensionOffset + 2, fibVersion);
                 WriteUInt16(stream, fibExtensionOffset + 4, 0);
+                WriteInt32(stream, FcRmdThreadingOffset, body.RmdThreadingOffsetInTableStream);
+                WriteInt32(stream, LcbRmdThreadingOffset, body.RmdThreading.Length);
             }
             WriteInt32(stream, FcStshfOffset, body.HasStyleSheet ? body.StyleSheetOffsetInTableStream : 0);
             WriteInt32(stream, LcbStshfOffset, body.StyleSheet.Bytes.Length);
@@ -205,6 +209,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (body.HasRevisions) {
                 Buffer.BlockCopy(body.SttbfRMark, 0, table, body.SttbfRMarkOffsetInTableStream, body.SttbfRMark.Length);
+            }
+
+            if (body.HasNestedTables) {
+                Buffer.BlockCopy(body.RmdThreading, 0, table, body.RmdThreadingOffsetInTableStream, body.RmdThreading.Length);
             }
 
             if (body.HasStyleSheet) {

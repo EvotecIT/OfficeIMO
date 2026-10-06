@@ -99,6 +99,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     FootnoteText, FootnoteFormattedRuns, CommentText, CommentFormattedRuns, EndnoteText, EndnoteFormattedRuns);
                 ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
+                HasNestedTables = PapxPages.Any(page => page.Any(segment => segment.Formatting.TableDepth > 1));
+                RmdThreading = HasNestedTables ? CreateRevisionThreading(RevisionAuthors.Count) : Array.Empty<byte>();
             }
 
             internal string Text { get; }
@@ -207,6 +209,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal byte[] SttbfRMark { get; }
 
+            internal bool HasNestedTables { get; }
+
+            internal byte[] RmdThreading { get; }
+
             internal bool HasCharacterFormatting => true;
 
             internal bool HasParagraphFormatting => true;
@@ -304,11 +310,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? SttbfRMarkOffsetInTableStream + SttbfRMark.Length
                 : AfterBookmarkDataOffsetInTableStream;
 
-            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
+            internal int RmdThreadingOffsetInTableStream => HasNestedTables
+                ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
+
+            private int AfterRevisionThreadingOffsetInTableStream => RmdThreadingOffsetInTableStream + RmdThreading.Length;
+
+            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionThreadingOffsetInTableStream) : AfterRevisionThreadingOffsetInTableStream;
 
             internal int FontTableOffsetInTableStream => HasStyleSheet
                 ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
-                : AfterRevisionDataOffsetInTableStream;
+                : AfterRevisionThreadingOffsetInTableStream;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();

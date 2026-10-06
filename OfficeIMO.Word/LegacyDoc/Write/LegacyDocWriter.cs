@@ -84,6 +84,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbSttbfBkmkOffset = 0x146;
         private const int FcSttbfRMarkOffset = 0x232;
         private const int LcbSttbfRMarkOffset = 0x236;
+        private const int FcRmdThreadingOffset = 0x38A;
+        private const int LcbRmdThreadingOffset = 0x38E;
         private const int FcPlcfBkfOffset = 0x14A;
         private const int LcbPlcfBkfOffset = 0x14E;
         private const int FcPlcfBklOffset = 0x152;
