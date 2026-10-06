@@ -240,7 +240,7 @@ namespace OfficeIMO.Word.Pdf {
             return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
         }
 
-        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false) {
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, NativeFontMap? nativeFontMap = null, Func<WordParagraph, (int Level, string Marker)?>? getMarker = null, int tableNestingDepth = 0, bool ignoreFallbackTableStyle = false, WordToPdfOptions? options = null) {
             var runs = new List<PdfCore.PdfTextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             double? pendingSpacingAfter = null;
@@ -261,6 +261,7 @@ namespace OfficeIMO.Word.Pdf {
                         getMarker,
                         tableNestingDepth,
                         ignoreFallbackTableStyle,
+                        options,
                         runs,
                         paragraphs);
                     pendingSpacingAfter = null;
@@ -272,15 +273,24 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
+                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
+                WordParagraph finalParagraph = (WordParagraph)cellElements[lastIndex];
                 List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
                     ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap)
                     : paragraphRunsByElement[i]!;
+                if (lastIndex > i) {
+                    paragraphRuns = new List<PdfCore.PdfTextRun>(paragraphRuns);
+                    for (int joinedIndex = i + 1; joinedIndex <= lastIndex; joinedIndex++) {
+                        paragraphRuns.AddRange(paragraphRunsByElement![joinedIndex]!);
+                    }
+                }
                 (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
                 if (listMarker is { Marker.Length: > 0 } marker) {
                     paragraphRuns.InsertRange(0, CreateNativeCellListMarkerRuns(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, indentation.FirstLine, nativeFontMap));
                 }
-                if (paragraphRuns.Count == 0 && !ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
+                if (paragraphRuns.Count == 0 && !ShouldRenderNativeEmptyParagraphLineBox(finalParagraph)) {
+                    i = lastIndex;
                     continue;
                 }
 
@@ -299,11 +309,11 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 double spacingAfter = GetNativeCellParagraphSpacingAfter(
-                    paragraph,
+                    finalParagraph,
                     nativeDefaults,
                     tableStyleDefaults,
                     nativeFontMap);
-                if (ShouldSuppressNativeContextualSpacingAfter(paragraph, GetNextNativeRenderableCellParagraph(cellElements, paragraphRunsByElement, i))) {
+                if (ShouldSuppressNativeContextualSpacingAfter(finalParagraph, GetNextNativeRenderableCellParagraph(cellElements, paragraphRunsByElement, lastIndex))) {
                     spacingAfter = 0D;
                 }
 
@@ -325,6 +335,14 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphFontSize = double.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
                         ? halfPoints / 2D : paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
                 }
+                if (lastIndex > i) {
+                    (paragraphFontSize, lineHeight, lineSpacing) = ResolveNativeJoinedCellParagraphMetrics(
+                        cellElements, paragraphRunsByElement!, i, lastIndex, nativeDefaults, tableStyleDefaults, nativeFontMap);
+                    pagination = pagination with {
+                        KeepWithNext = ResolveNativeCellParagraphPagination(finalParagraph,
+                            GetNativeParagraphStyleDefaults(finalParagraph), nativeDefaults, tableStyleDefaults).KeepWithNext
+                    };
+                }
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
@@ -340,6 +358,7 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphFontSize,
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false));
                 pendingSpacingAfter = spacingAfter;
+                i = lastIndex;
             }
 
             return new NativeCellText(runs, paragraphs);

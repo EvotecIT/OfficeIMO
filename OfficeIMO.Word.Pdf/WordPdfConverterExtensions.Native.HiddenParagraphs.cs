@@ -82,7 +82,7 @@ public static partial class WordPdfConverterExtensions {
 
     private static bool CanJoinNativeTextParagraph(WordParagraph paragraph,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
-        NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
         W.Paragraph source = paragraph._paragraph;
         if (WordParagraph.IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null ||
             getMarker(paragraph) != null || GetHeadingLevel(paragraph) > 0 ||

@@ -30,7 +30,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             tableAutofit ??= ReadSupportedTableStyleAutofit(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
-            defaultCellMargins ??= ReadSupportedTableStyleDefaultCellMargins(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
+            // Materialize the resolved DOCX inset for stable native DOC layout;
+            // Word positions these cells differently when the padding is implicit.
+            defaultCellMargins = new LegacyDocTableCellMargins(0, 108, 0, 108)
+                .Merge(ReadSupportedTableStyleDefaultCellMargins(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions) ?? default)
+                .Merge(defaultCellMargins ?? default);
             int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
             defaultCellSpacingTwips ??= ReadSupportedTableStyleDefaultCellSpacing(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleDefinitions);
