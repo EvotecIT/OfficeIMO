@@ -464,7 +464,6 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 
 ### XPS/OpenXPS
 
-- [ ] Correct native PDFKit whole-word search for sheared, nested-transform and sideways XPS text while retaining cluster selection geometry and vector paint; qualify the resulting transformed selection in both dialects.
 
 Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix](../OfficeIMO.Xps/SUPPORT.md).
 

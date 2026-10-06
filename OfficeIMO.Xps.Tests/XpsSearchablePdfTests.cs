@@ -49,6 +49,26 @@ public sealed class XpsSearchablePdfTests {
         Assert.Equal("A", pdf.ExtractText().Trim());
     }
 
+    [Theory]
+    [InlineData(XpsFormat.Xps)]
+    [InlineData(XpsFormat.OpenXps)]
+    public void SidewaysSelectionUsesRunCellsAndRetainsExplicitOffsets(XpsFormat format) {
+        var doc = Create(format); var page = doc.Pages[0];
+        var xml = page.GetMarkup(); var run = xml.Elements().Single();
+        run.SetAttributeValue("IsSideways", "true");
+        run.SetAttributeValue("UnicodeString", "Searchable"); page.ReplaceMarkup(xml);
+        var spans = page.ToSvg().TextSpans;
+        Assert.All(spans, span => {
+            Assert.Equal(spans[0].TopLeft.Y, span.TopLeft.Y);
+            Assert.Equal(spans[0].BottomLeft.Y, span.BottomLeft.Y);
+        });
+        run.SetAttributeValue("UnicodeString", "AA");
+        run.SetAttributeValue("Indices", "36,100;36,100,0,25"); page.ReplaceMarkup(xml);
+        spans = page.ToSvg().TextSpans;
+        Assert.Equal(spans[0].TopLeft.Y - 6, spans[1].TopLeft.Y, 8);
+        Assert.Equal("AA", PdfReadDocument.Open(doc.ToPdf()).ExtractText().Replace("\n", "").Trim());
+    }
+
     [Fact]
     public void RtlAndZeroAdvanceClustersKeepNativePositions() {
         var page = Create(XpsFormat.Xps).Pages[0]; var xml = page.GetMarkup(); var run = xml.Elements().Single();

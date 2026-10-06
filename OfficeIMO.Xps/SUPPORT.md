@@ -719,14 +719,16 @@ fixture. macOS Preview confirms word and ligature-cluster search with localized
 word highlighting. PDFKit extracts and finds the source text, including a surrogate
 pair, in both dialects with standard, embedded TrueType and embedded CFF fonts.
 Ghostscript and MuPDF render these six searchable-text exports identically to the
-previous vector paint. A separate ten-document native probe covers plain, 90-degree
-rotated, sheared, nested-transform and sideways text in both dialects. MuPDF
-extracts and finds the source word in all ten. PDFKit finds plain and 90-degree
-rotated words, but splits sheared/nested words into letters and reorders sideways
-letters, preventing whole-word search. A separately constructed sheared PDF with
-a continuous text run searches correctly in PDFKit; the per-cluster export
-requires further correction and native qualification. Wider interactive selection
-remains unqualified. Text follows source markup order and retains clipped/transparent
+previous vector paint. A separate 30-document native probe covers plain,
+90-degree rotated, sheared, nested-transform and sideways text in both dialects
+with standard, embedded TrueType and embedded CFF fonts. PDFKit and MuPDF extract
+and find the source word in every case; MuPDF paint is byte-identical to the
+pre-change vector renders. Contiguous selection cells share a text run with
+explicit scalar advances, preserving cluster widths. Sideways selection cells
+share the run baseline while retaining explicit glyph offsets. Distinct CFF glyph
+IDs retain Unicode ownership; unavailable glyphs keep separate fallback mappings.
+Discontinuous baselines remain separate runs. Wider interactive selection and
+font-fallback combinations remain unqualified. Text follows source markup order and retains clipped/transparent
 source content; this is not a redaction or accessibility reconstruction contract.
 
 Native DocumentStructure edits have generated coverage in both dialects for

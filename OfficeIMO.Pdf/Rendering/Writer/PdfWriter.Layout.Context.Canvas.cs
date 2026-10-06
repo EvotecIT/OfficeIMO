@@ -7,7 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderCanvasBlock(PdfCanvasBlock canvas) {
             EnsurePage();
-            foreach (PdfCanvasItem item in canvas.Items) {
+            for (int itemIndex = 0; itemIndex < canvas.Items.Count; itemIndex++) {
+                PdfCanvasItem item = canvas.Items[itemIndex];
                 switch (item) {
                     case PdfCanvasBehindTextItem behindText:
                         RenderBehindTextCanvas(behindText);
@@ -44,7 +45,7 @@ internal static partial class PdfWriter {
                         break;
                     case PdfCanvasSearchableTextItem searchableText:
                         ResolveFloatingBookmarks(currentOpts.PageHeight - searchableText.Y);
-                        RenderCanvasSearchableText(searchableText);
+                        if (!TryRenderSearchableRun(canvas.Items, ref itemIndex)) RenderCanvasSearchableText(searchableText);
                         break;
                     case PdfCanvasTextBoxItem textBox:
                         ResolveFloatingBookmarks(currentOpts.PageHeight - textBox.Y);

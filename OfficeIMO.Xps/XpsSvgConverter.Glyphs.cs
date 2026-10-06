@@ -67,6 +67,7 @@ internal sealed partial class XpsSvgConverter {
             if (text.Length > 0 && codeUnits > text.Length - textIndex) throw new InvalidDataException("Glyph cluster exceeds UnicodeString.");
             double clusterLeft = double.PositiveInfinity, clusterTop = double.PositiveInfinity;
             double clusterRight = double.NegativeInfinity, clusterBottom = double.NegativeInfinity;
+            double sidewaysTop = double.PositiveInfinity, sidewaysBottom = double.NegativeInfinity;
             for (int g = 0; g < glyphCount; g++) {
                 string[] fields = (g == 0 ? entry : entries[entryIndex + g]).Split(',');
                 if (fields.Length > 4 || fields[0].Contains("(")) throw new InvalidDataException("Malformed XPS glyph mapping.");
@@ -90,6 +91,13 @@ internal sealed partial class XpsSvgConverter {
                 double cellLeft = rtl ? x - u - advance : gx;
                 double cellRight = rtl ? x - u : gx + advance;
                 clusterLeft = Math.Min(clusterLeft, cellLeft); clusterRight = Math.Max(clusterRight, cellRight);
+                if (sideways) {
+                    // Sideways glyph ink varies in height, but its logical selection
+                    // cell shares the run baseline. Preserve explicit vertical offsets.
+                    double halfHeight = font.LineHeight(size) / 2D;
+                    sidewaysTop = Math.Min(sidewaysTop, y - v - halfHeight);
+                    sidewaysBottom = Math.Max(sidewaysBottom, y - v + halfHeight);
+                }
                 if (!sideways) {
                     double cellTop = y - v - font.BaselineOffset(size);
                     clusterTop = Math.Min(clusterTop, cellTop); clusterBottom = Math.Max(clusterBottom, cellTop + font.LineHeight(size));
@@ -124,6 +132,7 @@ internal sealed partial class XpsSvgConverter {
                 double left = clusterLeft, right = clusterRight;
                 double top = double.IsPositiveInfinity(clusterTop) ? y - size / 2 : clusterTop;
                 double bottom = double.IsNegativeInfinity(clusterBottom) ? y + size / 2 : clusterBottom;
+                if (sideways) { top = sidewaysTop; bottom = sidewaysBottom; }
                 // Zero-advance combining clusters still need a finite selection region.
                 right = Math.Max(right, left + size * 0.001);
                 bottom = Math.Max(bottom, top + size * 0.001);

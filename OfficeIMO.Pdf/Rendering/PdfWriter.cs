@@ -296,7 +296,7 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(cffFontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
-                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descendantId: descendantFontId);
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descriptorId: descriptorId, descendantId: descendantFontId);
                 } else {
                     int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
