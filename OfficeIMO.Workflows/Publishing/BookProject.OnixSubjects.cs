@@ -44,7 +44,7 @@ public sealed partial class BookProject {
             foreach (BookOnixSubjectHeading heading in subject.Headings) {
                 token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(heading);
                 RequireOnixText(heading.Text, nameof(heading.Text));
-                if (heading.LanguageCode != null) RequireOnixLanguageCode(heading.LanguageCode, nameof(heading.LanguageCode));
+                RequireOnixTranslationLanguage(heading.LanguageCode, subject.Headings.Count, nameof(subject.Headings));
                 if (!languages.Add(heading.LanguageCode ?? string.Empty))
                     throw new ArgumentException("Subject headings cannot repeat a language, including unspecified language.", nameof(subjects));
                 var value = new XElement(ns + "SubjectHeadingText", heading.Text);
@@ -56,9 +56,4 @@ public sealed partial class BookProject {
         return result;
     }
 
-    private static void RequireOnixLanguageCode(string value, string name) {
-        RequireOnixText(value, name);
-        if (value.Length != 3 || value.Any(c => c < 'a' || c > 'z'))
-            throw new ArgumentException("Supply a three-letter ONIX list 74 language code.", name);
-    }
 }

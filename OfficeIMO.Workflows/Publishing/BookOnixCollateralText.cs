@@ -90,7 +90,7 @@ public sealed record BookOnixCollateralText {
     public required BookOnixTextType Type { get; init; }
     /// <summary>One to 13 distinct recipient codes; must be explicitly supplied.</summary>
     public required IReadOnlyList<BookOnixContentAudience> Audiences { get; init; }
-    /// <summary>One to 16 language variants; at most 65,536 UTF-16 code units each, with a 524,288-unit aggregate per export including source titles.</summary>
+    /// <summary>One to 16 language variants; repeated variants require distinct explicit languages; at most 65,536 UTF-16 code units each, with a 524,288-unit aggregate per export including source titles.</summary>
     public required IReadOnlyList<BookOnixCollateralTextValue> Texts { get; init; }
     /// <summary>Optional territory where the collateral may be used, independent of product sales rights.</summary>
     public BookOnixTerritory? Territory { get; init; }
@@ -98,7 +98,7 @@ public sealed record BookOnixCollateralText {
     public IReadOnlyList<string> Authors { get; init; } = [];
     /// <summary>Optional corporate source of this text.</summary>
     public string? SourceCorporate { get; init; }
-    /// <summary>At most 16 language variants of the publication/source title, at most 4096 UTF-16 code units each.</summary>
+    /// <summary>At most 16 language variants of the publication/source title; repeated variants require distinct explicit languages; at most 4096 UTF-16 code units each.</summary>
     public IReadOnlyList<BookOnixCollateralTextValue> SourceTitles { get; init; } = [];
     /// <summary>At most 16 distinct absolute HTTP(S) source links without credentials. Export does not fetch them.</summary>
     public IReadOnlyList<string> SourceLinks { get; init; } = [];

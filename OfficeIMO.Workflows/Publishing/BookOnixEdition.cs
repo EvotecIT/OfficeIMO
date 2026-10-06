@@ -33,6 +33,6 @@ public sealed record BookOnixEdition {
     public int? Number { get; init; }
     /// <summary>Minor revision within the numbered edition. Requires Number; never inferred from project revisions.</summary>
     public string? VersionNumber { get; init; }
-    /// <summary>At most 16 complete plain-text descriptions, each with a distinct language (including unspecified).</summary>
+    /// <summary>At most 16 complete plain-text descriptions. Repeated statements require distinct explicit languages; a single statement may omit its language.</summary>
     public IReadOnlyList<BookOnixEditionStatement> Statements { get; init; } = [];
 }

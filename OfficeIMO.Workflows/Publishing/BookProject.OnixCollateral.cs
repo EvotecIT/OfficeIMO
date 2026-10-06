@@ -90,7 +90,7 @@ public sealed partial class BookProject {
                     if (++characters > 350) throw new ArgumentException("Short descriptions cannot exceed 350 Unicode scalar values.", nameof(values));
                 }
             }
-            if (value.LanguageCode != null) RequireOnixLanguageCode(value.LanguageCode, nameof(value.LanguageCode));
+            RequireOnixTranslationLanguage(value.LanguageCode, values.Count, elementName);
             if (!languages.Add(value.LanguageCode ?? "")) throw new ArgumentException("Text variant languages must be distinct.", nameof(values));
             var element = new XElement(ns + elementName);
             if (fragment == null) element.Add(value.Text);

@@ -13,9 +13,7 @@ public sealed partial class BookProject {
             token.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(heading);
             RequireOnixText(heading.Text, nameof(heading.Text));
-            if (headings.Count > 1 && heading.LanguageCode == null)
-                throw new ArgumentException("Repeated audience headings require a language on every translation.", nameof(headings));
-            if (heading.LanguageCode != null) RequireOnixLanguageCode(heading.LanguageCode, nameof(heading.LanguageCode));
+            RequireOnixTranslationLanguage(heading.LanguageCode, headings.Count, nameof(headings));
             if (!languages.Add(heading.LanguageCode ?? string.Empty))
                 throw new ArgumentException("Audience heading languages must be distinct.", nameof(headings));
             var element = new XElement(ns + "AudienceHeadingText", heading.Text);

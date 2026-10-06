@@ -823,11 +823,14 @@ The browser provenance download uses this shared result contract instead of the 
 
 A null `assessment.textIntegrity` means no text report was produced. Use `assessment.textIntegrityStatus` or `checks.textIntegrity` to distinguish disabled, unsupported and unrequested checks. Use the verification/provider check states to distinguish an absent provider from a check that completed or failed. Do not interpret null as a completed zero-finding report.
 
-### ONIX audience translations
+### ONIX translation languages
 
-When `BookOnixAudienceMetadata.Descriptions` contains more than one entry, give every
-entry a distinct explicit ONIX list 74 `LanguageCode`. Export rejects a mixture of
-named and unspecified languages. A single description may still omit its language.
+When a translation list contains more than one entry, give every entry a distinct
+explicit ONIX list 74 `LanguageCode`. This applies to subject and audience headings,
+edition statements, audience descriptions, collateral `Texts` (plain text or XHTML),
+and collateral `SourceTitles`. Export rejects a mixture of named and unspecified
+languages within each list. A single value may still omit its language; separate
+composites do not inherit or share a language requirement.
 
 `BookOnixAudienceCode.Value` is nullable so a declaration can carry headings without
 a code. Consumers reading this property must handle null; use `Headings` for the

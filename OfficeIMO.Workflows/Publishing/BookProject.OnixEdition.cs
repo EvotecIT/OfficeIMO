@@ -44,7 +44,7 @@ public sealed partial class BookProject {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(statement);
             RequireOnixText(statement.Text, nameof(statement.Text));
-            if (statement.LanguageCode != null) RequireOnixLanguageCode(statement.LanguageCode, nameof(statement.LanguageCode));
+            RequireOnixTranslationLanguage(statement.LanguageCode, edition.Statements.Count, nameof(edition.Statements));
             if (!languages.Add(statement.LanguageCode ?? ""))
                 throw new ArgumentException("Edition statement languages must be distinct.", nameof(edition));
             var element = new XElement(ns + "EditionStatement", new XAttribute("textformat", "06"), statement.Text);

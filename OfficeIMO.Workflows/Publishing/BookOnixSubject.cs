@@ -43,7 +43,7 @@ public sealed record BookOnixSubject {
     public string? SchemeVersion { get; init; }
     /// <summary>Optional subject code. At least a code or heading is required; keywords use headings only.</summary>
     public string? Code { get; init; }
-    /// <summary>At most 16 headings, with at most one for each language and one with unspecified language.</summary>
+    /// <summary>At most 16 headings. Repeated headings require distinct explicit languages; a single heading may omit its language.</summary>
     public IReadOnlyList<BookOnixSubjectHeading> Headings { get; init; } = [];
     /// <summary>Marks the main subject for this scheme. Not allowed for keywords or Thema qualifiers.</summary>
     public bool IsMain { get; init; }

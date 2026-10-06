@@ -530,7 +530,8 @@ in one heading per language. Proprietary schemes require `SchemeName`; standard
 schemes omit it. Optional versions are preserved verbatim.
 
 Export accepts up to 64 subjects with 16 headings each. A subject cannot repeat a
-heading language, including unspecified language. Heading language codes use ONIX
+heading language. A single heading may omit its language; repeated headings require
+a distinct explicit language on every entry. Heading language codes use ONIX
 list 74 rather than EPUB BCP 47 tags. At most one subject per scheme (and name for
 proprietary schemes) can be main; keywords and Thema qualifiers cannot be main.
 Text fields use the existing 4096-character bound and the total XML limit still
@@ -574,7 +575,8 @@ Text defaults to plain text (`textformat="06"`). Markup-like input remains
 literal unless the variant explicitly selects `Format = BookOnixCollateralTextFormat.Xhtml`;
 links are never fetched. Each item supports up to 16 language variants,
 16 authors, 16 source-title variants and 16 source links. Language codes use ONIX
-list 74, with distinct languages per variant list including unspecified. Source
+list 74. Each repeated text or source-title list requires distinct explicit languages
+on every entry; a single value may omit its language. Source
 links require absolute HTTP(S) URLs without credentials. Optional `Territory`
 reuses the existing country/worldwide profile and describes use of the collateral,
 independently of product sales rights.
@@ -886,8 +888,9 @@ var options = existingOptions with {
 Numbered editions use a positive integer. A minor version requires that number and
 is preserved as text. Statements are complete display descriptions, serialized as
 plain text with optional ONIX list 74 language codes. They are not interpreted as
-HTML. Up to 16 statements are allowed, with distinct languages (including unspecified),
-and each text field is limited to 4096 characters.
+HTML. Up to 16 statements are allowed. Repeated statements require distinct explicit
+languages; a single statement may omit its language. Each text field is limited to
+4096 characters.
 
 The supported [list 21](https://ns.editeur.org/onix/en/21) characteristics are abridged,
 unabridged, annotated, revised, enlarged, illustrated, critical and new. Types must
