@@ -267,7 +267,9 @@ internal static partial class PdfRedactionApplier {
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.UncheckedMetadata;
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, effectiveOptions.CancellationToken);
-        return sourceEncryption?.Protect(rewritten, cancellationToken: effectiveOptions.CancellationToken) ?? rewritten;
+        return sourceEncryption?.Protect(rewritten,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth),
+            cancellationToken: effectiveOptions.CancellationToken) ?? rewritten;
     }
 
     /// <summary>

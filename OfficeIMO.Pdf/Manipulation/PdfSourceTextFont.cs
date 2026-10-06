@@ -1,6 +1,8 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
-/// <summary>Reuses a horizontal embedded CID font's existing Unicode mapping and PDF widths.</summary>
+/// <summary>Reuses a horizontal embedded TrueType font's existing Unicode mapping and PDF widths.</summary>
 internal sealed class PdfSourceTextFont {
     private readonly ToUnicodeCMap _cmap;
     private readonly Func<byte[], double> _width;
@@ -18,6 +20,9 @@ internal sealed class PdfSourceTextFont {
     internal string BaseFont { get; }
 
     internal string Encode(string text) {
+        if (OfficeManagedTextShaper.RequiresComplexLayout(text) || OfficeTextElements.ContainsCombiningMarkOrJoiner(text)) {
+            throw new NotSupportedException("Source-font editing does not support text requiring shaping, bidirectional layout, or combining-mark positioning.");
+        }
         if (!_cmap.TryEncodeTextCodes(text, out IReadOnlyList<string> codes) ||
             codes.Any(code => code.Length != _codeHexLength)) {
             throw new NotSupportedException("The source font '" + BaseFont +

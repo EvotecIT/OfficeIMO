@@ -157,7 +157,9 @@ internal static class PdfDocumentObjectGraphRewriter {
                 permanentFileId,
                 maximumOutputBytes.Value,
                 cancellationToken);
-            return sourceEncryption?.Protect(bounded, maximumOutputBytes, cancellationToken: cancellationToken) ?? bounded;
+            return sourceEncryption?.Protect(bounded, maximumOutputBytes,
+                generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, bounded),
+                cancellationToken: cancellationToken) ?? bounded;
         }
 
         var serializedObjects = new List<byte[]>(reachableObjectNumbers.Count);
@@ -188,7 +190,9 @@ internal static class PdfDocumentObjectGraphRewriter {
                 outputEncryption,
                 permanentFileId,
                 cancellationToken: cancellationToken);
-        return sourceEncryption?.Protect(output, cancellationToken: cancellationToken) ?? output;
+        return sourceEncryption?.Protect(output,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, output),
+            cancellationToken: cancellationToken) ?? output;
     }
 
     private static byte[] RewriteBounded(

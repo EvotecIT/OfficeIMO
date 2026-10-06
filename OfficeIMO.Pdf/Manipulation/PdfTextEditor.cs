@@ -63,13 +63,14 @@ internal static partial class PdfTextEditor {
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var rewrittenRequests = new List<PdfStamper.TextStampRequest>();
         var positioned = new List<PositionedRewrite>();
+        PdfReadDocument styleDocument = PdfReadDocument.Open(pdf, readOptions);
         foreach (KeyValuePair<PageSpanKey, List<SpanTextEdit>> rewrite in rewrites
             .OrderBy(item => item.Key.PageNumber)
             .ThenByDescending(item => item.Key.Span.Y)
             .ThenBy(item => item.Key.Span.X)) {
             PdfTextSpan sourceSpan = rewrite.Key.Span;
             PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
-            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected, pdf, readOptions, rewrite.Key.PageNumber);
+            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected, styleDocument.Pages[rewrite.Key.PageNumber - 1]);
             PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan, rewrite.Value, style, style);
             positioned.Add(new PositionedRewrite(rewrite.Key.PageNumber, sourceSpan, fragments));
         }
@@ -149,7 +150,7 @@ internal static partial class PdfTextEditor {
                 throw new NotSupportedException("The text edit would require recreating invisible or clipped source text without its original rendering state.");
             }
             PdfRegionText detected = BuildRegionText(new[] { snapshot.Span });
-            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected, pdf, readOptions, snapshot.PageNumber);
+            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected, before.Pages[snapshot.PageNumber - 1]);
             warnings.AddRange(BuildSubstitutionWarnings(detected, style));
             AddStampLines(restamps, snapshot.PageNumber, snapshot.Span.X, snapshot.Span.Y, snapshot.Span.RestampText, style, snapshot.Span.PaintOrder);
         }

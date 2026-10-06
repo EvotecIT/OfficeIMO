@@ -2,12 +2,11 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextEditor {
     private static PdfResolvedTextStyle ResolveStyle(PdfTextEditOptions options, PdfRegionText? detected,
-        byte[]? pdf = null, PdfLoadOptions? readOptions = null, int pageNumber = 0) {
+        PdfReadPage? sourcePage = null) {
         PdfSourceTextFont? sourceFont = null;
-        if (!options.Font.HasValue && detected?.Spans.Count > 0 && pdf is not null && pageNumber > 0 &&
-            !string.Equals(detected.SourceFont, detected.SuggestedFont.ToBaseFontName(), StringComparison.Ordinal)) {
+        if (!options.Font.HasValue && detected?.Spans.Count > 0 && sourcePage is not null) {
             PdfTextSpan dominant = detected.Spans.First(span => string.Equals(span.BaseFont, detected.SourceFont, StringComparison.Ordinal));
-            sourceFont = PdfReadDocument.Open(pdf, readOptions).Pages[pageNumber - 1].GetSourceTextFont(dominant);
+            sourceFont = sourcePage.GetSourceTextFont(dominant);
         }
         return new PdfResolvedTextStyle(
             options.Font ?? detected?.SuggestedFont ?? PdfStandardFont.Helvetica,
@@ -52,7 +51,8 @@ internal static partial class PdfTextEditor {
         if (targetStyle.SourceFont is not null) return Array.Empty<string>();
         PdfStandardFont targetFont = targetStyle.Font;
         string source = StripSubsetPrefix(detected.SourceFont);
-        if (source.Length == 0 || string.Equals(source, targetFont.ToBaseFontName(), StringComparison.OrdinalIgnoreCase)) return Array.Empty<string>();
+        bool hasEmbeddedProgram = detected.Spans.Any(span => span.DrawingFontFamily is not null);
+        if (source.Length == 0 || (!hasEmbeddedProgram && string.Equals(source, targetFont.ToBaseFontName(), StringComparison.OrdinalIgnoreCase))) return Array.Empty<string>();
         return new[] { "The source font '" + source + "' was substituted; replacement text uses '" + targetFont.ToBaseFontName() + "'. Metrics and letterforms can differ." };
     }
 

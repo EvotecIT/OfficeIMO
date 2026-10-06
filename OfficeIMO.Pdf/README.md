@@ -1740,6 +1740,8 @@ When `PdfTextEditOptions.Font` is null, safe horizontal runs reuse embedded
 TrueType fonts and Identity-H CID fonts with readable ToUnicode maps. Replacement
 text must fit the existing map; a missing subset glyph throws before returning an
 edited document. Set `Font` explicitly to permit Standard 14 substitution.
+Mapped replacement text that requires shaping, bidirectional layout or
+combining-mark positioning is also rejected by source-font reuse.
 Other source fonts use the detected standard substitute and report a warning.
 Clipping, unsupported positioning, shaping and ambiguous ActualText still block
 edits whose rendering state cannot be recreated safely.

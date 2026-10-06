@@ -495,8 +495,13 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.FillFormFields:
             case PdfMutationOperation.FlattenFormFields:
             case PdfMutationOperation.FillAndFlattenFormFields:
-            case PdfMutationOperation.ModifyAcroForm:
                 Add(permissions, PdfMutationPermissionCheck.FillForms);
+                Add(permissions, PdfMutationPermissionCheck.DocMdp);
+                Add(permissions, PdfMutationPermissionCheck.FieldMdp);
+                break;
+            case PdfMutationOperation.ModifyAcroForm:
+                Add(permissions, PdfMutationPermissionCheck.ModifyDocument);
+                Add(permissions, PdfMutationPermissionCheck.ModifyAnnotations);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
                 Add(permissions, PdfMutationPermissionCheck.FieldMdp);
                 break;

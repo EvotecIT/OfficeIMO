@@ -23,6 +23,8 @@ Text replacement and movement reuse supported embedded TrueType and Identity-H
 CID fonts when `PdfTextEditOptions.Font` is null. Text outside the existing subset's
 Unicode map now throws instead of substituting silently. Set `Font` to a Standard
 14 font when substitution is intended and inspect `PdfTextEditResult.Warnings`.
+Source-font reuse rejects replacements requiring shaping, bidirectional layout
+or combining-mark positioning.
 
 ## Long-document AI request budgets
 

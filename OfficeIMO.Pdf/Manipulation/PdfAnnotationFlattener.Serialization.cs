@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfAnnotationFlattener {
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata,
         out IReadOnlyDictionary<int, int> objectNumberMap, PdfSourceEncryptionContext? sourceEncryption,
-        PdfFileVersion fileVersion) {
+        PdfFileVersion fileVersion, byte[] sourcePdf, PdfLoadOptions? sourceReadOptions,
+        PdfGeneratedOutputGrowth generatedGrowth) {
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -21,6 +22,7 @@ internal static partial class PdfAnnotationFlattener {
 
         objectNumberMap = numberMap;
         byte[] result = PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
-        return sourceEncryption?.Protect(result) ?? result;
+        return sourceEncryption?.Protect(result,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, result, generatedGrowth)) ?? result;
     }
 }

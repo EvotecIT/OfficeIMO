@@ -35,7 +35,9 @@ internal static partial class PdfFormFiller {
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
-        return sourceEncryption?.Protect(result, cancellationToken: cancellationToken) ?? result;
+        return sourceEncryption?.Protect(result,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(source.ReadOptions, sourcePdf, result),
+            cancellationToken: cancellationToken) ?? result;
     }
 
     private static bool ContainsOpenTypeFontFileStream(Dictionary<int, PdfIndirectObject> objects) {

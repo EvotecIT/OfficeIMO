@@ -73,8 +73,11 @@ internal static partial class PdfMerger {
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
 
-        merged = primaryEncryption?.Protect(merged, cancellationToken: cancellationToken, generatedReadOptions: currentReadOptions) ?? merged;
         if (primaryEncryption is not null) {
+            byte[] plaintext = merged;
+            merged = primaryEncryption.Protect(plaintext, out PdfGeneratedOutputGrowth encryptionGrowth,
+                cancellationToken: cancellationToken, generatedReadOptions: currentReadOptions);
+            currentReadOptions = PdfLoadOptions.ForGeneratedOutput(currentReadOptions, plaintext, merged, encryptionGrowth);
             PdfLoadOptions primaryOptions = sources[primarySourceIndex].Document.ReadOptions;
             currentReadOptions = PdfLoadOptions.WithAesCryptographyProvider(
                 PdfLoadOptions.WithPassword(currentReadOptions, primaryOptions.Password), primaryOptions.AesCryptographyProvider);

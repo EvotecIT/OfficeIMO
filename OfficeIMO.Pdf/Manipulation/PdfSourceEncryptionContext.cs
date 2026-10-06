@@ -10,6 +10,8 @@ internal sealed class PdfSourceEncryptionContext {
     private readonly byte[] _permanentId;
     private readonly PdfLoadOptions _readOptions;
 
+    internal PdfLoadOptions ReadOptions => _readOptions;
+
     private PdfSourceEncryptionContext(PdfStandardSecurityHandler handler, PdfDictionary dictionary,
         byte[] permanentId, PdfLoadOptions readOptions) {
         _handler = handler;
@@ -42,7 +44,11 @@ internal sealed class PdfSourceEncryptionContext {
 
     /// <summary>Encrypts final object numbers without changing page/object mapping or password entries.</summary>
     internal byte[] Protect(byte[] plaintext, long? maximumOutputBytes = null, PdfLoadOptions? generatedReadOptions = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        Protect(plaintext, out _, maximumOutputBytes, generatedReadOptions, cancellationToken);
+
+    internal byte[] Protect(byte[] plaintext, out PdfGeneratedOutputGrowth growth, long? maximumOutputBytes = null,
+        PdfLoadOptions? generatedReadOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions options = PdfLoadOptions.WithMinimumInputBytes(generatedReadOptions ?? _readOptions, plaintext.LongLength);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(plaintext, options, out _, out _, cancellationToken);
@@ -60,9 +66,13 @@ internal sealed class PdfSourceEncryptionContext {
             new Dictionary<int, Dictionary<string, PdfObject>>(), objects, preserveRawStringBytes: true,
             cancellationToken: cancellationToken);
         var encrypted = new List<PdfSerializedObject>(objects.Count + 1);
+        int maximumCiphertextStreamBytes = 0;
         for (int number = 1; number <= maximumObjectNumber; number++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfObject value = _handler.EncryptObject(number, 0, objects[number].Value);
+            if (value is PdfStream encryptedStream) {
+                maximumCiphertextStreamBytes = Math.Max(maximumCiphertextStreamBytes, encryptedStream.Data.Length);
+            }
             encrypted.Add(PdfPageExtractor.SerializeIndirectObjectForAssembly(number, value, context));
         }
         int encryptionNumber = maximumObjectNumber + 1;
@@ -81,6 +91,7 @@ internal sealed class PdfSourceEncryptionContext {
         PdfFileAssembler.Assemble(bounded, encrypted, root, info,
             PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(plaintext)), trailer, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        growth = new PdfGeneratedOutputGrowth(minimumRawStreamBytes: maximumCiphertextStreamBytes);
         return output.ToArray();
     }
 

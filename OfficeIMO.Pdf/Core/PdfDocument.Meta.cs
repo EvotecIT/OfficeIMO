@@ -420,9 +420,8 @@ public sealed partial class PdfDocument {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
-            readOptions ?? ReadOptions,
-            pdf.LongLength);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
+            readOptions ?? ReadOptions, inputBytes, pdf);
         PdfReadDocument? readDocument = validatedReadDocument;
         PdfArtifactSnapshot output = readDocument is null
             ? PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out readDocument)
@@ -454,9 +453,8 @@ public sealed partial class PdfDocument {
         }
 #endif
 
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
-            readOptions ?? ReadOptions,
-            pdf.LongLength);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
+            readOptions ?? ReadOptions, inputBytes, pdf);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, outputPageCount, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(

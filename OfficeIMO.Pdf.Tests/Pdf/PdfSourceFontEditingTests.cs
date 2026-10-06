@@ -81,7 +81,51 @@ public class PdfSourceFontEditingTests {
         Assert.Contains(substituted.Document.Resources.Fonts().Fonts, font => font.BaseFontName == "Courier");
     }
 
-    private static PdfDocument CreateSource(bool encrypted) {
+    [Theory]
+    [InlineData("Helvetica")]
+    [InlineData("Courier")]
+    [InlineData("Times-Roman")]
+    public void EmbeddedFontNamedLikeStandardFontIsStillReused(string baseFontAlias) {
+        PdfDocument source = CreateSource(false, baseFontAlias);
+        PdfFontInfo before = Assert.Single(source.Resources.Fonts(new PdfFontInspectionOptions { IncludeEmbeddedProgramBytes = true }).Fonts);
+        PdfTextEditResult edit = source.Text.ReplaceAll("alpha", "gamma");
+        Assert.Empty(edit.Warnings);
+        PdfFontInfo after = Assert.Single(edit.Document.Resources.Fonts(new PdfFontInspectionOptions { IncludeEmbeddedProgramBytes = true }).Fonts);
+        Assert.Equal(before.EmbeddedProgramBytes, after.EmbeddedProgramBytes);
+        Assert.Equal(before.ToUnicodeMappingCount, after.ToUnicodeMappingCount);
+        Assert.Equal("Type0", after.Subtype);
+        Assert.All(PdfReadDocument.Open(edit.Document.ToBytes()).Pages[0].GetTextSpans(), span => {
+            Assert.Equal(baseFontAlias, span.BaseFont);
+        });
+        Assert.Contains("gamma beta gamma", edit.Document.Reader.Text());
+    }
+
+    [Theory]
+    [InlineData("\u0628\u0627")]
+    [InlineData("\u05D0\u05D1")]
+    [InlineData("\u0915\u093F")]
+    [InlineData("a\u0301")]
+    [InlineData("a\u202Eb")]
+    public void CoveredUnicodeMappingDoesNotAuthorizeUnshapedText(string text) {
+        string entries = string.Join("\n", text.Select((character, index) =>
+            "<" + (index + 1).ToString("X4") + "> <" + ((int)character).ToString("X4") + ">"));
+        Assert.True(ToUnicodeCMap.TryParse(PdfEncoding.Latin1GetBytes(text.Length + " beginbfchar\n" + entries + "\nendbfchar"), out ToUnicodeCMap? cmap));
+        Assert.True(cmap!.TryEncodeTextCodes(text, out _));
+        var resource = new PdfFontResource("F1", "Embedded", "Identity-H", true, cmap, fontSubtype: "Type0");
+        var sourceFont = new PdfSourceTextFont(resource, bytes => bytes.Length * 250D);
+        NotSupportedException failure = Assert.Throws<NotSupportedException>(() => sourceFont.Encode(text));
+        Assert.Contains("shaping", failure.Message);
+    }
+
+    [Fact]
+    public void ExplicitStandardSubstitutionReportsEmbeddedFontWithMatchingName() {
+        PdfDocument source = CreateSource(false, "Helvetica");
+        PdfTextEditResult edit = source.Text.ReplaceAll("alpha", "gamma", editOptions: new PdfTextEditOptions { Font = PdfStandardFont.Helvetica });
+        Assert.Contains(edit.Warnings, warning => warning.Contains("substituted", StringComparison.Ordinal));
+        Assert.Contains("gamma", edit.Document.Reader.Text());
+    }
+
+    private static PdfDocument CreateSource(bool encrypted, string? baseFontAlias = null) {
         string root = FindRepositoryRoot();
         byte[] font = File.ReadAllBytes(Path.Combine(root, "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
         var options = new PdfOptions().RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Baseline", font));
@@ -95,6 +139,13 @@ public class PdfSourceFontEditingTests {
         Assert.True(resource.CMap!.TryEncodeText("alpha beta gamma", out string hex));
         int pageNumber = read.Pages[0].ObjectNumber;
         source = PdfDocumentObjectGraphRewriter.Rewrite(source, loadOptions, null, (objects, security) => {
+            if (baseFontAlias is not null) {
+                foreach (PdfIndirectObject item in objects.Values) {
+                    if (item.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("BaseFont")) {
+                        dictionary.Items["BaseFont"] = new PdfName(baseFontAlias);
+                    }
+                }
+            }
             int streamNumber = objects.Keys.Max() + 1;
             objects[streamNumber] = new PdfIndirectObject(streamNumber, 0, new PdfStream(new PdfDictionary(),
                 PdfEncoding.Latin1GetBytes("q BT /" + resource.ResourceName + " 14 Tf 1 0 0 1 50 700 Tm <" + hex + "> Tj ET Q\n")));
