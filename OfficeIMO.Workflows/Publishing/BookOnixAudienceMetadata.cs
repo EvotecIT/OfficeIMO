@@ -58,6 +58,8 @@ public sealed record BookOnixAudienceMetadata {
     public IReadOnlyList<BookOnixAudience> Categories { get; init; } = [];
     /// <summary>Up to 64 distinct additional code or heading assertions; at most one main per audience code type.</summary>
     public IReadOnlyList<BookOnixAudienceCode> Codes { get; init; } = [];
+    /// <summary>Up to 14 distinct adult ratings. Requires GeneralAdult; unrated and unrestricted adult assertions must stand alone.</summary>
+    public IReadOnlyList<BookOnixAdultAudience> AdultRatings { get; init; } = [];
     /// <summary>At most one range per age type. Interest months and years are mutually exclusive.</summary>
     public IReadOnlyList<BookOnixAgeRange> AgeRanges { get; init; } = [];
     /// <summary>At most one ordered school/college grade range per supported grading system.</summary>

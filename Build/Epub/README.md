@@ -186,6 +186,12 @@ not evidence of allocation, ownership or a publisher's actual publication schedu
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
 assertions exercise serialization and do not establish readership or suitability.
+The `adult-unrated`, `adult-general` and `adult-advice` fixtures cover explicit unrated
+and unrestricted-adult assertions, every supported content-advice code, translated
+headings and main flags scoped independently from general audience categories.
+The code mapping follows ONIX list 203 issue 74, including death/grief and suicide.
+`AudienceCodeValue` is a string in the structural schema: XSD validation verifies
+structure, not current rating-code membership or the publisher's suitability judgment.
 The `audience-headings` fixture covers translated general categories, code-plus-heading
 and heading-only assertions, single unspecified-language headings, scoped main-audience
 flags and whitespace/XML escaping. Its single-record message composition must preserve
@@ -240,6 +246,9 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/adult-unrated.onix \
+  /path/to/new-onix-evidence/adult-general.onix \
+  /path/to/new-onix-evidence/adult-advice.onix \
   /path/to/new-onix-evidence/audience-headings.onix \
   /path/to/new-onix-evidence/audience-codes.onix \
   /path/to/new-onix-evidence/audience-grades.onix \

@@ -741,9 +741,39 @@ Age and grade ranges may coexist. No age-to-grade conversion is performed.
 Audience categories, age ranges and grade ranges are independent assertions. Supply an appropriate
 range for children's, teenage and school material when known; export does not guess
 one from a category or inspect the book to assess suitability. This profile does not
-represent other national grade schemes, adult-content
+represent other national grade schemes, national statutory
 ratings or reading-complexity schemes. Schema validity does not establish educational
 suitability or recipient acceptance, and audience export does not change EPUB metadata.
+
+### Adult-audience content advice
+
+Supply `AdultRatings` for explicit publisher ratings using [ONIX list 203](https://ns.editeur.org/onix/en/203).
+An explicit `GeneralAdult` category is required:
+
+```csharp
+var adultAudience = new BookOnixAudienceMetadata {
+    Categories = [new(BookOnixAudienceType.GeneralAdult)],
+    AdultRatings = [
+        new(BookOnixAdultAudienceRating.Violence, IsMain: true),
+        new(BookOnixAdultAudienceRating.OffensiveLanguage) {
+            Headings = [new("Strong language", "eng")]
+        }
+    ]
+};
+```
+
+The supported ratings are `Unrated`, `AnyAdultAudience`, `ContentAdvice`,
+`SexualContent`, `Violence`, `DrugsOrAlcohol`, `OffensiveLanguage`, `Intolerance`,
+`Abuse`, `SelfHarm`, `AnimalCruelty`, `Illness`, `DeathAndGrief` and `Suicide`.
+The last two require recipients that recognize list 203 issue 74 or later.
+These emit audience scheme 22, independently of general audience categories.
+
+Ratings must be distinct, with at most one main rating. This export profile requires
+`Unrated` and `AnyAdultAudience` each to stand alone; general and specific content
+advice may be combined. Omitting `AdultRatings` makes no rating assertion, whereas
+`Unrated` explicitly communicates code 00. Optional `Headings` follow the same
+translation rules as category headings. OfficeIMO does not analyze the manuscript,
+assign a national statutory classification or establish reader suitability.
 
 ### Collection membership
 

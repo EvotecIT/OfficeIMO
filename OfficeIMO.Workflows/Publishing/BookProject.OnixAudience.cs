@@ -7,12 +7,13 @@ public sealed partial class BookProject {
         if (audience == null) return [];
         ArgumentNullException.ThrowIfNull(audience.Categories);
         ArgumentNullException.ThrowIfNull(audience.Codes);
+        ArgumentNullException.ThrowIfNull(audience.AdultRatings);
         ArgumentNullException.ThrowIfNull(audience.AgeRanges);
         ArgumentNullException.ThrowIfNull(audience.GradeRanges);
         ArgumentNullException.ThrowIfNull(audience.Descriptions);
-        if (audience.Categories.Count > 13 || audience.Codes.Count > 64 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16)
-            throw new ArgumentException("Audience metadata exceeds its category, code, range or description limit.", nameof(audience));
-        if (audience.Categories.Count == 0 && audience.Codes.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0)
+        if (audience.Categories.Count > 13 || audience.Codes.Count > 64 || audience.AdultRatings.Count > 14 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16)
+            throw new ArgumentException("Audience metadata exceeds its category, code, rating, range or description limit.", nameof(audience));
+        if (audience.Categories.Count == 0 && audience.Codes.Count == 0 && audience.AdultRatings.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0)
             throw new ArgumentException("Supply at least one audience assertion, or omit Audience.", nameof(audience));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
@@ -38,6 +39,7 @@ public sealed partial class BookProject {
                 BuildOnixAudienceHeadings(category.Headings, cancellationToken)));
         }
         result.AddRange(BuildOnixAudienceCodes(audience.Codes, cancellationToken));
+        result.AddRange(BuildOnixAdultAudience(audience.AdultRatings, categories.Contains(BookOnixAudienceType.GeneralAdult), cancellationToken));
         var rangeTypes = new HashSet<BookOnixAgeRangeType>();
         foreach (var range in audience.AgeRanges) {
             cancellationToken.ThrowIfCancellationRequested();
