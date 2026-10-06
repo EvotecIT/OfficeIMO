@@ -534,6 +534,8 @@ public static partial class HtmlComputedStyleEngine {
             properties["unicode-bidi"] = new CascadedProperty("bidi-override", false, Specificity.PresentationalHint, -1);
         }
 
+        ApplySvgTextAndPaintPresentationAttributes(element, parent?.Properties, properties, budget);
+
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
         foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
