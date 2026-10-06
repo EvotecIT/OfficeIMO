@@ -6,8 +6,14 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeTiffCodec {
     private static bool TryDecodeJpegSegments(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
         bool littleEndian, int width, int height, int samples, int sampleBytes, int photometric, int planar,
-        OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source) {
+        OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source, bool legacy = false) {
         source = Array.Empty<byte>();
+        int interchangeOffset = 0, interchangeLength = 0, legacyProcess = 1;
+        if (legacy && (!TryReadScalarOrDefault(bytes, entries, 512, littleEndian, 1, out legacyProcess) ||
+            (legacyProcess != 1 && legacyProcess != 14) || (legacyProcess == 1 && sampleBytes != 1) ||
+            !TryGetLegacyJpegInterchange(bytes, entries, littleEndian, out interchangeOffset, out interchangeLength))) return false;
+        bool fullInterchange = interchangeLength > 0;
+        if (fullInterchange) planar = 1; // The interchange stream describes the complete image.
         bool ycc = photometric == 6;
         int horizontal = 1, vertical = 1, positioning = 1;
         int maximum = sampleBytes == 1 ? 255 : 65535, midpoint = (maximum + 1) / 2;
@@ -21,17 +27,18 @@ public static partial class OfficeTiffCodec {
             if ((horizontal != 1 && horizontal != 2 && horizontal != 4) ||
                 (vertical != 1 && vertical != 2 && vertical != 4) || vertical > horizontal ||
                 !TryReadJpegRationals(bytes, entries, 529, littleEndian, coefficients) ||
-                !TryReadJpegRationals(bytes, entries, 532, littleEndian, reference) ||
+                !TryReadJpegRationals(bytes, entries, 532, littleEndian, reference, allowInteger: legacy) ||
                 coefficients[0] <= 0 || coefficients[1] <= 0 || coefficients[2] <= 0 ||
                 Math.Abs(coefficients[0] + coefficients[1] + coefficients[2] - 1) > .00001 ||
                 reference[1] <= reference[0] || reference[3] <= reference[2] || reference[5] <= reference[4]) return false;
         }
-        bool strips = entries.ContainsKey(273) || entries.ContainsKey(279);
-        bool tiles = entries.ContainsKey(324) || entries.ContainsKey(325) || entries.ContainsKey(322) || entries.ContainsKey(323);
+        bool strips = fullInterchange || entries.ContainsKey(273) || entries.ContainsKey(279);
+        bool tiles = !fullInterchange && (entries.ContainsKey(324) || entries.ContainsKey(325) || entries.ContainsKey(322) || entries.ContainsKey(323));
         if (strips == tiles) return false;
         int sw = width, sh;
         if (strips) {
-            if (!TryReadRowsPerStrip(bytes, entries, littleEndian, height, out sh)) return false;
+            if (fullInterchange) sh = height;
+            else if (!TryReadRowsPerStrip(bytes, entries, littleEndian, height, out sh)) return false;
         } else if (!TryReadScalar(bytes, entries, 322, littleEndian, out sw) ||
             !TryReadScalar(bytes, entries, 323, littleEndian, out sh) || sw < 1 || sh < 1) return false;
         if (ycc && (strips ? sh < height && sh % vertical != 0 : sw % horizontal != 0 || sh % vertical != 0)) return false;
@@ -41,12 +48,14 @@ public static partial class OfficeTiffCodec {
         int sourceLength = OfficeRasterGuards.EnsureByteCount((long)width * height * samples * sampleBytes, "TIFF JPEG pixels exceed the managed limit.");
         long retained = checked(options.RetainedManagedBytes + bytes.LongLength + (long)count * 8 +
             (retainPixels ? sourceLength + (long)width * height * 4 : 0) + 65536);
-        if (retained > OfficeRasterGuards.MaximumDecodedBytes ||
-            !TryReadValues(bytes, entries, strips ? 273 : 324, littleEndian, count, options.CancellationToken, out int[] offsets) ||
-            !TryReadValues(bytes, entries, strips ? 279 : 325, littleEndian, count, options.CancellationToken, out int[] lengths)) return false;
+        if (retained > OfficeRasterGuards.MaximumDecodedBytes) return false;
+        int[] offsets, lengths;
+        if (fullInterchange) { offsets = new[] { interchangeOffset }; lengths = new[] { interchangeLength }; }
+        else if (!TryReadValues(bytes, entries, strips ? 273 : 324, littleEndian, count, options.CancellationToken, out offsets) ||
+            !TryReadValues(bytes, entries, strips ? 279 : 325, littleEndian, count, options.CancellationToken, out lengths)) return false;
         byte[] tables = Array.Empty<byte>();
         int inherited = 0;
-        if (entries.TryGetValue(347, out TiffEntry tableEntry)) {
+        if (!legacy && entries.TryGetValue(347, out TiffEntry tableEntry)) {
             if (tableEntry.Type != 7 || tableEntry.Count < 4 || retained + tableEntry.Count > OfficeRasterGuards.MaximumDecodedBytes) return false;
             int tableOffset = tableEntry.Count <= 4 ? tableEntry.ValueFieldOffset : ReadOffset(bytes, tableEntry.ValueFieldOffset, littleEndian);
             if (!HasBytes(bytes, tableOffset, tableEntry.Count)) return false;
@@ -68,24 +77,34 @@ public static partial class OfficeTiffCodec {
                 decodeRows = checked((int)(((long)decodeRows + vertical - 1) / vertical));
             }
             int expected = OfficeRasterGuards.EnsureByteCount((long)decodeWidth * decodeRows * channels * sampleBytes, "TIFF JPEG segment exceeds the managed limit.");
-            if (!HasSegment(bytes, offsets[segment], lengths[segment]) || lengths[segment] < 4 ||
-                budget != null && !budget.TryReserve(checked(lengths[segment] + tables.Length), expected)) return false;
-            int combinedLength = checked(lengths[segment] + (tables.Length == 0 ? 0 : tables.Length - 4));
+            if (!HasSegment(bytes, offsets[segment], lengths[segment]) || lengths[segment] < (legacy ? 1 : 4) ||
+                budget != null && !budget.TryReserve(checked(lengths[segment] + tables.Length + (legacy ? LegacyJpegHeaderLimit : 0)), expected)) return false;
+            int segmentLimit = checked(lengths[segment] + (legacy ? LegacyJpegHeaderLimit : 0));
+            int combinedLength = checked(segmentLimit + (tables.Length == 0 ? 0 : tables.Length - 4));
             // TIFF reconstruction retains two reduced chroma planes when positioning
             // differs from JPEG or a partial tile needs image-boundary clamping.
             bool reconstructChroma = ycc && planar == 1 && (positioning == 2 || columns < decodeWidth || rows < decodeRows);
             long chromaScratch = reconstructChroma ? expected : 0;
             // The temporary segment copy and combined stream coexist with the TIFF and output.
-            if (retained + lengths[segment] + combinedLength + expected + chromaScratch > OfficeRasterGuards.MaximumDecodedBytes) return false;
-            var jpeg = new byte[lengths[segment]];
-            CopyWithCancellation(bytes, offsets[segment], jpeg, 0, jpeg.Length, options.CancellationToken);
+            if (retained + segmentLimit + combinedLength + expected + chromaScratch > OfficeRasterGuards.MaximumDecodedBytes) return false;
+            byte[] jpeg;
+            if (legacy) {
+                if (!TryReconstructLegacyJpeg(bytes, offsets[segment], lengths[segment], entries, littleEndian,
+                    decodeWidth, decodeRows, samples, channels, planar == 2 ? plane : -1, sampleBytes * 8,
+                    legacyProcess, ycc && planar == 1 ? horizontal : 1, ycc && planar == 1 ? vertical : 1,
+                    options, out jpeg)) return false;
+            } else {
+                jpeg = new byte[lengths[segment]];
+                CopyWithCancellation(bytes, offsets[segment], jpeg, 0, jpeg.Length, options.CancellationToken);
+            }
             if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, sampleBytes * 8, ycc && planar == 1 ? horizontal : 1,
                 ycc && planar == 1 ? vertical : 1, inherited, options.CancellationToken, out _, out int segmentProcess)) return false;
+            if (legacy && (legacyProcess == 14 ? segmentProcess != 195 : segmentProcess != 192 && segmentProcess != 193)) return false;
             if (frameProcess != 0 && segmentProcess != frameProcess) return false;
             frameProcess = segmentProcess;
             byte[] combined = jpeg;
             if (tables.Length > 0) {
-                combined = new byte[combinedLength];
+                combined = new byte[checked(jpeg.Length + tables.Length - 4)];
                 CopyWithCancellation(tables, 0, combined, 0, tables.Length - 2, options.CancellationToken);
                 CopyWithCancellation(jpeg, 2, combined, tables.Length - 2, jpeg.Length - 2, options.CancellationToken);
             }
@@ -111,8 +130,13 @@ public static partial class OfficeTiffCodec {
     }
 
     private static bool TryReadJpegRationals(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        int tag, bool littleEndian, double[] values) {
+        int tag, bool littleEndian, double[] values, bool allowInteger = false) {
         if (!entries.TryGetValue(tag, out TiffEntry entry)) return true;
+        if (allowInteger && (entry.Type == 3 || entry.Type == 4)) {
+            if (!TryReadValues(bytes, entries, tag, littleEndian, values.Length, out int[] integers)) return false;
+            for (int i = 0; i < values.Length; i++) values[i] = integers[i];
+            return true;
+        }
         if (entry.Type != 5 || entry.Count != values.Length) return false;
         int offset = ReadOffset(bytes, entry.ValueFieldOffset, littleEndian);
         if (!HasBytes(bytes, offset, values.Length * 8)) return false;

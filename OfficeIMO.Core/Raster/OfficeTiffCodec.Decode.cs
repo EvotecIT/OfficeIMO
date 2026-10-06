@@ -6,7 +6,8 @@ public static partial class OfficeTiffCodec {
     /// <summary>
     /// Attempts to decode classic grayscale, RGB, RGBA, or device-CMYK TIFF with unsigned 8/16-bit or finite floating 16/24/32/64-bit samples, or packed 1/4-bit grayscale and 1/4/8-bit palette TIFF using
     /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
-    /// Bilevel CCITT and baseline eight-bit JPEG TIFF are supported within the documented sample contract.
+    /// Bilevel CCITT, baseline/extended eight-bit and Huffman lossless eight/sixteen-bit JPEG TIFF
+    /// are supported, including bounded legacy compression-6 layouts.
     /// Floating samples are normalized device components; BigTIFF payloads remain caller-codec responsibilities.
     /// </summary>
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
@@ -105,7 +106,7 @@ public static partial class OfficeTiffCodec {
                      compression != (int)OfficeTiffCompression.Lzw &&
                      compression != (int)OfficeTiffCompression.PackBits &&
                      compression != (int)OfficeTiffCompression.Deflate &&
-                     compression != 32946 && compression != 7 && !IsTiffFaxCompression(compression)) ||
+                     compression != 32946 && compression != 6 && compression != 7 && !IsTiffFaxCompression(compression)) ||
                     orientation < 1 || orientation > 8 ||
                     !TryGetAlphaSample(encodedBytes, entries, littleEndian, samples, baseSamples, out int alphaIndex, out int alphaKind) ||
                     rowsPerStrip < 1 ||
@@ -116,8 +117,8 @@ public static partial class OfficeTiffCodec {
 
                 if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
                     (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
-                    (photometric == 6 && compression != 7) ||
-                    (compression == 7 && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||
+                    (photometric == 6 && compression != 6 && compression != 7) ||
+                    ((compression == 6 || compression == 7) && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||
                         photometric == 3)) ||
                     (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) {
                     return false;

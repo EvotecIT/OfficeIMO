@@ -60,8 +60,13 @@ planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color i
 component order; JPEG application markers cannot override them. Extra samples support unspecified data and one declared associated or
 unassociated alpha channel at any extra-channel position for gray, RGB, CMYK and
 YCbCr; multiple declared alpha channels are rejected. Subsampled YCbCr keeps alpha at luma resolution. Chunky JPEG frames with more than four components use separate scans;
-raw component decoding retains frame order without inventing a standalone color space. Legacy compression
-6, twelve-bit DCT and arithmetic JPEG processes remain unsupported. Eight/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+raw component decoding retains frame order without inventing a standalone color space. Legacy compression 6 accepts complete interchange JPEGs, self-contained striles,
+and one-to-four-component raw scans reconstructed from TIFF quantization/Huffman
+table pointers. JPEGProc 1 supports eight-bit sequential DCT; JPEGProc 14 supports
+eight/sixteen-bit Huffman lossless scans. Partial interchange headers require the
+TIFF table tags. Raw chunky lossless components require matching predictors and
+point transforms. Legacy integer ReferenceBlackWhite values are accepted alongside
+rationals. Twelve-bit DCT and arithmetic JPEG processes remain unsupported. Eight/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -168,6 +173,21 @@ Independent MuPDF output differs by at most 4/255 for PDF and 2/255 for SVG;
 GhostXPS opens every export without a process failure but differs by up to
 255/255, including blank output. These comparisons do not establish native
 Windows acceptance.
+
+Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
+The reconstructed cases retain independently encoded entropy for baseline and
+lossless data, including both byte orders, strip/tile layouts and separate planes;
+four specification-authored cases exercise single-byte lossless entropy. Their
+pixels agree exactly with corresponding compression-7 references. Two unchanged
+LibTIFF samples and one explicitly sanitized sample decode with maximum RGB
+differences of 20/255 against Pillow 11.3.0 with LibTIFF 4.7.0. The original sample
+containing invalid directory records remains rejected. This is bounded legacy
+compatibility, not acceptance of every historical JPEG-in-TIFF layout. Wider
+producer/native-consumer coverage remains open. The 228 XPS/OpenXPS exports cover
+116,608 pixel-center probes per route; MuPDF differs by at most 3/255 for PDF and
+2/255 for SVG, without warnings. GhostXPS 10.08.0 exits with signal 11 on 26
+CMYK cases and produces differences up to 255/255 on others, including blank
+output. These results do not establish native Windows acceptance.
 
 JPEG extra-sample qualification covers 288 component-encoded fixtures with
 191,520 pixel comparisons. Independently decoded alpha agrees exactly; RGB agrees

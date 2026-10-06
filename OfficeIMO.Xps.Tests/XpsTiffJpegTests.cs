@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegLegacy", 0, 0)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegLegacy", 0, 0)]
     [InlineData(XpsFormat.Xps, "TiffJpegChroma16", 0, 0)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegChroma16", 0, 0)]
     [InlineData(XpsFormat.Xps, "TiffJpegLossless16", 35, 19)]
@@ -36,12 +38,15 @@ public sealed class XpsTiffJpegTests {
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
             if (folder == "TiffJpegChroma16") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); fields[0] += ".tif"; }
+            if (folder == "TiffJpegLegacy") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); }
             if (folder == "TiffExtraSamples") { width = int.Parse(fields[5]); height = int.Parse(fields[6]); }
             if (folder == "TiffJpegCosited") { width = int.Parse(fields[7]); height = int.Parse(fields[8]); }
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, fields[0])), "image/tiff");
             document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
-            if ((folder == "TiffJpeg" || folder == "TiffJpegExtended" || hasAlphaCorpus) && fields[1] == "5") {
+            bool isCmyk = folder == "TiffJpegLegacy" ? fields[3] == "5" :
+                (folder == "TiffJpeg" || folder == "TiffJpegExtended" || hasAlphaCorpus) && fields[1] == "5";
+            if (isCmyk) {
                 var originalPage = document.Pages[0];
                 Assert.Throws<NotSupportedException>(() => originalPage.ToDrawing());
                 byte[] profile = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IccColorCorpus", "littlecms-cmyk-lut.icc"));
