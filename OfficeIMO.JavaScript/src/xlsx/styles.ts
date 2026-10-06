@@ -1,6 +1,7 @@
 import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { Alignment, Column } from "../core/index.js";
+import { OfficeIMOError } from "../core/errors.js";
 export const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
 export interface Font { readonly name?: string; readonly size?: number; readonly bold?: boolean; readonly italic?: boolean; readonly underline?: boolean; readonly strike?: boolean; readonly color?: string; }
@@ -27,10 +28,11 @@ function index(value: number, count: number, kind: string): number {
   if (!Number.isInteger(value) || value < 0 || value >= count) throw new RangeError("Unknown " + kind + " index.");
   return value;
 }
-function deduplicate<T>(items: T[], item: T): number {
-  const key = JSON.stringify(item), found = items.findIndex(v => JSON.stringify(v) === key);
-  if (found >= 0) return found;
-  items.push(item); return items.length - 1;
+function deduplicate<T>(items: T[], indexes: Map<string, number>, item: T, maximum: number): number {
+  const key = JSON.stringify(item), found = indexes.get(key);
+  if (found !== undefined) return found;
+  if (items.length >= maximum) throw new OfficeIMOError("RESOURCE_LIMIT", "Style component limit exceeded.");
+  const id = items.length; items.push(item); indexes.set(key, id); return id;
 }
 interface RegisteredStyle { font: number; fill: number; border: number; numberFormat: number; wrapText: boolean; alignment: string; verticalAlignment: string; }
 
@@ -42,6 +44,15 @@ export function validateStylePatch(patch: CellStyle): void {
     throw new TypeError("Style patches must be synchronous CellStyle objects.");
   }
 }
+/** @internal Capture reusable option patches without retaining caller-owned nested components. */
+export function copyStylePatch(patch: CellStyle): CellStyle {
+  validateStylePatch(patch);
+  return Object.freeze({ ...patch,
+    ...(typeof patch.font === "object" ? { font: Object.freeze({ ...patch.font }) } : {}),
+    ...(typeof patch.fill === "object" ? { fill: Object.freeze({ ...patch.fill }) } : {}),
+    ...(typeof patch.border === "object" ? { border: Object.freeze(Object.fromEntries(Object.entries(patch.border).map(([side, edge]) => [side, Object.freeze({ ...edge })]))) } : {})
+  });
+}
 
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 export class StyleRegistry {
@@ -51,19 +62,25 @@ export class StyleRegistry {
   private readonly formats = new Map<string, number>();
   private readonly styles: RegisteredStyle[] = [];
   private readonly indexes = new Map<string, number>();
-  constructor(private readonly policy: InvalidCharacterPolicy = "strip") { cleanXml("", policy); this.add(); }
+  private readonly fontIndexes = new Map(this.fonts.map((v, i) => [JSON.stringify(v), i]));
+  private readonly fillIndexes = new Map(this.fills.map((v, i) => [JSON.stringify(v), i]));
+  private readonly borderIndexes = new Map(this.borders.map((v, i) => [JSON.stringify(v), i]));
+  constructor(private readonly policy: InvalidCharacterPolicy = "strip", private readonly maximum = 64000) {
+    if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 64000) throw new RangeError("maxStyles must be from 1 through 64,000.");
+    cleanXml("", policy); this.add();
+  }
   addFont(font: Font): number {
     if (font.name !== undefined && typeof font.name !== "string") throw new TypeError("Font name must be a string.");
     const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
     if (typeof name !== "string" || !name || name.length > 31) throw new TypeError("Font name must contain 1 through 31 characters.");
     if (!Number.isFinite(size) || size <= 0 || size > 409) throw new RangeError("Font size must be positive and at most 409.");
-    return deduplicate(this.fonts, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" });
+    return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" }, this.maximum);
   }
   addFill(fill: Fill): number {
     const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
     if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !fill.color) || (pattern !== "solid" && fill.color))
       throw new TypeError("A solid fill requires a color; none and gray125 have no color.");
-    return deduplicate(this.fills, { pattern, color: fill.color ? colorArgb(fill.color) : "" });
+    return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
   }
   addBorder(border: Border): number {
     const result: { left?: BorderEdge; right?: BorderEdge; top?: BorderEdge; bottom?: BorderEdge } = {};
@@ -75,7 +92,7 @@ export class StyleRegistry {
         result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
       }
     }
-    return deduplicate(this.borders, result);
+    return deduplicate(this.borders, this.borderIndexes, result, this.maximum);
   }
   addNumberFormat(format: string): number {
     if (typeof format !== "string" || !format || format.length > 255) throw new TypeError("Number format must contain 1 through 255 characters.");
@@ -105,7 +122,7 @@ export class StyleRegistry {
     const registered = { font, fill, border, numberFormat, wrapText: !!style.wrapText, alignment: style.alignment ?? "", verticalAlignment: style.verticalAlignment ?? "" };
     const key = JSON.stringify(registered), found = this.indexes.get(key);
     if (found !== undefined) return found;
-    if (this.styles.length >= 64000) throw new RangeError("Workbook exceeds Excel's cell style limit.");
+    if (this.styles.length >= this.maximum) throw new OfficeIMOError("RESOURCE_LIMIT", "Workbook exceeds its cell style limit.");
     const id = this.styles.length; this.styles.push(registered); this.indexes.set(key, id); return id;
   }
   validateStyle(id: number): number { return index(id, this.styles.length, "cell style"); }

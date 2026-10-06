@@ -17,12 +17,14 @@ namespace OfficeIMO.TestAssets;
 
 /// <summary>Shared independent validator for Node and browser-produced TypeScript corpus files.</summary>
 internal static class JavaScriptWorkbookContract {
-    internal static void Verify(string path, JsonElement? spec = null) {
+    internal static void Verify(string path, JsonElement? spec = null, long? maxCharactersInPart = null) {
         using SpreadsheetDocument sdk = SpreadsheetDocument.Open(path, false);
         string[] errors = new OpenXmlValidator().Validate(sdk).Select(e => e.Description).ToArray();
         Require(errors.Length == 0, Path.GetFileName(path) + ": " + string.Join("; ", errors));
         using var model = ExcelDocument.Load(path, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-        var generic = new OfficeDocumentReaderBuilder().AddExcelHandler().Build().ReadDocument(path);
+        var readerOptions = new ReaderOptions();
+        if (maxCharactersInPart.HasValue) readerOptions.OpenXmlMaxCharactersInPart = maxCharactersInPart.Value;
+        var generic = new OfficeDocumentReaderBuilder().AddExcelHandler().Build().ReadDocument(path, readerOptions);
         Require(generic.Kind == ReaderInputKind.Excel && generic.CapabilitiesUsed.Contains("officeimo.reader.excel.rich-v5"), "The generic Excel adapter did not run.");
         if (spec is not JsonElement fixture) return;
         Sheet[] wireSheets = sdk.WorkbookPart!.Workbook!.Sheets!.Elements<Sheet>().ToArray();

@@ -6,5 +6,5 @@ export * as xlsx from "./xlsx/index.js";
 export * as csv from "./csv/index.js";
 export { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, createWorkbook } from "./xlsx/index.js";
 export { writeCsv, writeCsvTo } from "./csv/index.js";
-export { saveBlob } from "./core/index.js";
-export type { CellValue, Column, Row, Rows, ExportProgress, StreamOptions } from "./core/index.js";
+export { saveBlob, ExportCell } from "./core/index.js";
+export type { CellValue, Column, Row, Rows, ExportValue, CellPresentation, ExportCellOptions, ExportLimits, ExportProgress, StreamOptions } from "./core/index.js";

@@ -7,7 +7,9 @@ import { OfficeIMOError } from "../core/errors.js";
 import { BlobByteSink, writeBytes } from "../core/sinks.js";
 import type { ByteSink, ByteSource } from "../core/sinks.js";
 
-export interface ZipWriterOptions { readonly compression?: Compression; readonly signal?: AbortSignal; }
+export interface ZipWriterOptions { readonly compression?: Compression; readonly signal?: AbortSignal; readonly maxOutputBytes?: number; }
+/** An appendable entry. Await writes and close it before opening another entry. */
+export interface ZipEntry extends ByteSink { close(): Promise<EntryInfo>; discard(error: unknown): Promise<void>; }
 export type ZipEntrySource = ByteSource | ((sink: ByteSink) => void | Promise<void>);
 const encoder = new TextEncoder();
 
@@ -39,13 +41,17 @@ export class ZipWriter {
   private readonly names = new Set<string>();
   private readonly central: Uint8Array[] = [];
   private offset = 0;
+  private active: ZipEntry | undefined;
   private state: "open" | "writing" | "finished" | "failed" = "open";
   constructor(sink?: ByteSink, private readonly options: ZipWriterOptions = {}) {
+    if (options.maxOutputBytes !== undefined && (!Number.isSafeInteger(options.maxOutputBytes) || options.maxOutputBytes < 0)) throw new RangeError("maxOutputBytes must be a nonnegative safe integer.");
     if (options.compression !== undefined && options.compression !== "auto" && options.compression !== "store")
       throw new RangeError("compression must be auto or store.");
     this.owned = sink ? undefined : new BlobByteSink(); this.sink = sink ?? this.owned!;
   }
   private async emit(bytes: Uint8Array): Promise<void> {
+    if (this.options.maxOutputBytes !== undefined && this.offset + bytes.length > this.options.maxOutputBytes)
+      throw new OfficeIMOError("RESOURCE_LIMIT", "maxOutputBytes exceeded.");
     this.offset = zipSize(this.offset + bytes.length);
     await withAbort(Promise.resolve(this.sink.write(bytes)), this.options.signal);
   }
@@ -71,19 +77,49 @@ export class ZipWriter {
     h.data.setUint32(20, info.compressedSize, true); h.data.setUint32(24, info.size, true);
     h.data.setUint16(28, name.length, true); h.data.setUint32(42, offset, true); this.central.push(h.bytes);
   }
-  async add(name: string, source: ZipEntrySource): Promise<void> {
+  async openEntry(name: string): Promise<ZipEntry> {
     const encoded = this.reserve(name), offset = this.offset;
-    const entry = new EntryWriter(this.options.compression ?? "auto", { write: bytes => this.emit(bytes) }, this.options.signal);
+    let entry: EntryWriter | undefined;
     try {
+      entry = new EntryWriter(this.options.compression ?? "auto", { write: bytes => this.emit(bytes) }, this.options.signal);
       await this.emit(this.local(encoded, entry, true));
+      const writer = entry;
+      let busy = false, closed = false, completion: Promise<EntryInfo> | undefined;
+      const discard = async (error: unknown) => { closed = true; this.state = "failed"; await writer.discard(error); this.owned?.discard(); this.active = undefined; };
+      return this.active = {
+        write: async bytes => {
+          if (busy || closed || this.state !== "writing") throw new OfficeIMOError("INVALID_STATE", "Await the current ZIP entry operation.");
+          busy = true;
+          try { await writer.write(bytes); } catch (error) { await discard(error); throw error; } finally { busy = false; }
+        },
+        close: () => {
+          if (completion) return completion;
+          if (busy || closed || this.state !== "writing") throw new OfficeIMOError("INVALID_STATE", "ZIP entry is busy or closed.");
+          closed = true;
+          completion = (async () => {
+            try {
+              const info = await writer.close(), descriptor = header(0x08074b50, 16);
+              descriptor.data.setUint32(4, info.crc, true); descriptor.data.setUint32(8, info.compressedSize, true);
+              descriptor.data.setUint32(12, info.size, true); await this.emit(descriptor.bytes);
+              this.record(encoded, info, offset, true); this.state = "open"; this.active = undefined; return info;
+            } catch (error) { await discard(error); throw error; }
+          })();
+          return completion;
+        }, discard
+      };
+    } catch (error) { this.state = "failed"; await entry?.discard(error); this.owned?.discard(); throw error; }
+  }
+  async add(name: string, source: ZipEntrySource): Promise<void> {
+    const entry = await this.openEntry(name);
+    try {
       if (typeof source === "function") await withAbort(Promise.resolve(source(entry)), this.options.signal);
       else await writeBytes(source, entry, this.options.signal);
-      const info = await entry.close(), descriptor = header(0x08074b50, 16);
-      descriptor.data.setUint32(4, info.crc, true); descriptor.data.setUint32(8, info.compressedSize, true);
-      descriptor.data.setUint32(12, info.size, true); await this.emit(descriptor.bytes);
-      this.record(encoded, info, offset, true); this.state = "open";
-    } catch (error) { this.state = "failed"; await entry.discard(error); this.owned?.discard(); throw error; }
+      await entry.close();
+    } catch (error) { await entry.discard(error); throw error; }
   }
+  get bytesWritten(): number { return this.offset; }
+  /** Drop owned output and release the active compressor. Caller-owned partial bytes remain with the caller. */
+  async discard(error: unknown): Promise<void> { this.state = "failed"; await this.active?.discard(error); this.owned?.discard(); }
   /** @internal Buffered worksheet compression stays in the format owner. */
   async addPrepared(name: string, entry: PreparedEntry): Promise<void> {
     const encoded = this.reserve(name), offset = this.offset;

@@ -4,11 +4,12 @@ import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import type { CellValue, Column } from "../core/index.js";
 import { copyColumns, rowValues } from "../internal/rows.js";
 import { EntryWriter } from "../zip/entry.js";
+import type { ZipEntry } from "../zip/index.js";
 import type { PreparedEntry } from "../zip/entry.js";
 import { xmlDeclaration } from "../xml/index.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
-import { Cell, cellText, columnName, inlineText, excelDate } from "./values.js";
-import { spreadsheetNamespace, colorArgb, validateStylePatch } from "./styles.js";
+import { Cell, cellText, columnName, inlineText, excelDate, copyValue } from "./values.js";
+import { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } from "./styles.js";
 import type { Workbook } from "./workbook.js";
 import type { SheetOptions, XlsxRows } from "./types.js";
 import type { RowStyleContext } from "./types.js";
@@ -16,13 +17,18 @@ import type { CellStyle } from "./styles.js";
 import type { TableDefinition } from "./table.js";
 import { copyHyperlink, copyImage, hyperlinksXml, cellPosition } from "./attachments.js";
 import type { Hyperlink, WorksheetImage } from "./attachments.js";
+import { ExportCell, assertScalar } from "../core/presentation.js";
+import type { ExportValue } from "../core/presentation.js";
+import { ReportLayout, ComputedTotal, printXml } from "./layout.js";
+import { cleanXml } from "../xml/index.js";
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 export class Worksheet {
   private readonly columns: readonly Column[];
   private readonly declared: { column: Column; letter: string; style: number; dateStyle: number; headerStyle: number }[];
   private readonly options: SheetOptions;
-  private entry: EntryWriter | undefined;
+  private entry: EntryWriter | ZipEntry | undefined;
+  private completion: Promise<PreparedEntry | undefined> | undefined;
   private buffer: ChunkedTextSink | undefined;
   private readonly output = new BlobByteSink();
   private started = false;
@@ -31,22 +37,26 @@ export class Worksheet {
   private error: unknown;
   private count = 0;
   private readonly headerRows: number;
+  private readonly layout: ReportLayout;
+  private pending: unknown[][] = [];
+  private pendingCharacters = 0;
+  private readonly internalLinks: { cell: string; location: string }[] = [];
   private readonly links: Hyperlink[] = [];
   private readonly pictures: WorksheetImage[] = [];
   private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition) {
-    this.columns = copyColumns(options.columns ?? []);
+    this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
-    this.options = { ...options, ...(alternate ? { alternatingRowStyle: { ...alternate,
-      ...(typeof alternate.font === "object" ? { font: { ...alternate.font } } : {}),
-      ...(typeof alternate.fill === "object" ? { fill: { ...alternate.fill } } : {}),
-      ...(typeof alternate.border === "object" ? { border: Object.fromEntries(Object.entries(alternate.border).map(([side, edge]) => [side, { ...edge }])) } : {})
-    } } : {}) };
-    this.headerRows = this.columns.length && options.includeHeader !== false ? 1 : 0;
-    for (const link of options.hyperlinks ?? []) this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
+    this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
+      ...(options.print ? { print: { ...options.print, ...(options.print.margins ? { margins: { ...options.print.margins } } : {}) } } : {}),
+      ...(options.footer ? { footer: { ...options.footer, ...(options.footer.values ? { values: options.footer.values.map(copyValue) as NonNullable<SheetOptions["footer"]>["values"] & {} } : {}), ...(options.footer.totals ? { totals: { ...options.footer.totals } } : {}), ...(options.footer.style ? { style: copyStylePatch(options.footer.style) } : {}) } } : {}),
+      ...(alternate ? { alternatingRowStyle: copyStylePatch(alternate) } : {}) };
+    this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy);
+    this.headerRows = this.layout.headerRows;
+    for (const link of options.hyperlinks ?? []) { book.retainLink(); this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy)); }
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
       style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
-      headerStyle: options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
-        ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill)
+      headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
+        ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
     }));
   }
   /** @internal */
@@ -56,6 +66,8 @@ export class Worksheet {
     for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"] as const)
       if (options[feature] !== undefined) throw new NotSupportedError(feature);
     const columns = copyColumns(options.columns ?? []);
+    new ReportLayout(columns, options, book.settings.invalidCharacterPolicy);
+    if (options.footer?.style) book.styles.compose(0, options.footer.style);
     if (options.hyperlinks !== undefined) {
       if (!Array.isArray(options.hyperlinks)) throw new TypeError("Hyperlinks must be an array.");
       const seen = new Set<string>();
@@ -85,29 +97,57 @@ export class Worksheet {
       if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255)) throw new TypeError("Column format must be a string of at most 255 characters.");
     }
   }
-  private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext): string {
+  private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false): string {
     const col = this.declared[i]!;
+    const total = value instanceof ComputedTotal ? value : undefined;
+    if (total) value = total.value;
+    let presentation = value instanceof ExportCell ? value.presentation : undefined;
+    if (value instanceof ExportCell) value = value.value;
     const suppliedStyle = value instanceof Cell ? value.style : undefined;
-    if (!header && col.column.type) {
+    if (!header && !footer && col.column.type) {
       const writer = this.book.writerFor(col.column.type);
       if (writer) value = writer(value instanceof Cell ? value.value : value as CellValue,
-        { column: Object.freeze({ ...col.column }), row, columnIndex: i + 1, sheetName: this.name });
+        { column: col.column, row, columnIndex: i + 1, sheetName: this.name });
     }
+    if (value instanceof ExportCell) { presentation = value.presentation; value = value.value; }
     const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
     if (value instanceof Cell) value = value.value;
+    assertScalar(value);
     const type = value instanceof Date ? "date" : typeof value;
-    if (!header && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
+    if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
       throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
     let style = explicitStyle === undefined ? header ? col.headerStyle : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
-    if (!header) {
+    if (!header && !footer) {
       if (explicitStyle === undefined) {
-        if ((row - this.headerRows) % 2 === 0 && this.options.alternatingRowStyle) style = this.book.styles.compose(style, this.options.alternatingRowStyle);
-        if (rowStyle !== undefined) style = this.book.styles.compose(style, rowStyle);
+        const base = style, cached = rowStyles?.get(base);
+        if (cached !== undefined) style = cached;
+        else {
+          if ((row - this.headerRows) % 2 === 0 && this.options.alternatingRowStyle) style = this.book.styles.compose(style, this.options.alternatingRowStyle);
+          if (rowStyle !== undefined) style = this.book.styles.compose(style, rowStyle);
+          rowStyles?.set(base, style);
+        }
       }
-      const patch = context && this.options.cellStyle?.({ ...context, value: value as CellValue, column: Object.freeze({ ...col.column }), columnIndex: i + 1 });
+      const patch = context && this.options.cellStyle?.({ ...context, value: value as CellValue, column: col.column, columnIndex: i + 1 });
       if (patch !== undefined) style = this.book.styles.compose(style, patch);
+      this.layout.accept(i, value);
+    }
+    if (footer && this.options.footer?.style && explicitStyle === undefined) style = this.book.styles.compose(style, this.options.footer.style);
+    if (presentation && explicitStyle === undefined) style = this.book.styles.compose(style, {
+      ...(presentation.background === undefined ? {} : { fill: { color: presentation.background } }),
+      ...(presentation.color === undefined && presentation.bold === undefined && presentation.italic === undefined ? {} : { font: {
+        ...(presentation.color === undefined ? {} : { color: presentation.color }), ...(presentation.bold === undefined ? {} : { bold: presentation.bold }), ...(presentation.italic === undefined ? {} : { italic: presentation.italic }) } }),
+      ...(presentation.wrapText === undefined ? {} : { wrapText: presentation.wrapText }), ...(presentation.alignment === undefined ? {} : { alignment: presentation.alignment }),
+      ...(presentation.numberFormat === undefined ? {} : { numberFormat: presentation.numberFormat })
+    });
+    if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
+      const cell = col.letter + row;
+      if (this.links.some(link => link.cell === cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+      const preserved = this.book.preserveText(this.name, cell, value as string);
+      this.book.retainLink(); this.internalLinks.push({ cell, location: preserved.location }); value = preserved.preview;
     }
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
+    this.book.budget.cell(value);
+    if (total) return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
     if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
     if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
     if (value == null) return prefix + '/>';
@@ -116,56 +156,72 @@ export class Worksheet {
     if (type !== "number" && type !== "date") throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
     return prefix + '><v>' + value + '</v></c>';
   }
-  private async writeRow(values: readonly unknown[], number: number, header: boolean): Promise<void> {
+  private async writeRow(values: readonly unknown[], number: number, header: boolean, footer = false): Promise<void> {
     const buffer = this.buffer!;
     const height = header ? this.options.headerHeight : this.options.rowHeight;
-    const context = !header ? Object.freeze({ row: number, sheetName: this.name,
-      values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell ? (values[i] as Cell).value : values[i])) as readonly CellValue[] }) : undefined;
+    const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
+      values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
     if (rowStyle !== undefined) validateStylePatch(rowStyle);
-    await buffer.write('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>');
-    for (let i = 0; i < this.columns.length; i++) await buffer.write(this.cell(values[i], i, number, header, rowStyle, context));
-    await buffer.write('</row>');
+    const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map<number, number>() : undefined;
+    if (buffer.append('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>')) await buffer.flush();
+    for (let i = 0; i < this.columns.length; i++) if (buffer.append(this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer))) await buffer.flush();
+    if (buffer.append('</row>')) await buffer.flush();
   }
   private async start(): Promise<void> {
     if (this.started) return;
     this.started = true;
-    this.entry = new EntryWriter(this.book.settings.compression, this.output, this.book.settings.signal);
+    this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, this.output, this.book.settings.signal);
     const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
-    const x = opts.freezeColumns ?? 0, y = opts.freezeHeader && this.headerRows ? 1 : 0;
+    const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
     const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
-    await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><sheetViews><sheetView workbookViewId="0">' +
+    await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' + (opts.print ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
       (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>');
     const defaultWidth = opts.defaultColumnWidth ?? (this.table ? 20 : undefined);
-    if (this.columns.some(c => c.width !== undefined || defaultWidth !== undefined)) {
+    if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined)) {
       await buffer.write('<cols>');
       for (let i = 0; i < this.columns.length; i++) {
-        const column = this.columns[i]!;
-        const width = column.width ?? defaultWidth;
+        const width = this.layout.widths[i] ?? defaultWidth;
         if (width !== undefined) await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + width + '" customWidth="1"/>');
       }
       await buffer.write('</cols>');
     }
     await buffer.write('<sheetData>');
-    if (this.headerRows) await this.writeRow(this.columns.map(c => c.header), 1, true);
+    if (this.headerRows) {
+      for (let i = 0; i < this.layout.headings.length; i++) await this.writeRow(this.layout.headings[i]!, i + 1, true);
+      await this.writeRow(this.columns.map(c => c.header), this.headerRows, true);
+    }
+    for (let i = 0; i < this.pending.length; i++) await this.writeRow(this.pending[i]!, this.headerRows + i + 1, false);
+    this.pending = []; this.pendingCharacters = 0;
   }
   addRows(rows: XlsxRows): Promise<void>;
-  addRows<T extends { readonly [K in keyof T]: CellValue | Cell }>(rows: Iterable<T> | AsyncIterable<T>): Promise<void>;
+  addRows<T extends { readonly [K in keyof T]: ExportValue | Cell }>(rows: Iterable<T> | AsyncIterable<T>): Promise<void>;
   async addRows(rows: Iterable<unknown> | AsyncIterable<unknown>): Promise<void> {
     this.book.assertOpen();
+    if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.busy) throw new OfficeIMOError("INVALID_STATE", "Await the current addRows call before writing more rows to this sheet.");
     if (this.failed) throw this.error;
     this.busy = true;
     try {
-      await this.start(); let checkpoint = performance.now();
+      if (!this.layout.sampleRows) await this.start();
+      let checkpoint = performance.now();
       for await (const row of inputRows(rows, this.book.settings.signal)) {
-        if (this.count + this.headerRows >= 1048576) throw new RangeError("Excel supports at most 1,048,576 rows including the header; split the sheet.");
+        if (this.count + this.headerRows + (this.options.footer ? 1 : 0) >= 1048576) throw new RangeError("Excel supports at most 1,048,576 rows including headers and footers; split the sheet.");
+        this.book.budget.row(this.count + 1);
         if (!this.columns.length) throw new RangeError("Declare columns before adding rows.");
-        await this.writeRow(rowValues(row, this.columns), this.count + this.headerRows + 1, false); this.count++;
+        const values = rowValues(row, this.columns);
+        if (!this.started) {
+          this.layout.sample(values);
+          const snapshot = values.map(copyValue);
+          const characters = snapshot.reduce<number>((sum, value) => { const raw = value instanceof Cell || value instanceof ExportCell ? value.value : value; return sum + (typeof raw === "string" ? raw.length : 0) + (value instanceof ExportCell ? value.text?.length ?? 0 : 0); }, 0);
+          if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000) || this.pendingCharacters + characters > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling buffer limit exceeded; reduce sampleRows or raise its bounded limits.");
+          this.pending.push(snapshot); this.pendingCharacters += characters; this.count++;
+          if (this.pending.length >= this.layout.sampleRows) await this.start();
+        } else { await this.writeRow(values, this.count + this.headerRows + 1, false); this.count++; }
         if (performance.now() - checkpoint >= 50) { this.progress(); checkpoint = performance.now(); }
       }
-      await this.buffer!.flush(); this.progress(); checkAbort(this.book.settings.signal);
-    } catch (error) { this.failed = true; this.error = error; await this.discard(error); throw error; }
+      if (this.buffer) await this.buffer.flush(); this.progress(); checkAbort(this.book.settings.signal);
+    } catch (error) { this.failed = true; this.error = error; await this.book.discard(error); throw error; }
     finally { this.busy = false; }
   }
   private progress(): void { this.book.settings.onProgress?.({ phase: "rows", rows: this.count, sheetName: this.name }); }
@@ -173,15 +229,19 @@ export class Worksheet {
   /** Register a PNG such as a chart; bytes are copied so the caller can reuse its buffer. */
   addImage(image: WorksheetImage): void {
     this.book.assertOpen();
+    if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.failed) throw this.error;
-    this.pictures.push(copyImage(image, this.book.settings.invalidCharacterPolicy));
+    const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
+    this.book.retainImage(copied.data.length); this.pictures.push(copied);
   }
   /** Attach an external report link to a cell without changing its literal value. */
   addHyperlink(link: Hyperlink): void {
     this.book.assertOpen();
+    if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.failed) throw this.error;
     const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
-    if (this.links.some(existing => existing.cell === copied.cell)) throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+    if (this.links.some(existing => existing.cell === copied.cell) || this.internalLinks.some(existing => existing.cell === copied.cell)) throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+    this.book.retainLink();
     this.links.push(copied);
   }
   /** @internal */
@@ -193,22 +253,47 @@ export class Worksheet {
   /** @internal */
   get isBusy(): boolean { return this.busy; }
   /** @internal */
-  async finish(): Promise<PreparedEntry> {
+  get headerRowCount(): number { return this.headerRows; }
+  /** @internal */
+  get totalRows(): number { return Math.max(1, this.headerRows + this.count + (this.options.footer ? 1 : 0)); }
+  /** @internal */
+  get lastColumn(): string { return columnName(Math.max(1, this.columns.length)); }
+  /** @internal */
+  get printSettings(): SheetOptions["print"] { return this.options.print; }
+  /** @internal */
+  get footerSettings(): SheetOptions["footer"] { return this.options.footer; }
+  /** Complete this worksheet. A streamed workbook can then start its next worksheet. */
+  async close(): Promise<void> {
+    this.book.assertOpen();
+    if (this.busy) throw new OfficeIMOError("INVALID_STATE", "Await addRows before closing the worksheet.");
+    try { await this.finish(); } catch (error) { await this.book.discard(error); throw error; }
+  }
+  /** @internal */
+  finish(preservedRows?: XlsxRows): Promise<PreparedEntry | undefined> {
+    if (this.completion) return this.completion;
     if (this.failed) throw this.error;
-    try {
+    return this.completion = (async () => { try {
       for (const link of this.links) {
         const position = cellPosition(link.cell);
         if (position.column > this.columns.length || position.row > this.count + this.headerRows) throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
       }
-      await this.start(); await this.buffer!.write('</sheetData>');
-      if (this.options.autoFilter && this.headerRows && !this.tableDefinition) await this.buffer!.write('<autoFilter ref="A1:' + columnName(this.columns.length) + (this.count + 1) + '"/>');
-      if (this.links.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy));
+      await this.start();
+      if (preservedRows) for await (const row of inputRows(preservedRows, this.book.settings.signal)) {
+        this.book.budget.row(this.count + 1); await this.writeRow(rowValues(row, this.columns), this.headerRows + this.count + 1, false); this.count++;
+      }
+      if (this.options.footer) await this.writeRow(this.layout.footer(this.count), this.headerRows + this.count + 1, false, true);
+      await this.buffer!.write('</sheetData>');
+      if (this.options.autoFilter && this.headerRows && !this.tableDefinition) await this.buffer!.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
+      if (this.layout.merges.length) await this.buffer!.write('<mergeCells count="' + this.layout.merges.length + '">' + this.layout.merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
+      if (this.links.length || this.internalLinks.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
+      await this.buffer!.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
       if (this.pictures.length) await this.buffer!.write('<drawing r:id="drawing"/>');
       if (this.tableDefinition) await this.buffer!.write('<tableParts count="1"><tablePart r:id="table"/></tableParts>');
       await this.buffer!.write('</worksheet>'); await this.buffer!.close();
-      return { ...await this.entry!.close(), chunks: this.output.takeChunks() };
-    } catch (error) { await this.discard(error); throw error; }
+      const info = await this.entry!.close();
+      return this.book.settings.sink ? undefined : { ...info, chunks: this.output.takeChunks() };
+    } catch (error) { await this.discard(error); throw error; } })();
   }
   /** @internal */
-  async discard(error: unknown): Promise<void> { await this.entry?.discard(error); this.output.discard(); }
+  async discard(error: unknown): Promise<void> { this.pending = []; await this.entry?.discard(error); this.output.discard(); }
 }

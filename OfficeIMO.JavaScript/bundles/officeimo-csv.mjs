@@ -175,6 +175,78 @@ return _exports;
 })();
 
 const _m4 = (() => {
+const { OfficeIMOError } = _m3;
+
+/** @internal Check before accepting the next value or chunk. */
+class ExportBudget {
+    cells = 0;
+    text = 0;
+    limits;
+    constructor(limits = {}) {
+        for (const [key, value] of Object.entries(limits))
+            if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
+                throw new RangeError(key + " must be a nonnegative safe integer.");
+        this.limits = Object.freeze({ ...limits });
+    }
+    check(kind, value) {
+        const maximum = this.limits[kind];
+        if (maximum !== undefined && value > maximum)
+            throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
+    }
+    row(count) { this.check("maxRows", count); }
+    cell(value) {
+        this.check("maxCells", this.cells + 1);
+        const length = typeof value === "string" ? value.length : 0;
+        this.check("maxTextCharacters", this.text + length);
+        this.cells++;
+        this.text += length;
+    }
+}
+/** @internal Ownership stays with the caller. */
+function boundedSink(sink, budget) {
+    let bytes = 0;
+    return { write(chunk) {
+            budget.check("maxOutputBytes", bytes + chunk.length);
+            bytes += chunk.length;
+            return sink.write(chunk);
+        } };
+}
+const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
+return _exports;
+})();
+
+const _m5 = (() => {
+const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
+class ExportCell {
+    value;
+    static [Symbol.hasInstance](value) { return !!value && typeof value === "object" && value[exportCellBrand] === true; }
+    text;
+    presentation;
+    constructor(value, options = {}) {
+        this.value = value;
+        if (options.text !== undefined && typeof options.text !== "string")
+            throw new TypeError("Display text must be a string.");
+        assertScalar(value);
+        this.text = options.text;
+        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        Object.defineProperty(this, exportCellBrand, { value: true });
+        Object.freeze(this);
+    }
+}
+/** @internal Reject async formatters while observing their rejection immediately. */
+function assertScalar(value) {
+    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+        return;
+    if (typeof value.then === "function")
+        void Promise.resolve(value).catch(() => { });
+    throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
+}
+const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar });
+return _exports;
+})();
+
+const _m6 = (() => {
 function rowValues(row, columns) {
     if (Array.isArray(row)) {
         if (row.length > columns.length)
@@ -194,14 +266,18 @@ function copyColumns(columns) {
     return columns.map(c => {
         if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
             throw new TypeError("Each column needs a string header and an optional string key.");
-        return { ...c };
+        if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
+            throw new TypeError("Column groups must be an array of strings.");
+        return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
     });
 }
 const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns });
 return _exports;
 })();
 
-const _m5 = (() => {
+const _m7 = (() => {
+
+
 
 
 
@@ -241,7 +317,7 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
@@ -250,7 +326,13 @@ const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink } = _m2;
 
-const { copyColumns, rowValues } = _m4;
+const { ExportBudget, boundedSink } = _m4;
+
+const { ExportCell } = _m5;
+
+const { copyColumns, rowValues } = _m6;
+
+
 
 
 
@@ -279,29 +361,38 @@ function csvField(value, delimiter, protect, quote, nullValue) {
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 async function writeCsvTo(rows, sink, options) {
-    const columns = copyColumns(options.columns), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
+    const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
     if (!["\r\n", "\n", "\r"].includes(lineEnding))
         throw new RangeError("Invalid line ending.");
     if (!["minimal", "all", "strings"].includes(quote))
         throw new RangeError("Quoting must be minimal, all or strings.");
+    if (options.valueMode !== undefined && !["raw", "display"].includes(options.valueMode))
+        throw new RangeError("valueMode must be raw or display.");
     if (options.nullValue !== undefined && typeof options.nullValue !== "string")
         throw new TypeError("nullValue must be a string.");
     for (const column of columns)
         if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
             throw new TypeError("CSV value formatters must be functions.");
+    const budget = new ExportBudget(options.limits);
+    sink = boundedSink(sink, budget);
+    const hasFormatters = columns.some(column => column.valueFormatter);
     const signal = options.signal, protect = options.formulaInjectionProtection !== false, buffer = new ChunkedTextSink(sink, signal);
     checkAbort(signal);
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
     async function record(values, header = false) {
-        const snapshot = Object.freeze(columns.map((_, i) => values[i]));
+        const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+        const snapshot = hasFormatters ? Object.freeze(columns.map((_, i) => resolved(values[i]))) : undefined;
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
-            const value = !header && column.valueFormatter ? column.valueFormatter(values[i], { row: count + 1, columnIndex: i + 1, column: Object.freeze({ ...column }), values: snapshot }) : values[i];
-            await buffer.write((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue));
+            const raw = resolved(values[i]);
+            const value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            budget.cell(value);
+            if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
+                await buffer.flush();
         }
         if (buffer.append(lineEnding)) {
             await buffer.flush();
@@ -311,6 +402,7 @@ async function writeCsvTo(rows, sink, options) {
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
     for await (const row of inputRows(rows, signal)) {
+        budget.row(count + 1);
         await record(rowValues(row, columns));
         count++;
     }
@@ -338,8 +430,8 @@ async function writeCsv(rows, options) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m5.saveBlob, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
 return _exports;
 })();
-const { saveBlob, writeCsvTo, writeCsv } = _m0;
-export { saveBlob, writeCsvTo, writeCsv };
+const { saveBlob, ExportCell, writeCsvTo, writeCsv } = _m0;
+export { saveBlob, ExportCell, writeCsvTo, writeCsv };

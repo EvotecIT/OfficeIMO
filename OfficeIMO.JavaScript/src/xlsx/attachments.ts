@@ -46,9 +46,10 @@ export function copyImage(image: WorksheetImage, policy: InvalidCharacterPolicy)
     ...(image.description === undefined ? {} : { description: cleanXml(image.description, policy) }) });
 }
 
-export function hyperlinksXml(links: readonly Hyperlink[], policy: InvalidCharacterPolicy): string {
+export function hyperlinksXml(links: readonly Hyperlink[], policy: InvalidCharacterPolicy, internal: readonly { cell: string; location: string }[] = []): string {
   return '<hyperlinks>' + links.map((link, i) => '<hyperlink ref="' + link.cell + '" r:id="link' + (i + 1) + '"' +
-    (link.tooltip === undefined ? "" : ' tooltip="' + escapeOoxmlAttribute(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
+    (link.tooltip === undefined ? "" : ' tooltip="' + escapeOoxmlAttribute(link.tooltip, policy) + '"') + '/>').join("") +
+    internal.map(link => '<hyperlink ref="' + link.cell + '" location="' + escapeOoxmlAttribute(link.location, policy) + '"/>').join("") + '</hyperlinks>';
 }
 
 export function drawingXml(images: readonly WorksheetImage[], policy: InvalidCharacterPolicy): string {

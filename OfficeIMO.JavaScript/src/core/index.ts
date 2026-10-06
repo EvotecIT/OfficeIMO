@@ -2,12 +2,15 @@ export { OfficeIMOError, NotSupportedError } from "./errors.js";
 export type { ErrorCode } from "./errors.js";
 export { BlobByteSink, ChunkedTextSink, writeBytes } from "./sinks.js";
 export type { ByteSink, ByteSource, ByteWriter } from "./sinks.js";
+export type { ExportLimits } from "./limits.js";
+export { ExportCell } from "./presentation.js";
+export type { CellPresentation, ExportCellOptions, ExportValue } from "./presentation.js";
 export { checkAbort, withAbort, inputRows, pause } from "./iteration.js";
 import { OfficeIMOError } from "./errors.js";
 
 /** Plain values never interpret strings as formulas. */
 export type CellValue = string | number | boolean | Date | null | undefined;
-export type Row = readonly CellValue[] | Readonly<Record<string, CellValue>>;
+export type Row = readonly import("./presentation.js").ExportValue[] | Readonly<Record<string, import("./presentation.js").ExportValue>>;
 export type Rows = Iterable<Row> | AsyncIterable<Row>;
 export type Alignment = "left" | "center" | "right" | "fill" | "justify" | "distributed";
 
@@ -23,6 +26,8 @@ export interface Column {
   readonly alignment?: Alignment;
   /** XLSX StyleRegistry index. */
   readonly style?: number;
+  /** Contiguous shared prefixes form merged heading rows above the leaf headers. */
+  readonly groups?: readonly string[];
 }
 
 export interface ExportProgress {
@@ -34,6 +39,7 @@ export interface ExportProgress {
 
 export interface StreamOptions {
   readonly signal?: AbortSignal;
+  readonly limits?: import("./limits.js").ExportLimits;
   /** Synchronous notification; throwing fails the operation. */
   readonly onProgress?: (progress: ExportProgress) => void;
 }

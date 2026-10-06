@@ -1,4 +1,4 @@
-import { core, zip, xml, opc, xlsx, csv, createWorkbook } from "@evotecit/officeimo";
+import { core, zip, xml, opc, xlsx, csv, createWorkbook, ExportCell } from "@evotecit/officeimo";
 import { BlobByteSink, ChunkedTextSink, detectFeatures, NotSupportedError } from "@evotecit/officeimo/core";
 import { ZipWriter, Crc32 } from "@evotecit/officeimo/zip";
 import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
@@ -36,6 +36,17 @@ packageFile.addRelationship("/", { id: "data", type: relationshipTypes.officeDoc
 const custom = new Workbook({ cellValueWriters: { milliseconds: value => Number(value) / 1000 } });
 await custom.addSheet("Custom", { columns: [{ header: "Seconds", type: "milliseconds" }] }).addRows([["1250"]]);
 void [core, zip, xml, opc, xlsx, csv, new Crc32(), escapeXml("data"), new ContentTypes(), detectFeatures(), new NotSupportedError("feature"), new StyleRegistry()];
+const streamed = createWorkbook({ sink: { write(bytes) { void bytes; } }, oversizedText: "preserve", limits: { maxRows: 1000, maxBufferedCharacters: 100000, maxOverflowCharacters: 100000 } });
+const resolved = [{ name: new ExportCell(12.5, { text: "12.50 USD", presentation: { background: "E2F0D9", bold: true } }) }];
+const streamedSheet = streamed.addSheet("Resolved", { columns: [{ header: "Amount", key: "name", groups: ["Metrics"], type: "number" }], autoSize: {},
+  footer: { totals: { name: "sum" } }, print: { repeatHeaders: true, orientation: "landscape", margins: { left: 0.25 } } });
+await streamedSheet.addRows(resolved); await streamedSheet.close();
+const completion = await streamed.finish(); void completion.bytes;
+await writeCsv(resolved, { columns: [{ header: "Amount", key: "name" }], valueMode: "display", limits: { maxOutputBytes: 100000 } });
+const streamedZip = new ZipWriter({ write(bytes) { void bytes; } });
+const zipPart = await streamedZip.openEntry("data.txt"); await zipPart.write(new TextEncoder().encode("data")); await zipPart.close(); await streamedZip.finish();
+const streamedOpc = new OpcPackage({ sink: { write(bytes) { void bytes; } } });
+const packagePart = await streamedOpc.openPart("/data.txt", "text/plain"); await packagePart.write(new TextEncoder().encode("data")); await packagePart.close(); await streamedOpc.finish();
 function download() { saveBlob(blob, "data.xlsx"); } void download;
 
 // Public input and option guarantees, including domain interfaces without index signatures.

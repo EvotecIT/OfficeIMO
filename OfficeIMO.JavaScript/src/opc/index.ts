@@ -5,7 +5,7 @@ import { partUri, relationshipPartUri, relativePartTarget } from "./uri.js";
 import { corePropertiesXml, appPropertiesXml } from "./properties.js";
 import type { CoreProperties, AppProperties } from "./properties.js";
 import { ZipWriter } from "../zip/index.js";
-import type { ZipWriterOptions, ZipEntrySource } from "../zip/index.js";
+import type { ZipWriterOptions, ZipEntrySource, ZipEntry } from "../zip/index.js";
 import type { PreparedEntry } from "../zip/entry.js";
 import { ChunkedTextSink } from "../core/sinks.js";
 import type { ByteSink } from "../core/sinks.js";
@@ -35,7 +35,7 @@ export interface Relationship {
   readonly target: string;
   readonly external?: boolean;
 }
-export interface OpcPackageOptions extends ZipWriterOptions { readonly invalidCharacterPolicy?: InvalidCharacterPolicy; }
+export interface OpcPackageOptions extends ZipWriterOptions { readonly invalidCharacterPolicy?: InvalidCharacterPolicy; readonly sink?: ByteSink; }
 
 function contentType(value: string): string {
   if (typeof value !== "string" || !/^[\w!#$&^.+-]+\/[\w!#$&^.+-]+$/.test(value)) throw new TypeError("Invalid content type.");
@@ -67,12 +67,13 @@ export class ContentTypes {
 /** Format-neutral part and relationship owner. A source iterable is consumed once at finalization. */
 export class OpcPackage {
   private readonly types = new ContentTypes();
-  private readonly parts = new Map<string, PackagePart | { uri: string; prepared: PreparedEntry }>();
+  private readonly parts = new Map<string, PackagePart | { uri: string; prepared: PreparedEntry } | { uri: string; written: true }>();
   private readonly directories = new Set<string>();
   private readonly relationships = new Map<string, Relationship[]>();
   private state = "open";
-  private result: Promise<Blob> | undefined;
-  constructor(private readonly options: OpcPackageOptions = {}) {}
+  private result: Promise<number> | undefined;
+  private readonly zip: ZipWriter;
+  constructor(private readonly options: OpcPackageOptions = {}) { this.zip = new ZipWriter(options.sink, options); }
   private open(): void { if (this.state !== "open") throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
   private reserve(uri: string, type: string): string {
     this.open(); uri = partUri(uri);
@@ -97,6 +98,13 @@ export class OpcPackage {
   /** @internal */
   addPrepared(uri: string, type: string, prepared: PreparedEntry): void {
     uri = this.reserve(uri, type); this.parts.set(uri.toLowerCase(), { uri, prepared });
+  }
+  /** Write a part directly to the configured sink. Close it before opening the next part. */
+  async openPart(uri: string, type: string): Promise<ZipEntry> {
+    if (!this.options.sink) throw new OfficeIMOError("INVALID_STATE", "openPart requires a caller-owned package sink.");
+    uri = this.reserve(uri, type); this.parts.set(uri.toLowerCase(), { uri, written: true });
+    try { return await this.zip.openEntry(uri.slice(1)); }
+    catch (error) { await this.discard(error); throw error; }
   }
   addRelationship(source: string, relationship: Relationship): void {
     this.open(); source = source === "/" ? source : partUri(source);
@@ -131,17 +139,19 @@ export class OpcPackage {
     })();
     return data;
   }
-  toBlob(type = "application/zip"): Promise<Blob> {
+  /** Complete pending parts and metadata without closing a caller-owned sink. */
+  finish(): Promise<number> {
     if (this.result) return this.result;
     this.open(); this.state = "finalizing";
     this.result = (async () => {
-      const zip = new ZipWriter(undefined, this.options);
+      const zip = this.zip;
       try {
         for (const [source, list] of this.relationships) {
           if (source !== "/" && !this.parts.has(source)) throw new TypeError("Missing relationship source part: " + source);
           for (const rel of list) if (!rel.external && !this.parts.has(rel.target.toLowerCase())) throw new TypeError("Missing relationship target: " + rel.target);
         }
         for (const part of this.parts.values()) {
+          if ("written" in part) continue;
           if ("prepared" in part) await zip.addPrepared(part.uri.slice(1), part.prepared);
           else await zip.add(part.uri.slice(1), this.source(part.data));
         }
@@ -153,10 +163,18 @@ export class OpcPackage {
           await zip.add(relationshipPartUri(source).slice(1), this.source(xml));
         }
         await zip.add("[Content_Types].xml", this.source(this.types.toXml()));
-        const blob = await zip.toBlob(type); this.state = "complete"; return blob;
-      } catch (error) { this.state = "failed"; throw error; }
+        await zip.finish(); this.state = "complete"; return zip.bytesWritten;
+      } catch (error) { await this.discard(error); throw error; }
       finally { this.parts.clear(); this.directories.clear(); this.relationships.clear(); }
     })();
     return this.result;
+  }
+  async toBlob(type = "application/zip"): Promise<Blob> {
+    if (this.options.sink) throw new OfficeIMOError("INVALID_STATE", "This package uses a caller-owned sink; use finish().");
+    await this.finish(); return this.zip.toBlob(type);
+  }
+  /** @internal Drop metadata and owned output after an export fails. */
+  async discard(error: unknown): Promise<void> {
+    this.state = "failed"; this.parts.clear(); this.directories.clear(); this.relationships.clear(); await this.zip.discard(error);
   }
 }

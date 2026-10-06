@@ -17,6 +17,7 @@ export function copyColumns(columns: readonly Column[]): Column[] {
   return columns.map(c => {
     if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
       throw new TypeError("Each column needs a string header and an optional string key.");
-    return { ...c };
+    if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group: unknown) => typeof group !== "string"))) throw new TypeError("Column groups must be an array of strings.");
+    return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
   });
 }

@@ -8,8 +8,8 @@ using OfficeIMO.Excel;
 internal static class WorkbookVerifier {
     internal static void Require(bool value, string message) { if (!value) throw new InvalidDataException(message); }
 
-    internal static void Verify(string path) {
-        OfficeIMO.TestAssets.JavaScriptWorkbookContract.Verify(path);
+    internal static void Verify(string path, long? maxCharactersInPart = null) {
+        OfficeIMO.TestAssets.JavaScriptWorkbookContract.Verify(path, maxCharactersInPart: maxCharactersInPart);
         using SpreadsheetDocument sdk = SpreadsheetDocument.Open(path, false);
         var errors = new OpenXmlValidator().Validate(sdk).Take(8).ToArray();
         Require(errors.Length == 0, Path.GetFileName(path) + ": " + string.Join("; ", errors.Select(e => e.Description)));
