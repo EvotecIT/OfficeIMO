@@ -2504,7 +2504,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(width, ReadBigEndianInt32(bytes, 16));
             Assert.Equal(height, ReadBigEndianInt32(bytes, 20));
             Assert.Equal(8, bytes[24]);
-            Assert.Equal(6, bytes[25]);
+            Assert.True(bytes[25] == 2 || bytes[25] == 6, "Expected an RGB or RGBA PNG export.");
+            RgbaPng image = DecodeRgbaPng(bytes);
+            Assert.Equal(width, image.Width);
+            Assert.Equal(height, image.Height);
         }
 
         private static void AssertPngSignature(byte[] bytes) {
