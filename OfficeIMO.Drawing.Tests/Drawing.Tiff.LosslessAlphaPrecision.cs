@@ -9,22 +9,25 @@ public sealed class TiffLosslessAlphaPrecisionTests {
     [InlineData(true)]
     [InlineData(false, "TiffJpegChromaAlpha")]
     [InlineData(true, "TiffJpegChromaAlpha")]
+    [InlineData(false, "TiffJpegArithmeticAlphaPrecision")]
+    [InlineData(true, "TiffJpegArithmeticAlphaPrecision")]
     public void NativeAlphaSurvivesUnassociationAndProfileConversion(bool profiled, string corpusName = "TiffJpegLosslessAlphaPrecision") {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", corpusName);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "icc-dci-p3-matrix.icc")), out var profile));
+        Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var cmykProfile));
         int cases = 0;
         bool testedColorBelowEightBitAlpha = false;
         foreach (string line in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] row = line.Split(',');
-            if (profiled && row[1] is not ("2" or "6")) continue;
+            if (profiled && row[1] is not ("2" or "5" or "6")) continue;
             byte[] bytes = File.ReadAllBytes(Path.Combine(corpus, row[0]));
             byte[] expected = File.ReadAllBytes(Path.Combine(corpus, row[0] + (profiled ? ".icc-rgba" : ".rgba")));
             Assert.True(OfficeImageReader.TryValidateContent(bytes, row[0], out _), row[0]);
             OfficeRasterImage? image;
-            Assert.True(profiled ? OfficeIccRasterConverter.TryDecodeToSrgb(bytes, profile!, new(), out image) :
+            Assert.True(profiled ? OfficeIccRasterConverter.TryDecodeToSrgb(bytes, row[1] == "5" ? cmykProfile! : profile!, new(), out image) :
                 OfficeTiffCodec.TryDecode(bytes, out image), row[0]);
-            int width = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[5]) : 35;
-            int height = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[6]) : 19;
+            int width = corpusName != "TiffJpegLosslessAlphaPrecision" ? int.Parse(row[5]) : 35;
+            int height = corpusName != "TiffJpegLosslessAlphaPrecision" ? int.Parse(row[6]) : 19;
             Assert.Equal((width, height), (image!.Width, image.Height));
             for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                 int at = (y * width + x) * 4;
@@ -38,7 +41,8 @@ public sealed class TiffLosslessAlphaPrecisionTests {
             }
             cases++;
         }
-        Assert.Equal(corpusName == "TiffJpegChromaAlpha" ? 1680 : profiled ? 96 : 192, cases);
+        Assert.Equal(corpusName == "TiffJpegArithmeticAlphaPrecision" ? (profiled ? 720 : 912) :
+            corpusName == "TiffJpegChromaAlpha" ? 1680 : profiled ? 96 : 192, cases);
         Assert.True(testedColorBelowEightBitAlpha);
     }
 }

@@ -35,6 +35,5 @@ or normal builds. `manifest.csv` records layout and color parameters;
 `SHA256SUMS` covers the TIFFs and both RGBA reference sets.
 
 These constructed files provide independently decoded sample and color evidence,
-not independent TIFF producer or native Windows acceptance. Arithmetic-coded
-alpha at additional precisions, further profiles and wider native consumers
+not independent TIFF producer or native Windows acceptance. 4×4 arithmetic sampling, further profiles and wider native consumers
 remain separate qualification gaps.

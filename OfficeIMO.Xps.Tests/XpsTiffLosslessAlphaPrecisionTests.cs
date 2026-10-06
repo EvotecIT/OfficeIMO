@@ -19,19 +19,24 @@ public sealed class XpsTiffLosslessAlphaPrecisionTests {
     [InlineData(XpsFormat.OpenXps, false, "TiffJpegChromaAlpha")]
     [InlineData(XpsFormat.Xps, true, "TiffJpegChromaAlpha")]
     [InlineData(XpsFormat.OpenXps, true, "TiffJpegChromaAlpha")]
+    [InlineData(XpsFormat.Xps, false, "TiffJpegArithmeticAlphaPrecision")]
+    [InlineData(XpsFormat.OpenXps, false, "TiffJpegArithmeticAlphaPrecision")]
+    [InlineData(XpsFormat.Xps, true, "TiffJpegArithmeticAlphaPrecision")]
+    [InlineData(XpsFormat.OpenXps, true, "TiffJpegArithmeticAlphaPrecision")]
     public void NativePrecisionAlphaRetainsVisiblePaint(XpsFormat format, bool profiled, string corpusName = "TiffJpegLosslessAlphaPrecision") {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", corpusName);
         foreach (string line in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] row = line.Split(',');
-            if (profiled && row[1] is not ("2" or "6")) continue;
+            if (profiled && row[1] is not ("2" or "5" or "6")) continue;
+            if (!profiled && row[1] == "5") continue; // XPS requires an explicit CMYK profile.
             byte[] expected = File.ReadAllBytes(Path.Combine(corpus, row[0] + (profiled ? ".icc-rgba" : ".rgba")));
-            int width = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[5]) : 35;
-            int height = corpusName == "TiffJpegChromaAlpha" ? int.Parse(row[6]) : 19;
+            int width = corpusName != "TiffJpegLosslessAlphaPrecision" ? int.Parse(row[5]) : 35;
+            int height = corpusName != "TiffJpegLosslessAlphaPrecision" ? int.Parse(row[6]) : 19;
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(corpus, row[0])), "image/tiff");
             document.AddPage(width * 3, height * 3).AddImage(resource, 0, 0, width * 3, height * 3);
             if (profiled) {
-                string profile = document.AddResource("Profiles/source.icc", File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "icc-dci-p3-matrix.icc")), "application/vnd.ms-color.iccprofile");
+                string profile = document.AddResource("Profiles/source.icc", File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", row[1] == "5" ? "littlecms-cmyk-lut.icc" : "icc-dci-p3-matrix.icc")), "application/vnd.ms-color.iccprofile");
                 var markup = document.Pages[0].GetMarkup();
                 markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource",
                     "{ColorConvertedBitmap " + resource + " " + profile + "}");

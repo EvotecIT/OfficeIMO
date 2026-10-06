@@ -154,5 +154,6 @@
   <ItemGroup><None Update="TestAssets/TiffJpegYccPrecision/*.tif;TestAssets/TiffJpegYccPrecision/*.rgba;TestAssets/TiffJpegYccPrecision/*.icc-rgba;TestAssets/TiffJpegYccPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegLosslessAlphaPrecision/*.tif;TestAssets/TiffJpegLosslessAlphaPrecision/*.rgba;TestAssets/TiffJpegLosslessAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegLosslessAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegChromaAlpha/*.tif;TestAssets/TiffJpegChromaAlpha/*.rgba;TestAssets/TiffJpegChromaAlpha/*.icc-rgba;TestAssets/TiffJpegChromaAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticAlphaPrecision/*.tif;TestAssets/TiffJpegArithmeticAlphaPrecision/*.rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegChromaPrecision/*.tif;TestAssets/TiffJpegChromaPrecision/*.rgba;TestAssets/TiffJpegChromaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

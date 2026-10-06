@@ -6,7 +6,10 @@ Prepare the pinned JPEG oracle with ../JpegArithmeticLossless/prepare_oracle.py.
 from pathlib import Path
 import csv, hashlib, math, os, struct, subprocess, sys
 
-root=Path(__file__).resolve().parent
+root=Path(sys.argv[5]).resolve() if len(sys.argv)>5 else Path(__file__).resolve().parent
+root.mkdir(parents=True,exist_ok=True)
+precisions=[int(value)for value in sys.argv[4].split(",")] if len(sys.argv)>4 else [8,12,16]
+alpha_only=len(sys.argv)>6 and sys.argv[6]=="alpha"
 oracle,wrapper=map(lambda p:str(Path(p).resolve()),sys.argv[1:3])
 scratch=Path(sys.argv[3]).resolve();scratch.mkdir(parents=True,exist_ok=True)
 rows=[];segment_count=0
@@ -17,22 +20,22 @@ def run(args,env=None):
 
 def q(value):return min(255,max(0,math.floor(value*255+.5)))
 
-for bits in (8,12,16):
- maximum=(1<<bits)-1;middle=1<<(bits-1);size=1 if bits==8 else 2
+for bits in precisions:
+ maximum=(1<<bits)-1;middle=1<<(bits-1);size=1 if bits<=8 else 2
  for photo in (0,1,2,5,6):
   base=4 if photo==5 else 3 if photo in (2,6) else 1
-  for extra in (-1,1,2):
+  for extra in ((1,2) if alpha_only else (-1,1,2)):
    n=base+(extra>=0)
    # Both endian orders, strips/tiles and contiguous/separate samples. The
    # native encoder supports at most four components; do not fake a fifth.
    for big,tiled,planar in ((0,0,1),(1,1,1),(1,0,2),(0,1,2)):
     if n>4 and planar==1:continue
-    predictor=1+(len(rows)%7);point=2 if len(rows)%3==1 else 0
+    predictor=1+(len(rows)%7);point=min(2,bits-1) if len(rows)%3==1 else 0
     name=f'p{photo}-b{bits}-be{big}-t{tiled}-pl{planar}-e{extra}.tif'
     samples=[]
     for y in range(19):
      for x in range(35):
-      alpha=[0,1,2,3,4,8,16,32,64,maximum//2,maximum-1,maximum][(x+y*3)%12]
+      alpha=min(maximum,[0,1,2,3,4,8,16,32,64,maximum//2,maximum-1,maximum][(x+y*3)%12])
       values=[((x*193+y*791+c*3191)^(x*y*53))&maximum for c in range(base)]
       if extra==1:
        if photo==6:
@@ -72,8 +75,8 @@ for bits in (8,12,16):
      values=samples[i*n:i*n+base];a=samples[i*n+base]if extra>0 else maximum
      if photo==6:
       yy,cb,cr=values;cb-=middle;cr-=middle;r=yy+cr*1.402;b=yy+cb*1.772;g=(yy-.299*r-.114*b)/.587
-      values=[min(maximum,max(0,round(v)))for v in (r,g,b)]
-     colors=[min(1,v/a)if a else 0 for v in values]if extra==1 else[v/maximum for v in values]
+      values=[r,g,b]
+     colors=[max(0,min(1,v/a))if a else 0 for v in values]if extra==1 else[max(0,min(1,v/maximum))for v in values]
      if photo==5:colors=[255-min(255,q(colors[c])+q(colors[3]))for c in range(3)]
      elif photo in (0,1):colors=[q(1-colors[0]if photo==0 else colors[0])]*3
      else:colors=[q(v)for v in colors]

@@ -38,7 +38,9 @@ LibTIFF bookkeeping uses RGB for YCbCr resources with extra samples; the wrapper
 then restores the TIFF photometric tag. This is native segment qualification with
 constructed TIFF layout/color declarations, not independent full-file decoder
 acceptance. `.raw` files contain little-endian 16-bit component words at the stated
-precision. `.rgba` references apply the declared TIFF color/alpha equations.
+precision. `.rgba` references apply the declared TIFF color/alpha equations,
+retaining fractional YCbCr-derived RGB through native-alpha unassociation and
+rounding only at final byte output.
 The 24 `.icc-rgba` references use LittleCMS 2.19, the existing explicit CMYK test
 profile and relative colorimetric intent. Associated colorants are divided by
 source-precision alpha before ICC conversion. Hashes are in `SHA256SUMS`.

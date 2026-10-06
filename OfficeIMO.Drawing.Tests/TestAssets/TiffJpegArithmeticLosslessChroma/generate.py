@@ -2,10 +2,13 @@
 Usage: generate.py /prepared/jpeg /compiled/wrap /compiled/decode /task/scratch
 """
 from pathlib import Path
-import csv,hashlib,os,struct,subprocess,sys
+import csv,hashlib,math,os,struct,subprocess,sys
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from tiff_chroma_reference import interpolate
-root=Path(__file__).resolve().parent
+root=Path(sys.argv[6]).resolve() if len(sys.argv)>6 else Path(__file__).resolve().parent
+root.mkdir(parents=True,exist_ok=True)
+precisions=[int(value)for value in sys.argv[5].split(",")] if len(sys.argv)>5 else [8,12,16]
+alpha_only=len(sys.argv)>7 and sys.argv[7]=="alpha"
 oracle,wrapper,turbo=map(lambda p:str(Path(p).resolve()),sys.argv[1:4])
 scratch=Path(sys.argv[4]).resolve();scratch.mkdir(parents=True,exist_ok=True)
 rows=[];segments_total=0
@@ -16,7 +19,7 @@ def run(args,env=None):
 
 def encode(values,w,height,n,bits,h,v,predictor,point,stem):
  global segments_total
- maximum=(1<<bits)-1;size=1 if bits==8 else 2
+ maximum=(1<<bits)-1;size=1 if bits<=8 else 2
  source=scratch/(stem+'.pnm');jpg=scratch/(stem+'.jpg')
  source.write_bytes(f'P{5 if n==1 else 6}\n{w} {height}\n{maximum}\n'.encode()+b''.join(value.to_bytes(size,'big')for value in values))
  env=dict(os.environ,OFFICEIMO_TEST_DEPTH=str(n),OFFICEIMO_TEST_PREDICTOR=str(predictor),OFFICEIMO_TEST_POINT=str(point))
@@ -39,17 +42,17 @@ def encode(values,w,height,n,bits,h,v,predictor,point,stem):
  segments_total+=1
  return jpg.read_bytes(),planes
 
-for bits in (8,12,16):
+for bits in precisions:
  maximum=(1<<bits)-1;middle=1<<(bits-1)
  for h,v in ((2,1),(2,2),(4,2)):
   for position in (1,2):
-   for extra in (-1,1,2):
+   for extra in ((1,2) if alpha_only else (-1,1,2)):
     n=3+(extra>=0)
     for big,tiled,planar in ((0,0,1),(1,1,1),(1,0,2),(0,1,2)):
      if h==4 and n==4 and planar==1:continue  # 18 sampling units exceed the interleaved-scan limit.
      name=f'b{bits}-h{h}-v{v}-pos{position}-be{big}-t{tiled}-pl{planar}-e{extra}.tif'
      sw=16 if tiled else 35;sh=16 if tiled else 8 if v>1 else 7
-     predictor=1+len(rows)%7;point=2 if len(rows)%3==1 else 0
+     predictor=1+len(rows)%7;point=min(2,bits-1) if len(rows)%3==1 else 0
      references=[[0]*(35*19)for _ in range(n)];blocks=[]
      for top in range(0,19,sh):
       for left in range(0,35,sw):
@@ -58,7 +61,7 @@ for bits in (8,12,16):
        for y in range(dh):
         for x in range(sw):
          xx=min(34,left+x);yy=min(18,top+y)
-         a=[0,1,2,4,16,64,maximum//2,maximum-1,maximum][(xx//4+yy//4)%9]
+         a=min(maximum,[0,1,2,4,16,64,maximum//2,maximum-1,maximum][(xx//4+yy//4)%9])
          rgb=[((xx*193+yy*791+c*3191)^(xx*yy*53))&maximum for c in range(3)]
          if extra==1:rgb=[value*a/maximum for value in rgb]
          r,g,b=rgb;luma=.299*r+.587*g+.114*b
@@ -84,7 +87,7 @@ for bits in (8,12,16):
        for c,plane in enumerate(planes):
         if c in (1,2):
          visible=[row[:(vw+h-1)//h]for row in plane[:(vh+v-1)//v]]
-         grid=interpolate(visible,vw,vh,h,v,position)
+         grid=interpolate(visible,vw,vh,h,v,position,round_samples=False)
         else:grid=sum([row[:vw]for row in plane[:vh]],[])
         for y in range(vh):
          for x in range(vw):references[c][(top+y)*35+left+x]=grid[y*vw+x]
@@ -94,14 +97,14 @@ for bits in (8,12,16):
       path=scratch/f'part-{i}.jpg';path.write_bytes(data);paths.append(str(path))
      env=dict(os.environ,TIFF_SAMPLE_H=str(h),TIFF_SAMPLE_V=str(v),TIFF_SAMPLE_POSITION=str(position))
      run([wrapper,str(root/name),'6',str(bits),str(n),str(planar),str(tiled),str(extra),'wb'if big else'wl',*paths],env)
-     rgba=bytearray()
+     rgba=bytearray();normalized=[]
      for i in range(35*19):
       yy,cb,cr=[references[c][i]for c in range(3)];cb-=middle;cr-=middle
       r=yy+cr*1.402;b=yy+cb*1.772;g=(yy-.299*r-.114*b)/.587
-      colors=[min(maximum,max(0,round(value)))for value in (r,g,b)];a=references[3][i]if n==4 else maximum
-      if extra==1:colors=[min(255,round(value*255/a))if a else 0 for value in colors]
-      else:colors=[(value*255+maximum//2)//maximum for value in colors]
-      rgba.extend(colors+[(a*255+maximum//2)//maximum])
+      a=references[3][i]if n==4 else maximum
+      colors=[max(0,min(1,value/(a if extra==1 else maximum)))if extra!=1 or a else 0 for value in(r,g,b)]
+      normalized.extend(colors);rgba.extend([math.floor(value*255+.5)for value in colors]+[(a*255+maximum//2)//maximum])
+     if alpha_only:Path(str(root/name)+'.rgb-f64').write_bytes(struct.pack('<'+'d'*len(normalized),*normalized))
      Path(str(root/name)+'.rgba').write_bytes(rgba)
      rows.append([name,6,bits,h,v,position,big,tiled,planar,extra,predictor,point])
 with(root/'manifest.csv').open('w')as f:

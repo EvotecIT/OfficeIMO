@@ -430,8 +430,8 @@ Across 1,152 XPS/OpenXPS exports on black/white backgrounds, MuPDF PDF/SVG diffe
 by at most 5/255 and 2/255 over 766,080 probes per route, without warnings.
 LibTIFF rejects all containers for precision or chunky YCbCr-alpha layout sizing.
 Four GhostXPS probes produce blank/different device-color output or crash with
-ICC; wider GhostXPS testing was not performed. Arithmetic lossless alpha at these
-precisions and native whole-file/Windows acceptance remain open.
+ICC; wider GhostXPS testing was not performed. Native whole-file/Windows
+acceptance remains open.
 
 Subsampled JPEG-TIFF retains fractional chroma until color conversion, including
 centered and cosited 2×1/2×2/4×2/4×4 grids in chunky or separate planes.
@@ -447,8 +447,7 @@ conversion; a 15-precision regression checks the same independently decoded
 source strips. Default nearest-neighbor sampling is unchanged.
 Across 360 XPS/OpenXPS exports at 2/8/16 bits, MuPDF PDF/SVG differs by at most
 2/255 over 36,360 probes per route, without warnings. This run does not add
-GhostXPS or native Windows evidence. Further alpha/profile combinations,
-arithmetic coding at additional precisions and independent producer/whole-file
+GhostXPS or native Windows evidence. Further alpha/profile combinations and independent producer/whole-file
 acceptance remain open.
 
 The [subsampled-alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/README.md)
@@ -462,9 +461,23 @@ Nonzero native alpha retains foreground color even when its final byte is zero.
 The XPS tests cover both dialects and black/white backgrounds. Across 384 external
 exports selected from 48 representative 2/8/16-bit inputs, MuPDF PDF/SVG differs
 by at most 4/255 and 2/255 over 71,808 probes per route, without warnings.
-This does not add native Windows or GhostXPS evidence; arithmetic-coded alpha
-at additional precisions, further profiles and independent producer/whole-file
-acceptance remain open.
+This does not add native Windows or GhostXPS evidence; further profiles and
+independent producer/whole-file acceptance remain open.
+
+The [additional-precision arithmetic-alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlphaPrecision/README.md)
+adds 912 TIFFs at 2–7, 9–11 and 13–15 bits: 432 full-resolution gray/RGB/CMYK/YCbCr
+cases and 480 centered/cosited 2×1/2×2/4×2 YCbCr cases, with both alpha kinds and
+paired strip/tile, planar/contiguous and byte-order layouts. Native arithmetic
+encoding supplies 10,584 stored JPEG segments. Full-resolution native decoding
+is exact; subsampled references use independently decoded Huffman companions
+because the native arithmetic decoder has an odd-height edge defect. Fractional
+color survives interpolation and unassociation in the Pillow/LittleCMS references.
+All 606,480 device-color pixels match within 1/255, and 478,800 DCI-P3 or explicit
+CMYK-profile pixels within 2/255, with exact alpha. Both XPS dialects exercise
+black/white compositing; CMYK requires an explicit profile. Across 312 external
+exports from 48 selected inputs, MuPDF PDF/SVG differs by at most 5/255 and 2/255
+over 207,480 probes per route, without warnings. Native Windows, independent
+whole-file acceptance, wider profiles and 4×4 arithmetic sampling remain open.
 
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
 The reconstructed cases retain independently encoded entropy for baseline and

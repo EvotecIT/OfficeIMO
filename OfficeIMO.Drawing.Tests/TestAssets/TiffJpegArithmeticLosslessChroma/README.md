@@ -29,7 +29,8 @@ their expected point-transformed samples.
 `../tiff_chroma_reference.py` supplies independent Pillow 11.3.0 floating-point
 interpolation with edge clamping. It is shared with the earlier sixteen-bit
 Huffman corpus. TIFF YCbCr equations and source-precision alpha unassociation
-produce the `.rgba` references. Tests require exact alpha and visible compositing
+produce the `.rgba` references. Fractional chroma and RGB survive interpolation
+and unassociation until final byte projection. Tests require exact alpha and visible compositing
 within 3/255 over black and white.
 
 Compile `../TiffJpegArithmeticLosslessColor/wrap.c` against LibTIFF 4.7.2 and
