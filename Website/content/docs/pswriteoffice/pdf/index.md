@@ -4,11 +4,35 @@ description: "Author, inspect, combine, annotate, sign, preflight, optimize, red
 layout: docs
 ---
 
-The PDF family exports 81 commands over the first-party OfficeIMO.Pdf engine. It includes document composition, metadata, pages, text, images, tables, lists, headings, panels, headers and footers, backgrounds, watermarks, forms, annotations, attachments, bookmarks, signatures, compliance, extraction, merge/split, redaction, optimization, and diagnostics.
+The PDF family exports 93 commands over the first-party OfficeIMO.Pdf engine. It includes document composition, metadata, pages, text, images, tables, lists, headings, panels, headers and footers, backgrounds, watermarks, forms, annotations, attachments, bookmarks, signatures, compliance, extraction, merge/split, redaction, optimization, and diagnostics.
 
 ## Compose a fixed-layout document
 
 Use `New-OfficePdf` with the `Add-OfficePdf*` commands when the script owns the PDF. Apply page setup and a theme once, then add semantic headings, paragraphs, lists, tables, images, panels, stamps, and page breaks. Canvas and page-overlay commands cover fixed-position drawing, while typed text-run, image, form-field, and check-box table cells keep richer layouts inside the same PDF DSL.
+
+## Copy complete DSL recipes
+
+- [Service invoice](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Recipe-Pdf-ServiceInvoice.ps1): metadata, invoice lines, totals, payment terms, headers, footers, and contact link.
+- [Access audit report](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Recipe-Pdf-AuditReport.ps1): findings, bookmarks, page breaks, remediation sections, and form fields.
+- [Composed service report](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Example-PdfReportDsl.ps1): themes, backgrounds, borders, rich text, columns, links, bookmarks, tables, and attachments.
+
+## Other PDF workflows
+
+- [Attach supporting evidence](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Recipe-Pdf-AttachEvidence.ps1): embed a source file in the delivered report.
+- [Exchange form data](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Recipe-Pdf-FormDataExchange.ps1): export and import interactive form values.
+- [Extract text](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Recipe-Pdf-ExtractText.ps1): feed PDF content into search or review workflows.
+- [Reorder pages](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Pdf/Recipe-Pdf-ReorderPages.ps1): fix the delivery order without recomposing the report.
+
+The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) compares fixed-layout PDF composition with the editable Office and Markdown outputs.
+
+## Task guides
+
+- [Read, extract, and preflight](/docs/pswriteoffice/pdf-read-preflight/)
+- [Merge, split, and reorder pages](/docs/pswriteoffice/pdf-merge-split-pages/)
+- [Position text and graphics](/docs/pswriteoffice/pdf-positioned-content/)
+- [Redact, sanitize, and optimize](/docs/pswriteoffice/pdf-redact-sanitize/)
+- [Create and process forms and annotations](/docs/pswriteoffice/pdf-forms-annotations/)
+- [Inspect signatures and compliance](/docs/pswriteoffice/pdf-signatures-compliance/)
 
 ## Inspect before transforming
 
@@ -36,4 +60,4 @@ This enables a safer pipeline:
 
 PDF features vary by document structure and preservation requirement. Use `Test-OfficePdfRewrite`, diagnostics, and preflight evidence for complex inputs instead of assuming every rewrite is lossless.
 
-See the [PDF examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/Pdf) and search the [command reference](/api/powershell/) for `OfficePdf`.
+See the [PDF examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.6/Examples/Pdf) and search the [command reference](/api/powershell/) for `OfficePdf`.

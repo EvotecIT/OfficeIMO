@@ -41,8 +41,11 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            double minimumScale = style.AutoFitWidthUsesContentMinimum ? 1D : NativeAutoFitGridMinimumScale;
+            if (style.BorderFrame != null)
+                tableWidth -= Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing;
             List<double?> derivedMinimums = layout.ColumnWidths
-                .Select(width => (double?)(tableWidth * width / gridWidth * NativeAutoFitGridMinimumScale))
+                .Select(width => (double?)(tableWidth * width / gridWidth * minimumScale))
                 .ToList();
             if (style.ColumnMinWidthPoints == null || style.ColumnMinWidthPoints.Count == 0) {
                 style.ColumnMinWidthPoints = derivedMinimums;
@@ -147,6 +150,9 @@ namespace OfficeIMO.Word.Pdf {
                 double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
                     style.PreferredWidth = preferredWidth.Value;
+                    // Positive spacing receives its independent perimeter and
+                    // final cell-grid minimums after cell formatting is applied.
+                    style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns && style.CellSpacing <= 0D;
                     style.PreserveWidth = true;
                 }
             }
@@ -302,6 +308,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeTableCellSpacing(W.TableCellSpacing? spacing) {
+            // Word treats these explicit units as zero rather than falling
+            // through to a positive spacing value from the table style.
+            if (spacing?.Type?.Value == W.TableWidthUnitValues.Auto ||
+                spacing?.Type?.Value == W.TableWidthUnitValues.Pct) return 0D;
             if (spacing?.Type?.Value != W.TableWidthUnitValues.Dxa) {
                 return null;
             }

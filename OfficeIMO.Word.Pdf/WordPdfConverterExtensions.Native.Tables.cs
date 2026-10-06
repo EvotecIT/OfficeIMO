@@ -61,6 +61,7 @@ namespace OfficeIMO.Word.Pdf {
                         tableColumnCount,
                         visualHeaderRowCount,
                         footerStartRowIndex);
+                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell, options);
                     NativeCellText cellText = CreateNativeCellText(
                         cell,
                         footnoteNumbersById,
@@ -68,8 +69,8 @@ namespace OfficeIMO.Word.Pdf {
                         cellStyleDefaults,
                         nativeFontMap,
                         getMarker,
-                        ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
-                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell, options);
+                        ignoreFallbackTableStyle: hasExplicitDefaultTableStyle,
+                        inlineImages: embeddedContent.InlineImages);
                     (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
                     nativeCells.Add(new PdfCore.PdfTableCell(
@@ -192,6 +193,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {

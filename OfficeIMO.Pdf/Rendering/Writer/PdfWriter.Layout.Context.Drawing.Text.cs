@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
                 text.FlipVertical,
                 text.Padding,
                 text.ParagraphIndent);
-            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, textMetrics, text.DecorationColor);
+            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, textMetrics, text.DecorationColor, text.Color ?? OfficeColor.Black);
         }
 
         private void DrawDrawingPositionedText(OfficeDrawingText text, double originX, double originTopY,
@@ -89,7 +89,8 @@ internal static partial class PdfWriter {
             OfficeTextDirection positionedDirection = text.TextDirection == OfficeTextDirection.TopToBottom
                 ? OfficeTextDirection.Auto
                 : text.TextDirection;
-            void Paint() {
+            void Paint() => WithDrawingTextOpacity(text.Color, text.DecorationColor, PaintContent);
+            void PaintContent() {
                 double baseline = frameTopY - text.Font.Size - text.BaselineOffset;
                 string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
                 foreach (string value in lines) {
@@ -116,10 +117,14 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null) {
+        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null, OfficeColor? textColor = null) {
             if (text.Runs.Count == 0 || string.IsNullOrEmpty(text.PlainText)) return;
 
-            void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
+            void DrawContent() {
+                void Paint() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
+                if (textColor.HasValue) WithDrawingTextOpacity(textColor, decorationColor, Paint);
+                else Paint();
+            }
             if (text.HasFrameTransform) {
                 OfficeTransform pageTransform = ToTopLeftPageTransform(
                     text.CreateFrameTransform().CreateDestinationTransform(),
@@ -182,6 +187,19 @@ internal static partial class PdfWriter {
                     strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
                     contentX, contentTopY - height, width, height);
+            }
+        }
+
+        // Set glyph/decorative alpha inside any transformed transparency Form. Its
+        // isolated group resets alpha; setting it on the caller dims the whole group.
+        private void WithDrawingTextOpacity(OfficeColor? color, OfficeColor? decorationColor, Action paint) {
+            OfficeColor fill = color ?? OfficeColor.Black;
+            string? state = EnsureGraphicsState(fill.A / 255D, (decorationColor ?? fill).A / 255D);
+            if (state != null) new ContentStreamBuilder(sb).SaveState().GraphicsState(state);
+            try {
+                paint();
+            } finally {
+                if (state != null) new ContentStreamBuilder(sb).RestoreState();
             }
         }
 

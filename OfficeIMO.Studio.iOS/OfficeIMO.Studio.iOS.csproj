@@ -27,6 +27,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.iOS" Version="12.1.3" />
+    <ProjectReference Include="../OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj" />
     <ProjectReference Include="../OfficeIMO.Studio/OfficeIMO.Studio.csproj" AdditionalProperties="OfficeIMOStudioMobile=true" />
     <ImageAsset Include="../OfficeIMO.Studio/Assets/OfficeIMO.Studio.png" Link="Assets.xcassets/AppIcon.appiconset/OfficeIMO.Studio.png" />
   </ItemGroup>

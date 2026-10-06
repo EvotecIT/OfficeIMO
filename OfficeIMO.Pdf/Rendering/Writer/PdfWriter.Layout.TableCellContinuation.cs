@@ -4,8 +4,8 @@ internal static partial class PdfWriter {
     /// <summary>Rewraps unpainted cell text while keeping paragraph formatting and the row's consumed-line cursor.</summary>
     private static TableCellTextLayout ContinueTableCellTextLayout(TableCellLayout cell, TableCellTextLayout previous,
         int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfOptions options,
-        double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D) {
-        double wrapWidth = GetTableCellWrapWidth(innerWidth, cell.NoWrap);
+        double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
+        double wrapWidth = ResolveImportedTableCellWrapWidth(cell, innerWidth, font, size, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         TableCellTextLayout remainder;
         if (consumedLines >= previous.Lines.Count) {
             remainder = new TableCellTextLayout(new(), new());

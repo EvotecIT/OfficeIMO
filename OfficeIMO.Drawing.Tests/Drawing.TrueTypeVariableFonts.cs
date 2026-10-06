@@ -128,6 +128,26 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void DescriptorWeightOptInReachesTheFontProgramProvider() {
+        var provider = new CapturingFontProgramProvider();
+        var fonts = new OfficeFontFaceCollection { FontProgramProvider = provider };
+        Assert.True(fonts.TryAddBounded(
+            "Roboto Flex", ReadAsset("RobotoFlex.ttf"),
+            new OfficeFontFaceDescriptor(600, 100, OfficeFontSlant.Normal),
+            OfficeFontUnicodeRangeSet.All, 16 * 1024 * 1024, out _, out _,
+            applyDescriptorWeight: true));
+        Assert.Equal(600F, provider.LastRequest!.VariationCoordinates["wght"]);
+    }
+
+    [Fact]
+    public void DirectDrawingDescriptorRegistrationRetainsTheDefaultVariableInstance() {
+        var fonts = new OfficeFontFaceCollection();
+        Assert.True(fonts.TryAdd("Roboto Flex", ReadAsset("RobotoFlex.ttf"),
+            new OfficeFontFaceDescriptor(700, 100, OfficeFontSlant.Normal)));
+        Assert.Contains("wght=400", Assert.Single(fonts.Faces).Program.Fingerprint, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ProviderReceivesTheResolvedVariableFontCoordinates() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         var provider = new CapturingFontProgramProvider();
@@ -315,6 +335,26 @@ public sealed class DrawingTrueTypeVariableFontTests {
             bounded.GetTextContoursBounded("À", 0D, 0D, 24D, 8, CancellationToken.None));
 
         Assert.Contains("point budget", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ItemVariationStoreTreatsNoVariationDeltaSetIndexAsZero() {
+        byte[] source = ReadAsset("RobotoFlex.ttf");
+        byte[] data = new byte[source.Length + 12];
+        Buffer.BlockCopy(source, 0, data, 0, source.Length);
+        int offset = source.Length;
+        WriteUInt16(data, offset, 1);
+        WriteUInt32(data, offset + 2, 8);
+        // An empty store is valid: no data sets, axes, or regions are referenced.
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeOpenTypeItemVariationStore store = OfficeOpenTypeItemVariationStore.Parse(
+            reader, offset, data.Length, OfficeFontVariationModel.None);
+
+        store.ValidateIndex(ushort.MaxValue, ushort.MaxValue);
+        Assert.Equal(0, store.Evaluate(ushort.MaxValue, ushort.MaxValue));
+        Assert.Throws<InvalidDataException>(() => store.Evaluate(ushort.MaxValue, 0));
+        Assert.Throws<InvalidDataException>(() => store.Evaluate(0, ushort.MaxValue));
+        Assert.Throws<InvalidDataException>(() => store.Evaluate(0, 0));
     }
 
     [Fact]
