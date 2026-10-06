@@ -181,6 +181,8 @@ const { OfficeIMOError } = _m3;
 class ExportBudget {
     cells = 0;
     text = 0;
+    reservedCells = 0;
+    reservedText = 0;
     limits;
     constructor(limits = {}) {
         for (const [key, value] of Object.entries(limits))
@@ -194,10 +196,20 @@ class ExportBudget {
             throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
     }
     row(count) { this.check("maxRows", count); }
-    cell(value) {
-        this.check("maxCells", this.cells + 1);
+    reserve(cells, characters) {
+        this.check("maxCells", this.cells + this.reservedCells + cells);
+        this.check("maxTextCharacters", this.text + this.reservedText + characters);
+        this.reservedCells += cells;
+        this.reservedText += characters;
+    }
+    cell(value, reservedCharacters) {
+        if (reservedCharacters !== undefined) {
+            this.reservedCells--;
+            this.reservedText -= reservedCharacters;
+        }
+        this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
-        this.check("maxTextCharacters", this.text + length);
+        this.check("maxTextCharacters", this.text + this.reservedText + length);
         this.cells++;
         this.text += length;
     }
@@ -1379,9 +1391,11 @@ const { escapeOoxmlAttribute } = _m9;
 class ComputedTotal {
     value;
     formula;
-    constructor(value, formula) {
+    operation;
+    constructor(value, formula, operation) {
         this.value = value;
         this.formula = formula;
+        this.operation = operation;
     }
 }
 /** @internal Bounded report layout and incremental numeric aggregates. */
@@ -1442,7 +1456,7 @@ class ReportLayout {
             if (!["sum", "count", "average", "min", "max"].includes(operation))
                 throw new TypeError("Invalid total operation.");
         }
-        this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, min: Infinity, max: -Infinity }));
+        this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, mean: 0, min: Infinity, max: -Infinity }));
         if (options.print)
             validatePrint(options.print, policy);
     }
@@ -1463,19 +1477,27 @@ class ReportLayout {
         if (!total.operation || typeof value !== "number" || !Number.isFinite(value))
             return;
         total.count++;
-        total.sum += value;
-        total.min = Math.min(total.min, value);
-        total.max = Math.max(total.max, value);
-        if (!Number.isFinite(total.sum))
-            throw new RangeError("Numeric total exceeds finite number range.");
+        if (total.operation === "sum") {
+            total.sum += value;
+            if (!Number.isFinite(total.sum))
+                throw new RangeError("Numeric total exceeds finite number range.");
+        }
+        else if (total.operation === "average") {
+            const delta = value - total.mean;
+            total.mean = total.count === 1 ? value : Number.isFinite(delta) ? total.mean + delta / total.count : total.mean * ((total.count - 1) / total.count) + value / total.count;
+        }
+        else if (total.operation === "min")
+            total.min = Math.min(total.min, value);
+        else if (total.operation === "max")
+            total.max = Math.max(total.max, value);
     }
     footer(rows) {
         return this.columns.map((_, i) => {
             const total = this.aggregates[i], operation = total.operation;
             if (!operation)
                 return this.options.footer?.values?.[i];
-            const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.sum / total.count : operation === "min" ? total.min : total.max;
-            return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows));
+            const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.mean : operation === "min" ? total.min : total.max;
+            return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows), operation);
         });
     }
 }
@@ -1553,11 +1575,13 @@ class Worksheet {
     book;
     name;
     table;
+    preserved;
     columns;
     declared;
     options;
     entry;
     completion;
+    prepared;
     buffer;
     output = new BlobByteSink();
     started = false;
@@ -1569,13 +1593,15 @@ class Worksheet {
     layout;
     pending = [];
     pendingCharacters = 0;
+    reservedLayout = false;
     internalLinks = [];
     links = [];
     pictures = [];
-    constructor(book, name, options, table) {
+    constructor(book, name, options, table, preserved = false) {
         this.book = book;
         this.name = name;
         this.table = table;
+        this.preserved = preserved;
         this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
         const alternate = options.alternatingRowStyle;
         this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -1595,7 +1621,7 @@ class Worksheet {
         }));
     }
     /** @internal */
-    static create(book, name, options, table) { return new Worksheet(book, name, options, table); }
+    static create(book, name, options, table, preserved = false) { return new Worksheet(book, name, options, table, preserved); }
     /** @internal Validate before allocating native compressor resources or registering the sheet name. */
     static validate(book, options) {
         for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"])
@@ -1677,7 +1703,7 @@ class Worksheet {
         const type = value instanceof Date ? "date" : typeof value;
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
-        let style = explicitStyle === undefined ? header ? col.headerStyle : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+        let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
         if (!header && !footer) {
             if (explicitStyle === undefined) {
                 const base = style, cached = rowStyles?.get(base);
@@ -1694,7 +1720,6 @@ class Worksheet {
             const patch = context && this.options.cellStyle?.({ ...context, value: value, column: col.column, columnIndex: i + 1 });
             if (patch !== undefined)
                 style = this.book.styles.compose(style, patch);
-            this.layout.accept(i, value);
         }
         if (footer && this.options.footer?.style && explicitStyle === undefined)
             style = this.book.styles.compose(style, this.options.footer.style);
@@ -1707,6 +1732,7 @@ class Worksheet {
                 ...(presentation.wrapText === undefined ? {} : { wrapText: presentation.wrapText }), ...(presentation.alignment === undefined ? {} : { alignment: presentation.alignment }),
                 ...(presentation.numberFormat === undefined ? {} : { numberFormat: presentation.numberFormat })
             });
+        const originalCharacters = typeof value === "string" ? value.length : 0;
         if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
             const cell = col.letter + row;
             if (this.links.some(link => link.cell === cell))
@@ -1716,14 +1742,16 @@ class Worksheet {
             this.internalLinks.push({ cell, location: preserved.location });
             value = preserved.preview;
         }
+        if (type === "date")
+            value = excelDate(value, this.book.settings.dateMode);
+        if (!header && !footer)
+            this.layout.accept(i, value);
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-        this.book.budget.cell(value);
+        this.book.budget.cell(value, this.preserved || header || footer ? originalCharacters : undefined);
         if (total)
             return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
         if (value == null || (type === "number" && !Number.isFinite(value)))
             return prefix + '/>';
-        if (type === "date")
-            value = excelDate(value, this.book.settings.dateMode);
         if (value == null)
             return prefix + '/>';
         if (type === "string")
@@ -1734,8 +1762,7 @@ class Worksheet {
             throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
         return prefix + '><v>' + value + '</v></c>';
     }
-    async writeRow(values, number, header, footer = false) {
-        const buffer = this.buffer;
+    *rowXml(values, number, header, footer = false) {
         const height = header ? this.options.headerHeight : this.options.rowHeight;
         const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
             values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? values[i].value : values[i])) }) : undefined;
@@ -1743,19 +1770,47 @@ class Worksheet {
         if (rowStyle !== undefined)
             validateStylePatch(rowStyle);
         const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map() : undefined;
-        if (buffer.append('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>'))
-            await buffer.flush();
+        yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>';
         for (let i = 0; i < this.columns.length; i++)
-            if (buffer.append(this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer)))
-                await buffer.flush();
-        if (buffer.append('</row>'))
-            await buffer.flush();
+            yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer);
+        yield '</row>';
+    }
+    async writeRow(values, number, header, footer = false) {
+        for (const chunk of this.rowXml(values, number, header, footer))
+            if (this.buffer.append(chunk))
+                await this.buffer.flush();
+    }
+    reserveLayout() {
+        if (this.reservedLayout)
+            return;
+        if (!this.preserved) {
+            let characters = 0;
+            if (this.headerRows) {
+                for (const heading of this.layout.headings)
+                    for (const text of heading)
+                        characters += text.length;
+                for (const column of this.columns)
+                    characters += column.header.length;
+            }
+            if (this.options.footer)
+                for (let i = 0; i < this.columns.length; i++) {
+                    const column = this.columns[i], totals = this.options.footer.totals;
+                    if (totals && Object.prototype.hasOwnProperty.call(totals, column.key ?? column.header))
+                        continue;
+                    const value = this.options.footer.values?.[i], raw = value instanceof ExportCell || value instanceof Cell ? value.value : value;
+                    if (typeof raw === "string")
+                        characters += raw.length;
+                }
+            this.book.budget.reserve(this.columns.length * (this.headerRows + (this.options.footer ? 1 : 0)), characters);
+        }
+        this.reservedLayout = true;
     }
     async start() {
         if (this.started)
             return;
+        this.reserveLayout();
         this.started = true;
-        this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, this.output, this.book.settings.signal);
+        this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, { write: bytes => { this.book.retainBufferedBytes(bytes.length); this.output.write(bytes); } }, this.book.settings.signal);
         const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
         const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
         const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
@@ -1777,8 +1832,10 @@ class Worksheet {
                 await this.writeRow(this.layout.headings[i], i + 1, true);
             await this.writeRow(this.columns.map(c => c.header), this.headerRows, true);
         }
-        for (let i = 0; i < this.pending.length; i++)
-            await this.writeRow(this.pending[i], this.headerRows + i + 1, false);
+        for (const row of this.pending)
+            for (const chunk of row)
+                if (buffer.append(chunk))
+                    await buffer.flush();
         this.pending = [];
         this.pendingCharacters = 0;
     }
@@ -1792,6 +1849,7 @@ class Worksheet {
             throw this.error;
         this.busy = true;
         try {
+            this.reserveLayout();
             if (!this.layout.sampleRows)
                 await this.start();
             let checkpoint = performance.now();
@@ -1803,13 +1861,17 @@ class Worksheet {
                     throw new RangeError("Declare columns before adding rows.");
                 const values = rowValues(row, this.columns);
                 if (!this.started) {
+                    if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
+                        throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
+                    const encoded = [];
+                    for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
+                        if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
+                            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                        this.pendingCharacters += chunk.length;
+                        encoded.push(chunk);
+                    }
                     this.layout.sample(values);
-                    const snapshot = values.map(copyValue);
-                    const characters = snapshot.reduce((sum, value) => { const raw = value instanceof Cell || value instanceof ExportCell ? value.value : value; return sum + (typeof raw === "string" ? raw.length : 0) + (value instanceof ExportCell ? value.text?.length ?? 0 : 0); }, 0);
-                    if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000) || this.pendingCharacters + characters > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
-                        throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling buffer limit exceeded; reduce sampleRows or raise its bounded limits.");
-                    this.pending.push(snapshot);
-                    this.pendingCharacters += characters;
+                    this.pending.push(encoded);
                     this.count++;
                     if (this.pending.length >= this.layout.sampleRows)
                         await this.start();
@@ -1905,7 +1967,7 @@ class Worksheet {
             try {
                 for (const link of this.links) {
                     const position = cellPosition(link.cell);
-                    if (position.column > this.columns.length || position.row > this.count + this.headerRows)
+                    if (position.column > this.columns.length || position.row > this.totalRows)
                         throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
                 }
                 await this.start();
@@ -1932,7 +1994,8 @@ class Worksheet {
                 await this.buffer.write('</worksheet>');
                 await this.buffer.close();
                 const info = await this.entry.close();
-                return this.book.settings.sink ? undefined : { ...info, chunks: this.output.takeChunks() };
+                if (!this.book.settings.sink && !this.failed)
+                    this.prepared = { ...info, chunks: this.output.takeChunks() };
             }
             catch (error) {
                 await this.discard(error);
@@ -1941,7 +2004,9 @@ class Worksheet {
         })();
     }
     /** @internal */
-    async discard(error) { this.pending = []; await this.entry?.discard(error); this.output.discard(); }
+    takePrepared() { const prepared = this.prepared; this.prepared = undefined; return prepared; }
+    /** @internal */
+    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; await this.entry?.discard(error); this.output.discard(); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
@@ -2003,13 +2068,15 @@ class TextOverflow {
     sheetName;
     maximum;
     policy;
+    reserve;
     entries = [];
     characters = 0;
     rows = 0;
-    constructor(sheetName, maximum, policy) {
+    constructor(sheetName, maximum, policy, reserve) {
         this.sheetName = sheetName;
         this.maximum = maximum;
         this.policy = policy;
+        this.reserve = reserve;
     }
     add(sheet, cell, value) {
         const text = cleanXml(value, this.policy);
@@ -2022,6 +2089,7 @@ class TextOverflow {
         }
         if (this.rows + parts > 1048575)
             throw new OfficeIMOError("RESOURCE_LIMIT", "Text overflow exceeds the worksheet row limit.");
+        this.reserve(parts * 5, text.length + parts * (sheet.length + cell.length), this.rows + parts);
         const first = this.rows + 2;
         this.entries.push({ sheet, cell, text, first, parts });
         this.rows += parts;
@@ -2101,6 +2169,7 @@ class Workbook {
     overflow;
     links = 0;
     imageBytes = 0;
+    bufferedBytes = 0;
     /** @internal Shared budget across worksheet headers and data. */
     budget;
     /** @internal Immutable settings used by the worksheet owner. */
@@ -2164,7 +2233,8 @@ class Workbook {
             throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
         if (!this.overflow) {
             this.checkSheetLimit(this.sheets.length + 1);
-            this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy);
+            this.budget.reserve(5, "SheetCellPartTextParts".length);
+            this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
         }
         return this.overflow.add(sheet, cell, text);
     }
@@ -2186,6 +2256,8 @@ class Workbook {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
         this.imageBytes += bytes;
     }
+    /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
+    retainBufferedBytes(bytes) { this.budget.check("maxOutputBytes", this.bufferedBytes + bytes); this.bufferedBytes += bytes; }
     /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
     async openSheet(sheet) {
         if (this.activeSheet && this.activeSheet !== sheet) {
@@ -2256,7 +2328,8 @@ class Workbook {
                 const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
                 for (let i = 0; i < this.sheets.length; i++) {
                     const sheet = this.sheets[i], uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
-                    const prepared = await sheet.finish();
+                    await sheet.finish();
+                    const prepared = sheet.takePrepared();
                     if (prepared)
                         this.package.addPrepared(uri, formatType("worksheet"), prepared);
                     const table = sheet.tableDefinition;
@@ -2281,9 +2354,10 @@ class Workbook {
                     }
                 }
                 if (this.overflow) {
-                    const sheet = Worksheet.create(this, this.overflow.sheetName, { columns: [{ header: "Sheet" }, { header: "Cell" }, { header: "Part" }, { header: "Text", width: 80, wrapText: true }, { header: "Parts" }], freezeHeader: true });
+                    const sheet = Worksheet.create(this, this.overflow.sheetName, { columns: [{ header: "Sheet" }, { header: "Cell" }, { header: "Part" }, { header: "Text", width: 80, wrapText: true }, { header: "Parts" }], freezeHeader: true }, undefined, true);
                     this.sheets.push(sheet);
-                    const prepared = await sheet.finish(this.overflow.values());
+                    await sheet.finish(this.overflow.values());
+                    const prepared = sheet.takePrepared();
                     if (prepared)
                         this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
                     this.overflow.clear();

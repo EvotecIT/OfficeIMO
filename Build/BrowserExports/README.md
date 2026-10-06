@@ -45,3 +45,17 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 The measurement script compares actual inline-string worksheet XML with an equivalent shared-string representation using the same compressor, and measures the generated bundles. The scale runner writes 100,000 rows by 20 columns for XLSX/CSV, validates output and records responsiveness and available heap metrics. These timing/memory measurements do not become ordinary CI correctness envelopes.
 
 `Check-Excel.ps1` and `check-libreoffice.py` preserve optional application spot checks. They do not install, ship or invoke either application as a product dependency.
+
+## Representative export qualification
+
+The opt-in matrix crosses plain/styled XLSX and CSV at 10,000, 100,000, 250,000 and 1,000,000 rows with four/twenty columns and repeated/unique strings. It checks typed numeric/boolean/date values throughout and long Unicode in the 10,000-row matrix. Sources fetch and consume bounded 256-row pages. Additional 10,000-row cases exercise delayed page delivery, cancellation while a second page fetch is pending, workers, stored compression fallback, slow sinks, a hung sink cancelled through the export signal, source cancellation and row ceilings. Worker and worker/fallback cases also export 100,000 rows by twenty columns. Every case runs in Chromium, Firefox and WebKit; execution modes are these targeted lanes, rather than a full cross-product with every matrix size.
+
+```powershell
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/qualification" --qualify --full
+# A smaller reproduction; --keep retains artifacts deliberately.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/smoke" --qualify --engine=WebKit --rows=10000 --keep
+```
+
+The caller-owned sink sends at most 64 KiB to the host per delivery. Each artifact is independently checked before removal: CSV uses `OfficeIMO.CSV.OpenDataReader`; XLSX uses forward-only ZIP/XML traversal to verify every typed cell, coordinate, count and cached total. Preservation chunks reconstruct the complete source text. The 10,000-row XLSX cases additionally run the Open XML SDK validator and both OfficeIMO readers; the rich adapter uses an explicit 64 MiB per-part XML budget. Larger cases avoid whole-worksheet DOM validation and report that distinction. Failure cases must leave an unfinished archive, with partial bytes owned by the destination. Reports retain hashes, browser versions, validation results, output bytes, first-byte/source counts, timer gaps and heap samples where the engine exposes them.
+
+Artifacts are deleted after successful validation unless `--keep` is selected; compact JSON reports remain. `--matrix-only` omits the extra failure/worker cases. These are qualification runs with diagnostic durations, not controlled cross-library speed rankings. CPU placement, warmup and rotated comparison policy belong to the shared PowerForge benchmark runner; sampled Chromium JS heap excludes native compression/browser allocations, and missing Firefox/WebKit heap metrics are recorded as unavailable. No measurement becomes an ordinary CI correctness threshold.

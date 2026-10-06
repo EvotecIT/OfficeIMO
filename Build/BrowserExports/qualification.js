@@ -34,16 +34,28 @@ async function runQualificationCase(args) {
   const columns = Array.from({ length: args.columns }, (_, c) => ({ header: "Column " + c, key: "c" + c,
     type: ["number", "string", "boolean", "date"][c % 4], ...(c % 4 === 0 ? { format: "0.00" } : {}), ...(c % 4 === 3 ? { format: "yyyy-mm-dd" } : {}),
     ...(args.styled ? { groups: [c < args.columns / 2 ? "Identity" : "Metrics"] } : {}) }));
+  function makeRow(r) {
+    return columns.map((_, c) => {
+      let value = c % 4 === 0 ? r * args.columns + c : c % 4 === 1 ? args.unique ? "Unique " + r + ": Łódź🧪" : "Site " + r % 8 : c % 4 === 2 ? r % 2 === 0 : new Date(Date.UTC(2026, 0, 1 + r % 28));
+      if (args.longText && r === 100 && c === 1) value = "a".repeat(32766) + "🧪" + "Łódź\r\nשלום_x0041_".repeat(2500);
+      return args.styled && c % 4 === 0 ? new ExportCell(value, { text: String(value), presentation: r % 3 === 0 ? { background: "FFF2CC", bold: true } : { color: "1F4E78" } }) : value;
+    });
+  }
+  let pageAborted = false, maxPageRows = 0;
+  async function fetchPage(first) {
+    pages++;
+    if (args.pendingPage && pages === 2) {
+      timeout = setTimeout(() => controller.abort(failure), 50);
+      await new Promise((_, reject) => controller.signal.addEventListener("abort", () => { pageAborted = true; reject(controller.signal.reason); }, { once: true }));
+    } else if (args.delayedPages) await new Promise(resolve => setTimeout(resolve, 1));
+    else await Promise.resolve();
+    const page = Array.from({ length: Math.min(256, args.rows - first) }, (_, i) => makeRow(first + i));
+    maxPageRows = Math.max(maxPageRows, page.length); return page;
+  }
   async function* source() {
     try {
-      for (let r = 0; r < args.rows; r++) {
-        if (r % 10000 === 0) { pages++; await Promise.resolve(); }
+      for (let first = 0; first < args.rows; first += 256) for (const row of await fetchPage(first)) {
         if (args.cancelAfterRows !== undefined && produced === args.cancelAfterRows) controller.abort(failure);
-        const row = columns.map((_, c) => {
-          let value = c % 4 === 0 ? r * args.columns + c : c % 4 === 1 ? args.unique ? "Unique " + r + ": Łódź🧪" : "Site " + r % 8 : c % 4 === 2 ? r % 2 === 0 : new Date(Date.UTC(2026, 0, 1 + r % 28));
-          if (args.longText && r === 100 && c === 1) value = "a".repeat(32766) + "🧪" + "Łódź\r\nשלום_x0041_".repeat(2500);
-          return args.styled && c % 4 === 0 ? new ExportCell(value, { text: String(value), presentation: r % 3 === 0 ? { background: "FFF2CC", bold: true } : { color: "1F4E78" } }) : value;
-        });
         produced++; yield row;
       }
     } finally { returned = true; }
@@ -66,10 +78,12 @@ async function runQualificationCase(args) {
     if (!(error === failure || args.resourceLimit && error.code === "RESOURCE_LIMIT")) throw error;
   } finally { clearInterval(timer); clearTimeout(timeout); globalThis.CompressionStream = nativeCompression; buffer = null; }
   if (produced && !returned) throw new Error("The row iterator was not returned.");
-  if ((args.cancelAfterRows !== undefined || args.hangSink || args.resourceLimit) && !rejected) throw new Error("Expected failure did not occur.");
+  if ((args.cancelAfterRows !== undefined || args.hangSink || args.resourceLimit || args.pendingPage) && !rejected) throw new Error("Expected failure did not occur.");
+  if (args.pendingPage && (!pageAborted || !returned || pages !== 2)) throw new Error("Pending page cancellation did not release the producer.");
+  if (maxPageRows > 256) throw new Error("Source paging exceeded its bound.");
   if (!rejected && produced !== args.rows) throw new Error("Source row count differs.");
   if (!rejected && args.rows >= 10000 && firstByteRows >= args.rows) throw new Error("Output was buffered until source completion.");
-  return { ...args, workerScript: undefined, qualificationScript: undefined, result, produced, returned, pages, outputBytes, writes, maxChunk,
+  return { ...args, workerScript: undefined, qualificationScript: undefined, result, produced, returned, pages, maxPageRows, pageAborted, outputBytes, writes, maxChunk,
     firstByteRows, elapsedMs: performance.now() - started, peakHeapBytes: peakHeap, maxTimerGapMs: maxGap, rejected };
 }
 async function runQualificationWorker(args) {

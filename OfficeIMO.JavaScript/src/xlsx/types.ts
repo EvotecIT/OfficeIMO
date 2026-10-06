@@ -47,6 +47,7 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxHyperlinks?: number;
   readonly maxImageBytes?: number;
   readonly maxBufferedCells?: number;
+  /** UTF-16 units of encoded row XML retained during width sampling, including markup. */
   readonly maxBufferedCharacters?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }

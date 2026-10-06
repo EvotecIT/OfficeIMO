@@ -8,11 +8,11 @@ using OfficeIMO.Browser;
 internal static class ExportQualification {
     internal sealed record Case(string Format, int Rows, int Columns, bool Styled = false, bool Unique = false,
         bool LongText = false, bool Worker = false, bool Fallback = false, bool SlowSink = false,
-        int? CancelAfterRows = null, bool HangSink = false, bool ResourceLimit = false) {
+        int? CancelAfterRows = null, bool HangSink = false, bool ResourceLimit = false, bool DelayedPages = false, bool PendingPage = false) {
         internal string Name => $"{Format}-{Rows}-{Columns}-{(Styled ? "styled" : "plain")}" +
             (Unique ? "-unique" : "-repeated") + (LongText ? "-unicode" : "") + (Worker ? "-worker" : "") +
             (Fallback ? "-fallback" : "") + (SlowSink ? "-slow" : "") + (CancelAfterRows.HasValue ? "-cancel" : "") +
-            (HangSink ? "-hung" : "") + (ResourceLimit ? "-limit" : "");
+            (HangSink ? "-hung" : "") + (ResourceLimit ? "-limit" : "") + (DelayedPages ? "-paged" : "") + (PendingPage ? "-page-cancel" : "");
     }
     internal static async Task RunAsync(string repository, string evidence, string[] args) {
         int[] sizes = args.Contains("--full") ? new[] { 10000, 100000, 250000, 1000000 } : new[] { 10000 };
@@ -20,8 +20,8 @@ internal static class ExportQualification {
         if (rows is not null) sizes = rows.Substring(7).Split(',').Select(int.Parse).ToArray();
         if (sizes.Any(n => n < 1000 || n > 1048570)) throw new ArgumentException("Qualification sizes must be between 1,000 and 1,048,570 rows.");
         var cases = new List<Case>();
-        foreach (int size in sizes) foreach (int width in new[] { 4, 20 }) foreach (bool styled in new[] { false, true })
-            foreach (string format in new[] { "xlsx", "csv" }) cases.Add(new(format, size, width, styled, Unique: styled, LongText: size == 10000));
+        foreach (int size in sizes) foreach (int width in new[] { 4, 20 }) foreach (bool styled in new[] { false, true }) foreach (bool unique in new[] { false, true })
+            foreach (string format in new[] { "xlsx", "csv" }) cases.Add(new(format, size, width, styled, Unique: unique, LongText: size == 10000));
         if (!args.Contains("--matrix-only")) foreach (string format in new[] { "xlsx", "csv" }) {
             cases.Add(new(format, 10000, 20, Styled: true, Unique: true, LongText: true, Worker: true));
             cases.Add(new(format, 10000, 4, LongText: true, Worker: true, Fallback: true));
@@ -30,6 +30,11 @@ internal static class ExportQualification {
             cases.Add(new(format, 10000, 4, Worker: true, CancelAfterRows: 500));
             cases.Add(new(format, 10000, 4, HangSink: true));
             cases.Add(new(format, 10000, 4, ResourceLimit: true));
+            cases.Add(new(format, 10000, 20, Styled: true, Unique: true, DelayedPages: true));
+            cases.Add(new(format, 10000, 4, PendingPage: true));
+            cases.Add(new(format, 10000, 4, Worker: true, PendingPage: true));
+            cases.Add(new(format, 100000, 20, Styled: true, Unique: true, Worker: true));
+            cases.Add(new(format, 100000, 20, Styled: true, Worker: true, Fallback: true));
         }
         string script = BrowserAssets.Script.Content, qualification = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "qualification.js"));
         string host = Path.Combine(evidence, "qualification.html");
@@ -60,7 +65,7 @@ internal static class ExportQualification {
                     metrics = await session.Page.EvaluateAsync<JsonElement>("args => runQualificationCase(args)", new {
                         format = spec.Format, rows = spec.Rows, columns = spec.Columns, styled = spec.Styled, unique = spec.Unique, longText = spec.LongText,
                         worker = spec.Worker, fallback = spec.Fallback, slowSink = spec.SlowSink, cancelAfterRows = spec.CancelAfterRows,
-                        hangSink = spec.HangSink, resourceLimit = spec.ResourceLimit, workerScript = script, qualificationScript = qualification
+                        hangSink = spec.HangSink, resourceLimit = spec.ResourceLimit, delayedPages = spec.DelayedPages, pendingPage = spec.PendingPage, workerScript = script, qualificationScript = qualification
                     });
                 }
                 destination = null;

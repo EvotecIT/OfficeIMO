@@ -9,7 +9,7 @@ internal static class QualificationVerifier {
     private static readonly CultureInfo Culture = CultureInfo.InvariantCulture;
     internal static string LongText => new string('a', 32766) + "🧪" + string.Concat(Enumerable.Repeat("Łódź\r\nשלום_x0041_", 2500));
     internal static object VerifyFailure(string path, ExportQualification.Case spec) {
-        if (!spec.CancelAfterRows.HasValue && !spec.HangSink && !spec.ResourceLimit) throw new InvalidDataException("Unexpected rejection.");
+        if (!spec.CancelAfterRows.HasValue && !spec.HangSink && !spec.ResourceLimit && !spec.PendingPage) throw new InvalidDataException("Unexpected rejection.");
         if (spec.Format == "xlsx") {
             try { using var zip = ZipFile.OpenRead(path); throw new InvalidDataException("Failed XLSX finalized a ZIP archive."); }
             catch (InvalidDataException error) when (!error.Message.StartsWith("Failed XLSX", StringComparison.Ordinal)) { }

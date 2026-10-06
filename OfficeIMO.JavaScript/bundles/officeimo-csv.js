@@ -183,13 +183,15 @@ _modules.set("311c6b94822327e0943ef92c269732012aea671daa01dfeb58c7611460dc47d9",
 return _exports;
 })();
 
-const _m4 = _modules.get("acfca472139fea47fa71fbe6f4fb1e0bce61b7bd6a444ee37354f1e7b5063c57") ?? (() => {
+const _m4 = _modules.get("093938b870adda1bced414321db89fa02b2e3acbc6d6f5b2baf80dfca8fe9978") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
     cells = 0;
     text = 0;
+    reservedCells = 0;
+    reservedText = 0;
     limits;
     constructor(limits = {}) {
         for (const [key, value] of Object.entries(limits))
@@ -203,10 +205,20 @@ class ExportBudget {
             throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
     }
     row(count) { this.check("maxRows", count); }
-    cell(value) {
-        this.check("maxCells", this.cells + 1);
+    reserve(cells, characters) {
+        this.check("maxCells", this.cells + this.reservedCells + cells);
+        this.check("maxTextCharacters", this.text + this.reservedText + characters);
+        this.reservedCells += cells;
+        this.reservedText += characters;
+    }
+    cell(value, reservedCharacters) {
+        if (reservedCharacters !== undefined) {
+            this.reservedCells--;
+            this.reservedText -= reservedCharacters;
+        }
+        this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
-        this.check("maxTextCharacters", this.text + length);
+        this.check("maxTextCharacters", this.text + this.reservedText + length);
         this.cells++;
         this.text += length;
     }
@@ -221,7 +233,7 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("acfca472139fea47fa71fbe6f4fb1e0bce61b7bd6a444ee37354f1e7b5063c57", _exports);
+_modules.set("093938b870adda1bced414321db89fa02b2e3acbc6d6f5b2baf80dfca8fe9978", _exports);
 return _exports;
 })();
 
@@ -334,7 +346,7 @@ _modules.set("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198",
 return _exports;
 })();
 
-const _m0 = _modules.get("6bf4181f226b9a60b039f027fd1ff5d55f3bd8e00627633e0f4f781adc2fbf4a") ?? (() => {
+const _m0 = _modules.get("861bedef2f0e4c8919c362bfb3abeb5997d9ee848f1d751a43dbfd3e58e5eaed") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink } = _m2;
@@ -402,7 +414,9 @@ async function writeCsvTo(rows, sink, options) {
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
-            const value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            if (value == null && options.nullValue !== undefined)
+                value = options.nullValue;
             budget.cell(value);
             if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
                 await buffer.flush();
@@ -444,7 +458,7 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("6bf4181f226b9a60b039f027fd1ff5d55f3bd8e00627633e0f4f781adc2fbf4a", _exports);
+_modules.set("861bedef2f0e4c8919c362bfb3abeb5997d9ee848f1d751a43dbfd3e58e5eaed", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

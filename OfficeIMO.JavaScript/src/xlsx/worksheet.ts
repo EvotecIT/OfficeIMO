@@ -28,7 +28,8 @@ export class Worksheet {
   private readonly declared: { column: Column; letter: string; style: number; dateStyle: number; headerStyle: number }[];
   private readonly options: SheetOptions;
   private entry: EntryWriter | ZipEntry | undefined;
-  private completion: Promise<PreparedEntry | undefined> | undefined;
+  private completion: Promise<void> | undefined;
+  private prepared: PreparedEntry | undefined;
   private buffer: ChunkedTextSink | undefined;
   private readonly output = new BlobByteSink();
   private started = false;
@@ -38,12 +39,13 @@ export class Worksheet {
   private count = 0;
   private readonly headerRows: number;
   private readonly layout: ReportLayout;
-  private pending: unknown[][] = [];
+  private pending: string[][] = [];
   private pendingCharacters = 0;
+  private reservedLayout = false;
   private readonly internalLinks: { cell: string; location: string }[] = [];
   private readonly links: Hyperlink[] = [];
   private readonly pictures: WorksheetImage[] = [];
-  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition) {
+  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false) {
     this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -60,7 +62,7 @@ export class Worksheet {
     }));
   }
   /** @internal */
-  static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition): Worksheet { return new Worksheet(book, name, options, table); }
+  static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false): Worksheet { return new Worksheet(book, name, options, table, preserved); }
   /** @internal Validate before allocating native compressor resources or registering the sheet name. */
   static validate(book: Workbook, options: SheetOptions): void {
     for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"] as const)
@@ -116,7 +118,7 @@ export class Worksheet {
     const type = value instanceof Date ? "date" : typeof value;
     if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
       throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
-    let style = explicitStyle === undefined ? header ? col.headerStyle : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+    let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
     if (!header && !footer) {
       if (explicitStyle === undefined) {
         const base = style, cached = rowStyles?.get(base);
@@ -129,7 +131,6 @@ export class Worksheet {
       }
       const patch = context && this.options.cellStyle?.({ ...context, value: value as CellValue, column: col.column, columnIndex: i + 1 });
       if (patch !== undefined) style = this.book.styles.compose(style, patch);
-      this.layout.accept(i, value);
     }
     if (footer && this.options.footer?.style && explicitStyle === undefined) style = this.book.styles.compose(style, this.options.footer.style);
     if (presentation && explicitStyle === undefined) style = this.book.styles.compose(style, {
@@ -139,39 +140,62 @@ export class Worksheet {
       ...(presentation.wrapText === undefined ? {} : { wrapText: presentation.wrapText }), ...(presentation.alignment === undefined ? {} : { alignment: presentation.alignment }),
       ...(presentation.numberFormat === undefined ? {} : { numberFormat: presentation.numberFormat })
     });
+    const originalCharacters = typeof value === "string" ? value.length : 0;
     if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
       const cell = col.letter + row;
       if (this.links.some(link => link.cell === cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
       const preserved = this.book.preserveText(this.name, cell, value as string);
       this.book.retainLink(); this.internalLinks.push({ cell, location: preserved.location }); value = preserved.preview;
     }
+    if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
+    if (!header && !footer) this.layout.accept(i, value as CellValue);
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-    this.book.budget.cell(value);
+    this.book.budget.cell(value, this.preserved || header || footer ? originalCharacters : undefined);
     if (total) return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
     if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
-    if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
     if (value == null) return prefix + '/>';
     if (type === "string") return prefix + ' t="inlineStr"><is>' + inlineText(value, this.book.settings.invalidCharacterPolicy) + '</is></c>';
     if (type === "boolean") return prefix + ' t="b"><v>' + (value ? 1 : 0) + '</v></c>';
     if (type !== "number" && type !== "date") throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
     return prefix + '><v>' + value + '</v></c>';
   }
-  private async writeRow(values: readonly unknown[], number: number, header: boolean, footer = false): Promise<void> {
-    const buffer = this.buffer!;
+  private *rowXml(values: readonly unknown[], number: number, header: boolean, footer = false): Generator<string> {
     const height = header ? this.options.headerHeight : this.options.rowHeight;
     const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
       values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
     if (rowStyle !== undefined) validateStylePatch(rowStyle);
     const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map<number, number>() : undefined;
-    if (buffer.append('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>')) await buffer.flush();
-    for (let i = 0; i < this.columns.length; i++) if (buffer.append(this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer))) await buffer.flush();
-    if (buffer.append('</row>')) await buffer.flush();
+    yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>';
+    for (let i = 0; i < this.columns.length; i++) yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer);
+    yield '</row>';
+  }
+  private async writeRow(values: readonly unknown[], number: number, header: boolean, footer = false): Promise<void> {
+    for (const chunk of this.rowXml(values, number, header, footer)) if (this.buffer!.append(chunk)) await this.buffer!.flush();
+  }
+  private reserveLayout(): void {
+    if (this.reservedLayout) return;
+    if (!this.preserved) {
+      let characters = 0;
+      if (this.headerRows) {
+        for (const heading of this.layout.headings) for (const text of heading) characters += text.length;
+        for (const column of this.columns) characters += column.header.length;
+      }
+      if (this.options.footer) for (let i = 0; i < this.columns.length; i++) {
+        const column = this.columns[i]!, totals = this.options.footer.totals;
+        if (totals && Object.prototype.hasOwnProperty.call(totals, column.key ?? column.header)) continue;
+        const value = this.options.footer.values?.[i], raw = value instanceof ExportCell || value instanceof Cell ? value.value : value;
+        if (typeof raw === "string") characters += raw.length;
+      }
+      this.book.budget.reserve(this.columns.length * (this.headerRows + (this.options.footer ? 1 : 0)), characters);
+    }
+    this.reservedLayout = true;
   }
   private async start(): Promise<void> {
     if (this.started) return;
+    this.reserveLayout();
     this.started = true;
-    this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, this.output, this.book.settings.signal);
+    this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, { write: bytes => { this.book.retainBufferedBytes(bytes.length); this.output.write(bytes); } }, this.book.settings.signal);
     const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
     const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
     const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
@@ -191,7 +215,7 @@ export class Worksheet {
       for (let i = 0; i < this.layout.headings.length; i++) await this.writeRow(this.layout.headings[i]!, i + 1, true);
       await this.writeRow(this.columns.map(c => c.header), this.headerRows, true);
     }
-    for (let i = 0; i < this.pending.length; i++) await this.writeRow(this.pending[i]!, this.headerRows + i + 1, false);
+    for (const row of this.pending) for (const chunk of row) if (buffer.append(chunk)) await buffer.flush();
     this.pending = []; this.pendingCharacters = 0;
   }
   addRows(rows: XlsxRows): Promise<void>;
@@ -203,6 +227,7 @@ export class Worksheet {
     if (this.failed) throw this.error;
     this.busy = true;
     try {
+      this.reserveLayout();
       if (!this.layout.sampleRows) await this.start();
       let checkpoint = performance.now();
       for await (const row of inputRows(rows, this.book.settings.signal)) {
@@ -211,11 +236,14 @@ export class Worksheet {
         if (!this.columns.length) throw new RangeError("Declare columns before adding rows.");
         const values = rowValues(row, this.columns);
         if (!this.started) {
+          if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
+          const encoded: string[] = [];
+          for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
+            if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+            this.pendingCharacters += chunk.length; encoded.push(chunk);
+          }
           this.layout.sample(values);
-          const snapshot = values.map(copyValue);
-          const characters = snapshot.reduce<number>((sum, value) => { const raw = value instanceof Cell || value instanceof ExportCell ? value.value : value; return sum + (typeof raw === "string" ? raw.length : 0) + (value instanceof ExportCell ? value.text?.length ?? 0 : 0); }, 0);
-          if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000) || this.pendingCharacters + characters > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling buffer limit exceeded; reduce sampleRows or raise its bounded limits.");
-          this.pending.push(snapshot); this.pendingCharacters += characters; this.count++;
+          this.pending.push(encoded); this.count++;
           if (this.pending.length >= this.layout.sampleRows) await this.start();
         } else { await this.writeRow(values, this.count + this.headerRows + 1, false); this.count++; }
         if (performance.now() - checkpoint >= 50) { this.progress(); checkpoint = performance.now(); }
@@ -269,13 +297,13 @@ export class Worksheet {
     try { await this.finish(); } catch (error) { await this.book.discard(error); throw error; }
   }
   /** @internal */
-  finish(preservedRows?: XlsxRows): Promise<PreparedEntry | undefined> {
+  finish(preservedRows?: XlsxRows): Promise<void> {
     if (this.completion) return this.completion;
     if (this.failed) throw this.error;
     return this.completion = (async () => { try {
       for (const link of this.links) {
         const position = cellPosition(link.cell);
-        if (position.column > this.columns.length || position.row > this.count + this.headerRows) throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
+        if (position.column > this.columns.length || position.row > this.totalRows) throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
       }
       await this.start();
       if (preservedRows) for await (const row of inputRows(preservedRows, this.book.settings.signal)) {
@@ -291,9 +319,11 @@ export class Worksheet {
       if (this.tableDefinition) await this.buffer!.write('<tableParts count="1"><tablePart r:id="table"/></tableParts>');
       await this.buffer!.write('</worksheet>'); await this.buffer!.close();
       const info = await this.entry!.close();
-      return this.book.settings.sink ? undefined : { ...info, chunks: this.output.takeChunks() };
+      if (!this.book.settings.sink && !this.failed) this.prepared = { ...info, chunks: this.output.takeChunks() };
     } catch (error) { await this.discard(error); throw error; } })();
   }
   /** @internal */
-  async discard(error: unknown): Promise<void> { this.pending = []; await this.entry?.discard(error); this.output.discard(); }
+  takePrepared(): PreparedEntry | undefined { const prepared = this.prepared; this.prepared = undefined; return prepared; }
+  /** @internal */
+  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; await this.entry?.discard(error); this.output.discard(); }
 }

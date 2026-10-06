@@ -30,6 +30,7 @@ console.log(run(["runtime.mjs"], consumer).trim());
 const installed = JSON.parse(await readFile(join(consumer, "package-lock.json"), "utf8"));
 if (Object.keys(installed.packages).length !== 2) throw new Error("Packed consumer acquired an unexpected runtime dependency.");
 await copyFile(join(consumer, "packed-consumer.xlsx"), join(output, "packed-consumer.xlsx"));
+await copyFile(join(consumer, "packed-streamed.xlsx"), join(output, "packed-streamed.xlsx"));
 await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 6, strictTypeScript: "5.9.3", archive: manifest[0].filename,
   shippedFiles: manifest[0].files.length, runtimeDependencies: 0 }, null, 2) + "\n");
 console.log("Strict types, archive contents, isolated npm install and all runtime subpaths passed.");

@@ -181,6 +181,8 @@ const { OfficeIMOError } = _m3;
 class ExportBudget {
     cells = 0;
     text = 0;
+    reservedCells = 0;
+    reservedText = 0;
     limits;
     constructor(limits = {}) {
         for (const [key, value] of Object.entries(limits))
@@ -194,10 +196,20 @@ class ExportBudget {
             throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
     }
     row(count) { this.check("maxRows", count); }
-    cell(value) {
-        this.check("maxCells", this.cells + 1);
+    reserve(cells, characters) {
+        this.check("maxCells", this.cells + this.reservedCells + cells);
+        this.check("maxTextCharacters", this.text + this.reservedText + characters);
+        this.reservedCells += cells;
+        this.reservedText += characters;
+    }
+    cell(value, reservedCharacters) {
+        if (reservedCharacters !== undefined) {
+            this.reservedCells--;
+            this.reservedText -= reservedCharacters;
+        }
+        this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
-        this.check("maxTextCharacters", this.text + length);
+        this.check("maxTextCharacters", this.text + this.reservedText + length);
         this.cells++;
         this.text += length;
     }
@@ -389,7 +401,9 @@ async function writeCsvTo(rows, sink, options) {
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
-            const value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            if (value == null && options.nullValue !== undefined)
+                value = options.nullValue;
             budget.cell(value);
             if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
                 await buffer.flush();

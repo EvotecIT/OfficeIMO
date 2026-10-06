@@ -56,9 +56,83 @@ Cells accept strings, numbers, booleans, `Date`, `null` and `undefined`. Declare
 
 Dates use Excel's 1900 system, including the fictitious leap day. `dateMode` defaults to local wall-clock fields; `"utc"` writes UTC clock fields. Cell dates carry no timezone. Property dates are UTC instants and are captured at construction. Valid cell date years are 1900 through 9999.
 
-Excel limits are enforced: 1,048,576 rows including the header, 16,384 columns, 32,767 UTF-16 code units per cell, 64,000 styles and widths from 0 through 255 characters. Names are trimmed, illegal characters become underscores, and names are shortened to 31 UTF-16 code units without splitting a surrogate pair. Blank names become `Sheet`, reserved `History` becomes `History_`, and case-insensitive duplicates receive a suffix.
+Excel limits are enforced: 1,048,576 rows including headings and the footer, 16,384 columns, 32,767 UTF-16 code units per cell, 64,000 styles and widths from 0 through 255 characters. Names are trimmed, illegal characters become underscores, and names are shortened to 31 UTF-16 code units without splitting a surrogate pair. Blank names become `Sheet`, reserved `History` becomes `History_`, and case-insensitive duplicates receive a suffix.
 
 `invalidCharacterPolicy` defaults to `"strip"`. XML 1.0-invalid controls, lone surrogates, U+FFFE and U+FFFF are removed. `"reject"` throws an `OfficeIMOError` with `code: "INVALID_XML"` for names, cell/header text, property text, font names and number formats. CR, LF, tabs, emoji, Polish and right-to-left text are preserved.
+
+## Streamed output and resource limits
+
+Select a caller-owned sink when constructing the workbook to deliver ZIP bytes during row production. Complete streamed worksheets in order: `close()` completes a worksheet explicitly, and starting the next worksheet closes its predecessor. Await each append before switching worksheets. A closed worksheet cannot receive more rows. `finish()` completes the ZIP directory and returns data-row, sheet and byte counts; repeated calls reuse the same result. The row count excludes headings, footers and preservation-sheet records. The sheet count includes the preservation sheet when present.
+
+```ts
+import { createWorkbook } from "@evotecit/officeimo/xlsx";
+import type { Rows } from "@evotecit/officeimo/core";
+
+async function exportRows(rows: Rows, destination: WritableStream<Uint8Array>) {
+  const writer = destination.getWriter();
+  try {
+    const book = createWorkbook({
+      sink: { write: bytes => writer.write(bytes) }, dateMode: "utc",
+      limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 }
+    });
+    const sheet = book.addSheet("Data", {
+      columns: [{ header: "Name", key: "name" }, { header: "Amount", key: "amount", type: "number", format: "0.00" }]
+    });
+    await sheet.addRows(rows);
+    const result = await book.finish();
+    await writer.close();
+    return result;
+  } catch (error) {
+    await writer.abort(error).catch(() => {});
+    throw error;
+  } finally { writer.releaseLock(); }
+}
+```
+
+The library awaits byte acceptance and never closes a supplied sink. The destination owns cancellation and disposal of partial output. Use the same signal for the writer, paged source and destination I/O. `toBlob()` remains the default output path and supports interleaved appends to different worksheets; it retains compressed output proportional to file size. A workbook with a caller-owned sink uses `finish()` instead of `toBlob()`.
+
+Both CSV and XLSX accept optional `limits`: `maxRows` counts data rows per worksheet/export, including generated preservation rows; `maxCells` counts emitted cells, including headings, footers and preservation records. `maxTextCharacters` counts UTF-16 units of string values, including CSV formatter/display/null-text results and XLSX headings, footers, previews and full preservation records. Numeric/date encodings, CSV quoting and XML markup do not count toward that text limit. `maxOutputBytes` limits actual UTF-8 CSV or ZIP bytes accepted by the sink and also bounds compressed worksheet retention in Blob mode. XLSX also accepts `maxStyles`, `maxSheets`, `maxHyperlinks` and `maxImageBytes`. Cell/text budgets are checked at row ingress, reserving generated headings, footers and preservation records before retaining input. Exceeding a ceiling throws `OfficeIMOError` with `code: "RESOURCE_LIMIT"`. Limits are nonnegative safe integers; `maxStyles` is from 1 through 64,000. No host-dependent timing or heap threshold is enforced by the library.
+
+XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write a bounded preview with an internal link to the full value on a `Text overflow` worksheet. Each overflow record identifies the source sheet/cell, one-based part number, text and total part count. Concatenate its `Text` values in part order to reconstruct the complete XML-valid value. Chunks never split a supplementary Unicode character. The same strip/reject policy applies to invalid XML characters. Preserve mode does not replace an existing external link on that cell; that conflict throws.
+
+ZIP entries cannot interleave, so preservation retains a bounded text spool until the report worksheets finish. `maxOverflowCharacters` defaults to 4,000,000 UTF-16 units. Width sampling has separate defaults of 100,000 retained cells and 1,000,000 UTF-16 units of encoded row XML, including markup, configurable through `maxBufferedCells` and `maxBufferedCharacters`. Exceeding either budget fails visibly; the writer does not silently truncate full values. CSV retains long text directly and is an alternative when Excel's cell/storage constraints do not suit the data.
+
+## Resolved values, grouped headings, totals and print layout
+
+`ExportCell` captures a typed value, optional display text and portable presentation before an export begins. A report producer can resolve highlighting once and reuse the same cells for XLSX and CSV. XLSX uses the typed value; CSV uses it by default and uses supplied display text with `valueMode: "display"`. Formula protection and quoting still run after display-text selection and CSV formatting.
+
+```ts
+import { createWorkbook, ExportCell } from "@evotecit/officeimo/xlsx";
+import { writeCsv } from "@evotecit/officeimo/csv";
+
+const columns = [
+  { header: "Name", key: "name", groups: ["Identity"], width: 28 },
+  { header: "Latency", key: "latency", groups: ["Metrics"], type: "number", format: "0.000" }
+] as const;
+const rows = [{ name: "Łódź", latency: new ExportCell(125.75, {
+  text: "125.750 ms", presentation: { background: "FCE4D6", bold: true }
+}) }];
+const book = createWorkbook();
+const sheet = book.addSheet("Report", {
+  columns, table: { name: "ReportData" }, freezeHeader: true,
+  autoSize: { sampleRows: 100, minWidth: 8, maxWidth: 40 },
+  footer: { values: ["Totals"], totals: { latency: "average" }, style: { font: { bold: true } } },
+  print: { paper: "A4", orientation: "landscape", repeatHeaders: true, header: "Health report", footer: "Measured latency" }
+});
+await sheet.addRows(rows);
+const excel = await book.toBlob();
+const csv = await writeCsv(rows, { columns, valueMode: "display" });
+```
+
+Portable presentation supports background/text color, bold, italic, wrapping, alignment and number format. It overlays the resolved row/cell presentation while preserving unspecified fields; an explicit workbook-local `Cell.style` retains precedence. CSV carries scalar values/display text; it has no cell-style format.
+
+Contiguous column `groups` with matching ancestor labels form merged heading spans above the leaf headers. Up to 16 heading levels are supported. Native tables start at the leaf-header row, and `freezeHeader` freezes all heading rows. Generated heading merges are supported separately from the reserved arbitrary `mergedCells` option.
+
+`footer.values` supplies explicit typed footer cells in column order. `footer.totals` maps unambiguous column keys (or headers without keys) to `sum`, `count`, `average`, `min` or `max`. Aggregation uses the finite numbers written to Excel, including converted date serials and column-writer results, and retains only the state needed by each column's operation. Count means numeric count and uses General format rather than a column's date format. Formulas use `SUBTOTAL`, with cached values for readers; averages/minima/maxima remain blank when no numeric value exists. Their guarded expressions are registered as custom table totals so native Excel sees consistent formula metadata. Totals respond to Excel filtering; strings supplied as ordinary values never become formulas. A sum outside JavaScript's finite numeric range fails visibly.
+
+`autoSize` inspects at most `sampleRows` leading rows, default 100 and maximum 10,000, then starts the worksheet. Sampling can span append calls. Each sampled row is validated and serialized once within the explicit buffer limits; custom value/style callbacks do not run again when the sample is written. Widths use an approximate character count, preferring `ExportCell.text`, clamped to `minWidth`/`maxWidth`; column `width` wins. This is bounded sizing rather than font measurement.
+
+`print` sets A4/Letter paper, portrait/landscape orientation, fit-to-page dimensions and inch-based margins. Defaults are A4, landscape, one page wide and unlimited pages high. Print area includes headings, data and the footer; `repeatHeaders` repeats all heading rows. Center header/footer strings are literal text: ampersands are protected from Excel control-code interpretation.
 
 ## Report tables, highlighting and images
 
@@ -173,7 +247,7 @@ Pass a `ByteSink` as the constructor's first argument for direct streaming, then
 
 `compression: "auto"` uses platform `CompressionStream("deflate-raw")`; missing raw-deflate support falls back to stored entries. `"store"` forces that fallback. No external compressor is loaded. Paths must be relative and reject traversal, backslashes, empty segments and duplicates. ZIP64 is explicitly unsupported: entry/archive sizes must stay below 4 GiB and an archive can contain at most 65,534 entries. Reaching a ZIP64 boundary throws `code: "ZIP64_REQUIRED"`.
 
-XLSX retains compressed worksheet chunks while appending, then packages them. Blob-returning APIs retain output proportional to file size; stored output can be substantially larger. Streaming input does not imply constant memory for a final Blob. Readers are outside the current API.
+`openEntry(name)` returns an appendable entry sink with `write` and `close`; close it before starting the next entry or finishing the archive. `maxOutputBytes` can bound actual archive bytes. Blob-returning APIs retain output proportional to file size; stored output can be substantially larger. Streaming input does not imply constant memory for a final Blob. Readers are outside the current API.
 
 ## XML
 
@@ -204,6 +278,8 @@ const blob = await packageFile.toBlob();
 ```
 
 OPC owns `[Content_Types].xml`, relationship parts, core/app properties and canonical part URIs. Internal relationship targets are absolute part URIs; the package serializes their relative spelling and checks that source/target parts exist. Case-insensitive part collisions, reserved metadata paths, invalid content types and duplicate relationship IDs throw. Unicode part names use UTF-8 percent encoding; `partUri`, `relationshipPartUri` and `relativePartTarget` expose URI operations. `ContentTypes` can also be used independently.
+
+`OpcPackage({ sink })` supports `openPart(uri, contentType)` for direct incremental output. Close each part before opening the next; register relationships and deferred parts as usual, then call `finish()`. It returns the archive byte count without closing the sink. A package with a caller-owned sink uses `finish()` rather than `toBlob()`.
 
 Part sources are strings, Blobs, bytes, byte iterables or entry-sink callbacks. Some local-file WebKit worker contexts block every native Blob-reading API. A Blob part that cannot be read throws `OfficeIMOError` with `code: "PLATFORM_UNAVAILABLE"` and the native error as `cause`; no package is returned. For those workers, read input Blobs in the host and transfer byte arrays, or supply text/byte producers. Returning an output Blob from the worker remains supported because the library does not read it there. Raw XML part sources are trusted schema documents supplied by the format module or extension; use `XmlWriter` for user data. OPC does not parse or repair supplied XML.
 

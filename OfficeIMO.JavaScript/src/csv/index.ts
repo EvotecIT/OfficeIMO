@@ -74,8 +74,9 @@ export async function writeCsvTo(rows: Iterable<unknown> | AsyncIterable<unknown
     for (let i = 0; i < columns.length; i++) {
       const column = columns[i]!;
       const raw = resolved(values[i]);
-      const value = !header && column.valueFormatter ? column.valueFormatter(raw as CellValue,
+      let value = !header && column.valueFormatter ? column.valueFormatter(raw as CellValue,
         { row: count + 1, columnIndex: i + 1, column, values: snapshot! }) : raw;
+      if (value == null && options.nullValue !== undefined) value = options.nullValue;
       budget.cell(value);
       if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue))) await buffer.flush();
     }

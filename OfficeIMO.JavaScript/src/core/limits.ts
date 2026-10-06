@@ -13,6 +13,8 @@ export interface ExportLimits {
 export class ExportBudget {
   private cells = 0;
   private text = 0;
+  private reservedCells = 0;
+  private reservedText = 0;
   readonly limits: Readonly<ExportLimits>;
   constructor(limits: ExportLimits = {}) {
     for (const [key, value] of Object.entries(limits))
@@ -24,10 +26,16 @@ export class ExportBudget {
     if (maximum !== undefined && value > maximum) throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
   }
   row(count: number): void { this.check("maxRows", count); }
-  cell(value: unknown): void {
-    this.check("maxCells", this.cells + 1);
+  reserve(cells: number, characters: number): void {
+    this.check("maxCells", this.cells + this.reservedCells + cells);
+    this.check("maxTextCharacters", this.text + this.reservedText + characters);
+    this.reservedCells += cells; this.reservedText += characters;
+  }
+  cell(value: unknown, reservedCharacters?: number): void {
+    if (reservedCharacters !== undefined) { this.reservedCells--; this.reservedText -= reservedCharacters; }
+    this.check("maxCells", this.cells + this.reservedCells + 1);
     const length = typeof value === "string" ? value.length : 0;
-    this.check("maxTextCharacters", this.text + length);
+    this.check("maxTextCharacters", this.text + this.reservedText + length);
     this.cells++; this.text += length;
   }
 }

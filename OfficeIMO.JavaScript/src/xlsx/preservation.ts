@@ -7,13 +7,14 @@ export class TextOverflow {
   private entries: { sheet: string; cell: string; text: string; first: number; parts: number }[] = [];
   private characters = 0;
   private rows = 0;
-  constructor(readonly sheetName: string, private readonly maximum: number, private readonly policy: InvalidCharacterPolicy) {}
+  constructor(readonly sheetName: string, private readonly maximum: number, private readonly policy: InvalidCharacterPolicy, private readonly reserve: (cells: number, characters: number, rows: number) => void) {}
   add(sheet: string, cell: string, value: string): { preview: string; location: string } {
     const text = cleanXml(value, this.policy);
     if (this.characters + text.length > this.maximum) throw new OfficeIMOError("RESOURCE_LIMIT", "maxOverflowCharacters exceeded; use CSV or raise the bounded preservation limit.");
     let parts = 0;
     for (const _ of splitText(text)) { void _; parts++; }
     if (this.rows + parts > 1048575) throw new OfficeIMOError("RESOURCE_LIMIT", "Text overflow exceeds the worksheet row limit.");
+    this.reserve(parts * 5, text.length + parts * (sheet.length + cell.length), this.rows + parts);
     const first = this.rows + 2;
     this.entries.push({ sheet, cell, text, first, parts }); this.rows += parts; this.characters += text.length;
     const marker = "\n[Full text: " + this.sheetName + "!D" + first + "; " + parts + " parts]";

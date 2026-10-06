@@ -6,7 +6,7 @@ import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { SheetOptions, TotalOperation, PrintOptions } from "./types.js";
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
-export class ComputedTotal { constructor(readonly value: number | null, readonly formula: string) {} }
+export class ComputedTotal { constructor(readonly value: number | null, readonly formula: string, readonly operation: TotalOperation) {} }
 /** @internal Bounded report layout and incremental numeric aggregates. */
 export class ReportLayout {
   readonly headings: readonly (readonly string[])[];
@@ -14,7 +14,7 @@ export class ReportLayout {
   readonly headerRows: number;
   readonly widths: (number | undefined)[];
   readonly sampleRows: number;
-  private readonly aggregates: { operation: TotalOperation | undefined; count: number; sum: number; min: number; max: number }[];
+  private readonly aggregates: { operation: TotalOperation | undefined; count: number; sum: number; mean: number; min: number; max: number }[];
   constructor(readonly columns: readonly Column[], readonly options: SheetOptions, policy: InvalidCharacterPolicy) {
     const depth = Math.max(0, ...columns.map(c => c.groups?.length ?? 0));
     if (depth > 16) throw new RangeError("Grouped headings support at most 16 levels.");
@@ -47,7 +47,7 @@ export class ReportLayout {
       if (keys.filter(k => k === key).length !== 1) throw new TypeError("Totals need an unambiguous declared column key: " + key);
       if (!["sum", "count", "average", "min", "max"].includes(operation)) throw new TypeError("Invalid total operation.");
     }
-    this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, min: Infinity, max: -Infinity }));
+    this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, mean: 0, min: Infinity, max: -Infinity }));
     if (options.print) validatePrint(options.print, policy);
   }
   sample(values: readonly unknown[]): void {
@@ -64,15 +64,22 @@ export class ReportLayout {
   accept(index: number, value: CellValue): void {
     const total = this.aggregates[index]!;
     if (!total.operation || typeof value !== "number" || !Number.isFinite(value)) return;
-    total.count++; total.sum += value; total.min = Math.min(total.min, value); total.max = Math.max(total.max, value);
-    if (!Number.isFinite(total.sum)) throw new RangeError("Numeric total exceeds finite number range.");
+    total.count++;
+    if (total.operation === "sum") {
+      total.sum += value;
+      if (!Number.isFinite(total.sum)) throw new RangeError("Numeric total exceeds finite number range.");
+    } else if (total.operation === "average") {
+      const delta = value - total.mean;
+      total.mean = total.count === 1 ? value : Number.isFinite(delta) ? total.mean + delta / total.count : total.mean * ((total.count - 1) / total.count) + value / total.count;
+    } else if (total.operation === "min") total.min = Math.min(total.min, value);
+    else if (total.operation === "max") total.max = Math.max(total.max, value);
   }
   footer(rows: number): readonly unknown[] {
     return this.columns.map((_, i) => {
       const total = this.aggregates[i]!, operation = total.operation;
       if (!operation) return this.options.footer?.values?.[i];
-      const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.sum / total.count : operation === "min" ? total.min : total.max;
-      return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows));
+      const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.mean : operation === "min" ? total.min : total.max;
+      return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows), operation);
     });
   }
 }

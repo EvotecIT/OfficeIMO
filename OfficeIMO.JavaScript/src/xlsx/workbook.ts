@@ -33,6 +33,7 @@ export class Workbook {
   private overflow: TextOverflow | undefined;
   private links = 0;
   private imageBytes = 0;
+  private bufferedBytes = 0;
   /** @internal Shared budget across worksheet headers and data. */
   readonly budget: ExportBudget;
   /** @internal Immutable settings used by the worksheet owner. */
@@ -85,7 +86,8 @@ export class Workbook {
     if (this.settings.oversizedText !== "preserve") throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
     if (!this.overflow) {
       this.checkSheetLimit(this.sheets.length + 1);
-      this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy);
+      this.budget.reserve(5, "SheetCellPartTextParts".length);
+      this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
     }
     return this.overflow.add(sheet, cell, text);
   }
@@ -103,6 +105,8 @@ export class Workbook {
     if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
     this.imageBytes += bytes;
   }
+  /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
+  retainBufferedBytes(bytes: number): void { this.budget.check("maxOutputBytes", this.bufferedBytes + bytes); this.bufferedBytes += bytes; }
   /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
   async openSheet(sheet: Worksheet): Promise<ZipEntry> {
     if (this.activeSheet && this.activeSheet !== sheet) {
@@ -161,7 +165,7 @@ export class Workbook {
         const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
         for (let i = 0; i < this.sheets.length; i++) {
           const sheet = this.sheets[i]!, uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
-          const prepared = await sheet.finish();
+          await sheet.finish(); const prepared = sheet.takePrepared();
           if (prepared) this.package.addPrepared(uri, formatType("worksheet"), prepared);
           const table = sheet.tableDefinition;
           if (table) {
@@ -184,9 +188,9 @@ export class Workbook {
           }
         }
         if (this.overflow) {
-          const sheet = Worksheet.create(this, this.overflow.sheetName, { columns: [{ header: "Sheet" }, { header: "Cell" }, { header: "Part" }, { header: "Text", width: 80, wrapText: true }, { header: "Parts" }], freezeHeader: true });
+          const sheet = Worksheet.create(this, this.overflow.sheetName, { columns: [{ header: "Sheet" }, { header: "Cell" }, { header: "Part" }, { header: "Text", width: 80, wrapText: true }, { header: "Parts" }], freezeHeader: true }, undefined, true);
           this.sheets.push(sheet);
-          const prepared = await sheet.finish(this.overflow.values());
+          await sheet.finish(this.overflow.values()); const prepared = sheet.takePrepared();
           if (prepared) this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
           this.overflow.clear();
         }

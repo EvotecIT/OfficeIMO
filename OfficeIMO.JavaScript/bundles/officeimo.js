@@ -1021,13 +1021,15 @@ _modules.set("b9f1c744e81c4ffe65aeece3668443c8d6d70489841f23c9539ae6e8ac0b52d2",
 return _exports;
 })();
 
-const _m14 = _modules.get("acfca472139fea47fa71fbe6f4fb1e0bce61b7bd6a444ee37354f1e7b5063c57") ?? (() => {
+const _m14 = _modules.get("093938b870adda1bced414321db89fa02b2e3acbc6d6f5b2baf80dfca8fe9978") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
     cells = 0;
     text = 0;
+    reservedCells = 0;
+    reservedText = 0;
     limits;
     constructor(limits = {}) {
         for (const [key, value] of Object.entries(limits))
@@ -1041,10 +1043,20 @@ class ExportBudget {
             throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
     }
     row(count) { this.check("maxRows", count); }
-    cell(value) {
-        this.check("maxCells", this.cells + 1);
+    reserve(cells, characters) {
+        this.check("maxCells", this.cells + this.reservedCells + cells);
+        this.check("maxTextCharacters", this.text + this.reservedText + characters);
+        this.reservedCells += cells;
+        this.reservedText += characters;
+    }
+    cell(value, reservedCharacters) {
+        if (reservedCharacters !== undefined) {
+            this.reservedCells--;
+            this.reservedText -= reservedCharacters;
+        }
+        this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
-        this.check("maxTextCharacters", this.text + length);
+        this.check("maxTextCharacters", this.text + this.reservedText + length);
         this.cells++;
         this.text += length;
     }
@@ -1059,7 +1071,7 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("acfca472139fea47fa71fbe6f4fb1e0bce61b7bd6a444ee37354f1e7b5063c57", _exports);
+_modules.set("093938b870adda1bced414321db89fa02b2e3acbc6d6f5b2baf80dfca8fe9978", _exports);
 return _exports;
 })();
 
@@ -1436,7 +1448,7 @@ _modules.set("3a52be0afe7a83ec31dc316780152dcfd02a543b759a9cdbe3d8e24ea3a12aee",
 return _exports;
 })();
 
-const _m20 = _modules.get("36cea7dd99debd57beba4838cc9e5b7c40d54b781d77ecbd527fb8f9683f7175") ?? (() => {
+const _m20 = _modules.get("918a85cba3cb37398ba97de79ee62b665216c2235f329f9f8589d1841b5b4b88") ?? (() => {
 const { ExportCell } = _m5;
 
 const { Cell, cellText, columnName } = _m16;
@@ -1447,9 +1459,11 @@ const { escapeOoxmlAttribute } = _m8;
 class ComputedTotal {
     value;
     formula;
-    constructor(value, formula) {
+    operation;
+    constructor(value, formula, operation) {
         this.value = value;
         this.formula = formula;
+        this.operation = operation;
     }
 }
 /** @internal Bounded report layout and incremental numeric aggregates. */
@@ -1510,7 +1524,7 @@ class ReportLayout {
             if (!["sum", "count", "average", "min", "max"].includes(operation))
                 throw new TypeError("Invalid total operation.");
         }
-        this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, min: Infinity, max: -Infinity }));
+        this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, mean: 0, min: Infinity, max: -Infinity }));
         if (options.print)
             validatePrint(options.print, policy);
     }
@@ -1531,19 +1545,27 @@ class ReportLayout {
         if (!total.operation || typeof value !== "number" || !Number.isFinite(value))
             return;
         total.count++;
-        total.sum += value;
-        total.min = Math.min(total.min, value);
-        total.max = Math.max(total.max, value);
-        if (!Number.isFinite(total.sum))
-            throw new RangeError("Numeric total exceeds finite number range.");
+        if (total.operation === "sum") {
+            total.sum += value;
+            if (!Number.isFinite(total.sum))
+                throw new RangeError("Numeric total exceeds finite number range.");
+        }
+        else if (total.operation === "average") {
+            const delta = value - total.mean;
+            total.mean = total.count === 1 ? value : Number.isFinite(delta) ? total.mean + delta / total.count : total.mean * ((total.count - 1) / total.count) + value / total.count;
+        }
+        else if (total.operation === "min")
+            total.min = Math.min(total.min, value);
+        else if (total.operation === "max")
+            total.max = Math.max(total.max, value);
     }
     footer(rows) {
         return this.columns.map((_, i) => {
             const total = this.aggregates[i], operation = total.operation;
             if (!operation)
                 return this.options.footer?.values?.[i];
-            const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.sum / total.count : operation === "min" ? total.min : total.max;
-            return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows));
+            const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.mean : operation === "min" ? total.min : total.max;
+            return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows), operation);
         });
     }
 }
@@ -1586,11 +1608,11 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("36cea7dd99debd57beba4838cc9e5b7c40d54b781d77ecbd527fb8f9683f7175", _exports);
+_modules.set("918a85cba3cb37398ba97de79ee62b665216c2235f329f9f8589d1841b5b4b88", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("9a43549070f1d19270ab2a537cd66e454df298b14155d79d0f603ef9267e0938") ?? (() => {
+const _m17 = _modules.get("a5f40eee73e7b9b535caa550570e753c1e9631c051e2a6f093ee222200c7e16b") ?? (() => {
 const { checkAbort, inputRows } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -1622,11 +1644,13 @@ class Worksheet {
     book;
     name;
     table;
+    preserved;
     columns;
     declared;
     options;
     entry;
     completion;
+    prepared;
     buffer;
     output = new BlobByteSink();
     started = false;
@@ -1638,13 +1662,15 @@ class Worksheet {
     layout;
     pending = [];
     pendingCharacters = 0;
+    reservedLayout = false;
     internalLinks = [];
     links = [];
     pictures = [];
-    constructor(book, name, options, table) {
+    constructor(book, name, options, table, preserved = false) {
         this.book = book;
         this.name = name;
         this.table = table;
+        this.preserved = preserved;
         this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
         const alternate = options.alternatingRowStyle;
         this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -1664,7 +1690,7 @@ class Worksheet {
         }));
     }
     /** @internal */
-    static create(book, name, options, table) { return new Worksheet(book, name, options, table); }
+    static create(book, name, options, table, preserved = false) { return new Worksheet(book, name, options, table, preserved); }
     /** @internal Validate before allocating native compressor resources or registering the sheet name. */
     static validate(book, options) {
         for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"])
@@ -1746,7 +1772,7 @@ class Worksheet {
         const type = value instanceof Date ? "date" : typeof value;
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
-        let style = explicitStyle === undefined ? header ? col.headerStyle : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+        let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
         if (!header && !footer) {
             if (explicitStyle === undefined) {
                 const base = style, cached = rowStyles?.get(base);
@@ -1763,7 +1789,6 @@ class Worksheet {
             const patch = context && this.options.cellStyle?.({ ...context, value: value, column: col.column, columnIndex: i + 1 });
             if (patch !== undefined)
                 style = this.book.styles.compose(style, patch);
-            this.layout.accept(i, value);
         }
         if (footer && this.options.footer?.style && explicitStyle === undefined)
             style = this.book.styles.compose(style, this.options.footer.style);
@@ -1776,6 +1801,7 @@ class Worksheet {
                 ...(presentation.wrapText === undefined ? {} : { wrapText: presentation.wrapText }), ...(presentation.alignment === undefined ? {} : { alignment: presentation.alignment }),
                 ...(presentation.numberFormat === undefined ? {} : { numberFormat: presentation.numberFormat })
             });
+        const originalCharacters = typeof value === "string" ? value.length : 0;
         if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
             const cell = col.letter + row;
             if (this.links.some(link => link.cell === cell))
@@ -1785,14 +1811,16 @@ class Worksheet {
             this.internalLinks.push({ cell, location: preserved.location });
             value = preserved.preview;
         }
+        if (type === "date")
+            value = excelDate(value, this.book.settings.dateMode);
+        if (!header && !footer)
+            this.layout.accept(i, value);
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-        this.book.budget.cell(value);
+        this.book.budget.cell(value, this.preserved || header || footer ? originalCharacters : undefined);
         if (total)
             return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
         if (value == null || (type === "number" && !Number.isFinite(value)))
             return prefix + '/>';
-        if (type === "date")
-            value = excelDate(value, this.book.settings.dateMode);
         if (value == null)
             return prefix + '/>';
         if (type === "string")
@@ -1803,8 +1831,7 @@ class Worksheet {
             throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
         return prefix + '><v>' + value + '</v></c>';
     }
-    async writeRow(values, number, header, footer = false) {
-        const buffer = this.buffer;
+    *rowXml(values, number, header, footer = false) {
         const height = header ? this.options.headerHeight : this.options.rowHeight;
         const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
             values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? values[i].value : values[i])) }) : undefined;
@@ -1812,19 +1839,47 @@ class Worksheet {
         if (rowStyle !== undefined)
             validateStylePatch(rowStyle);
         const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map() : undefined;
-        if (buffer.append('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>'))
-            await buffer.flush();
+        yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>';
         for (let i = 0; i < this.columns.length; i++)
-            if (buffer.append(this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer)))
-                await buffer.flush();
-        if (buffer.append('</row>'))
-            await buffer.flush();
+            yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer);
+        yield '</row>';
+    }
+    async writeRow(values, number, header, footer = false) {
+        for (const chunk of this.rowXml(values, number, header, footer))
+            if (this.buffer.append(chunk))
+                await this.buffer.flush();
+    }
+    reserveLayout() {
+        if (this.reservedLayout)
+            return;
+        if (!this.preserved) {
+            let characters = 0;
+            if (this.headerRows) {
+                for (const heading of this.layout.headings)
+                    for (const text of heading)
+                        characters += text.length;
+                for (const column of this.columns)
+                    characters += column.header.length;
+            }
+            if (this.options.footer)
+                for (let i = 0; i < this.columns.length; i++) {
+                    const column = this.columns[i], totals = this.options.footer.totals;
+                    if (totals && Object.prototype.hasOwnProperty.call(totals, column.key ?? column.header))
+                        continue;
+                    const value = this.options.footer.values?.[i], raw = value instanceof ExportCell || value instanceof Cell ? value.value : value;
+                    if (typeof raw === "string")
+                        characters += raw.length;
+                }
+            this.book.budget.reserve(this.columns.length * (this.headerRows + (this.options.footer ? 1 : 0)), characters);
+        }
+        this.reservedLayout = true;
     }
     async start() {
         if (this.started)
             return;
+        this.reserveLayout();
         this.started = true;
-        this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, this.output, this.book.settings.signal);
+        this.entry = this.book.settings.sink ? await this.book.openSheet(this) : new EntryWriter(this.book.settings.compression, { write: bytes => { this.book.retainBufferedBytes(bytes.length); this.output.write(bytes); } }, this.book.settings.signal);
         const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
         const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
         const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
@@ -1846,8 +1901,10 @@ class Worksheet {
                 await this.writeRow(this.layout.headings[i], i + 1, true);
             await this.writeRow(this.columns.map(c => c.header), this.headerRows, true);
         }
-        for (let i = 0; i < this.pending.length; i++)
-            await this.writeRow(this.pending[i], this.headerRows + i + 1, false);
+        for (const row of this.pending)
+            for (const chunk of row)
+                if (buffer.append(chunk))
+                    await buffer.flush();
         this.pending = [];
         this.pendingCharacters = 0;
     }
@@ -1861,6 +1918,7 @@ class Worksheet {
             throw this.error;
         this.busy = true;
         try {
+            this.reserveLayout();
             if (!this.layout.sampleRows)
                 await this.start();
             let checkpoint = performance.now();
@@ -1872,13 +1930,17 @@ class Worksheet {
                     throw new RangeError("Declare columns before adding rows.");
                 const values = rowValues(row, this.columns);
                 if (!this.started) {
+                    if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
+                        throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
+                    const encoded = [];
+                    for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
+                        if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
+                            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                        this.pendingCharacters += chunk.length;
+                        encoded.push(chunk);
+                    }
                     this.layout.sample(values);
-                    const snapshot = values.map(copyValue);
-                    const characters = snapshot.reduce((sum, value) => { const raw = value instanceof Cell || value instanceof ExportCell ? value.value : value; return sum + (typeof raw === "string" ? raw.length : 0) + (value instanceof ExportCell ? value.text?.length ?? 0 : 0); }, 0);
-                    if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000) || this.pendingCharacters + characters > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
-                        throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling buffer limit exceeded; reduce sampleRows or raise its bounded limits.");
-                    this.pending.push(snapshot);
-                    this.pendingCharacters += characters;
+                    this.pending.push(encoded);
                     this.count++;
                     if (this.pending.length >= this.layout.sampleRows)
                         await this.start();
@@ -1974,7 +2036,7 @@ class Worksheet {
             try {
                 for (const link of this.links) {
                     const position = cellPosition(link.cell);
-                    if (position.column > this.columns.length || position.row > this.count + this.headerRows)
+                    if (position.column > this.columns.length || position.row > this.totalRows)
                         throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
                 }
                 await this.start();
@@ -2001,7 +2063,8 @@ class Worksheet {
                 await this.buffer.write('</worksheet>');
                 await this.buffer.close();
                 const info = await this.entry.close();
-                return this.book.settings.sink ? undefined : { ...info, chunks: this.output.takeChunks() };
+                if (!this.book.settings.sink && !this.failed)
+                    this.prepared = { ...info, chunks: this.output.takeChunks() };
             }
             catch (error) {
                 await this.discard(error);
@@ -2010,14 +2073,16 @@ class Worksheet {
         })();
     }
     /** @internal */
-    async discard(error) { this.pending = []; await this.entry?.discard(error); this.output.discard(); }
+    takePrepared() { const prepared = this.prepared; this.prepared = undefined; return prepared; }
+    /** @internal */
+    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; await this.entry?.discard(error); this.output.discard(); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("9a43549070f1d19270ab2a537cd66e454df298b14155d79d0f603ef9267e0938", _exports);
+_modules.set("a5f40eee73e7b9b535caa550570e753c1e9631c051e2a6f093ee222200c7e16b", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("b7a7b2b2586645a24c1eab5c50429c3bd8bb52fe8598455e795c3355a448ceec") ?? (() => {
+const _m21 = _modules.get("4a8398ea0cb0a4f7838951eb0acdc9ef5cd27a519f24b8aee61d98c359c64db5") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m8;
 
 const { cellText, columnName } = _m16;
@@ -2060,11 +2125,11 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("b7a7b2b2586645a24c1eab5c50429c3bd8bb52fe8598455e795c3355a448ceec", _exports);
+_modules.set("4a8398ea0cb0a4f7838951eb0acdc9ef5cd27a519f24b8aee61d98c359c64db5", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("dadfcd1b439fddea46a6da4e489089cc7a26d861f5993e4d6e157081c5e387f8") ?? (() => {
+const _m22 = _modules.get("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { cleanXml } = _m8;
@@ -2074,13 +2139,15 @@ class TextOverflow {
     sheetName;
     maximum;
     policy;
+    reserve;
     entries = [];
     characters = 0;
     rows = 0;
-    constructor(sheetName, maximum, policy) {
+    constructor(sheetName, maximum, policy, reserve) {
         this.sheetName = sheetName;
         this.maximum = maximum;
         this.policy = policy;
+        this.reserve = reserve;
     }
     add(sheet, cell, value) {
         const text = cleanXml(value, this.policy);
@@ -2093,6 +2160,7 @@ class TextOverflow {
         }
         if (this.rows + parts > 1048575)
             throw new OfficeIMOError("RESOURCE_LIMIT", "Text overflow exceeds the worksheet row limit.");
+        this.reserve(parts * 5, text.length + parts * (sheet.length + cell.length), this.rows + parts);
         const first = this.rows + 2;
         this.entries.push({ sheet, cell, text, first, parts });
         this.rows += parts;
@@ -2125,11 +2193,11 @@ function* splitText(text) {
     }
 }
 const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText });
-_modules.set("dadfcd1b439fddea46a6da4e489089cc7a26d861f5993e4d6e157081c5e387f8", _exports);
+_modules.set("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("d404b9e748d7740471e417ec113b23ddaa5551937c5d101bcc42e706e7eb056f") ?? (() => {
+const _m13 = _modules.get("41f478f351c416c8f451937540a4b35b4b3b056858fe221807a9cf5f373a6dc9") ?? (() => {
 const { checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -2173,6 +2241,7 @@ class Workbook {
     overflow;
     links = 0;
     imageBytes = 0;
+    bufferedBytes = 0;
     /** @internal Shared budget across worksheet headers and data. */
     budget;
     /** @internal Immutable settings used by the worksheet owner. */
@@ -2236,7 +2305,8 @@ class Workbook {
             throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
         if (!this.overflow) {
             this.checkSheetLimit(this.sheets.length + 1);
-            this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy);
+            this.budget.reserve(5, "SheetCellPartTextParts".length);
+            this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
         }
         return this.overflow.add(sheet, cell, text);
     }
@@ -2258,6 +2328,8 @@ class Workbook {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
         this.imageBytes += bytes;
     }
+    /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
+    retainBufferedBytes(bytes) { this.budget.check("maxOutputBytes", this.bufferedBytes + bytes); this.bufferedBytes += bytes; }
     /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
     async openSheet(sheet) {
         if (this.activeSheet && this.activeSheet !== sheet) {
@@ -2328,7 +2400,8 @@ class Workbook {
                 const rows = this.sheets.reduce((sum, s) => sum + s.rowCount, 0);
                 for (let i = 0; i < this.sheets.length; i++) {
                     const sheet = this.sheets[i], uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
-                    const prepared = await sheet.finish();
+                    await sheet.finish();
+                    const prepared = sheet.takePrepared();
                     if (prepared)
                         this.package.addPrepared(uri, formatType("worksheet"), prepared);
                     const table = sheet.tableDefinition;
@@ -2353,9 +2426,10 @@ class Workbook {
                     }
                 }
                 if (this.overflow) {
-                    const sheet = Worksheet.create(this, this.overflow.sheetName, { columns: [{ header: "Sheet" }, { header: "Cell" }, { header: "Part" }, { header: "Text", width: 80, wrapText: true }, { header: "Parts" }], freezeHeader: true });
+                    const sheet = Worksheet.create(this, this.overflow.sheetName, { columns: [{ header: "Sheet" }, { header: "Cell" }, { header: "Part" }, { header: "Text", width: 80, wrapText: true }, { header: "Parts" }], freezeHeader: true }, undefined, true);
                     this.sheets.push(sheet);
-                    const prepared = await sheet.finish(this.overflow.values());
+                    await sheet.finish(this.overflow.values());
+                    const prepared = sheet.takePrepared();
                     if (prepared)
                         this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
                     this.overflow.clear();
@@ -2390,18 +2464,18 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("d404b9e748d7740471e417ec113b23ddaa5551937c5d101bcc42e706e7eb056f", _exports);
+_modules.set("41f478f351c416c8f451937540a4b35b4b3b056858fe221807a9cf5f373a6dc9", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("104ba645ad624508acd7223003e869e9d7fdc915653a47cd9e043b2f83018858") ?? (() => {
+const _m12 = _modules.get("1ec4b292cc5a539879b973db52f3f74cdb718b6fbcb6429360806510812b04af") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m13.Workbook, createWorkbook: _m13.createWorkbook, Worksheet: _m17.Worksheet, Cell: _m16.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("104ba645ad624508acd7223003e869e9d7fdc915653a47cd9e043b2f83018858", _exports);
+_modules.set("1ec4b292cc5a539879b973db52f3f74cdb718b6fbcb6429360806510812b04af", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("6bf4181f226b9a60b039f027fd1ff5d55f3bd8e00627633e0f4f781adc2fbf4a") ?? (() => {
+const _m23 = _modules.get("861bedef2f0e4c8919c362bfb3abeb5997d9ee848f1d751a43dbfd3e58e5eaed") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink } = _m3;
@@ -2469,7 +2543,9 @@ async function writeCsvTo(rows, sink, options) {
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
-            const value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            if (value == null && options.nullValue !== undefined)
+                value = options.nullValue;
             budget.cell(value);
             if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
                 await buffer.flush();
@@ -2511,14 +2587,14 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("6bf4181f226b9a60b039f027fd1ff5d55f3bd8e00627633e0f4f781adc2fbf4a", _exports);
+_modules.set("861bedef2f0e4c8919c362bfb3abeb5997d9ee848f1d751a43dbfd3e58e5eaed", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("108c5a7f2fdc4cf8df7c96d01c95dbd86f87ff273ecfa1056847e5179fcf5fa8") ?? (() => {
+const _m0 = _modules.get("d05157c591024cf75dc125d76302636b281387a9aa2a86d8a04f38439bd89e22") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m23, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, createWorkbook: _m12.createWorkbook, writeCsv: _m23.writeCsv, writeCsvTo: _m23.writeCsvTo, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("108c5a7f2fdc4cf8df7c96d01c95dbd86f87ff273ecfa1056847e5179fcf5fa8", _exports);
+_modules.set("d05157c591024cf75dc125d76302636b281387a9aa2a86d8a04f38439bd89e22", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

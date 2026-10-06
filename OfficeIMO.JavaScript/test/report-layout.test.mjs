@@ -5,6 +5,8 @@ import { createHash } from "node:crypto";
 import { createWorkbook, ExportCell, Cell } from "../dist/xlsx/index.js";
 import { writeCsv } from "../dist/csv/index.js";
 import { readZip } from "./zip-reader.mjs";
+import * as standaloneXlsx from "../bundles/officeimo-xlsx.mjs";
+import * as standaloneCsv from "../bundles/officeimo-csv.mjs";
 
 const columns = [
   { header: "Name", key: "name", groups: ["Identity"], width: 24 },
@@ -12,6 +14,10 @@ const columns = [
   { header: "Count", key: "count", groups: ["Metrics", "Money"], type: "number" },
   { header: "Date", key: "date", groups: ["Metrics", "Time"], type: "date", format: "yyyy-mm-dd" }
 ];
+test("standalone module assemblies share resolved cells across independently loaded exports", async () => {
+  const value = new standaloneXlsx.ExportCell(12.5, { text: "12.50 USD" });
+  assert.equal(await (await standaloneCsv.writeCsv([[value]], { columns: [{ header: "Amount" }], valueMode: "display" })).text(), "Amount\r\n12.50 USD\r\n");
+});
 test("resolved presentation preserves typed values and supports explicit CSV raw/display modes", async () => {
   const value = new ExportCell(12.5, { text: "=display", presentation: { background: "FF0000", bold: true } });
   const book = createWorkbook(), sheet = book.addSheet("Values", { columns: [{ header: "Amount", type: "number", format: "0.00" }] });
@@ -69,4 +75,74 @@ test("empty averages stay blank and footer keys do not traverse object prototype
   const zip = await readZip(await book.toBlob()), xml = zip.get("xl/worksheets/sheet1.xml").content;
   assert.match(xml, /<c r="A2"[^>]*t="str"><f>&quot;&quot;<\/f><v><\/v>/); assert.match(xml, /<c r="B2"[^>]*\/>/);
   assert.equal(sheet.rowCount, 0);
+});
+
+test("sampling validates and budgets each row at ingress and calls converters once", async () => {
+  for (const limits of [{ maxCells: 2 }, { maxTextCharacters: 2 }]) {
+    let produced = 0, returned = false;
+    function* source() { try { for (let i = 0; i < 100; i++) { produced++; yield ["a"]; } } finally { returned = true; } }
+    const book = createWorkbook({ limits });
+    await assert.rejects(book.addSheet("Sample", { columns: [{ header: "A" }], autoSize: { sampleRows: 100 } }).addRows(source()), { code: "RESOURCE_LIMIT" });
+    assert.equal(produced, 2); assert.equal(returned, true); await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
+  }
+  const invalid = createWorkbook();
+  await assert.rejects(invalid.addSheet("Invalid", { columns: [{ header: "A" }], autoSize: {} }).addRows([[{}]]), TypeError);
+  let calls = 0;
+  const book = createWorkbook({ cellValueWriters: { custom(value) { calls++; return value + 1; } } });
+  const sheet = book.addSheet("Once", { columns: [{ header: "A", type: "custom" }], autoSize: { sampleRows: 100 }, footer: { totals: { A: "sum" } } });
+  await sheet.addRows([[1], [2]]); await sheet.close(); await sheet.close();
+  const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
+  assert.equal(calls, 2); assert.match(xml, /<c r="A4"[^>]*><f>SUBTOTAL\(109,A2:A3\)<\/f><v>5<\/v>/);
+});
+
+test("preservation, footer and Blob output limits reject while accepting source rows", async () => {
+  for (const limits of [{ maxTextCharacters: 40000 }, { maxCells: 10 }, { maxRows: 1 }]) {
+    const book = createWorkbook({ oversizedText: "preserve", limits });
+    await assert.rejects(book.addSheet("Long", { columns: [{ header: "A" }], autoSize: {} }).addRows([["x".repeat(100000)]]), { code: "RESOURCE_LIMIT" });
+    await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
+  }
+  const footer = createWorkbook({ limits: { maxCells: 2 } });
+  await assert.rejects(footer.addSheet("Footer", { columns: [{ header: "A" }], autoSize: {}, footer: { values: ["End"] } }).addRows([[1]]), { code: "RESOURCE_LIMIT" });
+  let produced = 0, returned = false;
+  function* rows() { try { for (let i = 0; i < 1000; i++) { produced++; yield ["x".repeat(1000)]; } } finally { returned = true; } }
+  const bounded = createWorkbook({ compression: "store", limits: { maxOutputBytes: 10000 } });
+  await assert.rejects(bounded.addSheet("Bounded", { columns: [{ header: "A" }] }).addRows(rows()), { code: "RESOURCE_LIMIT" });
+  assert.ok(produced < 1000); assert.equal(returned, true);
+  await assert.rejects(writeCsv([[null]], { columns: [{ header: "A" }], nullValue: "Unavailable", limits: { maxTextCharacters: 3 } }), { code: "RESOURCE_LIMIT" });
+});
+
+test("footer caches aggregate emitted date serials and numeric counts use General format", async () => {
+  const operations = ["sum", "count", "average", "min", "max"];
+  const book = createWorkbook({ dateMode: "utc" });
+  const sheet = book.addSheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })).concat({ header: "Inferred" }),
+    autoSize: {}, footer: { totals: Object.fromEntries(operations.map(op => [op, op]).concat([["Inferred", "count"]])) } });
+  await sheet.addRows([operations.map(() => new Date("2026-10-06T00:00:00Z")).concat(new ExportCell(new Date("2026-10-06T00:00:00Z"))),
+    operations.map(() => new Date("2026-10-08T00:00:00Z")).concat(new Date("2026-10-08T00:00:00Z")),
+    operations.map(() => new Date(NaN)).concat(null)]);
+  const blob = await book.toBlob(), xml = (await readZip(blob)).get("xl/worksheets/sheet1.xml").content;
+  const serial = Number(xml.match(/<c r="A2"[^>]*><v>([^<]+)<\/v>/)[1]);
+  const expected = [serial * 2 + 2, 2, serial + 1, serial, serial + 2, 2];
+  for (let i = 0; i < expected.length; i++) assert.equal(Number(xml.match(new RegExp('<c r="' + String.fromCharCode(65 + i) + '5"[^>]*><f>.*?<\\/f><v>([^<]+)<\\/v>'))[1]), expected[i]);
+  assert.match(xml, /<c r="B5" s="0">/); assert.match(xml, /<c r="F5" s="0">/);
+  if (process.env.OFFICEIMO_REPORT_FIXTURES) await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/dates.xlsx", new Uint8Array(await blob.arrayBuffer()));
+});
+
+test("count, min, max and average do not require a finite sum", async () => {
+  const operations = ["count", "min", "max", "average"];
+  const book = createWorkbook(), sheet = book.addSheet("Large", { columns: operations.map(header => ({ header })), footer: { totals: Object.fromEntries(operations.map(op => [op, op])) } });
+  await sheet.addRows([operations.map(() => 1e308), operations.map(() => 1e308)]);
+  const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
+  for (let i = 0; i < operations.length; i++) assert.match(xml, new RegExp('<c r="' + String.fromCharCode(65 + i) + '4"[^>]*><f>.*?<\\/f><v>' + (i ? '1e\\+308' : '2') + '<\\/v>'));
+  const mixed = createWorkbook(); await mixed.addSheet("Mixed", { columns: [{ header: "A" }], footer: { totals: { A: "average" } } }).addRows([[1e308], [-1e308]]);
+  assert.match((await readZip(await mixed.toBlob())).get("xl/worksheets/sheet1.xml").content, /<v>0<\/v>/);
+  const sum = createWorkbook(); await assert.rejects(sum.addSheet("Sum", { columns: [{ header: "A" }], footer: { totals: { A: "sum" } } }).addRows([[1e308], [1e308]]), RangeError);
+});
+
+test("hyperlinks may address explicit footer values but not rows after the footer", async () => {
+  const book = createWorkbook(), sheet = book.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["Details"] } });
+  await sheet.addRows([[1]]); sheet.addHyperlink({ cell: "A3", target: "https://evotec.xyz" });
+  const blob = await book.toBlob(); assert.match((await readZip(blob)).get("xl/worksheets/sheet1.xml").content, /<hyperlink ref="A3" r:id="link1"/);
+  if (process.env.OFFICEIMO_REPORT_FIXTURES) await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/footer-link.xlsx", new Uint8Array(await blob.arrayBuffer()));
+  const invalid = createWorkbook(), other = invalid.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["End"] } });
+  await other.addRows([[1]]); other.addHyperlink({ cell: "A4", target: "https://evotec.xyz" }); await assert.rejects(invalid.toBlob(), RangeError);
 });
