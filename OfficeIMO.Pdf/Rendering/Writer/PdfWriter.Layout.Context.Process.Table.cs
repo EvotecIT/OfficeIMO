@@ -11,6 +11,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;
             LayoutResult.Page? pageBeforeTable = currentPage;
+            StringBuilder? pairedBorders = style.CellBorders?.Values.Any(HasPairedCellBorder) == true ? new StringBuilder() : null;
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 RenderTableFlowBlock(
@@ -22,14 +23,18 @@ internal static partial class PdfWriter {
                     bodyRowOffset: batch.BodyRowOffset,
                     logicalTopBoundary: batch.IsFirst,
                     logicalBottomBoundary: batch.IsLast,
-                    restoreVerticalFlow: false);
+                    restoreVerticalFlow: false,
+                    preparedPairedStyle: pairedBorders == null ? null : PrepareDeferredPairedTableBorders(batch, style),
+                    deferredPairedBorders: pairedBorders);
+                if (!batch.IsLast) y -= GetTableCellSpacing(style);
             }
+            if (pairedBorders != null) sb.Append(pairedBorders);
             if (style.Position != null || !style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = ReferenceEquals(currentPage, pageBeforeTable) ? flowYBeforeTable : GetCurrentFramePageStartY();
             }
         }
 
-        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true) {
+        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true, bool restoreVerticalFlow = true, PdfTableStyle? preparedPairedStyle = null, StringBuilder? deferredPairedBorders = null) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             double flowYBeforeTable = y;
@@ -150,8 +155,8 @@ internal static partial class PdfWriter {
             ValidateTableRowStyleBounds(style, tb.Rows.Count);
             ValidateTableRowSpansWithinRoleBoundaries(tb, cols, headerRowCount, footerStartRowIndex);
 
-            style = PreparePairedTableBorders(tb, style);
-            StringBuilder? pairedBorders = null;
+            style = preparedPairedStyle ?? PreparePairedTableBorders(tb, style);
+            StringBuilder? pairedBorders = deferredPairedBorders;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             TableColumnLayout preparedColumns = ResolveTableColumnLayout(
                 tb,
@@ -245,6 +250,7 @@ internal static partial class PdfWriter {
                 AvoidFloatingTable(verticalPosition, xOrigin, tableWidth, tableContentHeight);
             }
             void NewInitialTablePage() {
+                FlushPairedBorders();
                 QueueColumnBalanceRemainder(tb, blockList, blockIndex);
                 NewPage();
                 ReflowTableForCurrentFrame();
@@ -932,7 +938,7 @@ internal static partial class PdfWriter {
                 DrawTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
             }
 
-            FlushPairedBorders();
+            if (deferredPairedBorders == null) FlushPairedBorders();
             if (style.Position == null) y -= style.SpacingAfter;
             if (restoreVerticalFlow && (!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
