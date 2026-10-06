@@ -31,8 +31,7 @@ Examples should write to a script-local or explicitly configured artifact direct
 
 ```powershell
 $outputRoot = Join-Path $PSScriptRoot 'Output'
-New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
-
+$null = New-Item -ItemType Directory -Path $outputRoot -Force
 $wordPath = Join-Path $outputRoot 'Report.docx'
 $pdfPath = Join-Path $outputRoot 'Report.pdf'
 ```
@@ -43,4 +42,4 @@ This makes cleanup, CI artifact upload, and permissions easier to reason about t
 
 - [Choose a workflow](/docs/pswriteoffice/choosing-a-workflow/)
 - [Browse command families](/docs/pswriteoffice/command-families/)
-- [Open the example gallery](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples)
+- [Open the example gallery](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.6/Examples)

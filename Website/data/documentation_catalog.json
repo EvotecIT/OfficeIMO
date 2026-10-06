@@ -8,8 +8,8 @@
     "benchmarkProjectCount": 35,
     "validationProjectCount": 43,
     "apiReferenceCount": 122,
-    "conceptualPageCount": 97,
-    "conceptualWordCount": 44888
+    "conceptualPageCount": 125,
+    "conceptualWordCount": 53821
   },
   "categories": [
     {
@@ -345,7 +345,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 763,
+      "sourceFileCount": 789,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -501,7 +501,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1074,
+      "sourceFileCount": 1076,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -540,7 +540,7 @@
       "description": "HTML converter for OfficeIMO.Excel - Export Excel workbooks and worksheets to semantic or visual review HTML.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
-      "sourceFileCount": 20,
+      "sourceFileCount": 21,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-html/",

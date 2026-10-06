@@ -18,7 +18,7 @@ This comparison uses the projects' public documentation and the reproducible ben
 
 | Question | PSWriteOffice | ImportExcel | ExcelFast |
 | --- | --- | --- | --- |
-| Primary interface | `OfficeExcel` document DSL and targeted commands | Object pipeline centered on `Import-Excel` and `Export-Excel` | Workbook import/export/edit commands |
+| Primary interface | Object pipeline, workbook objects, document DSL, and targeted commands | Object pipeline centered on `Import-Excel` and `Export-Excel` | Workbook import/export/edit commands |
 | Microsoft Excel required | No | No | No |
 | Platforms stated by project | PowerShell on supported .NET targets | Windows, Linux, and macOS | PowerShell module; confirm the target environment during evaluation |
 | Tables and charts | Yes | Yes | Check the current alpha command surface for the required feature |
@@ -39,7 +39,13 @@ ImportExcel keeps the common case compact:
 $rows | Export-Excel -Path '.\Report.xlsx' -WorksheetName 'Data' -AutoSize
 ```
 
-PSWriteOffice makes the document structure explicit:
+PSWriteOffice also has a compact pipeline for the common case:
+
+```powershell
+$rows | Export-OfficeExcel -Path '.\Report.xlsx' -WorksheetName 'Data' -TableName 'Data'
+```
+
+Move to the document DSL when the workbook structure is part of the job:
 
 ```powershell
 New-OfficeExcel -Path '.\Report.xlsx' {
@@ -86,7 +92,7 @@ pwsh -NoProfile -File .\Benchmarks\Compare-ExcelPerformance.ps1 `
     -Engine PSWriteOffice,ImportExcel,ExcelFast
 ```
 
-See the [benchmark methodology and complete result matrix](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.5/Benchmarks/README.md) before quoting a result.
+See the [benchmark methodology and complete result matrix](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Benchmarks/README.md) before quoting a result.
 
 ## Choose ImportExcel when
 

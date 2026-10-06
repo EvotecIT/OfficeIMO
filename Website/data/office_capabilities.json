@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 66,
-    "operationCount": 1370
+    "packageCount": 67,
+    "operationCount": 1382
   },
   "fidelityStates": [
     {
@@ -2400,19 +2400,49 @@
     {
       "id": "OfficeIMO.Epub",
       "slug": "epub",
-      "capabilityCount": 19,
+      "capabilityCount": 22,
       "formats": [
         "EPUB",
-        "Epub.Native"
+        "Epub.Native",
+        "HTML"
       ],
       "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
       "operations": [
         {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
           "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 2
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
           "states": [
             {
               "id": "Supported",
@@ -2421,26 +2451,9 @@
               "count": 1
             },
             {
-              "id": "Unsupported",
-              "label": "Unsupported",
-              "description": "The operation is not implemented.",
-              "count": 2
-            }
-          ]
-        },
-        {
-          "id": "Edit",
-          "states": [
-            {
               "id": "Rejected",
               "label": "Rejected",
               "description": "The operation deliberately fails to prevent unsafe or misleading output.",
-              "count": 1
-            },
-            {
-              "id": "Unsupported",
-              "label": "Unsupported",
-              "description": "The operation is not implemented.",
               "count": 1
             },
             {
@@ -2459,6 +2472,17 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 4
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
             }
           ]
         },
@@ -2504,6 +2528,12 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 2
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             },
             {
               "id": "NotApplicable",
@@ -3099,8 +3129,9 @@
     {
       "id": "OfficeIMO.IWork",
       "slug": "iwork",
-      "capabilityCount": 5,
+      "capabilityCount": 6,
       "formats": [
+        "IWork.Keynote",
         "IWork.Native"
       ],
       "sourceCatalogs": [
@@ -3110,6 +3141,12 @@
         {
           "id": "Create",
           "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            },
             {
               "id": "Unsupported",
               "label": "Unsupported",
@@ -5415,6 +5452,100 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Workflows",
+      "slug": "workflows",
+      "capabilityCount": 8,
+      "formats": [
+        "Book.Project",
+        "DOCX",
+        "EPUB",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Validate",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         }
