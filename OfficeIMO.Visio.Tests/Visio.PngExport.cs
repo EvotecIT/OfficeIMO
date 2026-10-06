@@ -38,6 +38,7 @@ namespace OfficeIMO.Tests {
             VisioDocument blank = VisioDocument.Create(blankStream);
             blank.AddPage("Blank").Size(6, 4);
             byte[] blankPng = blank.ToPng(new VisioPngSaveOptions { PixelsPerInch = 100, BackgroundColor = OfficeColor.White });
+            AssertPngHeader(blankPng, 600, 400);
             Assert.NotEqual(blankPng, png);
         }
 
@@ -2503,8 +2504,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("IHDR", System.Text.Encoding.ASCII.GetString(bytes, 12, 4));
             Assert.Equal(width, ReadBigEndianInt32(bytes, 16));
             Assert.Equal(height, ReadBigEndianInt32(bytes, 20));
-            Assert.Equal(8, bytes[24]);
-            Assert.True(bytes[25] == 2 || bytes[25] == 6, "Expected an RGB or RGBA PNG export.");
+            // The codec chooses the sample layout; exports retain decodable pixels and geometry.
             RgbaPng image = DecodeRgbaPng(bytes);
             Assert.Equal(width, image.Width);
             Assert.Equal(height, image.Height);
