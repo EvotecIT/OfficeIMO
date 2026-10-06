@@ -24,7 +24,7 @@ internal static partial class PdfPageEditor {
             objects,
             document.UncheckedMetadata,
             orderedObjectNumbers,
-            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
+            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document),
             fileVersion: fileVersion);
     }
 

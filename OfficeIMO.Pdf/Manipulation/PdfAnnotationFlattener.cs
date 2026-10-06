@@ -59,7 +59,9 @@ internal static partial class PdfAnnotationFlattener {
             return pdf.ToArray();
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, read.UncheckedMetadata, out objectNumberMap);
+        return RewriteAllObjects(objects, catalogObjectNumber, read.UncheckedMetadata, out objectNumberMap,
+            PdfSourceEncryptionContext.Create(read), PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf)),
+            pdf, readOptions, generatedGrowth);
     }
 
     private static void ValidateFlattenOptions(PdfAnnotationFlattenOptions? options) {
