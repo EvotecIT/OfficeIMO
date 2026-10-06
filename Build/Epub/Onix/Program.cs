@@ -23,6 +23,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
+    (Name: "discoverability", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discount-coded", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "discounted", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "taxed", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -33,10 +34,15 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     var project = BookProject.Create("Publishing & metadata — " + profile.Name, profile.Language);
     project.Publication.Identifier = "urn:officeimo:fixture:onix:" + profile.Name;
     project.Publication.AddIdentifier("digital-isbn", new EpubIdentifierMetadata { Value = "978-0-306-40615-7", Kind = EpubIdentifierKind.Isbn13 });
+    if (profile.Name == "discoverability") project.Publication.AddTitle("selected-title", new() {
+        Text = "Selected catalog title", Kind = EpubTitleKind.Main
+    });
     BookOnixCommercialMetadata commercial = CommercialFixtures.Create(profile.Name);
     var options = new BookOnixExportOptions {
         SenderName = "Example Press", PublisherName = "Example Press", RecordReference = "fixture-" + profile.Name,
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
+        TitleId = profile.Name == "discoverability" ? "selected-title" : null,
+        Subjects = profile.Name == "discoverability" ? SubjectFixtures.Create() : [],
         Subtitle = "Explicit publishing assertions", PublicationDate = new DateOnly(2026, 10, 5),
         NoContributors = profile.Name == "early",
         Contributors = profile.Name == "early" ? [] : [

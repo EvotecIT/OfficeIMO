@@ -196,8 +196,8 @@ on the same runtime. The API returns bytes and does not write destination files.
 ## ONIX bibliographic export
 
 `ExportOnix` creates one ONIX 3.1 reference-tag product record for a single EPUB
-digital download. It takes the primary title and an explicitly selected ISBN-13
-from the exported package. Supply the message identity, notification intent,
+digital download. It takes a selected title (the first by default) and an explicitly
+selected ISBN-13 from the exported package. Supply the message identity, notification intent,
 language, publisher and credits explicitly:
 
 ```csharp
@@ -445,6 +445,45 @@ change project metadata or history. Text fields are limited to 4,096 characters,
 the inspected OPF to 4 MiB and ONIX XML to 1 MiB. EPUB writer limits and signature
 policy can be supplied separately through `epubOptions`. Project instances, input
 credit/commercial lists and schema sets must not be mutated concurrently with export.
+
+### Title selection and subjects
+
+`TitleId` selects a `dc:title` by its OPF identifier from the exact exported EPUB.
+Omitting it retains the first-title default. Missing identifiers are rejected;
+selection does not change EPUB metadata. `Subtitle` remains an explicit assertion.
+
+Declare discoverability metadata in `Subjects`:
+
+```csharp
+var options = existingOptions with {
+    TitleId = "catalog-title",
+    Subjects = [
+        new() { Scheme = BookOnixSubjectScheme.Bisac, Code = "JUV000000", IsMain = true },
+        new() { Scheme = BookOnixSubjectScheme.Thema, Code = "YFB", IsMain = true,
+            SchemeVersion = "1.5",
+            Headings = [new("Children's fiction", "eng"), new("Literatura dziecięca", "pol")] },
+        new() { Scheme = BookOnixSubjectScheme.Keywords,
+            Headings = [new("stories; adventure", "eng")] }
+    ]
+};
+```
+
+The supported [ONIX list 27](https://ns.editeur.org/onix/en/27) schemes are Dewey,
+Library of Congress classification and headings, BISAC, keywords, named proprietary
+schemes, Thema categories and its six qualifier schemes. Each declaration needs a
+code or heading; keywords use heading text only. Use semicolon-separated keywords
+in one heading per language. Proprietary schemes require `SchemeName`; standard
+schemes omit it. Optional versions are preserved verbatim.
+
+Export accepts up to 64 subjects with 16 headings each. A subject cannot repeat a
+heading language, including unspecified language. Heading language codes use ONIX
+list 74 rather than EPUB BCP 47 tags. At most one subject per scheme (and name for
+proprietary schemes) can be main; keywords and Thema qualifiers cannot be main.
+Text fields use the existing 4096-character bound and the total XML limit still
+applies. Subject authority strings in the EPUB are not automatically mapped. Schema
+validation checks ONIX structure and list values, not membership of individual
+subject codes, supplied scheme versions, classification suitability or discoverability
+in a recipient's catalog.
 
 ### Multi-product ONIX messages
 

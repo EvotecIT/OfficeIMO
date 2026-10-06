@@ -32,7 +32,7 @@ public sealed record BookOnixContributor(string Name, BookOnixContributorRole Ro
 
 /// <summary>
 /// Publisher-supplied assertions for a single-product ONIX 3.1 bibliographic record.
-/// Only the primary title and selected ISBN are taken from the EPUB. Other EPUB metadata is not projected.
+/// Only the selected title (the first by default) and selected ISBN are taken from the EPUB. Other EPUB metadata is not projected.
 /// Commercial metadata is explicit and optional. This profile does not perform retailer submission.
 /// </summary>
 public sealed record BookOnixExportOptions {
@@ -46,6 +46,8 @@ public sealed record BookOnixExportOptions {
     public required BookOnixNotification Notification { get; init; }
     /// <summary>OPF id of the dc:identifier containing this digital edition's ISBN-13.</summary>
     public required string IdentifierId { get; init; }
+    /// <summary>Optional OPF id of the title to export. When omitted, exports the first dc:title as before.</summary>
+    public string? TitleId { get; init; }
     /// <summary>ONIX list 74 language code, such as eng, pol or fre. The supplied schema checks membership.</summary>
     public required string LanguageCode { get; init; }
     /// <summary>Publisher of this edition; not inferred from arbitrary Dublin Core dates or rights statements.</summary>
@@ -58,6 +60,8 @@ public sealed record BookOnixExportOptions {
     public IReadOnlyList<BookOnixContributor> Contributors { get; init; } = [];
     /// <summary>Explicit assertion that the product has no credited contributors. Missing EPUB credits do not imply this.</summary>
     public bool NoContributors { get; init; }
+    /// <summary>At most 64 explicit subject declarations; free-form EPUB subject authorities are not mapped automatically.</summary>
+    public IReadOnlyList<BookOnixSubject> Subjects { get; init; } = [];
     /// <summary>Optional explicit publishing status, territorial rights, supplier availability and pricing.</summary>
     public BookOnixCommercialMetadata? Commercial { get; init; }
     /// <summary>Optional explicit accessibility assertions; never inferred from EPUB metadata or automated checks.</summary>

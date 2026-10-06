@@ -33,9 +33,8 @@ public sealed partial class BookProject {
         RequireOnixText(options.RecordReference, nameof(options.RecordReference));
         RequireOnixText(options.IdentifierId, nameof(options.IdentifierId));
         RequireOnixText(options.PublisherName, nameof(options.PublisherName));
-        RequireOnixText(options.LanguageCode, nameof(options.LanguageCode));
-        if (options.LanguageCode.Length != 3 || options.LanguageCode.Any(c => c < 'a' || c > 'z'))
-            throw new ArgumentException("Supply a three-letter ONIX list 74 language code.", nameof(options.LanguageCode));
+        RequireOnixLanguageCode(options.LanguageCode, nameof(options.LanguageCode));
+        if (options.TitleId != null) RequireOnixText(options.TitleId, nameof(options.TitleId));
         if (options.Subtitle != null) RequireOnixText(options.Subtitle, nameof(options.Subtitle));
         ArgumentNullException.ThrowIfNull(options.Contributors);
         if (options.Contributors.Count > 100 || options.NoContributors == (options.Contributors.Count != 0))
@@ -60,6 +59,7 @@ public sealed partial class BookProject {
 
         OnixCommercialParts commercial = BuildOnixCommercial(options.Commercial, options.PublicationDate, cancellationToken);
         IReadOnlyList<XElement> accessibility = BuildOnixAccessibility(options.Accessibility, cancellationToken);
+        IReadOnlyList<XElement> subjects = BuildOnixSubjects(options.Subjects, cancellationToken);
         EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;
@@ -74,7 +74,10 @@ public sealed partial class BookProject {
         }
         XNamespace opf = "http://www.idpf.org/2007/opf", dc = "http://purl.org/dc/elements/1.1/";
         XElement metadataElement = package.Root!.Element(opf + "metadata")!;
-        string title = metadataElement.Elements(dc + "title").First().Value;
+        XElement titleRecord = options.TitleId == null ? metadataElement.Elements(dc + "title").First() :
+            metadataElement.Elements(dc + "title").SingleOrDefault(e => (string?)e.Attribute("id") == options.TitleId)
+                ?? throw new ArgumentException("The selected title does not exist in the exported package.", nameof(options.TitleId));
+        string title = titleRecord.Value;
         RequireOnixText(title, "title");
         XElement identifier = metadataElement.Elements(dc + "identifier").SingleOrDefault(e => (string?)e.Attribute("id") == options.IdentifierId)
             ?? throw new ArgumentException("The selected ISBN identifier does not exist in the exported package.", nameof(options.IdentifierId));
@@ -92,6 +95,7 @@ public sealed partial class BookProject {
         else descriptive.Add(contributorElements);
         descriptive.Add(new XElement(onix + "Language", new XElement(onix + "LanguageRole", "01"),
             new XElement(onix + "LanguageCode", options.LanguageCode)));
+        descriptive.Add(subjects);
         var publishing = new XElement(onix + "PublishingDetail", new XElement(onix + "Publisher",
             new XElement(onix + "PublishingRole", "01"), new XElement(onix + "PublisherName", options.PublisherName)));
         if (commercial.Status != null) publishing.Add(commercial.Status);
