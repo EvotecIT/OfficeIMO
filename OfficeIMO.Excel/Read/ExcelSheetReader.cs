@@ -89,17 +89,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        // Native tabular readers retain the opened package snapshot. A worksheet
-        // that is too large to index can still use the existing XML projection.
+        // Both native and SDK readers can retain the opened package snapshot. Use
+        // its length-checked stream when an indexed worksheet needs XML projection.
         private Stream OpenDataReaderWorksheetStream(CancellationToken ct) {
             ct.ThrowIfCancellationRequested();
+            if (_partBufferReader != null) {
+                return _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct);
+            }
             if (_hasSdkWorksheetPart) {
                 return _wsPart.GetStream(FileMode.Open, FileAccess.Read);
-            }
-            if (_partBufferReader != null
-                && _partBufferReader.TryGetLength(_worksheetPartName, out long length)
-                && length >= 0 && length <= int.MaxValue) {
-                return _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct);
             }
             RequireSdkWorksheetPart();
             throw new InvalidOperationException("No worksheet stream is available.");

@@ -50,10 +50,13 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    public void DataReader_RejectsWorksheetWithOverstatedPackageLength(bool declaredDimension, bool prefetch) {
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, true)]
+    public void DataReader_RejectsWorksheetWithOverstatedPackageLength(bool declaredDimension, bool prefetch, bool sdkReader) {
         string path = CreateCompactFastPathWorkbook();
         try {
             string dimension = declaredDimension ? "<dimension ref=\"A1:B500002\"/>" : "";
@@ -68,11 +71,23 @@ public partial class Excel {
             File.WriteAllBytes(path, bytes);
 
             Exception? error = Record.Exception(() => {
-                using var reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { EnableWorksheetPrefetch = prefetch });
+                var options = new ExcelReadOptions { EnableWorksheetPrefetch = prefetch };
+                if (sdkReader) {
+                    using var document = ExcelDocumentReader.Open(path, options);
+                    using var reader = document.GetSheet("Data").ReadUsedRangeAsDataReader();
+                    while (reader.Read()) { }
+                } else {
+                    using var reader = ExcelDocument.OpenDataReader(path, options);
+                }
             });
-            Assert.True(error is InvalidDataException or EndOfStreamException,
-                error?.ToString() ?? "The corrupt worksheet exposed a data reader.");
+            bool rejected = error is InvalidDataException or EndOfStreamException;
+#if NETFRAMEWORK
+            // Framework packaging rejects the inconsistent ZIP headers before
+            // the worksheet reader can inspect the part stream.
+            rejected |= sdkReader && error is FileFormatException;
+#endif
+            Assert.True(rejected,
+                error?.ToString() ?? $"The corrupt worksheet exposed a {(sdkReader ? "SDK" : "native")} data reader.");
         } finally {
             File.Delete(path);
         }
