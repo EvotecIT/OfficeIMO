@@ -12,6 +12,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<FlexItem> items,
         ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments,
         bool registerOutOfFlowElements) {
+        if (IsClosedDisclosureChild(node)) return true;
         if (node is IText text) {
             if (string.IsNullOrWhiteSpace(text.Data)) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";

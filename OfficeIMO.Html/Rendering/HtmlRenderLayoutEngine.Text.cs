@@ -176,6 +176,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
+        if (IsClosedDisclosureChild(node)) return;
         if (depth > _options.MaxLayoutDepth) {
             if (node is IElement limitedElement) EnsureDepth(depth, limitedElement);
             throw new InvalidOperationException("HTML inline layout exceeded the configured maximum depth.");

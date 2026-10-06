@@ -42,6 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             CheckCancellation();
+            if (IsClosedDisclosureChild(node)) continue;
             if (seekingContinuation) {
                 if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
                 seekingContinuation = false;
@@ -752,7 +753,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static bool ShouldSkipElement(IElement element) {
+    private bool ShouldSkipElement(IElement element) {
+        if (IsClosedDisclosureChild(element)) return true;
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "input" && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) return true;
         return tag == "head" || tag == "style" || tag == "script" || tag == "template" || tag == "noscript" || tag == "meta" || tag == "link" || tag == "title" || tag == "base";

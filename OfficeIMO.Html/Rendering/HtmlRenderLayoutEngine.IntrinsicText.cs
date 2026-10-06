@@ -235,6 +235,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
+            if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
                 if (text.Data.Length > 0) result.Add(new IntrinsicTextRun(text.Data, parentStyle));
                 continue;

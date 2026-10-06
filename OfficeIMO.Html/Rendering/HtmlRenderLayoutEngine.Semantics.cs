@@ -345,7 +345,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private string ResolveVisibleBookmarkText(IElement element) => ResolveVisibleBookmarkText(element, out _);
 
     private string ResolveVisibleBookmarkText(IElement element, out bool rootVisible) {
-        if (ShouldSkipElement(element)
+        if (IsInsideClosedDisclosure(element) || ShouldSkipElement(element)
             || !TryResolveBookmarkTextState(element, inheritedVisibility: true, out bool visible, out bool prunesSubtree)
             || prunesSubtree) {
             rootVisible = false;
@@ -357,6 +357,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private IEnumerable<string> EnumerateVisibleBookmarkText(IEnumerable<INode> nodes, bool inheritedVisibility) {
         foreach (INode node in nodes) {
+            if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
                 if (inheritedVisibility) yield return text.Data;
                 continue;
