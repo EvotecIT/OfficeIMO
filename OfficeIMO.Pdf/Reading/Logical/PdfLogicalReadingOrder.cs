@@ -549,6 +549,8 @@ public static partial class PdfLogicalReadingOrderAnalysis {
         return result;
 
         void AddText(PdfLogicalReadingOrderKind kind, int sourceIndex, IReadOnlyList<PdfLogicalTextBlock> lines) {
+            // Semantic text projections can retain source lines already consumed by a table.
+            if (lines.Count > 0 && lines.All(static line => line.IsTableContent)) return;
             if (lines.Count == 0) { AddMissing(kind, sourceIndex, -1); return; }
             PdfLogicalVisualBounds[] directBounds = lines.Select(static line => line.VisualBounds).Where(static bounds => bounds is not null).Cast<PdfLogicalVisualBounds>().ToArray();
             if (directBounds.Length == lines.Count) {

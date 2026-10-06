@@ -26,8 +26,6 @@ internal static partial class PdfOcr {
             : PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
         int[] selectedPages = effectiveOptions.GetSelectedPages(readDocument.Pages.Count);
 
-        PdfTextLayoutOptions layoutOptions = semanticOptions.LayoutOptions;
-        PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(semanticOptions.Pipeline);
         PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(
             readDocument,
             semanticOptions,
@@ -36,6 +34,18 @@ internal static partial class PdfOcr {
         IReadOnlyList<PdfOcrPageMergeResult> mergedPages = await RecognizePagesAsync(
             readDocument, overlapReadDocument, logical, selectedPages,
             engineExecution, effectiveOptions, cancellationToken).ConfigureAwait(false);
+        return BuildMergedResult(readDocument, logical, pageAnalyses, mergedPages, effectiveOptions, cancellationToken);
+    }
+
+    private static PdfOcrMergeResult BuildMergedResult(
+        PdfReadDocument readDocument,
+        PdfDocumentReadResult logical,
+        IReadOnlyList<PdfUnderstandingPageResult> pageAnalyses,
+        IReadOnlyList<PdfOcrPageMergeResult> mergedPages,
+        PdfOcrMergeOptions effectiveOptions,
+        CancellationToken cancellationToken) {
+        PdfTextLayoutOptions layoutOptions = effectiveOptions.ReadOptions.LayoutOptions;
+        PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(effectiveOptions.ReadOptions.Pipeline);
         PdfDocumentReadResult enriched = PdfOcrLogicalDocumentBuilder.Build(
             readDocument,
             logical,

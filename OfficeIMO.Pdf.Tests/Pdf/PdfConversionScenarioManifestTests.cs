@@ -1753,8 +1753,8 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(256, info.Security.EncryptionLengthBits);
         Assert.Contains("Credential protected marker", text, StringComparison.Ordinal);
         Assert.Contains("Credential protected marker", opened.Reader.Text(), StringComparison.Ordinal);
-        Assert.False(PdfCore.PdfInspector.Probe(extractedPage).HasEncryption);
-        Assert.Contains("Extracted page marker", PdfCore.PdfTextExtractor.ExtractAllText(extractedPage), StringComparison.Ordinal);
+        Assert.True(PdfCore.PdfInspector.Probe(extractedPage).HasEncryption);
+        Assert.Contains("Extracted page marker", PdfCore.PdfTextExtractor.ExtractAllText(extractedPage, (PdfCore.PdfTextLayoutOptions?)null, readOptions), StringComparison.Ordinal);
         Assert.Contains(readablePreflight.RewriteBlockers, blocker => blocker.Kind == PdfCore.PdfRewriteBlockerKind.Encryption);
 
         var summary = new {
@@ -1776,7 +1776,7 @@ public sealed class PdfConversionScenarioManifestTests {
                 hasEncryption = PdfCore.PdfInspector.Probe(extractedPage).HasEncryption,
                 byteLength = extractedPage.Length
             },
-            acceptedLimit = "OfficeIMO.Pdf supports Standard security password read/decrypt and password-backed page extraction; encrypted rewrite and form mutation still fail closed."
+            acceptedLimit = "OfficeIMO.Pdf supports Standard security password read/decrypt and password-backed page extraction with retained encryption; unsupported rewrites remain blocked."
         };
 
         WriteReviewArtifact("pdf-standard-security-roundtrip.pdf", encrypted);
