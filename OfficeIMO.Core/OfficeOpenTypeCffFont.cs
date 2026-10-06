@@ -8,7 +8,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>First-party managed CFF1/CFF2 measurement and outline program.</summary>
-internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram {
+internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeMathFontProgram, IOfficeMathGlyphProgram {
     private readonly byte[] _data;
     private readonly OfficeOpenTypeReader _reader;
     private readonly OfficeCffFontData _cff;
@@ -40,6 +40,11 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         _descender = checked(reader.Descender + (mvar?.HorizontalDescenderDelta ?? 0));
         _lineGap = checked(reader.LineGap + (mvar?.HorizontalLineGapDelta ?? 0));
         _fingerprint = ComputeFingerprint(data, variations.Identity);
+        MathConstants = !IsVariable && reader.TryGetTable("MATH", out int mathOffset, out int mathLength)
+            ? OfficeOpenTypeMathConstants.TryRead(data, mathOffset, mathLength, reader.UnitsPerEm)
+            : null;
+        MathGlyphData = !IsVariable && reader.TryGetTable("MATH", out int glyphMathOffset, out int glyphMathLength)
+            ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, glyphMathLength, reader.GlyphCount) : null;
     }
 
     internal static OfficeOpenTypeCffFont? TryLoad(
@@ -64,6 +69,8 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     }
 
     public string Fingerprint => _fingerprint;
+    public OfficeMathFontConstants? MathConstants { get; }
+    public OfficeMathGlyphData? MathGlyphData { get; }
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variations.DesignCoordinates;
     public string? DisplayName => _reader.ReadDisplayName();

@@ -31,7 +31,7 @@ public sealed partial class OfficeRasterCanvas {
         string value = text;
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
         double size = ResolveRasterTextSize(fontSize, height, textAdvanceWidth.HasValue);
-        double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
+        double availableWidth = Math.Max(retainOverflow ? .01D : 1D, retainOverflow ? width : width - 6D);
         double measured = MeasurePositionedText(value, size, fontFamily, style, featureSettings, textDirection);
         if (!retainOverflow) {
             while (measured > availableWidth && value.Length > 0) {
