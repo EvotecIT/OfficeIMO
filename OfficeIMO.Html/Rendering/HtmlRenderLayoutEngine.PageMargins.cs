@@ -40,25 +40,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string text = box.Content.Render(page.PageNumber, pages.Count, page.RunningStrings);
                 double lineHeight = Math.Max(1D, box.Font.Size * _options.DefaultLineHeight);
                 if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, lineHeight, out _, out _, out double availableWidth, out _)) continue;
-                var textStyle = new HtmlRenderBoxStyle {
-                    Font = box.Font,
-                    FontDescriptor = OfficeFontFaceDescriptor.FromStyle(box.Font.Style),
-                    Color = box.Color,
-                    Alignment = box.Alignment,
-                    LineHeight = lineHeight,
-                    SemanticRole = "page-margin"
+                // Retain the generated text and alignment in the public scene,
+                // reserving enough height for its measured wrapped lines.
+                IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(text, box.Font.Size, availableWidth,
+                    (value, _) => {
+                        ChargeLayoutOperations(value?.Length ?? 0, marginBoxSource + " text measurement");
+                        return MeasureText(value ?? string.Empty, box.Font);
+                    });
+                double textHeight = Math.Max(lineHeight, lines.Count * lineHeight);
+                if (!TryGetMarginBoxBounds(page, box.Position, textHeight, out double x, out double y, out double width, out double height)) continue;
+                IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
+                    new HtmlRenderText(text, x, y, width, textHeight, box.Font, box.Color, box.Alignment,
+                        lineHeight, _paintOrder++, source: marginBoxSource, semanticRole: "page-margin")
                 };
-                // Use the body text formatter so margin text has the same line
-                // breaking, scoped font fallback and measurement/paint widths.
-                HtmlInlineLayout inline = LayoutInlineRuns(
-                    ApplyScopedFontFallbacks(new[] { new HtmlInlineRun(text, textStyle, null, marginBoxSource) }),
-                    availableWidth,
-                    textStyle);
-                if (!TryGetMarginBoxBounds(page, box.Position, inline.Height, out double x, out double y, out double width, out double height)) continue;
-                IReadOnlyList<HtmlRenderVisual> marginVisuals = inline.Visuals
-                    .Select((visual, index) => visual.Translate(x, y, index))
-                    .ToList();
-                if (inline.Height > height + 0.0001D) {
+                if (textHeight > height + 0.0001D) {
                     marginVisuals = new HtmlRenderVisual[] {
                         new HtmlRenderClipGroup(x, y, width, height, false, true, marginVisuals, 0, marginBoxSource)
                     };

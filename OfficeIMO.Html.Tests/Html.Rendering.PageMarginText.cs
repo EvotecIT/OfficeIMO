@@ -18,14 +18,11 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderPage page = Assert.Single(rendered.Pages);
-        HtmlRenderText[] lines = page.Visuals.OfType<HtmlRenderText>()
-            .Where(text => text.SemanticRole == "page-margin").ToArray();
-        Assert.True(lines.Length >= 2);
-        Assert.Equal("ReportCreatedToday", string.Concat(lines.Select(line => line.Text)).Replace(" ", string.Empty));
-        Assert.All(lines, line => {
-            Assert.InRange(line.X, 0D, page.Width - line.Width);
-            Assert.InRange(line.Y, 0D, page.Height - line.Height);
-        });
+        HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin");
+        Assert.True(margin.Height >= 2D * margin.LineHeight);
+        Assert.Equal("Report Created Today", margin.Text);
+        Assert.InRange(margin.X, 0D, page.Width - margin.Width);
+        Assert.InRange(margin.Y, 0D, page.Height - margin.Height);
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(pdf,
