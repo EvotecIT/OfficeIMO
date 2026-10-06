@@ -1,4 +1,5 @@
 using OfficeIMO.Html.Dom;
+using OfficeIMO.Html.Css;
 using OfficeIMO.Html.Providers;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Excel.Html;
@@ -88,12 +89,20 @@ if (!galleryResult.IsReadOnly || !galleryResult.Diagnostics.IsReadOnly) {
     throw new InvalidOperationException("The packed gallery-result snapshot is not frozen.");
 }
 
-var parsed = AngleSharpHtmlParser.Instance.Parse("<!DOCTYPE odd@name><h1 id='title'>Original</h1>", new HtmlParseOptions());
+var parsed = AngleSharpHtmlParser.Instance.ParseDocument("<!DOCTYPE odd@name><h1 id='title'>Original</h1>", new HtmlParseOptions());
 var changed = parsed.Edit(edit => {
     var title = edit.QuerySelector("#title")!;
     title.TextContent = "Packed edit";
     title.SetAttribute("ID", "updated");
 });
+var cells = AngleSharpHtmlParser.Instance.ParseFragment("<i>A</i><i id='second'>B</i>", changed.QuerySelector("#updated")!, new HtmlParseOptions());
+if (!HtmlCssSelectorParser.Parse("i:nth-child(2)").Selector!.Matches(cells.QuerySelector("#second")!))
+    throw new InvalidOperationException("Packed contextual fragment selector contract failed.");
+const string cssSource = ".card { color: rebeccapurple; --future: {two: 2}; }";
+if (HtmlCssSyntaxParser.ParseStyleSheet(cssSource).ToCss() != cssSource ||
+    !HtmlCssPropertyParser.Parse("color", "rebeccapurple").IsAccepted ||
+    !HtmlCssMathParser.ParseLengthPercentage("calc(24px + 25%)").IsParsed)
+    throw new InvalidOperationException("Packed owned CSS syntax and typed grammar contract failed.");
 var conversion = HtmlConversionDocument.FromDocument(changed);
 if (parsed.QuerySelector("#title")!.TextContent != "Original" || changed.QuerySelector("#updated") == null || !conversion.ToMarkdown().Contains("Packed edit"))
     throw new InvalidOperationException("Packed owned document/edit/Markdown contract failed.");
