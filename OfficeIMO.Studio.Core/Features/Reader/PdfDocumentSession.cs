@@ -62,9 +62,9 @@ internal sealed class PdfDocumentSession {
                         cancellationToken.ThrowIfCancellationRequested();
                         var bounds = occurrence.VisualBounds;
                         matches.Add(new PdfSearchHit(index + 1, occurrence.Text) {
-                            Bounds = new Avalonia.Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                            Bounds = new StudioRectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
                             LineBounds = occurrence.VisualLineBounds
-                                .Select(static line => new Avalonia.Rect(line.Left, line.Top, line.Width, line.Height))
+                                .Select(static line => new StudioRectangle(line.Left, line.Top, line.Width, line.Height))
                                 .ToArray(),
                             OccurrenceNumber = matches.Count + 1
                         });
@@ -90,7 +90,8 @@ internal sealed class PdfDocumentSession {
 
     internal async Task<PdfPageScene> LoadPageSceneAsync(
         int pageNumber,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Func<OfficeIMO.Drawing.OfficeDrawing, IReadOnlyList<string>>? analyzePresentation = null) {
         if (pageNumber <= 0 || pageNumber > Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -109,7 +110,7 @@ internal sealed class PdfDocumentSession {
             IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics =
                 _document.Render.CapabilityDiagnostics(pageNumber);
             IReadOnlyList<string> adapterDiagnostics =
-                OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback(drawing);
+                analyzePresentation?.Invoke(drawing) ?? [];
             cancellationToken.ThrowIfCancellationRequested();
 
             return new PdfPageScene(

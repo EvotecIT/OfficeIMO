@@ -113,6 +113,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter 'Category!=Performance' --logger 'trx;LogFileName=studio-core.trx' --results-directory TestResults/Studio
           dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=studio.trx' --results-directory TestResults/Studio
       - name: Test Store channel availability
         shell: pwsh

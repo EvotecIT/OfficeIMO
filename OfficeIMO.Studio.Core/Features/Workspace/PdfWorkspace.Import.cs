@@ -13,7 +13,7 @@ internal sealed partial class PdfWorkspace {
         int targetCount = Pages.Count;
         string[] sources = paths.Select(ValidateSourcePdfPath).ToArray();
         var captured = new List<PdfImportSource>(sources.Length);
-        long remainingBytes = Infrastructure.StudioStorageAccess.MaximumDocumentBytes;
+        long remainingBytes = Infrastructure.StudioDocumentStorage.MaximumDocumentBytes;
         foreach (string source in sources) {
             token.ThrowIfCancellationRequested();
             if (remainingBytes == 0) throw new IOException("The selected PDFs exceed the 512 MiB import limit. Import fewer documents at a time.");

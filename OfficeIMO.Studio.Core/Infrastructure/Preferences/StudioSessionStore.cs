@@ -7,7 +7,7 @@ namespace OfficeIMO.Studio.Infrastructure.Preferences;
 /// <summary>A bounded restart record. Document edits remain in the PDF recovery store.</summary>
 internal sealed record StudioSessionDocument(string Path, string Fingerprint, StudioDocumentViewState View) {
     public StudioStorageReference? Storage { get; init; }
-    public DateTimeOffset LastUsedAt { get; init; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset LastUsedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 internal sealed record StudioSessionSnapshot(int SchemaVersion, DateTimeOffset UpdatedAt, string? ActivePath,
     IReadOnlyList<StudioSessionDocument> Documents);
@@ -20,7 +20,7 @@ internal sealed class StudioSessionStore(string path) {
     internal StudioSessionSnapshot Load() {
         try {
             if (!File.Exists(_path) || new FileInfo(_path).Length > MaximumBytes) return Empty();
-            var snapshot = JsonSerializer.Deserialize<StudioSessionSnapshot>(File.ReadAllBytes(_path));
+            var snapshot = JsonSerializer.Deserialize(File.ReadAllBytes(_path), StudioSessionJsonContext.Default.StudioSessionSnapshot);
             if (snapshot?.SchemaVersion != 1 || snapshot.Documents is null ||
                 snapshot.UpdatedAt < DateTimeOffset.UtcNow.AddDays(-30) || snapshot.UpdatedAt > DateTimeOffset.UtcNow.AddDays(1)) return Empty();
             return snapshot with { Documents = Normalize(snapshot.Documents) };
@@ -31,7 +31,7 @@ internal sealed class StudioSessionStore(string path) {
 
     internal void Save(StudioSessionSnapshot snapshot) {
         var bounded = snapshot with { SchemaVersion = 1, UpdatedAt = DateTimeOffset.UtcNow, Documents = Normalize(snapshot.Documents) };
-        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(bounded);
+        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(bounded, StudioSessionJsonContext.Default.StudioSessionSnapshot);
         if (bytes.Length > MaximumBytes) throw new IOException("The session record exceeds its storage limit.");
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
         OfficeFileCommit.WriteAllBytes(_path, bytes, OfficeFileCommit.UnixFileAccessPolicy.OwnerOnly);
