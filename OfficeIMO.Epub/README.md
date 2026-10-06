@@ -1024,8 +1024,16 @@ navigation; one anchor cannot target multiple entries.
 
 The [executable fixture](../Build/Epub/Fixtures/BibliographyFixture.cs) exercises
 escaped text, italic titles, title sorting and repeated single-item citations.
-CSL hanging indents, spacing and second-field alignment still require publisher CSS
-derived from the renderer's layout result and independent presentation checks.
+The [layout fixtures](../Build/Epub/Fixtures/BibliographyLayoutFixture.cs) additionally
+apply hanging indents, line/entry spacing and flush/margin second-field alignment
+using publisher CSS derived from `BibliographyLayout`. They provide separate
+per-source links for a passage citing two works and light, dark and large-text
+browser previews. These are illustrative CSS profiles, not automatic styling of
+arbitrary CSL output. Managed image export currently loses the hanging indent,
+ignores character-relative gutter lengths and places floated labels above block
+entries; the [roadmap](../Docs/ROADMAP.md#full-create-read-edit-and-write-products)
+tracks these renderer fixes. Native reader presentation and assistive-technology
+navigation require separate qualification.
 `OfficeIMO.Epub` does not take a runtime dependency on the citation renderer.
 
 ## Indexes

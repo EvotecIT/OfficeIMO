@@ -64,6 +64,7 @@ WriteFixture("manuscript-relationships", ManuscriptRelationshipsFixture.Create()
 WriteFixture("notes-and-pages", NotesAndPagesFixture.Create());
 WriteFixture("glossary", GlossaryFixture.Create());
 WriteFixture("bibliography", BibliographyFixture.Create());
+foreach (string mode in new[] { "hanging", "flush", "margin" }) WriteFixture("bibliography-layout-" + mode, BibliographyLayoutFixture.Create(mode));
 WriteFixture("index", IndexFixture.Create());
 var renamed = IndexFixture.Create();
 renamed.RenameResource("source", "EPUB/revised/part one.xhtml");
@@ -103,6 +104,7 @@ void WriteFixture(string name, EpubPublication publication) {
         ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     }).Bytes;
     File.WriteAllBytes(Path.Combine(outputDirectory, name + ".epub"), bytes);
+    if (name.StartsWith("bibliography-layout-", StringComparison.Ordinal)) BibliographyLayoutFixture.WritePreviews(outputDirectory, name, bytes);
     if (name == "embedded-fonts") EmbeddedFontFixture.WriteEvidence(outputDirectory, bytes);
     evidence.Add(new { fixture = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
         nativePreflight = InspectFixture(publication) });

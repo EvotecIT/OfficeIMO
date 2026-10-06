@@ -374,8 +374,26 @@ two entries formatted and title-sorted by `OfficeIMO.Bibliography`, three citati
 and return links. The bibliography fixture checks that order, escaped title text,
 and italic formatting survive EPUB reopening. Its CSL style is an illustrative
 local style, not a claim of qualification for every publisher's citation style.
-It has no third-party test dependency and
-is outside the normal solution and shipped packages.
+The generator and fixtures have no third-party test dependency and remain
+outside the normal solution and shipped packages.
+
+`bibliography-layout-hanging.epub`, `bibliography-layout-flush.epub` and
+`bibliography-layout-margin.epub` consume the CSL renderer's `BibliographyLayout`
+settings. They exercise double line spacing, one additional line between entries,
+long italic titles, separate links to two sources for one passage, and labelled
+return links. The numeric field uses the renderer's character-count hint with a
+CSS `ch` gutter; it is not a general glyph-width measurement. Margin alignment
+reserves space outside the reference text column, while flush alignment places
+the number inside it.
+
+Each layout fixture has `-light`, `-dark` and `-large` expanded preview directories.
+The `.html` previews add a viewport, language and simulated reader settings, and
+change local anchor suffixes from `.xhtml` to `.html`. Original XHTML and EPUB bytes
+are retained separately. Inspect compact and wide layouts, including 32px text,
+and activate both source links and both return links. Use a fresh loopback origin
+when comparing regenerated previews: deterministic EPUB member timestamps can
+otherwise leave an older stylesheet in a browser cache. Browser previews do not
+qualify native EPUB pagination, reader preferences or assistive technology.
 
 `merge-context-selectors.epub` and its unmerged source exercise map and output
 `name` values that converge during identifier repair. Explicit type selectors keep
