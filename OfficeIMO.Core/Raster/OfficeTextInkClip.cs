@@ -4,13 +4,15 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-// Rectangular clips use their local coordinate space; convex paths use inspection-space half-planes.
+// Rectangles and convex paths use half-planes; other paths retain their fill geometry.
 internal readonly partial struct OfficeTextInkClip {
     private readonly IReadOnlyList<OfficePoint>? _polygon;
     private readonly double _orientation;
+    internal IReadOnlyList<IReadOnlyList<OfficePoint>>? FilledContours { get; }
+    internal OfficeFillRule FillRule { get; }
     internal OfficeTextInkClip(double left, double top, double width, double height,
         bool horizontal, bool vertical, OfficeTransform inverse) {
-        _polygon = null; _orientation = 0D;
+        this = default; _polygon = null; _orientation = 0D;
         Left = left; Top = top; Right = left + width; Bottom = top + height;
         Horizontal = horizontal; Vertical = vertical; Inverse = inverse;
     }
@@ -28,6 +30,7 @@ internal readonly partial struct OfficeTextInkClip {
     internal List<OfficePoint> Apply(List<OfficePoint> points, ref bool clipped, ref long remainingWork,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (FilledContours != null) throw new InvalidOperationException("Filled path clips must be intersected during filled-ink measurement.");
         if (_polygon == null && ((Horizontal && Right <= Left) || (Vertical && Bottom <= Top))) {
             clipped |= points.Count > 0;
             return new List<OfficePoint>();

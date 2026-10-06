@@ -43,8 +43,8 @@ public sealed partial class OfficeRasterCanvas {
                     if (group.ActualText != null) { Unmeasured("Text represented by vector outlines is not inspected as positioned text."); continue; }
                     OfficeTransform frame = group.FrameTransform?.CreateDestinationTransform() ?? OfficeTransform.Identity;
                     OfficeTransform clipPlacement = OfficeTransform.Translate(group.X, group.Y).Then(frame).Then(placement);
-                    if (!OfficeTextInkClip.TryCreateConvexPath(group.ClipPath, clipPlacement, _cancellationToken, out OfficeTextInkClip clip)) {
-                        Unmeasured("Complex, degenerate or over-budget drawing text clips are not inspected."); continue;
+                    if (!OfficeTextInkClip.TryCreatePath(group.ClipPath, clipPlacement, _cancellationToken, out OfficeTextInkClip clip)) {
+                        Unmeasured("Unsupported, non-finite or over-budget drawing text clips are not inspected."); continue;
                     }
                     clips.Add(clip);
                     try {

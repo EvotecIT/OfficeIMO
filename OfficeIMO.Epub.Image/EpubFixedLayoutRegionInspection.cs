@@ -13,8 +13,8 @@ public sealed class EpubFixedLayoutRegionInspection {
     public string ElementId { get; }
     /// <summary>Bounds findings after descendant transforms and authored clips, before region/ancestor transforms.</summary>
     public OfficeDrawingQualityReport Quality { get; }
-    /// <summary>Positioned XHTML text paint bounds at nominal CSS-pixel scale 1, in local coordinates.
-    /// Includes non-zero glyph winding, descendant transforms, rectangular/convex contour clipping and conservative decoration bounds. Unsupported path clips, vector text and
+    /// <summary>Positioned XHTML and embedded vector text paint bounds at nominal CSS-pixel scale 1, in local coordinates.
+    /// Includes non-zero glyph winding, descendant transforms, rectangular and filled path clipping and conservative decoration bounds. Unsupported path clips, vector text layouts and
     /// unavailable outlines are diagnosed as unmeasured; ancestor transforms and clips are excluded.</summary>
     public IReadOnlyList<HtmlDiagnostic> TextInkDiagnostics { get; }
     /// <summary>Whether measured text paint bounds extend outside this region's local border box.</summary>

@@ -87,7 +87,7 @@ Each region also exposes `TextInkDiagnostics` and `HasTextInkOverflow` for posit
 XHTML text in that same local space. A glyph can extend outside its container while
 both the layout box and the page-level ink check still fit. Descendant transforms
 are included; region and ancestor transforms do not change local containment.
-Rectangular and single-convex-contour clips on the region and its descendants constrain the measured contours.
+Rectangular and filled path clips on the region and its descendants constrain the measured contours.
 Ancestor clips do not suppress local ink findings. Regional ink warnings contribute
 to the enclosing report's `HasRenderingWarnings`.
 
@@ -102,7 +102,7 @@ more than 1024 scene clips instead of silently truncating the checks.
 Path-shaped clips, including rounded overflow boxes, produce
 `HtmlRenderClipGeometryNotInspected` warnings. Their precise clipping geometry is
 not covered by the rectangular element check. Text-ink inspection below can still
-measure supported convex paths; these are separate evidence scopes.
+measure supported filled paths; these are separate evidence scopes.
 
 `TextInkDiagnostics` separately compares positioned XHTML and embedded vector text glyph outlines with the
 page canvas, using the shared drawing engine's font fallback, shaping, color-glyph
@@ -112,18 +112,18 @@ pixel scan. Empty space in a text frame is excluded. Transparent text is ignored
 Glyph contours use non-zero winding after supported clipping, so holes and
 cancelled overlaps do not count as filled ink. Complex outlines that exceed the
 bounded filled-geometry analysis produce an unmeasured warning.
-Rectangular and single-convex-contour clips intersect the individual measured contours before their bounds
+Rectangular clips and filled path clips constrain the measured contours before their bounds
 are compared with the page or region. Nested, transformed and single-axis clips
-are supported. Rounded rectangles, ellipses and convex polygons use the shared
+are supported. Concave, self-intersecting and multi-contour paths retain their even-odd or non-zero fill rule. Rounded rectangles, ellipses and polygons use the shared
 Drawing renderer's curve flattening at nominal scale 1, including affine transforms.
 `HtmlRenderClippedTextInkBounds` informational findings identify
 text outline or conservative decoration bounds cropped by a supported clip or embedded drawing viewport;
 review whether the crop is intentional. Automatic page output clipping is excluded; embedded drawing viewports are included because those drawings paint into separate surfaces.
-Concave, self-intersecting, multi-contour, degenerate or over-budget paths and unavailable text outlines produce
+Unsupported open paths, non-finite or over-budget geometry and unavailable text outlines produce
 `HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
 Supported paths are limited to 512 commands and 512 flattened vertices.
 Embedded vector inspection follows positioned text through affine effect groups and
-supported convex drawing clips, with each drawing surface's fonts and viewport.
+supported filled drawing clips, with each drawing surface's fonts and viewport.
 Shape-only drawings do not produce text warnings. Rich/wrapped/vertical text,
 text represented by outline metadata, masks, vector patterns and embedded image
 resources remain explicitly unmeasured; the inspection does not recover text from

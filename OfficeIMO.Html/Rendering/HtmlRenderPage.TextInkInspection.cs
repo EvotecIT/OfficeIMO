@@ -36,11 +36,11 @@ public sealed partial class HtmlRenderPage {
                 } else if (visual is HtmlRenderPathClipGroup path) {
                     if (clips.Count >= 64) throw new NotSupportedException("Text ink inspection exceeds its 64 nested clips limit.");
                     OfficeTransform clipTransform = OfficeTransform.Translate(path.ClipX, path.ClipY).Then(transform);
-                    if (OfficeTextInkClip.TryCreateConvexPath(path.ClipPath, clipTransform, token, out OfficeTextInkClip pathClip)) {
+                    if (OfficeTextInkClip.TryCreatePath(path.ClipPath, clipTransform, token, out OfficeTextInkClip pathClip)) {
                         clips.Add(pathClip);
                         try { Visit(path.Visuals, transform); } finally { clips.RemoveAt(clips.Count - 1); }
                     } else if (ContainsText(path.Visuals)) NotInspected(path,
-                        "Only bounded single-convex-contour text clipping is inspected; this complex, degenerate or over-budget path was not measured.");
+                        "This unsupported, non-finite or over-budget text clip path was not measured.");
                 } else if (visual is HtmlRenderDrawing vector) {
                     OfficeTransform placement = OfficeTransform.Scale(vector.Width / vector.InnerDrawing.Width,
                         vector.Height / vector.InnerDrawing.Height).Then(OfficeTransform.Translate(vector.X, vector.Y)).Then(transform);
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderPage {
             (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped) ink, string? reason) {
             if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(visual, reason ?? "Text outlines were unavailable or exceeded bounded filled-geometry analysis; fallback box estimates cannot establish glyph ink."); return; }
             if (ink.IsClipped) diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", HtmlRenderDiagnosticCodes.ClippedTextInkBounds,
-                "Positioned text outline or conservative decoration bounds are cropped by a rectangular or convex path clip or drawing viewport. The crop may be intentional; pixel visibility is not established.",
+                "Positioned text outline or conservative decoration bounds are cropped by a rectangular or filled path clip or drawing viewport. The crop may be intentional; pixel visibility is not established.",
                 HtmlDiagnosticSeverity.Info, visual.Source));
             if (ink.HasInk && (ink.Left < -.01D || ink.Top < -.01D || ink.Right > width + .01D || ink.Bottom > height + .01D))
                 diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", isRegion ? HtmlRenderDiagnosticCodes.TextInkOutsideRegion : HtmlRenderDiagnosticCodes.TextInkOutsideCanvas,

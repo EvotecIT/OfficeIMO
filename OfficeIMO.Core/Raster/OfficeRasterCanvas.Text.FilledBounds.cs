@@ -10,23 +10,19 @@ public sealed partial class OfficeRasterCanvas {
     // Split at vertices and edge intersections so crossing order is stable in each
     // horizontal slab. Bounds of its filled intervals occur at the slab endpoints.
     // This measures nominal flattened geometry, not raster pixel coverage.
-    internal (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured)
-        MeasureFilledContourBounds(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule) {
+    internal (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
+        MeasureFilledContourBounds(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
+            IReadOnlyList<OfficeTextInkClip>? clips = null) {
         _cancellationToken.ThrowIfCancellationRequested();
         var edges = new List<InkBoundEdge>();
         var boundaries = new List<double>();
-        foreach (var contour in contours) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            if (contour.Count < 3) continue;
-            OfficePoint start = contour[contour.Count - 1];
-            foreach (OfficePoint end in contour) {
-                if (!IsFinite(start.X) || !IsFinite(start.Y) || !IsFinite(end.X) || !IsFinite(end.Y)) return Unmeasured();
-                if (start.Y != end.Y) {
-                    edges.Add(new InkBoundEdge(start, end)); boundaries.Add(start.Y); boundaries.Add(end.Y);
-                    if (edges.Count > 4096) return Unmeasured();
-                }
-                start = end;
-            }
+        var rules = new List<OfficeFillRule> { rule };
+        if (!AddContours(contours, 0)) return Unmeasured();
+        if (clips != null) foreach (OfficeTextInkClip clip in clips) {
+            if (clip.FilledContours == null) continue;
+            if (rules.Count > 64) return Unmeasured();
+            rules.Add(clip.FillRule);
+            if (!AddContours(clip.FilledContours, rules.Count - 1)) return Unmeasured();
         }
         long work = 4_000_000;
         for (int i = 0; i < edges.Count; i++) {
@@ -53,7 +49,8 @@ public sealed partial class OfficeRasterCanvas {
         var crossings = new List<(double X, int Edge)>();
         double left = double.PositiveInfinity, top = double.PositiveInfinity;
         double right = double.NegativeInfinity, bottom = double.NegativeInfinity;
-        bool hasInk = false;
+        bool hasInk = false, isClipped = false;
+        var winding = new int[rules.Count];
         for (int band = 1; band < boundaries.Count; band++) {
             _cancellationToken.ThrowIfCancellationRequested();
             double low = boundaries[band - 1], high = boundaries[band];
@@ -71,11 +68,15 @@ public sealed partial class OfficeRasterCanvas {
                 }
             }
             crossings.Sort((a, b) => a.X.CompareTo(b.X));
-            int winding = 0, index = 0, previousEdge = -1;
+            Array.Clear(winding, 0, winding.Length);
+            int index = 0, previousEdge = -1;
             double previousX = 0D;
             while (index < crossings.Count) {
                 var crossing = crossings[index];
-                bool inside = rule == OfficeFillRule.NonZero ? winding != 0 : (winding & 1) != 0;
+                if ((work -= rules.Count) < 0) return Unmeasured();
+                bool subjectInside = IsInside(0), inside = subjectInside;
+                for (int group = 1; group < rules.Count && inside; group++) inside &= IsInside(group);
+                if (subjectInside && !inside && previousEdge >= 0 && crossing.X > previousX) isClipped = true;
                 if (inside && previousEdge >= 0 && crossing.X > previousX) {
                     InkBoundEdge a = edges[previousEdge], b = edges[crossing.Edge];
                     double x1 = a.XAt(low), x2 = a.XAt(high), x3 = b.XAt(low), x4 = b.XAt(high);
@@ -86,19 +87,38 @@ public sealed partial class OfficeRasterCanvas {
                 }
                 do {
                     InkBoundEdge edge = edges[crossings[index].Edge];
-                    winding += rule == OfficeFillRule.NonZero ? (edge.End.Y > edge.Start.Y ? 1 : -1) : 1;
+                    winding[edge.Group] += rules[edge.Group] == OfficeFillRule.NonZero ? (edge.End.Y > edge.Start.Y ? 1 : -1) : 1;
                     index++;
                 } while (index < crossings.Count && Math.Abs(crossings[index].X - crossing.X) <= ContourCrossingTolerance);
                 previousEdge = crossing.Edge; previousX = crossing.X;
             }
         }
-        return (left, top, right, bottom, hasInk, true);
+        return (left, top, right, bottom, hasInk, true, isClipped);
 
-        static (double, double, double, double, bool, bool) Unmeasured() => (0D, 0D, 0D, 0D, false, false);
+        bool IsInside(int group) => rules[group] == OfficeFillRule.NonZero ? winding[group] != 0 : (winding[group] & 1) != 0;
+
+        bool AddContours(IEnumerable<IReadOnlyList<OfficePoint>> source, int group) {
+            foreach (var contour in source) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                if (contour.Count < 3) continue;
+                OfficePoint start = contour[contour.Count - 1];
+                foreach (OfficePoint end in contour) {
+                    if (!IsFinite(start.X) || !IsFinite(start.Y) || !IsFinite(end.X) || !IsFinite(end.Y)) return false;
+                    if (start.Y != end.Y) {
+                        edges.Add(new InkBoundEdge(start, end, group)); boundaries.Add(start.Y); boundaries.Add(end.Y);
+                        if (edges.Count > 4096) return false;
+                    }
+                    start = end;
+                }
+            }
+            return true;
+        }
+        static (double, double, double, double, bool, bool, bool) Unmeasured() => (0D, 0D, 0D, 0D, false, false, false);
     }
 
     private readonly struct InkBoundEdge {
-        internal InkBoundEdge(OfficePoint start, OfficePoint end) { Start = start; End = end; }
+        internal InkBoundEdge(OfficePoint start, OfficePoint end, int group) { Start = start; End = end; Group = group; }
+        internal int Group { get; }
         internal OfficePoint Start { get; }
         internal OfficePoint End { get; }
         internal double LowY => Math.Min(Start.Y, End.Y);

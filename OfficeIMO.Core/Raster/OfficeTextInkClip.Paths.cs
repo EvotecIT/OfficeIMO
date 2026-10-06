@@ -9,6 +9,32 @@ internal readonly partial struct OfficeTextInkClip {
         this = default; _polygon = polygon; _orientation = orientation;
     }
 
+    private OfficeTextInkClip(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) {
+        this = default; FilledContours = contours; FillRule = fillRule;
+    }
+
+    internal static bool TryCreatePath(OfficeClipPath path, OfficeTransform transform,
+        CancellationToken cancellationToken, out OfficeTextInkClip clip) {
+        if (TryCreateConvexPath(path, transform, cancellationToken, out clip)) return true;
+        if (path.Commands.Count > 512) return false;
+        bool valid = true;
+        var contours = OfficeClipPathGeometry.CreateContours(path, points => {
+            var mapped = new List<OfficePoint>(points.Count);
+            foreach (OfficePoint point in points) {
+                cancellationToken.ThrowIfCancellationRequested();
+                OfficePoint value = transform.TransformPoint(point);
+                valid &= Finite(value.X) && Finite(value.Y);
+                mapped.Add(value);
+            }
+            return mapped;
+        });
+        int vertices = 0;
+        foreach (var contour in contours) { vertices += contour.Count; if (vertices > 512) return false; }
+        if (!valid || (contours.Count == 0 && path.Kind != OfficeClipPathKind.Empty)) return false;
+        clip = new OfficeTextInkClip(contours, path.FillRule);
+        return true;
+    }
+
     internal static bool TryCreateConvexPath(OfficeClipPath path, OfficeTransform transform,
         CancellationToken cancellationToken, out OfficeTextInkClip clip) {
         clip = default;

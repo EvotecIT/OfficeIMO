@@ -19,7 +19,7 @@ public sealed class EpubRegionInkInspectionTests {
     [InlineData(700, "overflow:hidden", "transform:translateY(35px)", false, false)]
     [InlineData(2000, "overflow:hidden;border-radius:5px", "", false, false)]
     [InlineData(2000, "overflow:hidden;border-radius:5px;transform:rotate(20deg)", "", false, false)]
-    [InlineData(2000, "clip-path:polygon(0 0,100% 0,50% 50%,100% 100%,0 100%)", "", false, true)]
+    [InlineData(2000, "clip-path:polygon(0 0,100% 0,50% 50%,100% 100%,0 100%)", "", false, false)]
     [InlineData(2000, "opacity:0", "", false, false)]
     public void RegionInkUsesItsOwnBoxAndRetainsDescendantEffects(int height, string regionStyle,
         string childStyle, bool overflow, bool unmeasured) {

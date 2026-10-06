@@ -29,18 +29,6 @@ public sealed class DrawingTextInkPathTests {
         Assert.True(cropped);
     }
 
-    [Fact]
-    public void ConcaveIntersectingAndMultiContourPathsRemainUnqualified() {
-        var concave = Polygon(new(0, 0), new(10, 0), new(5, 5), new(10, 10), new(0, 10));
-        var star = Polygon(new(0, -10), new(6, 8), new(-10, -3), new(10, -3), new(-6, 8));
-        var multiple = OfficeClipPath.Path(Polygon(new(0, 0), new(10, 0), new(0, 10)).Commands
-            .Concat(Polygon(new(0, 0), new(5, 0), new(0, 5)).Commands));
-        var repeated = Polygon(new(0, 0), new(10, 0), new(10, 10), new(0, 10),
-            new(0, 0), new(10, 0), new(10, 10), new(0, 10));
-        foreach (var path in new[] { concave, star, multiple, repeated })
-            Assert.False(OfficeTextInkClip.TryCreateConvexPath(path, OfficeTransform.Identity, default, out _));
-    }
-
     private static OfficeClipPath Polygon(params OfficePoint[] points) => OfficeClipPath.Path(
         new[] { OfficePathCommand.MoveTo(points[0]) }.Concat(points.Skip(1).Select(OfficePathCommand.LineTo))
             .Concat(new[] { OfficePathCommand.Close() }));
