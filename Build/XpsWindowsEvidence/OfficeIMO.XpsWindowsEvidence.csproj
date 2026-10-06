@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Core/OfficeIMO.Core.csproj" />
     <ProjectReference Include="../../OfficeIMO.Xps/OfficeIMO.Xps.csproj" />
     <ProjectReference Include="../../OfficeIMO.Xps.Pdf/OfficeIMO.Xps.Pdf.csproj" />
   </ItemGroup>
