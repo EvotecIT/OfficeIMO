@@ -1,19 +1,15 @@
 {
-  "recordedUtc": "2026-10-06T07:08:23.236770+00:00",
+  "recordedUtc": "2026-10-06T18:02:56.432035+00:00",
   "scope": "Current publication and branch consolidation of completed owned contracts; no full HTML/runtime PR, release, timing qualification or long-lived adoption",
-  "source": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
+  "source": "dda7c1d097687f563582004191f979fc863940a2",
   "master": "3e297566715341b5205494e0721ce6c64b238aee",
   "programWorktrees": {
-    "feature/html-master-convergence": "f6aa381c4ce7425f483b33a4c37e04711c17f993",
+    "feature/html-master-convergence": "dda7c1d097687f563582004191f979fc863940a2",
     "feature/html-engine": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
     "feature/html-unknown-page-qualification": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
-    "fix/xlsb-neutral-workbook-views": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
-    "fix/excel-html-raster-normalization": "8e5a8fd834b045322d5697106800190f19bf0828",
-    "feature/html-owned-css-contracts": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
-    "fix/pdf-canvas-text-opacity": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
-    "feature/math-font-metrics": "0e934cf2d0e628cc89ed0b582d6666952134cb5d"
+    "fix/html-image-normalization-relayout": "e9013cd06eff19673c84cea574cbb3573e1fd5d6"
   },
-  "workingTrees": "The five focused publication worktrees are clean and pushed; main product source is unchanged by the documentation/evidence reconciliation.",
+  "workingTrees": "Main static convergence and the two long-lived HTML/H10 boundaries remain cleanly separated. The three merged publication worktrees/local branches are removed with preserved proof; only the new narrow PR2885 corrective worktree remains pending external gates.",
   "unsubmittedBoundaries": [
     {
       "owner": "Html / Html.Pdf / Mhtml / Tool",
@@ -34,7 +30,7 @@
       "assessment": "Separate later productization; exclude from static candidates"
     }
   ],
-  "qualification": "Latest recorded combined product source 1231730d9 has full HTML 4408/4408 on net8/net10 and clean bounded planetary Excel replay. Earlier exact all-platform static/package proofs do not qualify later extraction/source graphs. Supported-platform timing and wider H10/manual/native criteria remain open.",
+  "qualification": "Stable combined candidate bytes pass full normal HTML correctness: 4419/4419 on each of net8/net10, including the eight H4 cases. Normal Html/Excel.Html netstandard2.0 builds pass with zero warnings/errors. The retained Drawing188/Pdf42/math-H4-114 per-framework and independent PDF paint proof cover the precise accepted-owner convergence. These are combined-source/project-reference proofs, not qualification of an extracted static package graph, current hosted budgets, all historical profile visuals, native applications or optional runtime.",
   "branchConsolidation": {
     "ancestorsOfMain": [
       "feature/html-engine",
@@ -68,49 +64,61 @@
       "number": 2852,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852",
       "head": "8e5a8fd834b045322d5697106800190f19bf0828",
-      "base": "master",
-      "checkedUtc": "2026-10-06T15:28:54.953404+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
+      "state": "MERGED",
+      "mergeCommit": "4e65972f93ca46ed19bf71761af086efea68c903",
       "checks": {
-        "SUCCESS": 88,
-        "SKIPPED": 3,
-        "QUEUED": 3
+        "SUCCESS": 91,
+        "SKIPPED": 3
       },
-      "remaining": "Three checks queued at latest complete snapshot. Exact-head CI and mergeability verification remain required; latest attempted read failed on TCP timeout.",
-      "mergeable": "UNKNOWN"
+      "feedback": "Complete delayed paginated threads, nested comments, reviews, raw review/issue comments and reactions; no actionable feedback or unresolved threads.",
+      "evidencePreservation": {
+        "path": "Ignore/MasterConvergenceQualification/merged-raster-normalization-4e65972f9",
+        "files": 273,
+        "bytes": 93304419,
+        "shaVerified": true
+      },
+      "ownedWorktreeRemoved": true,
+      "ownedLocalAndRemoteBranchesAbsent": true
     },
     {
       "number": 2866,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2866",
       "head": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
-      "base": "master",
-      "checkedUtc": "2026-10-06T12:45:34.435144+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
+      "state": "MERGED",
+      "mergeCommit": "c0961e1f2e02fcafcd9d974da0b4ecd78b7d2828",
       "checks": {
-        "SUCCESS": 86,
-        "QUEUED": 2,
-        "SKIPPED": 2,
-        "IN_PROGRESS": 2
+        "SUCCESS": 91,
+        "SKIPPED": 3
       },
-      "remaining": "Current CLI CI settled, but complete delayed feedback reads failed on intermittent TCP timeout. Do not merge from partial state.",
-      "mergeable": "MERGEABLE"
+      "feedback": "Complete delayed paginated threads, nested comments, reviews, raw review/issue comments and reactions; no actionable feedback or unresolved threads.",
+      "evidencePreservation": {
+        "path": "Ignore/MasterConvergenceQualification/settling-pdf-opacity-7069de09e",
+        "files": 98,
+        "bytes": 99497346,
+        "shaVerified": true
+      },
+      "ownedWorktreeRemoved": true,
+      "ownedLocalAndRemoteBranchesAbsent": true
     },
     {
       "number": 2867,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2867",
       "head": "0e934cf2d0e628cc89ed0b582d6666952134cb5d",
-      "base": "fix/pdf-canvas-text-opacity",
-      "checkedUtc": "2026-10-06T15:35:35.725778+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
+      "state": "MERGED",
+      "mergeCommit": "c0961e1f2e02fcafcd9d974da0b4ecd78b7d2828",
       "checks": {
         "SUCCESS": 99,
         "SKIPPED": 6
       },
-      "remaining": "Latest complete delayed snapshot is CLEAN with all CI settled and no feedback; merge depends on PDF-opacity prerequisite settlement and any server-side branch/head changes.",
-      "mergeable": "MERGEABLE"
+      "feedback": "Complete delayed paginated threads, nested comments, reviews, raw review/issue comments and reactions; no actionable feedback or unresolved threads.",
+      "evidencePreservation": {
+        "path": "Ignore/MasterConvergenceQualification/settling-math-font-0e934cf2d",
+        "files": 159,
+        "bytes": 251670565,
+        "shaVerified": true
+      },
+      "ownedWorktreeRemoved": true,
+      "ownedLocalAndRemoteBranchesAbsent": true
     }
   ],
   "mergedThisAudit": {
@@ -127,9 +135,9 @@
     "ordinaryWorktreeAndLocalBranchRemoved": true
   },
   "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
-  "nextDeliverable": "Settle the three remaining focused PRs in dependency order with exact-head gates and preserved proof. Continue precise PDF/font/math corrective convergence while preserving static shadow behavior and resolving other-task overlaps deliberately. Qualify the extracted static renderer/job graph before long-lived adoption; broader H10/runtime/performance goals remain incomplete.",
+  "nextDeliverable": "Settle PR2885 on its actual current head after delayed CI/feedback gates; prepare the selected static renderer/job extraction independently against the precise accepted-owner candidate. Preserve code/evidence identities and revalidate if its prerequisites change.",
   "wrapUpUtc": "2026-10-06T11:40:40.405648+00:00",
-  "wrapUpSource": "f6aa381c4ce7425f483b33a4c37e04711c17f993",
+  "wrapUpSource": "dda7c1d097687f563582004191f979fc863940a2",
   "focusedMerges": [
     {
       "number": 2841,
@@ -222,14 +230,14 @@
       "owner": "Html.Core / Html.AngleSharp owned DOM and CSS",
       "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
       "localProof": "198 focused and 3420 broad passes per framework, six exact known font failures each; 16 packed consumers and normal four-target foundation packs; 12 regenerated release locks and locked restores",
-      "remaining": "exact-head hosted CI and delayed feedback"
+      "remaining": "Merged; worktree/local branch removed and unique evidence preserved. Selected static integration and platform qualification remain separate."
     },
     {
       "number": 2866,
       "owner": "Pdf drawing-text opacity",
       "head": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
       "localProof": "9127 PDF tests per framework; normal four-target Core/Pdf graph and eight fresh independent public package controls; transformed tagged decoration alpha independently verified",
-      "remaining": "exact-head hosted CI and delayed feedback"
+      "remaining": "Merged; worktree/local branch removed and unique evidence preserved. Selected static integration and platform qualification remain separate."
     },
     {
       "number": 2867,
@@ -238,7 +246,7 @@
       "basePr": 2866,
       "stack": 2868,
       "localProof": "3428 Drawing tests per framework; independent font/SVG controls; normal four-target Core/Pdf packages and fresh colored-math public PDF consumers per framework, searchable formula once and zero black duplicate pixels",
-      "remaining": "bottom-to-top exact-head hosted CI, delayed feedback and stack merge"
+      "remaining": "Merged; worktree/local branch removed and unique evidence preserved. Selected static integration and platform qualification remain separate."
     }
   ],
   "wrapUpCleanup": {
@@ -249,8 +257,8 @@
     "checkpointArchivesBytes": 795840287
   },
   "currentFollowThrough": {
-    "recordedUtc": "2026-10-06T15:37:20.652301+00:00",
-    "mainEvidenceParent": "60bad0b555fba2d16fe7d45a85300bd872311655",
+    "recordedUtc": "2026-10-06T17:56:06.278544+00:00",
+    "mainEvidenceParent": "dda7c1d097687f563582004191f979fc863940a2",
     "checklist": {
       "xlsbCurrentHeadFeedbackMergeCleanup": true,
       "preparedStaticAdapterCompileAndIndependentSelectorProof": true,
@@ -259,7 +267,13 @@
       "ownedDocumentCssCurrentHeadFeedbackMergeCleanup": true,
       "staticFoundationSourceConvergence": true,
       "staticFoundationFocusedConsumerAndH4": true,
-      "remainingThreeSettlement": false
+      "remainingThreeSettlement": true,
+      "remainingThreeProofPreservationAndCleanup": true,
+      "pdfMathCorrectiveSourceConvergence": true,
+      "rasterAdmissionRelayoutCorrection": true,
+      "fullCombinedHtmlBothFrameworks": true,
+      "standaloneRelayoutCorrectionPublication": true,
+      "relayoutCorrectionCurrentHeadCiDelayedMergeCleanup": false
     },
     "raster": {
       "head": "8e5a8fd834b045322d5697106800190f19bf0828",
@@ -271,7 +285,7 @@
       "independentChecks": "Open XML schema, ZIP/DrawingML external relationships and native extents, Pillow RGBA within prior RGB<=3/exact-alpha fixture limit; normal public save/reopen controls on net8/net10.",
       "ownerDllHashEqualities": 12,
       "scope": "Normal project-reference proof; previous package proofs retained, not new package/platform qualification.",
-      "evidence": "../OfficeIMO-excel-html-raster-normalization/Ignore/ExcelRasterNormalizationQualification/master-picture-link-convergence-20261006",
+      "evidence": "Ignore/MasterConvergenceQualification/merged-raster-normalization-4e65972f9/master-picture-link-convergence-20261006",
       "automaticReviewer": "New-head quota failure is missing optional evidence, not a product defect. Existing owner full/targeted review retained; narrow accepted-link merge directly validated. No retry/manual request."
     },
     "nextStaticMigration": {
@@ -279,10 +293,11 @@
       "referenceInventory": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/selected-static-reference-boundary-1245.json",
       "differentOwnerSourceFiles": {
         "ownedDomCss": 0,
-        "pdfOpacity": 1,
-        "coreFontMath": 11
+        "pdfOpacity": 0,
+        "coreFontMath": 0,
+        "preservedStaticShadowOwner": 1
       },
-      "requirement": "The five foundation corrective blobs and sibling adapter bridge are adopted and focused normal consumer/H4 proof passes. Preserve cascade trace and ancestor combinators. Next reconcile PDF opacity and font/math corrections deliberately, preserving the existing static shadow expansion contract and separately inspecting other-task overlaps.",
+      "requirement": "The exact accepted DOM/CSS, PDF and font/math corrections plus raster admission wiring are adopted and combined correctness passes. Settle narrow PR2885 separately, resolve the other-task image/PDF/HTML report-fidelity overlap deliberately, and extract the selected static renderer/job graph for normal packaged API/Tool and supported-platform proof. No blind master merge or long-lived adoption.",
       "preparedAdapter": {
         "recordedUtc": "2026-10-06T15:05:27.980790+00:00",
         "foundationCandidate": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
@@ -478,6 +493,109 @@
       "allAbsent": true,
       "mergedWorktreesRemoved": 2,
       "preservedProofBytes": 53613190
-    }
-  }
+    },
+    "acceptedOwnerConvergence": {
+      "sourceCommit": "6e3b3f81bc629721c9cc9888d22e12e30c1bd247",
+      "exactPublishedProductBlobs": 11,
+      "preservedStaticShadowBlob": "05760bcadea908dc560cde300661929c416e7d58",
+      "frameworkTestsEach": {
+        "DrawingAffected": 188,
+        "PdfAffected": 42,
+        "HtmlMathAndH4": 114
+      },
+      "h4CasesEach": 8,
+      "normalStandardBuilds": [
+        "Core",
+        "Pdf"
+      ],
+      "independentProjectReferenceArtifacts": {
+        "public": 10,
+        "friendDiagnostic": 8,
+        "frameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "checks": "Raw Poppler searchable formula/text and independent raster alpha/color/stroke observations; contact sheet inspected."
+      },
+      "scope": "Normal project-reference combined source proof, not new extracted packages or supported-platform timing."
+    },
+    "settlementReceipts": [
+      "wrap-up-audit-20261006/merge-stack-id-2868.json",
+      "wrap-up-audit-20261006/atomic-stack-git-ancestry.json",
+      "wrap-up-audit-20261006/stack-merged-owner-blobs-connector.json",
+      "wrap-up-audit-20261006/merged-publication-remote-branches.json"
+    ],
+    "rasterRelayoutReview": {
+      "boundary": "candidate-reviewed",
+      "fullAndTargetedUsed": true,
+      "validatedFinding": "One oriented picture is lost after budget readmission during row-flex, column-flex and grid geometry passes.",
+      "correction": "Memoize completed outcome per source element, immutable bytes and orientation policy. Distinct elements remain independently charged; failed work is not refunded.",
+      "receipt": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/remaining-owner-migration/integration-review-closure.json"
+    },
+    "rasterAdmissionConvergence": {
+      "sourceCommit": "dda7c1d097687f563582004191f979fc863940a2",
+      "fullHtmlEachFramework": 4419,
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "h4AcceptanceCasesEach": 8,
+      "normalStandardBuilds": {
+        "Html": "0 warnings/errors",
+        "Excel.Html": "0 warnings/errors"
+      },
+      "correctiveScope": "Shared budget charges expensive normalization before layout/native conversion, clones propagate the same budget, and successful/failed outcomes survive geometry relayout by source element and orientation policy.",
+      "oldFailure": "Row-flex, column-flex and grid lose the only picture at MaxImages=1; native JPEG control preserves the original bytes.",
+      "review": "One full read-only integration pass plus one targeted confirmation; validated P2 fixed, no remaining findings."
+    },
+    "correctivePublication": {
+      "number": 2885,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2885",
+      "head": "e9013cd06eff19673c84cea574cbb3573e1fd5d6",
+      "base": "c0961e1f2e02fcafcd9d974da0b4ecd78b7d2828",
+      "isDraft": false,
+      "sourceFiles": 3,
+      "before": {
+        "passed": 1,
+        "failed": 3
+      },
+      "focusedEachFramework": 30,
+      "independentPublicWorkbooks": 8,
+      "normalMacPackageTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "windowsNet472": "Conditional normal Windows target and hosted execution pending; not established by Mac packaging.",
+      "consumerScope": "Fresh project-reference public consumers with independent Pillow JPEG, native save/reopen and independent ZIP/DrawingML/media observations; not a fresh installed packed consumer graph.",
+      "initialFeedback": {
+        "queued": 88,
+        "skipped": 2,
+        "completeThreadPages": 1,
+        "unresolved": 0,
+        "reviews": 0,
+        "rawReviewComments": 0,
+        "issueComments": 0
+      },
+      "remaining": [
+        "current-head CI",
+        "delayed complete feedback check",
+        "merge if all gates pass",
+        "proof-preserving worktree cleanup"
+      ],
+      "evidence": "../OfficeIMO-html-image-normalization-relayout/Ignore/OrientedImageRelayoutQualification",
+      "unchangedReviewerOnlyRechecks": 0
+    },
+    "currentCleanup": {
+      "recordedUtc": "2026-10-06T18:02:56.432035+00:00",
+      "targets": 186,
+      "bytes": 3675199539,
+      "allAbsent": true,
+      "held": [],
+      "actualNativeFilesystemRecoveries": 94,
+      "preserved": "Feeds, original failures, TRX, source bundles, final PDFs/native artifacts/contacts, hashes and source. Shared caches/unrelated worktrees untouched. No owned builds/test hosts/browser/server remain active."
+    },
+    "nextCheckpoint": "Settle PR2885 on its actual current head after delayed CI/feedback gates; prepare the selected static renderer/job extraction independently against the precise accepted-owner candidate. Preserve code/evidence identities and revalidate if its prerequisites change."
+  },
+  "assessmentSource": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0"
 }
