@@ -11,18 +11,20 @@ public static partial class OfficeSvgDrawingReader {
 
     private static OfficeDrawing FitSvgViewport(OfficeDrawing scene, double width, double height,
         OfficeTransform transform, double maximumDimension, double maximumPixels, ref int unsupported,
-        out double retainedScenePixels) {
+        out double additionalSurfacePixels) {
+        additionalSurfacePixels = 0D;
         if (HasOverflowingLocalGeometry(scene) && transform.TryInvert(out OfficeTransform inverse)) {
             var visible = inverse.TransformRectangleBounds(0D, 0D, width, height);
             if (scene.TryExpandViewportCanvas(visible.Left, visible.Top, visible.Right, visible.Bottom,
                     maximumDimension, maximumPixels, out OfficeDrawing expanded, out double left, out double top)) {
+                additionalSurfacePixels = expanded.MeasureRetainedViewportSurfacePixels()
+                    - scene.MeasureRetainedViewportSurfacePixels();
                 scene = expanded;
                 transform = OfficeTransform.Translate(left, top).Then(transform);
             } else {
                 unsupported++;
             }
         }
-        retainedScenePixels = scene.Width * scene.Height;
         return new OfficeDrawing(width, height).AddEffectDrawing(scene, transform);
     }
 
@@ -65,7 +67,7 @@ public static partial class OfficeSvgDrawingReader {
                 OfficeTransform transform = effect.Transform.Then(parent);
                 // A transformed text run's surface includes ink beyond its advance,
                 // including italic bearings and synthetic bold. Clip that paint too.
-                if (effect.InnerDrawing.Elements.Count == 1 && effect.InnerDrawing.Elements[0] is OfficeDrawingText) {
+                if (effect.HasCompleteLocalPaintBounds) {
                     var bounds = transform.TransformRectangleBounds(0D, 0D, effect.InnerDrawing.Width, effect.InnerDrawing.Height);
                     if (bounds.Left < 0D || bounds.Top < 0D || bounds.Right > width || bounds.Bottom > height) return true;
                 }
@@ -185,8 +187,8 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform viewportTransform = ResolveViewportTransform(
             childViewWidth, childViewHeight, width, height, alignment, slice);
         OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
-            maximumViewportDimension, maximumViewportPixels, ref unsupported, out double retainedScenePixels);
-        if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - childViewWidth * childViewHeight)) {
+            maximumViewportDimension, maximumViewportPixels, ref unsupported, out double additionalSurfacePixels);
+        if (!references.TryChargeNestedViewportExpansion(additionalSurfacePixels)) {
             references.RestoreSurfaceBudget(viewportBudget);
             unsupported++;
             return false;
