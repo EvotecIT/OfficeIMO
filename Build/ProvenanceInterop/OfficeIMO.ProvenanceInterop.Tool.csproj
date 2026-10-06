@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Core/OfficeIMO.Core.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj" />
+    <None Include="corpus.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

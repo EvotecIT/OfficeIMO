@@ -15,7 +15,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlFoundationTests {
-    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
 
     [Fact]
     public void RecoveredDoctypeSurvivesEditingAndSerialization() {
@@ -227,10 +227,10 @@ public sealed class HtmlFoundationTests {
     [Fact]
     public void ParserRejectsConfiguredLimitsAndCancellation() {
         var parser = AngleSharpHtmlParser.Instance;
-        Assert.Throws<HtmlParseLimitException>(() => parser.Parse("12345", new HtmlParseOptions { MaxInputCharacters = 4 }));
-        Assert.Throws<HtmlParseLimitException>(() => parser.Parse("<template><p>A</p><p>B</p></template>", new HtmlParseOptions { MaxNodes = 5 }));
-        Assert.Throws<HtmlParseLimitException>(() => parser.Parse("<div><div><div>x</div></div></div>", new HtmlParseOptions { MaxDepth = 3 }));
-        Assert.Throws<OperationCanceledException>(() => parser.Parse("<p>x</p>", new HtmlParseOptions(), new CancellationToken(true)));
+        Assert.Throws<HtmlParseLimitException>(() => parser.ParseDocument("12345", new HtmlParseOptions { MaxInputCharacters = 4 }));
+        Assert.Throws<HtmlParseLimitException>(() => parser.ParseDocument("<template><p>A</p><p>B</p></template>", new HtmlParseOptions { MaxNodes = 5 }));
+        Assert.Throws<HtmlParseLimitException>(() => parser.ParseDocument("<div><div><div>x</div></div></div>", new HtmlParseOptions { MaxDepth = 3 }));
+        Assert.Throws<OperationCanceledException>(() => parser.ParseDocument("<p>x</p>", new HtmlParseOptions(), new CancellationToken(true)));
         var options = new HtmlConversionDocumentOptions { Limits = new HtmlConversionLimits { MaxHtmlNodes = 5 } };
         Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.FromDocument(Parse("<template><p>A</p><p>B</p></template>"), options));
     }
@@ -321,7 +321,7 @@ public sealed class HtmlFoundationTests {
         public string Id => "authored";
         public int Calls { get; private set; }
         public HtmlDocument? Returned { get; private set; }
-        public HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) {
+        public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) {
             Calls++;
             var document = new HtmlDocument(AngleSharpDomServices.Instance, Id);
             HtmlElement html = document.CreateElement("html"), body = document.CreateElement("body"), p = document.CreateElement("p");
@@ -329,6 +329,8 @@ public sealed class HtmlFoundationTests {
             document.CreateElement("invalid@detached", "urn:foreign");
             return Returned = document;
         }
+        public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class CustomEncoding : IHtmlEncodingProvider {

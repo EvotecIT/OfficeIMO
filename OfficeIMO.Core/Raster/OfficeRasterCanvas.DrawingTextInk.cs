@@ -115,9 +115,10 @@ public sealed partial class OfficeRasterCanvas {
                 } finally { canvas.PreservePaintedGlyphOrder = saved; }
                 return;
             }
+            using var metricScope = canvas.PushFontMetricScale(canvas.FontMetricScale * text.FontMetricScale);
             OfficeTransform inkTransform = text.HasFrameTransform
                 ? text.CreateFrameTransform().CreateDestinationTransform().Then(placement) : placement;
-            double sourceSize = Math.Max(1D, text.Font.Size), size = sourceSize * text.BaselineScale;
+            double sourceSize = Math.Max(.01D, text.Font.Size), size = sourceSize * text.BaselineScale;
             double lineHeight = text.LineHeight ?? text.Font.Size * 1.2D;
             string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
             bool preserve = canvas.PreservePaintedGlyphOrder;

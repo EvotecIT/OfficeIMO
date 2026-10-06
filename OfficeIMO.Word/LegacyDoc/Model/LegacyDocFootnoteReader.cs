@@ -668,6 +668,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentHyperlinkTarget.Uri,
                     currentHyperlinkTarget.Anchor,
                     specified: currentFormat.Specified,
+                    styleRelative: currentFormat.StyleRelative,
+                    styleInverted: currentFormat.StyleInverted,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
                     kerningMinimumFontSizeHalfPoints: currentFormat.KerningMinimumFontSizeHalfPoints,
                     language: currentFormat.Language,

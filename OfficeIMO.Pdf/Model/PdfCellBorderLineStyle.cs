@@ -7,6 +7,6 @@ public enum PdfCellBorderLineStyle {
     /// <summary>Draw a single line.</summary>
     Standard,
 
-    /// <summary>Draw a double line.</summary>
+    /// <summary>Draw two parallel strokes. Internal boundaries share centred tracks; outer borders retain inward tracks. Cell content keeps clear of the painted extent.</summary>
     TwoLine
 }

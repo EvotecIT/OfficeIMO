@@ -13,7 +13,8 @@ internal static partial class PdfWriter {
         }
 
         private static bool PackColumnBalanceRowFragment(ColumnBalanceRowFragment fragment, double height,
-            int columnCount, ref int columns, ref double used, double continuationPadding = 0D, double spacingBefore = 0D) {
+            int columnCount, ref int columns, ref double used, double continuationPadding = 0D, double spacingBefore = 0D,
+            Action<double>? finishColumn = null) {
             int start = fragment.StartLine;
             double before = fragment.Before + (used > continuationPadding + .001D ? spacingBefore : 0D);
             while (start < fragment.Rows.LineCounts[fragment.RowIndex]) {
@@ -32,9 +33,11 @@ internal static partial class PdfWriter {
                     if (used <= continuationPadding + 0.001D) return false;
                     before = start == fragment.StartLine ? fragment.MovedBefore : fragment.SplitBefore;
                 } else {
+                    used += before + fragment.Measure(start, take);
                     start += take;
                     before = fragment.SplitBefore;
                 }
+                finishColumn?.Invoke(used);
                 if (++columns > columnCount) return false;
                 used = continuationPadding;
             }

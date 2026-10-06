@@ -80,7 +80,7 @@ public sealed partial class MainWindowViewModel {
             ErrorMessage = _localizer.GetOrDefault("Redaction.SelectPages", "Select at least one page in the page organizer.");
             return;
         }
-        IReadOnlyList<PdfRedactionMarkViewModel>? marks = null;
+        IReadOnlyList<PdfRedactionCandidate>? marks = null;
         bool succeeded = await RunStandaloneAsync(async token => {
             marks = await workspace.SearchRedactionMarksAsync(text, regex, matchCase, pages, token).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
@@ -92,7 +92,8 @@ public sealed partial class MainWindowViewModel {
         }
         _pendingRedactionWorkspace = workspace;
         _pendingRedactionRevision = revision;
-        foreach (PdfRedactionMarkViewModel mark in marks) AddRedactionMark(mark, update: false);
+        foreach (PdfRedactionCandidate mark in marks) AddRedactionMark(new PdfRedactionMarkViewModel(mark.Area,
+            new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height), mark.Description), update: false);
         InvalidateReviewedRedactions();
         if (marks.Count > 0) RedactionSearchExpanded = false;
         OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching line(s). Review the marked areas before applying.", marks.Count);

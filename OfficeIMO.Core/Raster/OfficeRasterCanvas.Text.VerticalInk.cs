@@ -25,6 +25,7 @@ public sealed partial class OfficeRasterCanvas {
         };
         bool preserve = PreservePaintedGlyphOrder;
         PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
+        using var metricScope = PushFontMetricScale(FontMetricScale * text.FontMetricScale);
         using var faceScope = PushTextFace(text.Font.Face);
         try {
             InspectLaidOutTextInk(() => {

@@ -5,8 +5,6 @@ using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Reader;
 
-internal sealed record PdfObjectTransformGesture(PdfEditorSelection Selection, PdfEditorVisualBounds Target);
-
 public sealed partial class PdfPageCanvas {
     private PdfEditorSelection? _transformSelection;
     private Point _transformStart;

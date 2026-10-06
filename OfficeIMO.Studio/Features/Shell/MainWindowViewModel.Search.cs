@@ -14,9 +14,9 @@ public sealed partial class MainWindowViewModel {
     private string _searchQuery = string.Empty;
 
     [ObservableProperty]
-    private PdfSearchHit? _selectedSearchResult;
+    private PdfSearchResult? _selectedSearchResult;
 
-    public ObservableCollection<PdfSearchHit> SearchResults { get; } = new();
+    public ObservableCollection<PdfSearchResult> SearchResults { get; } = new();
 
     public bool HasSearchResults => SearchResults.Count > 0;
 
@@ -29,7 +29,7 @@ public sealed partial class MainWindowViewModel {
 
     partial void OnSearchQueryChanged(string value) => ClearSearchResults();
 
-    partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
+    partial void OnSelectedSearchResultChanged(PdfSearchResult? value) {
         foreach (var page in Pages) {
             page.ActiveSearchHighlight = page.PageNumber == value?.PageNumber ? value.Bounds : null;
             page.ActiveSearchHighlights = page.PageNumber == value?.PageNumber ? value.Highlights : Array.Empty<Avalonia.Rect>();
@@ -97,7 +97,7 @@ public sealed partial class MainWindowViewModel {
             });
             var results = await session.SearchAsync(query, token, progress).ConfigureAwait(true);
             if (generation != _searchGeneration || !ReferenceEquals(session, _session)) return;
-            foreach (var result in results) SearchResults.Add(result.WithLocalizer(_localizer));
+            foreach (var result in results) SearchResults.Add(PdfSearchResult.FromHit(result, _localizer));
             var pageMatches = SearchResults.GroupBy(hit => hit.PageNumber).ToDictionary(group => group.Key, group => group.SelectMany(hit => hit.Highlights).ToArray());
             foreach (var page in Pages) page.SearchHighlights = pageMatches.TryGetValue(page.PageNumber, out var highlights) ? highlights : Array.Empty<Avalonia.Rect>();
             _searchCompleted = true;

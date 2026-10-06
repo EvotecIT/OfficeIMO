@@ -40,7 +40,7 @@ On the ordinary HTML path, bounded positioned, floating, flex, and grid regions 
 
 ## Generic document flow
 
-Generic HTML import divides long paragraphs into editable text boxes across slides and retains supported inline formatting and hyperlinks. Tables with suitable row geometry continue as native tables with repeated header rows. Captions remain separate editable text. Oversized cells and unsupported list pagination produce explicit approximation reports; authored slide geometry remains authoritative.
+Generic HTML import divides long paragraphs into editable text boxes across slides and retains supported inline formatting and hyperlinks. Tables with suitable row geometry continue as native tables with repeated header rows. Native header links use the header text color, including on repeated table fragments, while authored run colors remain explicit. Readers supporting the native hyperlink text-color extension retain these colors; older readers may use their theme hyperlink color. Captions remain separate editable text. Oversized cells and unsupported list pagination produce explicit approximation reports; authored slide geometry remains authoritative.
 
 ## Positioned review
 

@@ -5,6 +5,7 @@ internal static partial class PdfWriter {
         private sealed class ColumnGroup {
             public IReadOnlyList<ColItem> Children = null!;
             public PdfPanelStyle? Style;
+            public ContainerBlock? Container;
             public FlowSemanticScope? Semantic;
             public PdfLayoutPositionCapture? Capture;
             public bool KeepTogether;
@@ -31,9 +32,10 @@ internal static partial class PdfWriter {
             switch (block) {
                 case ContainerBlock container:
                     blocks = container.Blocks;
+                    group.Container = container;
                     group.Style = ResolveContainerStyle(container);
                     group.KeepTogether = ResolveContainerStyle(container).KeepTogether;
-                    var frame = ResolveContainerFrame(ResolveContainerStyle(container), columnXOffset, columnWidth);
+                    var frame = ResolveContainerFrame(container, ResolveContainerStyle(container), columnXOffset, columnWidth);
                     group.XOffset = frame.X;
                     group.OuterWidth = frame.Width;
                     childX = frame.X + ResolveContainerStyle(container).PaddingX;
@@ -52,7 +54,7 @@ internal static partial class PdfWriter {
                     return false;
             }
 
-            List<ColItem> children = BuildColumnItems(blocks, childWidth, childX, reservedImageHeight + (group.Style?.PaddingY ?? 0D) * 2D);
+            List<ColItem> children = BuildColumnItems(blocks, childWidth, childX, reservedImageHeight + (group.Style?.InitialFragmentImageReservation ?? 0D));
             group.Children = children;
             group.ItemCount = children.Count + 2;
             items.Add(new ColGroupStart { Group = group, ColumnXOffset = columnXOffset, ColumnWidth = columnWidth });
@@ -64,17 +66,17 @@ internal static partial class PdfWriter {
         private bool TryBeginColumnGroup(
             ColumnGroup group, List<ColumnGroup> activeGroups, List<ColItem> items, int itemIndex,
             double columnX, ref double cursor, ref double remaining, ref double consumed) {
-            double padding = group.Style?.PaddingY ?? 0D;
+            double padding = group.Style?.TopPadding ?? 0D;
             double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore ?? 0D, consumed);
             double firstHeight = MeasureColumnGroupFirstVisualHeight(group);
             double fullHeight = MeasureColumnGroupHeight(group, consumed);
-            double fullPageHeight = GetFullPageContentHeight() - activeGroups.Sum(active => (active.Style?.PaddingY ?? 0D) * 2D);
-            double fullPageConsumed = activeGroups.Sum(active => active.Style?.PaddingY ?? 0D);
+            double fullPageHeight = GetFullPageContentHeight() - activeGroups.Sum(active => active.Style?.FullFragmentPaddingReservation ?? 0D);
+            double fullPageConsumed = activeGroups.Sum(active => active.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D);
             if (group.KeepTogether && MeasureColumnGroupHeight(group, fullPageConsumed) > fullPageHeight + 0.001D) {
                 throw new ArgumentException("Keep-together element or component content exceeds the available column height.");
             }
 
-            double needed = group.KeepTogether ? fullHeight : before + padding * 2D + firstHeight;
+            double needed = group.KeepTogether ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D) + firstHeight;
             int nextItemIndex = itemIndex + group.ItemCount;
             if (group.Style?.KeepWithNext == true && nextItemIndex < items.Count) {
                 double keepHeight = fullHeight + MeasureColKeepWithNextChainHeight(items, nextItemIndex);
@@ -99,20 +101,23 @@ internal static partial class PdfWriter {
             group.FragmentTop = cursor;
             if (group.Semantic != null) flowSemanticScopes.Add(group.Semantic);
             if (group.Style != null) {
+                bool continuation = group.Decoration != null;
                 group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth,
-                    currentPage!.Options, currentOpts, currentOpts);
+                    currentPage!.Options, currentOpts, currentOpts, group.Container) { IsContinuation = continuation };
                 double next = BeginContainerFragment(group.Decoration, cursor);
                 ConsumeColumnSpace(cursor - next, ref cursor, ref remaining, ref consumed);
                 // Reserve bottom padding so an inner item cannot occupy the decoration's closing space.
-                remaining -= group.Style.PaddingY;
+                remaining -= group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
             }
         }
 
-        private void EndColumnGroupFragment(ColumnGroup group, double columnX, ref double cursor, ref double remaining, ref double consumed) {
+        private void EndColumnGroupFragment(ColumnGroup group, double columnX, ref double cursor, ref double remaining, ref double consumed, bool continues = false) {
             if (group.Style != null) {
-                remaining += group.Style.PaddingY;
-                ConsumeColumnSpace(group.Style.PaddingY, ref cursor, ref remaining, ref consumed);
-                FinalizeContainerFragment(group.Decoration!, cursor);
+                remaining += group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
+                if (!continues && !group.Style.RepeatFragmentDecoration && group.Style.BottomPadding > remaining + .001D)
+                    throw new ArgumentException("Element closing padding cannot fit within the available column height.");
+                ConsumeColumnSpace(Math.Min(group.Style.GetFragmentBottomPadding(continues), Math.Max(0D, remaining)), ref cursor, ref remaining, ref consumed);
+                FinalizeContainerFragment(group.Decoration!, cursor, continues);
             }
             if (group.Capture != null && group.FragmentTop - cursor > 0.001D) {
                 group.Capture.Add(new PdfLayoutRegion(pages.Count + 1, columnX + group.XOffset, cursor, group.OuterWidth, group.FragmentTop - cursor));
@@ -121,7 +126,8 @@ internal static partial class PdfWriter {
         }
 
         private void ResumeColumnGroups(List<ColumnGroup> groups, double columnX, ref double cursor, ref double remaining, ref double consumed) {
-            double padding = groups.Sum(group => (group.Style?.PaddingY ?? 0D) * 2D);
+            double padding = groups.Sum(group => (group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D)
+                + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D));
             if (padding > remaining + 0.001D) {
                 throw new ArgumentException("Nested element padding exceeds the available column height.");
             }
@@ -130,7 +136,7 @@ internal static partial class PdfWriter {
 
         private void FinishColumnGroupsFragment(List<ColumnGroup> groups, double columnX, ref double cursor, ref double remaining, ref double consumed) {
             for (int index = groups.Count - 1; index >= 0; index--) {
-                EndColumnGroupFragment(groups[index], columnX, ref cursor, ref remaining, ref consumed);
+                EndColumnGroupFragment(groups[index], columnX, ref cursor, ref remaining, ref consumed, continues: true);
             }
         }
 
@@ -142,8 +148,8 @@ internal static partial class PdfWriter {
 
         private double MeasureColumnGroupHeight(ColumnGroup group, double consumedBefore) {
             double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore ?? 0D, consumedBefore);
-            double padding = group.Style?.PaddingY ?? 0D;
-            return before + padding * 2D + MeasureColumnGroupContentHeight(group, consumedBefore + before + padding)
+            double padding = group.Style?.TopPadding ?? 0D;
+            return before + padding + (group.Style?.BottomPadding ?? 0D) + MeasureColumnGroupContentHeight(group, consumedBefore + before + padding)
                 + (group.Style?.SpacingAfter ?? 0D);
         }
 

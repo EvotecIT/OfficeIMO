@@ -164,7 +164,7 @@ public sealed partial class MainWindowViewModel {
             candidateWorkspace = await OpenWorkspaceWithPasswordAsync(fullPath, currentCancellation.Token).ConfigureAwait(true);
             if (candidateWorkspace is null) return;
             PdfDocumentSession session = PdfDocumentSession.FromWorkspace(candidateWorkspace);
-            candidateSceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
+            candidateSceneCoordinator = new PageSceneCoordinator((page, token) => session.LoadPageSceneAsync(page, token, OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback));
             candidateRenderCoordinator = new PageRenderCoordinator(session.RenderPageAsync);
             candidatePages = session.Pages.Select(page => {
                 var viewModel = new PdfPageViewModel(

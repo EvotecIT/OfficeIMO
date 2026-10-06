@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Reusable heading style for H1/H2/H3 typography and vertical rhythm.
+/// Reusable heading style for levels 1 through 9, including typography and vertical rhythm.
 /// </summary>
 public sealed class PdfHeadingStyle {
     private double? _fontSize;

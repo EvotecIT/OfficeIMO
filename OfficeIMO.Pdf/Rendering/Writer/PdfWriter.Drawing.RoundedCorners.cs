@@ -94,20 +94,20 @@ internal static partial class PdfWriter {
         PdfCellBorderSide? left = border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null;
 
         if (IsRenderableCellBorderSide(top)) {
-            if (tl || tr) DrawRoundedCellBorderSide(sb, top!, outerBorderWidth, RoundedRectSide.Top, x, y, w, h, radius, tl, tr, br, bl, artifact);
-            else DrawCellHBorder(sb, top, x, x2, y2, -1D, artifact);
+            if (tl || tr) DrawRoundedCellBorderSide(sb, top!, outerBorderWidth, RoundedRectSide.Top, x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
+            else DrawCellHBorder(sb, top, x, x2, y2, -1D, artifact, left, right);
         }
         if (IsRenderableCellBorderSide(right)) {
-            if (tr || br) DrawRoundedCellBorderSide(sb, right!, outerBorderWidth, RoundedRectSide.Right, x, y, w, h, radius, tl, tr, br, bl, artifact);
-            else DrawCellVBorder(sb, right, x2, y2, y, -1D, artifact);
+            if (tr || br) DrawRoundedCellBorderSide(sb, right!, outerBorderWidth, RoundedRectSide.Right, x, y, w, h, radius, tl, tr, br, bl, top, bottom, artifact);
+            else DrawCellVBorder(sb, right, x2, y2, y, -1D, artifact, top, bottom);
         }
         if (IsRenderableCellBorderSide(bottom)) {
-            if (br || bl) DrawRoundedCellBorderSide(sb, bottom!, outerBorderWidth, RoundedRectSide.Bottom, x, y, w, h, radius, tl, tr, br, bl, artifact);
-            else DrawCellHBorder(sb, bottom, x, x2, y, 1D, artifact);
+            if (br || bl) DrawRoundedCellBorderSide(sb, bottom!, outerBorderWidth, RoundedRectSide.Bottom, x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
+            else DrawCellHBorder(sb, bottom, x, x2, y, 1D, artifact, left, right);
         }
         if (IsRenderableCellBorderSide(left)) {
-            if (tl || bl) DrawRoundedCellBorderSide(sb, left!, outerBorderWidth, RoundedRectSide.Left, x, y, w, h, radius, tl, tr, br, bl, artifact);
-            else DrawCellVBorder(sb, left, x, y2, y, 1D, artifact);
+            if (tl || bl) DrawRoundedCellBorderSide(sb, left!, outerBorderWidth, RoundedRectSide.Left, x, y, w, h, radius, tl, tr, br, bl, top, bottom, artifact);
+            else DrawCellVBorder(sb, left, x, y2, y, 1D, artifact, top, bottom);
         }
 
         if (border.DiagonalUp || border.DiagonalDown) {
@@ -119,10 +119,11 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void DrawRoundedCellBorderSide(StringBuilder sb, PdfCellBorderSide sideStyle, double outerBorderWidth, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact) {
-        DrawRoundedSideStrokeCore(sb, sideStyle.Color!.Value, sideStyle.Width, outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
+    private static void DrawRoundedCellBorderSide(StringBuilder sb, PdfCellBorderSide sideStyle, double outerBorderWidth, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, PdfCellBorderSide? startSide, PdfCellBorderSide? endSide, bool artifact) {
         if (sideStyle.LineStyle == PdfCellBorderLineStyle.TwoLine) {
-            DrawRoundedSideStrokeCore(sb, sideStyle.Color.Value, sideStyle.Width, outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, GetDoubleBorderGap(sideStyle.Width), artifact);
+            DrawRoundedPairedCellBorderSide(sb, sideStyle, side, x, y, w, h, radius, tl, tr, br, bl, startSide, endSide, artifact);
+        } else {
+            DrawRoundedSideStrokeCore(sb, sideStyle.Color!.Value, sideStyle.Width, outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
         }
     }
 
@@ -157,34 +158,35 @@ internal static partial class PdfWriter {
 
         double x2 = x + w;
         double y2 = y + h;
+        double clipBleed = Math.Max(width, -inset + width / 2D);
         double clipX;
         double clipY;
         double clipWidth;
         double clipHeight;
         switch (side) {
             case RoundedRectSide.Top:
-                clipX = x - width;
+                clipX = x - clipBleed;
                 clipY = y2 - r;
-                clipWidth = w + width * 2D;
-                clipHeight = r + width;
+                clipWidth = w + clipBleed * 2D;
+                clipHeight = r + clipBleed;
                 break;
             case RoundedRectSide.Right:
                 clipX = x2 - r;
-                clipY = y - width;
-                clipWidth = r + width;
-                clipHeight = h + width * 2D;
+                clipY = y - clipBleed;
+                clipWidth = r + clipBleed;
+                clipHeight = h + clipBleed * 2D;
                 break;
             case RoundedRectSide.Bottom:
-                clipX = x - width;
-                clipY = y - width;
-                clipWidth = w + width * 2D;
-                clipHeight = r + width;
+                clipX = x - clipBleed;
+                clipY = y - clipBleed;
+                clipWidth = w + clipBleed * 2D;
+                clipHeight = r + clipBleed;
                 break;
             default:
-                clipX = x - width;
-                clipY = y - width;
-                clipWidth = r + width;
-                clipHeight = h + width * 2D;
+                clipX = x - clipBleed;
+                clipY = y - clipBleed;
+                clipWidth = r + clipBleed;
+                clipHeight = h + clipBleed * 2D;
                 break;
         }
 

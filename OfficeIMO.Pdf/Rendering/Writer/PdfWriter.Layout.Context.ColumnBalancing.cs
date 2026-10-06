@@ -41,10 +41,15 @@ internal static partial class PdfWriter {
             List<ColumnBalanceUnit>? units = MeasureColumnBalanceContent(content, scope, scope.Widths[0]);
             if (units == null) return available;
             if (units.Count == 0) return available;
+            bool continuousDecoration = HasContinuousColumnDecoration(units);
             bool Fits(double height) {
                 int columns = 1;
                 double used = 0D;
-                return PackColumnBalanceUnits(units, height, scope.Widths.Length, 0D, ref columns, ref used);
+                double? firstHeight = null;
+                bool fits = PackColumnBalanceUnits(units, height, scope.Widths.Length, 0D, ref columns, ref used,
+                    continuousDecoration ? value => firstHeight ??= value : null);
+                // Closing padding must not make the final column longer than the leading column.
+                return fits && (!firstHeight.HasValue || used <= firstHeight.Value + .001D);
             }
             if (!Fits(available)) return available;
             double low = 0D;
@@ -56,6 +61,10 @@ internal static partial class PdfWriter {
             }
             return Math.Min(available, Math.Ceiling((high + 0.001D) * 1000D) / 1000D);
         }
+
+        private static bool HasContinuousColumnDecoration(IReadOnlyList<ColumnBalanceUnit> units) => units.Any(unit =>
+            unit.Container is { } container && (!container.Style.RepeatFragmentDecoration || HasContinuousColumnDecoration(container.Units)) ||
+            unit.Paragraph is { } paragraph && HasContinuousColumnDecoration(paragraph.Units));
 
         private List<ColumnBalanceUnit>? MeasureColumnBalanceUnits(IPdfBlock block, ColumnFlowScope scope, double frameWidth) {
             if (block is SemanticBlock or FlowBlock or ContainerBlock)
@@ -101,7 +110,7 @@ internal static partial class PdfWriter {
                 RowFragment = fragment; Container = null; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceContainer container) {
-                Height = container.Units.Sum(unit => unit.Height) + container.Style.PaddingY * 2D + container.Style.SpacingAfter;
+                Height = container.Units.Sum(unit => unit.Height) + container.Style.GetFragmentTopPadding(container.IsContinuation) + container.Style.BottomPadding + container.Style.SpacingAfter;
                 ContinuationHeight = 0D; SpacingBefore = 0D; RowFragment = null; Container = container; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceParagraph paragraph) {

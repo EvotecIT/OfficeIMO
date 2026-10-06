@@ -9,6 +9,19 @@ namespace OfficeIMO.Provenance.C2pa.Tests;
 
 public sealed class C2paToolProvenanceVerifierTests {
     [Theory]
+    [InlineData(1, "Error: No claim found\n", OfficeProvenanceVerificationStatus.NotPresent)]
+    [InlineData(0, "Error: No claim found", OfficeProvenanceVerificationStatus.Error)]
+    [InlineData(1, "Error: No claim found: corrupt input", OfficeProvenanceVerificationStatus.Error)]
+    [InlineData(1, "permission denied", OfficeProvenanceVerificationStatus.Error)]
+    public void UnmarkedToolResponseIsDistinctFromProviderFailure(int exitCode, string error, OfficeProvenanceVerificationStatus expected) {
+        string assetPath = CreateAsset();
+        try {
+            var verifier = new C2paToolProvenanceVerifier("c2patool", new StubRunner(new C2paToolProcessResult(exitCode, "", error)));
+            Assert.Equal(expected, verifier.Verify(assetPath).Status);
+        } finally { File.Delete(assetPath); }
+    }
+
+    [Theory]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\"}", 0, OfficeProvenanceVerificationStatus.Valid)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"claimSignature.validated\"},{\"code\":\"assertion.dataHash.match\"},{\"code\":\"signingCredential.trusted\"}]}", 0, OfficeProvenanceVerificationStatus.Valid)]
     [InlineData("{\"active_manifest\":null,\"manifests\":{}}", 0, OfficeProvenanceVerificationStatus.NotPresent)]

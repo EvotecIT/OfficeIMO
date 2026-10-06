@@ -2282,8 +2282,6 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Theory]
     [InlineData("H0")]
-    [InlineData("H7")]
-    [InlineData("H9")]
     [InlineData("H10")]
     [InlineData("H٢")]
     [InlineData("Heading2")]

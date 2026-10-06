@@ -26,7 +26,7 @@ public sealed partial class OfficeRasterCanvas {
                 return Store();
             }
         }
-        IOfficeFontProgram? font = ResolveTextFont(text, family, style);
+        IOfficeFontProgram? font = ResolveTextFont(text, family, style, size);
         if (font != null) {
             double origin = -ResolveRasterBaseline(font, size);
             // Fitted raster text paints base outlines, while positioned/SVG paths

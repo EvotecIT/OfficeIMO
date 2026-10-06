@@ -41,6 +41,25 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Owned HTML parser providers
+
+`IHtmlParserProvider.Parse` is replaced by `ParseDocument`, and providers implement
+`ParseFragment` with an owned context element. Rename direct calls to
+`AngleSharpHtmlParser.Instance.Parse` to `ParseDocument`. The conversion entrypoint
+`HtmlConversionDocument.Parse` retains its API. Custom providers return frozen owned
+snapshots for both operations; contextual fragments have an independent document and
+can be imported into a mutable destination with `ImportNode`.
+
+## Long-document AI request budgets
+
+Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
+
+## OCR review and AI evidence
+
+A single adaptive OCR attempt that passes confidence checks now has `OcrReviewStatus.Unassessed`, emits `adaptive-ocr-unassessed`, and sets `ReviewRecommended` to true. Use `Quality.MeetsThresholds` when you specifically need the old confidence-only signal. Use `new OcrReviewPolicy(OcrRetryMode.CompareAll)` to run every configured variant within the shared deadline. `ChecksPassed` reports agreement and passing checks, not correctness or approval.
+
+Reader OCR blocks carry `Recognition` provenance through JSON and nested projection. AI includes it in evidence snapshot hashes, requests, citations and reports. Recreate cached snapshots/results together; do not combine results with newly captured evidence merely because the original source hash matches. Extraction consumers can inspect `TextValueMatched` and `RecognitionReviewRequired` alongside field status.
+
 ## ZIP, drawing links, and MCP filesystem access
 
 `OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
@@ -183,6 +202,12 @@ Reader retains attachment order and emits image-anchor blocks even when alternat
 Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.
 
 The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
+
+## Excel HTML named-table reports
+
+Excel HTML export reports classify omitted native named-table definitions as loss, even when all worksheet cells are preserved. Callers requiring lossless conversion must account for table names, filters, styles and totals metadata that HTML does not restore.
+
+Worksheet exports and `ExcelSheet.GetTables()` require a handle belonging to the current workbook package. When a save reloads that package, reacquire the worksheet from `document.Sheets` before inspecting or exporting it; stale or removed handles raise `InvalidOperationException`. Workbook exports and `document.GetTables()` use the current package directly.
 
 ## Excel and iWork TEXTJOIN formulas
 

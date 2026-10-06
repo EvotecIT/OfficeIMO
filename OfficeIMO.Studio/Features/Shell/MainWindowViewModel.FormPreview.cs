@@ -23,6 +23,7 @@ public sealed partial class MainWindowViewModel {
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs args) {
         base.OnPropertyChanged(args);
+        NotifyCoreDocumentChanged(args);
         if (args.PropertyName?.StartsWith("NewFormField", StringComparison.Ordinal) == true ||
             args.PropertyName?.StartsWith("FormWidget", StringComparison.Ordinal) == true ||
             args.PropertyName == nameof(SelectedFormFieldCreationChoice) || args.PropertyName == nameof(IsWorkspaceBusy) ||
