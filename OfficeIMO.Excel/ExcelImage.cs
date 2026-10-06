@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Represents a worksheet image anchored in the drawing layer.
     /// </summary>
-    public sealed class ExcelImage {
+    public sealed partial class ExcelImage {
         private readonly Xdr.Picture _picture;
         private readonly OpenXmlElement _anchor;
         private readonly DrawingsPart _drawingsPart;

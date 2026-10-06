@@ -557,6 +557,11 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append("\" data-officeimo-anchor=\"")
                 .Append(image.HasAbsoluteAnchor ? "absolute" : image.HasTwoCellAnchor ? "twoCell" : "oneCell")
                 .Append('"');
+            if (image.HyperlinkUri is Uri hyperlink) {
+                body.Append(" data-officeimo-image-hyperlink=\"")
+                    .Append(OfficeHtmlText.EscapeAttribute(hyperlink.OriginalString))
+                    .Append('"');
+            }
             AppendDataAttribute(body, "data-officeimo-row", image.RowIndex);
             AppendDataAttribute(body, "data-officeimo-column", image.ColumnIndex);
             AppendDataAttribute(body, "data-officeimo-width", image.WidthPixels);
@@ -700,11 +705,6 @@ public static partial class ExcelHtmlConverterExtensions {
             OfficeImageExportDiagnosticSeverity.Warning => HtmlDiagnosticSeverity.Warning,
             _ => HtmlDiagnosticSeverity.Info
         };
-        OfficeConversionLossKind lossKind = diagnostic.Severity switch {
-            OfficeImageExportDiagnosticSeverity.Error => OfficeConversionLossKind.Failure,
-            OfficeImageExportDiagnosticSeverity.Warning => OfficeConversionLossKind.Approximation,
-            _ => OfficeConversionLossKind.None
-        };
         return new HtmlDiagnostic(
             "OfficeIMO.Excel.Html",
             diagnostic.Code,
@@ -713,7 +713,7 @@ public static partial class ExcelHtmlConverterExtensions {
                 : diagnostic.Message,
             severity,
             diagnostic.Source,
-            lossKind: lossKind);
+            lossKind: diagnostic.LossKind);
     }
 
     private static string CreateSvgNamespacePrefix(OfficeImageExportResult result, int index) {

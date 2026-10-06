@@ -514,10 +514,10 @@ public static partial class HtmlExcelConverterExtensions {
         if (row > A1.MaxRows) return;
         int width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
         int height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
-        sheet.AddImage(row, 1, bytes, contentType, width, height,
+        ExcelImage importedImage = sheet.AddImage(row, 1, bytes, contentType, width, height,
             name: null,
             altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
-        ReportImageHyperlinkLoss(resource.Hyperlink, result);
+        ApplyImageHyperlink(importedImage, resource.Hyperlink, result);
         result.Images++;
         imageReservation.Commit();
         row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));

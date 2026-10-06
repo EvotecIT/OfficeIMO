@@ -15,10 +15,61 @@ public partial class Word {
     [InlineData(WordBorderStyle.Dotted, false)]
     [InlineData(WordBorderStyle.Dotted, true)]
     public void SaveAsPdf_TableBorderPatterns_PreserveDirectAndInheritedStrokes(WordBorderStyle borderStyle, bool inherited) {
-        using WordDocument document = WordDocument.Create();
+        using WordDocument document = CreatePatternedTableDocument(borderStyle, inherited);
+        WordTable table = document.Tables[0];
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Patterned border";
+        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        Assert.Contains("Patterned border", string.Concat(pdf.GetPages().Select(page => page.Text)));
+        string raw = PdfOperatorSearchText.From(bytes);
+        Assert.Contains("1 0 0 RG", raw, StringComparison.Ordinal);
+        Assert.Contains("1.5 w", raw, StringComparison.Ordinal);
+        Assert.Contains(borderStyle == WordBorderStyle.Dashed ? "[4.5 2.25] 0 d" : "[1.5 2.25] 0 d", raw,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_TableDoubleBorders_PreserveTwoTracksAndClearCellText(bool inherited) {
+        using WordDocument document = CreatePatternedTableDocument(WordBorderStyle.Double, inherited);
+        WordTable table = document.Tables[0];
+        for (int row = 0; row < 2; row++)
+            for (int column = 0; column < 2; column++) {
+                var cell = table.Rows[row].Cells[column];
+                cell.Paragraphs[0].Text = $"gyp{row}{column}";
+                if (row == 1) cell.ShadingFillColorHex = "FFE6A0";
+            }
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        var page = pdf.GetPage(1);
+        var lines = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
+            .Where(bounds => bounds.HasValue).Select(bounds => bounds!.Value).ToArray();
+        double[] vertical = lines.Where(bounds => bounds.Width < .001D && bounds.Height > .001D)
+            .Select(bounds => Math.Round(bounds.Left, 3)).Distinct().OrderBy(value => value).ToArray();
+        double[] horizontal = lines.Where(bounds => bounds.Height < .001D && bounds.Width > .001D)
+            .Select(bounds => Math.Round(bounds.Top, 3)).Distinct().OrderBy(value => value).ToArray();
+        Assert.Equal(6, vertical.Length);
+        Assert.Equal(6, horizontal.Length);
+        Assert.Equal(3, vertical[3] - vertical[2], 3);
+        var words = page.GetWords().Where(word => word.Text.StartsWith("gyp", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(4, words.Length);
+        foreach (var word in words) {
+            var box = word.BoundingBox;
+            Assert.DoesNotContain(lines, line => line.Left - .75D < box.Right && line.Right + .75D > box.Left &&
+                line.Bottom - .75D < box.Top && line.Top + .75D > box.Bottom);
+        }
+    }
+
+    private static WordDocument CreatePatternedTableDocument(WordBorderStyle borderStyle, bool inherited) {
+        WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 2);
         if (inherited) {
-            BorderValues style = borderStyle == WordBorderStyle.Dashed ? BorderValues.Dashed : BorderValues.Dotted;
+            BorderValues style = borderStyle switch {
+                WordBorderStyle.Dashed => BorderValues.Dashed,
+                WordBorderStyle.Dotted => BorderValues.Dotted,
+                WordBorderStyle.Double => BorderValues.Double,
+                _ => throw new ArgumentOutOfRangeException(nameof(borderStyle))
+            };
             const string styleId = "PatternedTable";
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new Style(
                 new StyleName { Val = "Patterned table" },
@@ -35,15 +86,7 @@ public partial class Word {
         } else {
             table.StyleDetails!.SetBordersForAllSides(borderStyle, 12U, OfficeIMO.Drawing.OfficeColor.Red);
         }
-        table.Rows[0].Cells[0].Paragraphs[0].Text = "Patterned border";
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
-        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
-        Assert.Contains("Patterned border", string.Concat(pdf.GetPages().Select(page => page.Text)));
-        string raw = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("1 0 0 RG", raw, StringComparison.Ordinal);
-        Assert.Contains("1.5 w", raw, StringComparison.Ordinal);
-        Assert.Contains(borderStyle == WordBorderStyle.Dashed ? "[4.5 2.25] 0 d" : "[1.5 2.25] 0 d", raw,
-            StringComparison.Ordinal);
+        return document;
     }
 
     [Theory]

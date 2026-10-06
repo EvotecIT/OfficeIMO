@@ -73,12 +73,14 @@ public class HtmlExcelRasterNormalization {
     [InlineData(HtmlImportMode.Semantic, "webp")]
     [InlineData(HtmlImportMode.Generic, "avif")]
     [InlineData(HtmlImportMode.Semantic, "avif")]
-    public void ExcelHtml_StaticRasterPreservesNativePicturePixelsAndGeometry(HtmlImportMode mode, string format) {
+    public void ExcelHtml_StaticRasterPreservesNativePicturePixelsGeometryAndTarget(HtmlImportMode mode, string format) {
         string fixture = format == "webp" ? Path.Combine(AppContext.BaseDirectory, "Images", "alpha-gradient")
             : Path.Combine(AppContext.BaseDirectory, "Images", "avif-alpha");
         byte[] sourceBytes = File.ReadAllBytes(fixture + "." + format);
         string source = "data:image/" + format + ";base64," + Convert.ToBase64String(sourceBytes);
-        string image = "<img src='" + source + "' width='120' height='80' alt='Independent alpha control'>";
+        const string target = "https://example.org/photo?item=1&view=full";
+        string image = "<a href='" + target.Replace("&", "&amp;") + "'><img src='" + source
+            + "' width='120' height='80' alt='Independent alpha control'></a>";
         string html = mode == HtmlImportMode.Generic ? "<p>Before</p>" + image + "<p>After</p>"
             : "<section class='officeimo-sheet' data-officeimo-sheet='Image'><table><tr><td>Before</td></tr></table>"
                 + "<section class='officeimo-images'><ul><li data-officeimo-row='3' data-officeimo-column='2'"
@@ -94,6 +96,7 @@ public class HtmlExcelRasterNormalization {
         Assert.Equal("image/png", picture.ContentType);
         Assert.Equal(120, picture.WidthPixels);
         Assert.Equal(80, picture.HeightPixels);
+        Assert.Equal(target, picture.HyperlinkUri!.OriginalString);
         Assert.True(OfficeRasterImageDecoder.TryDecode(picture.ToBytes(), out OfficeRasterImage? decoded));
         byte[] expected = File.ReadAllBytes(fixture + ".rgba");
         byte[] actual = decoded!.GetPixels();
