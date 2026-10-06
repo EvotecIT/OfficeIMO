@@ -14,6 +14,19 @@
      <Button IsVisible="{Binding !ProvenanceWorkbench.UsesWorkingCopies}" Content="{loc:Loc Provenance.ChooseFile}" Command="{Binding ProvenanceWorkbench.ChooseInputCommand}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" Margin="0,0,8,0" />
      <Button Classes="accent" Content="{loc:Loc Provenance.Assess}" Command="{Binding ProvenanceWorkbench.AssessCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanAssess}" /></WrapPanel>
    </StackPanel></Border>
+   <Expander Header="{loc:Loc Provenance.ProviderTitle}" IsVisible="{Binding ProvenanceWorkbench.CanConfigureProvider}">
+    <StackPanel Spacing="8" Margin="8" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}">
+     <TextBlock Text="{loc:Loc Provenance.ProviderHint}" TextWrapping="Wrap" Classes="muted" />
+     <TextBlock Text="{loc:Loc Provenance.ToolPath}" />
+     <TextBox Text="{Binding ProvenanceWorkbench.C2paToolPath}" AutomationProperties.Name="{loc:Loc Provenance.ToolPath}" />
+     <TextBlock Text="{loc:Loc Provenance.TrustAnchors}" />
+     <TextBox Text="{Binding ProvenanceWorkbench.TrustAnchorsPath}" AutomationProperties.Name="{loc:Loc Provenance.TrustAnchors}" />
+     <TextBlock Text="{loc:Loc Provenance.AllowedList}" />
+     <TextBox Text="{Binding ProvenanceWorkbench.AllowedListPath}" AutomationProperties.Name="{loc:Loc Provenance.AllowedList}" />
+     <Button Content="{loc:Loc Provenance.CheckProvider}" Command="{Binding ProvenanceWorkbench.CheckProviderCommand}" HorizontalAlignment="Left" />
+     <TextBlock Text="{Binding ProvenanceWorkbench.ProviderStatus}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
+   </Expander>
    <TextBlock Text="{Binding ProvenanceWorkbench.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
    <TextBlock Text="{Binding ProvenanceWorkbench.Checks}" TextWrapping="Wrap" />
    <TextBlock Classes="muted" Text="{Binding ProvenanceWorkbench.Coverage}" TextWrapping="Wrap" />

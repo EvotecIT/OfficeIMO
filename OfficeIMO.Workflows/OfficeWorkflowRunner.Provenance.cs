@@ -179,7 +179,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                             OfficeProvenanceAssessment.Check.TextIntegrity => checks with { TextIntegrity = state },
                             OfficeProvenanceAssessment.Check.Verification => checks with { Verification = state },
                             _ => checks with { ProviderSignals = state }
-                        }),
+                        }, validated.Owner == ProvenanceOwner.Word
+                            ? () => OfficeProvenanceWorkflowAdapter.InspectDocumentText(validated.Owner,
+                                operationInputPath, validated.Assessment, structural.ExpandedInspectionBytes, cancellationToken)
+                            : null),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 inputSnapshot!.VerifyPrimaryFile(cancellationToken);
