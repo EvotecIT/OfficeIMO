@@ -289,6 +289,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
         if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
+        style = PrepareButtonChildStyle(element, style);
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -297,7 +298,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, out HtmlRenderFlowBlock flexBlock)) {
