@@ -262,6 +262,14 @@ replaces one whole market and removes the other, while `remove-absent-market.oni
 removes an explicitly named former market absent from the source. These files do not
 establish recipient update handling, delivery sequencing or acknowledgment.
 
+`restriction-*.onix` exercises every supported digital sales-restriction type in
+both rights and supply markets, with translated notes and dates. Outlet-specific
+fixtures cover all four identifier schemes. They share `restrictions.epub`; the
+runner checks byte identity across the restrictions and records hashes in
+`restrictions-evidence.json`. `update-restriction.onix` retains restrictions in
+a publishing-block and named-market update. These are synthetic assertions,
+not evidence of outlet assignment, commercial agreements or recipient acceptance.
+
 Obtain the ONIX 3.1 reference XSD from [EDItEUR](https://www.editeur.org/93/Release-3.0-and-3.1-Downloads/)
 and retain its unchanged adjacent code-list and XHTML schemas and their license
 notices. The local schema directory must contain `ONIX_BookProduct_3.1_reference.xsd`,
@@ -278,6 +286,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/priced.onix \
   /path/to/new-onix-evidence/withdrawn.onix \
   /path/to/new-onix-evidence/catalog.onix \
+  /path/to/new-onix-evidence/restriction-*.onix \
+  /path/to/new-onix-evidence/update-restriction.onix \
   /path/to/new-onix-evidence/named-markets.onix \
   /path/to/new-onix-evidence/update-named-markets.onix \
   /path/to/new-onix-evidence/remove-absent-market.onix \

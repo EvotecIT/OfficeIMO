@@ -135,6 +135,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     ChangeFixtures.Write(profile.Name, result, schemas, outputDirectory);
     if (profile.Name == "advance") MarketFixtures.Write(project, options, schemas, outputDirectory, timestamp);
+    if (profile.Name == "confirmed") RestrictionFixtures.Write(project, options, schemas, outputDirectory, timestamp);
     if (profile.Name == "collateral-usage") UsageFixtures.ProbeRecentCodes(project, options, schemas, outputDirectory, timestamp);
     if (profile.Name == "collateral-licenses") LicenseFixtures.ProbeDatedLicenses(project, options, schemas, outputDirectory, timestamp);
     if (profile.Name == "alternative-titles") AlternativeTitleFixtures.Verify(result, schemas);

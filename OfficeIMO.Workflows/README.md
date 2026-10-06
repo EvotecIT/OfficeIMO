@@ -1282,6 +1282,55 @@ Replacements retain selection order, followed by removals in selection order.
 Existing feeds must agree stable market identities with their recipient before
 switching from unnamed to named supply updates.
 
+### ONIX sales restrictions
+
+Both `BookOnixSalesRights.Restrictions` and `BookOnixSupply.Restrictions` accept
+explicit non-territorial sales restrictions. A rights restriction applies within
+its rights territory; a supply restriction applies to the entire supply market.
+They share one serializer and do not infer or enforce purchasing eligibility.
+
+```csharp
+var restriction = new BookOnixSalesRestriction(BookOnixSalesRestrictionKind.RetailerExclusive) {
+    Outlets = [new() { Name = "Example Books", Identifiers = [
+        new(BookOnixSalesOutletScheme.Proprietary, "store-1") { SchemeName = "Publisher outlets" }
+    ] }],
+    Notes = [new("Exclusive launch partner", "eng")],
+    ValidFrom = new DateOnly(2026, 10, 1),
+    ValidUntil = new DateOnly(2026, 10, 31)
+};
+// Assign [restriction] to the relevant rights or supply record's Restrictions property.
+```
+
+The digital-download profile supports [list 71](https://ns.editeur.org/onix/en/71)
+codes 00–02, 04–16, 20–23 and 99. Internal-use-only code 03 and print-on-demand
+codes 17–19 are excluded. `Unspecified` needs a note. Retailer-specific and selected
+subscription-service restrictions need at least one named or identified outlet.
+`NoRestrictions` is an explicit assertion; an empty list makes no assertion.
+
+Each territory or market accepts up to 32 restrictions. Each restriction accepts
+16 outlets and 16 translated plain-text notes; repeated notes require distinct
+explicit language codes. Notes allow 300 UTF-16 code units, outlet names 200,
+and identifiers and proprietary scheme names 100. The combined restriction text
+budget across rights and supply is 524,288 UTF-16 code units; the existing XML byte
+limit still applies. Effective dates may be open-ended or equal, but cannot run
+backwards. Directly opposing channel assertions within the same restriction list are rejected
+when their inclusive date ranges overlap. An unrestricted assertion cannot overlap another restriction
+or identify a restricted set of outlets. Other business-rule interactions are not
+resolved automatically.
+
+Outlets support a name, up to eight identifiers, or both. Identifier schemes are
+proprietary (with a scheme name), ONIX list 139, GLN and SAN. Validation is lexical:
+three uppercase alphanumeric characters for ONIX codes, 13 digits for GLN, and
+seven digits for SAN. It does not verify codelist membership, check digits,
+assignment, ownership or outlet existence. Distinct proprietary schemes may coexist;
+repeated identifier schemes are rejected. Optional outlet-name language requires
+a name. XHTML notes, subterritory restrictions within one supply declaration and
+recipient eligibility enforcement are outside this profile.
+
+Restrictions survive complete-record composition, publishing-block replacement
+and market updates. Neither these assertions nor schema validation establish
+recipient acceptance or the validity of a commercial agreement.
+
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.

@@ -32,6 +32,7 @@ public sealed partial class BookProject {
                 throw new ArgumentException("Forthcoming status needs a publication date; cancelled or indefinitely postponed status forbids one.", nameof(commercial));
             status = new XElement(ns + "PublishingStatus", code);
         }
+        int restrictionBudget = 524288;
         var rights = new List<XElement>(); var territories = new List<OnixTerritory>(); var grants = new List<OnixTerritory>();
         foreach (BookOnixSalesRights right in commercial.SalesRights) {
             token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(right);
@@ -46,7 +47,8 @@ public sealed partial class BookProject {
                 throw new ArgumentException("Sales-rights territories must not overlap in this export profile.", nameof(commercial));
             territories.Add(territory);
             if (right.Kind is BookOnixSalesRightsKind.Exclusive or BookOnixSalesRightsKind.NonExclusive) grants.Add(territory);
-            rights.Add(new XElement(ns + "SalesRights", new XElement(ns + "SalesRightsType", code), territory.ToXml()));
+            rights.Add(new XElement(ns + "SalesRights", new XElement(ns + "SalesRightsType", code), territory.ToXml(),
+                BuildOnixSalesRestrictions(right.Restrictions, ref restrictionBudget, token)));
         }
         var supplies = new List<XElement>();
         var marketReferences = new HashSet<string>(StringComparer.Ordinal);
@@ -56,12 +58,12 @@ public sealed partial class BookProject {
                 RequireOnixMarketReference(reference);
                 if (!marketReferences.Add(reference)) throw new ArgumentException("Market references must be unique within a product.", nameof(commercial));
             }
-            supplies.Add(BuildOnixSupply(supply, grants, token));
+            supplies.Add(BuildOnixSupply(supply, grants, ref restrictionBudget, token));
         }
         return new(status, rights.ToArray(), supplies.ToArray());
     }
 
-    private static XElement BuildOnixSupply(BookOnixSupply supply, IReadOnlyList<OnixTerritory> grants, CancellationToken token) {
+    private static XElement BuildOnixSupply(BookOnixSupply supply, IReadOnlyList<OnixTerritory> grants, ref int restrictionBudget, CancellationToken token) {
         XNamespace ns = OnixNamespace;
         OnixTerritory market = ReadOnixTerritory(supply.Territory);
         RequireOnixText(supply.SupplierName, nameof(supply.SupplierName));
@@ -101,7 +103,7 @@ public sealed partial class BookProject {
         }
         return new XElement(ns + "ProductSupply",
             supply.MarketReference != null ? new XElement(ns + "MarketReference", supply.MarketReference) : null,
-            new XElement(ns + "Market", market.ToXml()), detail);
+            new XElement(ns + "Market", market.ToXml(), BuildOnixSalesRestrictions(supply.Restrictions, ref restrictionBudget, token)), detail);
     }
 
     private static XElement BuildOnixPrice(BookOnixPrice price, OnixTerritory market) {

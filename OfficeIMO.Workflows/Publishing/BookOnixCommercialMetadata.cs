@@ -43,7 +43,10 @@ public sealed record BookOnixTerritory {
 }
 
 /// <summary>A publisher's territorial sales-rights assertion; OfficeIMO does not verify ownership.</summary>
-public sealed record BookOnixSalesRights(BookOnixSalesRightsKind Kind, BookOnixTerritory Territory);
+public sealed record BookOnixSalesRights(BookOnixSalesRightsKind Kind, BookOnixTerritory Territory) {
+    /// <summary>Up to 32 explicit non-territorial restrictions within these rights. No eligibility is inferred.</summary>
+    public IReadOnlyList<BookOnixSalesRestriction> Restrictions { get; init; } = [];
+}
 
 /// <summary>Explicit ONIX supplier roles supported by digital-book delivery.</summary>
 public enum BookOnixSupplierRole {
@@ -133,6 +136,8 @@ public sealed record BookOnixPrice {
 
 /// <summary>One explicit market, supplier and availability declaration, with prices or an unpriced reason.</summary>
 public sealed record BookOnixSupply {
+    /// <summary>Up to 32 explicit non-territorial restrictions applying to this entire market.</summary>
+    public IReadOnlyList<BookOnixSalesRestriction> Restrictions { get; init; } = [];
     /// <summary>Optional permanent identity within this product, at most 100 UTF-16 code units. Never inferred from territory or supplier.</summary>
     public string? MarketReference { get; init; }
     /// <summary>Market to which this supply declaration applies.</summary>

@@ -31,7 +31,7 @@ public sealed class BookOnixMarketTests {
         Assert.Equal(before, source.Bytes); Assert.Same(source, Assert.Single(message.Products));
         var selected = Product(Update(new(source) { ReplaceMarketReferences = ["gb"] }).Bytes);
         Assert.Single(selected.Elements(Ns + "ProductSupply"));
-        Assert.Empty(selected.Elements(Ns + "ProductSupply").Where(e => !e.Elements(Ns + "SupplyDetail").Any()));
+        Assert.DoesNotContain(selected.Elements(Ns + "ProductSupply"), e => !e.Elements(Ns + "SupplyDetail").Any());
     }
 
     [Fact]
