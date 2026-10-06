@@ -11,6 +11,7 @@ namespace OfficeIMO.Tests;
 public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Reserves_Word_Post_Chart_Paragraph_Spacing() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacing.pdf");
         string spacedPdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartParagraphSpacingExplicit.pdf");
@@ -30,10 +31,10 @@ public partial class Word {
             document.AddParagraph("AfterChartSpacingProbe");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         var words = pdf.GetPage(1).GetWords().ToList();

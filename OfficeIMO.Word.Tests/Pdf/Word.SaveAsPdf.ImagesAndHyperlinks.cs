@@ -80,6 +80,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Exports_Loaded_Inline_Paragraph_Images() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -96,10 +97,10 @@ public partial class Word {
         }
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyImageUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyImageUnsupported");
         string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", pdfContent);
 
@@ -142,6 +143,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Body_PictureControl_To_Image() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -156,10 +158,10 @@ public partial class Word {
             picture.AddPictureControl(imagePath, 48, 48, "Logo", "LogoTag");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning =>
+        Assert.DoesNotContain(conversionReport.Warnings, warning =>
             warning.Code == "NativeBodyContentControlUnsupported" &&
             warning.Source == "body paragraph");
 
@@ -231,6 +233,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Cell_PictureControl_To_Image() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -250,10 +253,10 @@ public partial class Word {
             paragraph.AddPictureControl(imagePath, 48, 48, "Cell Logo", "CellLogo");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning =>
+        Assert.DoesNotContain(conversionReport.Warnings, warning =>
             warning.Code == "NativeBodyContentControlUnsupported" &&
             warning.Source == "body table");
 
