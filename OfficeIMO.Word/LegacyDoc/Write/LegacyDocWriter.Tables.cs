@@ -1055,11 +1055,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocTableCellShading ReadSupportedTableShading(TableProperties? tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            Shading? shading = tableProperties?.GetFirstChild<Shading>();
-            if (shading != null) {
-                return ReadSupportedTableCellShading(shading, "table shading");
-            }
-
+            // Direct tblPr shading paints table-spacing gaps, not cell defaults.
+            // Its validation remains separate from ordinary style tcPr shading.
             return ReadSupportedTableStyleShading(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
         }
 

@@ -6,6 +6,41 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData("direct-shading")]
+    [InlineData("no-style")]
+    [InlineData("no-properties")]
+    public void TableShading_ImportedTablesWithoutAStyleExposeSettingsInSchemaOrder(string kind) {
+        using WordDocument source = WordDocument.Create();
+        WordTable original = source.AddTable(1, 1);
+        original.Rows[0].Cells[0].Paragraphs[0].Text = "Imported table";
+        original.Rows[0].Cells[0].ShadingFillColorHex = "FFFF00";
+        if (kind == "no-properties") original._tableProperties!.Remove();
+        else {
+            original._tableProperties!.TableStyle?.Remove();
+            if (kind == "direct-shading") original._tableProperties.AddChild(
+                new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "FF0000" }, true);
+        }
+        // Settings access supplies missing table properties; existing style-free properties are already valid.
+        if (kind != "no-properties") Assert.Empty(source.DocumentValidationErrors);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        WordTable table = loaded.Tables[0];
+        if (kind != "no-properties") Assert.Empty(loaded.DocumentValidationErrors);
+        Assert.Null(table._tableProperties?.TableStyle);
+        WordTableStyleDetails details = Assert.IsType<WordTableStyleDetails>(table.StyleDetails);
+        Assert.Equal(kind == "direct-shading" ? "FF0000" : string.Empty, details.ShadingFillColorHex);
+        details.ShadingFillColorHex = "0000FF";
+        details.CellSpacing = 120;
+        using WordDocument roundtrip = WordDocument.Load(new MemoryStream(loaded.ToBytes()));
+        Assert.Equal("0000FF", roundtrip.Tables[0].StyleDetails!.ShadingFillColorHex);
+        Assert.Equal((short)120, roundtrip.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Null(roundtrip.Tables[0]._tableProperties!.TableStyle);
+        Assert.IsType<W.TableProperties>(roundtrip.Tables[0]._table.ChildElements[0]);
+        Assert.Equal("FFFF00", roundtrip.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal("Imported table", roundtrip.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
+        Assert.Empty(roundtrip.DocumentValidationErrors);
+    }
+
     [Fact]
     public void TableShading_PublicSettingsRoundTripWithoutChangingCellsOrMargins() {
         using WordDocument source = WordDocument.Create();
