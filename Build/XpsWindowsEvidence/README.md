@@ -30,8 +30,9 @@ unchanged OfficeIMO save, and a visible loaded path edit after save/reopen.
 
 `report.json` retains every case, including disagreements. RGB comparisons use
 white backgrounds at 96 dpi. The stable-interior metric excludes the one-pixel
-border and native 3-by-3 neighborhoods with channel variation above 4/255;
-full-image mean/max errors and pixels above 4/255 remain separate measurements.
+border and native 3-by-3 neighborhoods where any neighbor differs from the center
+by more than 4/255 in any channel. Full-image mean/max errors and pixels above
+4/255 remain separate measurements.
 Inspect the renders as well as those numbers, especially high-frequency fields
 and antialiased strokes. A zero exit code means evidence collection and lifecycle
 checks completed; it does not mean that every rendering is equivalent. Native

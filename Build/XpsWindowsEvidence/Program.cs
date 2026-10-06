@@ -75,10 +75,10 @@ internal static class Program {
             Platform = Environment.OSVersion.ToString(), Runtime = Environment.Version.ToString(),
             Consumer = "Microsoft WPF XpsDocument / DocumentPaginator / RenderTargetBitmap, 96 dpi",
             NativeAssemblies = new[] { Describe(typeof(NativeXps).Assembly), Describe(typeof(RenderTargetBitmap).Assembly) },
-            OfficeAssemblies = new[] { Describe(typeof(XpsDocument).Assembly), Describe(typeof(OfficeRasterImage).Assembly),
-                Describe(typeof(PdfReadDocument).Assembly) },
+            OfficeAssemblies = new[] { Describe(typeof(XpsDocument).Assembly), Describe(typeof(XpsToPdfOptions).Assembly),
+                Describe(typeof(OfficeRasterImage).Assembly), Describe(typeof(PdfReadDocument).Assembly) },
             Scope = "Microsoft XPS authored fixtures and one independent WPF two-document, three-page producer. No OpenXPS, interleaved, StoryFragments, printing, viewer or independent PDF-reader conformance claim.",
-            Comparison = "RGB channels on white at 96 dpi. Stable interior excludes a one-pixel border and native 3x3 neighborhoods spanning more than 4 channel values. Differences remain evidence; successful collection is not equivalence.",
+            Comparison = "RGB channels on white at 96 dpi. Stable interior excludes a one-pixel border and native 3x3 neighborhoods where any neighbor differs from the center by more than 4 in any channel. Differences remain evidence; successful collection is not equivalence.",
             Failures = failures, Results = results
         };
         File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(report,
