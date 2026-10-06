@@ -446,7 +446,9 @@ public class DrawingSvgReaderTests {
             .ToArray();
         Assert.Equal("Path", string.Concat(glyphs.Select(glyph => glyph.Text)));
         Assert.All(glyphGroups, group => Assert.NotEqual(OfficeTransform.Identity, group.Transform));
-        Assert.True(glyphs[0].X >= 10D);
+        OfficePoint firstCenter = glyphGroups[0].Transform.TransformPoint(
+            new OfficePoint(glyphs[0].X + glyphs[0].Width / 2D, glyphs[0].Y + glyphs[0].Height / 2D));
+        Assert.True(firstCenter.X >= 10D);
         string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
         Assert.Contains(">P</text>", exported, StringComparison.Ordinal);
         Assert.Contains("transform=\"matrix(", exported, StringComparison.Ordinal);
@@ -469,8 +471,9 @@ public class DrawingSvgReaderTests {
         Assert.Equal("A", latin.Text);
         Assert.True(latinGroup.Transform.M12 > 0.9D);
         Assert.All(upright, item => Assert.Equal(30D, item.X + (item.Width / 2D), 6));
-        Assert.True(upright[0].Y < latin.Y);
-        Assert.True(latin.Y < upright[1].Y);
+        OfficePoint latinCenter = latinGroup.Transform.TransformPoint(new OfficePoint(latin.X + latin.Width / 2D, latin.Y + latin.Height / 2D));
+        Assert.True(upright[0].Y + upright[0].Height / 2D < latinCenter.Y);
+        Assert.True(latinCenter.Y < upright[1].Y + upright[1].Height / 2D);
         string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
         Assert.Contains(">縦</text>", exported, StringComparison.Ordinal);
         Assert.Contains(">A</text>", exported, StringComparison.Ordinal);

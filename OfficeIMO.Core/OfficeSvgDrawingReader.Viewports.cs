@@ -12,7 +12,7 @@ public static partial class OfficeSvgDrawingReader {
     private static OfficeDrawing FitSvgViewport(OfficeDrawing scene, double width, double height,
         OfficeTransform transform, double maximumDimension, double maximumPixels, ref int unsupported,
         out double retainedScenePixels) {
-        if (HasOverflowingLocalShapes(scene) && transform.TryInvert(out OfficeTransform inverse)) {
+        if (HasOverflowingLocalGeometry(scene) && transform.TryInvert(out OfficeTransform inverse)) {
             var visible = inverse.TransformRectangleBounds(0D, 0D, width, height);
             if (scene.TryExpandViewportCanvas(visible.Left, visible.Top, visible.Right, visible.Bottom,
                     maximumDimension, maximumPixels, out OfficeDrawing expanded, out double left, out double top)) {
@@ -40,13 +40,13 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     // Viewport fitting must also account for transformed paint and stroke extent.
-    private static bool HasOverflowingLocalShapes(OfficeDrawing drawing) {
-        return HasOverflowingLocalShapes(drawing, OfficeTransform.Identity, drawing.Width, drawing.Height);
+    private static bool HasOverflowingLocalGeometry(OfficeDrawing drawing) {
+        return HasOverflowingLocalGeometry(drawing, OfficeTransform.Identity, drawing.Width, drawing.Height);
     }
 
-    private static bool HasOverflowingLocalShapes(OfficeDrawing drawing, OfficeTransform parent, double width, double height) {
+    private static bool HasOverflowingLocalGeometry(OfficeDrawing drawing, OfficeTransform parent, double width, double height, bool includeShapes = true) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
-            if (element is OfficeDrawingShape shape) {
+            if (includeShapes && element is OfficeDrawingShape shape) {
                 double stroke = shape.Shape.StrokeColor.HasValue || shape.Shape.StrokeGradient != null || shape.Shape.StrokeRadialGradient != null
                     ? shape.Shape.StrokeWidth / 2D : 0D;
                 if (shape.Shape.StrokeLineJoin == null || shape.Shape.StrokeLineJoin == OfficeStrokeLineJoin.Miter)
@@ -57,12 +57,30 @@ public static partial class OfficeSvgDrawingReader {
                     shape.Shape.Width + stroke * 2D, shape.Shape.Height + stroke * 2D);
                 if (bounds.Left < 0D || bounds.Top < 0D || bounds.Right > width || bounds.Bottom > height) return true;
             }
-            if (element is OfficeDrawingEffectGroup effect && HasOverflowingLocalShapes(effect.InnerDrawing,
-                    effect.Transform.Then(parent), width, height)) return true;
+            if (element is OfficeDrawingText text) {
+                var bounds = parent.TransformRectangleBounds(text.X, text.Y, text.Width, text.Height);
+                if (bounds.Left < 0D || bounds.Top < 0D || bounds.Right > width || bounds.Bottom > height) return true;
+            }
+            if (element is OfficeDrawingEffectGroup effect) {
+                OfficeTransform transform = effect.Transform.Then(parent);
+                // A transformed text run's surface includes ink beyond its advance,
+                // including italic bearings and synthetic bold. Clip that paint too.
+                if (effect.InnerDrawing.Elements.Count == 1 && effect.InnerDrawing.Elements[0] is OfficeDrawingText) {
+                    var bounds = transform.TransformRectangleBounds(0D, 0D, effect.InnerDrawing.Width, effect.InnerDrawing.Height);
+                    if (bounds.Left < 0D || bounds.Top < 0D || bounds.Right > width || bounds.Bottom > height) return true;
+                }
+                if (HasOverflowingLocalGeometry(effect.InnerDrawing, transform, width, height, includeShapes)) return true;
+            }
             if (element is OfficeDrawingGroup group) {
+                if (!includeShapes) {
+                    OfficeTransform frame = group.FrameTransform?.CreateDestinationTransform() ?? OfficeTransform.Identity;
+                    var clipBounds = frame.Then(parent).TransformRectangleBounds(group.X, group.Y, group.ClipPath.Width, group.ClipPath.Height);
+                    if (clipBounds.Left < 0D || clipBounds.Top < 0D || clipBounds.Right > width || clipBounds.Bottom > height) return true;
+                    continue;
+                }
                 OfficeTransform transform = OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY);
                 if (group.FrameTransform.HasValue) transform = transform.Then(group.FrameTransform.Value.CreateDestinationTransform());
-                if (HasOverflowingLocalShapes(group.InnerDrawing, transform.Then(parent), width, height)) return true;
+                if (HasOverflowingLocalGeometry(group.InnerDrawing, transform.Then(parent), width, height, includeShapes)) return true;
             }
         }
         return false;
