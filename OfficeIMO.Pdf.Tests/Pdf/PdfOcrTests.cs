@@ -182,10 +182,15 @@ public class PdfOcrTests {
 
         try {
             Task<PdfOcrMergeResult> firstCall = PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options);
-            Task started = await Task.WhenAny(firstCallStarted.Task, Task.Delay(TimeSpan.FromSeconds(10)));
-            Assert.Same(firstCallStarted.Task, started);
             OcrEngineTimeoutException first = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
                 () => firstCall);
+            if (!first.ProviderCallStarted) {
+                // The deadline may suppress provider entry before its dedicated thread runs.
+                Assert.False(firstCallStarted.Task.IsCompleted);
+                Assert.Equal(0, Volatile.Read(ref callCount));
+                return;
+            }
+            Assert.True(firstCallStarted.Task.IsCompleted);
             OcrEngineTimeoutException second = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
                 () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options));
 

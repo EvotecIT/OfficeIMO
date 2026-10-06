@@ -37,7 +37,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork() {
         var source = new OfficeRasterImage(4096, 1025, OfficeColor.FromRgba(24, 80, 160, 224));
         byte[][] encoded = {
@@ -64,7 +69,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void BoundedPngIdentificationObservesCancellationDuringChunkValidation() {
         byte[] png = CreatePngWithLargeAncillaryPayload();
         using var cancellation = new CancellationTokenSource();
@@ -78,7 +88,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops() {
         byte[] bmp = CreateWideBmp32(width: 8 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();
@@ -89,6 +104,43 @@ public sealed class DrawingRasterCodecRobustnessTests {
                 OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
         } finally {
             Assert.True(cancelThread.Join(TimeSpan.FromSeconds(5)));
+        }
+    }
+
+    [Theory]
+    [InlineData("png-identify")]
+    [InlineData("png-decode")]
+    [InlineData("tiff-decode")]
+    [InlineData("bmp-decode")]
+    public void PublicRasterRoutesRejectCanceledOperations(string route) {
+        var source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var options = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+
+        switch (route) {
+            case "png-identify":
+                byte[] identifiedPng = OfficePngWriter.Encode(source);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeImageReader.TryIdentifyByContent(identifiedPng, null, cancellation.Token, out _));
+                break;
+            case "png-decode":
+                byte[] decodedPng = OfficePngWriter.Encode(source);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeRasterImageDecoder.TryDecode(decodedPng, options, out _, out _));
+                break;
+            case "tiff-decode":
+                byte[] tiff = OfficeTiffCodec.Encode(source);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeTiffCodec.TryDecodePage(tiff, 0, options, out _));
+                break;
+            case "bmp-decode":
+                byte[] bmp = CreateWideBmp32(width: 2);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(route));
         }
     }
 
@@ -103,7 +155,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
             OfficeTiffCodec.TryInspectPages(tiff, options, out _));
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops() {
         byte[] tiff = CreateWideGrayscaleTiff(width: 8 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();
