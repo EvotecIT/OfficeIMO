@@ -254,11 +254,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static IEnumerable<double> EnumerateNativeHeaderFooterElementFontSizes(WordElement element) {
             if (element is WordParagraph paragraph) {
-                foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(paragraph)) {
-                    if (style.FontSize.HasValue && style.FontSize.Value > 0D) {
-                        yield return style.FontSize.Value;
-                    }
-                }
+                foreach (double fontSize in EnumerateNativeHeaderFooterParagraphFontSizes(paragraph)) yield return fontSize;
 
                 yield break;
             }
@@ -271,14 +267,20 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (WordTableRow row in currentTable.Rows) {
                     foreach (WordTableCell cell in row.Cells) {
                         foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                            foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
-                                if (style.FontSize.HasValue && style.FontSize.Value > 0D) {
-                                    yield return style.FontSize.Value;
-                                }
-                            }
+                            foreach (double fontSize in EnumerateNativeHeaderFooterParagraphFontSizes(cellParagraph)) yield return fontSize;
                         }
                     }
                 }
+            }
+        }
+
+        private static IEnumerable<double> EnumerateNativeHeaderFooterParagraphFontSizes(WordParagraph paragraph) {
+            double defaultSize = GetNativeDocumentDefaults(paragraph._document).FontSize;
+            foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(paragraph)) {
+                // A missing run/style size inherits the document's size, as it
+                // does in body text; it must not select the PDF zone fallback.
+                double fontSize = style.FontSize ?? defaultSize;
+                if (fontSize > 0D) yield return fontSize;
             }
         }
 
