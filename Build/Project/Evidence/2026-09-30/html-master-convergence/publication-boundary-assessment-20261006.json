@@ -1,0 +1,195 @@
+{
+  "recordedUtc": "2026-10-06T07:08:23.236770+00:00",
+  "scope": "Current branch/PR inventory and publication-boundary reassessment; no product edits, new renderer qualification, full HTML PR, release or integration adoption",
+  "source": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
+  "master": "3e297566715341b5205494e0721ce6c64b238aee",
+  "programWorktrees": {
+    "feature/html-master-convergence": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
+    "feature/html-engine": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
+    "feature/html-unknown-page-qualification": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
+    "feature/html-h10-job-qualification": "28a9f587556d40651faf2143a609aafc7c33be4a",
+    "feature/html-static-delivery": "208d31c762ff25e0f5b1f050274c5467d6f1a77f",
+    "feature/html-math-geometry": "897707b2e0015dd9e0533503e691091aa80081a3",
+    "feature/html-contour-qualification": "4bc99baefea8b944c18b1b5798982ec1914ed216"
+  },
+  "workingTrees": "Seven program worktrees were clean and matched their remote branches at inspection",
+  "unsubmittedBoundaries": [
+    {
+      "owner": "Html.Core / Html.AngleSharp",
+      "examples": [
+        "source-preserving CSS tokens, syntax, typed values and selector contracts",
+        "owned DOM/import and provider projection changes"
+      ],
+      "assessment": "Existing packages on master; incremental owner extraction required, not another parser product"
+    },
+    {
+      "owner": "Core math/fonts",
+      "examples": [
+        "static OpenType MATH constants",
+        "glyph variants and assemblies",
+        "italic/accent/math-kern placement",
+        "math-auto token transform"
+      ],
+      "assessment": "Strong retained independent proof; current-master extraction and its own normal packed public consumers remain required"
+    },
+    {
+      "owner": "Html / Html.Pdf / Mhtml / Tool",
+      "examples": [
+        "layout and fragmentation",
+        "paint-overflow and opaque continuation backgrounds",
+        "logical/source-order and link geometry",
+        "print/media/snapshot requests and ZIP/MHTML routes"
+      ],
+      "assessment": "Substantial unsubmitted static integration; needs selected bounded profile and prerequisite closure"
+    },
+    {
+      "owner": "Html.Runtime / Worker / Rendering / Conformance / AI.Html / External gitlinks",
+      "examples": [
+        "trusted scripted sessions and automation",
+        "source-linked retained-provider worker graph"
+      ],
+      "assessment": "Separate later productization; exclude from static candidates"
+    }
+  ],
+  "qualification": "Latest recorded combined product source 1231730d9 has full HTML 4408/4408 on net8/net10 and clean bounded planetary Excel replay. Earlier exact all-platform static/package proofs do not qualify later extraction/source graphs. Supported-platform timing and wider H10/manual/native criteria remain open.",
+  "branchConsolidation": {
+    "ancestorsOfMain": [
+      "feature/html-engine",
+      "feature/html-unknown-page-qualification",
+      "feature/html-h10-job-qualification"
+    ],
+    "otherCheckpointBranches": {
+      "feature/html-static-delivery": "Only patch-unique commit 208d31c76 changes roadmap prose",
+      "feature/html-math-geometry": "Only patch-unique commit 897707b2e changes qualification workflow/docs/test font setup, no product source",
+      "feature/html-contour-qualification": "Only patch-unique commit 4bc99baef changes qualification workflow selection"
+    },
+    "requiredBeforeRemoval": "Preserve unique evidence, workflow/test qualification changes and referenced frozen archives; update references before removing ordinary owned worktrees. Do not delete the shared integration boundary merely because its head is old."
+  },
+  "overlappingPublishedWork": {
+    "prs": [
+      2834,
+      2835,
+      2843
+    ],
+    "boundary": "Separate image/PDF/HTML report-fidelity stack. Its touched shared owners must be reconciled before current-master extraction; this audit does not manage or merge that stack."
+  },
+  "publishedProgramPrs": [
+    {
+      "number": 2841,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2841",
+      "head": "e39b35a6f8dcf9d31f47ca617358e596dc6c0dc2",
+      "checkedUtc": "2026-10-06T07:02:08.760980+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 0,
+      "checks": {
+        "SUCCESS": 88,
+        "QUEUED": 1,
+        "SKIPPED": 4,
+        "IN_PROGRESS": 1
+      },
+      "feedback": []
+    },
+    {
+      "number": 2845,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2845",
+      "head": "c6a622c2e5827060b49515763111774786357c5f",
+      "checkedUtc": "2026-10-06T07:02:11.339401+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 0,
+      "checks": {
+        "SUCCESS": 89,
+        "SKIPPED": 5,
+        "FAILURE": 2
+      },
+      "feedback": []
+    },
+    {
+      "number": 2850,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2850",
+      "head": "6b846359362ec869679768928b1693027e7d91a8",
+      "checkedUtc": "2026-10-06T07:02:16.745856+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 2,
+      "checks": {
+        "SUCCESS": 88,
+        "SKIPPED": 3
+      },
+      "feedback": [
+        {
+          "path": "OfficeIMO.Pdf.Tests/Pdf/PdfOcrTests.cs",
+          "line": 191,
+          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2850#discussion_r4191530626",
+          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
+        },
+        {
+          "path": "OfficeIMO.Drawing.Tests/Drawing.Raster.CodecRobustness.cs",
+          "line": 44,
+          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2850#discussion_r4191530631",
+          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
+        }
+      ]
+    },
+    {
+      "number": 2851,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2851",
+      "head": "716a1b8e1822ab626e2c5e1e60cac4cfcd7c22ef",
+      "checkedUtc": "2026-10-06T07:02:19.880374+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 1,
+      "checks": {
+        "SUCCESS": 91,
+        "SKIPPED": 5
+      },
+      "feedback": [
+        {
+          "path": "OfficeIMO.Excel/ExcelImage.Hyperlinks.cs",
+          "line": 19,
+          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2851#discussion_r4191715141",
+          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
+        }
+      ]
+    },
+    {
+      "number": 2852,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852",
+      "head": "710eea0fe646b28dba17a4759b304c3d30976533",
+      "checkedUtc": "2026-10-06T07:02:22.773616+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 2,
+      "checks": {
+        "FAILURE": 1,
+        "SUCCESS": 90,
+        "SKIPPED": 3
+      },
+      "feedback": [
+        {
+          "path": "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImagePreparation.cs",
+          "line": 84,
+          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852#discussion_r4191982189",
+          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
+        },
+        {
+          "path": "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImagePreparation.cs",
+          "line": 66,
+          "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852#discussion_r4191982200",
+          "disposition": "Requires reproduction and reachable sibling sweep; priority not yet validated"
+        }
+      ]
+    }
+  ],
+  "mergedThisAudit": {
+    "number": 2849,
+    "headRefOid": "c6a354b8b8150d89862090d1afb905e02e57dede",
+    "mergeCommit": {
+      "oid": "3e297566715341b5205494e0721ce6c64b238aee"
+    },
+    "mergedAt": "2026-10-06T07:05:16Z",
+    "state": "MERGED",
+    "retainedEvidence": "Ignore/MasterConvergenceQualification/merged-named-table-loss-c6a354b8b",
+    "preservedFiles": 153,
+    "preservedBytes": 45251274,
+    "ordinaryWorktreeAndLocalBranchRemoved": true
+  },
+  "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
+  "nextDeliverable": "Consolidated remediation of current feedback, then current-master static extraction preparation. Do not add new source classes or engine features merely while external gates run."
+}

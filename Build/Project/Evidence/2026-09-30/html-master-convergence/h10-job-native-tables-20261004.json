@@ -2579,7 +2579,7 @@
     "recordedUtc": "2026-10-06T02:04:31.912661+00:00",
     "combinedSource": "b3ae1f35ba3b3da27082585f1891bfae8102473d",
     "standaloneQualifiedBehavior": "493c7f37f09366d1b993ff4af4262b4efca9aad3",
-    "standalonePublishedHead": "21aab6d1f07d952beb5ec2000138c3c8301a2efe",
+    "standalonePublishedHead": "c6a354b8b8150d89862090d1afb905e02e57dede",
     "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2849",
     "scope": "Truthful native named-table omission reports, selected/deferred table ownership and package-scoped worksheet inspection; no named-table reconstruction.",
     "observedBefore": {
@@ -2819,7 +2819,7 @@
       "late-lifetime-adoption.json": "0526e5fab4569fafe85ef23cf2cac40e92fde47d22a144d87d10ed421d34efb0",
       "main-owner-version-observer-assumption.json": "c555abb866813bff56b658dfeca4e9c25079625c7d17e3a8ab8d2679fa71166a"
     },
-    "standaloneEvidenceRoot": "../OfficeIMO-excel-html-named-table-loss/Ignore/ExcelNamedTableLossQualification",
+    "standaloneEvidenceRoot": "Ignore/MasterConvergenceQualification/merged-named-table-loss-c6a354b8b",
     "standaloneArtifactHashes": {
       "lifetime-final-framework-validation.json": "ddc75a21abd0cb4f29137715e7d0140ccda291d9d9043585f0552d930d351eaf",
       "final-framework-validation.json": "8487b127f6ff13131be24f6b36003f9634f8750434d4a8c340f4c8a9cc19e69e",
@@ -2856,6 +2856,15 @@
       },
       "totalBytesThisSlice": 5861689974,
       "boundary": "Exact generated targets only; final feeds, source archives, native XLSX/HTML/PNG, framework tests, failed probes and origin/hash receipts retained. Shared caches and unrelated worktrees untouched."
+    },
+    "settlement20261006": {
+      "mergeCommit": "3e297566715341b5205494e0721ce6c64b238aee",
+      "mergedAt": "2026-10-06T07:05:16Z",
+      "currentHeadCi": "92 success, 5 skipped",
+      "delayedFeedback": "Complete paginated threads, reviews, raw/issue comments and reactions; no unresolved or actionable feedback",
+      "proofFiles": 153,
+      "proofBytes": 45251274,
+      "worktreeAndLocalBranchRemoved": true
     }
   },
   "nativeStandaloneSettlement20261006": {
