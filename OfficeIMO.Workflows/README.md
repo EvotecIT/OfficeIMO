@@ -312,13 +312,33 @@ record = project.ExportOnix(options with {
 }, schemas, cancellationToken: cancellationToken);
 ```
 
-Territories use explicit country lists or `Worldwide = true` with optional
-`ExcludedCountries`. Codes are uppercase ONIX list 91 values and the supplied schema
-checks membership. Rights territories cannot overlap in this profile. Available,
+Territories use explicit `Countries` and/or `Regions`, or `Worldwide = true` with
+optional `ExcludedCountries` and `ExcludedRegions`. Country codes are uppercase
+ONIX list 91 values and the supplied schema checks membership. Regions use a bounded
+[ONIX list 49](https://ns.editeur.org/onix/en/49) geographic profile: Australian
+states/territories, Belgian regions, Canadian provinces/territories, mainland Chinese
+alphabetic subdivision codes, `ES-CN`, `FR-H`, `GB-ENG`, `GB-NIR`, `GB-SCT`, `GB-WLS`,
+and US states plus `US-DC`. Deprecated aliases, airport markets, economic aggregates
+and other region hierarchies are rejected. Each list accepts at most 250 unique codes.
+
+```csharp
+var california = new BookOnixTerritory { Regions = ["US-CA"] };
+var restOfUs = new BookOnixTerritory {
+    Countries = ["US"], ExcludedRegions = ["US-CA"]
+};
+```
+
+An included region cannot repeat its included parent country. An excluded region
+must belong to an included country or the worldwide scope; its parent cannot also
+be excluded. Rights territories cannot overlap in this profile. Available,
 forthcoming or temporarily unavailable supply must fit the union of declared
-for-sale rights; no finite country list is treated as worldwide permission.
+for-sale rights. A finite subdivision list never implies a whole-country grant,
+and no finite country list is treated as worldwide permission. A country grant
+excluding California and a separate California grant can jointly cover the US.
 Unavailable or withdrawn supply can be reported after rights are lost. Undeclared
 territories remain unstated, and OfficeIMO does not verify rights ownership.
+Regional territories also apply to collateral text and supporting resources;
+recipient interpretation remains a separate qualification step.
 
 Each supply requires prices or an explicit `Unpriced` reason: `Free`,
 `ToBeAnnounced` or `ContactSupplier`. A zero price does not mean free. Prices preserve

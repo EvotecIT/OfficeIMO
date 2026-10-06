@@ -272,6 +272,12 @@ The runner also writes `catalog.onix`, combining two distinct edition ISBNs unde
 one header, and `catalog-priced.epub` for the second product. The message evidence
 retains each source ONIX and EPUB hash. It is outside normal builds and shipped packages.
 
+The `subterritories` fixture partitions worldwide rights around California and
+Québec, combines country and regional markets, excludes New York, and narrows a
+price to California. It exercises ONIX list 49 geography and territory element
+ordering against the supplied schema; it does not establish recipient acceptance
+or legal ownership of the asserted rights.
+
 The `resource-contributors` fixture links a promotional image to product credits
 through ISNI, ORCID and a named proprietary identifier. These are synthetic
 identity assertions; schema validation does not verify their ownership. The

@@ -32,7 +32,7 @@ public enum BookOnixSalesRightsKind {
     RightsNotHeld
 }
 
-/// <summary>An explicit country territory or WORLD with optional country exclusions.</summary>
+/// <summary>Explicit countries, supported ONIX subregions, or WORLD, with scoped exclusions.</summary>
 public sealed record BookOnixTerritory {
     /// <summary>Uppercase ONIX list 91 country codes; mutually exclusive with Worldwide.</summary>
     public IReadOnlyList<string> Countries { get; init; } = [];
@@ -40,6 +40,10 @@ public sealed record BookOnixTerritory {
     public bool Worldwide { get; init; }
     /// <summary>Country exclusions, allowed only with Worldwide. Each country list is bounded to 250 unique codes.</summary>
     public IReadOnlyList<string> ExcludedCountries { get; init; } = [];
+    /// <summary>Up to 250 unique supported ONIX list 49 geographic subregions, for example US-CA or CA-QC. Cannot accompany Worldwide or repeat an included parent country.</summary>
+    public IReadOnlyList<string> Regions { get; init; } = [];
+    /// <summary>Up to 250 supported subregions excluded from an included parent country or Worldwide. Exclusions never imply a grant.</summary>
+    public IReadOnlyList<string> ExcludedRegions { get; init; } = [];
 }
 
 /// <summary>A publisher's territorial sales-rights assertion; OfficeIMO does not verify ownership.</summary>

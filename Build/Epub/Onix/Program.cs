@@ -22,6 +22,7 @@ var timestamp = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero);
 foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Notification: BookOnixNotification.Early),
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
+    (Name: "subterritories", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-xhtml", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -71,7 +72,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     if (profile.Name == "discoverability") project.Publication.AddTitle("selected-title", new() {
         Text = "Selected catalog title", Kind = EpubTitleKind.Main
     });
-    BookOnixCommercialMetadata commercial = CommercialFixtures.Create(profile.Name);
+    BookOnixCommercialMetadata commercial = profile.Name == "subterritories" ? SubterritoryFixtures.Create() : CommercialFixtures.Create(profile.Name);
     var options = new BookOnixExportOptions {
         SenderName = "Example Press", PublisherName = "Example Press", RecordReference = "fixture-" + profile.Name,
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
@@ -98,6 +99,12 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             new("Example Studio", BookOnixContributorRole.Illustrator, true), new("Anne Editor", BookOnixContributorRole.Editor),
             new("Other Creator", BookOnixContributorRole.Other)],
         Commercial = commercial, Accessibility = AccessibilityFixtures.Create(profile.Name)
+    };
+    if (profile.Name == "subterritories") options = options with {
+        CollateralTexts = [CollateralFixtures.Create("collateral")[0] with { Territory = new() { Regions = ["CA-QC"] } }],
+        SupportingResources = [ResourceFixtures.Create("supporting-resources")[0] with {
+            Territory = new() { Countries = ["US"], ExcludedRegions = ["US-NY"] }
+        }]
     };
     if (profile.Name == "resource-contributors") options = options with {
         Contributors = options.Contributors.Select((credit, index) => index < ResourceFixtures.ContributorIdentities.Length
