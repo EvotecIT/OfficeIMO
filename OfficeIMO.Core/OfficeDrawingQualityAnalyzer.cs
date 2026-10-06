@@ -59,6 +59,14 @@ public static class OfficeDrawingQualityAnalyzer {
         double canvasLeft, double canvasTop, double canvasWidth, double canvasHeight, OfficeDrawingQualityOptions options, List<OfficeDrawingQualityIssue> issues,
         List<(int Index, string Text, DrawingBounds Bounds)> textBoxes, CancellationToken token) {
         token.ThrowIfCancellationRequested();
+        if (element is OfficeDrawingEffectGroup group) {
+            // The intermediate canvas is storage, not painted geometry. Only its children
+            // contribute bounds; compose their transforms before testing the target canvas.
+            OfficeTransform childTransform = group.Transform.Then(transform);
+            foreach (OfficeDrawingElement child in group.InnerDrawing.Elements)
+                AppendElementQuality(child, rootIndex, childTransform, canvasLeft, canvasTop, canvasWidth, canvasHeight, options, issues, textBoxes, token);
+            return;
+        }
         DrawingBounds local = GetBounds(element);
         var transformed = transform.TransformRectangleBounds(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top);
         var bounds = new DrawingBounds(transformed.Left, transformed.Top, transformed.Right, transformed.Bottom);
@@ -69,11 +77,6 @@ public static class OfficeDrawingQualityAnalyzer {
         }
         if (element is OfficeDrawingText text) textBoxes.Add((rootIndex, text.Text, bounds));
         else if (element is OfficeDrawingRichText richText) textBoxes.Add((rootIndex, richText.PlainText, bounds));
-        else if (element is OfficeDrawingEffectGroup group) {
-            OfficeTransform childTransform = group.Transform.Then(transform);
-            foreach (OfficeDrawingElement child in group.InnerDrawing.Elements)
-                AppendElementQuality(child, rootIndex, childTransform, canvasLeft, canvasTop, canvasWidth, canvasHeight, options, issues, textBoxes, token);
-        }
     }
 
     private static void AddTextOverlapIssues(IReadOnlyList<(int Index, string Text, DrawingBounds Bounds)> textBoxes, double tolerance, List<OfficeDrawingQualityIssue> issues, CancellationToken token) {
@@ -151,15 +154,6 @@ public static class OfficeDrawingQualityAnalyzer {
             }
 
             return new DrawingBounds(group.X, group.Y, group.X + group.ClipPath.Width, group.Y + group.ClipPath.Height);
-        }
-
-        if (element is OfficeDrawingEffectGroup effectGroup) {
-            (double left, double top, double right, double bottom) = effectGroup.Transform.TransformRectangleBounds(
-                0D,
-                0D,
-                effectGroup.InnerDrawing.Width,
-                effectGroup.InnerDrawing.Height);
-            return new DrawingBounds(left, top, right, bottom);
         }
 
         if (element is OfficeDrawingLink link) {

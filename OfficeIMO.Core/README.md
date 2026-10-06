@@ -688,6 +688,9 @@ if (report.HasIssues) {
 }
 ```
 
+Affine effect groups contribute their transformed child bounds, not the dimensions
+of their temporary rendering buffers. Empty groups do not create overflow findings.
+
 ### Render a chart snapshot to drawing primitives
 
 ```csharp

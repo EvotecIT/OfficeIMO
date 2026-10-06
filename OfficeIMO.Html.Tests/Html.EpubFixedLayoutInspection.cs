@@ -181,6 +181,8 @@ public sealed class EpubFixedLayoutInspectionTests {
     [Theory]
     [InlineData("position:relative;left:-60px", true)]
     [InlineData("transform:translateX(200px)", true)]
+    [InlineData("transform:translateX(10px)", false)]
+    [InlineData("transform:rotate(10deg)", false)]
     public void NegativeAndTransformedOverflowRemainDetectable(string extra, bool overflow) {
         var book = Book(20); var xml = book.GetContentXml("page");
         xml.Descendants().Single(e => e.Attribute("style") != null).SetAttributeValue("style", "width:80px;height:80px;background:#124e80;" + extra);

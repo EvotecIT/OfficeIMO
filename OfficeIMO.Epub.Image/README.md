@@ -50,7 +50,9 @@ Inspection renders at that viewport with zero margins, using the existing packag
 resource resolver and caller-supplied font/resource limits. It compares rendered
 element rectangles with the declared page canvas, including content extending
 beyond the automatic output clip. Explicit authored clips remain in effect.
-Negative and transformed coordinates are included; excessive inspection surfaces
+Negative and transformed coordinates are included. Affine effect groups are checked
+through their contents; empty space in intermediate rendering buffers does not
+count as overflow. Excessive inspection surfaces
 fail instead of returning incomplete results. No output image is encoded.
 
 Inspect `HasCanvasOverflow`, `ClippingDiagnostics`, `Rendering.Diagnostics`, `PackageDiagnostics` and
