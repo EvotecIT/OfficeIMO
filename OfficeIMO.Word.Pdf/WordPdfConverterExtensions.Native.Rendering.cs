@@ -407,20 +407,33 @@ namespace OfficeIMO.Word.Pdf {
         private readonly record struct NativeTableCellEmbeddedContent(
             IReadOnlyList<PdfCore.PdfTableCellCheckBox> CheckBoxes,
             IReadOnlyList<PdfCore.PdfTableCellFormField> FormFields,
-            IReadOnlyList<PdfCore.PdfTableCellImage> Images);
+            IReadOnlyList<PdfCore.PdfTableCellImage> Images,
+            IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> InlineImages);
 
         private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options) {
             List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
             List<PdfCore.PdfTableCellFormField>? formFields = null;
             List<PdfCore.PdfTableCellImage>? images = null;
+            var inlineImages = new Dictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>();
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 int imageCount = 0;
+                W.Paragraph? paragraphElement = paragraph._paragraph;
+                bool supportsInlineImages = paragraphElement != null &&
+                    WordEquation.GetOccurrences(paragraph._document, paragraphElement).Count == 0;
                 void AddImage(WordImage image) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
                     if (++imageCount > imageLimit)
                         throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
+                    if (supportsInlineImages && paragraphElement != null && image._Image?.Inline != null &&
+                        !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
+                        ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
+                            paragraphElement.Ancestors<W.TextBoxContent>().FirstOrDefault())) {
+                        if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline))
+                            inlineImages[image._Image] = inline!;
+                        return;
+                    }
                     images ??= new List<PdfCore.PdfTableCellImage>();
                     AddNativeTableCellImage(images, image);
                 }
@@ -453,7 +466,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeTableCellEmbeddedContent(
                 checkBoxes ?? (IReadOnlyList<PdfCore.PdfTableCellCheckBox>)Array.Empty<PdfCore.PdfTableCellCheckBox>(),
                 formFields ?? (IReadOnlyList<PdfCore.PdfTableCellFormField>)Array.Empty<PdfCore.PdfTableCellFormField>(),
-                images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>());
+                images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>(), inlineImages);
         }
 
         private static IEnumerable<WordImage> EnumerateNativeParagraphImages(WordParagraph paragraph, CancellationToken cancellationToken, int textBoxDepth = 0) {
