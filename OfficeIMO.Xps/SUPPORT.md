@@ -220,7 +220,7 @@ rendering differs by at most 2/255 without warnings. GhostXPS opens every export
 but differs by up to 255/255, including blank images. SVG/PDF export uses the
 existing high-precision JPEG normalization path. Twelve-bit CMYK/YCCK and
 unusual sampling combinations have no independent corpus qualification here;
-lossless arithmetic JPEG and native Windows acceptance remain outside the qualified contract.
+native Windows acceptance remains outside the qualified contract.
 
 Sequential arithmetic JPEG supports eight/twelve-bit SOF9 frames through the shared
 managed decoder. Conditioning defaults and explicit DAC tables, all sixteen table
@@ -233,7 +233,7 @@ container production, not full-file native TIFF acceptance. The 360 XPS/OpenXPS
 JPEG/TIFF exports cover 239,400 pixel-center probes per route; MuPDF PDF/SVG
 rendering differs by at most 2/255 without warnings. GhostXPS opens all exports but
 differs by up to 255/255, including blank output. PDF and SVG normalize arithmetic
-JPEG to portable pixel images. Lossless arithmetic, arithmetic CMYK/alpha
+JPEG to portable pixel images. Arithmetic CMYK/alpha
 and planar/tiled TIFF qualification, and native Windows acceptance remain open.
 
 Progressive arithmetic JPEG supports eight/twelve-bit SOF10 frames through the same
@@ -252,6 +252,22 @@ PDF/SVG differs by at most 2/255 without warnings. GhostXPS opens all exports
 but differs by up to 255/255, including blank images.
 Arithmetic CMYK/YCCK and native Windows acceptance remain unqualified. Progressive
 JPEG remains outside the TIFF contract.
+
+Standalone arithmetic lossless JPEG supports SOF11 precisions 2–16, all seven
+predictors, point transforms and row-aligned restarts. Shared lossless sample
+prediction feeds a bounded arithmetic context history, with statistics reset at
+scan/restart boundaries. Native twelve/sixteen-bit sample words remain available
+to internal color consumers before projection to the public eight-bit raster.
+The [lossless arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticLossless/README.md)
+contains 438 full-resolution and 36 subsampled grayscale/RGB cases. Its expanded
+native producer has explicitly documented configuration and initial-predictor
+corrections; 42 companion Huffman cases calibrate that correction against
+libjpeg-turbo. All 99,066 managed output pixels match exactly, including subsampled
+nearest references independently decoded from companion Huffman streams.
+The 948 XPS/OpenXPS exports cover 198,132 probes per route. MuPDF PDF/SVG output
+agrees within 2/255 without warnings; GhostXPS opens all files but can render blank
+images, with error up to 255/255. Arithmetic lossless TIFF, CMYK/YCbCr interpretation
+and native Windows acceptance remain unqualified.
 
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before

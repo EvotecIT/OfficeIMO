@@ -11,6 +11,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsJpegPrecisionTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "JpegArithmeticLossless")]
+    [InlineData(XpsFormat.OpenXps, "JpegArithmeticLossless")]
     [InlineData(XpsFormat.Xps, "JpegArithmeticProgressive")]
     [InlineData(XpsFormat.OpenXps, "JpegArithmeticProgressive")]
     [InlineData(XpsFormat.Xps, "JpegArithmetic", true)]

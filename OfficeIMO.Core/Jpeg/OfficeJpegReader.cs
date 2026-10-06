@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (eight-bit SOF0; eight/twelve-bit SOF1/SOF2; two-through-sixteen-bit SOF3, Huffman).
+/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (eight-bit SOF0; eight/twelve-bit SOF1/SOF2; two-through-sixteen-bit Huffman/arithmetic lossless SOF3/SOF11).
 /// </summary>
 internal static partial class OfficeJpegReader {
     private static readonly byte[] ZigZag = {
@@ -222,7 +222,12 @@ internal static partial class OfficeJpegReader {
                 if (arithmetic) {
                     if (scanEnd == data.Length && !options.AllowTruncated)
                         throw new FormatException("Arithmetic JPEG scan has no terminating marker.");
-                    if (progressive) {
+                    if (lossless) {
+                        baselineState ??= BaselineState.Create(frame, orientation,
+                            checked(data.LongLength + retainedManagedBytes + LosslessArithmeticScan.WorkingBytes(frame)), preserveRaw16);
+                        DecodeLosslessScan(scanData, scan, frame, baselineState, dcTables,
+                            restartInterval, cancellationToken, conditioning);
+                    } else if (progressive) {
                         arithmeticProgression ??= new ArithmeticProgression(frame.ComponentCount);
                         arithmeticProgression.Validate(scan);
                         progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation,
@@ -343,19 +348,19 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
-            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3 || marker == 0xC9 || marker == 0xCA) {
+            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3 || marker == 0xC9 || marker == 0xCA || marker == 0xCB) {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
                 frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker);
-                if (preserveRaw16 && ((marker != 0xC3 || frame.Precision != 16) && (marker != 0xC1 && marker != 0xC3 && marker != 0xC9 || frame.Precision != 12) ||
+                if (preserveRaw16 && (((marker != 0xC3 && marker != 0xCB) || frame.Precision != 16) && (marker != 0xC1 && marker != 0xC3 && marker != 0xCB && marker != 0xC9 || frame.Precision != 12) ||
                     requestedColorTransform != 0 || !returnColorComponents))
                     throw new FormatException("Raw sample words require a supported twelve-bit or sixteen-bit JPEG frame.");
                 hasFrame = true;
                 progressive = marker == 0xC2 || marker == 0xCA;
-                lossless = marker == 0xC3;
-                arithmetic = marker == 0xC9 || marker == 0xCA;
+                lossless = marker == 0xC3 || marker == 0xCB;
+                arithmetic = marker == 0xC9 || marker == 0xCA || marker == 0xCB;
                 offset += segLen - 2;
                 continue;
             }

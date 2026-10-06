@@ -9,13 +9,13 @@ internal static partial class OfficeJpegReader {
     // original sample scale, with the discarded low bits restored as zero.
     private static void DecodeLosslessScan(OfficeByteView data, ScanHeader scan,
         JpegFrame frame, BaselineState state, HuffmanTable[] dcTables,
-        int restartInterval, CancellationToken token) {
+        int restartInterval, CancellationToken token, ArithmeticConditioning? conditioning = null) {
         if (scan.Ss < 1 || scan.Ss > 7 || scan.Se != 0 || scan.Ah != 0 || scan.Al >= frame.Precision)
             throw new FormatException("Invalid lossless JPEG scan parameters.");
         foreach (int index in scan.ComponentIndices) {
             var component = frame.Components[index];
             if (state.DecodedComponents[index] || component.QuantId != 0 || component.AcTable != 0 ||
-                component.DcTable >= dcTables.Length || !dcTables[component.DcTable].IsValid)
+                (conditioning == null && (component.DcTable >= dcTables.Length || !dcTables[component.DcTable].IsValid)))
                 throw new FormatException("Invalid lossless JPEG component or Huffman table.");
         }
 
@@ -28,6 +28,7 @@ internal static partial class OfficeJpegReader {
         if (restartInterval != 0 && restartInterval % columns != 0)
             throw new FormatException("Lossless JPEG restarts must align with MCU rows.");
 
+        var arithmetic = conditioning == null ? null : new LosslessArithmeticScan(data, scan, frame, state, conditioning, token);
         var reader = new JpegBitReader(data, allowTruncated: false, token);
         int mcu = 0, restartRow = 0, restartNumber = 0;
         int shift = scan.Al, mask = (1 << (frame.Precision - shift)) - 1, initial = 1 << (frame.Precision - 1 - shift);
@@ -36,7 +37,8 @@ internal static partial class OfficeJpegReader {
             for (int mx = 0; mx < columns; mx++, mcu++) {
                 if ((mcu & 4095) == 0) token.ThrowIfCancellationRequested();
                 if (restartInterval > 0 && mcu > 0 && mcu % restartInterval == 0) {
-                    reader.ExpectRestartMarker(0xD0 + (restartNumber++ & 7));
+                    if (arithmetic != null) arithmetic.Restart();
+                    else reader.ExpectRestartMarker(0xD0 + (restartNumber++ & 7));
                     restartRow = my;
                 }
                 foreach (int index in scan.ComponentIndices) {
@@ -60,17 +62,23 @@ internal static partial class OfficeJpegReader {
                                 _ => (a + b) >> 1
                             };
                         }
-                        int category = DecodeHuffman(ref reader, dcTables[component.DcTable], useFast: true);
-                        if (category > 16) throw new FormatException("Invalid lossless JPEG difference category.");
-                        // Category 16 represents -32768 without additional bits.
-                        int difference = category == 16 ? -32768 : category == 0 ? 0 :
-                            Extend(reader.ReadBits(category), category);
-                        if (reader.RestartMarkerSeen) throw new FormatException("Unexpected lossless JPEG restart marker.");
+                        int difference;
+                        if (arithmetic != null) {
+                            difference = arithmetic.Read(index, x, y, restartRow * v);
+                        } else {
+                            int category = DecodeHuffman(ref reader, dcTables[component.DcTable], useFast: true);
+                            if (category > 16) throw new FormatException("Invalid lossless JPEG difference category.");
+                            // Category 16 represents -32768 without additional bits.
+                            difference = category == 16 ? -32768 : category == 0 ? 0 :
+                                Extend(reader.ReadBits(category), category);
+                            if (reader.RestartMarkerSeen) throw new FormatException("Unexpected lossless JPEG restart marker.");
+                        }
                         pixels.WriteSample(at, ((prediction + difference) & mask) << shift);
                     }
                 }
             }
         }
+        arithmetic?.Finish();
         foreach (int index in scan.ComponentIndices) {
             ExtendLosslessEdges(frame, state.Components[index], token);
             state.DecodedComponents[index] = true;
