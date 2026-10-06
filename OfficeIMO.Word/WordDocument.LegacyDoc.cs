@@ -181,15 +181,6 @@ namespace OfficeIMO.Word {
             document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
             document.CompatibilitySettings.DoNotBalanceTextColumns = legacyDocument.NoColumnBalance;
             if (legacyDocument.DefaultTabStop != null) document.Settings.DefaultTabStop = legacyDocument.DefaultTabStop.Value;
-            // The binary DOP placement applies to the whole document. Section
-            // properties retain their existing getter/numbering compatibility,
-            // but Word and other consumers read placement from document settings.
-            if (legacyDocument.SectionFormat.EndnotePosition is EndnotePositionValues endnotePosition) {
-                Settings settings = document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
-                var endnoteProperties = new EndnoteDocumentWideProperties();
-                endnoteProperties.AddChild(new EndnotePosition { Val = endnotePosition }, true);
-                settings.AddChild(endnoteProperties, true);
-            }
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
             }

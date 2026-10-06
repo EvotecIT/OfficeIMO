@@ -65,6 +65,7 @@ public sealed class WordPdfEndnotePlacementTests {
         W.Settings settings = source._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
         settings.RemoveAllChildren<W.EndnoteDocumentWideProperties>();
         if (emptyDocumentProperties) settings.AddChild(new W.EndnoteDocumentWideProperties(), true);
+        Assert.All(source.Sections, section => Assert.Equal(WordEndnotePosition.DocumentEnd, section.EndnoteSettings.Position));
         AssertOrder(ReadPdfText(source, false), "FINALBODY", "FIRSTENDNOTEBODY");
     }
 
@@ -92,6 +93,36 @@ public sealed class WordPdfEndnotePlacementTests {
         Assert.Equal(sectionEnd ? W.EndnotePositionValues.SectionEnd : W.EndnotePositionValues.DocumentEnd, position);
         string text = ReadPdfText(docx, true);
         AssertOrder(text, sectionEnd ? "FIRSTENDNOTEBODY" : "FINALBODY", sectionEnd ? "FINALBODY" : "FIRSTENDNOTEBODY");
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public void ChangingEndnotePositionAfterLoadingUpdatesBothFormatsAndEffectiveGetters(bool nativeInput, bool sectionEnd, bool documentSetter) {
+        using WordDocument source = CreateTwoSections(sectionEnd ? WordEndnotePosition.DocumentEnd : WordEndnotePosition.SectionEnd);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(nativeInput ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        WordSection target = documentSetter ? loaded.Sections[0] : loaded.Sections[1];
+        WordEndnoteSettings before = target.EndnoteSettings;
+        WordEndnotePosition position = sectionEnd ? WordEndnotePosition.SectionEnd : WordEndnotePosition.DocumentEnd;
+        if (documentSetter) loaded.AddEndnoteProperties(position: position);
+        else target.AddEndnoteProperties(position: position);
+        Assert.Equal(position, loaded.EndnoteSettings.Position);
+        Assert.All(loaded.Sections, section => Assert.Equal(position, section.EndnoteSettings.Position));
+        Assert.Equal(before.NumberingFormat, target.EndnoteSettings.NumberingFormat);
+        Assert.Equal(before.NumberingRestart, target.EndnoteSettings.NumberingRestart);
+        Assert.Equal(before.StartNumber, target.EndnoteSettings.StartNumber);
+        foreach (WordFileFormat format in new[] { WordFileFormat.Docx, WordFileFormat.Doc }) {
+            using WordDocument restored = WordDocument.Load(new MemoryStream(loaded.ToBytes(format)));
+            Assert.Equal(position, restored.EndnoteSettings.Position);
+            string text = ReadPdfText(restored, false);
+            AssertOrder(text, sectionEnd ? "FIRSTENDNOTEBODY" : "FINALBODY", sectionEnd ? "FINALBODY" : "FIRSTENDNOTEBODY");
+        }
     }
 
     private static WordDocument CreateTwoSections(WordEndnotePosition? position, bool continuous = false, bool columns = false) {
