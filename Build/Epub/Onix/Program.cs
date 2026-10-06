@@ -22,6 +22,7 @@ var timestamp = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero);
 foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Notification: BookOnixNotification.Early),
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
+    (Name: "market-segments", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "subterritories", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-xhtml", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -72,7 +73,8 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     if (profile.Name == "discoverability") project.Publication.AddTitle("selected-title", new() {
         Text = "Selected catalog title", Kind = EpubTitleKind.Main
     });
-    BookOnixCommercialMetadata commercial = profile.Name == "subterritories" ? SubterritoryFixtures.Create() : CommercialFixtures.Create(profile.Name);
+    BookOnixCommercialMetadata commercial = profile.Name == "market-segments" ? MarketSegmentFixtures.Create() :
+        profile.Name == "subterritories" ? SubterritoryFixtures.Create() : CommercialFixtures.Create(profile.Name);
     var options = new BookOnixExportOptions {
         SenderName = "Example Press", PublisherName = "Example Press", RecordReference = "fixture-" + profile.Name,
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
@@ -145,6 +147,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         if (!invalidNestingRejected) throw new InvalidDataException("The supplied schema accepted invalid XHTML paragraph nesting.");
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+    if (profile.Name == "market-segments") MarketSegmentFixtures.Verify(result, schemas, outputDirectory);
     ChangeFixtures.Write(profile.Name, result, schemas, outputDirectory);
     if (profile.Name == "advance") MarketFixtures.Write(project, options, schemas, outputDirectory, timestamp);
     if (profile.Name == "confirmed") RestrictionFixtures.Write(project, options, schemas, outputDirectory, timestamp);

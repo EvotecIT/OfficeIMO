@@ -82,7 +82,7 @@ public sealed partial class BookProject {
         bool expected = supply.Availability is BookOnixAvailability.NotYetAvailable or BookOnixAvailability.TemporarilyUnavailable;
         if (expected ? supply.ExpectedSupplyDate.HasValue == supply.ExpectedSupplyDateUnknown : supply.ExpectedSupplyDate.HasValue || supply.ExpectedSupplyDateUnknown)
             throw new ArgumentException("Expected supply needs a date or explicit unknown-date assertion; other availability states cannot carry an expected date.", nameof(supply));
-        if (supply.Availability is not (BookOnixAvailability.Unavailable or BookOnixAvailability.Withdrawn) && !OnixGrantsCover(market, grants))
+        if (supply.Availability is not (BookOnixAvailability.Unavailable or BookOnixAvailability.Withdrawn) && !OnixTerritoriesCover(market, grants))
             throw new ArgumentException("Available or expected supply must lie within explicitly declared for-sale rights.", nameof(supply));
         ArgumentNullException.ThrowIfNull(supply.Prices);
         if (supply.Prices.Count > 16 || supply.Unpriced.HasValue == (supply.Prices.Count != 0))
@@ -103,7 +103,7 @@ public sealed partial class BookProject {
         }
         return new XElement(ns + "ProductSupply",
             supply.MarketReference != null ? new XElement(ns + "MarketReference", supply.MarketReference) : null,
-            new XElement(ns + "Market", market.ToXml(), BuildOnixSalesRestrictions(supply.Restrictions, ref restrictionBudget, token)), detail);
+            BuildOnixMarketSegments(supply, market, ref restrictionBudget, token), detail);
     }
 
     private static XElement BuildOnixPrice(BookOnixPrice price, OnixTerritory market) {

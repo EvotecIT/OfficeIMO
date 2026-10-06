@@ -138,8 +138,18 @@ public sealed record BookOnixPrice {
     public DateOnly? ValidUntil { get; init; }
 }
 
+/// <summary>One geographical segment of a supply market, with additional non-territorial restrictions.</summary>
+public sealed record BookOnixMarketSegment {
+    /// <summary>Explicit segment territory; segments must partition the containing supply territory without overlap or gaps.</summary>
+    public required BookOnixTerritory Territory { get; init; }
+    /// <summary>Additional restrictions for this segment. Combined with supply-wide restrictions, at most 32 are allowed.</summary>
+    public IReadOnlyList<BookOnixSalesRestriction> Restrictions { get; init; } = [];
+}
+
 /// <summary>One explicit market, supplier and availability declaration, with prices or an unpriced reason.</summary>
 public sealed record BookOnixSupply {
+    /// <summary>Optional explicit partition into at most 32 disjoint market segments. Empty uses the whole Territory. Supplier, availability, prices and MarketReference remain shared.</summary>
+    public IReadOnlyList<BookOnixMarketSegment> MarketSegments { get; init; } = [];
     /// <summary>Up to 32 explicit non-territorial restrictions applying to this entire market.</summary>
     public IReadOnlyList<BookOnixSalesRestriction> Restrictions { get; init; } = [];
     /// <summary>Optional permanent identity within this product, at most 100 UTF-16 code units. Never inferred from territory or supplier.</summary>

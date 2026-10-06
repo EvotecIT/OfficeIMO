@@ -1370,8 +1370,38 @@ three uppercase alphanumeric characters for ONIX codes, 13 digits for GLN, and
 seven digits for SAN. It does not verify codelist membership, check digits,
 assignment, ownership or outlet existence. Distinct proprietary schemes may coexist;
 repeated identifier schemes are rejected. Optional outlet-name language requires
-a name. XHTML notes, subterritory restrictions within one supply declaration and
-recipient eligibility enforcement are outside this profile.
+a name. XHTML notes and recipient eligibility enforcement are outside this profile.
+
+Use `BookOnixSupply.MarketSegments` when channel restrictions differ across parts
+of one supply territory:
+
+```csharp
+var segments = new BookOnixMarketSegment[] {
+    new() {
+        Territory = new() { Regions = ["US-CA"] },
+        Restrictions = [new(BookOnixSalesRestrictionKind.LibrariesOnly)]
+    },
+    new() {
+        Territory = new() { Countries = ["US"], ExcludedRegions = ["US-CA"] },
+        Restrictions = [new(BookOnixSalesRestrictionKind.ExceptLibraries)]
+    }
+};
+// Set MarketSegments = segments on a supply whose Territory is Countries = ["US"].
+```
+
+Supply-wide restrictions apply to every segment and are checked together with its
+local restrictions. Up to 32 segments must form a disjoint, complete partition of
+the supply territory; gaps, overlaps and outside territory are rejected. An empty
+segment list keeps the single-market behavior. Each combined restriction list is
+limited to 32 entries, and repeated supply-wide text counts toward the output text
+budget. A segment without local restrictions makes no additional assertion.
+
+Segments serialize as sibling `Market` composites under one `ProductSupply`.
+Supplier, availability, prices and the optional `MarketReference` remain shared;
+prices still refer to the complete supply territory unless explicitly narrowed.
+A market update replaces all segments together. Use separate supply declarations
+when supplier, availability, prices or update identity need to differ. Recipient
+interpretation of segmented markets requires separate acceptance evidence.
 
 Restrictions survive complete-record composition, publishing-block replacement
 and market updates. Neither these assertions nor schema validation establish

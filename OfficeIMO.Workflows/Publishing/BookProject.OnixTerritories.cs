@@ -64,6 +64,6 @@ public sealed partial class BookProject {
         }
     }
 
-    private static bool OnixGrantsCover(OnixTerritory market, IReadOnlyList<OnixTerritory> grants) =>
-        TerritoryAtoms(grants.Append(market).ToArray()).All(atom => !market.Includes(atom) || grants.Any(grant => grant.Includes(atom)));
+    private static bool OnixTerritoriesCover(OnixTerritory market, IReadOnlyList<OnixTerritory> territories) =>
+        TerritoryAtoms(territories.Append(market).ToArray()).All(atom => !market.Includes(atom) || territories.Any(territory => territory.Includes(atom)));
 }

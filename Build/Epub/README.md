@@ -272,6 +272,13 @@ The runner also writes `catalog.onix`, combining two distinct edition ISBNs unde
 one header, and `catalog-priced.epub` for the second product. The message evidence
 retains each source ONIX and EPUB hash. It is outside normal builds and shipped packages.
 
+The `market-segments` fixture gives California and the rest of the US different
+library-channel restrictions while retaining a shared online-retail restriction,
+supplier, price and market reference. `update-market-segments.onix` preserves both
+segments in one market replacement. Both complete-record composition and the
+market update are checked against the supplied schema; recipient handling remains
+unqualified.
+
 The `subterritories` fixture partitions worldwide rights around California and
 Québec, combines country and regional markets, excludes New York, and narrows a
 price to California. It exercises ONIX list 49 geography and territory element
