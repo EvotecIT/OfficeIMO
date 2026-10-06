@@ -246,6 +246,13 @@ local style, not a claim of qualification for every publisher's citation style.
 It has no third-party test dependency and
 is outside the normal solution and shipped packages.
 
+`notes-and-pages.epub` combines a same-document footnote and a cross-document
+endnote with labelled return links, front/body/back matter, and roman/Arabic
+print-page labels in the page list. Its print source is explicitly synthetic.
+Use the exact EPUB to check forward and return links, note presentation, matter
+navigation and page-list activation in a reading system; automated validator
+results do not establish those interactions.
+
 `index.epub` exercises nested terms, multiple locators and an intra-index
 cross-reference. Its labels target sections and chapters rather than inferred
 screen page numbers. `renamed-index.epub` moves both chapters and the navigation
