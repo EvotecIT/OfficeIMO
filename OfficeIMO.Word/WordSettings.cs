@@ -7,7 +7,7 @@ namespace OfficeIMO.Word {
     /// Provides typed access to document-level settings such as protection,
     /// fonts and view options.
     /// </summary>
-    public class WordSettings {
+    public partial class WordSettings {
         private readonly WordDocument _document;
 
         /// <summary>
@@ -572,70 +572,6 @@ namespace OfficeIMO.Word {
                     _document.CustomDocumentProperties["_MarkAsFinal"].Value = newValue;
                 } else {
                     _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(newValue));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the gutter should be placed
-        /// at the top of the page when the document uses a vertical layout.
-        /// </summary>
-        public bool GutterAtTop {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                var gutterAtTop = settings?.GetFirstChild<GutterAtTop>();
-                if (gutterAtTop == null) {
-                    return false;
-                }
-                return gutterAtTop.Val?.Value ?? false;
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-                var gutterAtTop = settings.GetFirstChild<GutterAtTop>();
-                if (gutterAtTop == null) {
-                    gutterAtTop = new GutterAtTop();
-                    settings.AddChild(gutterAtTop, true);
-                }
-                gutterAtTop.Val = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether odd and even pages use mirrored inside/outside margins.
-        /// </summary>
-        public bool MirrorMargins {
-            get {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                var mirrorMargins = settings?.GetFirstChild<MirrorMargins>();
-                if (mirrorMargins == null) {
-                    return false;
-                }
-
-                return mirrorMargins.Val?.Value ?? true;
-            }
-            set {
-                var settings = _document._wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?.Settings;
-                if (settings == null) {
-                    return;
-                }
-
-                var mirrorMargins = settings.GetFirstChild<MirrorMargins>();
-                if (value) {
-                    if (mirrorMargins == null) {
-                        mirrorMargins = new MirrorMargins();
-                        settings.AddChild(mirrorMargins, true);
-                    }
-
-                    mirrorMargins.Val = true;
-                } else {
-                    mirrorMargins?.Remove();
                 }
             }
         }

@@ -1,6 +1,6 @@
-# OfficeIMO.IWork - bounded Apple iWork readers for .NET
+# OfficeIMO.IWork - Apple iWork readers and native Keynote creation for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 ## Reference from a source checkout
 
@@ -14,6 +14,26 @@ For source-based development, reference the bounded reader and the opt-in adapte
 ```
 
 Use `OfficeIMO.Word.IWork` for Pages or `OfficeIMO.PowerPoint.IWork` for Keynote in place of the Excel adapter. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
+
+## Create a native Keynote presentation
+
+```csharp
+using OfficeIMO.IWork;
+
+var presentation = IWorkKeynoteDocument.Create(); // 960 × 540 points
+var slide = presentation.AddSlide("E6F2FF");
+slide.AddText("Zażółć gęślą jaźń\nA😀B — café", 60, 100, 840, 260,
+    fontName: "Arial", fontSizePoints: 40, color: "003366");
+presentation.AddSlide(); // blank white slide
+presentation.Save("created.key"); // rejects an existing destination
+byte[] package = presentation.SaveBytes();
+```
+
+The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. Text boxes have one font, size and opaque color throughout, left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
+
+`IWorkKeynoteWriteOptions` limits slides, total text boxes, UTF-16 text length and package/intermediate archive size. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
+
+The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. This qualifies that fixture and font environment. Other native versions, rich runs, images, tables, transitions, builds and editing loaded packages remain outside the creation contract. Native Pages and Numbers writing is unsupported.
 
 ## Read and inspect a source
 
@@ -98,7 +118,7 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
 
-The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections and shared Reader extraction on macOS arm64 under .NET 8 and 10 using hash-pinned Pages, Numbers and Keynote fixtures. A separate native conversion host requires complete editable DOCX/XLSX/PPTX reconstruction, save/reopen and selected Numbers recalculation on both runtimes. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
+The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned fixtures require complete editable reconstruction, save/reopen and selected Numbers recalculation; the native creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
 
 ## Opt in to an Office destination adapter
 
@@ -166,7 +186,7 @@ Qualified cross-table cell and rectangular-range references remain incomplete un
 
 Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports expose source payloads through `PreservedRecords` when `PreserveSourceRecords` is enabled. `PreservedRecordCount` counts source payloads regardless of that detail setting. `UnassessedRecordCount` includes consumed and auxiliary records whose field-level fidelity has not been assessed; it is not an omission count. `IWORK_RECORD_FIDELITY_UNASSESSED` uses `OfficeConversionLossKind.Unassessed`, so strict no-loss policies reject it without claiming those records are missing content. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
 
-There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
+Loaded Pages, Numbers and Keynote packages remain read-only. Native Keynote creation uses the separate `IWorkKeynoteDocument` model; it does not provide save-back or preservation of edited source packages.
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
 
@@ -197,7 +217,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 0 | 0 | 0 | 0 | 1 | 0 |
+| Create | 1 | 0 | 0 | 0 | 1 | 0 |
 | Read | 1 | 0 | 0 | 0 | 0 | 0 |
 | Edit | 0 | 0 | 0 | 0 | 1 | 0 |
 | Preserve | 0 | 0 | 0 | 0 | 1 | 0 |

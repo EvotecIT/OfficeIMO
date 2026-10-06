@@ -28,7 +28,10 @@ namespace OfficeIMO.Excel {
 
                 if (topRows == 0 && leftCols == 0) {
                     if (sheetViews != null) {
-                        worksheet.RemoveChild(sheetViews);
+                        foreach (SheetView view in sheetViews.Elements<SheetView>()) {
+                            view.RemoveAllChildren<Pane>();
+                            view.RemoveAllChildren<Selection>();
+                        }
                         return true;
                     }
                     return false;
@@ -37,19 +40,7 @@ namespace OfficeIMO.Excel {
                 if (sheetViews == null) {
                     sheetViews = new SheetViews();
 
-                    // Remove SheetData temporarily if it exists
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        worksheet.RemoveChild(sheetData);
-                    } else {
-                        sheetData = new SheetData();
-                    }
-
-                    // Add sheetViews first
-                    worksheet.AppendChild(sheetViews);
-
-                    // Then add SheetData after sheetViews
-                    worksheet.AppendChild(sheetData);
+                    worksheet.AddChild(sheetViews, true);
                 }
 
                 SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();

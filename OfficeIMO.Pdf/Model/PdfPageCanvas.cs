@@ -524,6 +524,10 @@ public sealed partial class PdfPageCanvas {
         var styled = new List<PdfTextRun>(runs.Count);
         for (int i = 0; i < runs.Count; i++) {
             PdfTextRun run = runs[i];
+            if (run.InlineElement != null) {
+                styled.Add(run);
+                continue;
+            }
             bool applyTextColor = !run.Color.HasValue && style.TextColor.HasValue;
             bool applyFontSize = !run.FontSize.HasValue && style.FontSize.HasValue;
             bool applyFont = !run.Font.HasValue && style.Font.HasValue;

@@ -155,7 +155,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, out string paragraphText) {
             var builder = new StringBuilder();
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "endnote", EndnoteParagraphStyleIndexes);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph, id, "endnote", EndnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
                 paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
             }

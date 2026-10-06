@@ -59,7 +59,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
 
     public bool CanOpenOutput => HasOutput && (!IsDirectoryOutput ||
         OutputPath is not null && OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(OutputPath) is not null);
-    private bool IsDirectoryOutput { get; set; }
+    internal bool IsDirectoryOutput { get; private set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRecovery))]

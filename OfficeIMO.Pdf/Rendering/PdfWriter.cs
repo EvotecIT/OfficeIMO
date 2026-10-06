@@ -1775,7 +1775,9 @@ internal static partial class PdfWriter {
         int parentTreeNextKey = parentTreeEntries.Count == 0
             ? 0
             : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
-        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey));
+        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(
+            new[] { documentStructElementId }, parentTreeId, parentTreeNextKey,
+            pages.SelectMany(page => page.StructElements).Select(element => element.StructureType)));
     }
 
     private static int? FindMarkedContentStreamObjectId(LayoutResult.Page page, int markedContentId) {
@@ -2058,10 +2060,9 @@ internal static partial class PdfWriter {
             bool firstPageOfGroup = pageNumber == 1;
             if (pending.Count == 0 || (firstPageOfGroup && page.Options.HasExplicitPageNumberStart)) {
                 currentSequenceId = nextSequenceId++;
-                currentVisiblePageNumber = page.Options.HasExplicitPageNumberStart ? page.Options.PageNumberStart : 1;
-            } else {
-                currentVisiblePageNumber++;
             }
+            currentVisiblePageNumber = ResolveNextVisiblePageNumber(pending.Count, firstPageOfGroup,
+                currentVisiblePageNumber, page.Options);
 
             pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId));
         }
@@ -2208,48 +2209,7 @@ internal static partial class PdfWriter {
         return rootId;
     }
 
-    private static int BuildNamedDestinations(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds) {
-        var destinations = new List<(string Name, int PageIndex, double X, double Y)>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
-            foreach (var destination in pages[pageIndex].NamedDestinations) {
-                if (string.IsNullOrWhiteSpace(destination.Name)) {
-                    continue;
-                }
 
-                if (!seen.Add(destination.Name)) {
-                    throw new ArgumentException("PDF bookmark names must be unique.");
-                }
-
-                destinations.Add((destination.Name, pageIndex, destination.X, destination.Y));
-            }
-        }
-
-        if (destinations.Count == 0) {
-            return 0;
-        }
-
-        destinations.Sort((left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
-        var sb = new StringBuilder();
-        sb.Append("<< /Names [");
-        for (int i = 0; i < destinations.Count; i++) {
-            var destination = destinations[i];
-            int pageId = pageIds[destination.PageIndex];
-            sb.Append(PdfString(destination.Name))
-                .Append(" [")
-                .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-                .Append(" /XYZ ")
-                .Append(destination.X.ToString("0.###", CultureInfo.InvariantCulture)).Append(' ')
-                .Append(destination.Y.ToString("0.###", CultureInfo.InvariantCulture))
-                .Append(" 0]");
-            if (i < destinations.Count - 1) {
-                sb.Append(' ');
-            }
-        }
-
-        sb.Append("] >>\n");
-        return AddObject(objects, sb.ToString());
-    }
 
     private static IEnumerable<OutlineNode> EnumerateOutlines(IEnumerable<OutlineNode> nodes) {
         foreach (var node in nodes) {

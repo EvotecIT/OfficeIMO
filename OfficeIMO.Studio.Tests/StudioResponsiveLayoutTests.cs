@@ -69,6 +69,8 @@ public sealed class StudioResponsiveLayoutTests {
                             Assert.True(child.Bounds.Right <= panel.Bounds.Width + 3,
                                 $"{child.GetType().Name} extends beyond toolbar: {child.Bounds}, {panel.Bounds}");
                     }
+                    if (model.IsPagesDocumentMode)
+                        Assert.All(workspace.OrganizerListControl.GetRealizedContainers(), page => Assert.InRange(page.Bounds.Width, 44, 250));
                     Assert.True(window.ReaderPagesListControl.Bounds.Height >= 180,
                         $"Page viewport is too short in {model.DocumentMode}: {window.ReaderPagesListControl.Bounds}; rows: {string.Join(", ", ((Grid)workspace.Content!).RowDefinitions.Select(row => row.ActualHeight))}");
                 }

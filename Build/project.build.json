@@ -111,6 +111,7 @@
     "OfficeIMO.Reader.Web": "3.4.X",
     "OfficeIMO.Reader.Word": "3.4.X",
     "OfficeIMO.Reader.Xml": "3.4.X",
+    "OfficeIMO.Reader.Xps": "3.4.X",
     "OfficeIMO.Reader.Yaml": "3.4.X",
     "OfficeIMO.Reader.Zip": "3.4.X",
     "OfficeIMO.Rtf": "3.4.X",

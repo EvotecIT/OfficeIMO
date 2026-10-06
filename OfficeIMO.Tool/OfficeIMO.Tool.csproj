@@ -43,6 +43,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Provenance.C2pa\OfficeIMO.Provenance.C2pa.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />

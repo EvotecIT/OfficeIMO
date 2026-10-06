@@ -8,3 +8,5 @@ For ExtractFields, fields is an object keyed by exactly the stable field keys su
 For Parse, return logical blocks in reading order and rectangular tables. A table has explicit columns and rows with equal cell counts. Keep claims and fields empty. Preserve numbers and spelling. Do not invent coordinates, formulas, merged cells or relationships that are not expressible in the schema.
 For conflicting fields, use rawValue=null and cite the separate candidate values. Do not concatenate different values into a synthetic raw value. For ambiguous fields, use rawValue=null unless one exact observed value can be quoted without selecting an interpretation.
 All outputs are review candidates. No confidence percentage or claim of guaranteed correctness is requested.
+
+Recognition metadata describes source OCR checks, not correctness or approval. Preserve uncertainty when recognition recommends review, lacks comparison, or reports disagreement. An exact quote may reproduce an OCR mistake. Do not silently correct recognized amounts, dates, identifiers or spelling from outside knowledge.

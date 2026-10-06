@@ -22,6 +22,15 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(OfficeIMOStudioMobile)' == 'true'">
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OfficeIMOStudioMobile)' == 'true'">
+    <Compile Remove="Program.cs" />
+    <PackageReference Include="Avalonia" Version="12.1.3" />
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(OfficeIMOStudioDistribution)' == 'MacAppStore'">
     <DefineConstants>$(DefineConstants);OFFICEIMO_MAC_APP_STORE</DefineConstants>
   </PropertyGroup>
@@ -29,7 +38,7 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.ico" />
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.png" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.1.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.3" Condition="'$(OfficeIMOStudioMobile)' != 'true'" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
@@ -44,24 +53,15 @@
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Provenance.C2pa\OfficeIMO.Provenance.C2pa.csproj" />
     <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Studio.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.iOS" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="..\LICENSE" Link="Licenses\OfficeIMO-MIT.txt"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\OfficeIMO.Core\Licenses\*.txt" Link="Licenses\%(Filename)%(Extension)"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\OfficeIMO.Core\THIRD-PARTY-NOTICES.md" Link="Licenses\OfficeIMO.Core-THIRD-PARTY-NOTICES.md"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\OfficeIMO.Pdf\Resources\sRGB-LICENSE.txt" Link="Licenses\sRGB-LICENSE.txt"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="OPEN_SOURCE.md" Link="Licenses\OPEN_SOURCE.md"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
+  <Import Project="../Build/Studio/Studio.Licenses.props" />
 </Project>

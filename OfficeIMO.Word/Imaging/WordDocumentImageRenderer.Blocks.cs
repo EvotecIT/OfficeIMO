@@ -277,6 +277,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool ResolvePageBreakBefore(WordDocument document, Paragraph paragraph) {
+            if (WordParagraph.IsSectionMarkOnly(paragraph)) return false;
             PageBreakBefore? direct = paragraph.ParagraphProperties?.GetFirstChild<PageBreakBefore>();
             bool? directValue = ReadOnOff(direct);
             if (directValue.HasValue) {
@@ -325,7 +326,7 @@ namespace OfficeIMO.Word {
             }
 
             bool added = AddParagraphContent(document, paragraph, context, diagnostics, listMarkers);
-            SectionProperties? sectionProperties = paragraph.ParagraphProperties?.SectionProperties;
+            SectionProperties? sectionProperties = GetSectionBoundaryProperties(document, paragraph);
             if (IsNextColumnSectionBreak(sectionProperties)) {
                 context.AdvanceColumnOrPage();
                 return true;

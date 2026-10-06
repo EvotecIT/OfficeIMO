@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
             var worksheet = WorksheetRoot;
             bool foundSheetData = false;
             foreach (var child in worksheet.ChildElements) {
-                if (child is SheetDimension) {
+                if (child is SheetDimension || child is SheetViews views && IsNeutralSheetViews(views)) {
                     continue;
                 }
 

@@ -90,3 +90,9 @@ dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -
 This command runs offline, without connecting to a model. It rejects stale hashes, duplicate or unknown runs, and invalid labels. Missing labels remain pending. Overall quality passes only when every selected repetition passes its contract checks and has a complete independent assessment with zero unsupported claims, omitted facts, or incorrect relationships. A passing finite synthetic corpus is not a general document-accuracy guarantee. See the [support matrix](../../Docs/officeimo.document-assistant-design.md) for unverified deployment and quality coverage.
 
 Exit codes: `0` completed or independently reviewed evaluation passed; `1` partial, insufficient, invalid, or a failed evaluation check; `2` setup/input failure; `3` cancellation or timeout; `4` evaluation contract checks passed but semantic review remains pending. The general file-processing path reports diagnostic codes and exception types without raw provider errors. Evaluation response recording is limited to the synthetic corpus.
+
+## Independent invoice evaluation
+
+The evaluation corpus includes two unchanged UBL invoices from the KoSIT XRechnung test suite, release `v2026-08-31`. SHA-256 checks bind the embedded sources to five declared labels per invoice: invoice ID, issue date, currency, payable amount and tax-exclusive total. The sources and Apache 2.0 license are shared with `OfficeIMO.Invoicing.Tests/Fixtures/KoSIT`; the example copies the license beside its output.
+
+This lane supplies invoice XML as literal text to assess field interpretation amid line-item amounts and unrelated identifiers. It does not measure scanned-invoice OCR. Local deterministic XML-oracle tests exercise capture and scalar validation; only an actual selected-model evaluation measures that model. The existing independent semantic-review step still applies. Corpus identity is `officeimo.ai.corpus.v4`.

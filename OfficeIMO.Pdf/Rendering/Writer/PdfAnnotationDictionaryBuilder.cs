@@ -43,7 +43,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /A << /S /GoTo /D " +
-            PdfSyntaxEscaper.LiteralString(destinationName) +
+            PdfSyntaxEscaper.LiteralTextString(destinationName) +
             " >>" +
             BuildStructParentEntry(structParentIndex) +
             " >>\n";
@@ -419,7 +419,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     private static string BuildContentsEntry(string? contents) =>
         string.IsNullOrWhiteSpace(contents)
             ? string.Empty
-            : " /Contents " + (PdfTextString.CanEncodeAsAsciiText(contents!) ? PdfSyntaxEscaper.LiteralString(contents!) : PdfSyntaxEscaper.TextString(contents!));
+            : " /Contents " + PdfSyntaxEscaper.LiteralTextString(contents!);
 
     private static string BuildFormFieldMetadataEntries(PdfFormFieldStyle? style) {
         if (style == null) {

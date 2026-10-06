@@ -1,6 +1,6 @@
 # iWork reader corpus
 
-These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs; OfficeIMO does not rewrite them.
+These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote fixtures qualify the bounded creation model.
 
 | Folder | Upstream | Revision | Producer evidence | License |
 |---|---|---|---|---|
@@ -344,13 +344,25 @@ python Build/IWork/extract-duration-ranges.py OfficeIMO.TestAssets/Documents/IWo
 ```
 ## Keynote slide background evidence
 
-`keynote-backgrounds.json` records slide-style chains and background declarations from the four pinned native Keynote packages. It includes inactive templates; conversion tests compare only selected slides. Older opaque sRGB colors are qualified, while Display P3 and the newer fixtures' additional color field 13 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:
+`keynote-backgrounds.json` records slide-style chains and background declarations from four unchanged pinned native Keynote packages and `native-exports/keynote-colors-v15.4.key`. It includes inactive templates; conversion tests compare only selected slides. Opaque RGB/sRGB colors qualify the additional fixed32 field `13` only at value `1`. Its meaning remains unspecified; other values and Display P3 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:
 
 ```sh
 python Build/IWork/extract-keynote-backgrounds.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/keynote-backgrounds.json
 ```
 
-Saved/reopened PPTX verifies supported selected colors. Synthetic inputs cover explicit no-fill overrides, inheritance, malformed styles and fallback. This is source and package evidence, not Apple-export or rendered-background equivalence.
+Saved/reopened PPTX verifies supported selected colors. Synthetic inputs cover explicit no-fill overrides, inheritance, malformed styles and fallback. `native-exports/keynote-colors-v15.4.json` separately records the native controlled sample, exports and rendering comparison. The sample derives from the licensed `nim-iwork` fixture, with a wrapped second-slide title and blue/red background presets authored and saved in Keynote 15.4. Both strict OfficeIMO slides match Apple's PPTX round-trip rasters at 72 dpi. Original Keynote-to-PPTX ligature differences remain, and broader fonts, themes, masters and producer coverage stay unqualified. Reproduce native exports with best-quality PDF, all slides and optional content/password off; render each recorded PDF with `pdftoppm -r 72 -png`.
+
+## Native Keynote creation evidence
+
+`native-exports/keynote-created-v15.4.json` pins an OfficeIMO C# generated package, its Keynote 15.4 PDF export and the native package saved after changing `café` to `Edited in Keynote`. These newly authored assets use the repository MIT license and contain no seed package or embedded font files. The executable creation example in `IWorkKeynoteWritingTests` generates static slides with two backgrounds, positioned Arial/Times New Roman text, Polish characters, emoji and a blank slide. The shared package smoke consumer exercises native creation and saved/reopened PPTX conversion through matching packed packages.
+
+The independent pinned schema check requires initialized native records and an exact reference graph, validates metadata plists and deterministic ZIP fields, and compares modern text-fill colors with their legacy mirrors. Native open/export/edit/save/close/reopen qualifies this fixture on Keynote 15.4. PDF text, page sizes, embedded font names and 72 dpi RGB pixels provide separate rendered evidence. Reproduce the package through the documented creation API and export PDF with best image quality, all slides and optional content/password off. Modern native character and paragraph fills take precedence over legacy font colors; unsupported gradients, alpha, color spaces and no-fill declarations retain source diagnostics. Other fonts, scripts, application versions and source save-back remain outside this evidence.
+
+Compile `KNArchives.proto` and `TSPArchiveMessages.proto` from the manifest's pinned schema revision with `protoc --include_imports --descriptor_set_out=<descriptor.pb> --proto_path=<proto-folder> KNArchives.proto TSPArchiveMessages.proto`. Run the opt-in isolated numbers-parser 4.19.0 check:
+
+```sh
+python Build/IWork/verify-keynote-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.key <descriptor.pb> <evidence.json>
+```
 
 ### Integer-function compatibility boundaries
 

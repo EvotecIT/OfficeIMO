@@ -63,7 +63,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | --- | ---: |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, `.vssm` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
-| First-party Apple iWork source support | Modern IWA-based `.pages`, `.numbers`, and `.key` read/inspect plus editable or visual-fallback projection; no iWork authoring |
+| First-party Apple iWork support | Modern IWA-based `.pages`, `.numbers`, and `.key` read/inspect plus editable or visual-fallback projection; bounded template-free `.key` creation with static slides and plain text |
 | First-party offline OneNote support | Desktop/FSSHTTP `.one`, `.onetoc2`, `.onepkg` |
 | Managed PNG/JPEG/TIFF/WebP/SVG document export | Drawing; Word, Excel, PowerPoint, HTML, OneNote, Visio, and PDF; HTML-backed email and EPUB; ODT/ODS/ODP through their Office adapters |
 
@@ -102,7 +102,8 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Extended semantic projections: rich Pages content/layout/images/tables; sparse typed Numbers cells/formulas/merges/table metadata; and positioned Keynote rich text/images/tables/notes
 - [x] Opt-in `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, and `OfficeIMO.PowerPoint.IWork` adapters with editable reconstruction versus visual fallback reports
 - [x] Independently sourced corpus evidence across Pages 14.1/14.5, Numbers 11.1–15.1 histories, and Keynote 8.1/14.5/15.2.1
-- [x] Explicit read-only boundary: unsupported payloads remain inspectable, while Pages, Numbers, and Keynote authoring is intentionally absent
+- [x] Template-free native Keynote creation with static slides, opaque sRGB backgrounds and positioned plain text; independent decoding and fixture-specific Keynote 15.4 reopen/export/edit evidence
+- [x] Loaded sources remain read-only; native Pages/Numbers writing and edited-package save-back are unsupported
 
 _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are first-party implementations. Word, Excel, and PowerPoint remain independent unless an iWork adapter is installed explicitly.
 

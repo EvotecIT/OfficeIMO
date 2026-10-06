@@ -3,16 +3,24 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private double imageMeasurementReservedHeight;
+        private double containerMeasurementTopPadding;
+        private double containerMeasurementBottomInset;
 
         // Preflight visits containers before their render scopes exist. Preserve the
         // same image content height while recursively measuring those containers.
-        private T MeasureWithImageHeightReservation<T>(double reservedHeight, Func<T> measure) {
+        private T MeasureWithContainerPaddingReservation<T>(PdfPanelStyle style, Func<T> measure, bool isContinuation = false) {
             double saved = imageMeasurementReservedHeight;
-            imageMeasurementReservedHeight += reservedHeight;
+            double savedTopPadding = containerMeasurementTopPadding;
+            double savedBottomInset = containerMeasurementBottomInset;
+            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.PaddingY, style.FragmentBottomInset);
+            containerMeasurementTopPadding += style.GetFragmentTopPadding(isContinuation: true);
+            containerMeasurementBottomInset += style.FragmentBottomInset;
             try {
                 return measure();
             } finally {
                 imageMeasurementReservedHeight = saved;
+                containerMeasurementTopPadding = savedTopPadding;
+                containerMeasurementBottomInset = savedBottomInset;
             }
         }
 
@@ -101,7 +109,7 @@ internal static partial class PdfWriter {
                 }
 
                 double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                double? contentHeight = MeasureWithImageHeightReservation(style.PaddingY * 2D, () => MeasureBlockSequence(
+                double? contentHeight = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
                     container.Blocks,
                     frameX + style.PaddingX,
                     contentWidth,
@@ -147,8 +155,9 @@ internal static partial class PdfWriter {
 
         private double GetCurrentFramePageStartY() {
             double pageStart = yStart;
-            for (int index = 0; index < activeContainerScopes.Count; index++) {
-                pageStart -= activeContainerScopes[index].Style.PaddingY;
+            for (int index = activeColumnFlow?.ContainerDepth ?? 0; index < activeContainerScopes.Count; index++) {
+                ContainerRenderScope scope = activeContainerScopes[index];
+                pageStart -= scope.Style.GetFragmentTopPadding(scope.IsContinuation);
             }
 
             return pageStart;

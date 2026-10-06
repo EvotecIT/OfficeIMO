@@ -170,6 +170,7 @@ namespace OfficeIMO.Word {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value) {
                     props.KeepNext ??= new KeepNext();
+                    props.KeepNext.Val = null;
                 } else {
                     props.KeepNext?.Remove();
                 }
@@ -187,6 +188,7 @@ namespace OfficeIMO.Word {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value) {
                     props.KeepLines ??= new KeepLines();
+                    props.KeepLines.Val = null;
                 } else {
                     props.KeepLines?.Remove();
                 }
@@ -356,7 +358,8 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the line spacing for the paragraph in twips (1/20 of a point).
+        /// Gets or sets the authored line-spacing value. Automatic spacing uses
+        /// 240ths of a line; exact and minimum spacing use twips (1/20 of a point).
         /// </summary>
         public int? LineSpacing {
             get {
@@ -372,13 +375,17 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.Line = value?.ToString();
+                spacing.Line = value.HasValue
+                    ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    : null;
                 props.SpacingBetweenLines = spacing;
             }
         }
 
         /// <summary>
-        /// Gets or sets the line spacing in points.
+        /// Gets or sets the authored line-spacing value converted from twips to points.
+        /// Setting a point value selects exact spacing when no rule is declared.
+        /// With automatic spacing, use <see cref="LineSpacing"/> for the line multiplier.
         /// </summary>
         public double? LineSpacingPoints {
             get {
@@ -390,6 +397,9 @@ namespace OfficeIMO.Word {
             set {
                 if (value != null) {
                     LineSpacing = Helpers.ConvertPointsToTwips(value.Value);
+                    LineSpacingRule ??= WordLineSpacingRule.Exact;
+                } else {
+                    LineSpacing = null;
                 }
             }
         }

@@ -8,6 +8,10 @@ using XCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        // The deterministic font estimates need the same allowance in both directions:
+        // a row must wrap at the width that column autofit reserves for its text.
+        private const double AutoFitTextWidthSafetyFactor = 1.22D;
+
         private static bool IsSimpleAutoFitCharacter(char value)
             => (value >= '0' && value <= '9')
             || value == '.'

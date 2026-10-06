@@ -312,7 +312,9 @@ public static partial class WordRtfConverterExtensions {
     private static bool? ReadToggle(OnOffType? value) => value == null ? null : value.Val?.Value ?? true;
     private static int? ParseInt(string? value) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
     private static int? Negate(int? value) => value.HasValue ? -value.Value : null;
-    private static string? FormatInt(int? value) => value?.ToString(CultureInfo.InvariantCulture);
+    private static DocumentFormat.OpenXml.StringValue? FormatInt(int? value) => value.HasValue
+        ? new DocumentFormat.OpenXml.StringValue(value.Value.ToString(CultureInfo.InvariantCulture))
+        : null;
     private static RtfTextAlignment? ToRtfTextAlignment(JustificationValues? value) => value == JustificationValues.Center ? RtfTextAlignment.Center : value == JustificationValues.Right ? RtfTextAlignment.Right : value == JustificationValues.Both ? RtfTextAlignment.Justify : value.HasValue ? RtfTextAlignment.Left : null;
     private static JustificationValues ToWordTextAlignment(RtfTextAlignment value) => value == RtfTextAlignment.Center ? JustificationValues.Center : value == RtfTextAlignment.Right ? JustificationValues.Right : value == RtfTextAlignment.Justify ? JustificationValues.Both : JustificationValues.Left;
     private static RtfListLevelAlignment? ToRtfListAlignment(LevelJustificationValues? value) => value == LevelJustificationValues.Center ? RtfListLevelAlignment.Center : value == LevelJustificationValues.Right ? RtfListLevelAlignment.Right : value.HasValue ? RtfListLevelAlignment.Left : null;

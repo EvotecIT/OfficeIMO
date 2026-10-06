@@ -421,17 +421,14 @@ internal static partial class PdfWriter {
         }
 
         private void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Shape");
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            double needed = spacingBefore + block.Shape.Height + style.SpacingAfter;
-            EnsureFixedFlowBlockFits("Shape", block.Shape.Width, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Shape", block.Shape.Width, block.Shape.Height,
+                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
@@ -439,28 +436,34 @@ internal static partial class PdfWriter {
         }
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Drawing");
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            double needed = spacingBefore + block.Drawing.Height + style.SpacingAfter;
-            EnsureFixedFlowBlockFits("Drawing", block.Drawing.Width, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Drawing", block.Drawing.Width, block.Drawing.Height,
+                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align), y - block.Drawing.Height, block.Drawing.Width, block.Drawing.Height);
             y -= block.Drawing.Height + style.SpacingAfter;
         }
 
-        private void KeepFixedBlockWithNext(double needed, double nextHeight) {
-            double keepHeight = needed + nextHeight;
-            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-            if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
-                NewPage();
+        private void KeepFixedBlockWithNext(double objectWidth, double objectHeight, double spacingBefore, double spacingAfter,
+            IList<IPdfBlock> blocks, int blockIndex) {
+            while (true) {
+                double needed = ResolveTopLevelSpacingBefore(spacingBefore) + objectHeight + spacingAfter;
+                EnsureFixedFlowBlockFits("Kept object", objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(width));
+                if (objectWidth > width + .001D || ShouldAdvanceForBlockHeight(needed)) {
+                    NewBlockFrame();
+                    continue;
+                }
+                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
+                    width, currentOpts.DefaultFontSize, needed);
+                double keepHeight = needed + nextHeight;
+                if (nextHeight <= .001D || keepHeight > GetMaximumBlockContinuationHeight() + .001D || !ShouldAdvanceForBlockHeight(keepHeight)) break;
+                NewBlockFrame();
             }
         }
 

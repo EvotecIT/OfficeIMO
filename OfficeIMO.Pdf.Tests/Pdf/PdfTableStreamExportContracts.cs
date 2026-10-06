@@ -1298,7 +1298,9 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "Performance")]
+#endif
     public void VectorVisibility_ReusedTransparentPatternTileStaysBounded() {
         const int elementCount = 512;
         var patternContent = new System.Text.StringBuilder(elementCount * 24);
@@ -1320,20 +1322,28 @@ public class PdfTableStreamExportContracts {
             patternContent.ToString(),
             "<< /ExtGState << /GS1 6 0 R >> >>",
             "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj");
+#if PDF_PERFORMANCE_EVIDENCE
         var timer = System.Diagnostics.Stopwatch.StartNew();
+#endif
         int vectorPrimitiveCount = PdfDocumentReadResult.Load(source).Pages[0].VectorPrimitiveCount;
+#if PDF_PERFORMANCE_EVIDENCE
         timer.Stop();
+#endif
 
         Assert.Equal(0, vectorPrimitiveCount);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.True(
             timer.Elapsed < TimeSpan.FromSeconds(5),
             "Repeated transparent-pattern visibility exceeded the bounded contract: " +
             timer.Elapsed +
             ".");
+#endif
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "Performance")]
+#endif
     public void VectorVisibility_RepeatedFormsReuseInheritedPatternResource() {
         const int elementCount = 2048;
         const int invocationCount = 2048;
@@ -1365,11 +1375,16 @@ public class PdfTableStreamExportContracts {
             patternObject,
             "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj",
             formObject);
+#if PDF_PERFORMANCE_EVIDENCE
         var timer = System.Diagnostics.Stopwatch.StartNew();
+#endif
         int vectorPrimitiveCount = PdfDocumentReadResult.Load(source).Pages[0].VectorPrimitiveCount;
+#if PDF_PERFORMANCE_EVIDENCE
         timer.Stop();
+#endif
 
         Assert.Equal(0, vectorPrimitiveCount);
+#if PDF_PERFORMANCE_EVIDENCE
         // Allow shared CI scheduling and first-use JIT variance while still
         // catching unbounded repeated form/pattern expansion.
         Assert.True(
@@ -1377,10 +1392,13 @@ public class PdfTableStreamExportContracts {
             "Repeated inherited-pattern form parsing exceeded the bounded contract: " +
             timer.Elapsed +
             ".");
+#endif
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "Performance")]
+#endif
     public void VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative() {
         const int contourCount = 2048;
         const int primitiveCount = 256;
@@ -1397,20 +1415,28 @@ public class PdfTableStreamExportContracts {
         }
 
         byte[] source = BuildSingleStreamPdf(content.ToString());
+#if PDF_PERFORMANCE_EVIDENCE
         var timer = System.Diagnostics.Stopwatch.StartNew();
+#endif
         int vectorPrimitiveCount = PdfDocumentReadResult.Load(source).Pages[0].VectorPrimitiveCount;
+#if PDF_PERFORMANCE_EVIDENCE
         timer.Stop();
+#endif
 
         Assert.Equal(primitiveCount, vectorPrimitiveCount);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.True(
             timer.Elapsed < TimeSpan.FromSeconds(5),
             "Repeated authored-clip visibility exceeded the bounded contract: " +
             timer.Elapsed +
             ".");
+#endif
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "Performance")]
+#endif
     public void VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative() {
         const int contourCount = 511;
         var content = new System.Text.StringBuilder(contourCount * 80);
@@ -1424,15 +1450,21 @@ public class PdfTableStreamExportContracts {
         content.Append('f');
 
         byte[] source = BuildSingleStreamPdf(content.ToString());
+#if PDF_PERFORMANCE_EVIDENCE
         var timer = System.Diagnostics.Stopwatch.StartNew();
+#endif
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         int vectorPrimitiveCount = logical.Pages[0].VectorPrimitiveCount;
+#if PDF_PERFORMANCE_EVIDENCE
         timer.Stop();
+#endif
 
         Assert.Equal(1, vectorPrimitiveCount);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.True(
             timer.Elapsed < TimeSpan.FromSeconds(5),
             "Complex visibility analysis exceeded the bounded contract: " + timer.Elapsed + ".");
+#endif
     }
 
     private static PdfDocumentReadResult CreateLogicalDocument() {

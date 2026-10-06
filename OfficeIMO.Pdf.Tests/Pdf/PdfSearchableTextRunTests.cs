@@ -50,5 +50,27 @@ public sealed class PdfSearchableTextRunTests {
         Assert.Empty(PdfPageInteractionMap.Create(bytes, 1).TextRegions);
     }
 
+    [Theory]
+    [InlineData(.2214321D)]
+    [InlineData(.0044321D)]
+    public void ContiguousClustersPreserveFractionalHeightAndTotalAdvance(double height) {
+        var options = new PdfOptions { CompressContentStreams = false };
+        string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        Assert.NotNull(fontPath);
+        options.EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!));
+        byte[] bytes = PdfDocument.Create(options).Canvas(canvas => {
+            canvas.SearchableText("A", new PdfSelectionQuad(new(10, 20), new(35, 20), new(35, 20 + height), new(10, 20 + height)));
+            canvas.SearchableText("B", new PdfSelectionQuad(new(35, 20), new(60, 20), new(60, 20 + height), new(35, 20 + height)));
+        }).ToBytes();
+        // Read glyph advances independently of the enclosing ActualText span.
+        byte[] raw = Encoding.GetEncoding(28591).GetBytes(Encoding.GetEncoding(28591).GetString(bytes).Replace("/ActualText", "/UnusedText"));
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(raw);
+        var letters = independent.GetPage(1).Letters;
+        Assert.Equal(2, letters.Count);
+        Assert.Equal(10D, letters[0].StartBaseLine.X, 3);
+        Assert.Equal(35D, letters[0].EndBaseLine.X, 3);
+        Assert.Equal(60D, letters[1].EndBaseLine.X, 3);
+    }
+
     private static PdfSelectionPoint Point(double x, double y) => new(x + y * .3, y + x * .2);
 }

@@ -1,6 +1,8 @@
-# Apple iWork source-reader support
+# Apple iWork support
 
 OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through the bounded `OfficeIMO.IWork` package. Opt-in adapter packages project supported semantics into the existing Word, Excel, and PowerPoint owners. The source layer is read-only, and the default destination packages do not depend on iWork.
+
+The same package owns a separate bounded native Keynote creation model. Its scope and independent acceptance evidence are listed below; it does not edit loaded iWork sources.
 
 The current level is **extended semantic reconstruction**. Normal document content becomes editable destination objects with recovered structure, typography, sizing, and geometry where the corpus proves those fields. It is not a pixel-identical renderer or a claim that every application-only feature can be translated.
 
@@ -19,10 +21,22 @@ The current level is **extended semantic reconstruction**. Normal document conte
 `OfficeIMO.Workflows.IWork` registers all three Apple-to-OOXML routes without adding iWork to the default workflow dependency graph. Local ZIP files, local directory packages, and provider ZIP streams use bounded captured inputs, destination reopen validation, source verification, and safe publication. Defaults reject explicitly partial editable reconstruction and visual previews without known complete coverage. `ConversionEvidence` retains typed fidelity categories and compact source/projection facts after destination disposal. Directory packages use a deterministic private ZIP transport snapshot, with package-root identity and file membership/content checked again before publication. Destinations inside the package or aliased to a package member are rejected. The snapshot checksum describes that transport archive. Native permission-scoped directory-package intake remains outside this local-filesystem contract. The CLI exposes these routes through `officeimo convert`. Studio uses the same runner for file-picker, drop, and startup intake, with per-job representation and acceptance settings, captured source SHA-256, retained fidelity evidence, and saved-output preview. These workflow settings are copied before asynchronous source capture.
 
 
+## Native Keynote creation
+
+`IWorkKeynoteDocument.Create` creates an owned, template-free `.key` package. `AddSlide` and `AddText` build static slides with opaque sRGB backgrounds and uniformly styled text boxes. `SaveBytes`, stream saves and atomic path saves accept cancellation and operation-level slide, text-box, UTF-16 text and output/archive bounds. ZIP entry order and timestamps, object identities and archive bytes are deterministic for the same model, including across tested host timezones. There is no seed-file patching, external writer, OOXML projection or Apple runtime dependency.
+
+Frames use explicit finite geometry within the canvas, zero padding, left/top alignment and a requested font name and size. No shaping, measurement, automatic fit, embedded fonts, styled runs, links, lists, images, tables, transitions or builds are authored. Font substitution and wrapping belong to the receiving application. Loaded sources remain read-only; native Pages/Numbers writing and iWork save-back are unsupported.
+
+[`keynote-created-v15.4.json`](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records a three-slide C# output independently decoded through pinned protobuf schemas. Required fields, declared object references, package metadata, modern text fills and stored ZIP structure are checked independently. Keynote 15.4 opens the package without a repair dialog, exports all three pages to PDF with the recorded opaque backgrounds and `003366` text, and preserves a text edit after native save/close/reopen. The PDF embeds Arial, Times New Roman and Apple Color Emoji. This is fixture-specific acceptance on the recorded macOS font environment; other application versions, fonts, text scripts and layout combinations remain unqualified. The byte-identical creator model also has bounded NativeAOT qualification below.
+
+The Apple-saved edit also qualifies the reader's modern solid text-fill precedence and protobuf padding defaults. A declared empty frame-padding message resets all sides to zero; omitted sides in a present message are zero rather than inherited. Strict saved-and-reopened PPTX conversion retains the edited text, font, color and geometry.
+
 ## Bounded NativeAOT qualification
 
 `OfficeIMO.Reader.IWork.AotSmoke` publishes and executes the source reader and shared
-Reader handler on macOS arm64 with .NET 8.0.31 and .NET 10.0.12. The host rejects
+Reader handler on macOS arm64, Linux x64 and Windows x64 with .NET 8.0.31 and
+.NET 10.0.12. The [Linux and Windows CI evidence](https://github.com/EvotecIT/OfficeIMO/actions/runs/37224856067)
+retains the native executable hashes, diagnostics and output. The host rejects
 managed execution. Five hash-pinned corpus fixtures exercise Pages body text,
 Numbers sparse typed cells and selected arithmetic/range/string formulas, and
 Keynote slide titles, body text and presenter notes. The native comment fixture
@@ -36,7 +50,7 @@ and configured input byte limits. Fixture provenance and licenses remain in the
 [corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
 
 `OfficeIMO.IWork.AotSmoke` separately exercises editable conversion of four
-hash-pinned fixtures on macOS arm64 under the same two runtimes. It saves and
+hash-pinned fixtures on these three targets under the same two runtimes. It saves and
 reopens DOCX, XLSX and PPTX, checks Pages body text, Numbers typed cells and a
 formula cache, Keynote titles/body text, presenter notes and qualified backgrounds,
 and recalculates the saved Numbers formula after an operand edit. Caller-owned
@@ -44,6 +58,18 @@ streams, unchanged source bytes and retained source records are checked. The
 Pages, Numbers and Keynote fixtures use the default policy and require complete editable
 reconstruction. Passing the native gate does
 not qualify complete appearance or broader source compatibility.
+
+The same `OfficeIMO.IWork.AotSmoke` host qualifies native Keynote creation on
+macOS arm64, Linux x64 and Windows x64 under .NET 8.0.31 and .NET 10.0.12. All six
+native executions of the three-slide Unicode model emit
+7,423 bytes with SHA-256 `8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1`,
+identical to the independently decoded, Apple-opened fixture. Byte, caller-stream
+and atomic path saves agree; repeated encoding is deterministic. Native readback
+checks complete content, canvas, backgrounds, Unicode paragraph boundaries and
+text fill. Existing-path protection and pre-cancelled replacement preserve bytes;
+active stream-copy cancellation stops after the first 64 KiB and leaves the
+caller stream open. This does not qualify native encoding or path-staging
+cancellation latency, every writer limit, additional architectures or font rendering.
 
 Run the coordinated native gate from PowerShell with the pinned SDK and platform
 compiler installed:
@@ -55,7 +81,7 @@ compiler installed:
 The gate retains executable SHA-256, exit codes and output before deleting isolated
 publish and SDK directories. The scenario is also included in the full gate;
 `-Scenario` selects known scenario IDs and rejects unknown IDs before publishing.
-This evidence covers the invoked source/Reader and destination conversion paths,
+This evidence covers the invoked source/Reader, destination conversion and native creation paths,
 not every public API or all-file compatibility. It does not qualify rendered
 appearance, portable fonts, Windows/Linux execution, iOS/iPad, sandbox permissions
 or signed application distribution.
@@ -156,7 +182,9 @@ Malformed, repeated, unknown or invalid selected padding/alignment declarations 
 
 `IWorkKeynoteSlide.HasBackgroundFill` distinguishes a recovered fill from an unspecified or unsupported background. `BackgroundColor` contains the opaque RGB color; null with `HasBackgroundFill = true` is an explicit no-fill override. The reader resolves the selected slide-style chain under the configured style-inheritance depth, preserving supported solid fills and no-fill overrides. PPTX uses the shared PowerPoint background APIs. Reader reports `IWORK_READER_SLIDE_BACKGROUND_OMITTED` because its plain projection does not retain the fill.
 
-The independent `keynote-backgrounds.json` manifest records 68 slide and template declarations from four unchanged native packages. Saved/reopened PPTX checks the selected slides against their qualified fills. Display P3, the newer fixtures' additional color field 13, transparency, gradients, images, unresolved styles and an unqualified template background produce `IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED`; automatic conversion uses visual fallback unless partial editable conversion is requested. Invalid selected fill declarations retain their physical `11/1` path. Inactive styles do not gate selected slides. Synthetic cases qualify explicit clears, inheritance, overrides, invalid declarations and bounded style traversal. Master/layout reconstruction, Apple PPTX export and rendered background equivalence remain unqualified.
+The independent `keynote-backgrounds.json` manifest records 87 slide and template declarations from four unchanged native packages and a controlled Keynote 15.4 sample. Saved/reopened PPTX checks selected slides against their qualified fills. The additional fixed32 color field `13` is accepted only at value `1` in explicit opaque RGB/sRGB colors. Its meaning remains unspecified; other values, malformed or repeated declarations, Display P3, transparency, gradients, images, unresolved styles and an unqualified template background produce `IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED`. Automatic conversion uses visual fallback unless partial editable conversion is requested. Invalid selected fill declarations retain their physical `11/1` path. Inactive styles do not gate selected slides. Synthetic cases qualify explicit clears, inheritance, overrides, invalid declarations and bounded style traversal.
+
+The [controlled native reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-colors-v15.4.json) qualifies inherited white and two authored backgrounds, blue `56C1FF` and red `FF968D`. Strict conversion preserves the selected text frames and both colors. Keynote 15.4 reopens the saved PPTX without repair; both slide rasters match Apple's own PPTX round trip at the recorded resolution. Original Keynote-to-PPTX ligature differences remain visible. This evidence applies to the recorded fixture, fonts and renderer; master/layout reconstruction and general producer or typography coverage remain unqualified.
 
 Selected slide template references are checked independently of the local fill. Missing targets, malformed or repeated references, and targets other than slide archives produce `IWORK_KEYNOTE_TEMPLATE_UNRESOLVED` with physical reference evidence at field `17`. Self-references retain invalid-selection evidence at `17`; malformed direct template payloads retain evidence at the target’s `$` path. Default conversion falls back; explicitly requested partial conversion retains the recovered local background and the diagnostic. This reference check does not qualify template content or layout reconstruction.
 
@@ -284,11 +312,11 @@ The checked-in interoperability corpus includes unmodified upstream fixtures wit
 |---|---|
 | Pages | 14.1 and 14.5, including a 14.4.1 package history with images and tables |
 | Numbers | 11.1, build histories spanning 13.x and 14.x, 14.5, and 15.1, including formulas, merged ranges, and independently produced nonuniform table dimensions |
-| Keynote | 8.1, 14.5, and 15.2.1, including independently maintained image and editable-table fixtures |
+| Keynote | 8.1, 14.5, 15.2.1 and 15.4, including independently maintained image/table fixtures and native controlled-color and creation fixtures |
 
 Tests assert path/stream parity, cumulative decompression and materialization bounds, application detection, source-record retention, rich text and drawable geometry, bounded style inheritance, section-specific headers/footers, formulas and cached values, merges and tables across all three applications, embedded images, explicit handling of pre-BNC cell storage, strict preview selection, destination limits, explicit visual fallback, and save/reopen of the resulting DOCX, XLSX, and PPTX packages. Fixture sources, revisions, expected content, checksums, and licenses are recorded in `OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md`.
 
-This corpus proves the current read contract; it does not establish a stable iWork write contract.
+The upstream source fixtures qualify reading. Native creation has the separate bounded fixture contract described above; they do not qualify rewriting loaded packages.
 
 Independent Numbers 14.5 XLSX and PDF exports qualify the two-table formula fixture separately from parser tests. Saved-and-reopened OfficeIMO output agrees on 28 expressions and 24 stable typed cached values after accounting for Apple's table-title row. Volatile timestamps and generic error caches are excluded. The reference manifest records producer/build, hashes, export settings, licensing, and embedded font provenance. The hashed PDF grid also measures 98-point columns and 20.07-point rows. Saved OfficeIMO output retains the declared row heights (about 19.93 points); this fixture’s row-height difference from the native PDF is bounded to 0.15 point per row. This does not qualify Apple automatic row sizing. Other fixtures, producer versions, rendering, and full styling remain unqualified by this comparison.
 

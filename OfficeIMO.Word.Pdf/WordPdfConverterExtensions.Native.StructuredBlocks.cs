@@ -120,23 +120,24 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<int> GetNativeStructuredBlockFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById) {
-            var numbers = GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById).ToList();
-            var leadingNumbers = new List<int>();
+            var seenKeys = new HashSet<long>();
+            var numbers = GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById, seenKeys).ToList();
+            var leadingKeys = new List<long>();
             int previousIndex = index - 1;
             while (previousIndex >= 0 && (elements[previousIndex] is WordFootNote || elements[previousIndex] is WordEndNote)) {
                 long? key = GetNativeNoteKey(elements[previousIndex]);
-                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number)) {
-                    leadingNumbers.Add(number);
-                }
+                if (key.HasValue) leadingKeys.Add(key.Value);
 
                 previousIndex--;
             }
 
             if (previousIndex < 0) {
-                numbers.AddRange(leadingNumbers);
+                foreach (long key in leadingKeys) {
+                    if (footnoteNumbersById.TryGetValue(key, out int number) && seenKeys.Add(key)) numbers.Add(number);
+                }
             }
 
-            return numbers.Distinct().ToList();
+            return numbers;
         }
 
         private static bool IsNativeCanvasOnlyVmlParagraph(W.Paragraph paragraph) {
@@ -220,7 +221,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativePageBreakSeparator(W.Paragraph paragraph) =>
-            paragraph.ParagraphProperties?.PageBreakBefore != null ||
+            ReadNativeOnOff(paragraph.ParagraphProperties?.PageBreakBefore) == true ||
             paragraph.Descendants<W.Break>().Any(breakElement => breakElement.Type?.Value == W.BreakValues.Page);
 
         private static string? GetNativeBuiltInPropertyValue(WordDocument document, W.SdtProperties? properties) {

@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>
     /// Neutral legacy binary Word document model for the supported import subset.
     /// </summary>
-    public sealed class LegacyDocDocument {
+    public sealed partial class LegacyDocDocument {
         private readonly List<LegacyDocImportDiagnostic> _diagnostics = new();
         private readonly List<string> _paragraphs = new();
         private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();
@@ -52,6 +52,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; private set; } = Array.Empty<LegacyDocBookmark>();
 
         internal bool DifferentOddAndEvenPages { get; private set; }
+
+        internal bool MirrorMargins { get; private set; }
+
+        internal bool GutterAtTop { get; private set; }
+
+        internal bool NoColumnBalance { get; private set; }
 
         internal bool RevisionMarkingEnabled { get; private set; }
 
@@ -160,6 +166,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             byte[] tableStream = tableStreamCandidate!;
             DifferentOddAndEvenPages = ReadDopFacingPagesFlag(tableStream, fib);
+            ReadDopMarginSettings(tableStream, fib);
             EndnotePositionValues? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, options.MaxDecodedCharacters, out LegacyDocTextContent textContent, out string? textError)) {
@@ -251,7 +258,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-COMMENT-PLC-INVALID", commentWarning);
             }
 
-            TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, bookmarkProjection);
+            TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition);
             AddKnownUnsupportedFeatureDiagnostics(
                 compoundFile,
                 tableStream,
@@ -784,6 +791,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     if (paragraphFormat.IsInTable == true) {
                         if (paragraphFormat.IsTableTerminatingParagraph == true) {
                             AddCurrentTableRow(paragraphFormat, textCharacter.CharacterPosition + 1);
+                            // The next paragraph's table depth ends a real table.
+                            // Its content, including an empty body paragraph, belongs outside it.
+                            bool followingTableParagraph = characterIndex + 1 < characters.Count &&
+                                GetParagraphFormatForFileOffset(paragraphFormattingRanges, characters[characterIndex + 1].FileOffset).IsInTable == true;
+                            if (!followingTableParagraph) {
+                                FlushTable(LegacyDocParagraphFormat.Default, textCharacter.CharacterPosition + 1);
+                                currentParagraphStartCharacter = textCharacter.CharacterPosition + 1;
+                            }
                         } else {
                             AddCurrentTextAsTableCell(paragraphFormat, allowHeuristicRowTerminator: false);
                         }
@@ -795,7 +810,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                char? normalized = NormalizeBodyCharacter(textCharacter.Character);
+                // 0x0C is also a section mark when the next section starts immediately
+                // after it. Project that boundary as a paragraph, not an inline page break.
+                bool isSectionMark = textCharacter.Character == LegacyDocSpecialCharacters.PageBreak &&
+                    nextSectionIndex < sections.Count &&
+                    sections[nextSectionIndex].StartCharacter == textCharacter.CharacterPosition + 1;
+                char? normalized = isSectionMark ? '\r' : NormalizeBodyCharacter(textCharacter.Character);
                 if (normalized == null) {
                     continue;
                 }
@@ -811,8 +831,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         AddCurrentTextAsTableCellParagraph(paragraphFormat);
                     } else if (inTable) {
                         FlushTable(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset), textCharacter.CharacterPosition + 1);
-                    } else {
-                        AddCurrentTextAsParagraph(paragraphFormat);
+                    } else if (!isSectionMark || currentRuns.Count > 0 || runText.Length > 0 ||
+                        !paragraphFormat.Equals(LegacyDocParagraphFormat.Default) &&
+                        !paragraphFormat.Equals(new LegacyDocParagraphFormat(null, styleIndex: 0)) ||
+                        Bookmarks.Any(bookmark =>
+                            bookmark.StartCharacter >= currentParagraphStartCharacter && bookmark.StartCharacter <= textCharacter.CharacterPosition + 1 ||
+                            bookmark.EndCharacter >= currentParagraphStartCharacter && bookmark.EndCharacter <= textCharacter.CharacterPosition + 1)) {
+                        AddCurrentTextAsParagraph(paragraphFormat, isSectionMark);
                     }
 
                     bodyText.Append('\r');
@@ -1046,7 +1071,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentHyperlinkTarget.Uri,
                     currentHyperlinkTarget.Anchor,
                     specified: currentFormat.Specified,
+                    styleRelative: currentFormat.StyleRelative,
+                    styleInverted: currentFormat.StyleInverted,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
+                    kerningMinimumFontSizeHalfPoints: currentFormat.KerningMinimumFontSizeHalfPoints,
                     language: currentFormat.Language,
                     eastAsiaLanguage: currentFormat.EastAsiaLanguage,
                     revision: currentFormat.Revision));
@@ -1055,7 +1083,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 currentHyperlinkTarget = default;
             }
 
-            void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat) {
+            void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat, bool endsWithSectionMark = false) {
                 FlushRun();
                 IReadOnlyList<LegacyDocTextRun> runs = currentRuns.ToArray();
                 _paragraphTextRuns.Add(runs);
@@ -1067,7 +1095,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphFormat,
                     currentParagraphStartCharacter,
                     paragraphEndCharacter,
-                    bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
+                    bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter),
+                    endsWithSectionMark));
                 currentRuns.Clear();
                 hasCurrentRun = false;
             }
@@ -1159,7 +1188,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.DefaultTableCellSpacingTwips,
                         paragraphFormat.TablePreferredWidth,
                         paragraphFormat.TableAutofit,
-                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
+                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks(),
+                        paragraphFormat.TableStyleIndex,
+                        paragraphFormat.TableBorders));
                     currentTableRow.Clear();
                 }
 
@@ -1204,7 +1235,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.DefaultTableCellSpacingTwips,
                         paragraphFormat.TablePreferredWidth,
                         paragraphFormat.TableAutofit,
-                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
+                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks(),
+                        paragraphFormat.TableStyleIndex,
+                        paragraphFormat.TableBorders));
                     currentTableRow.Clear();
                 }
 

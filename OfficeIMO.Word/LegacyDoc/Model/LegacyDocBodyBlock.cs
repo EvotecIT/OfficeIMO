@@ -238,12 +238,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphFormat format,
             int startCharacter,
             int endCharacter,
-            IReadOnlyList<LegacyDocBookmark>? bookmarks = null) {
+            IReadOnlyList<LegacyDocBookmark>? bookmarks = null,
+            bool endsWithSectionMark = false) {
             Runs = runs;
             Format = format;
             StartCharacter = startCharacter;
             EndCharacter = endCharacter;
             Bookmarks = bookmarks ?? Array.Empty<LegacyDocBookmark>();
+            EndsWithSectionMark = endsWithSectionMark;
         }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
@@ -255,6 +257,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int EndCharacter { get; }
 
         internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; }
+
+        /// <summary>Gets whether the paragraph terminator also starts the next section.</summary>
+        internal bool EndsWithSectionMark { get; }
     }
 
     internal sealed class LegacyDocSectionBreakBlock : LegacyDocBodyBlock {
@@ -309,7 +314,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? defaultCellSpacingTwips = null,
             LegacyDocTablePreferredWidth? tablePreferredWidth = null,
             bool? tableAutofit = null,
-            IReadOnlyList<LegacyDocBookmark>? bookmarksBefore = null) {
+            IReadOnlyList<LegacyDocBookmark>? bookmarksBefore = null,
+            ushort? tableStyleIndex = null,
+            LegacyDocTableBorders tableBorders = default) {
             Cells = cells;
             BookmarksBefore = bookmarksBefore == null || bookmarksBefore.Count == 0
                 ? Array.Empty<LegacyDocBookmark>()
@@ -317,7 +324,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CellWidthsTwips = cellWidthsTwips == null || cellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : cellWidthsTwips.ToArray();
-            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value != 0
+                && tableLeftIndentTwips.Value >= short.MinValue && tableLeftIndentTwips.Value <= short.MaxValue
                 ? tableLeftIndentTwips
                 : null;
             RowHeightTwips = rowHeightTwips;
@@ -360,6 +368,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : null;
             TablePreferredWidth = tablePreferredWidth;
             TableAutofit = tableAutofit;
+            TableStyleIndex = tableStyleIndex;
+            TableBorders = tableBorders;
         }
 
         internal IReadOnlyList<LegacyDocTableCell> Cells { get; }
@@ -405,6 +415,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocTablePreferredWidth? TablePreferredWidth { get; }
 
         internal bool? TableAutofit { get; }
+
+        internal ushort? TableStyleIndex { get; }
+
+        internal LegacyDocTableBorders TableBorders { get; }
     }
 
     internal sealed class LegacyDocTableCell {

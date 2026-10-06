@@ -6,6 +6,9 @@ namespace OfficeIMO.AI;
 
 /// <summary>Immutable text observation projected from Reader; its identifier is scoped to the evidence snapshot hash.</summary>
 public sealed record OfficeAiEvidence(string Id, string Kind, string Text, int? Page, string? SourceBlockId) {
+    /// <summary>Immutable recognition provenance; null means unknown, not verified native text.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; init; }
+
     /// <summary>Gets the Reader anchor shared by source placeholders and their table observations, when available.</summary>
     public string? SourceAnchor { get; init; }
     /// <summary>Immutable Reader source location; model output cannot replace it.</summary>
@@ -94,13 +97,14 @@ public sealed class OfficeAiDocument {
             pages.Add(page);
             if (pages.Count > limits.MaxPages) throw new InvalidDataException("Source page count exceeds the configured limit.");
         }
-        void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null, string? sourceAnchor = null, ReaderLocation? location = null, int? rowIndex = null) {
+        void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null, string? sourceAnchor = null, ReaderLocation? location = null, int? rowIndex = null, OfficeDocumentRecognitionEvidence? recognition = null) {
             if (page.HasValue) AddPage(page.Value);
             if (string.IsNullOrWhiteSpace(text)) return;
             characters += text.Length;
             if (characters > limits.MaxDocumentCharacters || evidence.Count >= limits.MaxDocumentBlocks)
                 throw new InvalidDataException("Source observations exceed the configured document limits.");
             evidence.Add(new OfficeAiEvidence("e" + (evidence.Count + 1), kind, text, page, blockId) {
+                Recognition = recognition,
                 SourceAnchor = sourceAnchor,
                 SourceLocation = OfficeAiSourceLocation.FromReader(location, document.Source?.Path, rowIndex),
                 Region = region is null ? null : new(region.X, region.Y, region.Width, region.Height)
@@ -142,7 +146,7 @@ public sealed class OfficeAiDocument {
                     .FirstOrDefault(chunk => chunk.Text == block.Text && OfficeDocumentModelTraversal.SameContainerWhenKnown(
                         chunk.Location ?? new ReaderLocation(), item.Location ?? new ReaderLocation())) : null;
                 if (projection is not null) AddChunk(projection, item.Location);
-                else Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor, item.Location);
+                else Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor, item.Location, recognition: block.Recognition);
                 continue;
             }
             if (item.Chunk is { } chunk) {

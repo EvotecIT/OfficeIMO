@@ -135,7 +135,7 @@ public static partial class OfficeDrawingRasterRenderer {
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateGroupClipContours(drawingGroup, scale);
         if (contours.Count > 0) {
             return contours.Count == 1 && drawingGroup.ClipPath.Kind != OfficeClipPathKind.Path
-                ? canvas.PushClipPolygon(contours[0])
+                ? PushSingleContourClip(canvas, drawingGroup.ClipPath.Kind, contours[0])
                 : PushClipPolygons(canvas, contours, drawingGroup.ClipPath.FillRule);
         }
 
@@ -290,7 +290,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         return contours.Count == 1 && clipPath.Kind != OfficeClipPathKind.Path
-            ? canvas.PushClipPolygon(contours[0])
+            ? PushSingleContourClip(canvas, clipPath.Kind, contours[0])
             : PushClipPolygons(canvas, contours, clipPath.FillRule);
     }
 

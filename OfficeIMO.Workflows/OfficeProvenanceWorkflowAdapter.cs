@@ -57,6 +57,32 @@ internal static class OfficeProvenanceWorkflowAdapter {
         };
     }
 
+    internal static OfficeTextIntegrityReport InspectDocumentText(
+        ProvenanceOwner owner, string path, OfficeProvenanceAssessmentOptions options,
+        long expandedBytesAlreadyInspected, CancellationToken cancellationToken) {
+        if (owner != ProvenanceOwner.Word) throw new NotSupportedException("Document text integrity is qualified for Word packages only.");
+        long remainingExpanded = options.Structural.MaxExpandedContainerBytes - expandedBytesAlreadyInspected;
+        if (remainingExpanded <= 0) throw new InvalidDataException("The provenance assessment exhausted its expanded-data budget.");
+        var contentOptions = new OfficeIMO.ContentSafety.OfficeContentSafetyOptions {
+            MaxInputBytes = Math.Min(options.TextIntegrity.MaxEncodedBytes, options.Structural.MaxAssetBytes),
+            MaxPackageEntries = options.Structural.MaxContainerEntries,
+            MaxExpandedPackageBytes = remainingExpanded,
+            MaxCharacters = options.TextIntegrity.MaxCharacters,
+            MaxFindings = options.TextIntegrity.MaxFindings,
+            DetectInstructionLikeText = false,
+            IncludeTextIntegrityEvidence = true,
+            TextIntegrityOnly = true,
+            TextIntegrityOptions = new OfficeTextIntegrityOptions {
+                IncludeTypographicSpaces = options.TextIntegrity.IncludeTypographicSpaces,
+                IncludeVariationSelectors = options.TextIntegrity.IncludeVariationSelectors,
+                // These are decoded document text nodes, not the start of an encoded file.
+                IgnoreLeadingByteOrderMark = false
+            }
+        };
+        var content = WordDocument.InspectContentSafety(path, contentOptions, cancellationToken);
+        return new OfficeTextIntegrityReport(content.TextIntegrityFindings);
+    }
+
     internal static Encoding? ResolveTextEncoding(
         ProvenanceOwner owner,
         OfficeProvenanceAssetFormat format,

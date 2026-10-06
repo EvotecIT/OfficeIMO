@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
 
     /// <summary>
     /// Provides access to compatibility settings for the document and allows
-    /// reading or changing the compatibility mode.
+    /// reading or changing the compatibility mode and layout options.
     /// </summary>
     public class WordCompatibilitySettings {
         private readonly WordprocessingDocument _wordprocessingDocument;
@@ -101,6 +101,41 @@ namespace OfficeIMO.Word {
                         Val = ((int)value).ToString(CultureInfo.InvariantCulture)
                     });
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets whether text columns fill sequentially instead of balancing
+        /// at the end of a section. The default is <see langword="false"/>.
+        /// </summary>
+        /// <remarks>
+        /// This property reads and preserves the stored compatibility option.
+        /// Word 2013 layout mode ignores the option when rendering columns.
+        /// </remarks>
+        public bool DoNotBalanceTextColumns {
+            get {
+                NoColumnBalance? setting = _wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?.Settings?.GetFirstChild<Compatibility>()?
+                    .GetFirstChild<NoColumnBalance>();
+                return setting != null && (setting.Val?.Value ?? true);
+            }
+            set {
+                Compatibility? compatibility = _wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?.Settings?.GetFirstChild<Compatibility>();
+                if (!value) {
+                    compatibility?.GetFirstChild<NoColumnBalance>()?.Remove();
+                    return;
+                }
+                if (compatibility == null) {
+                    compatibility = new Compatibility();
+                    GetSettings().AddChild(compatibility, true);
+                }
+                NoColumnBalance? setting = compatibility.GetFirstChild<NoColumnBalance>();
+                if (setting == null) {
+                    setting = new NoColumnBalance();
+                    compatibility.AddChild(setting, true);
+                }
+                setting.Val = true;
             }
         }
 

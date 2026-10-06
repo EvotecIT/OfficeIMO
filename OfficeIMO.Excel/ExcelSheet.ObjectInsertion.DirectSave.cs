@@ -144,6 +144,7 @@ namespace OfficeIMO.Excel {
 
             var worksheet = WorksheetRoot;
             foreach (var child in worksheet.ChildElements) {
+                if (child is SheetViews views && IsNeutralSheetViews(views)) continue;
                 if (child is not SheetData sheetData) {
                     return false;
                 }

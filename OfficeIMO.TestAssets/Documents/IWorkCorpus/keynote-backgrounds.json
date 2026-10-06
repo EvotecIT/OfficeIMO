@@ -799,8 +799,8 @@
           "styleChain": [
             2651744
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -824,8 +824,8 @@
           "styleChain": [
             2651772
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -849,8 +849,8 @@
           "styleChain": [
             2651803
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -874,8 +874,8 @@
           "styleChain": [
             2651830
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -899,8 +899,8 @@
           "styleChain": [
             2651853
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -924,8 +924,8 @@
           "styleChain": [
             2651872
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -949,8 +949,8 @@
           "styleChain": [
             2651903
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -974,8 +974,8 @@
           "styleChain": [
             2651934
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -999,8 +999,8 @@
           "styleChain": [
             2651964
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1024,8 +1024,8 @@
           "styleChain": [
             2651982
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1049,8 +1049,8 @@
           "styleChain": [
             2652004
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1074,8 +1074,8 @@
           "styleChain": [
             2652026
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1099,8 +1099,8 @@
           "styleChain": [
             2652044
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1124,8 +1124,8 @@
           "styleChain": [
             2652066
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1149,8 +1149,8 @@
           "styleChain": [
             2652088
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1174,8 +1174,8 @@
           "styleChain": [
             2652133
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1199,8 +1199,8 @@
           "styleChain": [
             2652160
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1224,8 +1224,8 @@
           "styleChain": [
             2651744
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1255,8 +1255,8 @@
           "styleChain": [
             2651744
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1280,8 +1280,8 @@
           "styleChain": [
             2651772
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1305,8 +1305,8 @@
           "styleChain": [
             2651803
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1330,8 +1330,8 @@
           "styleChain": [
             2651830
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1355,8 +1355,8 @@
           "styleChain": [
             2651853
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1380,8 +1380,8 @@
           "styleChain": [
             2651872
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1405,8 +1405,8 @@
           "styleChain": [
             2651903
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1430,8 +1430,8 @@
           "styleChain": [
             2651934
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1455,8 +1455,8 @@
           "styleChain": [
             2651964
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1480,8 +1480,8 @@
           "styleChain": [
             2651982
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1505,8 +1505,8 @@
           "styleChain": [
             2652004
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1530,8 +1530,8 @@
           "styleChain": [
             2652026
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1555,8 +1555,8 @@
           "styleChain": [
             2652044
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1580,8 +1580,8 @@
           "styleChain": [
             2652066
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1605,8 +1605,8 @@
           "styleChain": [
             2652088
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1630,8 +1630,8 @@
           "styleChain": [
             2652133
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1655,8 +1655,8 @@
           "styleChain": [
             2652160
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1680,8 +1680,8 @@
           "styleChain": [
             2651744
           ],
-          "backgroundKind": "unsupported",
-          "rgb": null,
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
           "colorFields": [
             1,
             3,
@@ -1700,7 +1700,490 @@
           ]
         }
       ]
+    },
+    {
+      "path": "native-exports/keynote-colors-v15.4.key",
+      "sha256": "d9c7c5d0b1bb2bff80e44ea683239601dcc5c2e632205ad8611bb0110f3502f1",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 1221395,
+          "entry": "Index/TemplateSlide-1221395.iwa",
+          "styleChain": [
+            1221397
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221423,
+          "entry": "Index/TemplateSlide-1221423.iwa",
+          "styleChain": [
+            1221425
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221455,
+          "entry": "Index/TemplateSlide-1221455.iwa",
+          "styleChain": [
+            1221457
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221482,
+          "entry": "Index/TemplateSlide-1221482.iwa",
+          "styleChain": [
+            1221484
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221505,
+          "entry": "Index/TemplateSlide-1221505.iwa",
+          "styleChain": [
+            1221507
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221524,
+          "entry": "Index/TemplateSlide-1221524.iwa",
+          "styleChain": [
+            1221526
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221555,
+          "entry": "Index/TemplateSlide-1221555.iwa",
+          "styleChain": [
+            1221557
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221586,
+          "entry": "Index/TemplateSlide-1221586.iwa",
+          "styleChain": [
+            1221588
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221616,
+          "entry": "Index/TemplateSlide-1221616.iwa",
+          "styleChain": [
+            1221618
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221634,
+          "entry": "Index/TemplateSlide-1221634.iwa",
+          "styleChain": [
+            1221636
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221656,
+          "entry": "Index/TemplateSlide-1221656.iwa",
+          "styleChain": [
+            1221658
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221678,
+          "entry": "Index/TemplateSlide-1221678.iwa",
+          "styleChain": [
+            1221680
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221696,
+          "entry": "Index/TemplateSlide-1221696.iwa",
+          "styleChain": [
+            1221698
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221719,
+          "entry": "Index/TemplateSlide-1221719.iwa",
+          "styleChain": [
+            1221721
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221741,
+          "entry": "Index/TemplateSlide-1221741.iwa",
+          "styleChain": [
+            1221743
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221786,
+          "entry": "Index/TemplateSlide-1221786.iwa",
+          "styleChain": [
+            1221788
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221813,
+          "entry": "Index/TemplateSlide-1221813.iwa",
+          "styleChain": [
+            1221815
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221831,
+          "entry": "Index/Slide-1221831.iwa",
+          "styleChain": [
+            1225882,
+            1221397
+          ],
+          "backgroundKind": "solid",
+          "rgb": "56C1FF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.33759230375289917,
+            0.7577283978462219,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1225067,
+          "entry": "Index/Slide.iwa",
+          "styleChain": [
+            1225877,
+            1221815
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FF968D",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            1.0,
+            0.588738739490509,
+            0.5529261827468872,
+            1.0
+          ]
+        }
+      ]
     }
   ],
-  "limits": "Opaque sRGB fills in older fixtures; Display P3 and additional color field 13 in newer fixtures remains unqualified. Includes inactive templates. No Apple PPTX export, rendered background or master-layout qualification."
+  "limits": "Opaque RGB/sRGB fills, including the fixed32 value 1 in field 13 observed in Keynote 15.4 controlled blue/red backgrounds and inherited white. The field meaning is unspecified; other values, Display P3 and other extra fields remain unqualified. Includes inactive templates. Native rendering qualification is limited to native-exports/keynote-colors-v15.4.json; this inventory does not qualify master layouts."
 }

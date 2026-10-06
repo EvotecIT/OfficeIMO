@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 
 internal static class EvaluationCorpus {
-    public const string Version = "officeimo.ai.synthetic.v3";
+    public const string Version = "officeimo.ai.corpus.v4";
 
     public static IReadOnlyList<EvaluationCase> Create() {
         var fontOptions = new PdfOptions { DefaultFontSize = 14 };
@@ -64,7 +64,7 @@ internal static class EvaluationCorpus {
             new EvaluationCase("explain", ".txt", Encoding.UTF8.GetBytes("Payment term: net 30 means payment is due 30 days after the invoice date."),
                 new OfficeAiRequest { Operation = OfficeAiOperation.Explain, Instruction = "Explain the payment term using this document." }, false,
                 "30 days;source linked", new(FactMarkers: new[] { "30" }))
-        }.Concat(EvaluationChallengeCorpus.Create()).Concat(EvaluationLayoutCorpus.Create()).ToArray();
+        }.Concat(EvaluationChallengeCorpus.Create()).Concat(EvaluationLayoutCorpus.Create()).Concat(EvaluationIndependentInvoiceCorpus.Create()).ToArray();
     }
 
     private static EvaluationFieldGold Present(string name, string value) => new(name, OfficeAiFieldStatus.Present, value);

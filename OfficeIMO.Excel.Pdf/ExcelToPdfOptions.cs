@@ -121,6 +121,12 @@ namespace OfficeIMO.Excel.Pdf {
         public bool UseWorksheetPrintTitleRows { get; set; } = true;
 
         /// <summary>
+        /// Repeats the worksheet's print-title columns on horizontal pages, including
+        /// title columns outside the selected print area. Defaults to true.
+        /// </summary>
+        public bool UseWorksheetPrintTitleColumns { get; set; } = true;
+
+        /// <summary>
         /// When true, manual worksheet row page breaks split the exported PDF table across pages. Defaults to true.
         /// </summary>
         public bool UseWorksheetPageBreaks { get; set; } = true;
@@ -317,6 +323,7 @@ namespace OfficeIMO.Excel.Pdf {
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
                     UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPrintTitleColumns = true;
                     UseWorksheetPageBreaks = true;
                     UseWorksheetHeadersAndFooters = true;
                     UseWorksheetHeaderFooterImages = true;
@@ -336,6 +343,7 @@ namespace OfficeIMO.Excel.Pdf {
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
                     UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPrintTitleColumns = true;
                     UseWorksheetPageBreaks = true;
                     UseWorksheetHeadersAndFooters = true;
                     UseWorksheetHeaderFooterImages = false;
@@ -355,6 +363,7 @@ namespace OfficeIMO.Excel.Pdf {
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
                     UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPrintTitleColumns = true;
                     UseWorksheetPageBreaks = true;
                     UseWorksheetHeadersAndFooters = true;
                     UseWorksheetHeaderFooterImages = true;
@@ -374,6 +383,7 @@ namespace OfficeIMO.Excel.Pdf {
                     UseWorksheetPrintAreas = true;
                     UseWorksheetPageSetup = true;
                     UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPrintTitleColumns = true;
                     UseWorksheetPageBreaks = true;
                     UseWorksheetHeadersAndFooters = true;
                     UseWorksheetHeaderFooterImages = false;

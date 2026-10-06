@@ -49,12 +49,12 @@ internal static partial class PdfWriter {
                 double scalarWidth = Math.Sqrt(advanceX * advanceX + advanceY * advanceY) * 1000D / height / CountLogicalAnchorScalars(item.Text);
                 foreach (var run in currentPage!.SearchableFonts.Encode(item.Text, space, cff, scalarWidth, cffProgram)) {
                     if (bank != null && bank != run.Bank) {
-                        content.Font(bank.Name, height).ShowHexText(hex.ToString()); hex.Clear();
+                        content.Font(bank.Name, height, preserveLogicalPrecision: true).ShowHexText(hex.ToString()); hex.Clear();
                     }
                     bank = run.Bank; hex.Append(run.Hex);
                 }
             }
-            if (bank != null) content.Font(bank.Name, height).ShowHexText(hex.ToString());
+            if (bank != null) content.Font(bank.Name, height, preserveLogicalPrecision: true).ShowHexText(hex.ToString());
             sb.Append("EMC\n");
             content.EndText().RestoreState();
             MarkSimpleFont(font); pageDirty = true; index = last;
