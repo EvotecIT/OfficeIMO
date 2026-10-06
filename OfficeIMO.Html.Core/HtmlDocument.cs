@@ -6,7 +6,7 @@ using System.Threading;
 namespace OfficeIMO.Html.Dom;
 
 /// <summary>An owned HTML tree with explicit snapshot and mutation semantics. Mutable documents require a single owner.</summary>
-public sealed class HtmlDocument : HtmlNode {
+public sealed partial class HtmlDocument : HtmlNode {
     private int _nextNodeId;
     private readonly Dictionary<int, HtmlNode> _nodes = new Dictionary<int, HtmlNode>();
 
@@ -50,14 +50,17 @@ public sealed class HtmlDocument : HtmlNode {
     /// <summary>Creates a comment in this mutable document.</summary>
     public HtmlNode CreateComment(string text) => CreateDataNode(HtmlNodeKind.Comment, text);
     /// <summary>Creates a detached fragment in this mutable document.</summary>
-    public HtmlNode CreateFragment() => CreateDataNode(HtmlNodeKind.DocumentFragment, string.Empty);
+    public HtmlDocumentFragment CreateFragment() {
+        EnsureMutable();
+        return Register(new HtmlDocumentFragment(this, NextId()));
+    }
     /// <summary>Creates a document type with the supplied identifiers.</summary>
     public HtmlDocumentType CreateDocumentType(string name, string publicIdentifier = "", string systemIdentifier = "") {
         EnsureMutable();
         return Register(new HtmlDocumentType(this, NextId(), name, publicIdentifier, systemIdentifier));
     }
     /// <summary>Creates or returns this template element's separate content fragment.</summary>
-    public HtmlNode GetOrCreateTemplateContent(HtmlElement template) {
+    public HtmlDocumentFragment GetOrCreateTemplateContent(HtmlElement template) {
         EnsureMutable();
         if (template == null) throw new ArgumentNullException(nameof(template));
         if (!ReferenceEquals(template.Document, this) || template.NamespaceUri != HtmlElement.HtmlNamespace || template.LocalName != "template") throw new ArgumentException("An HTML template in this document is required.", nameof(template));
@@ -99,7 +102,12 @@ public sealed class HtmlDocument : HtmlNode {
         } finally { while (pending.Count != 0) pending.Pop().Nodes.Dispose(); }
     }
 
-    internal HtmlDocument CloneAttached(CancellationToken cancellationToken = default) {
+    /// <summary>Creates an independent mutable copy of the attached tree, including template contents,
+    /// without retaining detached editing history. Attached node IDs and original source offsets are preserved.</summary>
+    /// <param name="cancellationToken">Cooperative cancellation while copying nodes and attributes.</param>
+    /// <remarks>The original document and its retained handles remain unchanged. Use this copy as the next
+    /// editing session when removed nodes no longer need to be addressable. Cancellation returns no partial copy.</remarks>
+    public HtmlDocument CloneAttached(CancellationToken cancellationToken = default) {
         var clone = new HtmlDocument(Services, ProviderId, Mode);
         foreach (var entry in AttachedNodes()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -108,7 +116,7 @@ public sealed class HtmlDocument : HtmlNode {
             HtmlNode copy = CloneNode(source, clone, cancellationToken);
             if (source.TemplateHost != null) {
                 var host = (HtmlElement)clone._nodes[source.TemplateHost.NodeId];
-                host.TemplateContent = copy;
+                host.TemplateContent = (HtmlDocumentFragment)copy;
                 copy.TemplateHost = host;
             } else clone._nodes[source.Parent!.NodeId].AppendChild(copy);
         }
@@ -128,7 +136,7 @@ public sealed class HtmlDocument : HtmlNode {
                 target.AppendChild(clone._nodes[child.NodeId]);
             }
             if (source is HtmlElement element && element.TemplateContent != null && target is HtmlElement targetElement) {
-                HtmlNode content = clone._nodes[element.TemplateContent.NodeId];
+                HtmlDocumentFragment content = (HtmlDocumentFragment)clone._nodes[element.TemplateContent.NodeId];
                 targetElement.TemplateContent = content;
                 content.TemplateHost = targetElement;
             }
@@ -158,10 +166,13 @@ public sealed class HtmlDocument : HtmlNode {
             var newElement = new HtmlElement(clone, source.NodeId, element.LocalName, element.NamespaceUri, element.Prefix);
             foreach (HtmlAttribute attribute in element.Attributes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                newElement.SetAttribute(attribute.Name, attribute.Value, attribute.NamespaceUri);
+                newElement.SetAttribute(attribute);
             }
+            newElement.FormState = element.FormState;
+            newElement.SourceMarkup = element.SourceMarkup;
             copy = newElement;
         } else if (source is HtmlDocumentType type) copy = new HtmlDocumentType(clone, source.NodeId, type.Name, type.PublicIdentifier, type.SystemIdentifier);
+        else if (source is HtmlDocumentFragment) copy = new HtmlDocumentFragment(clone, source.NodeId);
         else copy = new HtmlNode(clone, source.NodeId, source.Kind, source.Data);
         copy.SourceIndex = source.SourceIndex;
         return clone.Register(copy);

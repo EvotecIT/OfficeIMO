@@ -10,12 +10,28 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlFoundationProviderContractTests {
     [Theory]
+    [InlineData("", "text")]
+    [InlineData("text", "text")]
+    [InlineData("checkbox", "checkbox")]
+    [InlineData("number", "number")]
+    public void ExportedInputControlsRetainInitializedTypesAndValuesWhenCloned(string inputType, string expectedType) {
+        var original = HtmlConversionDocument.Parse("<input value='7' type='" + inputType + "'>");
+        var edited = original.Edit(document => document.Body!.SetAttribute("data-edited", "true"));
+        var native = NativeDomBridge.GetNativeDocument(edited.Document);
+        var clone = native.Clone(true);
+        var input = Assert.IsAssignableFrom<AngleSharp.Html.Dom.IHtmlInputElement>(((AngleSharp.Dom.IDocument)clone).QuerySelector("input"));
+        Assert.Equal(expectedType, input.Type);
+        Assert.Equal("7", input.Value);
+        Assert.Equal("7", edited.Document.QuerySelector("input")!.GetAttribute("value"));
+    }
+
+    [Theory]
     [InlineData("\u00a0")]
     [InlineData("\u2003")]
     [InlineData("\u202f")]
     public void ParserRecoveredUnicodeAttributeNamesSurviveOwnedEditingAndCallbackSnapshots(string name) {
         string source = "<p " + name + "='kept'>Text</p>";
-        HtmlDocument parsed = AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+        HtmlDocument parsed = AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
         Assert.Equal("kept", parsed.QuerySelector("p")!.GetAttribute(name));
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(source);
         Assert.Equal("kept", conversion.Document.QuerySelector("p")!.GetAttribute(name));
@@ -122,7 +138,7 @@ public sealed class HtmlFoundationProviderContractTests {
     [Fact]
     public async Task ConcurrentFirstProjectionPublishesOneCompleteStatePerSnapshot() {
         HtmlDocument[] documents = Enumerable.Range(0, 8).Select(index => {
-            HtmlDocument document = AngleSharpHtmlParser.Instance.Parse("<p>Attached</p>", new HtmlParseOptions()).Clone();
+            HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
             document.QuerySelector("p")!.SetAttribute("id", "document-" + index);
             for (int child = 0; child < 100; child++) document.Body!.AppendChild(document.CreateElement("span")).TextContent = "item";
             return document.Freeze();
@@ -145,8 +161,65 @@ public sealed class HtmlFoundationProviderContractTests {
     }
 
     [Fact]
+    public void NativeProjectionLeasePreservesIdentityWithoutMakingTheProviderGraphPermanent() {
+        var lease = CreateProjectionLease();
+        CollectReleasedGraphs();
+
+        Assert.False(lease.State.TryGetTarget(out _));
+        Assert.Same(lease.Native, NativeDomBridge.GetNativeDocument(lease.Owned));
+        Assert.Equal("leased", lease.Native.QuerySelector("p")!.TextContent);
+        GC.KeepAlive(lease.Native);
+
+        HtmlDocument retainedOwned = AngleSharpHtmlParser.Instance.ParseDocument("<p>collectible</p>", new HtmlParseOptions()).Freeze();
+        WeakReference native = CreateUnleasedProjection(retainedOwned);
+        CollectReleasedGraphs();
+
+        Assert.False(native.IsAlive);
+        Assert.Equal("collectible", retainedOwned.QuerySelector("p")!.TextContent);
+        GC.KeepAlive(retainedOwned);
+    }
+
+    [Fact]
+    public void RetainedDetachedNodeKeepsItsProjectionIdentityAcrossCollection() {
+        var lease = CreateDetachedProjectionLease();
+        CollectReleasedGraphs();
+
+        Assert.Same(lease.Native, NativeDomBridge.GetNative(lease.OwnedNode));
+        Assert.Same(lease.Native.Owner, NativeDomBridge.GetNativeDocument(lease.OwnedNode.Document));
+        GC.KeepAlive(lease.Native);
+    }
+
+    [Fact]
+    public void ReleasedDetachedNodeDoesNotPermanentlyRetainItsProviderGraph() {
+        var lease = CreateReleasedDetachedProjection();
+        CollectReleasedGraphs();
+
+        Assert.False(lease.State.TryGetTarget(out _));
+        Assert.Equal("Detached child", lease.OwnedNode.TextContent);
+        GC.KeepAlive(lease.OwnedNode);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (HtmlElement OwnedNode, AngleSharp.Dom.INode Native, WeakReference<NativeDomBridge.NativeState> State) CreateDetachedProjectionLease() {
+        HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
+        HtmlElement root = document.CreateElement("div");
+        HtmlElement child = document.CreateElement("span");
+        child.TextContent = "Detached child";
+        root.AppendChild(child);
+        document.Freeze();
+        NativeDomBridge.NativeState state = NativeDomBridge.GetState(child);
+        return (child, NativeDomBridge.GetNative(child), new WeakReference<NativeDomBridge.NativeState>(state));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (HtmlElement OwnedNode, WeakReference<NativeDomBridge.NativeState> State) CreateReleasedDetachedProjection() {
+        var lease = CreateDetachedProjectionLease();
+        return (lease.OwnedNode, lease.State);
+    }
+
+    [Fact]
     public async Task ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity() {
-        HtmlDocument document = AngleSharpHtmlParser.Instance.Parse("<p>Attached</p>", new HtmlParseOptions()).Clone();
+        HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
         HtmlElement[] detached = Enumerable.Range(0, 12).Select(index => {
             HtmlElement root = document.CreateElement("div");
             root.TextContent = "Detached " + index;
@@ -169,14 +242,34 @@ public sealed class HtmlFoundationProviderContractTests {
         } finally { NativeDomBridge.ReleaseCallbackSnapshot(native); }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (HtmlDocument Owned, AngleSharp.Html.Dom.IHtmlDocument Native, WeakReference<NativeDomBridge.NativeState> State) CreateProjectionLease() {
+        HtmlDocument owned = AngleSharpHtmlParser.Instance.ParseDocument("<p>leased</p>", new HtmlParseOptions()).Freeze();
+        NativeDomBridge.NativeState state = NativeDomBridge.GetState(owned);
+        return (owned, state.Native, new WeakReference<NativeDomBridge.NativeState>(state));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference CreateUnleasedProjection(HtmlDocument owned) => new WeakReference(NativeDomBridge.GetNativeDocument(owned));
+
+    private static void CollectReleasedGraphs() {
+        for (int index = 0; index < 3; index++) {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+        }
+    }
+
     private sealed class ForwardingParser : IHtmlParserProvider {
         public string Id => "forwarding";
-        public HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => AngleSharpHtmlParser.Instance.Parse(source, options, cancellationToken);
+        public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => AngleSharpHtmlParser.Instance.ParseDocument(source, options, cancellationToken);
+        public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) =>
+            AngleSharpHtmlParser.Instance.ParseFragment(source, contextElement, options, cancellationToken);
     }
     private sealed class FailingParser : IHtmlParserProvider {
         private readonly HtmlParseLimitException _failure;
         public FailingParser(HtmlParseLimitException failure) => _failure = failure;
         public string Id => "failing";
-        public HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => throw _failure;
+        public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => throw _failure;
+        public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) => throw _failure;
     }
 }
