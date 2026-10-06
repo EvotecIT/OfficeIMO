@@ -23,6 +23,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
+    (Name: "discounted", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "taxed", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "withdrawn", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "accessibility-unknown", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),

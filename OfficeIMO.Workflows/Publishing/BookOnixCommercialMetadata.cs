@@ -115,6 +115,8 @@ public sealed record BookOnixPrice {
     public required decimal Amount { get; init; }
     /// <summary>Uppercase three-letter ONIX list 96 currency code.</summary>
     public required string CurrencyCode { get; init; }
+    /// <summary>At most 16 explicit business-to-business discounts, retained in supplied order without tier selection or stacking.</summary>
+    public IReadOnlyList<BookOnixDiscount> Discounts { get; init; } = [];
     /// <summary>At most 16 explicit tax components, only for tax-inclusive price kinds. Mutually exclusive with TaxExempt.</summary>
     public IReadOnlyList<BookOnixTax> Taxes { get; init; } = [];
     /// <summary>Explicit tax exemption. An empty Taxes list does not imply exemption or zero rating.</summary>

@@ -327,7 +327,7 @@ recommended, fixed, supplier-net and publisher agency price bases and tax inclus
 Currency codes use ONIX list 96. Price territories default to the declared supply
 market and may narrow it; they cannot broaden it. Optional `ValidFrom` and `ValidUntil`
 dates preserve the supplied effective period and reject a reversed interval.
-Discounts and overlapping-offer resolution are not supported by this profile.
+Coded discount schemes and overlapping-offer resolution are not supported by this profile.
 Jurisdiction-specific business rules are not calculated or qualified.
 
 Forthcoming publishing status requires `PublicationDate`; cancelled or indefinitely
@@ -336,6 +336,36 @@ or temporarily unavailable supply requires `ExpectedSupplyDate`, or the explicit
 `ExpectedSupplyDateUnknown` exception when no date is known. Other availability states
 do not accept that expected-date declaration. Product publishing status and supplier
 availability are separate assertions.
+
+Use `BookOnixPrice.Discounts` for up to 16 explicit business-to-business discount
+declarations. The containing price's amount, currency, territory and effective dates
+remain unchanged:
+
+```csharp
+var price = new BookOnixPrice {
+    Kind = BookOnixPriceKind.RecommendedExcludingTax,
+    Amount = 10.00m,
+    CurrencyCode = "GBP",
+    Discounts = [
+        new() { Kind = BookOnixDiscountKind.Rising, MinimumQuantity = 1,
+            MaximumQuantity = 9, Percent = 10.00m },
+        new() { Kind = BookOnixDiscountKind.Rising, MinimumQuantity = 10,
+            Percent = 20.00m }
+    ]
+};
+```
+
+Discount kinds follow [ONIX list 170](https://ns.editeur.org/onix/en/170). Each
+needs a percentage from 0–100, a nonnegative amount per copy no greater than the
+price, or both. Decimal scale is preserved. Optional copy quantities must be positive
+integers; a maximum requires a minimum and cannot precede it. Omitting quantities
+leaves them unspecified. An empty list makes no discount assertion; an explicit zero
+is retained. A zero percentage cannot accompany a positive amount.
+
+The exporter preserves declaration order. It does not resolve overlapping tiers,
+select a discount, stack declarations, check percentage/amount arithmetic, calculate
+net prices or recalculate taxes. Cumulative periods and purchaser eligibility remain
+trading-partner agreements; price effective dates are not a cumulative-order period.
 
 Tax-inclusive prices can carry up to 16 explicit `BookOnixTax` components:
 

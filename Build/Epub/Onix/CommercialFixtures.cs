@@ -39,6 +39,7 @@ internal static class CommercialFixtures {
                 Prices = Enum.GetValues<BookOnixPriceKind>().Select(kind => new BookOnixPrice {
                     Kind = kind, Amount = 12.50m, CurrencyCode = "PLN", Territory = poland
                 }).ToArray() }] },
+            "discounted" => commercial with { Supplies = [supply with { Territory = britain, SupplierRole = BookOnixSupplierRole.PublisherToResellers, Unpriced = null, Prices = DiscountFixtures.Prices() }] },
             "taxed" => commercial with { Supplies = [supply with { Territory = poland, Unpriced = null, Prices = TaxFixtures.Prices() }] },
             "withdrawn" => commercial with {
                 PublishingStatus = BookOnixPublishingStatus.Withdrawn,
