@@ -540,6 +540,7 @@ internal static partial class PdfWriter {
             ValidateTableColumnStyleBounds(style, columns);
             ValidateTableRowStyleBounds(style, table.Rows.Count);
             ValidateTableRowSpansWithinRoleBoundaries(table, columns, headerRowCount, footerStartRowIndex);
+            style = PreparePairedTableBorders(table, style);
             double tableFontSize = GetTableBodyFontSize(style, fontSize);
             TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, tableFontSize, headerRowCount, footerStartRowIndex);
 
