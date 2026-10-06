@@ -14,6 +14,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfStandardEncryptionOptions? outputEncryption,
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
         long? maximumOutputBytes = null,
+        bool preserveSourceEncryption = true,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument: null,
@@ -21,7 +22,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            cancellationToken);
+            preserveSourceEncryption, cancellationToken);
 
     internal static byte[] Rewrite(
         byte[] sourcePdf,
@@ -30,6 +31,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfStandardEncryptionOptions? outputEncryption,
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
         long? maximumOutputBytes = null,
+        bool preserveSourceEncryption = true,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument,
@@ -37,7 +39,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            cancellationToken);
+            preserveSourceEncryption, cancellationToken);
 
     private static byte[] RewriteCore(
         byte[] sourcePdf,
@@ -46,7 +48,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfStandardEncryptionOptions? outputEncryption,
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph,
         long? maximumOutputBytes,
-        CancellationToken cancellationToken) {
+        bool preserveSourceEncryption, CancellationToken cancellationToken) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -78,6 +80,9 @@ internal static class PdfDocumentObjectGraphRewriter {
             security = sourceDocument.Security;
         }
         cancellationToken.ThrowIfCancellationRequested();
+        PdfSourceEncryptionContext? sourceEncryption = preserveSourceEncryption && outputEncryption is null
+            ? PdfSourceEncryptionContext.Create(objects, trailerRaw, security, sourceReadOptions, cancellationToken)
+            : null;
         byte[]? permanentFileId = outputEncryption == null
             ? PdfSyntax.ReadPermanentTrailerIdentifier(trailerRaw)
             : null;
@@ -141,7 +146,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             preserveRawStringBytes: true,
             cancellationToken: cancellationToken);
         if (maximumOutputBytes.HasValue) {
-            return RewriteBounded(
+            byte[] bounded = RewriteBounded(
                 objects,
                 reachableObjectNumbers,
                 context,
@@ -152,6 +157,9 @@ internal static class PdfDocumentObjectGraphRewriter {
                 permanentFileId,
                 maximumOutputBytes.Value,
                 cancellationToken);
+            return sourceEncryption?.Protect(bounded, maximumOutputBytes,
+                generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, bounded),
+                cancellationToken: cancellationToken) ?? bounded;
         }
 
         var serializedObjects = new List<byte[]>(reachableObjectNumbers.Count);
@@ -166,7 +174,7 @@ internal static class PdfDocumentObjectGraphRewriter {
 
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
-        return permanentFileId == null
+        byte[] output = permanentFileId == null
             ? PdfFileAssembler.Assemble(
                 serializedObjects,
                 rewrittenRootObjectNumber,
@@ -182,6 +190,9 @@ internal static class PdfDocumentObjectGraphRewriter {
                 outputEncryption,
                 permanentFileId,
                 cancellationToken: cancellationToken);
+        return sourceEncryption?.Protect(output,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, output),
+            cancellationToken: cancellationToken) ?? output;
     }
 
     private static byte[] RewriteBounded(

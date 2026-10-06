@@ -1447,6 +1447,14 @@ PdfDocument opened = PdfDocument.Load("protected.pdf", new PdfLoadOptions {
 });
 ```
 
+Supported page, text, form, metadata and redaction rewrites retain the authenticated
+source's passwords, permissions and Standard-security settings. Extraction and
+splitting retain that protection too. Merge output uses the primary source's
+settings; an unencrypted primary produces an unencrypted output, and the merge
+report records the decision. Use `Security.Decrypt(ownerPassword)` when the output
+must be unencrypted. Unsupported encryption dictionaries and signed full rewrites
+remain blocked.
+
 ### Certificate-based PDF signatures
 
 PDF signature discovery, byte-range inspection, mutation blocking, and caller-defined external signing do not require
@@ -1484,6 +1492,9 @@ PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSigna
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
+Authenticated encrypted signing appends a revision while retaining the original
+bytes and encryption. Signature metadata and visible appearances are encrypted;
+the detached CMS `/Contents` remains unencrypted as required by the PDF format.
 The optional appearance image is visual content only; certificate validation remains the source of signer identity.
 Set `ShowText`, `ShowBackground`, and `ShowBorder` to `false` for an image-only appearance. Existing appearances retain
 their background and border because both new visibility options default to `true`.
@@ -1725,9 +1736,23 @@ recreated without its original rendering state.
 Region-based add and replace operations preserve the resolved font size by
 default. Select `RejectOverflow` to reject an over-wide line before mutation,
 or `ShrinkToFit` to reduce it no lower than `MinimumFontSize`.
-Unmatched glyphs remain encoded in their original font; newly inserted replacement text uses the closest standard PDF font unless the caller selects one.
+When `PdfTextEditOptions.Font` is null, safe horizontal runs reuse embedded
+TrueType fonts and Identity-H CID fonts with readable ToUnicode maps. Replacement
+text must fit the existing map; a missing subset glyph throws before returning an
+edited document. Set `Font` explicitly to permit Standard 14 substitution.
+Mapped replacement text that requires shaping, bidirectional layout or
+combining-mark positioning is also rejected by source-font reuse.
+Other source fonts use the detected standard substitute and report a warning.
+Clipping, unsupported positioning, shaping and ambiguous ActualText still block
+edits whose rendering state cannot be recreated safely.
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
+
+`PdfReadPage.GetTextSpans()` exposes `PdfTextSpan.TryGetGlyphs(out glyphs)` for
+immutable encoded character codes, UTF-16 text ranges, baseline origins and
+advances. One glyph can map to several characters. The method returns false with
+an empty list when evidence is unavailable or ambiguous, including ActualText
+replacements. Baseline origins are not exact outlines or clipping bounds.
 
 Use `Text.ReplaceSelected(find, replacement, matchIndexes, searchOptions, editOptions)`
 to apply a reviewed subset of the zero-based occurrences returned by `Text.Find`

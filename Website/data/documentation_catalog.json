@@ -8,8 +8,8 @@
     "benchmarkProjectCount": 35,
     "validationProjectCount": 41,
     "apiReferenceCount": 122,
-    "conceptualPageCount": 97,
-    "conceptualWordCount": 44928
+    "conceptualPageCount": 125,
+    "conceptualWordCount": 53848
   },
   "categories": [
     {
@@ -436,7 +436,7 @@
       "description": "Managed email and Outlook data engine for EML, MSG/OFT, TNEF, ICS, vCard, Mbox, PST/OST, OLM, EMLX, Maildir, and Offline Address Book artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email/OfficeIMO.Email.csproj",
-      "sourceFileCount": 453,
+      "sourceFileCount": 456,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email/",
@@ -449,7 +449,7 @@
       "description": "Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.",
       "kind": "package",
       "projectPath": "OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
-      "sourceFileCount": 11,
+      "sourceFileCount": 12,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
       "apiUrl": "/api/email-html/",
@@ -501,7 +501,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1074,
+      "sourceFileCount": 1076,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1151,7 +1151,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1293,
+      "sourceFileCount": 1300,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",

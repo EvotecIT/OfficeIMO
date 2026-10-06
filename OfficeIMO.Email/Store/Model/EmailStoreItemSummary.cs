@@ -4,6 +4,9 @@ namespace OfficeIMO.Email.Store;
 
 /// <summary>Small projected item view intended for browsing and bounded store queries.</summary>
 public sealed class EmailStoreItemSummary {
+    // Folder contents rows can omit sender addresses and other searchable metadata.
+    // Keep reference enumeration cheap, but hydrate the bounded message summary when it is requested.
+    internal bool RequiresSourceRead { get; set; }
     internal EmailStoreItemSummary(EmailDocument document, bool? hasAttachments, bool? isRead,
         bool? isHeaderOnly = null, bool isMarkedForDownload = false,
         bool isMarkedForRemoteDeletion = false) {

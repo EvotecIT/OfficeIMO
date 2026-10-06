@@ -157,11 +157,19 @@ internal sealed partial class PdfStandardSecurityHandler {
     private PdfDictionary DecryptDictionary(int objectNumber, int generation, PdfDictionary dictionary, CancellationToken cancellationToken) {
         var decrypted = new PdfDictionary { HasIncompleteSyntax = dictionary.HasIncompleteSyntax };
         foreach (var item in dictionary.Items) {
-            decrypted.Items[item.Key] = DecryptObject(objectNumber, generation, item.Value, cancellationToken);
+            decrypted.Items[item.Key] = IsSignatureContents(dictionary, item.Key)
+                ? item.Value
+                : DecryptObject(objectNumber, generation, item.Value, cancellationToken);
         }
 
         return decrypted;
     }
+
+    // ISO 32000-2, 7.6.2 excludes signature Contents from document encryption.
+    private static bool IsSignatureContents(PdfDictionary dictionary, string key) =>
+        key == "Contents" && (dictionary.Get<PdfName>("Type")?.Name is "Sig" or "DocTimeStamp" ||
+            dictionary.Get<PdfName>("Type") is null && dictionary.Get<PdfArray>("ByteRange") is not null &&
+            dictionary.Get<PdfName>("Filter") is not null);
 
     private bool ShouldSkipStreamData(PdfDictionary dictionary) {
         if (dictionary.Get<PdfName>("Type")?.Name == "XRef") {

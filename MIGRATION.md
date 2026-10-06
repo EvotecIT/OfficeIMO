@@ -9,6 +9,23 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF editing protection and source fonts
+
+Authenticated page, text, form, metadata and redaction rewrites preserve the
+source's password protection. Extraction and splitting also retain encryption;
+reopen their output with the source password. Merge output follows the primary
+source's protection settings. If an application depended on these operations
+producing plaintext, call `Security.Decrypt(ownerPassword)` explicitly before or
+after the operation. Permission restrictions and signed-rewrite blocking still
+apply.
+
+Text replacement and movement reuse supported embedded TrueType and Identity-H
+CID fonts when `PdfTextEditOptions.Font` is null. Text outside the existing subset's
+Unicode map now throws instead of substituting silently. Set `Font` to a Standard
+14 font when substitution is intended and inspect `PdfTextEditResult.Warnings`.
+Source-font reuse rejects replacements requiring shaping, bidirectional layout
+or combining-mark positioning.
+
 ## Owned HTML parser providers
 
 `IHtmlParserProvider.Parse` is replaced by `ParseDocument`, and providers implement

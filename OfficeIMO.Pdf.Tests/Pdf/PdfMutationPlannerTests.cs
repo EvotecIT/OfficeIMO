@@ -216,7 +216,7 @@ public class PdfMutationPlannerTests {
         Assert.True(plan.FullRewriteAvailable);
         Assert.False(plan.AppendOnlyAvailable);
         Assert.Empty(plan.BlockerCodes);
-        Assert.Contains("Output.EncryptionWillBeRemoved", plan.Warnings);
+        Assert.DoesNotContain("Output.EncryptionWillBeRemoved", plan.Warnings);
     }
 
     [Fact]
@@ -324,8 +324,8 @@ public class PdfMutationPlannerTests {
         Assert.All(new[] { appended, prepended, inserted }, result => {
             Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
             Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
-            Assert.Contains("Output.EncryptionWillBeRemoved", result.MutationPlan.Warnings);
-            Assert.False(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
+            Assert.DoesNotContain("Output.EncryptionWillBeRemoved", result.MutationPlan.Warnings);
+            Assert.True(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
         });
         Assert.Equal(4, appended.RequireValue().Inspect().PageCount);
         Assert.Equal(3, prepended.RequireValue().Inspect().PageCount);
@@ -414,7 +414,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void Plan_BlocksEncryptedExternalSignaturePreparationBeforeRawObjectAppend() {
+    public void Plan_AllowsAuthenticatedEncryptedExternalSignaturePreparation() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted signature source"))
             .ToBytes();
@@ -425,12 +425,11 @@ public class PdfMutationPlannerTests {
         PdfOperationResult<PdfExternalSignaturePreparation> result = PdfDocument.Load(source, readOptions)
             .PrepareExternalSignatureResult(options: readOptions);
 
-        Assert.False(appendOnly.CanPrepareExternalSignature);
-        Assert.False(plan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
-        Assert.Contains("AppendOnly.EncryptedRawSignatureObject", plan.BlockerCodes);
-        Assert.False(result.CanAttempt);
-        Assert.False(result.Succeeded);
+        Assert.True(appendOnly.CanPrepareExternalSignature);
+        Assert.True(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+        Assert.True(result.CanAttempt);
+        Assert.True(result.Succeeded);
     }
 
     [Fact]
@@ -660,7 +659,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void EncryptedPageExtractionUsesExplicitPlannerExceptionAndReturnsUnencryptedOutput() {
+    public void EncryptedPageExtractionRetainsSourceEncryption() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted extraction"))
             .ToBytes();
@@ -673,7 +672,7 @@ public class PdfMutationPlannerTests {
         PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
         Assert.Equal(PdfMutationOperation.ExtractPages, plan.Operation);
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
-        Assert.False(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
+        Assert.True(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
     }
 
     [Fact]
@@ -701,7 +700,7 @@ public class PdfMutationPlannerTests {
         Assert.True(ownerPlan.CanExecute);
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, ownerPlan.ExecutionMode);
         Assert.True(ownerResult.Succeeded, string.Join(" ", ownerResult.Diagnostics));
-        Assert.False(PdfInspector.Probe(ownerResult.RequireValue().ToBytes()).HasEncryption);
+        Assert.True(PdfInspector.Probe(ownerResult.RequireValue().ToBytes()).HasEncryption);
     }
 
     private static byte[] ReplaceFirstAscii(byte[] source, string oldValue, string newValue) {
