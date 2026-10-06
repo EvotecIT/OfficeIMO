@@ -66,7 +66,7 @@ table pointers. JPEGProc 1 supports eight/twelve-bit sequential DCT; JPEGProc 14
 eight/twelve/sixteen-bit Huffman lossless scans. Partial interchange headers require the
 TIFF table tags. Raw chunky lossless components require matching predictors and
 point transforms. Legacy integer ReferenceBlackWhite values are accepted alongside
-rationals. Compression 7 also accepts eight/twelve-bit sequential arithmetic JPEG with local conditioning tables and restart intervals; compression 6 retains its Huffman process contract. Progressive and lossless arithmetic JPEG remain unsupported in TIFF. Eight/twelve/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+rationals. Compression 7 also accepts eight/twelve-bit sequential arithmetic JPEG with local conditioning tables and restart intervals; compression 6 retains its Huffman process contract. Compression 7 accepts eight/twelve/sixteen-bit arithmetic lossless JPEG. Eight/twelve/sixteen-bit Huffman or arithmetic lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -124,7 +124,19 @@ quantization without overflowing its fixed-point transform. Both XPS dialects
 produce 320 documents with 212,800 pixel-center probes per route; independent
 MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
 still differs by up to 255, including blank planar/tiled output. Native Windows
-acceptance and progressive/lossless arithmetic JPEG-in-TIFF remain unqualified.
+acceptance and progressive JPEG-in-TIFF remain unqualified.
+
+Arithmetic lossless TIFF qualification covers [168 LibTIFF containers](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLossless/README.md)
+with eight/twelve/sixteen-bit grayscale/RGB, both byte orders, all seven predictors,
+point transforms and row-aligned restarts. Single chunky strips retain native
+sample words through the shared JPEG decoder and TIFF conversion. All 35,112 RGBA
+pixels match the source-sample contract exactly. The native JPEG producer's
+corrections and calibration are documented in the adjacent standalone corpus.
+LibTIFF writes the containers but cannot decode these payloads in the tested build;
+full-file native TIFF acceptance remains unqualified. The 336 XPS/OpenXPS exports
+cover 70,224 probes per route, with MuPDF PDF/SVG differences at most 2/255 and no
+warnings. GhostXPS opens all packages but can render blank images. Arithmetic TIFF
+CMYK/YCbCr/alpha, planar/tiled and native Windows qualification remain open.
 
 Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
 with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
@@ -266,8 +278,7 @@ libjpeg-turbo. All 99,066 managed output pixels match exactly, including subsamp
 nearest references independently decoded from companion Huffman streams.
 The 948 XPS/OpenXPS exports cover 198,132 probes per route. MuPDF PDF/SVG output
 agrees within 2/255 without warnings; GhostXPS opens all files but can render blank
-images, with error up to 255/255. Arithmetic lossless TIFF, CMYK/YCbCr interpretation
-and native Windows acceptance remain unqualified.
+images, with error up to 255/255. Arithmetic CMYK/YCbCr interpretation and native Windows acceptance remain unqualified.
 
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before

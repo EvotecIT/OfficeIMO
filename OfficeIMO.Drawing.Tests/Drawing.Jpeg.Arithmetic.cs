@@ -84,7 +84,7 @@ public sealed class JpegArithmeticTests {
     [InlineData(0xC9, 9)]
     [InlineData(0xC9, 16)]
     [InlineData(0xCA, 9)]
-    [InlineData(0xCB, 12)]
+    [InlineData(0xCB, 17)]
     public void UnsupportedArithmeticProcessesAndPrecisionsAreRejected(int marker, int precision) {
         byte[] jpeg = File.ReadAllBytes(Path.Combine(Corpus, "b8-c1-q75-s0-r0.jpg"));
         int frame = HeaderSegments(jpeg).Single(s => s.Marker == 0xC9).Offset;

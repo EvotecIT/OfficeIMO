@@ -48,9 +48,9 @@ public static partial class OfficeTiffCodec {
                     if (count > end - p) return false;
                     p += count;
                 }
-            } else if ((marker == 192 || marker == 193 || marker == 195 || marker == 201) && !tablesOnly) {
+            } else if ((marker == 192 || marker == 193 || marker == 195 || marker == 201 || marker == 203) && !tablesOnly) {
                 if (frame || length != 8 + samples * 3 || data[start] != precision ||
-                    (precision != 8 && precision != 12 && (precision != 16 || marker != 195)) ||
+                    (precision != 8 && precision != 12 && (precision != 16 || (marker != 195 && marker != 203))) ||
                     (precision == 12 && marker == 192) ||
                     ((data[start + 1] << 8) | data[start + 2]) != height ||
                     ((data[start + 3] << 8) | data[start + 4]) != width || data[start + 5] != samples) return false;

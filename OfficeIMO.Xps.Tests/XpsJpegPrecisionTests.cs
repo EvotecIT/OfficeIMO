@@ -11,6 +11,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsJpegPrecisionTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegArithmeticLossless", true)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegArithmeticLossless", true)]
     [InlineData(XpsFormat.Xps, "JpegArithmeticLossless")]
     [InlineData(XpsFormat.OpenXps, "JpegArithmeticLossless")]
     [InlineData(XpsFormat.Xps, "JpegArithmeticProgressive")]
@@ -27,7 +29,7 @@ public sealed class XpsJpegPrecisionTests {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string name = row.Split(',')[0];
-            byte[] jpeg = File.ReadAllBytes(Path.Combine(corpus, name + (tiff ? ".tif" : "")));
+            byte[] jpeg = File.ReadAllBytes(Path.Combine(corpus, name + (tiff && !name.EndsWith(".tif", StringComparison.OrdinalIgnoreCase) ? ".tif" : "")));
             OfficeRasterImage? source;
             Assert.True(tiff ? OfficeTiffCodec.TryDecode(jpeg, out source) : OfficeJpegCodec.TryDecode(jpeg, out source));
             var document = XpsDocument.Create(format);
