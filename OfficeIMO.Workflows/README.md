@@ -193,6 +193,49 @@ Exceeded bounds or cancellation return no bundle and leave the project intact.
 Unchanged content and identical writer options produce identical delivery bytes
 on the same runtime. The API returns bytes and does not write destination files.
 
+## KDP offline delivery
+
+`ToKdpDeliveryBytes` prepares a local handoff with a separate listing cover:
+
+```csharp
+byte[] handoff = project.ToKdpDeliveryBytes(
+    File.ReadAllBytes("listing-cover.jpeg"),
+    cancellationToken: cancellationToken);
+```
+
+Extract the ZIP before using KDP: upload `publication.epub` as the manuscript and
+`listing-cover.jpeg` or `listing-cover.tiff` as the listing cover. The ZIP itself
+is an OfficeIMO handoff format. `package.opf` and `manifest.json` are inspection
+sidecars. The EPUB's embedded cover is preserved; this API does not replace it.
+
+The API inspects the cover's actual format and dimensions, then decodes it using
+the existing managed Core decoder. It accepts supported single-image JPEG and
+single-page TIFF payloads with a width of 625–10,000 pixels and a height of
+1,000–10,000 pixels. Recommendations for larger images and a taller aspect ratio
+remain recommendations. These checks follow the
+[KDP listing-cover criteria](https://kdp.amazon.com/en_US/help/topic/G200645690).
+The local encoded-size cap is 49,999,999 bytes, a conservative interpretation of
+“less than 50MB”; the local decoding cap is 16 million pixels. These local limits
+can reject images within the retailer's dimension limits. Unsupported decoder
+profiles and multi-page TIFFs are rejected without converting the supplied cover.
+
+The version-1 `OfficeIMO.KdpDelivery` manifest nests the ordinary delivery evidence
+under `Delivery`, including exact payload hashes and import/writer diagnostics.
+`Cover` records dimension and decode checks, local limits and recommendations.
+A successful decode does **not** establish RGB color mode or absence of color
+separation. Those checks, orientation, resolution, visual quality, matching the
+listing and embedded cover, rights, commercial terms, accessibility assessment,
+Kindle Previewer and retailer acceptance remain explicitly unchecked. Review
+these separately; no overall retailer-ready status is emitted.
+KDP recommends [Kindle Previewer](https://kdp.amazon.com/en_US/help/topic/G200634390)
+before manuscript upload.
+
+The API uses the ordinary export review/signature policies and preserves both
+caller options and editorial history. It snapshots the cover and packages its
+original bytes. The EPUB and OPF limits are unchanged, the combined manifest is
+limited to 1 MiB, and `maximumOutputBytes` can lower the 184 MiB ZIP ceiling.
+No accounts are accessed, files written, images resampled or books uploaded.
+
 ## ONIX bibliographic export
 
 `ExportOnix` creates one ONIX 3.1 reference-tag product record for a single EPUB

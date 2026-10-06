@@ -22,6 +22,22 @@ public sealed partial class BookProject {
         long maximumOutputBytes = MaximumDeliveryBytes, CancellationToken cancellationToken = default) {
         if (maximumOutputBytes <= 0 || maximumOutputBytes > MaximumDeliveryBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+        var (publication, package, manifest) = CreateDeliveryPayloads(options, maximumOutputBytes, cancellationToken);
+        byte[] manifestBytes;
+        using (var output = new OfficeProvenanceBoundedMemoryStream(MaximumReviewBytes)) {
+            JsonSerializer.Serialize(output, manifest, BookDeliveryJsonContext.Default.BookDeliveryManifest);
+            manifestBytes = output.ToArray();
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return OfficeProvenanceZipWriter.Write([
+            Entry("publication.epub", publication, false), Entry("package.opf", package, true),
+            Entry("manifest.json", manifestBytes, true)
+        ], MaximumPublicationBytes + MaximumDeliveryMetadataBytes + MaximumReviewBytes,
+            maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+    }
+
+    private (byte[] Publication, byte[] Package, BookDeliveryManifest Manifest) CreateDeliveryPayloads(
+        EpubWriteOptions? options, long maximumOutputBytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         options ??= new EpubWriteOptions();
         // Copy caller options so imposing the delivery bound does not change subsequent exports.
@@ -49,17 +65,7 @@ public sealed partial class BookProject {
             ImportDiagnostics = _diagnostics.Select(DescribeDeliveryDiagnostic).ToArray(),
             WriterDiagnostics = result.Report.FidelityDiagnostics.Select(DescribeDeliveryDiagnostic).ToArray()
         };
-        byte[] manifestBytes;
-        using (var output = new OfficeProvenanceBoundedMemoryStream(MaximumReviewBytes)) {
-            JsonSerializer.Serialize(output, manifest, BookDeliveryJsonContext.Default.BookDeliveryManifest);
-            manifestBytes = output.ToArray();
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        return OfficeProvenanceZipWriter.Write([
-            Entry("publication.epub", result.Bytes, false), Entry("package.opf", package, true),
-            Entry("manifest.json", manifestBytes, true)
-        ], MaximumPublicationBytes + MaximumDeliveryMetadataBytes + MaximumReviewBytes,
-            maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+        return (result.Bytes, package, manifest);
     }
 
     private static BookDeliveryFile DescribeDeliveryFile(string name, string mediaType, byte[] bytes) => new() {
