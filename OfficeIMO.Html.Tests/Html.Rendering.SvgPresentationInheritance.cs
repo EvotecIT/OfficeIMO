@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
     private static OfficeDrawingText[] InlineSvgTextRuns(string html) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         return EnumerateRenderVisuals(rendered.Pages.SelectMany(page => page.Visuals))
-            .OfType<HtmlRenderDrawing>().SelectMany(visual => EnumerateDrawingElements(visual.Drawing))
+            .OfType<HtmlRenderDrawing>().SelectMany(visual => DrawingTestTraversal.Elements(visual.Drawing))
             .OfType<OfficeDrawingText>().ToArray();
     }
 }
