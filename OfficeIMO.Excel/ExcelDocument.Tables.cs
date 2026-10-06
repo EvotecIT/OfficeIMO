@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelTableInfo> GetTables() => GetTables(null);
 
         internal IReadOnlyList<ExcelTableInfo> GetTables(WorksheetPart? selectedWorksheet) {
-            return Locking.ExecuteRead(EnsureLock(), () => {
+            return ExecuteReadAfterMaterializing(() => {
                 var result = new List<ExcelTableInfo>();
                 var workbookPart = _spreadSheetDocument?.WorkbookPart;
                 if (workbookPart == null) {

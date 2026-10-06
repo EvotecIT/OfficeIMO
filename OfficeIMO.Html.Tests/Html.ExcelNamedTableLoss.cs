@@ -3,10 +3,62 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
 using Xunit;
+using System.Data;
 
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlExcelNamedTableLossTests {
+    [Theory]
+    [InlineData(false, ExcelHtmlExportProfile.SemanticTables)]
+    [InlineData(true, ExcelHtmlExportProfile.SemanticTables)]
+    [InlineData(false, ExcelHtmlExportProfile.VisualReview)]
+    [InlineData(true, ExcelHtmlExportProfile.VisualReview)]
+    public void DeferredNamedTableOmissionIsReported(bool worksheetOnly, ExcelHtmlExportProfile profile) {
+        using var workbook = ExcelDocument.Create();
+        using var data = new DataSet();
+        var table = new DataTable("Orders");
+        table.Columns.Add("Item", typeof(string));
+        table.Columns.Add("Count", typeof(int));
+        table.Rows.Add("Alpha", 2);
+        data.Tables.Add(table);
+        HtmlTextConversionResult result;
+        var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
+        if (worksheetOnly) {
+            var sheet = workbook.AddWorksheet("Orders");
+            sheet.InsertDataTableAsTable(table, tableName: "OrderItems");
+            result = sheet.ToHtmlResult(options);
+        } else {
+            workbook.InsertDataSet(data, createTables: true);
+            result = workbook.ToHtmlResult(options);
+        }
+        Assert.True(result.Report.HasLoss);
+        var omission = Assert.Single(result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true));
+        Assert.Contains("range=A1:B2", omission.Detail);
+    }
+
+    [Theory]
+    [InlineData("Plain", false, 0)]
+    [InlineData(null, false, 0)]
+    [InlineData(null, true, 1)]
+    [InlineData("Orders", false, 1)]
+    public void VisualNamedTableDiagnosticsFollowSelectedAndHiddenSheetScope(string? selectedSheet, bool includeHidden, int omissionCount) {
+        using var workbook = ExcelDocument.Create();
+        var orders = AddTableSheet(workbook, "Orders", "OrderItems");
+        orders.SetHidden(true);
+        var plain = workbook.AddWorksheet("Plain");
+        plain.CellValue(1, 1, "Selected plain value");
+        var result = workbook.ToHtmlResult(new ExcelHtmlSaveOptions {
+            ExportProfile = ExcelHtmlExportProfile.VisualReview,
+            VisualOptions = new ExcelWorkbookImageExportOptions {
+                SheetNames = selectedSheet == null ? null : new[] { selectedSheet },
+                IncludeHiddenSheets = includeHidden
+            }
+        });
+        var omitted = result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
+        Assert.Equal(omissionCount, omitted.Length);
+        if (omissionCount != 0) Assert.True(result.Report.HasLoss);
+    }
+
     [Theory]
     [InlineData(false, ExcelHtmlExportProfile.SemanticTables)]
     [InlineData(true, ExcelHtmlExportProfile.SemanticTables)]

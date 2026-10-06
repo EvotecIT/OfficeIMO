@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Data;
 using OfficeIMO;
 using OfficeIMO.Excel;
 using Xunit;
@@ -7,6 +8,37 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelWorksheetTableInspectionTests {
+    [Fact]
+    public void WorksheetSnapshotIncludesDeferredDataTableDefinition() {
+        using var workbook = ExcelDocument.Create();
+        var sheet = workbook.AddWorksheet("Orders");
+        sheet.InsertDataTableAsTable(CreateOrders(), tableName: "OrderItems");
+        var table = Assert.Single(sheet.GetTables());
+        Assert.Equal("OrderItems", table.Name);
+        Assert.Equal("A1:B2", table.Range);
+        Assert.Equal(new[] { "Item", "Count" }, table.Columns.Select(c => c.Name));
+    }
+
+    [Fact]
+    public void WorkbookSnapshotIncludesDeferredDataSetDefinitions() {
+        using var workbook = ExcelDocument.Create();
+        using var data = new DataSet();
+        data.Tables.Add(CreateOrders());
+        workbook.InsertDataSet(data, createTables: true);
+        var table = Assert.Single(workbook.GetTables());
+        Assert.Equal("Orders", table.SheetName);
+        Assert.Equal("A1:B2", table.Range);
+        Assert.True(table.HasAutoFilter);
+    }
+
+    private static DataTable CreateOrders() {
+        var table = new DataTable("Orders");
+        table.Columns.Add("Item", typeof(string));
+        table.Columns.Add("Count", typeof(int));
+        table.Rows.Add("Alpha", 2);
+        return table;
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
