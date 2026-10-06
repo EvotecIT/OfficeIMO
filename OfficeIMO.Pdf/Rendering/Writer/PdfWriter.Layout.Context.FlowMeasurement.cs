@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             double saved = imageMeasurementReservedHeight;
             double savedTopPadding = containerMeasurementTopPadding;
             double savedBottomInset = containerMeasurementBottomInset;
-            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.PaddingY, style.FragmentBottomInset);
+            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.BottomPadding, style.FragmentBottomInset);
             containerMeasurementTopPadding += style.GetFragmentTopPadding(isContinuation: true);
             containerMeasurementBottomInset += style.FragmentBottomInset;
             try {
@@ -101,9 +101,8 @@ internal static partial class PdfWriter {
 
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
-                double outerWidth = style.MaxWidth.HasValue ? Math.Min(frameWidth, style.MaxWidth.Value) : frameWidth;
-                ValidatePanelStyle(style, outerWidth);
-                double contentWidth = outerWidth - 2D * style.PaddingX;
+                var containerFrame = ResolveContainerFrame(container, style, frameX, frameWidth, fontSize);
+                double contentWidth = containerFrame.ContentWidth;
                 if (contentWidth <= 0.001D) {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
@@ -111,12 +110,12 @@ internal static partial class PdfWriter {
                 double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 double? contentHeight = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
                     container.Blocks,
-                    frameX + style.PaddingX,
+                    containerFrame.X + style.PaddingX,
                     contentWidth,
                     fontSize,
-                    spacingBefore + style.PaddingY));
+                    spacingBefore + style.TopPadding));
                 return contentHeight.HasValue
-                    ? spacingBefore + style.PaddingY + contentHeight.Value + style.PaddingY + style.SpacingAfter
+                    ? spacingBefore + style.TopPadding + contentHeight.Value + style.BottomPadding + style.SpacingAfter
                     : null;
             }
 

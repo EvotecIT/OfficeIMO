@@ -1,0 +1,82 @@
+[
+  {
+    "name": "explicit child ampersand",
+    "css": ".card{&>.title{color:red}}",
+    "html": "<section class='card'><strong class='title' id='target'>Title</strong></section>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(255, 0, 0, 1)"
+  },
+  {
+    "name": "implicit descendant class",
+    "css": ".card{.body{visibility:hidden}}",
+    "html": "<section class='card'><span class='body' id='target'>Body</span></section>",
+    "targetSelector": "#target",
+    "property": "visibility",
+    "expected": "hidden"
+  },
+  {
+    "name": "parent selector list",
+    "css": ".card,.panel{&>.title{color:blue}}",
+    "html": "<section class='panel'><strong class='title' id='target'>Panel</strong></section>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(0, 0, 255, 1)"
+  },
+  {
+    "name": "nested screen media",
+    "css": ".card{@media screen{&>.title{color:purple}}}",
+    "html": "<section class='card'><strong class='title' id='target'>Media</strong></section>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(128, 0, 128, 1)"
+  },
+  {
+    "name": "nested supports group",
+    "css": ".card{@supports(display:grid){&>.body{display:grid}}}",
+    "html": "<section class='card'><span class='body' id='target'>Grid</span></section>",
+    "targetSelector": "#target",
+    "property": "display",
+    "expected": "grid"
+  },
+  {
+    "name": "nested cascade layer",
+    "css": "@layer base;.card{@layer base{&>.title{color:red}}}",
+    "html": "<section class='card'><strong class='title' id='target'>Layer</strong></section>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(255, 0, 0, 1)"
+  },
+  {
+    "name": "nested namespace selector and typed color",
+    "css": "@namespace svg url('http://www.w3.org/2000/svg');svg|svg.card{&>svg|a:first-child{color:hwb(120 0% 0%)}}",
+    "html": "<svg class='card'><a id='target'>Vector</a></svg>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(0, 255, 0, 1)"
+  },
+  {
+    "name": "interleaved declaration after qualified rule",
+    "css": ".card{color:green;&{color:blue}color:red}",
+    "html": "<p class='card' id='target'>Order</p>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(255, 0, 0, 1)"
+  },
+  {
+    "name": "retained provider pseudo class",
+    "css": ".form{& input:required{color:red}}",
+    "html": "<form class='form'><input id='target' required></form>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(255, 0, 0, 1)"
+  },
+  {
+    "name": "inactive media does not shift repeated selector pairing",
+    "css": "@media print{.card{&>.title{color:red}}}.card{&>.title{color:blue}}",
+    "html": "<section class='card'><strong class='title' id='target'>Screen</strong></section>",
+    "targetSelector": "#target",
+    "property": "color",
+    "expected": "rgba(0, 0, 255, 1)"
+  }
+]

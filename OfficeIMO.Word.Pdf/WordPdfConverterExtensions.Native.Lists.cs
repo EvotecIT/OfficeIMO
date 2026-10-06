@@ -464,7 +464,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (element is W.Run sourceRun) {
                         W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun, out var visibleSourceChildren);
                         if (visibleRun != null)
-                            runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
+                            AppendNativeVisibleRunContent(runs, new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
                                 _hyperlink = frame.Hyperlink,
                                 _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun,
                                 _visibleRunSourceChildren = visibleSourceChildren

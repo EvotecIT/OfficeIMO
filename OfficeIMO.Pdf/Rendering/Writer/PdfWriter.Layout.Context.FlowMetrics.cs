@@ -331,16 +331,15 @@ internal static partial class PdfWriter {
 
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
-                double outerWidth = style.MaxWidth.HasValue ? Math.Min(frameWidth, style.MaxWidth.Value) : frameWidth;
-                ValidatePanelStyle(style, outerWidth);
-                double contentWidth = outerWidth - 2D * style.PaddingX;
+                var containerFrame = ResolveContainerFrame(container, style, frameX, frameWidth, fontSize);
+                double contentWidth = containerFrame.ContentWidth;
                 if (contentWidth <= 0.001D) {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
 
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.PaddingY +
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.TopPadding +
                        MeasureWithContainerPaddingReservation(style, () =>
-                           MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
+                           MeasureFirstNestedVisualHeight(container.Blocks, containerFrame.X + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
             }
 
             if (block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null) {
