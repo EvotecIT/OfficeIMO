@@ -100,6 +100,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ClipGeometryNotInspected = "HtmlRenderClipGeometryNotInspected";
     /// <summary>Measured positioned text paint bounds exceed the inspected canvas.</summary>
     public const string TextInkOutsideCanvas = "HtmlRenderTextInkOutsideCanvas";
+    /// <summary>Positioned text paint bounds extend beyond an inspected region border box.</summary>
+    public const string TextInkOutsideRegion = "HtmlRenderTextInkOutsideRegion";
     /// <summary>Text ink cannot be established for an inspected source.</summary>
     public const string TextInkNotInspected = "HtmlRenderTextInkNotInspected";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
@@ -274,6 +276,7 @@ public static class HtmlRenderDiagnosticCodes {
         ClippedElementBounds,
         ClipGeometryNotInspected,
         TextInkOutsideCanvas,
+        TextInkOutsideRegion,
         TextInkNotInspected,
         OverflowValueUnsupported,
         TransformValueUnsupported,

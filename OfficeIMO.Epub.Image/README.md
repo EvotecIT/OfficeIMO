@@ -69,7 +69,7 @@ positioned text or image containers:
 EpubFixedLayoutInspection inspection = book.InspectFixedLayoutRegions(
     0, new[] { "caption", "illustration" });
 foreach (EpubFixedLayoutRegionInspection region in inspection.Regions) {
-    Console.WriteLine($"{region.ElementId}: overflow={region.HasOverflow}");
+    Console.WriteLine($"{region.ElementId}: box={region.HasOverflow}, ink={region.HasTextInkOverflow}");
 }
 ```
 
@@ -82,6 +82,14 @@ positioned, floating, flex or grid containers. Missing or duplicate source IDs a
 targets without one rendered region, including hidden or unsupported targets,
 reject inspection rather than produce an empty successful result. Region selection
 does not modify the retained XHTML or the rendered painting.
+
+Each region also exposes `TextInkDiagnostics` and `HasTextInkOverflow` for positioned
+XHTML text in that same local space. A glyph can extend outside its container while
+both the layout box and the page-level ink check still fit. Descendant transforms
+are included; region and ancestor transforms do not change local containment.
+Clipped text remains explicitly unmeasured, including clips on the region itself.
+Ancestor clips do not suppress local ink findings. Regional ink warnings contribute
+to the enclosing report's `HasRenderingWarnings`.
 
 `HasClippedElementBounds` identifies rendered element rectangles that extend outside
 rectangular scene clips. `ClippingDiagnostics` gives the source, clip rectangle,
@@ -104,7 +112,7 @@ Authored clips, embedded vector drawings and unavailable text outlines produce
 `HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
 Pages exceeding 4096 inspected text runs are rejected.
 
-This is managed layout evidence. It does not measure regional or clipped glyph ink, shadows/filters,
+This is managed layout evidence. It does not measure clipped glyph ink, shadows/filters,
 or pixel visibility within clipped element rectangles. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 

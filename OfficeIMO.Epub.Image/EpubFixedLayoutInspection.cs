@@ -52,5 +52,6 @@ public sealed class EpubFixedLayoutInspection {
     public bool HasRenderingWarnings => Rendering.HasLoss || PackageDiagnostics.Any(d => d.Severity != EpubDiagnosticSeverity.Info) ||
         PreparationDiagnostics.Any(d => d.Severity != OfficeImageExportDiagnosticSeverity.Info) ||
         ClippingDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info) ||
-        TextInkDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info);
+        TextInkDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info) ||
+        Regions.Any(region => region.TextInkDiagnostics.Any(d => d.Severity != HtmlDiagnosticSeverity.Info));
 }

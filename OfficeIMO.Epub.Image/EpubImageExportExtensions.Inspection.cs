@@ -24,7 +24,8 @@ public static partial class EpubImageExportExtensions {
     /// <summary>Inspects the page canvas and selected identified positioned, floating, flex or grid regions
     /// in one render pass. Region findings use local border-box coordinates, before the region's own and
     /// ancestor transforms. Descendant transforms and authored clips are retained. Ancestor clips do not
-    /// redefine local containment. Missing, duplicate, hidden or unsupported region targets fail explicitly.</summary>
+    /// redefine local containment. Positioned XHTML ink is reported separately; clipped ink remains explicitly unmeasured.
+    /// Missing, duplicate, hidden or unsupported region targets fail explicitly.</summary>
     /// <param name="source">Publication loaded with raw HTML and resource payloads retained.</param>
     /// <param name="chapterIndex">Zero-based fixed-layout XHTML chapter index.</param>
     /// <param name="regionElementIds">One to 1024 distinct HTML element IDs to inspect.</param>
@@ -62,8 +63,13 @@ public static partial class EpubImageExportExtensions {
         HtmlRenderPage page = rendering.Pages.Single();
         OfficeDrawingQualityReport quality = page.InspectCanvasBounds(width, height, effective.MaxSurfaceWidth,
             effective.MaxSurfaceHeight, cancellationToken);
-        var regions = regionIds.Select(id => new EpubFixedLayoutRegionInspection(id,
-            page.InspectRegionBounds(id, effective.MaxSurfaceWidth, effective.MaxSurfaceHeight, cancellationToken))).ToArray();
+        var regions = regionIds.Select(id => {
+            HtmlRenderPage local = page.CreateRegionInspectionPage(id, cancellationToken);
+            return new EpubFixedLayoutRegionInspection(id,
+                local.InspectCanvasBounds(local.Width, local.Height, effective.MaxSurfaceWidth, effective.MaxSurfaceHeight, cancellationToken),
+                local.InspectTextInk(local.Width, local.Height, cancellationToken, effective.TextShapingProvider,
+                    effective.TextShapingLanguage, isRegion: true));
+        }).ToArray();
         return new EpubFixedLayoutInspection(chapter.Path, width, height, rendering, quality, source.Diagnostics, preparation.Diagnostics, regions,
             page.InspectClipping(effective.MaxSurfaceWidth, effective.MaxSurfaceHeight, cancellationToken),
             page.InspectTextInk(width, height, cancellationToken, effective.TextShapingProvider, effective.TextShapingLanguage));

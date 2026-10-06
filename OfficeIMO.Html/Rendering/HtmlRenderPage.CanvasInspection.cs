@@ -3,8 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 public sealed partial class HtmlRenderPage {
-    internal OfficeDrawingQualityReport InspectRegionBounds(string elementId, int maximumWidth,
-        int maximumHeight, CancellationToken cancellationToken) {
+    internal HtmlRenderPage CreateRegionInspectionPage(string elementId, CancellationToken cancellationToken) {
         var regions = FindRegions(_scene, elementId, cancellationToken).ToArray();
         if (regions.Length != 1) throw new NotSupportedException("Region inspection requires one rendered positioned, floating, flex or grid region: " + elementId);
         HtmlRenderLayoutRegion region = regions[0];
@@ -15,9 +14,8 @@ public sealed partial class HtmlRenderPage {
             ? new HtmlRenderEffectGroup(effect.X, effect.Y, effect.Width, effect.Height, OfficeTransform.Identity,
                 effect.Opacity, effect.Visuals, effect.PaintOrder, effect.Source, effect.LayoutY)
             : visual);
-        var local = new HtmlRenderPage(PageNumber, region.Width, region.Height,
+        return new HtmlRenderPage(PageNumber, region.Width, region.Height,
             content.Select((visual, index) => visual.Translate(-region.X, -region.Y, index)), fonts: _fonts);
-        return local.InspectCanvasBounds(region.Width, region.Height, maximumWidth, maximumHeight, cancellationToken);
     }
 
     private static IEnumerable<HtmlRenderLayoutRegion> FindRegions(IEnumerable<HtmlRenderVisual> visuals,

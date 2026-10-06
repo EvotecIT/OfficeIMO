@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 
 public sealed partial class HtmlRenderPage {
     internal IReadOnlyList<HtmlDiagnostic> InspectTextInk(double width, double height, CancellationToken token,
-        IOfficeTextShapingProvider? shapingProvider = null, string? shapingLanguage = null) {
+        IOfficeTextShapingProvider? shapingProvider = null, string? shapingLanguage = null, bool isRegion = false) {
         var diagnostics = new List<HtmlDiagnostic>();
         var measurementDiagnostics = new List<OfficeImageExportDiagnostic>();
         var measurement = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), font: null, fonts: _fonts,
@@ -41,10 +41,11 @@ public sealed partial class HtmlRenderPage {
                         inkTransform: transform, color: text.Color, decorationColor: text.DecorationColor);
                     if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(text, "A text outline was unavailable; fallback box estimates cannot establish glyph ink."); continue; }
                     if (ink.HasInk && (ink.Left < -.01D || ink.Top < -.01D || ink.Right > width + .01D || ink.Bottom > height + .01D))
-                        diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", HtmlRenderDiagnosticCodes.TextInkOutsideCanvas,
-                            "Measured text paint bounds extend outside the declared canvas. Decorations use conservative stroke bounds.",
+                        diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", isRegion ? HtmlRenderDiagnosticCodes.TextInkOutsideRegion : HtmlRenderDiagnosticCodes.TextInkOutsideCanvas,
+                            "Measured text paint bounds extend outside the " + (isRegion ? "region border box" : "declared canvas") + ". Decorations use conservative stroke bounds.",
                             HtmlDiagnosticSeverity.Warning, text.Source,
-                            string.Format(CultureInfo.InvariantCulture, "left={0};top={1};right={2};bottom={3};canvasWidth={4};canvasHeight={5}",
+                            string.Format(CultureInfo.InvariantCulture, isRegion ? "left={0};top={1};right={2};bottom={3};regionWidth={4};regionHeight={5}" :
+                                    "left={0};top={1};right={2};bottom={3};canvasWidth={4};canvasHeight={5}",
                                 ink.Left, ink.Top, ink.Right, ink.Bottom, width, height)));
                 } else Visit(InspectionChildren(visual), transform);
                 if (diagnostics.Count > 4096) throw new NotSupportedException("Text ink inspection exceeds its diagnostic limit.");
