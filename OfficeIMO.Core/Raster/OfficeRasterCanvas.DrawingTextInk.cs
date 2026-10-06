@@ -10,7 +10,7 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<OfficeTextInkClip> outerClips,
         Action<(double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped), string?> report) {
         var clips = new List<OfficeTextInkClip>(outerClips);
-        int work = 4096;
+        int work = 4096, remainingLayoutCharacters = 65536;
         VisitSurface(drawing, this, transform, 0);
 
         void Unmeasured(string reason) => report((0D, 0D, 0D, 0D, false, false, false), reason);
@@ -55,7 +55,12 @@ public sealed partial class OfficeRasterCanvas {
                         Visit(group.InnerDrawing, canvas.WithDrawingTextProfile(group.InnerDrawing),
                             OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY).Then(frame).Then(placement), depth + 1);
                     } finally { clips.RemoveAt(clips.Count - 1); }
-                } else if (element is OfficeDrawingRichText) Unmeasured("Rich drawing text layout is not inspected as positioned text.");
+                } else if (element is OfficeDrawingRichText rich) {
+                    ChargeLayout(rich.PlainText.Length);
+                    foreach (var run in rich.Runs) Charge();
+                    canvas.InspectLaidOutTextInk(() => OfficeDrawingRasterRenderer.RenderRichText(canvas, rich, 1D),
+                        placement, clips, Charge, report);
+                }
                 else if (element is OfficeDrawingTilingPattern pattern && pattern.Opacity > 0D && MayContainText(pattern.InnerTile, depth + 1))
                     Unmeasured("Repeated vector-pattern text is not inspected.");
                 else if (element is OfficeDrawingImage || element is OfficeDrawingImagePattern)
@@ -82,6 +87,11 @@ public sealed partial class OfficeRasterCanvas {
             return false;
         }
 
+        void ChargeLayout(int length) {
+            remainingLayoutCharacters -= length;
+            if (remainingLayoutCharacters < 0) throw new NotSupportedException("Drawing text ink inspection exceeds its 65536 laid-out character limit.");
+        }
+
         void InspectText(OfficeDrawingText text, OfficeRasterCanvas canvas, OfficeTransform placement) {
             if (text.RasterText.Length == 0 || (text.Color ?? OfficeColor.Black).A == 0) return;
             bool positioned = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
@@ -89,6 +99,16 @@ public sealed partial class OfficeRasterCanvas {
             bool usesPositionedPaint = text.TextAdvanceWidth.HasValue || text.OverflowBehavior == OfficeTextOverflowBehavior.Clip
                 || text.BaselineScale != 1D || text.BaselineOffset != 0D || !text.FeatureSettings.IsDefault
                 || !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase);
+            if (!positioned && text.TextDirection != OfficeTextDirection.TopToBottom) {
+                ChargeLayout(text.RasterText.Length);
+                bool saved = canvas.PreservePaintedGlyphOrder;
+                canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
+                try {
+                    canvas.InspectLaidOutTextInk(() => OfficeDrawingRasterRenderer.RenderText(canvas, text, 1D, 1L),
+                        placement, clips, Charge, report);
+                } finally { canvas.PreservePaintedGlyphOrder = saved; }
+                return;
+            }
             if (!positioned || !usesPositionedPaint || (text.HasFrameTransform && !text.TextAdvanceWidth.HasValue)) {
                 Unmeasured("This drawing text layout does not use the supported positioned-paint path."); return;
             }

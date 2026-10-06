@@ -441,15 +441,18 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                FillTextContourUnion(contours, shifted, color);
+                if (_textInkObserver != null) { _textInkObserver(contours); _textInkObserver(shifted); }
+                else FillTextContourUnion(contours, shifted, color);
             } else {
-                FillTextContours(contours, color);
+                if (_textInkObserver != null) _textInkObserver(contours);
+                else FillTextContours(contours, color);
             }
 
             DrawTextLineDecorations(x, width, top, fontHeight, decorationColor ?? color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
             return;
         }
 
+        if (_textInkObserver != null) { _textInkObserver(null); return; }
         DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         DrawTextLineDecorations(x, width, top, fontHeight, decorationColor ?? color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
     }
@@ -576,6 +579,9 @@ public sealed partial class OfficeRasterCanvas {
         bool flipVertical) {
         double thickness = Math.Max(1D, fontHeight / 16D);
         double separation = Math.Max(2D, thickness * 1.8D);
+        if (InspectTextDecoration(x, width, y, fontHeight, style, rotationRadians, rotationCenterX,
+            rotationCenterY, flipHorizontal, flipVertical)) return;
+
         if (style == OfficeTextDecorationStyle.Double) {
             DrawTransformedTextDecoration(x, width, y - (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
             DrawTransformedTextDecoration(x, width, y + (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);

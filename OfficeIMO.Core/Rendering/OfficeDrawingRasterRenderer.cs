@@ -250,7 +250,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {
+    internal static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {
         OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
         double contentX = (text.X * scale) + scaledPadding.Left;
         double contentY = (text.Y * scale) + scaledPadding.Top;

@@ -33,9 +33,9 @@ public sealed class DrawingVectorTextInkTests {
         var child = Create(0);
         var hidden = new OfficeDrawing(100, 100); hidden.AddEffectDrawing(child, OfficeTransform.Identity, opacity: 0);
         Assert.Empty(Inspect(hidden, OfficeTransform.Identity));
-        var wrapped = new OfficeDrawing(100, 100);
-        wrapped.AddText("A", 0, 0, 100, 100, wrapText: true);
-        var result = Assert.Single(Inspect(wrapped, OfficeTransform.Identity));
+        var legacy = new OfficeDrawing(100, 100);
+        legacy.AddText("A", 0, 0, 100, 100);
+        var result = Assert.Single(Inspect(legacy, OfficeTransform.Identity));
         Assert.False(result.Measured); Assert.NotNull(result.Reason);
     }
 
@@ -99,6 +99,89 @@ public sealed class DrawingVectorTextInkTests {
         var parent = new OfficeDrawing(100, 100);
         parent.AddEffectDrawing(child, OfficeTransform.Identity, OfficeBlendMode.Normal, new OfficeDrawingSoftMask(new OfficeDrawing(100, 100)));
         Assert.Throws<NotSupportedException>(() => Inspect(parent, OfficeTransform.Identity));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LaidOutTextUsesMeasuredGlyphInk(bool rich) {
+        var drawing = new OfficeDrawing(100, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'));
+        if (rich) drawing.AddRichText(new[] { new OfficeRichTextRun("A A A", 30, OfficeColor.Black, fontFamily: "Ink") }, 10, 10, 35, 80);
+        else drawing.AddText("A A A", 10, 10, 35, 80, font: new OfficeFontInfo("Ink", 30), wrapText: true);
+        var results = Inspect(drawing, OfficeTransform.Identity);
+        Assert.NotEmpty(results);
+        Assert.All(results, ink => Assert.True(ink.Measured));
+        Assert.Contains(results, ink => ink.HasInk);
+    }
+
+    [Theory]
+    [InlineData(false, 0D, false)]
+    [InlineData(false, 27D, true)]
+    [InlineData(true, 0D, false)]
+    [InlineData(true, 27D, true)]
+    public void LaidOutInkTracksRenderedPlacement(bool rich, double rotation, bool clipped) {
+        var child = new OfficeDrawing(100, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'));
+        if (rich) child.AddRichText(new[] {
+            new OfficeRichTextRun("A A", 30, OfficeColor.Black, bold: true, fontFamily: "Ink"),
+            new OfficeRichTextRun(" A", 18, OfficeColor.Black, italic: true, fontFamily: "Ink")
+        }, 10, 10, 40, 80, rotationDegrees: rotation, verticalAlignment: OfficeTextVerticalAlignment.Center);
+        else child.AddText("A A A", 10, 10, 40, 80, font: new OfficeFontInfo("Ink", 30, OfficeFontStyle.Italic),
+            wrapText: true, rotationDegrees: rotation, verticalAlignment: OfficeTextVerticalAlignment.Center);
+        var drawing = new OfficeDrawing(130, 130);
+        drawing.AddClippedDrawing(child, 10, 10, OfficeClipPath.Rectangle(clipped ? 40 : 100, 100));
+        var ink = new List<(double Left, double Top, double Right, double Bottom)>();
+        bool observedClip = false;
+        new OfficeRasterCanvas(new OfficeRasterImage(1, 1)).InspectDrawingTextInk(drawing, OfficeTransform.Identity,
+            Array.Empty<OfficeTextInkClip>(), (bounds, reason) => {
+                Assert.True(bounds.IsMeasured, reason); observedClip |= bounds.IsClipped;
+                if (bounds.HasInk) ink.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom));
+            });
+        Assert.NotEmpty(ink); Assert.Equal(clipped, observedClip);
+        double left = ink.Min(x => x.Left), top = ink.Min(x => x.Top), right = ink.Max(x => x.Right), bottom = ink.Max(x => x.Bottom);
+        var raster = OfficeDrawingRasterRenderer.Render(drawing);
+        var pixels = Enumerable.Range(0, 130).SelectMany(y => Enumerable.Range(0, 130).Select(x => (X: x, Y: y)))
+            .Where(p => raster.GetPixel(p.X, p.Y).A > 0).ToArray();
+        Assert.NotEmpty(pixels);
+        // Nominal contour geometry and pixel coverage differ by raster sampling.
+        Assert.InRange(Math.Abs(pixels.Min(p => p.X) - left), 0, 2);
+        Assert.InRange(Math.Abs(pixels.Min(p => p.Y) - top), 0, 2);
+        Assert.InRange(Math.Abs(pixels.Max(p => p.X) + 1 - right), 0, 2);
+        Assert.InRange(Math.Abs(pixels.Max(p => p.Y) + 1 - bottom), 0, 2);
+    }
+
+    [Theory]
+    [InlineData(OfficeTextDecorationStyle.Double)]
+    [InlineData(OfficeTextDecorationStyle.Wavy)]
+    public void LaidOutDecorationEnvelopeContainsRenderedPixels(OfficeTextDecorationStyle decoration) {
+        var drawing = new OfficeDrawing(100, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddRichText(new[] { new OfficeRichTextRun("A A", 30, OfficeColor.Black,
+            fontFamily: "Ink", underlineStyle: decoration) }, 20, 10, 40, 80, rotationDegrees: 23);
+        var ink = new List<(double Left, double Top, double Right, double Bottom)>();
+        new OfficeRasterCanvas(new OfficeRasterImage(1, 1)).InspectDrawingTextInk(drawing, OfficeTransform.Identity,
+            Array.Empty<OfficeTextInkClip>(), (bounds, reason) => {
+                Assert.True(bounds.IsMeasured, reason);
+                if (bounds.HasInk) ink.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom));
+            });
+        Assert.NotEmpty(ink);
+        var raster = OfficeDrawingRasterRenderer.Render(drawing);
+        int count = 0;
+        for (int y = 0; y < 100; y++) for (int x = 0; x < 100; x++) {
+            if (raster.GetPixel(x, y).A == 0) continue;
+            count++;
+            Assert.Contains(ink, b => x + .5 >= b.Left - 1 && x + .5 <= b.Right + 1 && y + .5 >= b.Top - 1 && y + .5 <= b.Bottom + 1);
+        }
+        Assert.True(count > 0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LaidOutInputIsBoundedBeforeLayout(bool rich) {
+        var drawing = new OfficeDrawing(100, 100);
+        string text = new string('A', 65537);
+        if (rich) drawing.AddRichText(new[] { new OfficeRichTextRun(text, 12, OfficeColor.Black) }, 0, 0, 100, 100);
+        else drawing.AddText(text, 0, 0, 100, 100, wrapText: true);
+        Assert.Throws<NotSupportedException>(() => Inspect(drawing, OfficeTransform.Identity));
     }
 
     private static OfficeDrawing Create(double x) {
