@@ -71,9 +71,9 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         if (_disposed || Math.Abs(_renderScaling - renderScaling) < 0.001D) return;
         double previousScale = GetRenderScale(Scene, _renderScaling);
         _renderScaling = renderScaling;
-        // The first load has already captured scaling even though it has not published a scene yet.
+        // Until the scene arrives, the placeholder dimensions cannot predict its raster scale.
         if (!_attached || Scene is { RequiresRasterFallback: false } ||
-            Math.Abs(previousScale - GetRenderScale(Scene, renderScaling)) < 0.001D) return;
+            (Scene is not null && Math.Abs(previousScale - GetRenderScale(Scene, renderScaling)) < 0.001D)) return;
         _ = LoadAsync();
     }
 
