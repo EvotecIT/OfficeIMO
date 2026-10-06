@@ -15,6 +15,20 @@ The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT 
 dotnet add package OfficeIMO.Core
 ```
 
+## Mathematical drawing
+
+`OfficeMathRenderer` renders the owned equation model using caller-supplied fonts.
+Register a mathematical face in `OfficeMathRenderOptions.Fonts` and select its family
+through `Font`. OpenType MATH constants, glyph variants and assemblies determine
+fraction rules, script spacing, stretched delimiters, radicals and accents when
+available. Fonts without those tables use the existing geometric fallback.
+
+`UseFontMathMetrics` selects font-derived layout, including available stretched
+glyph variants and assemblies. Disable it explicitly when the application requires
+the geometric fallback. Rendering cancellation applies during
+font measurement and equation construction. These options do not execute scripts or
+require an external rendering engine.
+
 ## Per-column row mapping
 
 `RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
@@ -640,6 +654,26 @@ string mathMl = OfficeMathMarkup.ToMathMl(expression);
 string latex = OfficeMathMarkup.ToLatex(expression);
 OfficeDrawing mathDrawing = OfficeMathRenderer.Render(expression);
 ```
+
+Supply a math font when equations need its OpenType MATH spacing, glyph variants,
+or stretch assemblies:
+
+```csharp
+var mathOptions = new OfficeMathRenderOptions {
+    Font = new OfficeFontInfo("Document Math", 24D),
+    Dpi = 144D
+};
+mathOptions.Fonts.Add("Document Math", File.ReadAllBytes("document-math.otf"));
+OfficeDrawing equation = OfficeMathRenderer.Render(expression, mathOptions);
+```
+
+`UseFontMathMetrics` is enabled by default. Available MATH constants, italic corrections,
+accent positions, math kerning, variants and assemblies guide layout; missing data uses
+the existing geometric fallback. Set the option to `false` to use the caller's script and
+rule settings. Font size is in points and `Dpi` controls drawing density. Optical-size
+selection and font tracking use the authored point size for both measurement and paint.
+Fonts are caller supplied; OfficeIMO.Core does not ship a math font or require a native
+rendering engine.
 
 The same immutable expression tree feeds native OneNote math and Word OMML adapters. The shared model includes right and left scripts, centered upper/lower limits, built-up and slashed fractions, delimiter lists, stacks, matrices, equation arrays, n-ary operators, accents, bars, boxes, and phantoms. OneNote maps all of those structures natively. Word maps the lossless OMML subset; `Stack` and `StretchStack` fail with `NotSupportedException` because OMML has no equivalent, and callers can choose `EquationArray` explicitly when that projection is intended. Drawing owns the AST, portable markup, measurement, and visual layout; each document package owns only its native codec. MathML and LaTeX parsing default to a nesting limit of 128 and expose bounded overloads; excessive nesting fails with `OfficeMathParseException.Code == "DRAWING_MATH_DEPTH"`.
 

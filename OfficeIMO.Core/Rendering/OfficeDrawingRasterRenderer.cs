@@ -53,6 +53,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: options.DiagnosticSink,
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
+        canvas.FontMetricScale = scale;
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)

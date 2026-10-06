@@ -4,7 +4,7 @@ description: "Create, inspect, update, review, merge, protect, and convert DOCX 
 layout: docs
 ---
 
-The Word family covers complete report creation and targeted updates to existing DOCX files. Its 92 exported commands include sections, paragraphs, text runs, lists, tables, images, charts, fields, links, headers and footers, notes, content controls, review, protection, merging, mail merge, and conversion.
+The Word family covers complete report creation and targeted updates to existing DOCX files. Its 97 exported commands include sections, paragraphs, text runs, lists, tables, images, charts, fields, links, headers and footers, notes, content controls, review, protection, merging, mail merge, and conversion.
 
 ## Build a report
 
@@ -31,6 +31,28 @@ Use `Get-OfficeWord` to load a file and the targeted `Get-OfficeWord*` and `Find
 
 Update commands are intentionally specific: change text, styles, images, shapes, page setup, document properties, fields, or table-of-contents state without rebuilding the whole document.
 
+## Copy complete DSL recipes
+
+- [Project status report](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-ProjectStatus.ps1): header and footer, executive summary, conditional milestone table, progress chart, check box, and date picker.
+- [Change approval checklist](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-ApprovalChecklist.ps1): table of contents, risk selector, required-evidence table, approval controls, and watermark.
+- [Executive service report](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Showcase/Showcase-Word-ExecutiveReport.ps1): the larger composition example with metadata, rich text, bookmarks, notes, tables, charts, and content controls.
+
+## Other Word workflows
+
+- [Object composition](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-ObjectComposition.ps1): hold a live document, add a paragraph and mixed-format runs, add a table, then save once.
+- [HTML to Word](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-HtmlToDocument.ps1): turn an HTML fragment into an editable DOCX file.
+- [Compare documents](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-CompareDocuments.ps1): produce structured evidence about changes between two versions.
+- [Inspect, update, merge, and mail merge](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/README.md#read-modify-combine-and-convert): work with documents supplied by another system.
+
+The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) explains how the scoped commands fit together and how to reuse the same input objects across formats.
+
+## Task guides
+
+- [Read and inspect existing documents](/docs/pswriteoffice/word-read-inspect/)
+- [Update existing documents](/docs/pswriteoffice/word-update-existing/)
+- [Merge documents and generate letters](/docs/pswriteoffice/word-merge-mailmerge/)
+- [Review, protect, and deliver](/docs/pswriteoffice/word-review-delivery/)
+
 ## Workflow capabilities
 
 - **Templates and data:** mail merge, table conditions, calculated columns, document properties, fields, and reusable content blocks.
@@ -38,4 +60,4 @@ Update commands are intentionally specific: change text, styles, images, shapes,
 - **Forms:** check boxes, combo boxes, date pickers, drop-down lists, picture controls, repeating sections, and general content controls.
 - **Delivery:** merge documents, protect output, update fields and tables of contents, and convert to HTML or Markdown.
 
-For exact syntax, search the [PowerShell command reference](/api/powershell/) for `OfficeWord`. See the [Word examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.5/Examples/Word) for complete copyable scripts.
+For exact syntax, search the [PowerShell command reference](/api/powershell/) for `OfficeWord`. See the [Word examples](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.6/Examples/Word) for complete copyable scripts.

@@ -14,11 +14,12 @@ public sealed partial class OfficeRasterCanvas {
     private const int MaximumContourCoverageTileWidth = 8192;
     private const double MinimumDashSegmentAdvance = 1E-9D;
     private const double MinimumRasterDashLength = 0.25D;
-    private static readonly OfficeTrueTypeFont? DefaultFont = OfficeTrueTypeFont.TryLoadDefault();
+    private static readonly Lazy<OfficeTrueTypeFont?> DefaultFont = new Lazy<OfficeTrueTypeFont?>(OfficeTrueTypeFont.TryLoadDefault);
     private readonly OfficeRasterImage? _image;
     private readonly OfficeRasterRenderTarget? _target;
     private readonly OfficeTrueTypeFont? _font;
     private readonly OfficeFontFaceCollection? _fonts;
+    private readonly bool _scopedFontResolutionOnly;
     private readonly IOfficeTextShapingProvider? _textShapingProvider;
     private readonly string? _textShapingLanguage;
     private readonly ICollection<OfficeImageExportDiagnostic>? _diagnosticSink;
@@ -61,7 +62,7 @@ public sealed partial class OfficeRasterCanvas {
         string? diagnosticSource = null,
         System.Threading.CancellationToken cancellationToken = default) {
         _image = image ?? throw new ArgumentNullException(nameof(image));
-        _font = font ?? DefaultFont;
+        _font = font ?? DefaultFont.Value;
         _fonts = fonts?.Clone();
         _textShapingProvider = textShapingProvider;
         _textShapingLanguage = NormalizeTextShapingLanguage(textShapingLanguage);
@@ -99,7 +100,7 @@ public sealed partial class OfficeRasterCanvas {
         string? diagnosticSource = null,
         System.Threading.CancellationToken cancellationToken = default) {
         _target = target ?? throw new ArgumentNullException(nameof(target));
-        _font = font ?? DefaultFont;
+        _font = font ?? DefaultFont.Value;
         _fonts = fonts?.Clone();
         _textShapingProvider = textShapingProvider;
         _textShapingLanguage = NormalizeTextShapingLanguage(textShapingLanguage);

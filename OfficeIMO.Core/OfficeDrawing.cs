@@ -791,7 +791,7 @@ public sealed partial class OfficeDrawing {
             text.DecorationColor,
             text.FeatureSettings,
             text.FontPalette,
-            text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs };
+            text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs, FontMetricScale = text.FontMetricScale };
         item.SetPaintedText(text.Text, text.RasterText);
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");

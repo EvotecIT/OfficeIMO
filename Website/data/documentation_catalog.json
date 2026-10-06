@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 260,
-    "productionComponentCount": 134,
-    "testProjectCount": 50,
+    "projectCount": 262,
+    "productionComponentCount": 135,
+    "testProjectCount": 51,
     "benchmarkProjectCount": 35,
     "validationProjectCount": 42,
     "apiReferenceCount": 122,
-    "conceptualPageCount": 97,
-    "conceptualWordCount": 44919
+    "conceptualPageCount": 125,
+    "conceptualWordCount": 53865
   },
   "categories": [
     {
@@ -67,8 +67,8 @@
         68,
         69,
         70,
-        119,
-        120
+        120,
+        121
       ]
     },
     {
@@ -88,7 +88,7 @@
         62,
         81,
         115,
-        133
+        134
       ]
     },
     {
@@ -118,14 +118,14 @@
         77,
         78,
         79,
-        121,
         122,
         123,
         124,
         125,
         126,
         127,
-        128
+        128,
+        129
       ]
     },
     {
@@ -170,7 +170,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 20,
+      "componentCount": 21,
       "componentIndexes": [
         1,
         2,
@@ -188,10 +188,11 @@
         116,
         117,
         118,
-        129,
+        119,
         130,
         131,
-        132
+        132,
+        133
       ]
     }
   ],
@@ -333,7 +334,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 835,
+      "sourceFileCount": 861,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -489,7 +490,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1074,
+      "sourceFileCount": 1076,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -528,7 +529,7 @@
       "description": "HTML converter for OfficeIMO.Excel - Export Excel workbooks and worksheets to semantic or visual review HTML.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
-      "sourceFileCount": 20,
+      "sourceFileCount": 21,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-html/",
@@ -1711,8 +1712,21 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 288,
+      "sourceFileCount": 249,
       "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
+    },
+    {
+      "name": "OfficeIMO.Studio.Core",
+      "packageId": "OfficeIMO.Studio.Core",
+      "category": "Specialized components",
+      "description": "UI-independent document sessions, editing, storage and recovery for OfficeIMO Studio hosts.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj",
+      "sourceFileCount": 58,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -1776,7 +1790,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 733,
+      "sourceFileCount": 734,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",

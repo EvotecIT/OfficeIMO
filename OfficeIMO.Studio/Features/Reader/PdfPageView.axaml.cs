@@ -9,6 +9,7 @@ namespace OfficeIMO.Studio.Features.Reader;
 
 public sealed partial class PdfPageView : UserControl {
     private PdfPageViewModel? _viewModel;
+    private TopLevel? _topLevel;
     private bool _attached;
 
     public PdfPageView() {
@@ -28,12 +29,28 @@ public sealed partial class PdfPageView : UserControl {
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => {
             _attached = true;
+            TrackRenderScaling(TopLevel.GetTopLevel(this));
             UpdateViewModel();
         };
         DetachedFromVisualTree += (_, _) => {
             _attached = false;
+            TrackRenderScaling(null);
             _viewModel?.DetachFromViewport();
         };
+    }
+
+    // Fallback bitmaps are requested in device pixels; moving between displays changes how many that is.
+    private void TrackRenderScaling(TopLevel? topLevel) {
+        if (ReferenceEquals(_topLevel, topLevel)) return;
+        if (_topLevel is not null) _topLevel.ScalingChanged -= OnTopLevelScalingChanged;
+        _topLevel = topLevel;
+        if (_topLevel is not null) _topLevel.ScalingChanged += OnTopLevelScalingChanged;
+    }
+
+    private void OnTopLevelScalingChanged(object? sender, EventArgs e) => ApplyRenderScaling();
+
+    private void ApplyRenderScaling() {
+        if (_topLevel is not null) _viewModel?.SetRenderScaling(_topLevel.RenderScaling);
     }
 
     private void OnLinkActivated(string target) => _viewModel?.ActivateLink(target);
@@ -124,6 +141,7 @@ public sealed partial class PdfPageView : UserControl {
 
     private void UpdateViewModel() {
         if (ReferenceEquals(_viewModel, DataContext)) {
+            ApplyRenderScaling();
             if (_attached) {
                 _viewModel?.AttachToViewport();
                 FocusPendingInlineFormEditor();
@@ -136,6 +154,7 @@ public sealed partial class PdfPageView : UserControl {
         _viewModel = DataContext as PdfPageViewModel;
         if (_viewModel is not null) _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel?.UpdateCanvasSize(PageCanvas.Bounds.Size);
+        ApplyRenderScaling();
         if (_attached) {
             _viewModel?.AttachToViewport();
             FocusPendingInlineFormEditor();
