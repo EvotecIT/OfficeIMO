@@ -42,6 +42,7 @@ internal sealed class OcrQualityMeasurement {
     public ScanTextAccuracy? Baseline { get; init; }
     public ScanTextAccuracy? Selected { get; init; }
     public bool GoldLimitsMet { get; init; }
+    public string ReviewStatus { get; init; } = "Unassessed";
     public bool ReviewRecommended { get; init; } = true;
     public bool HasDisagreement { get; init; }
     public bool RetryIncomplete { get; init; }

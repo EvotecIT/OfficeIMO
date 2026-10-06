@@ -743,8 +743,13 @@ internal static partial class PdfDocumentSemanticEnricher {
         }
     }
 
-    private static string ResolveRole(PdfTaggedContentInfo tagged, string role) =>
-        tagged.RoleMap.TryGetValue(role, out string? mapped) ? mapped : role;
+    private static string ResolveRole(PdfTaggedContentInfo tagged, string role) {
+        if (!tagged.RoleMap.TryGetValue(role, out string? mapped)) return role;
+        // The generated deep-heading roles use H6 for standard-role compatibility,
+        // while their explicit names retain the authored hierarchy for readers.
+        if ((role == "H7" || role == "H8" || role == "H9") && mapped == "H6") return role;
+        return mapped;
+    }
 
     private static TaggedStructureBinding? ResolveTaggedBinding(
         PdfTaggedContentInfo tagged,
@@ -818,7 +823,7 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     internal static int? HeadingLevel(string role) =>
         role.Length == 2 && (role[0] == 'H' || role[0] == 'h') && char.IsDigit(role[1])
-            && role[1] >= '1' && role[1] <= '6'
+            && role[1] >= '1' && role[1] <= '9'
             ? role[1] - '0'
             : null;
 

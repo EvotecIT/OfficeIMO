@@ -26,6 +26,7 @@ internal static partial class PdfWriter {
             double height = MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: false);
             int count = GetTableColumnCount(table);
             if (count == 0 || table.Rows.Count == 0) return true;
+            style = PreparePairedTableBorders(table, style);
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;

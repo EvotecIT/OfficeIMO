@@ -193,6 +193,10 @@ internal static partial class PdfWriter {
 
         private void NewPage(bool preserveEmptyPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (activeColumnFlow != null) {
+                AdvanceColumnFrame(forcePhysicalPage: false, preserveEmptyPage);
+                return;
+            }
             PrepareActiveContainerScopesForPageBreak();
             FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
             StartPage(currentPageBaseOptions);

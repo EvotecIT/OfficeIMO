@@ -250,7 +250,17 @@ internal static class OfficeC2paManifestStore {
                 !TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength, out ulong contentLength, out string contentType) ||
                 !IsAssertionContentType(contentType) ||
                 contentType == "uuid" && contentLength <= (ulong)(contentHeaderLength + 16) ||
-                contentLength <= (ulong)contentHeaderLength || contentLength != (ulong)contentAvailable) return false;
+                contentLength <= (ulong)contentHeaderLength) return false;
+            if (contentType == "bfdb") {
+                // Embedded-file assertions contain a description followed by a binary data box.
+                // Bounds and box budgets apply to both; a lone descriptor is not a complete assertion.
+                int binaryOffset = contentOffset + (int)contentLength;
+                int binaryAvailable = contentAvailable - (int)contentLength;
+                if (!TryReserveBox(ref visitedBoxes, maximumEntries) ||
+                    !TryReadBox(data, binaryOffset, binaryAvailable, out int binaryHeaderLength,
+                        out ulong binaryLength, out string binaryType) || binaryType != "bidb" ||
+                    binaryLength <= (ulong)binaryHeaderLength || binaryLength != (ulong)binaryAvailable) return false;
+            } else if (contentType == "bidb" || contentLength != (ulong)contentAvailable) return false;
             hasAssertion = true;
             cursor += (int)childLength;
         }
@@ -342,7 +352,7 @@ internal static class OfficeC2paManifestStore {
         label = string.Empty;
         if (togglesOffset < 0 || togglesOffset >= descriptionEnd || descriptionEnd > data.Length) return false;
         byte toggles = data[togglesOffset];
-        if ((toggles & 0xF0) != 0 || (toggles & 0x03) != 0x03) return false;
+        if ((toggles & 0xE0) != 0 || (toggles & 0x03) != 0x03) return false;
         int labelOffset = togglesOffset + 1;
         if (labelOffset >= descriptionEnd || data[labelOffset] == 0) return false;
         int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
@@ -356,6 +366,13 @@ internal static class OfficeC2paManifestStore {
         int cursor = terminator + 1;
         if ((toggles & 0x04) != 0) cursor += 4;
         if ((toggles & 0x08) != 0) cursor += 32;
+        if ((toggles & 0x10) != 0) {
+            // C2PA's private description field is a standard c2sh salt box (16 or 32 bytes).
+            int available = descriptionEnd - cursor;
+            if (!TryReadBox(data, cursor, available, out int header, out ulong length, out string type) ||
+                header != 8 || type != "c2sh" || length != (ulong)available || length is not (24 or 40)) return false;
+            cursor = descriptionEnd;
+        }
         return cursor == descriptionEnd;
     }
 

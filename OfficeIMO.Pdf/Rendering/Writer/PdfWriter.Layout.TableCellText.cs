@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D) {
-        double wrapWidth = GetTableCellWrapWidth(innerWidth, cell.NoWrap);
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
+        double wrapWidth = ResolveImportedTableCellWrapWidth(cell, innerWidth, baseFont, fontSize, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         if (cell.Paragraphs.Count > 0) {
             return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, innerWidth, baseFont, fontSize, leading, options);
         }
@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
                 paragraph.DefaultTabStopWidth,
                 paragraph.TabStops,
                 ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
-                paragraph.LineSpacing));
+                paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext));
         }
 
         return scaledParagraphs.AsReadOnly();
@@ -102,6 +102,7 @@ internal static partial class PdfWriter {
         var lineXOffsets = new System.Collections.Generic.List<double>();
         var lineWidths = new System.Collections.Generic.List<double>();
         var lineBoxHeights = new System.Collections.Generic.List<double>();
+        var paragraphRanges = new System.Collections.Generic.List<TableCellParagraphRange>();
         double topSpacing = 0D;
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
@@ -142,6 +143,7 @@ internal static partial class PdfWriter {
             }
 
             lines.AddRange(wrap.Lines);
+            paragraphRanges.Add(new TableCellParagraphRange(paragraph, firstNewLineIndex, wrap.Lines.Count));
             lineHeights.AddRange(wrap.LineHeights);
             lineBoxHeights.AddRange(wrap.LineHeights);
             for (int lineIndex = firstNewLineIndex; lineIndex < lines.Count; lineIndex++) {
@@ -170,7 +172,7 @@ internal static partial class PdfWriter {
             lineWidths.Add(wrapWidth);
         }
 
-        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths, topSpacing, lineBoxHeights);
+        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths, topSpacing, lineBoxHeights, paragraphRanges);
     }
 
     private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph, double availableWidth) {
@@ -216,8 +218,11 @@ internal static partial class PdfWriter {
     private static double GetRichLineHeight(System.Collections.Generic.IReadOnlyList<double> heights, int lineIndex, double fallbackLeading) =>
         lineIndex >= 0 && lineIndex < heights.Count ? heights[lineIndex] : fallbackLeading;
 
-    private static int LimitTableCellLineCountToHeight(TableCellTextLayout lines, int startLine, int requestedLineCount, double fallbackLeading, double availableHeight) {
+    private static int LimitTableCellLineCountToHeight(TableCellTextLayout lines, int startLine, int requestedLineCount, double fallbackLeading, double availableHeight, bool preservePartialLines = false) {
         int maximumLineCount = System.Math.Max(0, System.Math.Min(requestedLineCount, lines.LineCount - startLine));
+        // Exact Word cell boxes can cut through a line. The render pass retains
+        // its original advance, removes wholly invisible ink and applies the clip.
+        if (preservePartialLines) return maximumLineCount;
         double consumedHeight = startLine == 0 ? lines.TopSpacing : 0D;
         int visibleLineCount = 0;
         for (int offset = 0; offset < maximumLineCount; offset++) {

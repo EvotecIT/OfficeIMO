@@ -57,7 +57,9 @@ internal static partial class PdfWriter {
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, fontSize)
+                // Bounds-derived scaling uses this same fractional height. Keep
+                // its precision so tiny carriers do not acquire a longer baseline.
+                .Font(fontResource, fontSize, preserveLogicalPrecision: hasBounds)
                 .TextRenderingMode(3)
                 .TextMatrix(anchorX, anchorY);
             if (hasBounds) {

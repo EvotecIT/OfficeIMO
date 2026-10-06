@@ -399,151 +399,6 @@ internal static partial class PdfWriter {
         return lines;
     }
 
-    // Rich paragraph layout
-    private sealed class RichSeg {
-        public RichSeg(
-            string text,
-            bool bold,
-            bool italic,
-            bool underline,
-            bool strike,
-            PdfColor? color,
-            PdfColor? backgroundColor,
-            string? uri,
-            string? destinationName,
-            string? contents,
-            PdfStandardFont font,
-            double fontSize,
-            PdfTextBaseline baseline,
-            double measuredWidth,
-            bool leadingSpace = false,
-            double leadingAdvance = 0,
-            bool leadingSpaceIsExpandable = true,
-            PdfTabLeaderStyle leadingTabLeader = PdfTabLeaderStyle.None,
-            bool endsWithHardBreak = false,
-            bool endsWithTextSeparator = false,
-            PdfInlineElement? inlineElement = null,
-            PdfNamedFontFace? namedFont = null,
-            OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            PdfColor? decorationColor = null,
-            OfficeTextFeatureSettings? featureSettings = null,
-            OfficeTextDirection textDirection = OfficeTextDirection.Auto,
-            PdfTabStop? leadingTabStop = null,
-            OfficeIMO.Drawing.OfficeTextDecorationStyle leadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            PdfColor? leadingDecorationColor = null,
-            double leadingDecorationFontSize = 0,
-            double leadingDecorationTextRise = 0) {
-            Text = text;
-            Bold = bold;
-            Italic = italic;
-            Underline = underline;
-            Strike = strike;
-            Color = color;
-            BackgroundColor = backgroundColor;
-            Uri = uri;
-            DestinationName = destinationName;
-            Contents = contents;
-            Font = font;
-            FontSize = fontSize;
-            Baseline = baseline;
-            MeasuredWidth = measuredWidth;
-            LeadingSpace = leadingSpace;
-            LeadingAdvance = leadingAdvance;
-            LeadingTabStop = leadingTabStop;
-            LeadingUnderlineStyle = leadingUnderlineStyle;
-            LeadingDecorationColor = leadingDecorationColor;
-            LeadingDecorationFontSize = leadingDecorationFontSize;
-            LeadingDecorationTextRise = leadingDecorationTextRise;
-            LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
-            LeadingTabLeader = leadingTabLeader;
-            EndsWithHardBreak = endsWithHardBreak;
-            EndsWithTextSeparator = endsWithTextSeparator;
-            InlineElement = inlineElement;
-            NamedFont = namedFont;
-            UnderlineStyle = underlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
-                ? underlineStyle
-                : underline ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-            StrikeStyle = strikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
-                ? strikeStyle
-                : strike ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-            DecorationColor = decorationColor;
-            FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
-            TextDirection = textDirection;
-        }
-
-        public string Text { get; }
-
-        public bool Bold { get; }
-
-        public bool Italic { get; }
-
-        public bool Underline { get; }
-
-        public OfficeIMO.Drawing.OfficeTextDecorationStyle UnderlineStyle { get; }
-
-        public bool Strike { get; }
-
-        public OfficeIMO.Drawing.OfficeTextDecorationStyle StrikeStyle { get; }
-
-        public PdfColor? Color { get; }
-
-        public PdfColor? BackgroundColor { get; }
-
-        public PdfColor? DecorationColor { get; }
-
-        public string? Uri { get; }
-
-        public string? DestinationName { get; }
-
-        public string? Contents { get; }
-
-        public PdfStandardFont Font { get; }
-
-        public double FontSize { get; }
-
-        public PdfTextBaseline Baseline { get; }
-
-        public double MeasuredWidth { get; }
-
-        public bool LeadingSpace { get; }
-
-        public double LeadingAdvance { get; }
-        public PdfTabStop? LeadingTabStop { get; }
-        public OfficeIMO.Drawing.OfficeTextDecorationStyle LeadingUnderlineStyle { get; }
-        public PdfColor? LeadingDecorationColor { get; }
-        public double LeadingDecorationFontSize { get; }
-        public double LeadingDecorationTextRise { get; }
-
-        public bool LeadingSpaceIsExpandable { get; }
-
-        public PdfTabLeaderStyle LeadingTabLeader { get; }
-
-        public bool EndsWithHardBreak { get; }
-
-        public bool EndsWithTextSeparator { get; }
-
-        public PdfInlineElement? InlineElement { get; }
-
-        public PdfNamedFontFace? NamedFont { get; }
-
-        public OfficeTextFeatureSettings FeatureSettings { get; }
-
-        public OfficeTextDirection TextDirection { get; }
-
-        public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
-
-        public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
-
-        public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
-
-        public RichSeg WithLeadingAdvance(double advance) =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
-    }
-
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
         if (line.Count == 0) {
             return;
@@ -721,8 +576,10 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? currentRunNamedFont = null;
         double currentRunAscent = 0;
         double currentRunDescent = 0;
-        double currentLineAscent = 0;
-        double currentLineDescent = 0;
+        double currentLineTextAscent = 0;
+        double currentLineTextDescent = 0;
+        double currentLineInlineAscent = 0;
+        double currentLineInlineDescent = 0;
         bool currentRunIsInline = false;
         bool currentLineHasInline = false;
         PdfColor? currentRunDecorationColor = null;
@@ -740,12 +597,16 @@ internal static partial class PdfWriter {
 
         void RegisterLineMetrics() {
             if (lineSpacing?.IsExact == true) return;
-            currentLineAscent = Math.Max(currentLineAscent, currentRunAscent);
-            currentLineDescent = Math.Max(currentLineDescent, currentRunDescent);
+            if (currentRunIsInline) {
+                currentLineInlineAscent = Math.Max(currentLineInlineAscent, currentRunAscent);
+                currentLineInlineDescent = Math.Max(currentLineInlineDescent, currentRunDescent);
+            } else {
+                currentLineTextAscent = Math.Max(currentLineTextAscent, currentRunAscent);
+                currentLineTextDescent = Math.Max(currentLineTextDescent, currentRunDescent);
+            }
             currentLineHasInline |= currentRunIsInline;
-            if (currentLineHasInline)
-                currentLineHeight = Math.Max(currentLineHeight,
-                    currentLineAscent + currentLineDescent + (currentFrame?.Gap ?? 0));
+            currentLineHeight = Math.Max(currentLineHeight,
+                CombinedContentHeight(0, includeCurrentRun: false) + (currentFrame?.Gap ?? 0));
         }
 
         void StartNewLine() {
@@ -755,8 +616,10 @@ internal static partial class PdfWriter {
             completedHeight += currentLineHeight;
             lines.Add(new RichLine());
             lineWidth = 0;
-            currentLineAscent = 0;
-            currentLineDescent = 0;
+            currentLineTextAscent = 0;
+            currentLineTextDescent = 0;
+            currentLineInlineAscent = 0;
+            currentLineInlineDescent = 0;
             currentLineHasInline = false;
             currentContentHeight = lineHeight;
             currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, currentContentHeight, 0);
@@ -790,9 +653,32 @@ internal static partial class PdfWriter {
             currentLineHeight = height + frame.Gap;
         }
 
-        double CombinedContentHeight(double contentHeight) => lineSpacing?.IsExact == true || !(currentLineHasInline || currentRunIsInline) ? contentHeight
-            : Math.Max(contentHeight, Math.Max(currentLineAscent, currentRunAscent)
-                + Math.Max(currentLineDescent, currentRunDescent));
+        double CombinedContentHeight(double contentHeight, bool includeCurrentRun = true) {
+            if (lineSpacing?.IsExact == true) return contentHeight;
+            bool hasInline = currentLineHasInline || includeCurrentRun && currentRunIsInline;
+            double textAscent = Math.Max(currentLineTextAscent,
+                includeCurrentRun && !currentRunIsInline ? currentRunAscent : 0);
+            double textDescent = Math.Max(currentLineTextDescent,
+                includeCurrentRun && !currentRunIsInline ? currentRunDescent : 0);
+            double inlineAscent = Math.Max(currentLineInlineAscent,
+                includeCurrentRun && currentRunIsInline ? currentRunAscent : 0);
+            double inlineDescent = Math.Max(currentLineInlineDescent,
+                includeCurrentRun && currentRunIsInline ? currentRunDescent : 0);
+            double combined = Math.Max(textAscent, inlineAscent) + Math.Max(textDescent, inlineDescent);
+            if (lineSpacing?.FontLineBoxMultiplier is not double natural)
+                return hasInline ? Math.Max(contentHeight, combined) : contentHeight;
+
+            // Imported spacing scales the visible fonts' natural advance.
+            // Horizontal list spacers must not suppress that multiplier.
+            double textAdvance = textAscent + textDescent;
+            if (lineSpacing.Rule == PdfLineSpacingRule.Multiple)
+                textAdvance *= lineSpacing.Value / natural;
+            contentHeight = Math.Max(contentHeight, textAdvance);
+            // Inline objects retain their unscaled bounds when they extend
+            // beyond the text line box; a spacer inside it adds no height.
+            return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
+                ? Math.Max(contentHeight, combined) : contentHeight;
+        }
 
         PdfTabStop? ResolveNextExplicitTabStop() {
             if (explicitTabStops == null || explicitTabStops.Length == 0) {
@@ -910,6 +796,8 @@ internal static partial class PdfWriter {
                 currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
                 double inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset + inlineElement.Height)
                     + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset);
+                if (lineSpacing?.FontLineBoxMultiplier != null)
+                    inlineHeight = Math.Max(lineHeight, currentRunAscent + currentRunDescent);
                 PrepareLineFrame(inlineHeight, inlineElement.Width);
                 double currentMaxWidth = CurrentMaxWidth();
                 if (inlineElement.Width > currentMaxWidth + 0.001D) {
@@ -969,7 +857,8 @@ internal static partial class PdfWriter {
                     leadingUnderlineStyle: leadingAdvance > 0D ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
                     leadingDecorationColor: pendingLeadingDecorationColor,
                     leadingDecorationFontSize: pendingLeadingDecorationFontSize,
-                    leadingDecorationTextRise: pendingLeadingDecorationTextRise));
+                    leadingDecorationTextRise: pendingLeadingDecorationTextRise,
+                    leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment));
                 lineWidth += leadingAdvance + inlineElement.Width;
                 RegisterLineMetrics();
                 ResetPendingLeading();
@@ -1136,7 +1025,7 @@ internal static partial class PdfWriter {
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
                     ResetPendingLeading();

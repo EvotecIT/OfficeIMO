@@ -309,9 +309,12 @@ public class PdfDocumentWorkflowTests {
         string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
-            .Replace(" ", string.Empty);
+            .Replace(" ", string.Empty)
+            // The 36-point content frame repeats the header between the cell's wrapped fragments.
+            .Replace("NameValue", string.Empty)
+            .Replace("Alpha", string.Empty);
 
-        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Equal(longValue, compactText);
         Assert.Contains(blocks, block => block.FontSize < 18D && block.FontSize >= 7D);
     }
 

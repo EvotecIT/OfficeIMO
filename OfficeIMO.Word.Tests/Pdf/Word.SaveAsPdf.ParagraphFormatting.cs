@@ -585,7 +585,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Honors_Paragraph_Border_Space_As_Panel_Padding() {
+        public void SaveAsPdf_OfficeIMOEngine_ParagraphSideBorderSpaceMovesBorderWithoutMovingText() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphBorderSpace.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphBorderSpace.pdf");
 
@@ -617,8 +617,13 @@ namespace OfficeIMO.Tests {
             var tightWord = Assert.Single(words, word => word.Text == "TightSpace");
             var wideWord = Assert.Single(words, word => word.Text == "WideSpace");
 
-            Assert.True(wideWord.BoundingBox.Left > tightWord.BoundingBox.Left + 18D,
-                $"Expected Word paragraph border space to move text away from the border. Tight x: {tightWord.BoundingBox.Left:0.##}; wide x: {wideWord.BoundingBox.Left:0.##}.");
+            Assert.Equal(tightWord.Letters[0].StartBaseLine.X, wideWord.Letters[0].StartBaseLine.X, 3);
+            var borderBounds = pdf.GetPage(1).Paths.Where(path => path.IsStroked)
+                .Select(path => path.GetBoundingRectangle()).Where(bounds => bounds.HasValue)
+                .Select(bounds => bounds!.Value).Where(bounds => bounds.Width < .001D && bounds.Height > .001D)
+                .OrderBy(bounds => bounds.Left).ToArray();
+            Assert.Equal(2, borderBounds.Length);
+            Assert.Equal(24, borderBounds[1].Left - borderBounds[0].Left, 3);
         }
 
         [Fact]
@@ -1747,14 +1752,14 @@ namespace OfficeIMO.Tests {
                 exact.LineSpacingPoints = 6;
                 exact.LineSpacingRule = WordLineSpacingRule.Exact;
                 exact.AddBreak();
-                exact.AddText("ExactSmallSecond");
+                exact.AddText("ExactSmallSecond").FontSize = 24;
 
                 WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
                 atLeast.FontSize = 24;
                 atLeast.LineSpacingPoints = 6;
                 atLeast.LineSpacingRule = WordLineSpacingRule.AtLeast;
                 atLeast.AddBreak();
-                atLeast.AddText("AtLeastSecond");
+                atLeast.AddText("AtLeastSecond").FontSize = 24;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordToPdfOptions {

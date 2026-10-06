@@ -80,10 +80,10 @@ namespace OfficeIMO.PowerPoint {
                 audio, contentType, extension);
             A.HyperlinkType hyperlink = GetOrCreateInteraction(mouseOver);
             hyperlink.RemoveAllChildren<A.HyperlinkSound>();
-            hyperlink.Append(new A.HyperlinkSound {
+            hyperlink.AddChild(new A.HyperlinkSound {
                 Embed = relationshipId,
                 Name = name
-            });
+            }, true);
             PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                 previousRelationshipId);
         }
@@ -132,7 +132,10 @@ namespace OfficeIMO.PowerPoint {
             A.HyperlinkType created = mouseOver
                 ? new A.HyperlinkOnMouseOver { Id = string.Empty }
                 : new A.HyperlinkOnClick { Id = string.Empty };
-            properties.Append(created);
+            properties.AddChild(created, true);
+            if (properties.GetFirstChild<A.SolidFill>()?.RgbColorModelHex != null) {
+                PowerPointTextHyperlinkColor.SetChoice(created, true);
+            }
             return created;
         }
     }

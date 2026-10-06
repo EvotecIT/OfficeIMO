@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.IO;
+using DocumentFormat.OpenXml.Features;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -7,6 +9,74 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Fact]
+        public void Wrap_text_batch_can_run_in_another_sheets_workbook_batch() {
+            string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.CrossSheet.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var first = document.AddWorksheet("First");
+                var second = document.AddWorksheet("Second");
+                first.CellValue(1, 1, "First value");
+                second.CellValue(1, 1, "Second value");
+                first.Batch(_ => second.CellWrapTextFor(new[] { (1, 1) }));
+                document.Save();
+            }
+            using var reopened = ExcelDocument.Load(path);
+            Assert.Equal("First value", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.False(reopened.Sheets[0].CellAt(1, 1).GetStyle().WrapText);
+            Assert.Equal("Second value", reopened.Sheets[1].CellAt(1, 1).GetValue<string>());
+            Assert.True(reopened.Sheets[1].CellAt(1, 1).GetStyle().WrapText);
+        }
+
+        [Fact]
+        public void Wrap_text_batch_saves_styles_once_and_preserves_sparse_cell_formatting() {
+            string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Styled");
+                var selected = Enumerable.Range(1, 64).Select(row => (Row: row, Column: row % 2 == 0 ? 3 : 1)).ToArray();
+                foreach (var cell in selected) {
+                    sheet.CellValue(cell.Row, cell.Column, cell.Row);
+                    sheet.CellAt(cell.Row, cell.Column).SetBold();
+                    sheet.FormatCell(cell.Row, cell.Column, "0.00");
+                }
+                var package = document.OpenXmlDocument;
+                var stylesPart = package.WorkbookPart!.WorkbookStylesPart!;
+                package.AddPartRootEventsFeature();
+                int saves = 0;
+                package.Features.Get<IPartRootEventsFeature>()!.Change += args => {
+                    if (args.Type == EventType.Saved && ReferenceEquals(args.Argument, stylesPart)) saves++;
+                };
+                sheet.CellWrapTextFor(selected);
+                Assert.Equal(1, saves);
+                document.Save();
+            }
+            using var reopened = ExcelDocument.Load(path);
+            ExcelSheet saved = reopened.Sheets[0];
+            Assert.Equal(64, saved.EnumerateCells().Count());
+            foreach (var cell in saved.EnumerateCells()) {
+                var style = saved.CellAt(cell.Row, cell.Column).GetStyle();
+                Assert.True(style.WrapText && style.Bold);
+                Assert.Equal("0.00", style.NumberFormatCode);
+            }
+        }
+
+        [Fact]
+        public void Wrap_text_batch_validates_before_editing_and_can_clear_wrapping() {
+            string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.Validation.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Styled");
+                sheet.CellValue(1, 1, "Preserved");
+                sheet.CellWrapText(1, 1);
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellWrapTextFor(new[] { (1, 1), (0, 2) }, false));
+                Assert.True(sheet.CellAt(1, 1).GetStyle().WrapText);
+                Assert.Single(sheet.EnumerateCells());
+                sheet.Batch(selected => selected.CellWrapTextFor(new[] { (1, 1), (1, 1) }, false));
+                document.Save();
+            }
+            using var reopened = ExcelDocument.Load(path);
+            Assert.Equal("Preserved", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.False(reopened.Sheets[0].CellAt(1, 1).GetStyle().WrapText);
+        }
+
         [Fact]
         public void Conversion_style_batch_reuses_distinct_styles_and_saves_valid_workbook() {
             string path = Path.Combine(_directoryWithFiles, "ConversionStyleBatch.xlsx");

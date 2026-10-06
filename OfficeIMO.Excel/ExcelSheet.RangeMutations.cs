@@ -465,6 +465,7 @@ namespace OfficeIMO.Excel {
                 }
                 copy.SetCropRatio(image.CropLeftRatio, image.CropTopRatio, image.CropRightRatio, image.CropBottomRatio);
                 copy.SetFlip(image.FlipHorizontal, image.FlipVertical);
+                copy.HyperlinkUri = image.HyperlinkUri;
             }
             _excelDocument.CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
             ResetMutationCaches();
@@ -558,6 +559,7 @@ namespace OfficeIMO.Excel {
                 Name = image.Name;
                 Title = image.Title;
                 Description = image.Description;
+                HyperlinkUri = image.HyperlinkUri;
                 IsAspectRatioLocked = image.IsAspectRatioLocked;
                 RowIndex = image.RowIndex;
                 ColumnIndex = image.ColumnIndex;
@@ -586,6 +588,7 @@ namespace OfficeIMO.Excel {
             internal string Name { get; }
             internal string Title { get; }
             internal string Description { get; }
+            internal Uri? HyperlinkUri { get; }
             internal bool IsAspectRatioLocked { get; }
             internal int RowIndex { get; }
             internal int ColumnIndex { get; }

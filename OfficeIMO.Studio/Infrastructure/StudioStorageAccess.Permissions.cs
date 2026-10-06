@@ -5,17 +5,11 @@ using OfficeIMO.Internal;
 namespace OfficeIMO.Studio.Infrastructure;
 
 internal sealed partial class StudioStorageAccess {
-    private static string OpenedIdentity(string location, Stream stream) {
+    internal override string OpenedIdentity(string location, Stream stream) {
         string? path = OfficeStorageIdentity.GetLocalPath(location);
         if (path is null) return OfficeStorageIdentity.Normalize(location);
         while (stream is PermissionStream scoped) stream = scoped.Inner;
-        string identity = stream is FileStream file
-            ? OfficePathIdentity.GetPhysicalIdentityKey(path, file.SafeFileHandle)
-            : OfficePathIdentity.GetPhysicalIdentityKey(path);
-        if (OfficePathIdentity.GetPhysicalIdentityKey(path) != identity) {
-            throw new IOException("The document changed while it was being opened. Select it again to read the current file.");
-        }
-        return identity;
+        return base.OpenedIdentity(location, stream);
     }
 
     private void RefreshNativePermission(string location) {
@@ -41,7 +35,7 @@ internal sealed partial class StudioStorageAccess {
                 ?? throw new IOException("Native permissions require a local file.")) : null;
     }
 
-    private async Task<Stream> OpenWriteAsync(string location, CancellationToken token) {
+    internal override async Task<Stream> OpenWriteAsync(string location, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         OfficeMacFilePermission? permission = OpenNativePermission(location);
         try {

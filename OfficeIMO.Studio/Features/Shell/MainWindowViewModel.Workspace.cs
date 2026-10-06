@@ -405,7 +405,7 @@ public sealed partial class MainWindowViewModel {
         ClearObjectSelection();
         int selectedPage = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, _workspace.Pages.Count);
         PdfDocumentSession session = PdfDocumentSession.FromWorkspace(_workspace);
-        var sceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
+        var sceneCoordinator = new PageSceneCoordinator((page, token) => session.LoadPageSceneAsync(page, token, OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback));
         var renderCoordinator = new PageRenderCoordinator(session.RenderPageAsync);
         PdfPageViewModel[] pages = session.Pages.Select(page => new PdfPageViewModel(
             page.PageNumber,

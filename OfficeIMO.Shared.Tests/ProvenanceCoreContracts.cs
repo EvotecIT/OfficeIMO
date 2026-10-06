@@ -788,7 +788,7 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Contains(result.After.Evidence, item => item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.DigitalCapture);
     }
 
-    private static byte[] CreateManifestStore(int length = 284) {
+    private static byte[] CreateManifestStore(int length = 284, byte[]? assertionContent = null, byte[]? assertionSalt = null) {
         if (length < 284) {
             throw new ArgumentOutOfRangeException(nameof(length), "A signed minimal manifest store requires at least 284 bytes.");
         }
@@ -800,9 +800,10 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] assertionStoreDescription = CreateBox("jumd", Join(
             C2paUuid("c2as"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
         byte[] assertionDescription = CreateBox("jumd", Join(
-            C2paUuid("c2ac"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+            C2paUuid("c2ac"), new byte[] { assertionSalt == null ? (byte)0x03 : (byte)0x13 }, Encoding.ASCII.GetBytes("c2pa.test\0"),
+            assertionSalt ?? Array.Empty<byte>()));
         byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
-            CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
+            CreateBox("jumb", Join(assertionDescription, assertionContent ?? CreateBox("cbor", new byte[] { 0xA0 })))));
         byte[] claimDescription = CreateBox("jumd", Join(
             C2paUuid("c2cl"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));

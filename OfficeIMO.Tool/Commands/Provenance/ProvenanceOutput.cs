@@ -80,6 +80,10 @@ internal static class ProvenanceOutput {
             foreach (ProvenanceSignalDto signal in result.Assessment.ProviderSignals) {
                 await writer.WriteLineAsync(
                     "Provider signal: " + signal.ProviderName + " | " + signal.SignalKind + " | status=" + signal.Status).ConfigureAwait(false);
+                if (signal.Measurement is { } measurement) {
+                    await writer.WriteLineAsync(FormattableString.Invariant(
+                        $"  Measurement: {measurement.Algorithm} | detector={measurement.DetectorVersion} | {measurement.ScoreName}={measurement.Score} | threshold={measurement.Threshold} | tokens={measurement.TokenCount}")).ConfigureAwait(false);
+                }
                 foreach (string finding in signal.Findings) {
                     await writer.WriteLineAsync("  Provider finding: " + finding).ConfigureAwait(false);
                 }
@@ -118,6 +122,7 @@ internal static class ProvenanceOutput {
 
 }
 
+internal sealed record ProvenanceDoctorDto(string Schema, bool Available, string ExecutablePath, string? Version, string Diagnostic);
 internal sealed record ProvenanceCapabilitiesDto(string Schema, IReadOnlyList<ProvenanceCapabilityDto> Capabilities);
 internal sealed record ProvenanceCapabilityDto(
     string Id,
@@ -142,4 +147,5 @@ internal sealed record ProvenanceCapabilityFormatDto(
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(ProvenanceCapabilitiesDto))]
+[JsonSerializable(typeof(ProvenanceDoctorDto))]
 internal sealed partial class ProvenanceJsonContext : JsonSerializerContext;

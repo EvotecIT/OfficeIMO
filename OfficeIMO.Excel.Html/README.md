@@ -5,11 +5,14 @@ First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tabl
 ## Semantic round trips
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Excel.Html;
 
-using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", readOnly: true);
+using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly
+});
 string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
@@ -21,6 +24,8 @@ imported.Save("report-roundtrip.xlsx");
 ```
 
 Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, supported chart inventory, and inert pivot-definition review metadata. HTML `rowspan` and `colspan` values become native Excel merged ranges. Pivot refresh, drill, caches, slicers, and timelines remain native workbook behavior and are not executed in HTML.
+
+Named Excel tables export as worksheet cells without their native table definitions. Table names, table-scoped filters, table styles and totals metadata are not restored; workbook and worksheet export reports mark this omission. Ordinary HTML table IDs do not create named Excel tables.
 
 `HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
 
@@ -36,6 +41,8 @@ HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
 ```
 
 `Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlToExcelOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
+
+Generic table worksheets fit their columns to imported text within bounded widths, wrap longer values, and fit row heights. Two-column term/definition tables retain their printable layout. HTML spans remain native merged ranges; ordinary grids do not become named Excel table objects. This default presentation does not reproduce CSS table geometry.
 
 On the ordinary HTML path, bounded positioned, floating, flex, and grid regions become editable merged-cell regions plus absolute DrawingML picture anchors. Solid backgrounds become cell fills, and foreground pictures retain supported native opacity. CSS background-image layers are omitted so they cannot cover editable cell text and produce a stable diagnostic. Excel has no editable cell-shadow equivalent, so shadows and unsupported effects are diagnosed while content and geometry remain editable. Set `ImportEditableLayoutRegions = false` to retain semantic flow only.
 
@@ -85,7 +92,7 @@ See the [complete OfficeIMO package map](../README.md) for related formats and c
 
 ## Generic table presentation
 
-Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
+Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Linked images retain their native picture hyperlink. Semantic image inventories preserve the target as inert metadata for round-trip import. Visual-review SVG preserves web, mail, telephone, and relative targets allowed by the shared drawing-link policy; rejected interactive targets retain the image and report an omission. Raster images do not carry clickable links.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
