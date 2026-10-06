@@ -22,7 +22,7 @@ public static partial class HtmlResourcePipeline {
     /// <summary>Rewrites stylesheet imports, URL functions and image-set strings without discarding media, supports or layer conditions.</summary>
     /// <param name="css">Stylesheet or inline declaration source.</param>
     /// <param name="rewrite">Maps a decoded source URI and its resource kind to a replacement URI.</param>
-    /// <returns>CSS with resource carriers rewritten through the shared CSS scanner.</returns>
+    /// <returns>CSS with changed resource carriers rewritten; source outside those carriers is retained.</returns>
     public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite) =>
         RewriteCssResourceUrls(css, rewrite, includeFragmentReferences: false);
 
@@ -30,11 +30,15 @@ public static partial class HtmlResourcePipeline {
     public static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite, bool includeFragmentReferences) {
         if (css == null) throw new ArgumentNullException(nameof(css));
         if (rewrite == null) throw new ArgumentNullException(nameof(rewrite));
-        string normalized = StripCssCommentsOutsideStrings(css);
+        // Analyze a length-preserving mask, then edit the original source. Comments can
+        // separate CSS tokens without introducing a descendant combinator or whitespace.
+        string normalized = MaskCssComments(css).Replace(CssCommentMask, ' ');
         var replacements = new List<(int Start, int End, string Value)>();
         var imports = ExtractCssImports(normalized).ToArray();
         foreach (CssImportReference import in imports) {
-            string value = rewrite(DecodeCssEscapes(import.Source), HtmlResourceKind.Stylesheet);
+            string source = DecodeCssEscapes(import.Source);
+            string value = rewrite(source, HtmlResourceKind.Stylesheet);
+            if (value == source) continue;
             replacements.Add(value.Length == 0 ? (import.Start, import.End, string.Empty) :
                 (import.SourceStart, import.SourceEnd, "url(" + Quote(value) + ")"));
         }
@@ -43,13 +47,16 @@ public static partial class HtmlResourcePipeline {
                 IsInsideCssString(normalized, match.Index) || imports.Any(import => match.Index >= import.Start && match.Index < import.End)) continue;
             string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             if (!includeFragmentReferences && IsFragmentOnlyReference(source)) continue;
-            replacements.Add((match.Index, match.Index + match.Length, "url(" + Quote(rewrite(source, ClassifyCssUrl(normalized, match.Index))) + ")"));
+            string value = rewrite(source, ClassifyCssUrl(normalized, match.Index));
+            if (value != source) replacements.Add((match.Index, match.Index + match.Length, "url(" + Quote(value) + ")"));
         }
         foreach (CssStringUrlReference image in ExtractImageSetStringUrls(normalized)) {
             if (!includeFragmentReferences && IsFragmentOnlyReference(image.Source)) continue;
-            replacements.Add((image.SourceStart - 1, image.End, Quote(rewrite(DecodeCssEscapes(image.Source), HtmlResourceKind.Image))));
+            string source = DecodeCssEscapes(image.Source);
+            string value = rewrite(source, HtmlResourceKind.Image);
+            if (value != source) replacements.Add((image.SourceStart - 1, image.End, Quote(value)));
         }
-        var output = new StringBuilder(normalized);
+        var output = new StringBuilder(css);
         int lastStart = normalized.Length;
         foreach (var item in replacements.OrderByDescending(item => item.Start)) {
             if (item.End > lastStart) continue;

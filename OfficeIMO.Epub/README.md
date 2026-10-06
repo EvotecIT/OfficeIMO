@@ -625,6 +625,8 @@ references inside a moved document. Standard OPF links, XHTML/SVG links and reso
 carriers, responsive image candidates, inline/external CSS and XML stylesheet
 processing instructions, NCX navigation and SMIL
 text/audio references use the same operation. Queries and fragments are retained.
+CSS URL repair retains comments and source text outside changed resource carriers,
+including comments inside compound selectors; unchanged carriers keep their spelling.
 For example:
 
 ```csharp

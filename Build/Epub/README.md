@@ -257,6 +257,15 @@ order, section links and return links alongside the split fixture.
 `merged-identifiers.epub` starts with repeated chapter-local heading and description
 IDs, then merges with an explicit replacement map. Verify distinct section labels
 and links in both directions; its stylesheet deliberately covers both heading IDs.
+`css-preservation.epub` merges chapters and moves a decorative SVG background. Its
+external and embedded styles use comment-separated compound selectors. Verify the
+first heading retains its blue color and border, the second retains its green color
+and border, and both retain the background after URL repair. EPUBCheck 5.4.0 reports
+`CSS-008` on these comment-separated selectors, while browser inspection retains
+their compound-selector behavior and Ace 1.4.6 passes its automated checks. A
+diagnostic copy with only the empty selector comments removed passes EPUBCheck;
+retain the original rejection separately rather than treating the control as
+qualification of the original bytes.
 
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \

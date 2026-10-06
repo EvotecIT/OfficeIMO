@@ -74,6 +74,7 @@ merged.MergeChapters("source", "second", "second-start");
 WriteFixture("merged-chapters", merged);
 WriteFixture("merged-styles", MergeStyleFixture.Create());
 WriteFixture("merged-identifiers", MergeIdentifierFixture.Create());
+WriteFixture("css-preservation", CssPreservationFixture.Create());
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));
