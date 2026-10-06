@@ -22,21 +22,27 @@ public static partial class OfficeTiffCodec {
         private readonly double[] _coefficients;
         private readonly double[] _reference;
 
-        internal TiffJpegColorTransform(int maximum, double[] coefficients, double[] reference) {
+        internal byte[]? ChromaFractions { get; }
+
+        internal TiffJpegColorTransform(int maximum, double[] coefficients, double[] reference, byte[]? chromaFractions) {
             _maximum = maximum;
             _coefficients = coefficients;
             _reference = reference;
+            ChromaFractions = chromaFractions;
         }
 
-        internal void ConvertPixel(byte[] pixels, int offset, int sampleBytes, bool littleEndian,
+        internal void ConvertPixel(byte[] pixels, int offset, int sampleBytes, int samples, bool littleEndian,
             int alphaIndex, int alphaKind, double[]? colorComponents,
             out byte red, out byte green, out byte blue, out byte alpha) {
             int sample = offset / sampleBytes;
+            int fraction = sample / samples * 2;
+            double cbFraction = ChromaFractions == null ? 0D : ChromaFractions[fraction] / 64D;
+            double crFraction = ChromaFractions == null ? 0D : ChromaFractions[fraction + 1] / 64D;
             int a = alphaIndex < 0 ? _maximum : ReadTiffJpegSample(pixels, sample + alphaIndex, sampleBytes, littleEndian);
             alpha = QuantizeUnsigned16Component(a / (double)_maximum);
             double y = (ReadTiffJpegSample(pixels, sample, sampleBytes, littleEndian) - _reference[0]) * _maximum / (_reference[1] - _reference[0]);
-            double cb = (ReadTiffJpegSample(pixels, sample + 1, sampleBytes, littleEndian) - _reference[2]) * (_maximum / 2) / (_reference[3] - _reference[2]);
-            double cr = (ReadTiffJpegSample(pixels, sample + 2, sampleBytes, littleEndian) - _reference[4]) * (_maximum / 2) / (_reference[5] - _reference[4]);
+            double cb = (ReadTiffJpegSample(pixels, sample + 1, sampleBytes, littleEndian) + cbFraction - _reference[2]) * (_maximum / 2) / (_reference[3] - _reference[2]);
+            double cr = (ReadTiffJpegSample(pixels, sample + 2, sampleBytes, littleEndian) + crFraction - _reference[4]) * (_maximum / 2) / (_reference[5] - _reference[4]);
             double r = y + cr * (2 - 2 * _coefficients[0]);
             double b = y + cb * (2 - 2 * _coefficients[2]);
             double g = (y - _coefficients[0] * r - _coefficients[2] * b) / _coefficients[1];

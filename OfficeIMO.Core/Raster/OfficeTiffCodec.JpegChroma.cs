@@ -7,7 +7,8 @@ public static partial class OfficeTiffCodec {
     // TIFF places chroma at group centers (1) or at the first luma sample (2).
     private static void CopyTiffJpegChroma(byte[] decoded, byte[] source, int plane, int width,
         int left, int top, int columns, int rows, int componentWidth, int componentHeight,
-        int horizontal, int vertical, int positioning, int samples, int sampleBytes, bool littleEndian, OfficeRasterDecodeOptions options) {
+        int horizontal, int vertical, int positioning, int samples, int sampleBytes, bool littleEndian,
+        byte[]? fractions, int fractionOffset, int fractionStride, OfficeRasterDecodeOptions options) {
         int visibleWidth = Math.Min(componentWidth, checked((int)(((long)columns + horizontal - 1) / horizontal)));
         int visibleHeight = Math.Min(componentHeight, checked((int)(((long)rows + vertical - 1) / vertical)));
         for (int y = 0; y < rows; y++) {
@@ -22,19 +23,24 @@ public static partial class OfficeTiffCodec {
                 double dx = fx - x0;
                 double upper = ReadTiffJpegSample(decoded, y0 * componentWidth + x0, sampleBytes, littleEndian) * (1 - dx) + ReadTiffJpegSample(decoded, y0 * componentWidth + x1, sampleBytes, littleEndian) * dx;
                 double lower = ReadTiffJpegSample(decoded, y1 * componentWidth + x0, sampleBytes, littleEndian) * (1 - dx) + ReadTiffJpegSample(decoded, y1 * componentWidth + x1, sampleBytes, littleEndian) * dx;
+                // Sampling factors are 1/2/4. Centered or cosited bilinear weights
+                // therefore have at most six fractional bits, even at 4x4.
+                int scaled = (int)Math.Round((upper * (1 - dy) + lower * dy) * 64D);
                 WriteTiffJpegSample(source, ((top + y) * width + left + x) * samples + plane,
-                    sampleBytes, littleEndian, (int)Math.Round(upper * (1 - dy) + lower * dy));
+                    sampleBytes, littleEndian, scaled >> 6);
+                if (fractions != null) fractions[(fractionOffset + y * fractionStride + x) * 2 + plane - 1] = (byte)(scaled & 63);
             }
         }
     }
     private static void ReconstructTiffJpegChroma(byte[] pixels, int width, int columns, int rows,
-        int horizontal, int vertical, int positioning, int samples, int sampleBytes, bool littleEndian, OfficeRasterDecodeOptions options) {
+        int horizontal, int vertical, int positioning, int samples, int sampleBytes, bool littleEndian,
+        byte[]? fractions, int fractionOffset, int fractionStride, OfficeRasterDecodeOptions options) {
         if (horizontal == 1 && vertical == 1) return;
         int cw = checked((int)(((long)columns + horizontal - 1) / horizontal));
         int ch = checked((int)(((long)rows + vertical - 1) / vertical));
         int length = OfficeRasterGuards.EnsureByteCount((long)cw * ch * sampleBytes, "TIFF chroma plane exceeds the managed limit.");
         // JPEG supplied nearest-neighbor component samples. Retain their original
-        // grids before writing interpolated bytes back into the interleaved buffer.
+        // grids before writing integer samples and retaining their fractional remainders.
         var cb = new byte[length];
         var cr = new byte[length];
         for (int y = 0; y < ch; y++) {
@@ -46,8 +52,8 @@ public static partial class OfficeTiffCodec {
                 WriteTiffJpegSample(cr, y * cw + x, sampleBytes, littleEndian, ReadTiffJpegSample(pixels, source + 2, sampleBytes, littleEndian));
             }
         }
-        CopyTiffJpegChroma(cb, pixels, 1, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
-        CopyTiffJpegChroma(cr, pixels, 2, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
+        CopyTiffJpegChroma(cb, pixels, 1, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, fractions, fractionOffset, fractionStride, options);
+        CopyTiffJpegChroma(cr, pixels, 2, width, 0, 0, columns, rows, cw, ch, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, fractions, fractionOffset, fractionStride, options);
     }
 
 }

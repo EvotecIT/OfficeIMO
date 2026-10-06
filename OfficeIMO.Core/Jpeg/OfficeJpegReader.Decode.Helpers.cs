@@ -400,7 +400,7 @@ internal static partial class OfficeJpegReader {
             return preserveRaw16 ? sample : ProjectSampleToByte(state, sample);
         }
 
-        int interpolated = SampleComponentBilinear(state, x, y, maxH, maxV);
+        int interpolated = (int)Math.Round(SampleComponentBilinear(state, x, y, maxH, maxV));
         return preserveRaw16 ? interpolated : ProjectSampleToByte(state, interpolated);
     }
 
@@ -408,7 +408,7 @@ internal static partial class OfficeJpegReader {
         state.SampleMaximum == 255 ? (byte)sample :
             (byte)((sample * 255L + state.SampleMaximum / 2) / state.SampleMaximum);
 
-    private static int SampleComponentBilinear(BaselineComponentState state, int x, int y, int maxH, int maxV) {
+    private static double SampleComponentBilinear(BaselineComponentState state, int x, int y, int maxH, int maxV) {
         var stride = state.Stride;
         var height = state.SampleCount / stride;
 
@@ -436,7 +436,7 @@ internal static partial class OfficeJpegReader {
         var top = p00 + (p10 - p00) * dx;
         var bottom = p01 + (p11 - p01) * dx;
         var value = top + (bottom - top) * dy;
-        return (int)Math.Round(value);
+        return value;
     }
 
     private static void DecodeBlockCoefficients(

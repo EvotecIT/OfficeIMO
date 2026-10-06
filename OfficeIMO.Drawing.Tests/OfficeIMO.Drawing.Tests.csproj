@@ -153,4 +153,5 @@
   <ItemGroup><None Update="TestAssets/TiffJpegLosslessPrecision/*.tif;TestAssets/TiffJpegLosslessPrecision/*.rgba;TestAssets/TiffJpegLosslessPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegYccPrecision/*.tif;TestAssets/TiffJpegYccPrecision/*.rgba;TestAssets/TiffJpegYccPrecision/*.icc-rgba;TestAssets/TiffJpegYccPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegLosslessAlphaPrecision/*.tif;TestAssets/TiffJpegLosslessAlphaPrecision/*.rgba;TestAssets/TiffJpegLosslessAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegLosslessAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegChromaPrecision/*.tif;TestAssets/TiffJpegChromaPrecision/*.rgba;TestAssets/TiffJpegChromaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

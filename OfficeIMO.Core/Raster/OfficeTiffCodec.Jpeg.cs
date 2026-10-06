@@ -33,7 +33,6 @@ public static partial class OfficeTiffCodec {
                 Math.Abs(coefficients[0] + coefficients[1] + coefficients[2] - 1) > .00001 ||
                 reference[1] <= reference[0] || reference[3] <= reference[2] || reference[5] <= reference[4]) return false;
         }
-        if (ycc) jpegColor = new TiffJpegColorTransform(maximum, coefficients, reference);
         bool strips = fullInterchange || entries.ContainsKey(273) || entries.ContainsKey(279);
         bool tiles = !fullInterchange && (entries.ContainsKey(324) || entries.ContainsKey(325) || entries.ContainsKey(322) || entries.ContainsKey(323));
         if (strips == tiles) return false;
@@ -48,9 +47,13 @@ public static partial class OfficeTiffCodec {
         int down = checked((int)(((long)height + sh - 1) / sh));
         int perPlane = checked(across * down), count = checked(perPlane * (planar == 2 ? samples : 1));
         int sourceLength = OfficeRasterGuards.EnsureByteCount((long)width * height * samples * sampleBytes, "TIFF JPEG pixels exceed the managed limit.");
+        int fractionLength = ycc && retainPixels && (horizontal > 1 || vertical > 1)
+            ? OfficeRasterGuards.EnsureByteCount((long)width * height * 2, "TIFF chroma fractions exceed the managed limit.") : 0;
         long retained = checked(options.RetainedManagedBytes + bytes.LongLength + (long)count * 8 +
-            (retainPixels ? sourceLength + (long)width * height * 4 : 0) + 65536);
+            (retainPixels ? sourceLength + (long)width * height * 4 + fractionLength : 0) + 65536);
         if (retained > OfficeRasterGuards.MaximumDecodedBytes) return false;
+        byte[]? chromaFractions = fractionLength == 0 ? null : new byte[fractionLength];
+        if (ycc) jpegColor = new TiffJpegColorTransform(maximum, coefficients, reference, chromaFractions);
         int[] offsets, lengths;
         if (fullInterchange) { offsets = new[] { interchangeOffset }; lengths = new[] { interchangeLength }; }
         else if (!TryReadValues(bytes, entries, strips ? 273 : 324, littleEndian, count, options.CancellationToken, out offsets) ||
@@ -83,9 +86,9 @@ public static partial class OfficeTiffCodec {
                 budget != null && !budget.TryReserve(checked(lengths[segment] + tables.Length + (legacy ? LegacyJpegHeaderLimit : 0)), expected)) return false;
             int segmentLimit = checked(lengths[segment] + (legacy ? LegacyJpegHeaderLimit : 0));
             int combinedLength = checked(segmentLimit + (tables.Length == 0 ? 0 : tables.Length - 4));
-            // TIFF reconstruction retains two reduced chroma planes when positioning
-            // differs from JPEG or a partial tile needs image-boundary clamping.
-            bool reconstructChroma = ycc && planar == 1 && (positioning == 2 || columns < decodeWidth || rows < decodeRows);
+            // Decode nearest native samples so TIFF can retain exact interpolation
+            // fractions for both centered/cosited grids and partial edge tiles.
+            bool reconstructChroma = ycc && planar == 1 && (horizontal > 1 || vertical > 1);
             long chromaScratch = reconstructChroma ? expected : 0;
             // The temporary segment copy and combined stream coexist with the TIFF and output.
             if (retained + segmentLimit + combinedLength + expected + chromaScratch > OfficeRasterGuards.MaximumDecodedBytes) return false;
@@ -114,12 +117,12 @@ public static partial class OfficeTiffCodec {
                 out int jw, out int jh, out int jc, options: new OfficeJpegDecodeOptions(highQualityChroma: ycc && !reconstructChroma), cancellationToken: options.CancellationToken,
                 retainedManagedBytes: retained + jpeg.Length + chromaScratch, preserveRaw16: sampleBytes == 2, samplesLittleEndian: littleEndian) || jw != decodeWidth || jh != decodeRows || jc != channels || decoded.Length != expected) return false;
             if (!retainPixels) continue;
-            if (ycc && planar == 1) {
-                if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
-            }
+            if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical,
+                positioning, samples, sampleBytes, littleEndian, chromaFractions!, top * width + left, width, options);
             if (planar == 2) {
                 if (ycc && (plane == 1 || plane == 2)) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
-                    decodeWidth, decodeRows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
+                    decodeWidth, decodeRows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian,
+                    chromaFractions, top * width + left, width, options);
                 else if (strips) CopyPlanarRows(decoded, source, plane, samples, sampleBytes, width, top, rows, options);
                 else CopyTile(decoded, source, plane, planar, samples, sampleBytes, width, height, left, top, sw, sh, options);
             } else for (int row = 0; row < rows; row++)

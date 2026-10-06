@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegChromaPrecision", 0, 0)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegChromaPrecision", 0, 0)]
     [InlineData(XpsFormat.Xps, "TiffJpegArithmeticMultiscan", 35, 19)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegArithmeticMultiscan", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegArithmeticExtra", 35, 19)]
@@ -53,7 +55,7 @@ public sealed class XpsTiffJpegTests {
         bool hasAlphaCorpus = folder == "TiffJpegArithmeticMultiscan" || folder == "TiffJpegArithmeticExtra" || folder == "TiffJpegArithmeticLosslessChroma" || folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticAlpha" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12");
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
-            if (folder == "TiffJpegChroma16") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); fields[0] += ".tif"; }
+            if (folder == "TiffJpegChroma16" || folder == "TiffJpegChromaPrecision") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); fields[0] += ".tif"; }
             if (folder == "TiffJpegLegacy") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); }
             if (folder == "TiffExtraSamples") { width = int.Parse(fields[5]); height = int.Parse(fields[6]); }
             if (folder == "TiffJpegCosited") { width = int.Parse(fields[7]); height = int.Parse(fields[8]); }

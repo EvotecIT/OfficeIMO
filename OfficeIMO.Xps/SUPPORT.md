@@ -433,6 +433,24 @@ Four GhostXPS probes produce blank/different device-color output or crash with
 ICC; wider GhostXPS testing was not performed. Arithmetic lossless alpha at these
 precisions, subsampling and native whole-file/Windows acceptance remain open.
 
+Subsampled JPEG-TIFF retains fractional chroma until color conversion, including
+centered and cosited 2×1/2×2/4×2/4×4 grids in chunky or separate planes.
+The [fractional chroma corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaPrecision/README.md)
+contains 900 specification-authored Huffman lossless TIFFs at every precision
+from 2 through 16 bits. Libjpeg-turbo independently verifies native samples;
+Pillow supplies fractional interpolation references. All 90,900 device-color
+pixels match within 1/255. This corrects visible low-precision color shifts from
+rounding interpolated samples before RGB conversion. The integer raw-JPEG
+component API keeps its existing rounding contract. Standalone JPEG decoding
+with `HighQualityChroma` also retains fractional samples through YCbCr color
+conversion; a 15-precision regression checks the same independently decoded
+source strips. Default nearest-neighbor sampling is unchanged.
+Across 360 XPS/OpenXPS exports at 2/8/16 bits, MuPDF PDF/SVG differs by at most
+2/255 over 36,360 probes per route, without warnings. This run does not add
+GhostXPS or native Windows evidence. Subsampled alpha/profile combinations,
+arithmetic coding at additional precisions and independent producer/whole-file
+acceptance remain open.
+
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
 The reconstructed cases retain independently encoded entropy for baseline and
 lossless data, including both byte orders, strip/tile layouts and separate planes;

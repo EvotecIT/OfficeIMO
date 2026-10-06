@@ -1,18 +1,23 @@
 """T.81-authored streams, libjpeg-turbo word references, Pillow interpolation."""
 from pathlib import Path
-import csv,hashlib,struct,subprocess,sys
-root=Path(__file__).resolve().parent
-sys.path.insert(0,str(root.parent))
+import csv,hashlib,math,struct,subprocess,sys
+precision=int(sys.argv[2]) if len(sys.argv)>2 else 16
+assert 2<=precision<=16
+fractional=len(sys.argv)>4 and sys.argv[4]=='fractional'
+maximum=(1<<precision)-1;midpoint=1<<(precision-1)
+root=Path(sys.argv[3]).resolve() if len(sys.argv)>3 else Path(__file__).resolve().parent
+root.mkdir(parents=True,exist_ok=True)
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from tiff_chroma_reference import interpolate
 
 def value(c,x,y):
- return (10000+x*1777+y*3331+(x*y)*71) % 65536 if c==0 else (24500+x*4441-y*2333+(x*y)*137+c*5101)%65536
+ return (10000+x*1777+y*3331+(x*y)*71) % (maximum+1) if c==0 else (24500+x*4441-y*2333+(x*y)*137+c*5101)%(maximum+1)
 
 def jpeg(planes,w,height,h,v,separate):
  b=bytearray(b'\xff\xd8');n=len(planes)
  def segment(m,p):b.extend(bytes([255,m])+(len(p)+2).to_bytes(2,'big')+p)
  factors=[(h,v)]+[(1,1)]*(n-1)
- segment(195,bytes([16])+struct.pack('>HHB',height,w,n)+b''.join(bytes([i+1,(a<<4)|z,0]) for i,(a,z) in enumerate(factors)))
+ segment(195,bytes([precision])+struct.pack('>HHB',height,w,n)+b''.join(bytes([i+1,(a<<4)|z,0]) for i,(a,z) in enumerate(factors)))
  segment(196,bytes([0]+[0]*4+[17]+[0]*11+list(range(17))))
  def scan(ids):
   segment(218,bytes([len(ids)])+b''.join(bytes([i+1,0])for i in ids)+bytes([1,0,0]));bits='';single=len(ids)==1
@@ -25,8 +30,8 @@ def jpeg(planes,w,height,h,v,separate):
       for xx in range(ah):
        x=mx*ah+xx;y=my*av+yy
        sample=lambda x,y:p[min(y,len(p)-1)][min(x,len(p[0])-1)]
-       current=sample(x,y);pred=sample(x-1,y) if x else sample(0,y-1) if y else 32768
-       diff=(current-pred+32768)%65536-32768;cat=abs(diff).bit_length();bits+=f'{cat:05b}'
+       current=sample(x,y);pred=sample(x-1,y) if x else sample(0,y-1) if y else midpoint
+       diff=(current-pred+32768)%65536-32768 if precision==16 else current-pred;cat=abs(diff).bit_length();bits+=f'{cat:05b}'
        if 0<cat<16:bits+=format(diff if diff>0 else diff+(1<<cat)-1,f'0{cat}b')
   bits+='1'*((-len(bits))%8)
   for i in range(0,len(bits),8):
@@ -46,7 +51,8 @@ def decode(encoded,stem):
 
 def tiff(width,height,h,v,layout,payloads):
  tile=layout in (2,3,6,7);planar=2 if layout>=4 else 1;position=2 if layout in (1,3,5,6) else 1;endian='>' if layout%2 else '<';sw=16 if tile else width;sh=16 if tile else 8
- entries=[(256,4,1,width),(257,4,1,height),(258,3,3,[16]*3),(259,3,1,7),(262,3,1,6),(277,3,1,3),(284,3,1,planar),(530,3,2,[h,v]),(531,3,1,position)]
+ entries=[(256,4,1,width),(257,4,1,height),(258,3,3,[precision]*3),(259,3,1,7),(262,3,1,6),(277,3,1,3),(284,3,1,planar),(530,3,2,[h,v]),(531,3,1,position)]
+ if fractional:entries.append((532,5,6,[0,1,maximum,1,midpoint,1,maximum,1,midpoint,1,maximum,1]))
  entries+=([(322,4,1,sw),(323,4,1,sh)] if tile else [(278,4,1,sh)])
  offsetTag,countTag=(324,325) if tile else (273,279)
  entries.extend([(offsetTag,4,len(payloads),[0]*len(payloads)),(countTag,4,len(payloads),[len(p) for p in payloads])]);entries.sort();count=len(entries)
@@ -55,7 +61,7 @@ def tiff(width,height,h,v,layout,payloads):
   for tag,kind,n,values in entries:
    if tag==offsetTag:values=offsets
    if isinstance(values,int):values=[values]
-   raw=struct.pack(endian+('H' if kind==3 else 'I')*n,*values)
+   raw=struct.pack(endian+('H' if kind==3 else 'I')*(n*2 if kind==5 else n),*values)
    if len(raw)<=4:field=raw+bytes(4-len(raw))
    else:field=struct.pack(endian+'I',start+len(extra));extra.extend(raw)
    directory.extend(struct.pack(endian+'HHI',tag,kind,n)+field)
@@ -65,10 +71,11 @@ def tiff(width,height,h,v,layout,payloads):
  return header(offsets)+b''.join(payloads)
 
 rows=[]
-for h,v in [(2,1),(2,2),(4,2)]:
+for h,v in ([(2,1),(2,2),(4,2),(4,4)] if fractional else [(2,1),(2,2),(4,2)]):
  for width,height in [(5,3),(17,11)]:
   for layout in range(8):
-   name=f'h{h}-v{v}-w{width}-h{height}-l{layout}';tile=layout in (2,3,6,7);planar=layout>=4;separate=layout in (1,2);position=2 if layout in (1,3,5,6) else 1;sw=16 if tile else width;sh=16 if tile else 8
+   if h*v+2>10 and layout in (0,3):continue  # An interleaved JPEG MCU has at most ten samples.
+   name=(f'b{precision}-' if fractional else '')+f'h{h}-v{v}-w{width}-h{height}-l{layout}';tile=layout in (2,3,6,7);planar=layout>=4;separate=layout in (1,2);position=2 if layout in (1,3,5,6) else 1;sw=16 if tile else width;sh=16 if tile else 8
    segments=[];reference=[0]*(width*height*3)
    for top in range(0,height,sh):
     for left in range(0,width,sw):
@@ -80,20 +87,20 @@ for h,v in [(2,1),(2,2),(4,2)]:
        stream=jpeg([p],len(p[0]),len(p),1,1,False);words=decode(stream,name+'-temp');assert words==sum(p,[]);encoded.append(stream)
      else:
       stream=jpeg(planes,dw,dh,h,v,separate);words=decode(stream,name+'-temp');expected=[planes[c][y//(v if c else 1)][x//(h if c else 1)]for y in range(dh)for x in range(dw)for c in range(3)];assert words==expected,(name,'independent words');encoded=[stream]
-      if top==0 and left==0:
+      if top==0 and left==0 and not fractional:
        (root/(name+'.jpg')).write_bytes(stream);(root/(name+'.nearest.raw')).write_bytes(struct.pack('<'+'H'*len(words),*words))
        interpolated=[sum(planes[0],[])]+[interpolate(p,dw,dh,h,v,1)for p in planes[1:]]
        interleaved=[interpolated[c][i]for i in range(dw*dh)for c in range(3)];(root/(name+'.bilinear.raw')).write_bytes(struct.pack('<'+'H'*len(interleaved),*interleaved))
      segments.append(encoded)
-     grids=[sum([row[:vw] for row in planes[0][:vh]],[])]+[interpolate([row[:(vw+h-1)//h]for row in p[:(vh+v-1)//v]],vw,vh,h,v,position)for p in planes[1:]]
+     grids=[sum([row[:vw] for row in planes[0][:vh]],[])]+[interpolate([row[:(vw+h-1)//h]for row in p[:(vh+v-1)//v]],vw,vh,h,v,position,round_samples=False)for p in planes[1:]]
      for y in range(vh):
       for x in range(vw):
        for c in range(3):reference[((top+y)*width+left+x)*3+c]=grids[c][y*vw+x]
    payloads=[segment[c]for c in range(3)for segment in segments]if planar else [segment[0]for segment in segments]
    (root/(name+'.tif')).write_bytes(tiff(width,height,h,v,layout,payloads));rgba=bytearray()
    for i in range(width*height):
-    y,cb,cr=reference[i*3:i*3+3];cb-=32768;cr-=32768;r=y+1.402*cr;b=y+1.772*cb;g=(y-.299*r-.114*b)/.587
-    rgb=[min(65535,max(0,round(q)))for q in (r,g,b)];rgba.extend([(q*255+32767)//65535 for q in rgb]+[255])
+    y,cb,cr=reference[i*3:i*3+3];cb-=midpoint;cr-=midpoint;r=y+1.402*cr;b=y+1.772*cb;g=(y-.299*r-.114*b)/.587
+    rgb=[min(maximum,max(0,q))for q in (r,g,b)];rgba.extend([int(math.floor(q*255/maximum+.5)) for q in rgb]+[255])
    (root/(name+'.rgba')).write_bytes(rgba);rows.append([name,width,height,h,v,layout,position])
 with (root/'manifest.csv').open('w')as f:
  writer=csv.writer(f);writer.writerow(['name','width','height','horizontal','vertical','layout','position']);writer.writerows(rows)

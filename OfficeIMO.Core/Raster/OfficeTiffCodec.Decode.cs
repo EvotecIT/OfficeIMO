@@ -154,7 +154,7 @@ public static partial class OfficeTiffCodec {
                         int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
                         byte red, green, blue, alpha;
                         if (jpegColor != null) {
-                            jpegColor.ConvertPixel(source, sourcePixel, sampleBytes, littleEndian,
+                            jpegColor.ConvertPixel(source, sourcePixel, sampleBytes, samples, littleEndian,
                                 alphaIndex, alphaKind, colorComponents, out red, out green, out blue, out alpha);
                         } else if (floating) {
                             ConvertFloatingPixel(source, sourcePixel, sampleBytes, littleEndian, photometric,

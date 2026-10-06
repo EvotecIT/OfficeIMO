@@ -11,7 +11,8 @@ upsampling even when fancy upsampling is enabled. Pillow 11.3.0's floating-point
 affine interpolation therefore supplies the separate centered/cosited reference;
 one replicated sample at each edge implements clamping outside the source grid.
 The TIFF RGB projection uses the declared default YCbCr coefficients and reference
-ranges after rounding interpolated native words.
+ranges while preserving fractional interpolated samples until final RGB output.
+Standalone raw-component references retain their integer-word rounding contract.
 
 The retained first segments provide 24 standalone JPEGs and 11,934 native component
 samples per quality mode. Tests compare those samples exactly against independent
