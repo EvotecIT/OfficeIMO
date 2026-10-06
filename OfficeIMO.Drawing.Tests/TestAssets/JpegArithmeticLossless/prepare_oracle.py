@@ -12,6 +12,11 @@ import sys
 root = pathlib.Path(sys.argv[1]).resolve()
 assert subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip() == 'c719010a26ce0c666e98b2acf924ad5fc24b4f5d'
 edits = {
+ 'cmd/iohelpers.cpp': [('        // Identify pfm one or three component images.',
+ '''        // Test-only raw interleaved input with an explicit component count.
+        if (getenv("OFFICEIMO_TEST_DEPTH"))
+          depth = atoi(getenv("OFFICEIMO_TEST_DEPTH"));
+        // Identify pfm one or three component images.''')],
  'cmd/encodec.cpp': [('            JPG_ValueTag(JPGTAG_IMAGE_FRAMETYPE,frametype),',
  '''            JPG_ValueTag(JPGTAG_IMAGE_FRAMETYPE,frametype),
             JPG_ValueTag(JPGTAG_SCAN_POINTTRANSFORM,getenv("OFFICEIMO_TEST_POINT") ? atoi(getenv("OFFICEIMO_TEST_POINT")) : 0),

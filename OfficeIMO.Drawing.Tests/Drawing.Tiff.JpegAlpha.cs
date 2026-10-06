@@ -37,6 +37,7 @@ public sealed class TiffJpegAlphaTests {
     [InlineData("TiffJpegLowAlpha")]
     [InlineData("TiffJpegArithmeticLowAlpha")]
     [InlineData("TiffJpegArithmetic12")]
+    [InlineData("TiffJpegArithmeticLosslessColor")]
     public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
@@ -64,11 +65,12 @@ public sealed class TiffJpegAlphaTests {
     [InlineData("TiffJpegArithmeticAlpha")]
     [InlineData("TiffJpegArithmeticLowAlpha")]
     [InlineData("TiffJpegArithmetic12")]
+    [InlineData("TiffJpegArithmeticLosslessColor")]
     public void ArithmeticCmykAlphaMatchesIndependentProfiledCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var profile));
         string[] references = Directory.GetFiles(corpus, "*.icc-rgba");
-        Assert.Equal(folder == "TiffJpegArithmeticLowAlpha" ? 32 : folder == "TiffJpegArithmetic12" ? 64 : 48, references.Length);
+        Assert.Equal(folder == "TiffJpegArithmeticLowAlpha" ? 32 : folder == "TiffJpegArithmetic12" ? 64 : folder == "TiffJpegArithmeticLosslessColor" ? 24 : 48, references.Length);
         foreach (string reference in references) {
             byte[] expected = File.ReadAllBytes(reference);
             Assert.True(OfficeIccRasterConverter.TryDecodeToSrgb(File.ReadAllBytes(reference.Substring(0, reference.Length - ".icc-rgba".Length)),

@@ -299,8 +299,7 @@ subsampled YCbCr files require a richer raw-component oracle. JPEG component
 references cover every file. The 1,536 XPS/OpenXPS exports cover 1,021,440 probes
 per route; MuPDF PDF/SVG differences reach 4/255 and 2/255 without warnings.
 GhostXPS opens 1,408 exports with differences up to 255/255, and crashes on 128
-CMYK strip exports. Lossless arithmetic color/alpha and native Windows acceptance
-remain open.
+CMYK strip exports. Native Windows acceptance remains open.
 
 Standalone arithmetic lossless JPEG supports SOF11 precisions 2–16, all seven
 predictors, point transforms and row-aligned restarts. Shared lossless sample
@@ -316,6 +315,20 @@ nearest references independently decoded from companion Huffman streams.
 The 948 XPS/OpenXPS exports cover 198,132 probes per route. MuPDF PDF/SVG output
 agrees within 2/255 without warnings; GhostXPS opens all files but can render blank
 images, with error up to 255/255. Arithmetic CMYK/YCbCr interpretation and native Windows acceptance remain unqualified.
+
+The [lossless arithmetic TIFF color corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessColor/README.md)
+qualifies 168 eight/twelve/sixteen-bit files: gray, RGB, CMYK and full-resolution
+YCbCr, opaque/associated/straight alpha, both byte orders, strips/tiles and
+contiguous/separate samples. CMYK alpha uses separate planes; the independent
+producer rejects five-component frames. All 1,593 native JPEG segments round-trip
+exactly. Managed alpha is exact and visible compositing agrees within 3/255,
+including 24 LittleCMS explicit-profile references. System LibTIFF rejects every
+full file because of codec, precision or YCbCr-extra layout limits. Across 672
+XPS/OpenXPS exports and 446,880 probes per route, MuPDF PDF/SVG differences reach
+5/255 and 2/255 without warnings. GhostXPS opens 656 exports with differences up
+to 255/255 and crashes on 16 twelve-bit CMYK strip exports. Subsampled YCbCr,
+shared tables, unspecified extras, chunky CMYK alpha and wider native acceptance
+remain outside this corpus; standalone JPEG color interpretation is separate.
 
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before

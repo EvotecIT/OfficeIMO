@@ -14,11 +14,12 @@ target=api('cmsCreate_sRGBProfile',P)()
 transform=api('cmsCreateTransform',P,P,U,P,U,U,U)(source,(1<<22)|(6<<16)|(4<<3),target,(4<<16)|(3<<3)|1,1,0x0100)
 assert source and target and transform
 run=api('cmsDoTransform',None,P,P,P,U)
-for corpus in (root,root.parent/'TiffJpegArithmeticLowAlpha',root.parent/'TiffJpegArithmetic12'):
+for corpus in (root,root.parent/'TiffJpegArithmeticLowAlpha',root.parent/'TiffJpegArithmetic12',root.parent/'TiffJpegArithmeticLosslessColor'):
  maximum=4095 if corpus.name=='TiffJpegArithmetic12' else 255
  for p in sorted(corpus.glob('p5-*.tif')):
+  if corpus.name=='TiffJpegArithmeticLosslessColor':maximum=(1<<int(p.stem.split('-b',1)[1].split('-',1)[0]))-1
   extra=int(p.stem.rsplit('-e',1)[1]);raw=Path(str(p)+'.raw').read_bytes();values=[];alpha=[]
-  if maximum==4095:raw=struct.unpack('<'+'H'*(len(raw)//2),raw)
+  if maximum==4095 or corpus.name=='TiffJpegArithmeticLosslessColor':raw=struct.unpack('<'+'H'*(len(raw)//2),raw)
   stride=4 if extra<0 else 5
   for i in range(0,len(raw),stride):
    a=raw[i+4] if extra>0 else maximum;alpha.append(int(a*255/maximum+.5))
