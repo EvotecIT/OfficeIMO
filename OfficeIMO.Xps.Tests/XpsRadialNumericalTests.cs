@@ -69,6 +69,7 @@ public sealed class XpsRadialNumericalTests {
             new XAttribute("StrokeThickness", 0));
         if (small) path.SetAttributeValue("RenderTransform", "100,0,0,100,-9900,-7920");
         path.Add(new XElement(ns + "Path.Fill", new XElement(ns + "RadialGradientBrush",
+            new XAttribute("MappingMode", "Absolute"),
             new XAttribute("Center", "-9999900,80"), new XAttribute("GradientOrigin", small ? "100.05,80" : "600,80"),
             new XAttribute("RadiusX", 10000000), new XAttribute("RadiusY", 10000000), new XAttribute("SpreadMethod", spread),
             new XElement(ns + "RadialGradientBrush.GradientStops",

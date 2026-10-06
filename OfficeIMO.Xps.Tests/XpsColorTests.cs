@@ -43,7 +43,7 @@ public sealed class XpsColorTests {
         string uri = doc.AddResource("Resources/Profiles/color.icc", File.ReadAllBytes(Path.Combine(Corpus, "littlecms-rgb-matrix.icc")), ProfileType);
         var xml = page.GetMarkup(); XNamespace ns = xml.Name.Namespace, key = "http://schemas.microsoft.com/winfx/2006/xaml";
         string color = "ContextColor ../Profiles/color.icc 2,2,-1,0";
-        var brush = gradient ? new XElement(ns + "LinearGradientBrush", new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "20,0"),
+        var brush = gradient ? new XElement(ns + "LinearGradientBrush", new XAttribute("MappingMode", "Absolute"), new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "20,0"),
             new XElement(ns + "LinearGradientBrush.GradientStops", new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", color)),
                 new XElement(ns + "GradientStop", new XAttribute("Offset", "1"), new XAttribute("Color", color))))
             : new XElement(ns + "SolidColorBrush", new XAttribute("Color", color));

@@ -97,7 +97,7 @@ public sealed class XpsRadialGradientTests {
         var doc = XpsDocument.Create(format); var page = doc.AddPage(200, 160);
         var xml = page.GetMarkup(); var ns = xml.Name.Namespace;
         xml.Add(new XElement(ns + "Path", new XAttribute("Data", "M0,0H200V160H0Z"),
-            new XElement(ns + "Path.Fill", new XElement(ns + "RadialGradientBrush", new XAttribute("Center", "100,80"), new XAttribute("GradientOrigin", "100,80"),
+            new XElement(ns + "Path.Fill", new XElement(ns + "RadialGradientBrush", new XAttribute("MappingMode", "Absolute"), new XAttribute("Center", "100,80"), new XAttribute("GradientOrigin", "100,80"),
                 new XAttribute("SpreadMethod", spread), new XAttribute("RadiusX", "60"), new XAttribute("RadiusY", "25"), new XAttribute("Transform", matrix),
                 new XElement(ns + "RadialGradientBrush.GradientStops",
                     new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", alpha ? "#40FF0000" : "#FFFF0000")),

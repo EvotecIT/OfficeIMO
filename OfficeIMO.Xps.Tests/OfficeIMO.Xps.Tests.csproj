@@ -8,6 +8,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\JpegXrTestFixture.cs" Link="JpegXrTestFixture.cs" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.jxr;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.rgba;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.tif;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.linear;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\manifest.csv;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.cmyk;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\cmyk-manifest.csv;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.nchannel;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\nchannel-manifest.csv" Link="Fixtures\JpegXr\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

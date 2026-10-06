@@ -29,7 +29,7 @@ internal static class XpsBrushFixtures {
         }
         var doc = XpsDocument.Create(format); var page = doc.AddPage(120, 100); var xml = page.GetMarkup(); XNamespace ns = xml.Name.Namespace;
         XElement Path(string data, string fill) => new(ns + "Path", new XAttribute("Data", data), new XAttribute("Fill", fill));
-        XElement Gradient() => new(ns + "LinearGradientBrush", new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "40,0"),
+        XElement Gradient() => new(ns + "LinearGradientBrush", new XAttribute("MappingMode", "Absolute"), new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "40,0"),
             new XElement(ns + "LinearGradientBrush.GradientStops", new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", "#FFFF0000")), new XElement(ns + "GradientStop", new XAttribute("Offset", "1"), new XAttribute("Color", "#FF0000FF"))));
         var path = Path("M0,0H120V100H0Z", "#FFFF0000");
         if (scenario == "gradient") {

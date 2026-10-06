@@ -74,6 +74,11 @@ clips to SDR output. It does not infer linear scRGB or rescale scientific ranges
 and non-finite color or alpha samples fail content validation and decoding.
 Unspecified extra channels and tile padding remain ignored.
 
+Linear and radial gradient brushes require `MappingMode="Absolute"`, including
+brushes supplied through a resource dictionary. Strict conversion diagnoses
+missing or relative mapping modes instead of inventing a coordinate convention.
+This rendering check does not change opaque native package preservation.
+
 ## Qualification
 
 Integer JPEG/TIFF default qualification includes eight independently encoded
@@ -81,8 +86,42 @@ synthetic image fixtures in both dialects: RGB, gray, alpha, calibration tags,
 TIFF orientation, an embedded profile and an unspecified extra sample. Managed
 pixels and independently rendered SVG/PDF interior samples agree within three channel
 values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
-it changes sample order for unspecified extra channels in two cases. The differing reference output is retained;
-native Windows confirmation and photographic producer coverage remain open.
+it changes sample order for unspecified extra channels in two cases. The differing reference output is retained.
+The bounded Windows WPF comparison below qualifies seven default-image inputs;
+the unspecified-extra-channel TIFF disagreement and photographic producer coverage remain open.
+
+### Bounded Windows WPF comparison
+
+The [opt-in Windows runner](../Build/XpsWindowsEvidence/README.md) compares native
+Microsoft WPF rendering with managed XPS rendering and the rendered PDF projection
+at 96 dpi. Its [recorded run](../Build/XpsWindowsEvidence/Evidence/2026-10-06/report.json)
+contains input/output hashes, assembly versions and hashes, source context,
+diagnostics and both full-image and stable-interior error measurements.
+
+The 29 authored inputs cover eleven stroke cases, ten radial fields and eight
+integer image defaults. Six stroke cases have identical stable-interior pixels;
+all ten radial cases differ by at most 2/255 for managed rendering and 3/255 for
+the PDF projection in stable interiors. Seven image cases differ by at most
+1/255 throughout the image. These measurements exclude native edge neighborhoods
+from the interior result; they do not establish full-image pixel equivalence.
+
+Returning endpoints, zero-length triangle/square dashes, mixed caps and transparent
+cap overlap differ from WPF. The TIFF with an unspecified extra sample also
+differs: OfficeIMO follows the format's ignored-channel rule, while the native
+consumer produces different colors. Boundary Repeat/Reflect PDF previews show
+larger whole-image differences in the high-frequency tangent region despite
+their close stable-interior agreement. These disagreements remain qualification
+limits, with representative renders retained by the runner.
+
+A separately generated Microsoft WPF package contains two fixed documents and
+three pages, with embedded Carlito glyphs and an absolute radial brush. All pages
+retain their Unicode text through extraction and searchable PDF conversion.
+OfficeIMO save/reopen preserves the sequence and identical WPF pixels; loaded
+path edits render in both WPF and OfficeIMO. Its managed/PDF stable-interior
+differences are at most 1/255. This is independent producer and native-consumer
+evidence for that bounded Microsoft XPS input. It does not qualify OpenXPS,
+interleaved OPC, StoryFragments, printing, XPS Viewer or complete Windows
+consumer conformance.
 
 JPEG-TIFF qualification covers 160 independently encoded and decoded LibTIFF
 fixtures: gray/RGB/CMYK/YCbCr, byte order, strips/tiles, separate gray/RGB/CMYK planes,

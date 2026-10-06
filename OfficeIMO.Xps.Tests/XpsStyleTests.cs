@@ -51,7 +51,7 @@ public sealed class XpsStyleTests {
         var xml = page.GetMarkup(); var glyph = xml.Elements().Single(); glyph.SetAttributeValue("Indices", ",0;,0"); glyph.SetAttributeValue("Fill", "#80FF0000");
         if (simulation == "BoldItalicSimulation") {
             glyph.Attribute("Fill")!.Remove(); var ns = xml.Name.Namespace;
-            glyph.Add(new XElement(ns + "Glyphs.Fill", new XElement(ns + "LinearGradientBrush", new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "300,0"),
+            glyph.Add(new XElement(ns + "Glyphs.Fill", new XElement(ns + "LinearGradientBrush", new XAttribute("MappingMode", "Absolute"), new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "300,0"),
                 new XElement(ns + "LinearGradientBrush.GradientStops", new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", "#80FF0000")),
                     new XElement(ns + "GradientStop", new XAttribute("Offset", "1"), new XAttribute("Color", "#80FF0000"))))));
         }

@@ -60,7 +60,7 @@ public sealed class XpsBoundsAndNavigationTests {
     [Fact]
     public void RepeatedGradientsAreBoundedByExpandedNodeBudget() {
         var page = XpsDocument.Create().AddPage(100, 100); var xml = page.GetMarkup(); XNamespace ns = xml.Name.Namespace;
-        var brush = new XElement(ns + "LinearGradientBrush", new XAttribute(Key + "Key", "paint"), new XElement(ns + "LinearGradientBrush.GradientStops",
+        var brush = new XElement(ns + "LinearGradientBrush", new XAttribute("MappingMode", "Absolute"), new XAttribute(Key + "Key", "paint"), new XElement(ns + "LinearGradientBrush.GradientStops",
             Enumerable.Range(0, 512).Select(i => new XElement(ns + "GradientStop", new XAttribute("Offset", i / 511D), new XAttribute("Color", "#FF000000")))));
         xml.Add(new XElement(ns + "FixedPage.Resources", new XElement(ns + "ResourceDictionary", brush)));
         for (int i = 0; i < 256; i++) xml.Add(new XElement(ns + "Path", new XAttribute("Data", "M0,0L10,10"), new XAttribute("Fill", "{StaticResource paint}")));

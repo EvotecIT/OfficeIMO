@@ -49,6 +49,21 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Xps'
+        classification = 'managed-cross-platform'
+        evidence = 'XPS/OpenXPS lifecycle and rendering are qualified through managed .NET tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Xps.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The optional XPS PDF bridge is qualified through managed conversion and artifact tests; the PDF owner NativeAOT host does not qualify the complete bridge.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.Xps'
+        classification = 'managed-cross-platform'
+        evidence = 'The modular XPS Reader adapter is qualified through managed extraction and registration tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Workflows.IWork'
         classification = 'managed-cross-platform'
         evidence = 'Opt-in iWork workflow routes are qualified through managed .NET 8 and 10 tests; destination converter NativeAOT evidence does not qualify the complete workflow surface.'

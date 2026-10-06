@@ -29,7 +29,7 @@ public sealed class XpsGradientColorInterpolationTests {
         if (kind == "linear") {
             var stops = brush.Element(ns + "RadialGradientBrush.GradientStops")!;
             stops.Name = ns + "LinearGradientBrush.GradientStops";
-            brush.ReplaceWith(new XElement(ns + "LinearGradientBrush", new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "200,0"),
+            brush.ReplaceWith(new XElement(ns + "LinearGradientBrush", new XAttribute("MappingMode", "Absolute"), new XAttribute("StartPoint", "0,0"), new XAttribute("EndPoint", "200,0"),
                 new XAttribute("ColorInterpolationMode", "ScRgbLinearInterpolation"), stops));
         }
         page.ReplaceMarkup(markup);

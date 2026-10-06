@@ -53,11 +53,16 @@ internal sealed partial class XpsSvgConverter {
     }
     private void Gradient(XElement source, XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope, string part, BrushRegion region, BrushRegion? paintBounds) {
         CheckAttributes(brush, "StartPoint EndPoint Center GradientOrigin RadiusX RadiusY MappingMode SpreadMethod ColorInterpolationMode Opacity Transform");
+        if ((string?)brush.Attribute("MappingMode") != "Absolute") {
+            Loss("Gradient MappingMode must be Absolute.");
+            Set(target, attribute, "none");
+            return;
+        }
         bool radial = brush.Name.LocalName == "RadialGradientBrush";
         bool nativeFocus = false;
         string id = "paint" + (++_id);
         var gradient = Element((radial ? "radialGradient" : "linearGradient"), new XAttribute("id", id),
-            new XAttribute("gradientUnits", ((string?)brush.Attribute("MappingMode") ?? "Absolute") == "Absolute" ? "userSpaceOnUse" : "objectBoundingBox"));
+            new XAttribute("gradientUnits", "userSpaceOnUse"));
         if (radial) {
             var center = Numbers((string?)brush.Attribute("Center") ?? "0,0");
             var origin = Numbers((string?)brush.Attribute("GradientOrigin") ?? "0,0");

@@ -11,13 +11,22 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## XPS radial focal points
 
-For radial gradients with a focal point on or outside the end ellipse, use
-`XpsPage.ToDrawing()`, raster `ExportImage()` or `XpsDocument.ToPdf()` for native Pad
-rendering. These paths select the smallest containing ellipse and preserve the
-endpoint color outside its cone, including stop alpha. Ordinary SVG has a
-different field contract, so `ToSvg()` and SVG image export reject these focal points; `ToSvg(true)`
-returns the projection with an explicit loss diagnostic. Boundary/exterior
-Repeat and Reflect remain unsupported by native drawing/PDF conversion.
+For radial gradients with a focal point on or outside the end ellipse,
+`XpsPage.ToDrawing()`, raster `ExportImage()`, `XpsDocument.ToPdf()` and `ToSvg()`
+retain native Pad fields, including stop alpha and endpoint paint outside the
+cone. Boundary/exterior Repeat and Reflect fields use bounded vector expansion
+or explicit periodic fields; PDF retains vector shading when expansion is not
+finite or exceeds its stop budget. Check the [XPS support matrix](OfficeIMO.Xps/SUPPORT.md)
+for the native-consumer and sampling limits.
+
+## XPS gradient mapping
+
+Native `LinearGradientBrush` and `RadialGradientBrush` markup must contain
+`MappingMode="Absolute"`, as required by the XPS/OpenXPS format. Add that attribute
+to custom page or resource-dictionary markup before converting it. Strict SVG,
+Drawing and PDF conversion reject missing or relative mapping modes;
+`ToSvg(allowPartial: true)` reports the missing paint explicitly. Native package
+load/save still preserves the original markup.
 
 ## XPS integer image defaults
 
