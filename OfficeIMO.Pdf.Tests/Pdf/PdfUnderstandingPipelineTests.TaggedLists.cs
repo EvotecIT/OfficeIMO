@@ -21,7 +21,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.DoesNotContain("Neighboring incident", first.Text, StringComparison.Ordinal);
         Assert.Equal("2.", page.ListItems[1].Marker);
         Assert.Equal("Neighboring incident", page.ListItems[1].Text);
-        Assert.Contains(page.Paragraphs, paragraph => paragraph.Text.Contains("Linked incident title", StringComparison.Ordinal));
+        Assert.Contains(page.Paragraphs, paragraph => paragraph.Text.IndexOf("Linked incident title", StringComparison.Ordinal) >= 0);
         Assert.All(first.Lines, line => Assert.Contains(line, page.TextBlocks));
         Assert.DoesNotContain(first.Runs, static run => run.SourceSpan?.MarkedContentId == 0);
         Assert.Contains(first.Runs, static run => run.SourceSpan?.MarkedContentId == 1);
@@ -118,7 +118,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(1, CountText(result.ToMarkdown(), "Incident table"));
         AssertConsumerTextOccursOnce(result, "Incident table", "Quality");
         Assert.DoesNotContain(PdfReaderAdapter.ReadDocument(result).Blocks,
-            static block => block.Kind == "list-item" && block.Text.Contains("Quality", StringComparison.Ordinal));
+            static block => block.Kind == "list-item" && block.Text.IndexOf("Quality", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]

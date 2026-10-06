@@ -22,7 +22,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
                 if (tableBounds[index] is PdfVisualBounds bounds &&
                     centerX >= bounds.Left - 1D && centerX <= bounds.Right + 1D &&
                     centerY >= bounds.Top - 1D && centerY <= bounds.Bottom + 1D &&
-                    tableTexts[index].Contains(text, StringComparison.Ordinal)) {
+                    tableTexts[index].IndexOf(text, StringComparison.Ordinal) >= 0) {
                     represented = true;
                     break;
                 }
