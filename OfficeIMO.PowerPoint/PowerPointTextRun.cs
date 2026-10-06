@@ -226,39 +226,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? FontName {
             get => RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.RemoveAllChildren<A.LatinFont>();
-                if (value != null) {
-                    props.Append(new A.LatinFont { Typeface = value });
-                }
-            }
+            set => PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
         }
 
         /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000").  
+        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000"). Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
         public string? Color {
             get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                var latin = props.GetFirstChild<A.LatinFont>();
-                var ea = props.GetFirstChild<A.EastAsianFont>();
-                var cs = props.GetFirstChild<A.ComplexScriptFont>();
-
-                props.RemoveAllChildren<A.SolidFill>();
-                props.RemoveAllChildren<A.LatinFont>();
-                props.RemoveAllChildren<A.EastAsianFont>();
-                props.RemoveAllChildren<A.ComplexScriptFont>();
-
-                if (value != null) {
-                    props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
-                }
-
-                if (latin != null) props.Append((A.LatinFont)latin.CloneNode(true));
-                if (ea != null) props.Append((A.EastAsianFont)ea.CloneNode(true));
-                if (cs != null) props.Append((A.ComplexScriptFont)cs.CloneNode(true));
-            }
+            set => PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
         }
 
         /// <summary>
@@ -270,7 +246,7 @@ namespace OfficeIMO.PowerPoint {
                 A.RunProperties props = EnsureRunProperties();
                 props.RemoveAllChildren<A.Highlight>();
                 if (value != null) {
-                    props.Append(new A.Highlight(new A.RgbColorModelHex { Val = value }));
+                    props.AddChild(new A.Highlight(new A.RgbColorModelHex { Val = value }), true);
                 }
             }
         }
@@ -408,12 +384,17 @@ namespace OfficeIMO.PowerPoint {
             A.HyperlinkOnClick[] previous = properties
                 .Elements<A.HyperlinkOnClick>().ToArray();
             if (replacement != null) {
+                bool? colorChoice = previous.Select(PowerPointTextHyperlinkColor.ReadChoice)
+                    .FirstOrDefault(choice => choice.HasValue);
+                if (colorChoice.HasValue || properties.GetFirstChild<A.SolidFill>()?.RgbColorModelHex != null) {
+                    PowerPointTextHyperlinkColor.SetChoice(replacement, colorChoice ?? true);
+                }
                 A.HyperlinkSound? preservedSound = previous
                     .SelectMany(link => link.Elements<A.HyperlinkSound>())
                     .FirstOrDefault();
                 if (preservedSound != null) {
-                    replacement.Append((A.HyperlinkSound)preservedSound
-                        .CloneNode(true));
+                    replacement.AddChild((A.HyperlinkSound)preservedSound
+                        .CloneNode(true), true);
                 }
                 bool? preservedEndSound = previous
                     .Select(link => link.EndSound?.Value)
@@ -438,7 +419,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (A.HyperlinkOnClick hyperlink in previous) {
                 hyperlink.Remove();
             }
-            if (replacement != null) properties.Append(replacement);
+            if (replacement != null) properties.AddChild(replacement, true);
             OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
             if (ownerPart == null) return;
             foreach (string relationshipId in relationshipIds) {

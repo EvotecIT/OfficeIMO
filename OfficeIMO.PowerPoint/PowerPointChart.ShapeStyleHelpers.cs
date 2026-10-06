@@ -24,16 +24,11 @@ namespace OfficeIMO.PowerPoint {
             if (italic != null) {
                 runProps.Italic = italic.Value;
             }
-            A.LatinFont? existingLatinFont = runProps.GetFirstChild<A.LatinFont>()?.CloneNode(true) as A.LatinFont;
             if (color != null) {
-                runProps.RemoveAllChildren<A.LatinFont>();
-                ApplySolidFill(runProps, color);
+                PowerPointTextPropertyFormatting.SetColor(runProps, color);
             }
             if (fontName != null) {
-                runProps.RemoveAllChildren<A.LatinFont>();
-                runProps.Append(new A.LatinFont { Typeface = fontName });
-            } else if (color != null && existingLatinFont != null) {
-                runProps.Append(existingLatinFont);
+                PowerPointTextPropertyFormatting.SetFontName(runProps, fontName);
             }
         }
 

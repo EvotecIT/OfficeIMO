@@ -140,6 +140,8 @@ public static class OfficeMath {
         int rowCount = 0,
         int columnCount = 0,
         string? separatorCharacter = null,
-        bool naryUpperOnly = false) =>
-        new OfficeMathExpression(kind, text, children, character, secondaryCharacter, rowCount, columnCount, separatorCharacter, naryUpperOnly);
+        bool naryUpperOnly = false,
+        bool? stretchy = null,
+        bool? largeOperator = null) =>
+        new OfficeMathExpression(kind, text, children, character, secondaryCharacter, rowCount, columnCount, separatorCharacter, naryUpperOnly, stretchy, largeOperator);
 }

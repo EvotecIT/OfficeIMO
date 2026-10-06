@@ -6,9 +6,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int DopBaseEndnotePlacementShift = 16;
         private const int DopBaseFullLength = 84;
         private const int DopBaseViewFlagsOffset = 82;
+        private const int Dop95Length = 88;
+        private const int DopBaseCompatibilityFlagsOffset = 8;
+        private const int Dop95CompatibilityFlagsOffset = 84;
         private const ushort FacingPagesDopFlag = 0x0001;
         private const uint MirrorMarginsDopFlag = 0x00200000;
         private const ushort GutterAtTopDopFlag = 0x8000;
+        private const ushort NoColumnBalanceDopFlag = 0x0020;
 
         private static byte[] CreateDopBase(LegacyDocWritableBody body) {
             var dop = new byte[body.DopLength];
@@ -20,6 +24,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (body.LockRevisionTracking) flags |= 0x40000000;
             if (body.MirrorMargins) flags |= MirrorMarginsDopFlag;
             if (flags != 0) WriteUInt32(dop, 4, flags);
+
+            if (body.NoColumnBalance) {
+                // Dop95's Copts80 repeats Copts60; both copies must agree (MS-DOC).
+                WriteUInt16(dop, DopBaseCompatibilityFlagsOffset, NoColumnBalanceDopFlag);
+                WriteUInt16(dop, Dop95CompatibilityFlagsOffset, NoColumnBalanceDopFlag);
+            }
 
             if (body.EndnotePosition != null) {
                 uint placement = (uint)GetEndnotePositionOperand(body.EndnotePosition.Value)!.Value;

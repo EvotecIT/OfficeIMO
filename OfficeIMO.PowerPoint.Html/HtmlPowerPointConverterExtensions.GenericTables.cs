@@ -137,7 +137,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
             if (semanticRow != null && sourceCell < semanticRow.Cells.Count) {
                 ApplySemanticTableCellFormatting(targetCell, semanticRow.Cells[sourceCell],
-                    options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
+                    options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy,
+                    table.FirstRow && targetRow == 0);
             }
             TryApplyTargetSemanticRuns(targetCell, cell.Element, options.HyperlinkUrlPolicy);
             sourceCell++;

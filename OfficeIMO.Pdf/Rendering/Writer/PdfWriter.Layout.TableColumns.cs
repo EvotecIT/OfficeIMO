@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
 
         double preferredWidth = Math.Min(availableWidth, style.PreferredWidth.Value);
         double measuredContentWidth = 0D;
-        if (autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
+        if (!style.AutoFitWidthUsesContentMinimum && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
             measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());
         }
 
@@ -204,8 +204,9 @@ internal static partial class PdfWriter {
 
         for (int column = 0; column < columns; column++) {
             double? minWidth = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column, "Table minimum column widths must be positive finite values.");
-            if (!minWidth.HasValue && autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length) {
-                minWidth = autoFitMinimumWidths[column];
+            if (autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length &&
+                (!minWidth.HasValue || style.AutoFitWidthUsesContentMinimum)) {
+                minWidth = Math.Max(minWidth ?? 0D, autoFitMinimumWidths[column]);
             }
 
             double? maxWidth = GetOptionalColumnWidth(style.ColumnMaxWidthPoints, column, "Table maximum column widths must be positive finite values.");

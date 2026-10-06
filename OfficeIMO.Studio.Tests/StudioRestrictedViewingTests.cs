@@ -80,6 +80,9 @@ public sealed class StudioRestrictedViewingTests {
                 Assert.False(model.CanExtractPages);
                 foreach (var page in model.Pages) {
                     page.AttachToViewport(); await page.EnsureRenderedAsync();
+                    // The viewport can replace this load when its first layout changes the fitted zoom.
+                    using var renderTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                    while (page.IsRendering) await Task.Delay(10, renderTimeout.Token);
                     Assert.Null(page.RenderError); Assert.NotNull(page.PageImage);
                     Assert.NotNull(page.Scene); Assert.Null(page.Scene.Interactions);
                 }

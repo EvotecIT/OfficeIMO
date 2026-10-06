@@ -33,6 +33,9 @@ public sealed class PdfCellBorder {
     /// <summary>Border line style used by sides without an explicit side override.</summary>
     public PdfCellBorderLineStyle LineStyle { get; set; }
 
+    /// <summary>Prepared document cells can retain all border paint inside their allocated box.</summary>
+    internal bool PaintInsideFrame { get; set; }
+
     /// <summary>Optional top border override. When set, it overrides the shared color and width for this side.</summary>
     public PdfCellBorderSide? TopBorder {
         get => _topBorder?.Clone();
@@ -122,6 +125,7 @@ public sealed class PdfCellBorder {
         DiagonalDownBorder = _diagonalDownBorder,
         DashStyle = DashStyle,
         LineStyle = LineStyle,
+        PaintInsideFrame = PaintInsideFrame,
         Top = Top,
         Right = Right,
         Bottom = Bottom,

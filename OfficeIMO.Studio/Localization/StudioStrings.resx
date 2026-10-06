@@ -2512,4 +2512,10 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
     <value>Choose a file to import a working copy. Results stay on this device. Open a result in Jobs to share it or save it to Files.</value>
   </data>
   <data name="Provenance.ImportFile" xml:space="preserve"><value>Import from Files</value></data>
+  <data name="Provenance.ProviderTitle" xml:space="preserve"><value>Optional C2PA verification</value></data>
+  <data name="Provenance.ProviderHint" xml:space="preserve"><value>Configure an executable you trust. No tool is downloaded. Verification is offline with a 30-second limit. Readiness checks the tool, not signer trust. Settings apply to this session.</value></data>
+  <data name="Provenance.ToolPath" xml:space="preserve"><value>c2patool executable path</value></data>
+  <data name="Provenance.TrustAnchors" xml:space="preserve"><value>Trust anchors PEM path (optional)</value></data>
+  <data name="Provenance.AllowedList" xml:space="preserve"><value>Allowed certificates PEM path (optional)</value></data>
+  <data name="Provenance.CheckProvider" xml:space="preserve"><value>Check verifier</value></data>
 </root>

@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
             }
 
             double availableHeight = GetMaximumBlockContinuationHeight() - reservedHeight - imageMeasurementReservedHeight
-                - activeContainerScopes.Sum(scope => scope.Style.PaddingY) - spacingBefore - spacingAfter;
+                - activeContainerScopes.Sum(scope => scope.Style.GetActiveFragmentImageReservation(scope.IsContinuation)) - spacingBefore - spacingAfter;
             double scale = 1D;
             if (imageWidth > frameWidth) {
                 scale = Math.Min(scale, frameWidth / imageWidth);
@@ -331,16 +331,15 @@ internal static partial class PdfWriter {
 
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
-                double outerWidth = style.MaxWidth.HasValue ? Math.Min(frameWidth, style.MaxWidth.Value) : frameWidth;
-                ValidatePanelStyle(style, outerWidth);
-                double contentWidth = outerWidth - 2D * style.PaddingX;
+                var containerFrame = ResolveContainerFrame(container, style, frameX, frameWidth, fontSize);
+                double contentWidth = containerFrame.ContentWidth;
                 if (contentWidth <= 0.001D) {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
 
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.PaddingY +
-                       MeasureWithContainerPaddingReservation(style.PaddingY, () =>
-                           MeasureFirstNestedVisualHeight(container.Blocks, frameX + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.TopPadding +
+                       MeasureWithContainerPaddingReservation(style, () =>
+                           MeasureFirstNestedVisualHeight(container.Blocks, containerFrame.X + style.PaddingX, contentWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore));
             }
 
             if (block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null) {
@@ -540,6 +539,7 @@ internal static partial class PdfWriter {
             ValidateTableColumnStyleBounds(style, columns);
             ValidateTableRowStyleBounds(style, table.Rows.Count);
             ValidateTableRowSpansWithinRoleBoundaries(table, columns, headerRowCount, footerStartRowIndex);
+            style = PreparePairedTableBorders(table, style);
             double tableFontSize = GetTableBodyFontSize(style, fontSize);
             TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, tableFontSize, headerRowCount, footerStartRowIndex);
 
@@ -567,6 +567,8 @@ internal static partial class PdfWriter {
             double remaining = height;
             while (remaining > 0.001D) {
                 double available = y - currentOpts.MarginBottom;
+                double closingPadding = GetClosingContainerPadding();
+                if (remaining <= available && remaining + closingPadding > available) available -= closingPadding;
                 if (available <= 0.5D) {
                     NewPage();
                     continue;

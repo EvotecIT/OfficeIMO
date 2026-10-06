@@ -6,6 +6,7 @@ namespace OfficeIMO.Tool.Commands.Provenance;
 internal enum ProvenanceCommandKind {
     Help,
     Capabilities,
+    Doctor,
     Inspect,
     Assess,
     Remove,
@@ -22,6 +23,11 @@ internal enum ProvenanceOutputFormat {
 }
 
 internal sealed class ProvenanceArguments {
+    internal string? C2paToolPath { get; private set; }
+    internal string? TrustAnchorsPath { get; private set; }
+    internal string? AllowedListPath { get; private set; }
+    private bool _hasProviderOptions;
+    internal int VerificationTimeoutSeconds { get; private set; } = 30;
     internal ProvenanceCommandKind Command { get; private set; }
     internal OfficeProvenanceWorkflowOperation BatchOperation { get; private set; }
     internal IReadOnlyList<string> Inputs { get; private set; } = Array.Empty<string>();
@@ -48,6 +54,7 @@ internal sealed class ProvenanceArguments {
         if (args.Length == 0 || IsHelp(args[0])) return new ProvenanceArguments { Command = ProvenanceCommandKind.Help };
         var parsed = new ProvenanceArguments {
             Command = args[0].ToLowerInvariant() switch {
+                "doctor" => ProvenanceCommandKind.Doctor,
                 "capabilities" => ProvenanceCommandKind.Capabilities,
                 "inspect" => ProvenanceCommandKind.Inspect,
                 "assess" => ProvenanceCommandKind.Assess,
@@ -73,6 +80,22 @@ internal sealed class ProvenanceArguments {
             string token = args[index];
             if (IsHelp(token)) return new ProvenanceArguments { Command = ProvenanceCommandKind.Help };
             switch (token) {
+                case "--c2patool":
+                    EnsureProviderCommand(parsed, token);
+                    parsed.C2paToolPath = ReadValue(args, ref index, token); break;
+                case "--trust-anchors":
+                case "--allowed-list":
+                    EnsureProviderCommand(parsed, token);
+                    if (parsed.Command == ProvenanceCommandKind.Doctor) throw new ProvenanceUsageException("doctor checks executable readiness, not trust lists.");
+                    parsed._hasProviderOptions = true;
+                    string trustPath = ReadValue(args, ref index, token);
+                    if (token == "--trust-anchors") parsed.TrustAnchorsPath = trustPath;
+                    else parsed.AllowedListPath = trustPath;
+                    break;
+                case "--verification-timeout-seconds":
+                    EnsureProviderCommand(parsed, token);
+                    parsed._hasProviderOptions = true;
+                    parsed.VerificationTimeoutSeconds = (int)ParseLong(ReadValue(args, ref index, token), token, 1, 300); break;
                 case "--include":
                     EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Audit, ProvenanceCommandKind.Check);
                     parsed.Include.Add(ReadValue(args, ref index, token)); break;
@@ -120,7 +143,7 @@ internal sealed class ProvenanceArguments {
                     parsed.RemoveInvalidatedSignatures = true;
                     break;
                 case "--no-embedded":
-                    if (parsed.Command == ProvenanceCommandKind.Capabilities) {
+                    if (parsed.Command is ProvenanceCommandKind.Capabilities or ProvenanceCommandKind.Doctor) {
                         throw new ProvenanceUsageException(token + " is not valid with capabilities.");
                     }
                     parsed.ProcessEmbeddedAssets = false;
@@ -130,7 +153,7 @@ internal sealed class ProvenanceArguments {
                     parsed.InspectTextIntegrity = false;
                     break;
                 case "--max-input-bytes":
-                    if (parsed.Command == ProvenanceCommandKind.Capabilities) {
+                    if (parsed.Command is ProvenanceCommandKind.Capabilities or ProvenanceCommandKind.Doctor) {
                         throw new ProvenanceUsageException(token + " is not valid with capabilities.");
                     }
                     parsed.MaximumInputBytes = ParseLong(ReadValue(args, ref index, token), token, 1, long.MaxValue);
@@ -157,6 +180,13 @@ internal sealed class ProvenanceArguments {
     }
 
     private void Validate() {
+        if (C2paToolPath == null && _hasProviderOptions)
+            throw new ProvenanceUsageException("Provider options require --c2patool.");
+        if (Command == ProvenanceCommandKind.Doctor) {
+            if (C2paToolPath == null || Inputs.Count != 0 || Format is not ProvenanceOutputFormat.Json and not ProvenanceOutputFormat.Text)
+                throw new ProvenanceUsageException("doctor requires --c2patool <trusted-executable> and accepts json or text output without an input file.");
+            return;
+        }
         if (Format is ProvenanceOutputFormat.Ndjson or ProvenanceOutputFormat.Sarif && Command is not ProvenanceCommandKind.Audit and not ProvenanceCommandKind.Check)
             throw new ProvenanceUsageException("ndjson and sarif formats are supported by audit and check.");
         if (Command is ProvenanceCommandKind.Audit or ProvenanceCommandKind.Check) {
@@ -219,6 +249,12 @@ internal sealed class ProvenanceArguments {
             throw new ProvenanceUsageException(option + " must be between " + minimum + " and " + maximum + ".");
         }
         return parsed;
+    }
+
+    private static void EnsureProviderCommand(ProvenanceArguments parsed, string option) {
+        if (parsed.Command == ProvenanceCommandKind.Doctor || parsed.Command == ProvenanceCommandKind.Assess ||
+            parsed.Command == ProvenanceCommandKind.Batch && parsed.BatchOperation == OfficeProvenanceWorkflowOperation.Assess) return;
+        throw new ProvenanceUsageException(option + " is supported by doctor, assess, and batch assess.");
     }
 
     private static void EnsureMutation(ProvenanceArguments parsed, string option) {
