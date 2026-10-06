@@ -267,6 +267,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_TextBoxes() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.pdf");
         var options = new WordToPdfOptions {
@@ -284,10 +285,10 @@ public partial class Word {
 
             document.AddParagraph("Native text box body");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterTextBoxUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterTextBoxUnsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -322,6 +323,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Shapes() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.pdf");
         var options = new WordToPdfOptions {
@@ -340,10 +342,10 @@ public partial class Word {
 
             document.AddParagraph("Native header footer shape body");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterShapeUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterShapeUnsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -359,6 +361,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Images() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterImages.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterImages.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -377,10 +380,10 @@ public partial class Word {
 
             document.AddParagraph("Native header/footer image body");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterImageUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterImageUnsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
         string rawPdf = PdfOperatorSearchText.From(bytes);
@@ -398,6 +401,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_PictureControls_To_Images() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPictureControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPictureControls.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -416,10 +420,10 @@ public partial class Word {
 
             document.AddParagraph("Native header/footer picture-control body");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
         string rawPdf = PdfOperatorSearchText.From(bytes);
@@ -450,6 +454,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_RepeatingSections_To_Text_Items() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.pdf");
         var options = new WordToPdfOptions {
@@ -470,10 +475,10 @@ public partial class Word {
 
             document.AddParagraph("Native header/footer repeating-section body");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -487,6 +492,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_FormControls_To_Static_Text() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFormControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFormControls.pdf");
         var options = new WordToPdfOptions {
@@ -507,10 +513,10 @@ public partial class Word {
 
             document.AddParagraph("Native header/footer form-control body");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
         Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).FormFields);
