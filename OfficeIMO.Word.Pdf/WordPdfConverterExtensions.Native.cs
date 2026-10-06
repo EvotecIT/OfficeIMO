@@ -215,6 +215,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             IReadOnlyList<WordSection> sections = document.Sections;
+            var documentEndnotes = new List<PdfFootnote>();
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
@@ -237,7 +238,8 @@ namespace OfficeIMO.Word.Pdf {
                         WordSection section = sections[currentSectionIndex];
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
-                        List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
+                        List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
+                        if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
                         if (TryRenderNativeSectionColumns(
                             page,
