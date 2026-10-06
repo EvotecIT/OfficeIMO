@@ -60,6 +60,10 @@ public sealed record BookOnixExportOptions {
     public IReadOnlyList<BookOnixContributor> Contributors { get; init; } = [];
     /// <summary>Explicit assertion that the product has no credited contributors. Missing EPUB credits do not imply this.</summary>
     public bool NoContributors { get; init; }
+    /// <summary>At most 32 explicitly described collection memberships.</summary>
+    public IReadOnlyList<BookOnixCollection> Collections { get; init; } = [];
+    /// <summary>Explicit assertion of no collection membership, mutually exclusive with Collections.</summary>
+    public bool NoCollection { get; init; }
     /// <summary>Optional explicit edition characteristics, numbering and multilingual statements.</summary>
     public BookOnixEdition? Edition { get; init; }
     /// <summary>At most 64 explicit subject declarations; free-form EPUB subject authorities are not mapped automatically.</summary>

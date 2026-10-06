@@ -485,6 +485,53 @@ validation checks ONIX structure and list values, not membership of individual
 subject codes, supplied scheme versions, classification suitability or discoverability
 in a recipient's catalog.
 
+### Collection membership
+
+Declare collection identity and ordering explicitly. These fields do not change or
+automatically project EPUB series metadata:
+
+```csharp
+var options = existingOptions with {
+    Collections = [new() {
+        Type = BookOnixCollectionType.Publisher,
+        Title = "Collected studies",
+        LanguageCode = "eng",
+        Identifiers = [new(BookOnixCollectionIdentifierType.Proprietary,
+            "studies", "Publisher catalog")],
+        Sequences = [new(BookOnixCollectionSequenceType.Publication, "3"),
+                     new(BookOnixCollectionSequenceType.Narrative, "2.1")]
+    }]
+};
+```
+
+Up to 32 named collections are supported. Each can declare a subtitle, an ONIX list
+74 title language, up to 16 identifiers and up to 16 sequence positions. Collection
+types distinguish publisher series/sets, collections éditoriales, and ascribed
+collections. An ascribed collection requires the defining party's `SourceName`.
+
+Identifiers support named proprietary schemes, ISSN and ISBN-13. ISSN shape and
+check digits are checked; an optional central hyphen is removed and a final `x` is
+uppercased. ISBN normalization uses the shared publishing validator. Checks establish
+neither identifier allocation nor ownership. Use a collection ISBN only when the
+collection is available as a single product. Each identifier type may occur once,
+except that different named proprietary schemes may coexist.
+
+Sequence types cover title, publication, narrative, original publication, suggested
+reading, suggested display and named proprietary ordering. Positions retain their
+text: `2.1` is hierarchical, and `3.-.8` can omit an intermediate level. Components
+must be ASCII digits or a hyphen, separated by dots. Each sequence type/name may
+occur once. Named proprietary identifiers and sequences require a name; standard
+types omit it. All text fields retain the 4096-character bound.
+
+`NoCollection = true` explicitly asserts no collection membership and cannot accompany
+`Collections`. An empty list with the default `NoCollection = false` makes no assertion.
+This profile writes one top-level collection title per membership; hierarchical
+titles, collection-level credits, publication frequency and other identifier schemes
+are not represented. Collection claims and recipient acceptance remain the publisher's
+responsibility. The [ONIX collection types](https://ns.editeur.org/onix/en/148),
+[identifier schemes](https://ns.editeur.org/onix/en/13) and
+[sequence types](https://ns.editeur.org/onix/en/197) define the trade semantics.
+
 ### Edition metadata
 
 `Edition` describes the publication edition independently of project revision history:
