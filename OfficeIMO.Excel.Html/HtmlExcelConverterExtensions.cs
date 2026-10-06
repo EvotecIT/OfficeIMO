@@ -26,6 +26,7 @@ public static partial class HtmlExcelConverterExtensions {
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
+        var budget = new HtmlImportBudget(resolved.Limits);
         bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
             && (resolved.Mode == HtmlImportMode.Semantic
                 || OfficeHtmlSemanticEnvelope.Inspect(adapterDocument, "excel").IsPresent
@@ -33,7 +34,8 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlEditableLayoutProjection? editableLayout = resolved.ImportEditableLayoutRegions && !targetSemantic
             && HtmlEditableLayoutProjector.MayContainEditableLayoutRegions(document, HtmlEditableLayoutRegionKinds.All)
             ? HtmlEditableLayoutProjector.ProjectPreservingMixedInlineContent(
-                document, mediaContext: mediaContext, preserveNestedImagePlacement: false,
+                document, renderOptions: new HtmlRenderOptions { ImageNormalizationBudget = budget },
+                mediaContext: mediaContext, preserveNestedImagePlacement: false,
                 preserveMixedInlineEdgeSequences: false)
             : null;
         HtmlSemanticDocument semanticDocument = editableLayout == null
@@ -42,7 +44,7 @@ public static partial class HtmlExcelConverterExtensions {
         IEnumerable<HtmlDiagnostic> diagnostics = editableLayout == null
             ? document.Diagnostics
             : document.Diagnostics.Concat(editableLayout.Diagnostics);
-        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, diagnostics, editableLayout);
+        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, budget, diagnostics, editableLayout);
     }
 
     private static HtmlToExcelResult ImportDocument(
@@ -50,6 +52,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticDocument semanticDocument,
         HtmlInputTrust trust,
         HtmlToExcelOptions options,
+        HtmlImportBudget budget,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null,
         HtmlEditableLayoutProjection? editableLayout = null) {
         options.Limits.Validate();
@@ -59,7 +62,6 @@ public static partial class HtmlExcelConverterExtensions {
         if (initialDiagnostics != null) {
             foreach (HtmlDiagnostic diagnostic in initialDiagnostics) result.AddImportDiagnostic(diagnostic);
         }
-        var budget = new HtmlImportBudget(options.Limits);
         OfficeHtmlSemanticEnvelopeInfo envelope = OfficeHtmlSemanticEnvelope.Inspect(document, "excel");
         IReadOnlyList<IElement> sheetSections = OfficeHtmlSemanticEnvelope
             .SelectOwnedContainers(document, envelope, "section.officeimo-sheet");

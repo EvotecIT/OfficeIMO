@@ -76,6 +76,10 @@ public static partial class HtmlExcelConverterExtensions {
                 + "; maximum=" + budget.Limits.MaxDecodedImagePixels);
             return false;
         }
+        if (!budget.TryBeginImageDecodeWork(bytes.LongLength, out string workLimit)) {
+            AddImageLimitDiagnostic(result, source, workLimit);
+            return false;
+        }
         var decodeOptions = new OfficeRasterDecodeOptions {
             MaximumEncodedBytes = (int)Math.Min(128L * 1024 * 1024, budget.Limits.MaxImageBytes),
             MaximumDecodedPixels = Math.Min(50_000_000L, budget.Limits.MaxDecodedImagePixels),
