@@ -261,7 +261,8 @@ public sealed partial class OfficeFontFaceCollection {
         OfficeFontUnicodeRangeSet? unicodeRanges,
         int maximumDecodedBytes,
         out int decodedBytes,
-        out string? error) {
+        out string? error,
+        bool applyDescriptorWeight = false) {
         if (maximumDecodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
         OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges ?? OfficeFontUnicodeRangeSet.All;
         string? resourceFamilyName = string.IsNullOrWhiteSpace(familyName)
@@ -278,195 +279,8 @@ public sealed partial class OfficeFontFaceCollection {
             resourceFamilyName,
             maximumDecodedBytes,
             out decodedBytes,
-            out error);
-    }
-
-    private bool TryAddCore(
-        string? familyName,
-        byte[]? data,
-        OfficeFontStyle style,
-        OfficeFontFaceDescriptor descriptor,
-        OfficeFontUnicodeRangeSet unicodeRanges,
-        string? resourceFamilyName,
-        int? maximumDecodedBytes,
-        out int decodedBytes,
-        out string? error) {
-        decodedBytes = 0;
-        error = null;
-        if (string.IsNullOrWhiteSpace(familyName) || data == null || data.Length == 0) {
-            error = "Font data and family name are required.";
-            return false;
-        }
-
-        OfficeFontContainerFormat sourceFormat = OfficeFontContainerDecoder.Detect(data);
-        byte[] openTypeData;
-        bool decoded = maximumDecodedBytes.HasValue
-            ? OfficeFontContainerDecoder.TryDecodeToOpenType(
-                data,
-                maximumDecodedBytes.Value,
-                out openTypeData,
-                out _,
-                out error)
-            : OfficeFontContainerDecoder.TryDecodeToOpenType(
-                data,
-                out openTypeData,
-                out _,
-                out error);
-        IReadOnlyDictionary<string, float>? variationValues = null;
-        if (decoded && FontVariationResolver != null) {
-            try {
-                variationValues = FontVariationResolver(new OfficeFontProgramLoadRequest(
-                    familyName!.Trim(),
-                    openTypeData,
-                    OfficeFontFace.NormalizeStyle(style),
-                    OfficeFontContainerFormat.OpenType,
-                    maximumDecodedBytes ?? OfficeFontContainerDecoder.DefaultMaximumDecodedBytes));
-            } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
-                error = "The variable-font axis resolver failed: " + exception.Message;
-                return false;
-            }
-        }
-        bool isFontCollection = decoded && HasTrueTypeCollectionSignature(openTypeData);
-        if (isFontCollection && variationValues != null && variationValues.Count > 0) {
-            error = "Variable-font axes cannot be selected on a font collection. Extract and register the intended face as an individual OpenType font.";
-            return false;
-        }
-        IOfficeFontProgram? builtInProgram = null;
-        bool builtInVariable = false;
-        if (decoded) {
-            OfficeOpenTypeCffFont? cffProgram = OfficeOpenTypeCffFont.TryLoad(openTypeData, variationValues, out string? cffError);
-            if (cffProgram != null) {
-                builtInProgram = cffProgram;
-                builtInVariable = cffProgram.IsVariable;
-            } else {
-                OfficeOpenTypeReader? openTypeReader = OfficeOpenTypeReader.TryCreate(openTypeData);
-                OfficeFontVariationModel variationModel;
-                try {
-                    variationModel = openTypeReader == null
-                        ? OfficeFontVariationModel.None
-                        : OfficeFontVariationModel.Create(openTypeReader, variationValues);
-                } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
-                    error = "The variable-font configuration is invalid: " + exception.Message;
-                    return false;
-                }
-                builtInVariable = variationModel.IsVariable;
-                string? trueTypeError = null;
-                builtInProgram = variationModel.IsVariable
-                    ? OfficeTrueTypeFont.TryLoad(openTypeData, variationModel, out trueTypeError)
-                    : OfficeTrueTypeFont.TryLoad(openTypeData);
-                if (builtInProgram == null && variationModel.IsVariable && !string.IsNullOrWhiteSpace(trueTypeError)) {
-                    error = trueTypeError;
-                }
-                if (builtInProgram == null && !string.IsNullOrWhiteSpace(cffError)) error = cffError;
-                if (builtInProgram == null && isFontCollection) {
-                    error = "This font collection cannot be registered directly. Extract and register the intended face as an individual OpenType font.";
-                }
-            }
-        }
-        IOfficeFontProgram? parsed = builtInProgram;
-        byte[] acceptedData = openTypeData;
-        bool canEmbedAsStaticPdfFont = parsed != null && !builtInVariable && !isFontCollection;
-        // Configuring a provider is an explicit request to use its complete layout engine even
-        // for TrueType faces the dependency-free core can decode. A provider may still decline,
-        // in which case the already validated built-in program remains the fallback.
-        bool providerPreferred = decoded;
-        if ((parsed == null || providerPreferred) && FontProgramProvider != null) {
-            int providerLimit = maximumDecodedBytes ?? OfficeFontContainerDecoder.DefaultMaximumDecodedBytes;
-            IReadOnlyDictionary<string, float>? providerVariationValues =
-                (builtInProgram as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping
-                ?? variationValues;
-            // The request's container must describe the bytes handed to the provider. WOFF inputs
-            // are normalized by the core before this point. Keeping the original WOFF label with
-            // sfnt bytes makes a provider interpret the table directory as a web-font header.
-            OfficeFontContainerFormat providerInputFormat = decoded
-                ? OfficeFontContainerDecoder.Detect(openTypeData)
-                : sourceFormat;
-            OfficeFontProgramLoadResult? providerResult;
-            try {
-                providerResult = FontProgramProvider.TryLoad(new OfficeFontProgramLoadRequest(
-                    familyName!.Trim(),
-                    decoded ? openTypeData : data,
-                    OfficeFontFace.NormalizeStyle(style),
-                    providerInputFormat,
-                    providerLimit,
-                    providerVariationValues));
-            } catch (Exception exception) when (!(exception is OutOfMemoryException)) {
-                error = "The configured font-program provider failed: " + exception.Message;
-                return false;
-            }
-            if (providerResult != null) {
-                byte[]? staticData = providerResult.StaticOpenTypeDataSnapshot;
-                int faceDataBytes = staticData?.Length ?? data.Length;
-                long retainedBytes = (long)providerResult.DecodedByteCount + faceDataBytes;
-                if (retainedBytes > providerLimit) {
-                    error = "Decoded font data exceeds the configured byte limit.";
-                    return false;
-                }
-                parsed = providerResult.Program;
-                acceptedData = staticData ?? (byte[])data.Clone();
-                decodedBytes = checked((int)retainedBytes);
-                canEmbedAsStaticPdfFont = staticData != null && !HasTrueTypeCollectionSignature(staticData);
-            } else {
-                parsed = builtInProgram;
-                acceptedData = openTypeData;
-                canEmbedAsStaticPdfFont = builtInProgram != null && !builtInVariable && !isFontCollection;
-            }
-        }
-        if (parsed == null) {
-            if (decoded && string.IsNullOrWhiteSpace(error)) error = "Decoded font data does not contain a supported outline program.";
-            return false;
-        }
-        if (decodedBytes == 0 && maximumDecodedBytes.HasValue) {
-            // The face owns one independent embedding snapshot. The built-in TrueType program
-            // retains the decoded sfnt buffer, while CFF retains that reader buffer plus its
-            // independent shaping snapshot.
-            int retainedFullBufferCount = parsed is OfficeOpenTypeCffFont ? 3 : 2;
-            long retainedBytes = (long)acceptedData.Length * retainedFullBufferCount;
-            if (retainedBytes > maximumDecodedBytes.Value || retainedBytes > int.MaxValue) {
-                error = "Decoded font data exceeds the configured byte limit.";
-                return false;
-            }
-            decodedBytes = (int)retainedBytes;
-        }
-
-        string normalizedFamily = familyName!.Trim();
-        string normalizedResourceFamily = string.IsNullOrWhiteSpace(resourceFamilyName)
-            ? normalizedFamily
-            : resourceFamilyName!.Trim();
-        OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges;
-        OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
-        for (int index = _faces.Count - 1; index >= 0; index--) {
-            OfficeFontFace existing = _faces[index];
-            if (existing.Style == normalizedStyle
-                && string.Equals(existing.FamilyName, normalizedFamily, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(existing.ResourceFamilyName, normalizedResourceFamily, StringComparison.OrdinalIgnoreCase)) {
-                _faces[index] = new OfficeFontFace(
-                    normalizedFamily,
-                    normalizedResourceFamily,
-                    acceptedData,
-                    normalizedStyle,
-                    descriptor,
-                    normalizedRanges,
-                    parsed,
-                    sourceFormat,
-                    canEmbedAsStaticPdfFont);
-                if (decodedBytes == 0) decodedBytes = acceptedData.Length;
-                return true;
-            }
-        }
-
-        _faces.Add(new OfficeFontFace(
-            normalizedFamily,
-            normalizedResourceFamily,
-            acceptedData,
-            normalizedStyle,
-            descriptor,
-            normalizedRanges,
-            parsed,
-            sourceFormat,
-            canEmbedAsStaticPdfFont));
-        if (decodedBytes == 0) decodedBytes = acceptedData.Length;
-        return true;
+            out error,
+            applyDescriptorWeight);
     }
 
     /// <summary>Adds independent copies of all faces from another collection.</summary>
@@ -563,7 +377,7 @@ public sealed partial class OfficeFontFaceCollection {
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         foreach (OfficeFontFallbackRun run in runs) {
-            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, out OfficeFontStyle _);
+            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             width += font.Measure(run.Text, fontSize);
         }
@@ -586,7 +400,7 @@ public sealed partial class OfficeFontFaceCollection {
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         var resolvedWidths = new List<double>(elements.Count);
         foreach (OfficeFontFallbackRun run in runs) {
-            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, out OfficeFontStyle _);
+            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             var runElements = new List<string>();
             foreach (string element in OfficeTextElements.Enumerate(run.Text)) runElements.Add(element);
@@ -673,6 +487,31 @@ public sealed partial class OfficeFontFaceCollection {
         return face != null;
     }
 
+    /// <summary>Resolves a face at the authored text size, selecting a built-in TrueType optical
+    /// axis automatically unless the variation resolver explicitly supplied opsz. Provider-owned
+    /// programs retain their provider-selected axes.</summary>
+    public bool TryResolveFaceForText(string? text, string? familyNames, OfficeFontStyle style,
+        double fontSize, out OfficeFontFace? face) {
+        ValidateOpticalFontSize(fontSize);
+        if (!TryResolveFaceForText(text, familyNames, style, out face)) return false;
+        face = face!.ForOpticalSize(fontSize);
+        return true;
+    }
+
+    /// <summary>Resolves numeric weight, stretch, and slant with automatic built-in TrueType optical sizing.</summary>
+    public bool TryResolveFaceForText(string? text, string? familyNames, OfficeFontFaceDescriptor descriptor,
+        double fontSize, out OfficeFontFace? face) {
+        ValidateOpticalFontSize(fontSize);
+        if (!TryResolveFaceForText(text, familyNames, descriptor, out face)) return false;
+        face = face!.ForOpticalSize(fontSize);
+        return true;
+    }
+
+    private static void ValidateOpticalFontSize(double size) {
+        if (size <= 0D || double.IsNaN(size) || double.IsInfinity(size))
+            throw new ArgumentOutOfRangeException(nameof(size));
+    }
+
     /// <summary>Resolves a scoped face using numeric weight, stretch, and slant matching.</summary>
     public bool TryResolveFaceForText(
         string? text,
@@ -707,6 +546,11 @@ public sealed partial class OfficeFontFaceCollection {
 
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
         foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
+            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
+                OfficeFontFace? mathFace = ResolveMathematicalFace(null, family, style);
+                if (mathFace != null) { resolvedStyle = mathFace.Style; return mathFace.ParsedFont; }
+                continue;
+            }
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
@@ -746,19 +590,34 @@ public sealed partial class OfficeFontFaceCollection {
         return font;
     }
 
-    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor, out OfficeFontStyle resolvedStyle) {
+    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style,
+        double fontSize, out OfficeFontStyle resolvedStyle) {
+        ResolveForText(text, familyNames, style, out OfficeFontFace? face);
+        resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
+        return face?.ForOpticalSize(fontSize).Program;
+    }
+
+    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor, out OfficeFontStyle resolvedStyle) =>
+        ResolveForText(text, familyNames, descriptor, fontSize: null, out resolvedStyle);
+
+    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor,
+        double fontSize, out OfficeFontStyle resolvedStyle) =>
+        ResolveForText(text, familyNames, descriptor, (double?)fontSize, out resolvedStyle);
+
+    private IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor,
+        double? fontSize, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
-        if (TryResolveFaceForText(text, familyNames, descriptor, out OfficeFontFace? face)) {
-            resolvedStyle = face!.Descriptor.ToStyle();
-            return face.ParsedFont;
-        }
-        if (string.IsNullOrEmpty(text) && !string.IsNullOrWhiteSpace(familyNames)) {
+        OfficeFontFace? face = null;
+        if (!TryResolveFaceForText(text, familyNames, descriptor, out face)
+            && string.IsNullOrEmpty(text) && !string.IsNullOrWhiteSpace(familyNames)) {
             foreach (OfficeFontFace candidate in ResolveFallbackCandidates(familyNames!, descriptor)) {
-                resolvedStyle = candidate.Descriptor.ToStyle();
-                return candidate.ParsedFont;
+                face = candidate;
+                break;
             }
         }
-        return null;
+        if (face == null) return null;
+        resolvedStyle = face.Descriptor.ToStyle();
+        return fontSize.HasValue ? face.ForOpticalSize(fontSize.Value).Program : face.ParsedFont;
     }
 
     private IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontFace? resolvedFace) {
@@ -767,6 +626,11 @@ public sealed partial class OfficeFontFaceCollection {
 
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
         foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
+            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
+                OfficeFontFace? mathFace = ResolveMathematicalFace(text, family, style);
+                if (mathFace != null) { resolvedFace = mathFace; return mathFace.ParsedFont; }
+                continue;
+            }
             OfficeFontFace? exact = null;
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
@@ -811,7 +675,8 @@ public sealed partial class OfficeFontFaceCollection {
 
     private static bool MatchesFamily(OfficeFontFace face, string family) =>
         string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+        || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase)
+        || OfficeSystemFontFamilyAliases.IsMath(family) && OfficeSystemFontFamilyAliases.MathFamilyRank(face.FamilyName) != int.MaxValue;
 
     private static bool HasTrueTypeCollectionSignature(byte[]? data) =>
         data != null

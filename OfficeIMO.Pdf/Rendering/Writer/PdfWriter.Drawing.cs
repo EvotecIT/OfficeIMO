@@ -826,6 +826,9 @@ internal static partial class PdfWriter {
     }
 
     private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null, TableCellContentFrame? diagonalFrame = null) {
+        if (border.PaintInsideFrame) {
+            InsetCellBorderToFrame(border, ref x, ref y, ref w, ref h);
+        }
         if (!border.Color.HasValue &&
             border.TopBorderSnapshot == null &&
             border.RightBorderSnapshot == null &&
@@ -1030,7 +1033,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static double GetDoubleBorderGap(double widthStroke) => Math.Max(widthStroke * 2D, 1D);
+    private static double GetDoubleBorderGap(double widthStroke) => PdfCellBorderSide.DoubleTrackGap(widthStroke);
 
     private static void DrawStyledVLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x, double yTop, double yBottom, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);

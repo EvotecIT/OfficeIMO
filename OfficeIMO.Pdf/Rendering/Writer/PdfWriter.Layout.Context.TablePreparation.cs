@@ -34,8 +34,8 @@ internal static partial class PdfWriter {
                         GetTableCellPaddingLeft(style, row, cell.Column) - GetTableCellPaddingRight(style, row, cell.Column));
                     TableCellTextLayout lines = continued
                         ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], consumedLines, innerWidth, font, size, leading,
-                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D)
-                        : CreateTableCellTextLayout(cell, innerWidth, font, size, leading, currentOpts, sizing.RunFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
+                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum)
+                        : CreateTableCellTextLayout(cell, innerWidth, font, size, leading, currentOpts, sizing.RunFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {
                         maxLines = Math.Max(maxLines, lines.LineCount);
