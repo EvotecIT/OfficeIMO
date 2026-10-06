@@ -1,11 +1,14 @@
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    internal sealed class LegacyDocStyleSheet {
+    internal sealed partial class LegacyDocStyleSheet {
         private readonly IReadOnlyDictionary<ushort, LegacyDocParagraphStyle> _paragraphStyles;
+        private readonly IReadOnlyDictionary<ushort, LegacyDocTableStyle> _tableStyles;
 
-        private LegacyDocStyleSheet(IReadOnlyDictionary<ushort, LegacyDocParagraphStyle> paragraphStyles) {
+        private LegacyDocStyleSheet(IReadOnlyDictionary<ushort, LegacyDocParagraphStyle> paragraphStyles,
+            IReadOnlyDictionary<ushort, LegacyDocTableStyle>? tableStyles = null) {
             _paragraphStyles = paragraphStyles;
+            _tableStyles = tableStyles ?? new Dictionary<ushort, LegacyDocTableStyle>();
         }
 
         internal static LegacyDocStyleSheet Empty { get; } = new LegacyDocStyleSheet(new Dictionary<ushort, LegacyDocParagraphStyle>());
@@ -52,6 +55,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             offset = stshifOffset + cbStshi;
             var styles = new Dictionary<ushort, LegacyDocParagraphStyle>();
+            var tableStyles = new Dictionary<ushort, LegacyDocTableStyle>();
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (ushort styleIndex = 0; styleIndex < cstd && offset + 2 <= end; styleIndex++) {
                 int cbStd = LegacyDocFib.ReadUInt16(tableStream, offset);
@@ -67,6 +71,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 if (TryReadParagraphStyle(tableStream, offset, cbStd, cbStdBaseInFile, styleIndex, usedStyleIds, fontFamilies, defaultFont, out LegacyDocParagraphStyle? style)) {
                     styles[styleIndex] = style!;
+                } else if (TryReadTableStyle(tableStream, offset, cbStd, cbStdBaseInFile, out LegacyDocTableStyle? tableStyle)) {
+                    tableStyles[styleIndex] = tableStyle!;
                 }
 
                 offset += cbStd;
@@ -75,7 +81,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
             }
 
-            return styles.Count == 0 ? Empty : new LegacyDocStyleSheet(styles);
+            return styles.Count == 0 && tableStyles.Count == 0 ? Empty : new LegacyDocStyleSheet(styles, tableStyles);
         }
 
         private static bool TryReadParagraphStyle(

@@ -111,6 +111,7 @@ internal sealed class OfficeOpenTypeItemVariationStore {
     }
 
     internal int Evaluate(int outerIndex, int innerIndex) {
+        if (IsNoVariationIndex(outerIndex, innerIndex)) return 0;
         ValidateIndex(outerIndex, innerIndex);
         DataSet dataSet = _dataSets[outerIndex];
         if (!dataSet.IsPresent) return 0;
@@ -138,7 +139,12 @@ internal sealed class OfficeOpenTypeItemVariationStore {
         return checked((int)Math.Round(value, MidpointRounding.ToEven));
     }
 
+    // OpenType reserves the complete FFFF/FFFF pair for an item without variation data.
+    private static bool IsNoVariationIndex(int outerIndex, int innerIndex) =>
+        outerIndex == ushort.MaxValue && innerIndex == ushort.MaxValue;
+
     internal void ValidateIndex(int outerIndex, int innerIndex) {
+        if (IsNoVariationIndex(outerIndex, innerIndex)) return;
         if (outerIndex < 0 || outerIndex >= _dataSets.Length) {
             throw new InvalidDataException("An OpenType variation-store outer index is invalid.");
         }

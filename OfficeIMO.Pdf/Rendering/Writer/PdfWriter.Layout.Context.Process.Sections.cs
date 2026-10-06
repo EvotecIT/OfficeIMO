@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
                     RenderHeadingFlowBlock(heading, null, new IPdfBlock[] { heading }, 0, CaptureSectionPlacement);
                 } else CaptureSectionPlacement();
 
-                ProcessBlocks(section.Blocks);
+                ProcessBlocks(section.Blocks, section);
             } finally {
                 flowSemanticScopes.RemoveAt(flowSemanticScopes.Count - 1);
             }
@@ -45,11 +45,9 @@ internal static partial class PdfWriter {
         private void RenderTableOfContentsBlock(TableOfContentsBlock tableOfContents) {
             encounteredTableOfContents = true;
             PdfTableOfContentsOptions options = tableOfContents.Options;
-            if (!string.IsNullOrWhiteSpace(options.Title)) {
-                ProcessBlocks(new IPdfBlock[] { new HeadingBlock(1, options.Title!, PdfAlign.Left, color: null) });
-            }
-
             var entries = new List<IPdfBlock>();
+            if (!string.IsNullOrWhiteSpace(options.Title))
+                entries.Add(new HeadingBlock(1, options.Title!, PdfAlign.Left, color: null));
             for (int i = 0; i < sectionDefinitions.Count; i++) {
                 SectionBlock section = sectionDefinitions[i];
                 if (!section.Options.IncludeInTableOfContents ||
@@ -80,7 +78,7 @@ internal static partial class PdfWriter {
                     style));
             }
 
-            ProcessBlocks(entries);
+            ProcessBlocks(entries, tableOfContents);
         }
 
         private static string FormatSectionPageNumber(PdfTableOfContentsOptions options, int pageNumber) {

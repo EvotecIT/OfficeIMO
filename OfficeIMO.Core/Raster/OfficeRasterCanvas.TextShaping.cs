@@ -93,7 +93,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeColor? decorationColor = null) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return true;
-        IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, fontSize, out OfficeFontStyle resolvedStyle);
         if (font == null ||
             !TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out OfficeTextShapingResult run) ||
             !HasUsableVerticalPositioning(run)) {
@@ -113,7 +113,7 @@ public sealed partial class OfficeRasterCanvas {
             foreach (OfficeColorGlyphContours layer in colorLayers) {
                 inkBottom = Math.Max(inkBottom, FindMaximumContourY(layer.Contours));
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
-                FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
+                FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
             }
             DrawVerticalTextDecorations(originX, y, height, inkBottom, size, style,
                 underlineStyle, strikethroughStyle, decorationColor ?? color);
@@ -132,7 +132,7 @@ public sealed partial class OfficeRasterCanvas {
         AlignVerticalContoursToTop(contours, y);
         double contourBottom = FindMaximumContourY(contours);
         if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
-        FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
+        FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
         DrawVerticalTextDecorations(originX, y, height, contourBottom, size, style,
             underlineStyle, strikethroughStyle, decorationColor ?? color);
         return true;

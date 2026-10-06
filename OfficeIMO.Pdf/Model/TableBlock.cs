@@ -109,7 +109,7 @@ internal sealed class TableBlock : IPdfBlock {
         }
     }
 
-    private static int GetColumnCount(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<PdfTableCell>> rows) {
+    internal static int GetColumnCount(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<PdfTableCell>> rows) {
         int columnCount = 0;
         var activeRowSpans = new System.Collections.Generic.List<int>();
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {

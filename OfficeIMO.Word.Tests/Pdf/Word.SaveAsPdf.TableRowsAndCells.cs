@@ -1392,7 +1392,8 @@ public partial class Word {
         double secondGap = beta.BoundingBox.Bottom - gamma.BoundingBox.Bottom;
         // TableGrid has single spacing. The substituted Helvetica face advances
         // at 1.15 times the document's declared 11pt size, rather than Calibri metrics.
-        Assert.Equal(11D * 1.15D, firstGap, precision: 3);
+        // The style's half-point border adds a quarter point on each side.
+        Assert.Equal(11D * 1.15D + .5D, firstGap, precision: 3);
         Assert.Equal(firstGap, secondGap, precision: 3);
     }
 

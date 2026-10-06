@@ -21,7 +21,7 @@ public sealed partial class OfficeRasterCanvas {
             if (ShouldUseFallbackRuns(runs, fontInfo.FamilyName)) {
                 double measured = MeasurePositionedText(text, size, fontInfo.FamilyName, fontInfo.Style, features, textDirection);
                 if (measured <= 0D) return (left, top, right, bottom, false);
-                double cursor = ResolveTextX(x, Math.Max(1D, width), advance, alignment);
+                double cursor = ResolveTextX(x, Math.Max(.01D, width), advance, alignment);
                 foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text, fontInfo.FamilyName, fontInfo.Style, textDirection)) {
                     double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, fontInfo.Style, features, runDirection) * advance / measured;
                     var bounds = MeasurePositionedTextBounds(run.Text, cursor, y, Math.Max(.01D, runAdvance), height,
@@ -36,12 +36,12 @@ public sealed partial class OfficeRasterCanvas {
                 return (left, top, right, bottom, hasInk);
             }
         }
-        IOfficeFontProgram? font = ResolveTextFont(text, fontInfo.FamilyName, fontInfo.Style, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(text, fontInfo.FamilyName, fontInfo.Style, size, out OfficeFontStyle resolvedStyle);
         // An unresolved face is not evidence of an empty glyph.
         if (font == null) return (left - size, top - size, right + size, bottom + size, true);
         double naturalAdvance = MeasureResolvedText(text, font, size, features, textDirection);
         double scaleX = naturalAdvance > 0D ? advance / naturalAdvance : 1D;
-        double textX = ResolveTextX(x, Math.Max(1D, width), advance, alignment);
+        double textX = ResolveTextX(x, Math.Max(.01D, width), advance, alignment);
         double textTop = y + ResolveRasterTextTop(font, size, height, baselineSize);
         OfficeFontStyle simulated = fontInfo.Style & ~resolvedStyle;
         Include(GetResolvedTextContours(text, font, textX, textTop, size, features, textDirection));
@@ -76,7 +76,7 @@ public sealed partial class OfficeRasterCanvas {
         void Include(List<List<OfficePoint>> contours) {
             if (Math.Abs(scaleX - 1D) > .0001D) ScaleContoursX(contours, textX, scaleX);
             if ((simulated & OfficeFontStyle.Italic) != 0) SlantContours(contours, textTop, size);
-            double boldOffset = (simulated & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D;
+            double boldOffset = (simulated & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D;
             foreach (List<OfficePoint> contour in contours) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 hasInk |= contour.Count > 0;

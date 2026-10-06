@@ -9,6 +9,8 @@ internal sealed class HtmlImportBudget {
     private int _containers;
     private int _images;
     private long _imageBytes;
+    private int _imageDecodeAttempts;
+    private long _imageDecodeInputBytes;
     private int _shapes;
     private int _tables;
 
@@ -18,6 +20,31 @@ internal sealed class HtmlImportBudget {
     }
 
     internal HtmlImportLimits Limits => _limits;
+
+    /// <summary>
+    /// Admits expensive raster normalization independently of retained drawing reservations.
+    /// Failed conversions release their output slots, but never refund work already admitted.
+    /// </summary>
+    internal bool TryBeginImageDecodeWork(long encodedBytes, out string detail) {
+        if (_imageDecodeAttempts >= _limits.MaxImages) {
+            detail = Detail(nameof(HtmlImportLimits.MaxImages), _imageDecodeAttempts + 1L, _limits.MaxImages)
+                + "; raster decode attempts";
+            return false;
+        }
+        if (encodedBytes <= 0L || encodedBytes > _limits.MaxImageBytes) {
+            detail = Detail(nameof(HtmlImportLimits.MaxImageBytes), encodedBytes, _limits.MaxImageBytes);
+            return false;
+        }
+        if (encodedBytes > _limits.MaxTotalImageBytes - _imageDecodeInputBytes) {
+            detail = Detail(nameof(HtmlImportLimits.MaxTotalImageBytes), _imageDecodeInputBytes + encodedBytes,
+                _limits.MaxTotalImageBytes) + "; raster decode input bytes";
+            return false;
+        }
+        _imageDecodeAttempts++;
+        _imageDecodeInputBytes += encodedBytes;
+        detail = string.Empty;
+        return true;
+    }
 
     internal bool TryReserveSemanticContainer(out string detail) =>
         TryIncrement(ref _containers, _limits.MaxSemanticContainers, nameof(HtmlImportLimits.MaxSemanticContainers), out detail);

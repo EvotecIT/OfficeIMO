@@ -47,6 +47,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.Studio" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />

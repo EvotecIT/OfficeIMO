@@ -96,7 +96,7 @@ public static partial class HtmlRoundTripScorer {
         var signatures = new List<string>();
         var visited = new HashSet<IElement>();
         foreach (HtmlSemanticSection section in document.Sections) {
-            foreach (HtmlSemanticBlock block in section.Blocks) {
+            foreach (HtmlSemanticBlock block in section.EnumerateContentBlocks()) {
                 AppendStyleSignatures(block, signatures, visited);
             }
         }

@@ -9,7 +9,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.CancellationToken.ThrowIfCancellationRequested();
         using var cffScope = canvas.PushCffExecutionScope();
         double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
-        double sourceSize = Math.Max(1D, text.Font.Size * scale);
+        double sourceSize = Math.Max(.1D, text.Font.Size * scale);
         string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
         for (int index = 0; index < lines.Length; index++) {
@@ -43,6 +43,7 @@ public static partial class OfficeDrawingRasterRenderer {
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
+        local.FontMetricScale = canvas.FontMetricScale;
         using var faceScope = local.PushTextFace(text.Font.Face);
         local.ShareCffOperationBudget(canvas);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
@@ -56,7 +57,7 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderPositionedTextLines(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale,
         double x, double y, double width, double height) {
-        double sourceSize = Math.Max(1D, text.Font.Size * scale);
+        double sourceSize = Math.Max(.1D, text.Font.Size * scale);
         double size = sourceSize * text.BaselineScale;
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
         string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
@@ -97,6 +98,7 @@ public static partial class OfficeDrawingRasterRenderer {
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
             cancellationToken: canvas.CancellationToken);
+        local.FontMetricScale = canvas.FontMetricScale;
         using var faceScope = local.PushTextFace(text.Font.Face);
         local.ShareCffOperationBudget(canvas);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
@@ -134,6 +136,7 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
+        using var metricScope = canvas.PushFontMetricScale(canvas.FontMetricScale * text.FontMetricScale);
         using var faceScope = canvas.PushTextFace(text.Font.Face);
         OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
         double contentX = (text.X * scale) + scaledPadding.Left;
@@ -214,7 +217,7 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        double sourceFontSize = Math.Max(1D, text.Font.Size * scale);
+        double sourceFontSize = Math.Max(.1D, text.Font.Size * scale);
         double fontSize = sourceFontSize * text.BaselineScale;
         double baselineOffset = text.BaselineOffset * scale;
         OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);

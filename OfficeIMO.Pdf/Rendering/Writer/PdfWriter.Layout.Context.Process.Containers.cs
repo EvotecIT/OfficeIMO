@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
             PdfPanelStyle style = ResolveContainerStyle(container);
             double parentLeft = currentOpts.MarginLeft;
             double parentWidth = width;
-            var frame = ResolveContainerFrame(style, parentLeft, parentWidth);
+            var frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
             double outerWidth = frame.Width;
             double outerX = frame.X;
             double contentWidth = frame.ContentWidth;
@@ -21,21 +21,21 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double firstVisualHeight = container.Blocks.Count == 0
                 ? 0D
-                : MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                : MeasureWithContainerPaddingReservation(style, () =>
                     MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
-            double minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
-            if (style.PaddingY * 2D + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
+            double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+            if (style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
             while (ShouldAdvanceForBlockHeight(minimumStartHeight)) {
                 NewBlockFrame();
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 parentLeft = currentOpts.MarginLeft; parentWidth = width;
-                frame = ResolveContainerFrame(style, parentLeft, parentWidth);
-                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style.PaddingY, () =>
+                frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
+                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style, () =>
                     MeasureNextBlockFirstVisualHeight(container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
-                minimumStartHeight = spacingBefore + style.PaddingY * 2D + firstVisualHeight;
-                if (style.PaddingY * 2D + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
+                minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+                if (style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
 
@@ -81,29 +81,32 @@ internal static partial class PdfWriter {
             }
 
             y -= spacingBefore;
-            if (style.PaddingY > 0) RecordFlowPlacement(y);
+            if (style.TopPadding > 0) RecordFlowPlacement(y);
             else ResolveFloatingBookmarks(y);
             PdfOptions parentOptions = currentOpts;
             double parentYStart = yStart;
             PdfOptions pageOptions = currentPage!.Options;
             parentWidth = width;
-            frame = ResolveContainerFrame(style, currentOpts.MarginLeft, parentWidth);
+            frame = ResolveContainerFrame(container, style, currentOpts.MarginLeft, parentWidth);
             outerX = frame.X;
             outerWidth = frame.Width;
             contentWidth = frame.ContentWidth;
             var nestedOptions = currentOpts.Clone();
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
+            nestedOptions.MarginBottom += style.FragmentBottomInset;
             nestedOptions.Validate();
 
-            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions);
+            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions, container);
             activeContainerScopes.Add(scope);
             currentOpts = nestedOptions;
             width = contentWidth;
             BeginContainerFragment(scope);
             try {
                 ProcessBlocks(container.Blocks, container);
-                double bottomPadding = Math.Min(style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
+                if (!style.RepeatFragmentDecoration && style.BottomPadding > y - scope.ParentOptions.MarginBottom + .001D)
+                    throw new ArgumentException("Element closing padding cannot fit within the available page height.");
+                double bottomPadding = Math.Min(style.BottomPadding, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well
@@ -144,9 +147,9 @@ internal static partial class PdfWriter {
 
             for (int index = (endIndex ?? activeContainerScopes.Count) - 1; index >= firstIndex; index--) {
                 ContainerRenderScope scope = activeContainerScopes[index];
-                double bottomPadding = Math.Min(scope.Style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
+                double bottomPadding = Math.Min(scope.Style.GetFragmentBottomPadding(continues: true), Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
-                FinalizeContainerFragment(scope);
+                FinalizeContainerFragment(scope, y, continues: true);
                 scope.ParentOptions.MergeFontProgramUsageFrom(scope.NestedOptions);
             }
         }
@@ -160,18 +163,19 @@ internal static partial class PdfWriter {
                 ContainerRenderScope scope = activeContainerScopes[index];
                 scope.PageOptions = currentPage.Options;
                 scope.ParentOptions = currentOpts;
-                var frame = ResolveContainerFrame(scope.Style, currentOpts.MarginLeft, width);
+                var frame = ResolveContainerFrame(scope.Container, scope.Style, currentOpts.MarginLeft, width);
                 scope.OuterX = frame.X;
                 scope.OuterWidth = frame.Width;
                 // Only the frame changes during continuation. Reuse child options
                 // and their accumulated font usage instead of copying assets per page.
                 scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
                 scope.NestedOptions.MarginTop = currentOpts.MarginTop;
-                scope.NestedOptions.MarginBottom = currentOpts.MarginBottom;
+                scope.NestedOptions.MarginBottom = currentOpts.MarginBottom + scope.Style.FragmentBottomInset;
                 scope.NestedOptions.MarginRight = currentOpts.PageWidth -
                     (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);
                 currentOpts = scope.NestedOptions;
                 width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                scope.IsContinuation = true;
                 BeginContainerFragment(scope);
             }
         }
@@ -183,25 +187,32 @@ internal static partial class PdfWriter {
         private double BeginContainerFragment(ContainerRenderScope scope, double top) {
             scope.InsertionIndex = sb.Length;
             scope.FragmentTop = top;
-            return top - Math.Min(scope.Style.PaddingY, Math.Max(0D, top - currentOpts.MarginBottom));
+            scope.TableContentBottom = null;
+            if (scope.Container?.FrameTable is { } table) tableFrameScopes[table] = scope;
+            return top - Math.Min(scope.Style.GetFragmentTopPadding(scope.IsContinuation), Math.Max(0D, top - currentOpts.MarginBottom));
         }
 
         private void FinalizeContainerFragment(ContainerRenderScope scope) {
             FinalizeContainerFragment(scope, y);
         }
 
-        private void FinalizeContainerFragment(ContainerRenderScope scope, double bottom) {
+        private void FinalizeContainerFragment(ContainerRenderScope scope, double bottom, bool continues = false) {
+            if (scope.Container?.FrameTable is { } table) tableFrameScopes.Remove(table);
+            bottom = ResolveContainerTableFrameBottom(scope, bottom, continues);
             double fragmentHeight = scope.FragmentTop - bottom;
             if (fragmentHeight <= 0.001D) {
                 return;
             }
 
             var decoration = new StringBuilder();
+            bool top = scope.Style.RepeatFragmentDecoration || !scope.IsContinuation;
+            bool end = scope.Style.RepeatFragmentDecoration || !continues;
             if (scope.Style.Background.HasValue) {
-                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, true, true, true, true, emitGeneratedStructure);
+                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, top, top, end, end, emitGeneratedStructure);
             }
 
-            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure);
+            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure, top, end);
+            DrawContainerTableFrame(decoration, scope, bottom, fragmentHeight, top, end);
             if (decoration.Length > 0) {
                 sb.Insert(scope.InsertionIndex, decoration.ToString());
                 pageDirty = true;
@@ -209,9 +220,11 @@ internal static partial class PdfWriter {
         }
 
         private sealed class ContainerRenderScope {
+            public double? TableContentBottom;
             public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions,
-                PdfOptions parentOptions, PdfOptions nestedOptions) {
+                PdfOptions parentOptions, PdfOptions nestedOptions, ContainerBlock? container = null) {
                 Style = style;
+                Container = container;
                 OuterX = outerX;
                 OuterWidth = outerWidth;
                 PageOptions = pageOptions;
@@ -220,6 +233,7 @@ internal static partial class PdfWriter {
             }
 
             public PdfPanelStyle Style { get; }
+            public ContainerBlock? Container { get; }
             public double OuterX { get; set; }
             public double OuterWidth { get; set; }
             public PdfOptions PageOptions { get; set; }
@@ -227,6 +241,7 @@ internal static partial class PdfWriter {
             public PdfOptions NestedOptions { get; set; }
             public int InsertionIndex { get; set; }
             public double FragmentTop { get; set; }
+            public bool IsContinuation { get; set; }
         }
     }
 }
