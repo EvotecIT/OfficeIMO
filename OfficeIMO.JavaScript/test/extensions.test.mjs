@@ -22,7 +22,7 @@ test("registered fonts/fills/borders/formats and custom column writers produce u
 });
 
 test("reserved options fail explicitly and XML reject policy reaches worksheet text", async () => {
-  for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"])
+  for (const feature of ["conditionalFormats", "dataValidation"])
     assert.throws(() => new Workbook().addWorksheet("Pending", { [feature]: [] }), { code: "NOT_SUPPORTED", feature });
   const book = new Workbook({ invalidCharacterPolicy: "reject" });
   assert.throws(() => new Workbook({ invalidCharacterPolicy: "reject", creator: "bad\u0001" }), { code: "INVALID_XML" });

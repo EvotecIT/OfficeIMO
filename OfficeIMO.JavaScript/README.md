@@ -91,7 +91,7 @@ async function exportRows(rows: Rows, destination: WritableStream<Uint8Array>) {
 
 The library awaits byte acceptance and never closes a supplied sink. The destination owns cancellation and disposal of partial output. Use the same signal for the writer, paged source and destination I/O. `toBlob()` remains the default output path and supports interleaved appends to different worksheets; it retains compressed output proportional to file size. A workbook with a caller-owned sink uses `finish()` instead of `toBlob()`.
 
-Both CSV and XLSX accept optional `limits`: `maxRows` counts data rows per worksheet/export, including generated preservation rows; `maxCells` counts emitted cells, including headings, footers and preservation records. `maxTextCharacters` counts UTF-16 units of string values, including CSV formatter/display/null-text results and XLSX headings, footers, previews and full preservation records. Numeric/date encodings, CSV quoting and XML markup do not count toward that text limit. `maxOutputBytes` limits actual UTF-8 CSV or ZIP bytes accepted by the sink and also bounds compressed worksheet retention in Blob mode. XLSX also accepts `maxStyles`, `maxSheets`, `maxHyperlinks` and `maxImageBytes`. Cell/text budgets are checked at row ingress, reserving generated headings, footers and preservation records before retaining input. Exceeding a ceiling throws `OfficeIMOError` with `code: "RESOURCE_LIMIT"`. Limits are nonnegative safe integers; `maxStyles` is from 1 through 64,000. No host-dependent timing or heap threshold is enforced by the library.
+Both CSV and XLSX accept optional `limits`: `maxRows` counts data rows per worksheet/export, including generated preservation rows; `maxCells` counts emitted cells, including titles, headings, footers and preservation records. `maxTextCharacters` counts UTF-16 units of string values, including CSV formatter/display/null-text results and XLSX titles, headings, footers, previews and full preservation records. Numeric/date encodings, CSV quoting and XML markup do not count toward that text limit. `maxOutputBytes` limits actual UTF-8 CSV or ZIP bytes accepted by the sink and also bounds compressed worksheet retention in Blob mode. XLSX also accepts `maxStyles`, `maxSheets`, `maxHyperlinks`, `maxImageBytes` and `maxMergedRanges`. The merge limit defaults to 10,000 across all worksheets, including generated title/group merges. Cell/text budgets are checked at row ingress, reserving generated cells/text before retaining input. Exceeding a ceiling throws `OfficeIMOError` with `code: "RESOURCE_LIMIT"`. Limits are nonnegative safe integers; `maxStyles` is from 1 through 64,000. No host-dependent timing or heap threshold is enforced by the library.
 
 XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write a bounded preview with an internal link to the full value on a `Text overflow` worksheet. Each overflow record identifies the source sheet/cell, one-based part number, text and total part count. Concatenate its `Text` values in part order to reconstruct the complete XML-valid value. Chunks never split a supplementary Unicode character. The same strip/reject policy applies to invalid XML characters. Preserve mode does not replace an existing external link on that cell; that conflict throws.
 
@@ -114,6 +114,7 @@ const rows = [{ name: "Łódź", latency: new ExportCell(125.75, {
 }) }];
 const book = createWorkbook();
 const sheet = book.addSheet("Report", {
+  title: { text: "Controller health", style: { font: { size: 20 }, fill: { color: "D9E1F2" } }, height: 32 },
   columns, table: { name: "ReportData" }, freezeHeader: true,
   autoSize: { sampleRows: 100, minWidth: 8, maxWidth: 40 },
   footer: { values: ["Totals"], totals: { latency: "average" }, style: { font: { bold: true } } },
@@ -126,13 +127,23 @@ const csv = await writeCsv(rows, { columns, valueMode: "display" });
 
 Portable presentation supports background/text color, bold, italic, wrapping, alignment and number format. It overlays the resolved row/cell presentation while preserving unspecified fields; an explicit workbook-local `Cell.style` retains precedence. CSV carries scalar values/display text; it has no cell-style format.
 
-Contiguous column `groups` with matching ancestor labels form merged heading spans above the leaf headers. Up to 16 heading levels are supported. Native tables start at the leaf-header row, and `freezeHeader` freezes all heading rows. Generated heading merges are supported separately from the reserved arbitrary `mergedCells` option.
+`title` adds one merged row above the headings. Its default font is bold, 18 points, with a 28-point row height; `style` composes a normal `CellStyle` patch and `height` overrides the row height. Titles use literal XML-valid text of at most 32,767 UTF-16 units. Contiguous column `groups` with matching ancestor labels form merged heading spans above the leaf headers, with at most 16 levels. Native tables start at the leaf-header row, and `freezeHeader` freezes the title and all heading rows. Style callback row numbers, explicit hyperlink/image anchors and merge ranges use the final worksheet coordinates, including the title.
+
+`mergedCells: ["A1:B2", "A3:B3"]` merges explicit uppercase A1 ranges. Each range must contain at least two cells, stay within the declared columns and rows actually exported, and avoid other merges, including generated title/group merges. A native table cannot contain merged cells. The top-left cell retains its value and presentation; covered cells must contain null/undefined or an empty string, and cannot carry hyperlinks or computed totals. A nonempty covered value throws instead of being silently lost. Use `includeHeader: false` for a free-form region without leaf headings:
+
+```ts
+const regions = book.addSheet("Summary", {
+  columns: [{ header: "A" }, { header: "B" }], includeHeader: false,
+  mergedCells: ["A1:B2", "A3:B3"]
+});
+await regions.addRows([["Report summary", null], [null, null], ["End", null]]);
+```
 
 `footer.values` supplies explicit typed footer cells in column order. `footer.totals` maps unambiguous column keys (or headers without keys) to `sum`, `count`, `average`, `min` or `max`. Aggregation uses the finite numbers written to Excel, including converted date serials and column-writer results, and retains only the state needed by each column's operation. Count means numeric count and uses General format rather than a column's date format. Formulas use `SUBTOTAL`, with cached values for readers; averages/minima/maxima remain blank when no visible numeric value exists, including when filtering hides every numeric row. Their guarded expressions are registered as custom table totals so native Excel sees consistent formula metadata. Totals respond to Excel filtering; strings supplied as ordinary values never become formulas. A sum outside JavaScript's finite numeric range fails visibly.
 
 `autoSize` inspects at most `sampleRows` leading rows, default 100 and maximum 10,000, then starts the worksheet. Sampling can span append calls. Each sampled row is validated and serialized once within the explicit buffer limits; custom value/style callbacks do not run again when the sample is written. Widths use an approximate character count, preferring `ExportCell.text`, clamped to `minWidth`/`maxWidth`; column `width` wins. This is bounded sizing rather than font measurement.
 
-`print` sets A4/Letter paper, portrait/landscape orientation, fit-to-page dimensions and inch-based margins. Defaults are A4, landscape, one page wide and unlimited pages high. Print area includes headings, data and the footer; `repeatHeaders` repeats all heading rows. Center header/footer strings are literal text: ampersands are protected from Excel control-code interpretation.
+`print` sets A4/Letter paper, portrait/landscape orientation, fit-to-page dimensions and inch-based margins. Defaults are A4, landscape, one page wide and unlimited pages high. Print area includes the title, headings, data and footer; `repeatHeaders` repeats grouped/leaf headings and leaves the report title on its first page. Center header/footer strings are literal text: ampersands are protected from Excel control-code interpretation.
 
 ## Report tables, highlighting and images
 
@@ -300,7 +311,7 @@ const blob = await workbook.toBlob();
 
 Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive column, row, column index and sheet-name context. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
 
-`mergedCells`, `conditionalFormats` and `dataValidation` are reserved worksheet options. Supplying any of them, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader, formula engine or report-grid adapter in this package's current writer contract. Row/cell highlighting is resolved during export; it does not create rules that recalculate in Excel. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
+`conditionalFormats` and `dataValidation` are reserved worksheet options. Supplying either, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader, formula engine or report-grid adapter in this package's current writer contract. Row/cell highlighting is resolved during export; it does not create rules that recalculate in Excel. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
 
 ## Portable classic scripts and the .NET asset package
 

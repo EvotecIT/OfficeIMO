@@ -43,7 +43,7 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
       for (const part of spec.parts ?? []) book.addPart(part);
       await emitFixture("corpus-" + kind + "-" + spec.name + "-" + compression + ".xlsx", await book.toBlob());
     }
-    for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"]) {
+    for (const feature of ["conditionalFormats", "dataValidation"]) {
       try { new xlsx.Workbook().addWorksheet("Data", { [feature]: [] }); throw new Error("Ignored reserved option"); }
       catch (error) { require(error.code === "NOT_SUPPORTED" && error.feature === feature, "Reserved option did not throw clearly"); }
     }

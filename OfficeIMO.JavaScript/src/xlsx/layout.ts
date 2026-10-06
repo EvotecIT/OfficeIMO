@@ -4,6 +4,8 @@ import { Cell, cellText, columnName } from "./values.js";
 import { escapeOoxmlAttribute } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { SheetOptions, TotalOperation, PrintOptions } from "./types.js";
+import { MergeRegions } from "./regions.js";
+import { OfficeIMOError } from "../core/errors.js";
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 export class ComputedTotal { constructor(readonly value: number | null, readonly formula: string, readonly operation: TotalOperation) {} }
@@ -12,14 +14,24 @@ export class ReportLayout {
   readonly headings: readonly (readonly string[])[];
   readonly merges: readonly string[];
   readonly headerRows: number;
+  readonly firstHeaderRow: number;
+  readonly regions: MergeRegions;
   readonly widths: (number | undefined)[];
   readonly sampleRows: number;
   private readonly aggregates: { operation: TotalOperation | undefined; count: number; sum: number; mean: number; min: number; max: number }[];
-  constructor(readonly columns: readonly Column[], readonly options: SheetOptions, policy: InvalidCharacterPolicy) {
+  constructor(readonly columns: readonly Column[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000) {
+    const titleRows = options.title === undefined ? 0 : 1;
+    if (options.title !== undefined) {
+      if (!columns.length) throw new TypeError("Report titles require declared columns.");
+      if (typeof options.title.text !== "string") throw new TypeError("Report title text must be a string.");
+      cellText(options.title.text, policy);
+      if (options.title.height !== undefined && (!Number.isFinite(options.title.height) || options.title.height <= 0 || options.title.height > 409)) throw new RangeError("Title height must be positive and at most 409 points.");
+    }
     const depth = Math.max(0, ...columns.map(c => c.groups?.length ?? 0));
     if (depth > 16) throw new RangeError("Grouped headings support at most 16 levels.");
     if (depth && options.includeHeader === false) throw new TypeError("Grouped headings require leaf headers.");
     const headings: string[][] = [], merges: string[] = [];
+    if (titleRows && columns.length > 1) merges.push("A1:" + columnName(columns.length) + "1");
     for (let level = 0; level < depth; level++) {
       const values = columns.map(c => c.groups?.[level] ?? "");
       for (const value of values) cellText(value, policy);
@@ -27,13 +39,18 @@ export class ReportLayout {
         let last = first;
         const prefix = JSON.stringify(columns[first]!.groups?.slice(0, level + 1));
         while (last + 1 < columns.length && values[first] && JSON.stringify(columns[last + 1]!.groups?.slice(0, level + 1)) === prefix) last++;
-        if (last > first) { merges.push(columnName(first + 1) + (level + 1) + ":" + columnName(last + 1) + (level + 1)); for (let i = first + 1; i <= last; i++) values[i] = ""; }
+        if (last > first) { merges.push(columnName(first + 1) + (level + 1 + titleRows) + ":" + columnName(last + 1) + (level + 1 + titleRows)); for (let i = first + 1; i <= last; i++) values[i] = ""; }
         first = last + 1;
       }
       headings.push(values);
     }
-    this.headings = headings; this.merges = merges;
-    this.headerRows = columns.length && options.includeHeader !== false ? depth + 1 : 0;
+    this.headerRows = titleRows + (columns.length && options.includeHeader !== false ? depth + 1 : 0);
+    this.firstHeaderRow = columns.length && options.includeHeader !== false ? titleRows + 1 : 0;
+    if (options.mergedCells !== undefined && !Array.isArray(options.mergedCells)) throw new TypeError("Merged ranges must be an array.");
+    if (options.mergedCells && options.mergedCells.length + merges.length > maximumMerges) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded.");
+    this.regions = new MergeRegions([...merges, ...(options.mergedCells ?? [])], columns.length, maximumMerges);
+    if (options.table) for (const ref of options.mergedCells ?? []) if (Number(ref.split(":")[1]!.match(/\d+$/)![0]) >= this.headerRows) throw new TypeError("Merged ranges cannot intersect a native table.");
+    this.headings = headings; this.merges = this.regions.references;
     const sizing = options.autoSize;
     this.sampleRows = sizing ? sizing.sampleRows ?? 100 : 0;
     if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000) throw new RangeError("Width sampling must use from 0 through 10,000 rows.");

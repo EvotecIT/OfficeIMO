@@ -39,6 +39,7 @@ export class Worksheet {
   private count = 0;
   private readonly headerRows: number;
   private readonly layout: ReportLayout;
+  private readonly titleStyle: number;
   private pending: string[][] = [];
   private pendingCharacters = 0;
   private reservedLayout = false;
@@ -49,10 +50,13 @@ export class Worksheet {
     this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
+      ...(options.mergedCells ? { mergedCells: [...options.mergedCells] } : {}),
+      ...(options.title ? { title: { ...options.title, ...(options.title.style ? { style: copyStylePatch(options.title.style) } : {}) } } : {}),
       ...(options.print ? { print: { ...options.print, ...(options.print.margins ? { margins: { ...options.print.margins } } : {}) } } : {}),
       ...(options.footer ? { footer: { ...options.footer, ...(options.footer.values ? { values: options.footer.values.map(copyValue) as NonNullable<SheetOptions["footer"]>["values"] & {} } : {}), ...(options.footer.totals ? { totals: { ...options.footer.totals } } : {}), ...(options.footer.style ? { style: copyStylePatch(options.footer.style) } : {}) } } : {}),
       ...(alternate ? { alternatingRowStyle: copyStylePatch(alternate) } : {}) };
-    this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy);
+    this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+    this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
     for (const link of options.hyperlinks ?? []) { book.retainLink(); this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy)); }
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
@@ -65,16 +69,21 @@ export class Worksheet {
   static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false): Worksheet { return new Worksheet(book, name, options, table, preserved); }
   /** @internal Validate before allocating native compressor resources or registering the sheet name. */
   static validate(book: Workbook, options: SheetOptions): void {
-    for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"] as const)
+    for (const feature of ["conditionalFormats", "dataValidation"] as const)
       if (options[feature] !== undefined) throw new NotSupportedError(feature);
     const columns = copyColumns(options.columns ?? []);
-    new ReportLayout(columns, options, book.settings.invalidCharacterPolicy);
+    const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+    book.checkMerges(layout.merges.length);
+    if (options.title?.style) validateStylePatch(options.title.style);
+    if (options.title) book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), options.title.style ?? {});
     if (options.footer?.style) book.styles.compose(0, options.footer.style);
     if (options.hyperlinks !== undefined) {
       if (!Array.isArray(options.hyperlinks)) throw new TypeError("Hyperlinks must be an array.");
       const seen = new Set<string>();
       for (const requested of options.hyperlinks) {
         const link = copyHyperlink(requested, book.settings.invalidCharacterPolicy);
+        const position = cellPosition(link.cell);
+        if (layout.regions.covered(position.column, position.row)) throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (seen.has(link.cell)) throw new TypeError("Duplicate hyperlink cell: " + link.cell);
         seen.add(link.cell);
       }
@@ -99,7 +108,7 @@ export class Worksheet {
       if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255)) throw new TypeError("Column format must be a string of at most 255 characters.");
     }
   }
-  private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false): string {
+  private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false, title = false): string {
     const col = this.declared[i]!;
     const total = value instanceof ComputedTotal ? value : undefined;
     if (total) value = total.value;
@@ -115,10 +124,12 @@ export class Worksheet {
     const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
     if (value instanceof Cell) value = value.value;
     assertScalar(value);
+    if (this.layout.regions.covered(i + 1, row) && (total || (value != null && value !== ""))) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
     const type = value instanceof Date ? "date" : typeof value;
     if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
       throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
     let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+    if (title) style = this.titleStyle;
     if (!header && !footer) {
       if (explicitStyle === undefined) {
         const base = style, cached = rowStyles?.get(base);
@@ -162,25 +173,26 @@ export class Worksheet {
     if (type !== "number" && type !== "date") throw new TypeError("Excel cells must be strings, numbers, booleans, Dates or null.");
     return prefix + '><v>' + value + '</v></c>';
   }
-  private *rowXml(values: readonly unknown[], number: number, header: boolean, footer = false): Generator<string> {
-    const height = header ? this.options.headerHeight : this.options.rowHeight;
+  private *rowXml(values: readonly unknown[], number: number, header: boolean, footer = false, title = false): Generator<string> {
+    const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
     const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
       values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
     if (rowStyle !== undefined) validateStylePatch(rowStyle);
     const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map<number, number>() : undefined;
     yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>';
-    for (let i = 0; i < this.columns.length; i++) yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer);
+    for (let i = 0; i < this.columns.length; i++) yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
     yield '</row>';
   }
-  private async writeRow(values: readonly unknown[], number: number, header: boolean, footer = false): Promise<void> {
-    for (const chunk of this.rowXml(values, number, header, footer)) if (this.buffer!.append(chunk)) await this.buffer!.flush();
+  private async writeRow(values: readonly unknown[], number: number, header: boolean, footer = false, title = false): Promise<void> {
+    for (const chunk of this.rowXml(values, number, header, footer, title)) if (this.buffer!.append(chunk)) await this.buffer!.flush();
   }
   private reserveLayout(): void {
     if (this.reservedLayout) return;
     if (!this.preserved) {
       let characters = 0;
-      if (this.headerRows) {
+      if (this.options.title) characters += this.options.title.text.length;
+      if (this.layout.firstHeaderRow) {
         for (const heading of this.layout.headings) for (const text of heading) characters += text.length;
         for (const column of this.columns) characters += column.header.length;
       }
@@ -214,8 +226,9 @@ export class Worksheet {
       await buffer.write('</cols>');
     }
     await buffer.write('<sheetData>');
-    if (this.headerRows) {
-      for (let i = 0; i < this.layout.headings.length; i++) await this.writeRow(this.layout.headings[i]!, i + 1, true);
+    if (opts.title) await this.writeRow(this.columns.map((_, i) => i ? "" : opts.title!.text), 1, true, false, true);
+    if (this.layout.firstHeaderRow) {
+      for (let i = 0; i < this.layout.headings.length; i++) await this.writeRow(this.layout.headings[i]!, i + this.layout.firstHeaderRow, true);
       await this.writeRow(this.columns.map(c => c.header), this.headerRows, true);
     }
     for (const row of this.pending) for (const chunk of row) if (buffer.append(chunk)) await buffer.flush();
@@ -271,6 +284,8 @@ export class Worksheet {
     if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.failed) throw this.error;
     const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
+    const position = cellPosition(copied.cell);
+    if (this.layout.regions.covered(position.column, position.row)) throw new TypeError("Hyperlinks cannot address a covered merged cell.");
     if (this.links.some(existing => existing.cell === copied.cell) || this.internalLinks.some(existing => existing.cell === copied.cell)) throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
     this.book.retainLink();
     this.links.push(copied);
@@ -285,6 +300,10 @@ export class Worksheet {
   get isBusy(): boolean { return this.busy; }
   /** @internal */
   get headerRowCount(): number { return this.headerRows; }
+  /** @internal */
+  get firstHeaderRow(): number { return this.layout.firstHeaderRow; }
+  /** @internal */
+  get mergeCount(): number { return this.layout.merges.length; }
   /** @internal */
   get totalRows(): number { return Math.max(1, this.headerRows + this.count + (this.options.footer ? 1 : 0)); }
   /** @internal */
@@ -304,6 +323,7 @@ export class Worksheet {
     if (this.completion) return this.completion;
     if (this.failed) throw this.error;
     return this.completion = (async () => { try {
+      this.layout.regions.validateRows(this.totalRows);
       for (const link of this.links) {
         const position = cellPosition(link.cell);
         if (position.column > this.columns.length || position.row > this.totalRows) throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");

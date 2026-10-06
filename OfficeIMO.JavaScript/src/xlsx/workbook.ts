@@ -34,6 +34,7 @@ export class Workbook {
   private links = 0;
   private imageBytes = 0;
   private bufferedBytes = 0;
+  private mergedRanges = 0;
   /** @internal Shared budget across worksheet headers and data. */
   readonly budget: ExportBudget;
   /** @internal Immutable settings used by the worksheet owner. */
@@ -70,7 +71,7 @@ export class Workbook {
       (this.sheets.some(s => s.printSettings) ? '<definedNames>' + this.sheets.map((s, i) => {
         const quoted = "'" + s.name.replace(/'/g, "''") + "'!";
         return s.printSettings ? '<definedName name="_xlnm.Print_Area" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$A$1:$' + s.lastColumn + '$' + s.totalRows, this.settings.invalidCharacterPolicy) + '</definedName>' +
-          (s.printSettings.repeatHeaders && s.headerRowCount ? '<definedName name="_xlnm.Print_Titles" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$1:$' + s.headerRowCount, this.settings.invalidCharacterPolicy) + '</definedName>' : "") : "";
+          (s.printSettings.repeatHeaders && s.firstHeaderRow ? '<definedName name="_xlnm.Print_Titles" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$' + s.firstHeaderRow + ':$' + s.headerRowCount, this.settings.invalidCharacterPolicy) + '</definedName>' : "") : "";
       }).join("") + '</definedNames>' : "") + '</workbook>';
   }
   /** @internal */
@@ -108,6 +109,8 @@ export class Workbook {
   }
   /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
   retainBufferedBytes(bytes: number): void { this.budget.check("maxOutputBytes", this.bufferedBytes + bytes); this.bufferedBytes += bytes; }
+  /** @internal Includes generated report merges across all sheets. */
+  checkMerges(count: number): void { if (this.mergedRanges + count > (this.settings.limits?.maxMergedRanges ?? 10000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded."); }
   /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
   async openSheet(sheet: Worksheet): Promise<ZipEntry> {
     if (this.activeSheet && this.activeSheet !== sheet) {
@@ -138,6 +141,7 @@ export class Workbook {
     const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
     if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
     const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options, table);
+    this.mergedRanges += sheet.mergeCount;
     if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
     this.sheets.push(sheet); return sheet;
   }

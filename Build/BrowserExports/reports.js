@@ -2,6 +2,20 @@
 async function runReportContracts() {
   const operations = ["sum", "count", "average", "min", "max"];
   for (const compression of ["auto", "store"]) {
+    for (const streamed of [false, true]) {
+      const chunks = [], reports = OfficeIMO.createWorkbook({ compression, ...(streamed ? { sink: { write(bytes) { chunks.push(bytes.slice()); } } } : {}) });
+      const titled = reports.addSheet("Report", { title: { text: "Łódź 🧪 report", height: 32 }, columns: [{ header: "Name", groups: ["Metrics"] }, { header: "Amount", key: "amount", groups: ["Metrics"], type: "number" }], table: { name: "Report" }, freezeHeader: true, autoSize: {}, footer: { values: ["Total"], totals: { amount: "sum" } }, print: { repeatHeaders: true } });
+      await titled.addRows([["one", 12], ["two", 8]]); await titled.close();
+      const regions = reports.addSheet("Regions", { columns: [{ header: "A" }, { header: "B" }], includeHeader: false, mergedCells: ["A1:B2", "A3:B3"], autoSize: { sampleRows: 3 } });
+      await regions.addRows([["top", null], [null, null], ["bottom", null]]); await regions.close();
+      const third = reports.addSheet("Other report", { title: { text: "Other report" }, columns: [{ header: "Metric" }, { header: "Value", type: "number" }], table: { name: "OtherReport" } });
+      await third.addRows([["Count", 2]]);
+      let blob; if (streamed) { await reports.finish(); blob = new Blob(chunks); } else blob = await reports.toBlob();
+      await emit("report-regions-" + compression + "-" + (streamed ? "stream" : "blob") + ".xlsx", blob);
+      const invalid = OfficeIMO.createWorkbook({ compression });
+      const hidden = invalid.addSheet("Hidden", { columns: [{ header: "A" }, { header: "B" }], includeHeader: false, mergedCells: ["A1:B1"] });
+      try { await hidden.addRows([["anchor", 0]]); throw new Error("Merged value was lost"); } catch (error) { if (!String(error).includes("would hide")) throw error; }
+    }
     const dates = OfficeIMO.createWorkbook({ dateMode: "utc", compression });
     const sheet = dates.addSheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })), autoSize: {}, table: { name: "DateTotals" },
       footer: { totals: Object.fromEntries(operations.map(operation => [operation, operation])) } });
@@ -18,7 +32,7 @@ async function runReportContracts() {
       try { await book.finish(); throw new Error("Cancellation succeeded unexpectedly"); } catch (error) { if (error !== reason) throw error; }
     }
   }
-  return { passed: true, dateArtifacts: 2, preservedFooterArtifacts: 2, preflightCancellationCases: 4 };
+  return { passed: true, dateArtifacts: 2, preservedFooterArtifacts: 2, preflightCancellationCases: 4, mergedReportArtifacts: 4, hiddenValueRejections: 4 };
   async function emit(name, blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer());
     let binary = ""; for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));

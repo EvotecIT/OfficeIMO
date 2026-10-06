@@ -15,12 +15,13 @@ const book: Workbook = createWorkbook({ signal: new AbortController().signal, on
 const style = book.styles.add({ font: { bold: true }, fill: { color: "ABCDEF" }, border: { bottom: { style: "thin" } }, numberFormat: NumberFormats.Date });
 const sheet: Worksheet = book.addWorksheet("Data", { columns });
 const report = book.addWorksheet("Report", { columns, table: { name: "SeenReport", style: "TableStyleMedium9" },
+  title: { text: "Report", style: { font: { size: 20 }, fill: { color: "D9E1F2" } }, height: 32 },
   headerStyle: style, freezeColumns: 1, rowHeight: 24,
   alternatingRowStyle: { fill: { color: "EAF1F8" } },
   rowStyle: context => context.values[0] === "Łódź" ? { font: { bold: true } } : undefined,
   cellStyle: context => context.columnIndex === 1 ? { verticalAlignment: "center" } : undefined });
 await report.addRows(records);
-report.addHyperlink({ cell: "A2", target: "https://example.com/report", tooltip: "Open report" });
+report.addHyperlink({ cell: "A3", target: "https://example.com/report", tooltip: "Open report" });
 await sheet.addRows(records); await sheet.addRows(rows); await sheet.addRows([[new Cell("name", style), new Date()]]);
 async function* asyncRows() { yield ["row", new Date()] as const; }
 await sheet.addRows(asyncRows());

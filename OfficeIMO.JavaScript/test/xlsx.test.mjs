@@ -129,7 +129,7 @@ test("classic scripts compose in either order without a module loader", async ()
     assert.equal(typeof context.OfficeIMO.createWorkbook, "function");
     assert.equal(typeof context.OfficeIMO.writeCsv, "function");
     assert.equal(typeof context.OfficeIMO.saveBlob, "function");
-    assert.throws(() => context.OfficeIMO.createWorkbook().addWorksheet("Pending", { mergedCells: [] }), error =>
+    assert.throws(() => context.OfficeIMO.createWorkbook().addWorksheet("Pending", { conditionalFormats: [] }), error =>
       error instanceof context.OfficeIMO.core.NotSupportedError && error instanceof context.OfficeIMO.core.OfficeIMOError);
     vm.runInContext(await readFile(new URL("../bundles/officeimo.js", import.meta.url), "utf8"), context);
     assert.equal(context.OfficeIMO.core, core);

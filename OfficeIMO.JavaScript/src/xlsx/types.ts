@@ -14,7 +14,7 @@ export type XlsxRows = Iterable<XlsxRow> | AsyncIterable<XlsxRow>;
 export interface CellWriterContext { readonly column: Column; readonly row: number; readonly columnIndex: number; readonly sheetName: string; }
 /** Convert domain column values to plain values or styled Cells; raw XML is never accepted. */
 export type CellValueWriter = (value: CellValue, context: CellWriterContext) => ExportValue | Cell;
-/** One-based worksheet row number, including the header; values follow the declared column order. */
+/** One-based worksheet row number, including titles/headings; values follow the declared column order. */
 export interface RowStyleContext { readonly row: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
 export interface CellStyleContext extends RowStyleContext { readonly value: CellValue; readonly column: Column; readonly columnIndex: number; }
 /** A real Excel table over this worksheet's header and data rows. Empty exports retain headers without a table part. */
@@ -49,6 +49,8 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxBufferedCells?: number;
   /** UTF-16 units of encoded row XML retained during width sampling, including markup. */
   readonly maxBufferedCharacters?: number;
+  /** Includes generated title/group merges across the workbook; defaults to 10,000. */
+  readonly maxMergedRanges?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }
 export interface SheetOptions {
@@ -72,12 +74,15 @@ export interface SheetOptions {
   readonly autoSize?: AutoSizeOptions;
   readonly footer?: FooterOptions;
   readonly print?: PrintOptions;
-  /** Reserved and rejected until implemented. Presence, including an empty array, throws. */
-  readonly mergedCells?: readonly unknown[];
+  readonly title?: ReportTitle;
+  /** Uppercase A1 ranges within exported rows/columns. Covered cells must be empty; ranges cannot intersect a native table or another merge. */
+  readonly mergedCells?: readonly string[];
   readonly hyperlinks?: readonly Hyperlink[];
   readonly conditionalFormats?: readonly unknown[];
   readonly dataValidation?: readonly unknown[];
 }
+/** A single merged report title above grouped/leaf headings. Print repetition includes headings only. */
+export interface ReportTitle { readonly text: string; readonly style?: CellStyle; readonly height?: number; }
 /** Widths use a bounded leading sample and an approximate character count, not font measurement. */
 export interface AutoSizeOptions { readonly sampleRows?: number; readonly minWidth?: number; readonly maxWidth?: number; }
 export type TotalOperation = "sum" | "count" | "average" | "min" | "max";
