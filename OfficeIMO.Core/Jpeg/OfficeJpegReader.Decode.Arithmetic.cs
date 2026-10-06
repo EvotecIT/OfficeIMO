@@ -64,17 +64,8 @@ internal static partial class OfficeJpegReader {
                 for (int b = 0; b < blocks; b++) {
                     int[] coefficients = pixels.BlockCoeffs; Array.Clear(coefficients, 0, coefficients.Length);
                     byte[] dcBins = dc[component.DcTable], acBins = ac[component.AcTable];
-                    int s = context[ci], difference = 0;
-                    if (reader.Decode(ref dcBins[s]) != 0) {
-                        int sign = reader.Decode(ref dcBins[s + 1]);
-                        int magnitude = DecodeArithmeticMagnitude(reader, dcBins, s + 2 + sign, 20, 21);
-                        difference = sign == 0 ? magnitude : -magnitude;
-                        context[ci] = magnitude <= (1 << conditioning.Lower[component.DcTable]) / 2 ? 0
-                            : (magnitude > (1 << conditioning.Upper[component.DcTable]) ? 12 : 4) + sign * 4;
-                    } else context[ci] = 0;
-                    // T.81 defines prediction differences and accumulation as
-                    // signed sixteen-bit values, including modular wraparound.
-                    pixels.PrevDc = unchecked((short)(pixels.PrevDc + difference));
+                    DecodeArithmeticDc(reader, dcBins, conditioning, component.DcTable,
+                        ref context[ci], ref pixels.PrevDc);
                     coefficients[0] = checked(pixels.PrevDc * quantization[component.QuantId][0]);
                     for (int k = 1; k < 64; k++) {
                         int at = 3 * (k - 1);
@@ -96,6 +87,20 @@ internal static partial class OfficeJpegReader {
         }
         reader.Finish();
         foreach (int ci in scan.ComponentIndices) state.DecodedComponents[ci] = true;
+    }
+
+    private static void DecodeArithmeticDc(ArithmeticReader reader, byte[] bins,
+        ArithmeticConditioning conditioning, int table, ref int context, ref int previous) {
+        int difference = 0, s = context;
+        if (reader.Decode(ref bins[s]) != 0) {
+            int sign = reader.Decode(ref bins[s + 1]);
+            int magnitude = DecodeArithmeticMagnitude(reader, bins, s + 2 + sign, 20, 21);
+            difference = sign == 0 ? magnitude : -magnitude;
+            context = magnitude <= (1 << conditioning.Lower[table]) / 2 ? 0
+                : (magnitude > (1 << conditioning.Upper[table]) ? 12 : 4) + sign * 4;
+        } else context = 0;
+        // Prediction differences and accumulation use signed sixteen-bit wraparound.
+        previous = unchecked((short)(previous + difference));
     }
 
     private static int DecodeArithmeticMagnitude(ArithmeticReader reader, byte[] bins, int first, int x1, int x2) {

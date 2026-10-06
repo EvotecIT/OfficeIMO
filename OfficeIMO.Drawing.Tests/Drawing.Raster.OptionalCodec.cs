@@ -132,18 +132,21 @@ public sealed class DrawingRasterOptionalCodecTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnsupportedProgressiveArithmeticJpegRetainsVisiblePlaceholder(bool invalidCodecDimensions) {
+    public void ProgressiveArithmeticJpegUsesManagedPixels(bool supplyCallerCodec) {
         // libjpeg-turbo 3.2.0 cjpeg -arithmetic -progressive; constant 16x12 RGB (30,80,120).
         byte[] bytes = Convert.FromBase64String("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/ygARCAAMABADASIAAhEBAxEB/8wABgAQARD/2gAMAwEAAhADEAAAAf8AKhWW5P/MAAQQBf/aAAgBAQABBQLA/8wABBEF/9oACAEDAQE/AcD/zAAEEQX/2gAIAQIBAT8BwP/MAAQQBf/aAAgBAQAGPwLA/8wABBAF/9oACAEBAAE/IcD/2gAMAwEAAgADAAAAEGD/zAAEEQX/2gAIAQMBAT8QwP/MAAQRBf/aAAgBAgEBPxDA/8wABBAF/9oACAEBAAE/EMD/2Q==");
         Assert.True(OfficeImageReader.TryIdentifyByContent(bytes, null, out var source));
         Assert.Equal(16, source.Width);
         var drawing = new OfficeDrawing(16, 12).AddImage(bytes, "image/jpeg",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 12)));
+        var codec = supplyCallerCodec ? new IncorrectJpegCodec() : null;
         var result = drawing.ExportImage(OfficeImageExportFormat.Png,
-            new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent, ImageCodec = invalidCodecDimensions ? new IncorrectJpegCodec() : null });
+            new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent, ImageCodec = codec });
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out var image));
         Assert.True(image!.GetPixel(8, 6).A > 0);
-        Assert.Contains(result.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        Assert.DoesNotContain(result.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        Assert.InRange(image.GetPixel(8, 6).B, 118, 122);
+        if (codec != null) Assert.Equal(0, codec.Calls);
     }
 
     [Fact]
@@ -219,7 +222,9 @@ public sealed class DrawingRasterOptionalCodecTests {
     }
 
     private sealed class IncorrectJpegCodec : IOfficeRasterImageCodec {
+        public int Calls;
         public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            Calls++;
             image = new OfficeRasterImage(1, 1, OfficeColor.Red);
             return true;
         }

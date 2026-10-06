@@ -170,7 +170,7 @@ public static partial class OfficeImageReader {
             int segmentStart = offset + 2;
             int segmentDataLength = segmentLength - 2;
             if (IsStartOfFrame(marker)) {
-                if (hasFrame || requireManagedFrame && marker is not (0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC9) ||
+                if (hasFrame || requireManagedFrame && marker is not (0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC9 or 0xCA) ||
                     !TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _) ||
                     requireManagedFrame && !OfficeJpegReader.IsSupportedRgbaFrameHeader(
                         data, segmentStart, segmentDataLength, marker)) return false;

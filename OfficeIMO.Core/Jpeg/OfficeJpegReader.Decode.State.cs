@@ -207,7 +207,7 @@ internal static partial class OfficeJpegReader {
             JpegFrame frame,
             int[][] quantTables,
             int orientation,
-            long retainedEncodedBytes) {
+            long retainedEncodedBytes, bool allowDeferredQuantization = false) {
             var maxH = frame.MaxH;
             var maxV = frame.MaxV;
             var mcuWidth = maxH * 8;
@@ -222,7 +222,7 @@ internal static partial class OfficeJpegReader {
             }
             for (var i = 0; i < frame.ComponentCount; i++) {
                 var comp = frame.Components[i];
-                if (comp.QuantId >= quantTables.Length || quantTables[comp.QuantId] is null) {
+                if (comp.QuantId >= quantTables.Length || !allowDeferredQuantization && quantTables[comp.QuantId] is null) {
                     throw new FormatException("Missing JPEG quantization table.");
                 }
                 var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * comp.H, JpegDimensionsLimitMessage);
@@ -231,7 +231,7 @@ internal static partial class OfficeJpegReader {
                     comp,
                     blocksPerRow,
                     blocksPerCol,
-                    quantTables[comp.QuantId],
+                    quantTables[comp.QuantId] ?? Array.Empty<int>(),
                     ref aggregateBytes, frame.Precision);
             }
 

@@ -395,7 +395,7 @@ internal static partial class OfficeJpegReader {
 
     private static void SetProgressiveCoefficient(short[] coefficients, int index, int value) {
         if (value < short.MinValue || value > short.MaxValue) {
-            throw new FormatException("Progressive JPEG coefficient exceeds the supported 8-bit sample range.");
+            throw new FormatException("Progressive JPEG coefficient exceeds the signed sixteen-bit range.");
         }
         coefficients[index] = (short)value;
     }
