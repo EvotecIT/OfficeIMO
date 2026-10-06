@@ -312,8 +312,10 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Cell_NoWrap_Text() {
         double wrappedGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellWrapText", wrapText: true);
         double noWrapGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapText", wrapText: false);
+        double explicitOffGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapOff", wrapText: true, explicitNoWrapOff: true);
 
         Assert.True(wrappedGap > noWrapGap + 16D, $"Expected Word no-wrap table cell text to avoid vertical wrapping in native PDF output. Wrapped gap: {wrappedGap:0.##}; no-wrap gap: {noWrapGap:0.##}.");
+        Assert.Equal(wrappedGap, explicitOffGap, precision: 3);
     }
 
     [Fact]
@@ -585,7 +587,7 @@ public partial class Word {
         return tableY - afterY;
     }
 
-    private double RenderNativeTableCellWrapTextGap(string fileNamePrefix, bool wrapText) {
+    private double RenderNativeTableCellWrapTextGap(string fileNamePrefix, bool wrapText, bool explicitNoWrapOff = false) {
         const string tableMarker = "Start";
         const string afterMarker = "After";
         string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
@@ -600,6 +602,9 @@ public partial class Word {
             cell.Width = 900;
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.WrapText = wrapText;
+            if (explicitNoWrapOff) {
+                cell._tableCell.TableCellProperties!.AddChild(new NoWrap { Val = OnOffOnlyValues.Off }, true);
+            }
             cell.Paragraphs[0].Text = tableMarker + " Alpha Beta Gamma Delta Epsilon";
 
             WordParagraph after = document.AddParagraph(afterMarker);
