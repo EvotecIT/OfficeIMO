@@ -63,25 +63,36 @@ public static partial class PdfAdvancedUnderstandingStages {
     internal static PdfUnderstandingLine CreateLineSubset(
         PdfUnderstandingPageContext context,
         PdfUnderstandingLine source,
-        IReadOnlyList<PdfUnderstandingWord> words) {
+        IReadOnlyList<PdfUnderstandingWord> words) =>
+        CreateLineSubset(source, words, context.LayoutOptions.ReadingDirection, context.ConsumeWork, context.ThrowIfCancellationRequested);
+
+    // Logical projection also needs subsets after document-level tagged-table enrichment.
+    // Reuse the original page budget and spacing rules without creating a second pipeline context.
+    internal static PdfUnderstandingLine CreateLineSubset(
+        PdfUnderstandingLine source,
+        IReadOnlyList<PdfUnderstandingWord> words,
+        PdfReadingDirection readingDirection,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        cancellationCheck?.Invoke();
         if (words.Count == 0) throw new ArgumentException("A line subset requires at least one word.", nameof(words));
         bool unchanged = words.Count == source.Words.Count;
         for (int index = 0; unchanged && index < words.Count; index++) {
-            context.ConsumeWork();
+            consumeWork?.Invoke(1);
             unchanged = ReferenceEquals(words[index], source.Words[index]);
         }
         if (unchanged) return source;
 
         PdfUnderstandingWord[] snapshot = words.ToArray();
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
-            context.LayoutOptions.ReadingDirection,
+            readingDirection,
             snapshot.OrderBy(static word => word.SourceSequence).Select(static word => word.Text));
         int? sourceSequence = snapshot.Any(static word => word.SourceSequence.HasValue)
             ? snapshot.Where(static word => word.SourceSequence.HasValue).Min(static word => word.SourceSequence!.Value)
             : source.SourceSequence;
         return new PdfUnderstandingLine(
             Array.AsReadOnly(snapshot),
-            ComposeLineText(context, snapshot, source.RotationDegrees, direction),
+            ComposeLineText(snapshot, source.RotationDegrees, direction, cancellationCheck),
             source.Confidence,
             source.Evidence,
             source.SourceKind,
@@ -95,8 +106,15 @@ public static partial class PdfAdvancedUnderstandingStages {
         PdfUnderstandingPageContext context,
         PdfUnderstandingWord[] words,
         double angle,
-        PdfReadingDirection direction) {
-        context.ThrowIfCancellationRequested();
+        PdfReadingDirection direction) =>
+        ComposeLineText(words, angle, direction, context.ThrowIfCancellationRequested);
+
+    private static string ComposeLineText(
+        PdfUnderstandingWord[] words,
+        double angle,
+        PdfReadingDirection direction,
+        Action? cancellationCheck) {
+        cancellationCheck?.Invoke();
         if (words.Length == 0) return string.Empty;
         var text = new System.Text.StringBuilder(words.Sum(static word => word.Text.Length) + words.Length);
         text.Append(words[0].Text);
