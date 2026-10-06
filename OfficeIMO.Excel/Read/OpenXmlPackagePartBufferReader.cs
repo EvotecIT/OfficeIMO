@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(prefix, offset, length - offset);
                 if (read == 0) {
-                    throw new InvalidDataException(
+                    throw ExcelPackagePartLengthFailure.Create(
                         $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended within its {length}-byte prefix.");
                 }
                 offset += read;
@@ -292,14 +292,14 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(output, offset, length - offset);
                 if (read == 0) {
-                    throw new InvalidDataException(
+                    throw ExcelPackagePartLengthFailure.Create(
                         $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
                 }
                 offset += read;
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (input.ReadByte() >= 0) {
-                throw new InvalidDataException(
+                throw ExcelPackagePartLengthFailure.Create(
                     $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' exceeds its declared decompressed length of {length} bytes.");
             }
         }

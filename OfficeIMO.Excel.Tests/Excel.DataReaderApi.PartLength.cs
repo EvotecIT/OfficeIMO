@@ -1,10 +1,54 @@
 using System.IO.Compression;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData(false, false, "bytes")]
+    [InlineData(false, false, "stream")]
+    [InlineData(false, true, "bytes")]
+    [InlineData(false, true, "stream")]
+    [InlineData(true, false, "bytes")]
+    [InlineData(true, false, "stream")]
+    [InlineData(true, true, "bytes")]
+    [InlineData(true, true, "stream")]
+    public void SdkReader_RecoversContentTypesWithoutRepairingPartLength(bool corruptLength, bool streamedPart, string surface) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string name = "[Content_Types].xml";
+            XDocument contentTypes = XDocument.Parse(Encoding.UTF8.GetString(ReadZipEntry(path, name)));
+            XNamespace ns = contentTypes.Root!.Name.Namespace;
+            contentTypes.Root.Elements(ns + "Default")
+                .Where(element => (string?)element.Attribute("Extension") == "xml").Remove();
+            if (streamedPart) {
+                for (int index = 0; index < 128; index++) {
+                    contentTypes.Root.Add(new XElement(ns + "Default", new XAttribute("Extension", $"unused{index}"),
+                        new XAttribute("ContentType", "application/octet-stream")));
+                }
+            }
+            byte[] content = Encoding.UTF8.GetBytes(contentTypes.ToString(SaveOptions.DisableFormatting));
+            ReplaceZipEntry(path, name, content);
+            byte[] package = File.ReadAllBytes(path);
+            if (corruptLength) OpenXmlPartLengthTests.SetDeclaredLength(package, name, content.Length + 5);
+            Exception? error = Record.Exception(() => {
+                using var input = new MemoryStream(package, writable: false);
+                using var reader = surface == "bytes" ? ExcelDocumentReader.Open(package) : ExcelDocumentReader.Open(input);
+                Assert.Equal(new[] { "Data" }, reader.GetSheetNames());
+            });
+            if (corruptLength) {
+                Assert.IsType<InvalidDataException>(error);
+                Assert.True(ExcelPackagePartLengthFailure.Is(error!));
+            } else {
+                Assert.Null(error);
+            }
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData(true, false)]
     [InlineData(true, true)]
