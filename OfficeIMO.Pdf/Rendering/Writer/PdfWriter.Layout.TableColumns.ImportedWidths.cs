@@ -18,6 +18,15 @@ internal static partial class PdfWriter {
             }
             var word = new System.Collections.Generic.List<RichSeg>();
             foreach (RichSeg segment in line) {
+                if (segment.InlineElement != null) {
+                    // Inline pictures can wrap independently of adjacent words;
+                    // their own frame is the indivisible minimum, not the full
+                    // text-and-picture sequence without spaces.
+                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimum(word, options) + indents);
+                    minimum = Math.Max(minimum, GetRichSegmentWidth(segment) + indents);
+                    word.Clear();
+                    continue;
+                }
                 if (segment.LeadingSpace || segment.LeadingIsTab) {
                     minimum = Math.Max(minimum, MeasureImportedTableWordMinimum(word, options) + indents);
                     word.Clear();

@@ -479,6 +479,7 @@ namespace OfficeIMO.Word.Pdf {
                 W.Run? run = imageRun._run;
                 if (run == null) continue;
                 if (run.Ancestors<W.DeletedRun>().Any() || run.Ancestors<W.MoveFromRun>().Any()) continue;
+                if (IsNativeHiddenTextRun(imageRun, paragraph)) continue;
                 if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
                 W.TextBoxContent? currentTextBox = paragraph._paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault();
                 foreach (WordImage image in imageRun.EnumerateImages()) {
@@ -504,7 +505,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (control.Ancestors<W.DeletedRun>().Any() || control.Ancestors<W.MoveFromRun>().Any()) continue;
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
                 WordImage? image = pictureParagraph.PictureControl?.Image;
-                if (image != null) yield return image;
+                if (image != null && !IsNativeHiddenImageContent(image, paragraph)) yield return image;
             }
         }
 
@@ -703,9 +704,11 @@ namespace OfficeIMO.Word.Pdf {
             }
             foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, control);
-                Add(pictureParagraph.PictureControl?.Image, control);
+                WordImage? image = pictureParagraph.PictureControl?.Image;
+                if (image != null && !IsNativeHiddenImageContent(image, paragraph)) Add(image, control);
             }
             foreach (WordParagraph run in runs) {
+                if (IsNativeHiddenTextRun(run, paragraph)) continue;
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
             var anchoredCanvas = new PdfCore.PdfPageCanvas();

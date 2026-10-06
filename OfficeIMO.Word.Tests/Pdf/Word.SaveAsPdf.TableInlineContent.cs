@@ -142,9 +142,52 @@ public partial class Word {
         Assert.True(before.BoundingBox.Right <= pictures[0].BoundingBox.Left + .5D);
         Assert.True(pictures[0].BoundingBox.Right <= middle.BoundingBox.Left + .5D);
         Assert.True(middle.BoundingBox.Right <= pictures[1].BoundingBox.Left + .5D);
-        Assert.True(pictures[1].BoundingBox.Right <= after.BoundingBox.Left + .5D);
+        // Word can wrap at an inline image boundary without enlarging the
+        // authored automatic grid to the whole text-and-picture sequence.
+        Assert.True(after.BoundingBox.Top < middle.BoundingBox.Bottom);
         Assert.Contains("Bold", before.Letters[0].FontName);
         Assert.Contains("Bold", middle.Letters[0].FontName);
         Assert.Contains("Bold", after.Letters[0].FontName);
+    }
+
+    [Theory]
+    [InlineData("body", false)]
+    [InlineData("header", false)]
+    [InlineData("table", false)]
+    [InlineData("body", true)]
+    [InlineData("header", true)]
+    [InlineData("table", true)]
+    public void SaveAsPdf_HiddenMixedPictureRunDoesNotExposeItsContents(string frame, bool contentControl) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph;
+        if (frame == "header") {
+            document.AddHeadersAndFooters();
+            paragraph = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph("HiddenBefore");
+        } else if (frame == "table") {
+            paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+            paragraph.Text = "HiddenBefore";
+        } else paragraph = document.AddParagraph("HiddenBefore");
+        byte[] bytes = OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1);
+        if (contentControl) {
+            string imagePath = Path.Combine(_directoryWithFiles, "hidden.png");
+            File.WriteAllBytes(imagePath, bytes);
+            paragraph.AddPictureControl(imagePath, 16, 32);
+            var pictureRun = paragraph._paragraph!.Descendants<W.SdtRun>().Single().SdtContentRun!.Elements<W.Run>().Single();
+            pictureRun.RunProperties ??= new W.RunProperties();
+            pictureRun.RunProperties.Vanish = new W.Vanish();
+        } else {
+            using var image = new MemoryStream(bytes);
+            paragraph.AddImage(image, "hidden.png", 16, 32);
+            paragraph._run!.Append(new W.Text("HiddenAfter"));
+        }
+        paragraph._run!.RunProperties ??= new W.RunProperties();
+        paragraph._run.RunProperties.Vanish = new W.Vanish();
+        document.AddParagraph("VisibleBody");
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.Empty(pdf.GetPages().SelectMany(page => page.GetImages()));
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.DoesNotContain("HiddenBefore", text);
+        Assert.DoesNotContain("HiddenAfter", text);
+        Assert.Contains("VisibleBody", text);
     }
 }
