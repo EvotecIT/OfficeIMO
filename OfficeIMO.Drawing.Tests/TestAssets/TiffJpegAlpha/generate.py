@@ -1,9 +1,14 @@
 from pathlib import Path
 from PIL import Image
-import hashlib,struct,subprocess,sys
+import hashlib,struct,subprocess,sys,os
 low='--low-alpha' in sys.argv[2:]
+arithmetic='--arithmetic' in sys.argv[2:]
+environment=dict(os.environ)
+environment.pop('TIFF_JPEG_ARITHMETIC',None)
+if arithmetic:environment['TIFF_JPEG_ARITHMETIC']='1'
 root=Path(__file__).resolve().parent
 if low:root=root.parent/'TiffJpegLowAlpha'
+if arithmetic:root=root.parent/('TiffJpegArithmeticLowAlpha' if low else 'TiffJpegArithmeticAlpha')
 root.mkdir(exist_ok=True)
 exe=Path(sys.argv[1]).resolve();rows=['file,photometric,bigEndian,tiled,shared,planar,subsampling,extra']
 for photo in (0,1,2,5,6):
@@ -14,7 +19,7 @@ for photo in (0,1,2,5,6):
      for sub in ((1,2) if photo==6 else (1,)):
       for extra in ((1,2) if low else (0,1,2)):
        name=f'p{photo}-be{big}-t{tile}-q{shared}-pl{planar}-s{sub}-e{extra}.tif';file=root/name
-       subprocess.run([str(exe),str(file),str(photo),str(big),str(tile),str(shared),str(planar),str(sub),str(extra),str(int(low))],check=True)
+       subprocess.run([str(exe),str(file),str(photo),str(big),str(tile),str(shared),str(planar),str(sub),str(extra),str(int(low))],check=True,env=environment)
        base=4 if photo==5 else 3 if photo in (2,6) else 1;n=base+1
        if planar==2:
         data=file.with_suffix('.tif.planes').read_bytes();offset=0;planes=[Image.new('L',(35,19)) for _ in range(n)]
@@ -34,6 +39,7 @@ for photo in (0,1,2,5,6):
         if photo==5:values=[255-min(255,values[c]+values[3]) for c in range(3)]
         elif photo in (0,1):values=[255-values[0] if photo==0 else values[0]]*3
         rgba.extend(values+[alpha])
+       if arithmetic and file.with_suffix('.tif.planes').stat().st_size==0:file.with_suffix('.tif.planes').unlink()
        file.with_suffix('.tif.rgba').write_bytes(rgba);rows.append(f'{name},{photo},{big},{tile},{shared},{planar},{sub},{extra}')
 (root/'manifest.csv').write_text('\n'.join(rows)+'\n')
 (root/'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(root.glob('*.tif*'))))

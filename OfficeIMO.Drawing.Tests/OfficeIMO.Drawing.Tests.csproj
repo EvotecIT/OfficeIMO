@@ -143,4 +143,6 @@
 <ItemGroup><None Update="TestAssets/JpegArithmeticLossless/*.jpg;TestAssets/JpegArithmeticLossless/*.csv;TestAssets/JpegArithmeticLossless/*.rgba" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLossless/*.tif;TestAssets/TiffJpegArithmeticLossless/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/JpegArithmeticColor/*.jpg;TestAssets/JpegArithmeticColor/*.cmyk16;TestAssets/JpegArithmeticColor/*.srgb;TestAssets/JpegArithmeticColor/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticAlpha/*.tif;TestAssets/TiffJpegArithmeticAlpha/*.rgba;TestAssets/TiffJpegArithmeticAlpha/*.icc-rgba;TestAssets/TiffJpegArithmeticAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLowAlpha/*.tif;TestAssets/TiffJpegArithmeticLowAlpha/*.rgba;TestAssets/TiffJpegArithmeticLowAlpha/*.icc-rgba;TestAssets/TiffJpegArithmeticLowAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

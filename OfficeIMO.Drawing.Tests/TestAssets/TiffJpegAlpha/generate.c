@@ -35,6 +35,7 @@ int main(int argc,char**argv){
   }
   struct jpeg_compress_struct c;struct jpeg_error_mgr err;c.err=jpeg_std_error(&err);jpeg_create_compress(&c);
   c.image_width=dw;c.image_height=dh;c.input_components=channels;c.in_color_space=JCS_UNKNOWN;jpeg_set_defaults(&c);jpeg_set_quality(&c,95,TRUE);
+  if(getenv("TIFF_JPEG_ARITHMETIC")){c.arith_code=TRUE;c.restart_interval=3;}
   if(photo==6&&planar==1)for(int cc=0;cc<channels;cc++){c.comp_info[cc].h_samp_factor=(cc==0||cc>=3)?sub:1;c.comp_info[cc].v_samp_factor=(cc==0||cc>=3)?sub:1;}
   jpeg_scan_info scans[8];memset(scans,0,sizeof(scans));
   if(channels>4){for(int cc=0;cc<channels;cc++){scans[cc].comps_in_scan=1;scans[cc].component_index[0]=cc;scans[cc].Se=63;}c.scan_info=scans;c.num_scans=channels;}
@@ -54,7 +55,7 @@ int main(int argc,char**argv){
    while(pos+3<encodedLength){
     int marker=encoded[pos+1];if(marker==217)break;
     unsigned len=(encoded[pos+2]<<8)|encoded[pos+3];
-    if(marker==192)sof=pos;
+    if(marker==192||marker==201)sof=pos;
     if(marker==218){
      if(!firstScan)firstScan=pos;unsigned end=pos+2+len;
      while(end+1<encodedLength){if(encoded[end]!=255){end++;continue;}if(encoded[end+1]==0||(encoded[end+1]>=208&&encoded[end+1]<=215)){end+=2;continue;}break;}

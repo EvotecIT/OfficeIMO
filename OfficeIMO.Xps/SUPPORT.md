@@ -245,8 +245,8 @@ container production, not full-file native TIFF acceptance. The 360 XPS/OpenXPS
 JPEG/TIFF exports cover 239,400 pixel-center probes per route; MuPDF PDF/SVG
 rendering differs by at most 2/255 without warnings. GhostXPS opens all exports but
 differs by up to 255/255, including blank output. PDF and SVG normalize arithmetic
-JPEG to portable pixel images. Arithmetic CMYK/alpha and planar/tiled TIFF
-qualification, and native Windows acceptance remain open.
+JPEG to portable pixel images. Eight-bit arithmetic CMYK/alpha and planar/tiled TIFF qualification is described
+below; twelve-bit variants and native Windows acceptance remain open.
 
 Progressive arithmetic JPEG supports eight/twelve-bit SOF10 frames through the same
 Core decoder and portable PDF/SVG normalization. Initial/refinement DC and AC scans
@@ -276,6 +276,19 @@ The 128 XPS/OpenXPS exports cover 85,120 pixel-center probes per route; MuPDF
 PDF/SVG output agrees within 2/255 without warnings. GhostXPS opens all exports
 but differs by up to 223/255. This does not qualify default SWOP color, arithmetic
 CMYK TIFF, lossless arithmetic color interpretation, or native Windows behavior.
+
+The [arithmetic TIFF color/alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlpha/README.md)
+qualifies 480 eight-bit files across gray polarities, RGB, CMYK, YCbCr, both byte
+orders, strips/tiles, shared/local tables, chunky/separate planes and extra samples,
+including low associated alpha. All 4,320 segments use SOF9. LibTIFF independently
+decodes 320 complete files with all 665,000 device samples exact; the remaining
+160 encounter native five-component or YCbCr/alpha layout limits. Native JPEG
+component references still cover those files. All 80 CMYK cases compare explicit
+ICC conversion with LittleCMS; compositing differs by at most 3/255 with exact alpha.
+The 1,920 XPS/OpenXPS exports cover 1,276,800 pixel-center probes per route; MuPDF
+PDF/SVG differences reach 4/255 and 2/255 without warnings. GhostXPS opens all files
+but differs by up to 255/255, including blank images. Twelve-bit arithmetic TIFF
+color/alpha, lossless arithmetic color/alpha and native Windows acceptance remain open.
 
 Standalone arithmetic lossless JPEG supports SOF11 precisions 2–16, all seven
 predictors, point transforms and row-aligned restarts. Shared lossless sample

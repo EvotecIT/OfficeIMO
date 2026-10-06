@@ -11,9 +11,11 @@ public sealed class TiffJpegAlphaTests {
         Assert.False(OfficeJpegReader.TryInitializeDecodeWorkingSet(retained, 1024, 1024, 1, out _, outputComponents: 5));
     }
 
-    [Fact]
-    public void IndependentExtraSamplesRetainColorAndAlpha() {
-        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpegAlpha");
+    [Theory]
+    [InlineData("TiffJpegAlpha")]
+    [InlineData("TiffJpegArithmeticAlpha")]
+    public void IndependentExtraSamplesRetainColorAndAlpha(string folder) {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
             string name = fields[0];
@@ -31,9 +33,11 @@ public sealed class TiffJpegAlphaTests {
             }
         }
     }
-    [Fact]
-    public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing() {
-        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", "TiffJpegLowAlpha");
+    [Theory]
+    [InlineData("TiffJpegLowAlpha")]
+    [InlineData("TiffJpegArithmeticLowAlpha")]
+    public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing(string folder) {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string name = row.Split(',')[0];
             byte[] expected = File.ReadAllBytes(Path.Combine(corpus, name + ".rgba"));
@@ -50,6 +54,31 @@ public sealed class TiffJpegAlphaTests {
                     double visible = (channels[c] * actual.A + background * (255 - actual.A)) / 255D;
                     double reference = (expected[p + c] * expected[p + 3] + background * (255 - expected[p + 3])) / 255D;
                     Assert.True(Math.Abs(visible - reference) <= 3, $"{name} {x},{y}: composite {visible} != {reference}");
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("TiffJpegArithmeticAlpha")]
+    [InlineData("TiffJpegArithmeticLowAlpha")]
+    public void ArithmeticCmykAlphaMatchesIndependentProfiledCompositing(string folder) {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
+        Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var profile));
+        string[] references = Directory.GetFiles(corpus, "*.icc-rgba");
+        Assert.Equal(folder == "TiffJpegArithmeticAlpha" ? 48 : 32, references.Length);
+        foreach (string reference in references) {
+            byte[] expected = File.ReadAllBytes(reference);
+            Assert.True(OfficeIccRasterConverter.TryDecodeToSrgb(File.ReadAllBytes(reference.Substring(0, reference.Length - ".icc-rgba".Length)),
+                profile!, new(), out var image), reference);
+            for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
+                var actual = image!.GetPixel(x, y); int at = (y * 35 + x) * 4;
+                Assert.Equal(expected[at + 3], actual.A);
+                byte[] components = { actual.R, actual.G, actual.B };
+                foreach (int background in new[] { 0, 255 }) for (int c = 0; c < 3; c++) {
+                    double rendered = (components[c] * actual.A + background * (255 - actual.A)) / 255D;
+                    double native = (expected[at + c] * expected[at + 3] + background * (255 - expected[at + 3])) / 255D;
+                    Assert.True(Math.Abs(rendered - native) <= 3, $"{reference} {x},{y}: {rendered} != {native}");
                 }
             }
         }
