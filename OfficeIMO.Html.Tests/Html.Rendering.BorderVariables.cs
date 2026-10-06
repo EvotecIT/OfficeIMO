@@ -6,6 +6,53 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("border-left-width:calc(1em - 20px)", "left", false)]
+    [InlineData("border-left-width:calc(1em - 20px)", "left", true)]
+    [InlineData("border-left:calc(1em - 20px) solid green", "left", false)]
+    [InlineData("border-width:calc(1em - 20px)", "", false)]
+    [InlineData("border:calc(1em - 20px) solid green", "", false)]
+    public void HtmlBorders_LengthMathUsesTheElementContextAfterSyntaxValidation(string declaration, string side, bool inline) {
+        string declarations = "display:inline-block;font-size:32px;border:2px solid green;" + declaration;
+        string html = inline
+            ? "<p><span class='chip' style='" + declarations + "'>Status</span></p>"
+            : "<style>.chip{" + declarations + "}</style><p><span class='chip'>Status</span></p>";
+        HtmlRenderShape border = Assert.Single(HtmlRenderTestDriver.Render(html).Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == (side.Length == 0 ? "span.chip" : "span.chip:border-" + side) && shape.Shape.StrokeWidth > 0D);
+        Assert.Equal(12D, border.Shape.StrokeWidth);
+        Assert.Equal(OfficeColor.Green, border.Shape.StrokeColor);
+    }
+
+    [Theory]
+    [InlineData("border-color:'red'")]
+    [InlineData("border-color:'red'!important")]
+    [InlineData("border-style:'solid'")]
+    [InlineData("border-width:'6px'")]
+    [InlineData("border-left-color:'red'")]
+    [InlineData("border-left-style:'solid'")]
+    [InlineData("border-left-width:'6px'")]
+    [InlineData("border-color:invert")]
+    [InlineData("border-width:6")]
+    [InlineData("border-width:25%")]
+    [InlineData("border-width:calc(25% + 1px)")]
+    public void HtmlBorders_InvalidRawComponentTokensDoNotReplaceTheValidBorder(string declaration) {
+        string html = "<style>.chip{display:inline-block;border:2px solid green;" + declaration
+            + "}</style><p><span class='chip'>Status</span></p>";
+        HtmlRenderShape border = Assert.Single(HtmlRenderTestDriver.Render(html).Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span.chip" && shape.Shape.StrokeWidth > 0D);
+        Assert.Equal(2D, border.Shape.StrokeWidth);
+        Assert.Equal(OfficeColor.Green, border.Shape.StrokeColor);
+    }
+
+    [Fact]
+    public void HtmlBorders_SupportsUsesTheSameRawSyntaxAsOrdinaryDeclarations() {
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-left-width:calc(1em - 20px))"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border:calc(1em - 20px) solid green)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-color:'red')"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-style:'solid')"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-width:'6px')"));
+    }
+
+    [Theory]
     [InlineData("top", false)]
     [InlineData("right", false)]
     [InlineData("bottom", false)]

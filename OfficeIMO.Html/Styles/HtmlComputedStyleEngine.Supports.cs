@@ -149,6 +149,9 @@ public static partial class HtmlComputedStyleEngine {
             || IsCssWideKeyword(value.Trim().ToLowerInvariant())) {
             return true;
         }
+        if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
+            return IsSupportedBorderDeclarationSyntax(propertyName, value);
+        }
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
@@ -302,47 +305,11 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "slice" || normalized == "clone";
         }
-        if (string.Equals(propertyName, "border", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-width", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-style", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-color", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-width", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedWidthSyntax(normalized);
-        }
         if (string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
         }
-        if (string.Equals(propertyName, "border-style", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedStyleSyntax(normalized);
-        }
         if (string.Equals(propertyName, "outline-style", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-color", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedColorSyntax(normalized);
         }
         if (string.Equals(propertyName, "outline-color", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
@@ -400,7 +367,7 @@ public static partial class HtmlComputedStyleEngine {
         if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
             // Authored border declarations bypass external parser expansion so
             // invalid later values must be rejected before replacing an earlier one.
-            return IsSupportedSupportsConditionValue(propertyName, value);
+            return IsSupportedBorderDeclarationSyntax(propertyName, value);
         }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
