@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
                 (shape.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout) && layout.Placement == WordDrawingPlacementKind.Anchored);
             // Hidden flow shapes retain their occupied line height while omitting paint.
             if (shape.Hidden == true && GetNativeShapeDimensions(shape) is { Height: > 0D } dimensions) {
-                RenderNativeFlowObject(pdf, paragraphSpacing, dimensions.Height + spacingAfter,
+                RenderNativeFlowObject(pdf, paragraphSpacing,
                     flow => flow.Spacer(dimensions.Height + spacingAfter), alignToLineTop);
                 return true;
             }
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            RenderNativeFlowObject(pdf, paragraphSpacing, nativeShape.Height + spacingAfter,
+            RenderNativeFlowObject(pdf, paragraphSpacing,
                 flow => flow.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter), alignToLineTop);
             return true;
         }

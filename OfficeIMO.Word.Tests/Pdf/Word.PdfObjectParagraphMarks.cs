@@ -98,18 +98,64 @@ public partial class Word {
             Assert.Single(page.Paths, path => path.IsFilled).GetBoundingRectangle()!.Value.Top;
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_ScaledObjectRetainsMinimumLineHeightInPageAndColumn(bool columns) {
+        using var pdf = PdfPigDocument.Open(ObjectBoundaryPdf(columns, wide: true));
+        var page = pdf.GetPage(1);
+        double gap = Assert.Single(page.Letters, l => l.Value == "A").StartBaseLine.Y -
+            Assert.Single(page.Letters, l => l.Value == "B").StartBaseLine.Y;
+        Assert.Equal(80D, gap - ObjectMarkGap("none", false), 3);
+        var image = Assert.Single(page.GetImages());
+        Assert.True(image.BoundingBox.Height < 80D);
+        Assert.Equal(columns ? 216D : 468D, image.BoundingBox.Width, 3);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_ObjectKeptTogetherAlsoStaysWithFollowingText(bool columns) {
+        using var pdf = PdfPigDocument.Open(ObjectBoundaryPdf(columns, wide: false));
+        var page = pdf.GetPage(pdf.NumberOfPages);
+        var image = Assert.Single(page.GetImages());
+        var caption = Assert.Single(page.Letters, l => l.Value == "B");
+        Assert.Equal(caption.StartBaseLine.X, image.BoundingBox.Left, 3);
+        if (columns) {
+            Assert.Equal(1, pdf.NumberOfPages);
+            Assert.True(image.BoundingBox.Left > 300D);
+        } else {
+            Assert.Equal(2, pdf.NumberOfPages);
+            Assert.Empty(pdf.GetPage(1).GetImages());
+        }
+    }
+
+    private static byte[] ObjectBoundaryPdf(bool columns, bool wide) {
+        using WordDocument document = WordDocument.Create();
+        SetObjectMarkNormalStyle(document);
+        if (columns) {
+            var section = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.GetFirstChild<W.SectionProperties>()!;
+            section.RemoveAllChildren<W.Columns>();
+            section.Append(new W.Columns { ColumnCount = 2, EqualWidth = true, Space = "720" });
+        }
+        var first = document.AddParagraph("A");
+        if (!wide) first.LineSpacingAfterPoints = 610D;
+        var p = document.AddParagraph();
+        p._paragraph.ParagraphProperties = wide
+            ? new W.ParagraphProperties(new W.SpacingBetweenLines { Line = "1600", LineRule = W.LineSpacingRuleValues.AtLeast })
+            : new W.ParagraphProperties(new W.KeepNext());
+        using var image = new MemoryStream(OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png));
+        p.InsertImage(image, "boundary.png", wide ? 1000D * 96D / 72D : 64D, wide ? 100D * 96D / 72D : 32D);
+        document.AddParagraph("B");
+        return document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+    }
+
     private static double ObjectMarkGap(string kind, bool followingBlank, bool inherited = false, bool spaced = false,
         double neighborSpacing = 0D, double minimumHeight = 0D, bool mixedAnchor = false, bool spacedBlank = false, bool blankBefore = false,
         Action<UglyToad.PdfPig.Content.Page>? inspect = null) {
         using WordDocument document = WordDocument.Create();
-        W.Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
-            .Elements<W.Style>().Single(s => s.StyleId?.Value == "Normal");
-        normal.StyleRunProperties = new W.StyleRunProperties(
-            new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial", EastAsia = "Arial", ComplexScript = "Arial" },
-            new W.FontSize { Val = "24" }, new W.FontSizeComplexScript { Val = "24" });
-        normal.StyleParagraphProperties = new W.StyleParagraphProperties(new W.SpacingBetweenLines {
-            Before = "0", After = "0", Line = "240", LineRule = W.LineSpacingRuleValues.Auto
-        });
+        SetObjectMarkNormalStyle(document);
         document.AddParagraph("A").LineSpacingAfterPoints = neighborSpacing;
         if (kind != "none") {
             void AddBlank() {
@@ -187,5 +233,16 @@ public partial class Word {
         if (mixedAnchor) Assert.Equal(2, pdf.GetPage(1).GetImages().Count());
         return Assert.Single(letters, l => l.Value == "A").StartBaseLine.Y -
             Assert.Single(letters, l => l.Value == "B").StartBaseLine.Y;
+    }
+
+    private static void SetObjectMarkNormalStyle(WordDocument document) {
+        W.Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<W.Style>().Single(s => s.StyleId?.Value == "Normal");
+        normal.StyleRunProperties = new W.StyleRunProperties(
+            new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial", EastAsia = "Arial", ComplexScript = "Arial" },
+            new W.FontSize { Val = "24" }, new W.FontSizeComplexScript { Val = "24" });
+        normal.StyleParagraphProperties = new W.StyleParagraphProperties(new W.SpacingBetweenLines {
+            Before = "0", After = "0", Line = "240", LineRule = W.LineSpacingRuleValues.Auto
+        });
     }
 }

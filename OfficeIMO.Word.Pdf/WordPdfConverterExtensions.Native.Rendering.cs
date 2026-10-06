@@ -146,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
             List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, paragraph._run);
             bool renderedChart = directChartDrawing != null || runChartDrawings.Count > 0;
             if (directChartDrawing != null) {
-                RenderNativeFlowObject(pdf, objectSpacing, directChartDrawing.Height, flow => flow.Drawing(directChartDrawing, objectAlign,
+                RenderNativeFlowObject(pdf, objectSpacing, flow => flow.Drawing(directChartDrawing, objectAlign,
                     spacingBefore: objectOnly ? 0D : 2D,
                     spacingAfter: 0D));
             }
@@ -721,7 +721,7 @@ namespace OfficeIMO.Word.Pdf {
                 OfficeDrawing drawing = drawings[index];
                 double before = index == 0 ? spacingBefore : 2D;
                 double after = index == drawings.Count - 1 ? spacingAfter : 0D;
-                RenderNativeFlowObject(pdf, paragraphSpacing, drawing.Height + before + after,
+                RenderNativeFlowObject(pdf, paragraphSpacing,
                     flow => flow.Drawing(drawing, align, spacingBefore: before, spacingAfter: after));
             }
         }

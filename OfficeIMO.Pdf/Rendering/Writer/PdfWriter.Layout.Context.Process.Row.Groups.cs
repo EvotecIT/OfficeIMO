@@ -30,7 +30,6 @@ internal static partial class PdfWriter {
             double childWidth = columnWidth;
             switch (block) {
                 case ContainerBlock container:
-                    blocks = container.Blocks;
                     group.Style = ResolveContainerStyle(container);
                     group.KeepTogether = ResolveContainerStyle(container).KeepTogether;
                     var frame = ResolveContainerFrame(ResolveContainerStyle(container), columnXOffset, columnWidth);
@@ -38,6 +37,8 @@ internal static partial class PdfWriter {
                     group.OuterWidth = frame.Width;
                     childX = frame.X + ResolveContainerStyle(container).PaddingX;
                     childWidth = frame.ContentWidth;
+                    blocks = ResolveContainerContentBlocks(container, group.Style, childX, childWidth,
+                        currentOpts.DefaultFontSize, reservedImageHeight);
                     break;
                 case SemanticBlock semantic:
                     blocks = semantic.Blocks;

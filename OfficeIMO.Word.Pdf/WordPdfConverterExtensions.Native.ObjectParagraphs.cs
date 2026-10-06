@@ -8,7 +8,7 @@ public static partial class WordPdfConverterExtensions {
         private readonly INativePdfFlow _flow;
         private readonly OfficeIMO.Pdf.PdfParagraphStyle _style;
         private readonly double _minimumHeight;
-        private readonly List<(double Height, Action<INativePdfFlow> Render, bool AlignToLineTop)> _objects = new();
+        private readonly List<(Action<INativePdfFlow> Render, bool AlignToLineTop)> _objects = new();
 
         internal NativeObjectParagraphSpacing(INativePdfFlow flow, OfficeIMO.Pdf.PdfParagraphStyle style, double minimumHeight) {
             _flow = flow;
@@ -16,8 +16,8 @@ public static partial class WordPdfConverterExtensions {
             _minimumHeight = minimumHeight;
         }
 
-        internal void Add(double height, Action<INativePdfFlow> render, bool alignToLineTop) =>
-            _objects.Add((height, render, alignToLineTop));
+        internal void Add(Action<INativePdfFlow> render, bool alignToLineTop) =>
+            _objects.Add((render, alignToLineTop));
 
         internal bool Complete() {
             if (_objects.Count == 0) return false;
@@ -25,26 +25,24 @@ public static partial class WordPdfConverterExtensions {
             // same page or column. It adds no decoration or extra paragraph mark.
             _flow.Panel(content => {
                 var inner = new NativePdfColumnFlow(content, _flow.PageSize);
-                double padding = Math.Max(0D, _minimumHeight - _objects.Sum(item => item.Height));
-                // Inline objects align with the line's baseline. VML and anchored
-                // shapes keep their line-top position when the minimum grows.
-                bool paddingAfter = _objects.All(item => item.AlignToLineTop);
-                if (padding > 0D && !paddingAfter) inner.Spacer(padding);
                 foreach (var item in _objects) item.Render(inner);
-                if (padding > 0D && paddingAfter) inner.Spacer(padding);
             }, new OfficeIMO.Pdf.PdfPanelStyle {
                 PaddingX = 0D, PaddingY = 0D, BorderWidth = 0D,
                 SpacingBefore = _style.SpacingBefore, SpacingAfter = _style.SpacingAfter ?? 0D,
                 KeepTogether = true, KeepWithNext = _style.KeepWithNext,
-                AnchoredCanvas = _style.AnchoredCanvas
+                AnchoredCanvas = _style.AnchoredCanvas,
+                MinimumContentHeight = _minimumHeight,
+                // Inline objects align with the line's baseline. VML and anchored
+                // shapes retain their line-top position when the minimum grows.
+                AlignContentToBottom = !_objects.All(item => item.AlignToLineTop)
             });
             return true;
         }
     }
 
     private static void RenderNativeFlowObject(INativePdfFlow flow, NativeObjectParagraphSpacing? paragraph,
-        double height, Action<INativePdfFlow> render, bool alignToLineTop = false) {
+        Action<INativePdfFlow> render, bool alignToLineTop = false) {
         if (paragraph == null) render(flow);
-        else paragraph.Add(height, render, alignToLineTop);
+        else paragraph.Add(render, alignToLineTop);
     }
 }
