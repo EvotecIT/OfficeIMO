@@ -27,11 +27,13 @@ public static partial class HtmlComputedStyleEngine {
         public string Id => _element.Id ?? string.Empty;
         public OfficeIMO.Html.Css.IHtmlCssSelectorElement? ParentElement =>
             _element.ParentElement == null ? null : _cache.Get(_element.ParentElement);
-        public IReadOnlyList<OfficeIMO.Html.Css.IHtmlCssSelectorElement> GetElementChildren(
+        public object? SiblingParentIdentity => _element.Parent;
+        public IReadOnlyList<OfficeIMO.Html.Css.IHtmlCssSelectorElement> GetSiblingElements(
             Action? recordEvaluation,
             CancellationToken cancellationToken) {
             var children = new List<OfficeIMO.Html.Css.IHtmlCssSelectorElement>();
-            foreach (INode child in _element.ChildNodes) {
+            if (_element.Parent == null) return children;
+            foreach (INode child in _element.Parent.ChildNodes) {
                 cancellationToken.ThrowIfCancellationRequested();
                 recordEvaluation?.Invoke();
                 if (child is IElement element) children.Add(_cache.Get(element));

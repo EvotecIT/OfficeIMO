@@ -69,7 +69,7 @@ internal static class HtmlCssTypedValueParsers {
             if (slash >= 0 && body.Skip(slash + 1).Any(token => token.Kind == HtmlCssTokenKind.Delimiter && token.Value == "/")) return false;
             List<HtmlCssToken> channelTokens = slash < 0 ? body : body.Take(slash).ToList();
             List<HtmlCssToken> alpha = slash < 0 ? new List<HtmlCssToken>() : body.Skip(slash + 1).ToList();
-            if (channelTokens.Count != 3 || alpha.Count > 1) return false;
+            if (channelTokens.Count != 3 || alpha.Count > 1 || (slash >= 0 && alpha.Count == 0)) return false;
             channels = channelTokens.Select(token => new List<HtmlCssToken> { token }).ToList();
             alphaTokens = alpha.Count == 0 ? null : alpha;
         }
@@ -139,7 +139,8 @@ internal static class HtmlCssTypedValueParsers {
         string text = token.GetText(source);
         if (token.Kind == HtmlCssTokenKind.Dimension) text = text.Substring(0, text.Length - (token.Value ?? string.Empty).Length);
         if (!TryFiniteNumber(text, out double number)) return false;
-        double degrees = number * multiplier % 360D;
+        // Reduce in the authored unit before conversion so a finite hue cannot overflow.
+        double degrees = (number % (360D / multiplier)) * multiplier % 360D;
         if (degrees < 0D) degrees += 360D;
         component = new HtmlCssColorComponent(HtmlCssColorComponentKind.Angle, degrees);
         return true;

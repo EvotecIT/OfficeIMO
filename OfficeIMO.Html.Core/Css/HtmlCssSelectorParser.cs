@@ -37,6 +37,8 @@ public static class HtmlCssSelectorParser {
         HtmlCssSelectorOptions effective = (options ?? new HtmlCssSelectorOptions()).Clone();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();
+        if (selector.Length > effective.MaxInputCharacters)
+            throw new HtmlCssSelectorLimitException(nameof(effective.MaxInputCharacters), selector.Length, effective.MaxInputCharacters);
         string source = selector.Trim();
         try {
             return new Prepared(source, HtmlCssTokenizer.Tokenize(source, new HtmlCssTokenizationOptions {
@@ -410,7 +412,6 @@ public static class HtmlCssSelectorParser {
                 reason = "unsupported-pseudo-class"; return ParseState.Unsupported;
             }
             _position++;
-            int bodyStart = Current.Offset;
             int close = FindFunctionClose();
             if (close < 0) { reason = "unclosed-pseudo-class"; return ParseState.Invalid; }
             for (int index = _position; index < close; index++) {
@@ -419,10 +420,9 @@ public static class HtmlCssSelectorParser {
                 }
                 if (_tokens[index].Kind == HtmlCssTokenKind.Function || _tokens[index].Kind == HtmlCssTokenKind.OpenParenthesis) { reason = "invalid-nth-expression"; return ParseState.Invalid; }
             }
-            int bodyEnd = _tokens[close].Offset;
-            string expression = bodyEnd <= bodyStart ? string.Empty : _source.Substring(bodyStart, bodyEnd - bodyStart);
-            if (!TryNormalizeAnPlusB(expression, out string normalized)
-                || !TryParseAnPlusB(normalized, out HtmlCssAnPlusB formula)) { reason = "invalid-nth-expression"; return ParseState.Invalid; }
+            if (!HtmlCssAnPlusBParser.TryParse(_source, _tokens, _position, close, out HtmlCssAnPlusB formula)) {
+                reason = "invalid-nth-expression"; return ParseState.Invalid;
+            }
             _position = close + 1;
             selector = new HtmlCssPseudoClassSelector(nthKind.Value, formula); return ParseState.Success;
         }
@@ -451,53 +451,6 @@ public static class HtmlCssSelectorParser {
                 } else return false;
             }
             return subtagLength > 0 && subtagLength <= 8;
-        }
-
-        private static bool TryParseAnPlusB(string expression, out HtmlCssAnPlusB formula) {
-            formula = default;
-            string value = expression.ToLowerInvariant();
-            if (value == "odd") { formula = new HtmlCssAnPlusB(2, 1); return true; }
-            if (value == "even") { formula = new HtmlCssAnPlusB(2, 0); return true; }
-            int n = value.IndexOf('n');
-            if (n < 0) {
-                if (!int.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int b)) return false;
-                formula = new HtmlCssAnPlusB(0, b); return true;
-            }
-            if (value.IndexOf('n', n + 1) >= 0) return false;
-            string aText = value.Substring(0, n);
-            int a;
-            if (aText.Length == 0 || aText == "+") a = 1;
-            else if (aText == "-") a = -1;
-            else if (!int.TryParse(aText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out a)) return false;
-            string bText = value.Substring(n + 1);
-            int bValue = 0;
-            if (bText.Length != 0 && !int.TryParse(bText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out bValue)) return false;
-            formula = new HtmlCssAnPlusB(a, bValue); return true;
-        }
-
-        private static bool TryNormalizeAnPlusB(string value, out string normalized) {
-            var retained = new System.Text.StringBuilder(value.Length);
-            bool comment = false;
-            for (int index = 0; index < value.Length; index++) {
-                if (!comment && value[index] == '/' && index + 1 < value.Length && value[index + 1] == '*') { comment = true; retained.Append(' '); index++; continue; }
-                if (comment && value[index] == '*' && index + 1 < value.Length && value[index + 1] == '/') { comment = false; index++; continue; }
-                if (!comment) retained.Append(value[index]);
-            }
-            if (comment) { normalized = string.Empty; return false; }
-            string spaced = retained.ToString().Trim();
-            if (System.Text.RegularExpressions.Regex.IsMatch(spaced, @"^[+-]\s")
-                || System.Text.RegularExpressions.Regex.IsMatch(spaced, @"\d\s+n", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) {
-                normalized = string.Empty; return false;
-            }
-            int n = spaced.IndexOf("n", StringComparison.OrdinalIgnoreCase);
-            if (n >= 0) {
-                string suffix = spaced.Substring(n + 1).TrimStart();
-                if (suffix.Length > 0 && suffix[0] != '+' && suffix[0] != '-') {
-                    normalized = string.Empty; return false;
-                }
-            }
-            normalized = System.Text.RegularExpressions.Regex.Replace(spaced, @"\s+", string.Empty);
-            return normalized.Length != 0;
         }
 
         private static HtmlCssSelectorSpecificity MaxSpecificity(IReadOnlyList<HtmlCssSelector> selectors) {

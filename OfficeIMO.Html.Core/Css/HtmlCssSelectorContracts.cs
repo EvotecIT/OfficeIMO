@@ -393,12 +393,12 @@ internal sealed class HtmlCssSelectorMatchContext {
 
     private SiblingPosition? GetPosition(IHtmlCssSelectorElement element) {
         ThrowIfCancellationRequested();
-        IHtmlCssSelectorElement? parent = element.ParentElement;
+        object? parent = element.SiblingParentIdentity;
         if (parent == null) return null;
-        if (!_siblings.TryGetValue(parent.Identity, out SiblingSet? set)) {
-            IReadOnlyList<IHtmlCssSelectorElement> elements = parent.GetElementChildren(_recordEvaluation, _cancellationToken);
+        if (!_siblings.TryGetValue(parent, out SiblingSet? set)) {
+            IReadOnlyList<IHtmlCssSelectorElement> elements = element.GetSiblingElements(_recordEvaluation, _cancellationToken);
             set = new SiblingSet(elements);
-            _siblings.Add(parent.Identity, set);
+            _siblings.Add(parent, set);
         }
         return set.Positions.TryGetValue(element.Identity, out SiblingInfo info)
             ? new SiblingPosition(set, info.Index)
@@ -463,7 +463,8 @@ internal interface IHtmlCssSelectorElement {
     string NamespaceUri { get; }
     string Id { get; }
     IHtmlCssSelectorElement? ParentElement { get; }
-    IReadOnlyList<IHtmlCssSelectorElement> GetElementChildren(Action? recordEvaluation, CancellationToken cancellationToken);
+    object? SiblingParentIdentity { get; }
+    IReadOnlyList<IHtmlCssSelectorElement> GetSiblingElements(Action? recordEvaluation, CancellationToken cancellationToken);
     bool IsDocumentElement { get; }
     bool HasElementOrTextChild(Action? recordEvaluation, CancellationToken cancellationToken);
     bool HasClass(string name);
@@ -488,9 +489,11 @@ internal sealed class OwnedSelectorElement : IHtmlCssSelectorElement {
     public string NamespaceUri => _element.NamespaceUri;
     public string Id => _element.Id;
     public IHtmlCssSelectorElement? ParentElement => _element.ParentElement == null ? null : new OwnedSelectorElement(_element.ParentElement);
-    public IReadOnlyList<IHtmlCssSelectorElement> GetElementChildren(Action? recordEvaluation, CancellationToken cancellationToken) {
+    public object? SiblingParentIdentity => _element.Parent;
+    public IReadOnlyList<IHtmlCssSelectorElement> GetSiblingElements(Action? recordEvaluation, CancellationToken cancellationToken) {
         var children = new List<IHtmlCssSelectorElement>();
-        foreach (HtmlNode child in _element.ChildNodes) {
+        if (_element.Parent == null) return children;
+        foreach (HtmlNode child in _element.Parent.ChildNodes) {
             cancellationToken.ThrowIfCancellationRequested();
             recordEvaluation?.Invoke();
             if (child is HtmlElement element) children.Add(new OwnedSelectorElement(element));

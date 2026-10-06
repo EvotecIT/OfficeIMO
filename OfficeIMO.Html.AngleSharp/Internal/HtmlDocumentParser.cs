@@ -40,8 +40,11 @@ internal static class HtmlDocumentParser {
         var parserOptions = new HtmlParserOptions { IsKeepingSourceReferences = true };
         MathMlSourceCapture? sourceCapture = MathMlSourceCapture.Configure(ref parserOptions, html, cancellationToken);
         var parser = new HtmlParser(parserOptions);
-        string normalized = NormalizeSvgHrefAttributeOrder(html, cancellationToken);
-        if (RequiresContextEnvelope(contextElement)) {
+        bool textContext = IsHtmlFragmentTextContext(contextElement);
+        string normalized = textContext ? html : NormalizeSvgHrefAttributeOrder(html, cancellationToken);
+        // Inert text contexts must use fragment tokenization: a wrapper start tag would
+        // discard a leading newline and make a matching end tag close the context.
+        if (!textContext && RequiresContextEnvelope(contextElement)) {
             return ParseFragmentWithContextEnvelope(normalized, contextElement, cancellationToken);
         }
         INodeList nodes = parser.ParseFragment(normalized, contextElement);
@@ -49,6 +52,11 @@ internal static class HtmlDocumentParser {
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlFragmentParseResult(nodes.ToArray(), 0);
     }
+
+    private static bool IsHtmlFragmentTextContext(IElement contextElement) =>
+        contextElement.NamespaceUri == OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace
+        && contextElement.LocalName is "title" or "textarea" or "style" or "xmp" or "iframe"
+            or "noembed" or "noframes" or "script" or "plaintext";
 
     private static bool RequiresContextEnvelope(IElement contextElement) =>
         !string.Equals(contextElement.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
@@ -63,7 +71,11 @@ internal static class HtmlDocumentParser {
         const string MarkerName = "data-officeimo-fragment-wrapper";
         string markerValue = Guid.NewGuid().ToString("N");
         List<IElement> chain = ContextChain(contextElement);
-        var prefix = new StringBuilder("<!doctype html><html ")
+        var mode = ((AngleSharp.Html.Construction.IConstructableDocument)contextElement.Owner!).QuirksMode;
+        string doctype = mode == QuirksMode.On ? string.Empty
+            : mode == QuirksMode.Limited ? "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">"
+            : "<!doctype html>";
+        var prefix = new StringBuilder(doctype).Append("<html ")
             .Append(MarkerName).Append("=\"").Append(markerValue).Append("\"><head ")
             .Append(MarkerName).Append("=\"").Append(markerValue).Append("\"></head><body ")
             .Append(MarkerName).Append("=\"").Append(markerValue).Append("\">");
