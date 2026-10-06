@@ -128,33 +128,28 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
-    public void TaggedParagraphLinkEmitsAnnotationStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                CompressContentStreams = false
-            })
-            .TaggedPdfCatalogMarkers()
+    public void TaggedParagraphLinkRetainsWordAndSpaceOrderWithAnnotationReferences() {
+        byte[] pdf = PdfDocument.Create().TaggedPdfCatalogMarkers()
             .Paragraph(paragraph => paragraph
                 .Text("Read the ")
                 .Link("project site", "https://officeimo.net/", contents: "Project site"))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(pdf);
-
-        Assert.Contains("/Subtype /Link", content, StringComparison.Ordinal);
-        Assert.Contains("/StructParent 1", content, StringComparison.Ordinal);
-        Assert.Contains("ET\nEMC\n/Link << /MCID", content, StringComparison.Ordinal);
-        Assert.Contains("/Link << /MCID 1 >> BDC", content, StringComparison.Ordinal);
-        Assert.Contains("/P << /MCID 2 >> BDC", content, StringComparison.Ordinal);
-        Assert.Contains("/Link << /MCID 3 >> BDC", content, StringComparison.Ordinal);
-        Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
-        Assert.Contains("/Type /StructElem /S /Link", content, StringComparison.Ordinal);
-        Assert.Contains("/K [<< /Type /MCR /Pg ", content, StringComparison.Ordinal);
-        Assert.Contains("/MCID 1 >> << /Type /MCR /Pg ", content, StringComparison.Ordinal);
-        Assert.Contains("/MCID 3 >> << /Type /OBJR /Obj ", content, StringComparison.Ordinal);
-        Assert.Contains("/ParentTreeNextKey 2", content, StringComparison.Ordinal);
-        Assert.Contains("/Nums [0 [", content, StringComparison.Ordinal);
-        Assert.Matches(@"/Nums \[0 \[[^\]]+\] 1 \d+ 0 R\]", content);
-        Assert.Matches(@"/Nums \[0 \[\d+ 0 R (?<link>\d+) 0 R \d+ 0 R \k<link> 0 R\] 1 \k<link> 0 R\]", content);
+        var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(pdf).TaggedContent);
+        var links = tagged.StructureElements.Where(element => element.StructureType == "Link").ToArray();
+        Assert.Equal(2, links.Length);
+        Assert.All(links, link => {
+            Assert.Equal(1, link.MarkedContentReferenceCount);
+            Assert.Equal(1, link.ObjectReferenceCount);
+        });
+        var paragraph = Assert.Single(tagged.StructureElements, element => element.StructureType == "P");
+        var children = paragraph.ChildElementObjectNumbers.Select(number =>
+            tagged.StructureElements.Single(element => element.ObjectNumber == number)).ToArray();
+        Assert.Equal(new[] { "Span", "Link", "Span", "Link" }, children.Select(element => element.StructureType));
+        // A space between linked words is content, not permission to move the later
+        // word before that space. Each clickable word keeps its annotation owner.
+        Assert.Equal(new[] { 0, 1, 2, 3 }, children.SelectMany(element =>
+            element.MarkedContentReferences.Select(reference => reference.MarkedContentId)));
     }
 
     [Fact]
