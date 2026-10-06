@@ -420,6 +420,19 @@ cases terminate with SIGSEGV. LibTIFF's data-read check accepts four Huffman
 subsampling, additional profiles and independent full-file/native Windows
 color acceptance remain separate qualification gaps.
 
+The [additional-precision alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessAlphaPrecision/README.md)
+qualifies 192 native Huffman lossless TIFFs at 2–7, 9–11 and 13–15 bits across
+gray/RGB/full-resolution YCbCr, associated/unassociated alpha and four paired
+strip/tile, chunky/planar, byte-order layouts. Alpha is exact; 127,680 device
+pixels match within 1/255 and 63,840 DCI-P3-profiled pixels match LittleCMS within
+2/255. Native color survives even when alpha projects to zero at eight bits.
+Across 1,152 XPS/OpenXPS exports on black/white backgrounds, MuPDF PDF/SVG differs
+by at most 5/255 and 2/255 over 766,080 probes per route, without warnings.
+LibTIFF rejects all containers for precision or chunky YCbCr-alpha layout sizing.
+Four GhostXPS probes produce blank/different device-color output or crash with
+ICC; wider GhostXPS testing was not performed. Arithmetic lossless alpha at these
+precisions, subsampling and native whole-file/Windows acceptance remain open.
+
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
 The reconstructed cases retain independently encoded entropy for baseline and
 lossless data, including both byte orders, strip/tile layouts and separate planes;
