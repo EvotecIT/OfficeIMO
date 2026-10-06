@@ -34,7 +34,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion, captureObjectNumbers: captureObjectNumbers);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion, captureObjectNumbers: captureObjectNumbers);
     }
 
     /// <summary>

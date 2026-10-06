@@ -48,7 +48,7 @@ internal static class PdfProvenanceGraphEditor {
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                 ? security.InfoObjectNumber
                 : null;
-        }, maximumOutputBytes, cancellationToken);
+        }, maximumOutputBytes, cancellationToken: cancellationToken);
     }
 
     private static void RemoveFromEmbeddedFilesNameTree(

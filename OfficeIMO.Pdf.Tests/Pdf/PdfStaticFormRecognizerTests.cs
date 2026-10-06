@@ -288,7 +288,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
-    public void GeneratedEncryptedSourceRetainsSnapshotAndHonorsMutationGate() {
+    public void GeneratedEncryptedSourceRetainsSecurityWhenApplyingRecognizedFields() {
         PdfDocument source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 }
             .SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }))
             .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(Box(140D, 20D), 100D, 28D));
@@ -296,7 +296,11 @@ public sealed partial class PdfStaticFormRecognizerTests {
         PdfStaticFormRecognitionReport report = source.Forms.RecognizeStaticLayout();
 
         Assert.Single(report.Proposals);
-        Assert.Throws<PdfMutationBlockedException>(() => report.ApplySelected(new[] { 0 }));
+        PdfDocument output = report.ApplySelected(new[] { 0 }).ToDocument();
+        Assert.Single(PdfReadDocument.Open(output.ToBytes(), new PdfLoadOptions { Password = "owner" }).FormFields);
+        byte[] protectedOutput = output.ToBytes();
+        Assert.True(PdfReadDocument.Open(protectedOutput, new PdfLoadOptions { Password = "owner" }).Security.HasEncryption);
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(protectedOutput));
     }
 
     [Fact]

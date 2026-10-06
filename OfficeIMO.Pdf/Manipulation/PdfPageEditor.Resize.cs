@@ -88,7 +88,7 @@ internal static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
+        PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document);
         var destinationVisitedReferences = new HashSet<int>();
         var transformedDestinationArrays = new HashSet<PdfArray>();
         TransformCatalogDestinationsForResize(objects, catalogState, transformsByPageObjectNumber, destinationVisitedReferences, transformedDestinationArrays);

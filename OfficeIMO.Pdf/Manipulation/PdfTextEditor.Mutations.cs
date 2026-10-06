@@ -40,7 +40,7 @@ internal static partial class PdfTextEditor {
         PdfRegionText detected = InspectSource(pdf, region, snapshot.AllowTextRenderingMode3, readOptions);
         EnsureCompatibleRenderingModes(detected.Spans, snapshot.AllowTextRenderingMode3);
         EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions);
-        PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
+        PdfResolvedTextStyle style = ResolveStyle(snapshot, detected, PdfReadDocument.Open(pdf, readOptions).Pages[region.PageNumber - 1]);
         string replacementText = PreserveAuthoredEdgeWhitespace(detected.Spans, text);
         style = FitStyleToRegion(style, replacementText, region, snapshot, out string? fitWarning);
         TextRemovalResult removal = detected.Spans.Count == 0
@@ -52,7 +52,7 @@ internal static partial class PdfTextEditor {
         EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions, replacementRequests);
         requests.AddRange(replacementRequests);
         byte[] output = ApplyStampRequests(removal.Bytes, requests, readOptions);
-        IEnumerable<string> warnings = removal.Warnings.Concat(BuildSubstitutionWarnings(detected, style.Font));
+        IEnumerable<string> warnings = removal.Warnings.Concat(BuildSubstitutionWarnings(detected, style));
         if (fitWarning is not null) warnings = warnings.Append(fitWarning);
         return new TextMutationResult(output, detected.Spans.Count, warnings);
     }
@@ -71,11 +71,12 @@ internal static partial class PdfTextEditor {
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var movedRequests = new List<PdfStamper.TextStampRequest>();
         var warnings = new List<string>(removal.Warnings);
+        PdfReadDocument styleDocument = PdfReadDocument.Open(pdf, readOptions);
         for (int index = 0; index < detected.Spans.Count; index++) {
             PdfTextSpan span = detected.Spans[index];
             PdfRegionText spanRegion = BuildRegionText(new[] { span });
-            PdfResolvedTextStyle style = ResolveStyle(snapshot, spanRegion);
-            warnings.AddRange(BuildSubstitutionWarnings(spanRegion, style.Font));
+            PdfResolvedTextStyle style = ResolveStyle(snapshot, spanRegion, styleDocument.Pages[source.PageNumber - 1]);
+            warnings.AddRange(BuildSubstitutionWarnings(spanRegion, style));
             AddStampLines(movedRequests, source.PageNumber, span.X + deltaX, span.Y + deltaY, span.RestampText, style, span.PaintOrder);
         }
         EnsureAppendOrderIsSafe(pdf, source.PageNumber, detected.Spans, readOptions, movedRequests);
@@ -110,11 +111,12 @@ internal static partial class PdfTextEditor {
         var warnings = new List<string>(removal.Warnings);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var movedRequests = new List<PdfStamper.TextStampRequest>();
+        PdfReadDocument styleDocument = PdfReadDocument.Open(pdf, readOptions);
         foreach (PdfTextSpan sourceSpan in targetSpans) {
             PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
-            PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected);
-            PdfResolvedTextStyle movedStyle = ResolveStyle(snapshot, detected);
-            warnings.AddRange(BuildSubstitutionWarnings(detected, movedStyle.Font));
+            PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected, styleDocument.Pages[hit.PageNumber - 1]);
+            PdfResolvedTextStyle movedStyle = ResolveStyle(snapshot, detected, styleDocument.Pages[hit.PageNumber - 1]);
+            warnings.AddRange(BuildSubstitutionWarnings(detected, movedStyle));
             AddExactMoveRequests(
                 movedRequests,
                 hit.PageNumber,
@@ -163,11 +165,12 @@ internal static partial class PdfTextEditor {
 
         var rewrites = new Dictionary<PageSpanKey, List<SpanTextEdit>>();
         var fitWarnings = new List<string>();
+        PdfReadDocument styleDocument = PdfReadDocument.Open(pdf, readOptions);
         for (int hitIndex = 0; hitIndex < hits.Count; hitIndex++) {
             TextSearchHit hit = hits[hitIndex];
             PdfResolvedTextStyle? fittedStyle = null;
             if (snapshot.RegionWidthPolicy != PdfTextRegionWidthPolicy.PreserveFontSize && replacement.Length > 0) {
-                PdfResolvedTextStyle style = ResolveStyle(snapshot, BuildRegionText(new[] { hit.Segments[0].Span }));
+                PdfResolvedTextStyle style = ResolveStyle(snapshot, BuildRegionText(new[] { hit.Segments[0].Span }), styleDocument.Pages[hit.PageNumber - 1]);
                 fittedStyle = FitStyleToBaselineExtent(style, replacement, GetMatchedBaselineExtent(hit.Segments, hit.Lines[0]),
                     snapshot, out string? fitWarning);
                 if (fitWarning is not null) fitWarnings.Add(fitWarning);
@@ -201,11 +204,11 @@ internal static partial class PdfTextEditor {
             .ThenBy(static item => item.Key.Span.X)) {
             PdfTextSpan sourceSpan = rewrite.Key.Span;
             PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
-            PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected);
-            PdfResolvedTextStyle replacementStyle = ResolveStyle(snapshot, detected);
+            PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected, styleDocument.Pages[rewrite.Key.PageNumber - 1]);
+            PdfResolvedTextStyle replacementStyle = ResolveStyle(snapshot, detected, styleDocument.Pages[rewrite.Key.PageNumber - 1]);
             PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan, rewrite.Value, sourceStyle, replacementStyle);
             for (int fragmentIndex = 0; fragmentIndex < fragments.Length; fragmentIndex++) {
-                warnings.AddRange(BuildSubstitutionWarnings(detected, fragments[fragmentIndex].Style.Font));
+                warnings.AddRange(BuildSubstitutionWarnings(detected, fragments[fragmentIndex].Style));
             }
             positioned.Add(new PositionedRewrite(rewrite.Key.PageNumber, sourceSpan, fragments));
         }
