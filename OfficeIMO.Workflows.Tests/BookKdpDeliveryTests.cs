@@ -47,8 +47,8 @@ public sealed class BookKdpDeliveryTests {
     [InlineData(10001, 1000)]
     [InlineData(625, 10001)]
     [InlineData(5000, 5000)]
-    public void RejectsDimensionAndLocalPixelLimitsBeforeDecoding(int width, int height) {
-        // Patch TIFF dimensions without allocating the alleged raster. The check must precede decoding.
+    public void RejectsDimensionAndLocalPixelLimits(int width, int height) {
+        // Patch TIFF dimensions without allocating an oversized alleged raster.
         byte[] cover = Cover(OfficeImageExportFormat.Tiff);
         SetTiffDimension(cover, 256, width);
         SetTiffDimension(cover, 257, height);
@@ -64,6 +64,44 @@ public sealed class BookKdpDeliveryTests {
         Assert.Throws<InvalidDataException>(() => project.ToKdpDeliveryBytes(jpeg[..(jpeg.Length / 2)]));
         Assert.Throws<InvalidDataException>(() => project.ToKdpDeliveryBytes([]));
         Assert.Throws<ArgumentNullException>(() => project.ToKdpDeliveryBytes(null!));
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    public void RotatedPortraitUsesDisplayDimensionsAndPreservesSource(int orientation) {
+        byte[] cover = OrientedJpeg(1000, 625, orientation);
+        var entries = Entries(BookProject.Create("Book").ToKdpDeliveryBytes(cover));
+        Assert.Equal(cover, entries["listing-cover.jpeg"]);
+        using var json = JsonDocument.Parse(entries["manifest.json"]);
+        var checks = json.RootElement.GetProperty("Cover");
+        Assert.Equal(625, checks.GetProperty("Width").GetInt32());
+        Assert.Equal(1000, checks.GetProperty("Height").GetInt32());
+        Assert.Equal("decoded-display-after-embedded-orientation", checks.GetProperty("DimensionBasis").GetString());
+        // 1000 / 625 meets the recommended ratio, despite the stored landscape axes.
+        Assert.Single(checks.GetProperty("Recommendations").EnumerateArray());
+    }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    public void RotatedLandscapeCannotPassUsingUnrotatedPortraitDimensions(int orientation) {
+        byte[] cover = OrientedJpeg(625, 1000, orientation);
+        var error = Assert.Throws<InvalidDataException>(() => BookProject.Create("Book").ToKdpDeliveryBytes(cover));
+        Assert.Contains("must display", error.Message);
+    }
+
+    private static byte[] OrientedJpeg(int width, int height, int orientation) {
+        byte[] jpeg = Cover(OfficeImageExportFormat.Jpeg, width, height);
+        // Standard APP1 EXIF: little-endian TIFF with one SHORT Orientation tag.
+        byte[] app1 = [0xff, 0xe1, 0, 34, 69, 120, 105, 102, 0, 0,
+            73, 73, 42, 0, 8, 0, 0, 0, 1, 0, 18, 1, 3, 0, 1, 0, 0, 0,
+            (byte)orientation, 0, 0, 0, 0, 0, 0, 0];
+        return [.. jpeg[..2], .. app1, .. jpeg[2..]];
     }
 
     [Fact]

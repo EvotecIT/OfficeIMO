@@ -210,8 +210,10 @@ sidecars. The EPUB's embedded cover is preserved; this API does not replace it.
 
 The API inspects the cover's actual format and dimensions, then decodes it using
 the existing managed Core decoder. It accepts supported single-image JPEG and
-single-page TIFF payloads with a width of 625–10,000 pixels and a height of
-1,000–10,000 pixels. Recommendations for larger images and a taller aspect ratio
+single-page TIFF payloads with a display width of 625–10,000 pixels and a display
+height of 1,000–10,000 pixels after embedded orientation is applied. The manifest
+records this dimension basis; cover bytes and orientation metadata are preserved.
+Recommendations for larger images and a taller aspect ratio
 remain recommendations. These checks follow the
 [KDP listing-cover criteria](https://kdp.amazon.com/en_US/help/topic/G200645690).
 The local encoded-size cap is 49,999,999 bytes, a conservative interpretation of
@@ -223,7 +225,7 @@ The version-1 `OfficeIMO.KdpDelivery` manifest nests the ordinary delivery evide
 under `Delivery`, including exact payload hashes and import/writer diagnostics.
 `Cover` records dimension and decode checks, local limits and recommendations.
 A successful decode does **not** establish RGB color mode or absence of color
-separation. Those checks, orientation, resolution, visual quality, matching the
+separation. Those checks, visual orientation, resolution, quality, matching the
 listing and embedded cover, rights, commercial terms, accessibility assessment,
 Kindle Previewer and retailer acceptance remain explicitly unchecked. Review
 these separately; no overall retailer-ready status is emitted.

@@ -20,8 +20,9 @@ public sealed partial class BookProject {
     /// </summary>
     /// <remarks>
     /// Requires a single JPEG or TIFF supported by the managed decoder, at least 625 by 1000 pixels,
-    /// at most 10000 pixels per axis and within the local byte/pixel bounds. Cover bytes are preserved.
-    /// Color mode, color separation, orientation, visual quality, listing consistency, rights,
+    /// at most 10000 pixels per axis and within the local byte/pixel bounds. Dimensions describe
+    /// the decoded display after embedded orientation is applied. Cover bytes are preserved.
+    /// Color mode, color separation, visual orientation, quality, listing consistency, rights,
     /// accessibility, Kindle Previewer and retailer acceptance remain explicit unchecked scopes.
     /// The EPUB uses the same import-review, signature and writer policies as Export.
     /// No files are written, accounts accessed or publications uploaded.
@@ -64,8 +65,8 @@ public sealed partial class BookProject {
         if (!OfficeImageReader.TryIdentifyByContent(cover, null, out OfficeImageInfo info) ||
             info.Format is not (OfficeImageFormat.Jpeg or OfficeImageFormat.Tiff))
             throw new InvalidDataException("The listing cover must contain JPEG or TIFF image data.");
-        if (info.Width < 625 || info.Height < 1000 || info.Width > 10000 || info.Height > 10000)
-            throw new InvalidDataException("The listing cover must be at least 625 by 1000 pixels and at most 10000 pixels per axis.");
+        if (info.Width > 10000 || info.Height > 10000)
+            throw new InvalidDataException("The listing cover must be at most 10000 pixels per axis.");
         if ((long)info.Width * info.Height > MaximumKdpCoverPixels)
             throw new InvalidDataException("The listing cover exceeds the local 16,000,000-pixel decoding limit.");
         var decodeOptions = new OfficeRasterDecodeOptions {
@@ -73,10 +74,13 @@ public sealed partial class BookProject {
             FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
             CancellationToken = cancellationToken
         };
-        if (!OfficeRasterImageDecoder.TryDecode(cover, decodeOptions, out var image, out _) || image == null ||
-            image.Width != info.Width || image.Height != info.Height)
+        if (!OfficeRasterImageDecoder.TryDecode(cover, decodeOptions, out var image, out _) || image == null)
             throw new InvalidDataException("The listing cover is malformed, multi-page, or outside the managed decoder's supported subset or limits.");
-        return info;
+        // JPEG header dimensions are stored axes; the decoder applies EXIF orientation.
+        // TIFF identification already applies orientation. Use one display-space contract for both.
+        if (image.Width < 625 || image.Height < 1000 || image.Width > 10000 || image.Height > 10000)
+            throw new InvalidDataException("The listing cover must display at least 625 by 1000 pixels and at most 10000 pixels per axis after embedded orientation.");
+        return new OfficeImageInfo(info.Format, image.Width, image.Height);
     }
 
     private static string[] KdpCoverRecommendations(OfficeImageInfo info) {
@@ -105,6 +109,7 @@ internal sealed class BookKdpCoverChecks {
     public string File { get; set; } = string.Empty;
     public int Width { get; set; }
     public int Height { get; set; }
+    public string DimensionBasis { get; set; } = "decoded-display-after-embedded-orientation";
     public string FormatAndDimensions { get; set; } = "passed";
     public string ManagedPixelDecode { get; set; } = "passed";
     public long MaximumEncodedBytes { get; set; } = BookProject.MaximumKdpCoverBytes;
