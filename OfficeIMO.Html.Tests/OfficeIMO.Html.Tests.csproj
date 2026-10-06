@@ -64,6 +64,11 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\WebpAlpha\alpha-gradient.webp" Link="Images\alpha-gradient.webp" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\WebpAlpha\alpha-gradient.rgba" Link="Images\alpha-gradient.rgba" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\avif-alpha.avif" Link="Images\avif-alpha.avif" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\avif-alpha.rgba" Link="Images\avif-alpha.rgba" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures\ExcelRaster\animated.webp" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.Shared.Tests\EpubReadingIntegrityFixtures.cs" Link="Shared\EpubReadingIntegrityFixtures.cs" />
     <None Include="..\OfficeIMO.Examples\Converters\Html\Content\Reports\service-review.html" Link="Reports\service-review.html" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Word\EvidenceCorpus\**" Link="Documents\Word\EvidenceCorpus\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
