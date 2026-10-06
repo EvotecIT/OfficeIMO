@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 _viewportHeight,
                 style.Color,
                 out HtmlRenderBorderEdges borders,
-                out string borderDetail)) {
+                out string borderDetail, _activeCharacterAdvance)) {
             style.Borders = borders;
         } else {
             style.Borders = HtmlRenderBorderEdges.Uniform(0D, "none", style.Color);
@@ -40,7 +40,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 out OfficeColor outlineColor,
                 out bool outlineColorInvert,
                 out double outlineOffset,
-                out string outlineDetail)) {
+                out string outlineDetail, _activeCharacterAdvance)) {
             style.OutlineWidth = outlineWidth;
             style.OutlineStyle = outlineStyle;
             style.OutlineColor = outlineColor;

@@ -30,8 +30,8 @@ internal sealed class HtmlCssConicGradientDefinition {
         double viewportWidth,
         double viewportHeight,
         out OfficeConicGradient? gradient,
-        out bool stopLimitExceeded) {
-        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded);
+        out bool stopLimitExceeded, double characterAdvance = double.NaN) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded, characterAdvance);
     }
 
     internal bool TryResolve(
@@ -44,12 +44,12 @@ internal sealed class HtmlCssConicGradientDefinition {
         double containerWidth,
         double containerHeight,
         out OfficeConicGradient? gradient,
-        out bool stopLimitExceeded) {
+        out bool stopLimitExceeded, double characterAdvance = double.NaN) {
         gradient = null;
         stopLimitExceeded = false;
         if (width <= 0D || height <= 0D
-            || !HtmlRenderCssValues.TryLength(_centerX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX)
-            || !HtmlRenderCssValues.TryLength(_centerY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerY)
+            || !HtmlRenderCssValues.TryLength(_centerX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, characterAdvance)
+            || !HtmlRenderCssValues.TryLength(_centerY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerY, characterAdvance)
             || double.IsNaN(centerX) || double.IsInfinity(centerX)
             || double.IsNaN(centerY) || double.IsInfinity(centerY)
             || !_stops.TryResolveConic(_repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded)

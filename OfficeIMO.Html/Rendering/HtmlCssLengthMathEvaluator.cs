@@ -15,6 +15,7 @@ internal sealed class HtmlCssLengthMathEvaluator {
     private readonly string _text;
     private readonly double _reference;
     private readonly double _fontSize;
+    private readonly double _characterAdvance;
     private readonly double _rootFontSize;
     private readonly double _viewportWidth;
     private readonly double _viewportHeight;
@@ -32,10 +33,12 @@ internal sealed class HtmlCssLengthMathEvaluator {
         double viewportWidth,
         double viewportHeight,
         double containerWidth,
-        double containerHeight) {
+        double containerHeight,
+        double characterAdvance) {
         _text = text;
         _reference = reference;
         _fontSize = fontSize;
+        _characterAdvance = IsFinite(characterAdvance) && characterAdvance >= 0D ? characterAdvance : fontSize * 0.5D;
         _rootFontSize = rootFontSize;
         _viewportWidth = viewportWidth;
         _viewportHeight = viewportHeight;
@@ -52,11 +55,12 @@ internal sealed class HtmlCssLengthMathEvaluator {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out double result) {
+        out double result,
+        double characterAdvance = double.NaN) {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value) || value.Length > MaximumExpressionLength) return false;
 
-        var parser = new HtmlCssLengthMathEvaluator(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight);
+        var parser = new HtmlCssLengthMathEvaluator(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
         if (!parser.TryParseExpression(out CssNumeric resolved)) return false;
         parser.SkipWhitespace();
         if (parser._index != parser._text.Length
@@ -229,6 +233,7 @@ internal sealed class HtmlCssLengthMathEvaluator {
             case "mm": multiplier = HtmlRenderOptions.CssPixelsPerInch / 25.4D; break;
             case "q": multiplier = HtmlRenderOptions.CssPixelsPerInch / 101.6D; break;
             case "em": multiplier = _fontSize; break;
+            case "ch": multiplier = _characterAdvance; break;
             case "rem": multiplier = _rootFontSize; break;
             case "vw":
             case "svw":

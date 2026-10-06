@@ -115,7 +115,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _options = options;
         _diagnostics = diagnostics;
-        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics);
+        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, MeasureCharacterAdvance);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
         foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);
@@ -150,7 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private bool TryResolveLength(string? value, double reference, double fontSize, out double result) =>
+    private bool TryResolveLength(string? value, double reference, double fontSize, out double result, double characterAdvance = double.NaN) =>
         HtmlRenderCssValues.TryLength(
             value,
             reference,
@@ -158,7 +158,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _options.DefaultFontSize,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
-            out result);
+            out result, characterAdvance);
 
     private void SetActivePageGeometry(HtmlCssPageGeometry geometry) {
         _activePageGeometry = geometry;

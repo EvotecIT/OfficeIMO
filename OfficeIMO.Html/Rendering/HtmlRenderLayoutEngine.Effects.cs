@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.ContainerUnitHeight ?? double.NaN,
                 style,
                 out clipPath,
-                out string clipDetail)) {
+                out string clipDetail, style.CharacterAdvance)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.ClipPathValueUnsupported,
@@ -68,7 +68,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     style.ContainerUnitWidth ?? double.NaN,
                     style.ContainerUnitHeight ?? double.NaN,
                     out transform,
-                    out string detail)) {
+                    out string detail, style.CharacterAdvance)) {
                 _diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.TransformValueUnsupported,
@@ -172,7 +172,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.ContainerUnitHeight ?? double.NaN,
                 style,
                 out clipPath,
-                out string clipDetail)) {
+                out string clipDetail, style.CharacterAdvance)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.ClipPathValueUnsupported,
@@ -200,7 +200,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.ContainerUnitWidth ?? double.NaN,
                 style.ContainerUnitHeight ?? double.NaN,
                 out transform,
-                out string transformDetail)) {
+                out string transformDetail, style.CharacterAdvance)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.TransformValueUnsupported,

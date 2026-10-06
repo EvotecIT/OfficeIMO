@@ -55,10 +55,10 @@ internal static class HtmlCssReplacedElementParser {
         return 96D;
     }
 
-    internal static string NormalizeObjectPosition(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out string unsupported) {
+    internal static string NormalizeObjectPosition(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out string unsupported, double characterAdvance = double.NaN) {
         unsupported = string.Empty;
         string normalized = string.IsNullOrWhiteSpace(value) ? "50% 50%" : value.Trim().ToLowerInvariant();
-        if (TryParsePosition(normalized, fontSize, rootFontSize, viewportWidth, viewportHeight, out _, out _)) return normalized;
+        if (TryParsePosition(normalized, fontSize, rootFontSize, viewportWidth, viewportHeight, out _, out _, characterAdvance)) return normalized;
         unsupported = "object-position=" + normalized;
         return "50% 50%";
     }
@@ -106,12 +106,12 @@ internal static class HtmlCssReplacedElementParser {
         double containerWidth,
         double containerHeight,
         out double offsetX,
-        out double offsetY) {
+        out double offsetY, double characterAdvance = double.NaN) {
         offsetX = 0D;
         offsetY = 0D;
-        if (!TryParsePosition(value, fontSize, rootFontSize, viewportWidth, viewportHeight, out AxisPosition horizontal, out AxisPosition vertical)) return false;
-        offsetX = horizontal.Resolve(areaWidth, areaWidth - objectWidth, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight);
-        offsetY = vertical.Resolve(areaHeight, areaHeight - objectHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight);
+        if (!TryParsePosition(value, fontSize, rootFontSize, viewportWidth, viewportHeight, out AxisPosition horizontal, out AxisPosition vertical, characterAdvance)) return false;
+        offsetX = horizontal.Resolve(areaWidth, areaWidth - objectWidth, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
+        offsetY = vertical.Resolve(areaHeight, areaHeight - objectHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, characterAdvance);
         return !double.IsNaN(offsetX) && !double.IsInfinity(offsetX)
             && !double.IsNaN(offsetY) && !double.IsInfinity(offsetY);
     }
@@ -165,14 +165,14 @@ internal static class HtmlCssReplacedElementParser {
         double viewportWidth,
         double viewportHeight,
         out AxisPosition horizontal,
-        out AxisPosition vertical) {
+        out AxisPosition vertical, double characterAdvance = double.NaN) {
         horizontal = AxisPosition.Center;
         vertical = AxisPosition.Center;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
         if (tokens.Count < 1 || tokens.Count > 4) return false;
-        if (tokens.Count == 1) return TryParseOnePosition(tokens[0], fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, out vertical);
-        if (tokens.Count == 2) return TryParseTwoPositions(tokens[0], tokens[1], fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, out vertical);
-        return TryParseEdgeOffsetPositions(tokens, fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, out vertical);
+        if (tokens.Count == 1) return TryParseOnePosition(tokens[0], fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, out vertical, characterAdvance);
+        if (tokens.Count == 2) return TryParseTwoPositions(tokens[0], tokens[1], fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, out vertical, characterAdvance);
+        return TryParseEdgeOffsetPositions(tokens, fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, out vertical, characterAdvance);
     }
 
     private static bool TryParseOnePosition(
@@ -182,11 +182,11 @@ internal static class HtmlCssReplacedElementParser {
         double viewportWidth,
         double viewportHeight,
         out AxisPosition horizontal,
-        out AxisPosition vertical) {
+        out AxisPosition vertical, double characterAdvance = double.NaN) {
         horizontal = AxisPosition.Center;
         vertical = AxisPosition.Center;
-        if (IsVerticalEdge(token)) return TryParseAxis(token, horizontalAxis: false, fontSize, rootFontSize, viewportWidth, viewportHeight, out vertical);
-        return TryParseAxis(token, horizontalAxis: true, fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal);
+        if (IsVerticalEdge(token)) return TryParseAxis(token, horizontalAxis: false, fontSize, rootFontSize, viewportWidth, viewportHeight, out vertical, characterAdvance);
+        return TryParseAxis(token, horizontalAxis: true, fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, characterAdvance);
     }
 
     private static bool TryParseTwoPositions(
@@ -197,14 +197,14 @@ internal static class HtmlCssReplacedElementParser {
         double viewportWidth,
         double viewportHeight,
         out AxisPosition horizontal,
-        out AxisPosition vertical) {
+        out AxisPosition vertical, double characterAdvance = double.NaN) {
         horizontal = AxisPosition.Center;
         vertical = AxisPosition.Center;
         bool verticalFirst = IsVerticalEdge(first) || IsHorizontalEdge(second);
         string horizontalToken = verticalFirst ? second : first;
         string verticalToken = verticalFirst ? first : second;
-        return TryParseAxis(horizontalToken, horizontalAxis: true, fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal)
-            && TryParseAxis(verticalToken, horizontalAxis: false, fontSize, rootFontSize, viewportWidth, viewportHeight, out vertical);
+        return TryParseAxis(horizontalToken, horizontalAxis: true, fontSize, rootFontSize, viewportWidth, viewportHeight, out horizontal, characterAdvance)
+            && TryParseAxis(verticalToken, horizontalAxis: false, fontSize, rootFontSize, viewportWidth, viewportHeight, out vertical, characterAdvance);
     }
 
     private static bool TryParseEdgeOffsetPositions(
@@ -214,7 +214,7 @@ internal static class HtmlCssReplacedElementParser {
         double viewportWidth,
         double viewportHeight,
         out AxisPosition horizontal,
-        out AxisPosition vertical) {
+        out AxisPosition vertical, double characterAdvance = double.NaN) {
         horizontal = AxisPosition.Center;
         vertical = AxisPosition.Center;
         bool horizontalSet = false;
@@ -239,7 +239,7 @@ internal static class HtmlCssReplacedElementParser {
             if (!horizontalAxis && !IsVerticalEdge(token)) return false;
             if (horizontalAxis ? horizontalSet : verticalSet) return false;
             string? offset = null;
-            if (index + 1 < tokens.Count && IsLengthPercentage(tokens[index + 1], fontSize, rootFontSize, viewportWidth, viewportHeight)) {
+            if (index + 1 < tokens.Count && IsLengthPercentage(tokens[index + 1], fontSize, rootFontSize, viewportWidth, viewportHeight, characterAdvance)) {
                 offset = tokens[++index];
                 offsetSeen = true;
             }
@@ -262,7 +262,7 @@ internal static class HtmlCssReplacedElementParser {
         double rootFontSize,
         double viewportWidth,
         double viewportHeight,
-        out AxisPosition position) {
+        out AxisPosition position, double characterAdvance = double.NaN) {
         position = AxisPosition.Center;
         if (token == "center") return true;
         if (horizontalAxis && IsHorizontalEdge(token)) {
@@ -277,17 +277,17 @@ internal static class HtmlCssReplacedElementParser {
             position = AxisPosition.Aligned(percentage);
             return true;
         }
-        if (!IsLength(token, fontSize, rootFontSize, viewportWidth, viewportHeight)) return false;
+        if (!IsLength(token, fontSize, rootFontSize, viewportWidth, viewportHeight, characterAdvance)) return false;
         position = AxisPosition.Edge(end: false, token);
         return true;
     }
 
-    private static bool IsLengthPercentage(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight) =>
-        TryPercentage(value, out _) || IsLength(value, fontSize, rootFontSize, viewportWidth, viewportHeight);
+    private static bool IsLengthPercentage(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double characterAdvance = double.NaN) =>
+        TryPercentage(value, out _) || IsLength(value, fontSize, rootFontSize, viewportWidth, viewportHeight, characterAdvance);
 
-    private static bool IsLength(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight) {
+    private static bool IsLength(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double characterAdvance = double.NaN) {
         return !value.EndsWith("%", StringComparison.Ordinal)
-            && HtmlRenderCssValues.TryLength(value, 100D, fontSize, rootFontSize, viewportWidth, viewportHeight, out double length)
+            && HtmlRenderCssValues.TryLength(value, 100D, fontSize, rootFontSize, viewportWidth, viewportHeight, out double length, characterAdvance)
             && Math.Abs(length) <= MaximumPositionScalar;
     }
 
@@ -331,12 +331,12 @@ internal static class HtmlCssReplacedElementParser {
             double viewportWidth,
             double viewportHeight,
             double containerWidth,
-            double containerHeight) {
+            double containerHeight, double characterAdvance = double.NaN) {
             if (UsesAlignment) return freeSpace * Alignment;
             double offset = 0D;
             if (EdgeOffset != null) {
                 if (TryPercentage(EdgeOffset, out double percentage)) offset = areaLength * percentage;
-                else HtmlRenderCssValues.TryLength(EdgeOffset, areaLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out offset);
+                else HtmlRenderCssValues.TryLength(EdgeOffset, areaLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out offset, characterAdvance);
             }
             return End ? freeSpace - offset : offset;
         }

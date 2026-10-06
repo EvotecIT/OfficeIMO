@@ -26,8 +26,8 @@ internal static class HtmlRenderCssValues {
         return result > 0D;
     }
 
-    internal static bool TryLength(string? value, double reference, double fontSize, double rootFontSize, out double result) {
-        return TryLength(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, out result);
+    internal static bool TryLength(string? value, double reference, double fontSize, double rootFontSize, out double result, double characterAdvance = double.NaN) {
+        return TryLength(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, out result, characterAdvance);
     }
 
     internal static bool TryLength(
@@ -37,8 +37,8 @@ internal static class HtmlRenderCssValues {
         double rootFontSize,
         double viewportWidth,
         double viewportHeight,
-        out double result) {
-        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out result);
+        out double result, double characterAdvance = double.NaN) {
+        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out result, characterAdvance);
     }
 
     internal static bool TryLength(
@@ -50,7 +50,8 @@ internal static class HtmlRenderCssValues {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out double result) {
+        out double result,
+        double characterAdvance = double.NaN) {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value)) {
             return false;
@@ -66,7 +67,7 @@ internal static class HtmlRenderCssValues {
         }
 
         if (normalized.IndexOf('(') >= 0) {
-            return HtmlCssLengthMathEvaluator.TryEvaluate(normalized, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out result);
+            return HtmlCssLengthMathEvaluator.TryEvaluate(normalized, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out result, characterAdvance);
         }
 
         string unit = string.Empty;
@@ -111,6 +112,9 @@ internal static class HtmlRenderCssValues {
                 return IsFinite(result);
             case "em":
                 result = number * fontSize;
+                return IsFinite(result);
+            case "ch":
+                result = number * (IsFinite(characterAdvance) && characterAdvance >= 0D ? characterAdvance : fontSize * 0.5D);
                 return IsFinite(result);
             case "rem":
                 result = number * rootFontSize;
@@ -183,8 +187,8 @@ internal static class HtmlRenderCssValues {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left) {
-        ApplyBoxShorthand(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, ref top, ref right, ref bottom, ref left);
+    internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left, double characterAdvance = double.NaN) {
+        ApplyBoxShorthand(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, ref top, ref right, ref bottom, ref left, characterAdvance);
     }
 
     internal static void ApplyBoxShorthand(
@@ -197,7 +201,7 @@ internal static class HtmlRenderCssValues {
         ref double top,
         ref double right,
         ref double bottom,
-        ref double left) {
+        ref double left, double characterAdvance = double.NaN) {
         ApplyBoxShorthand(
             value,
             reference,
@@ -210,7 +214,7 @@ internal static class HtmlRenderCssValues {
             ref top,
             ref right,
             ref bottom,
-            ref left);
+            ref left, characterAdvance);
     }
 
     internal static void ApplyBoxShorthand(
@@ -225,7 +229,7 @@ internal static class HtmlRenderCssValues {
         ref double top,
         ref double right,
         ref double bottom,
-        ref double left) {
+        ref double left, double characterAdvance = double.NaN) {
         IReadOnlyList<string> parts = SplitWhitespace(value);
         if (parts.Count == 0 || parts.Count > 4) {
             return;
@@ -233,7 +237,7 @@ internal static class HtmlRenderCssValues {
 
         var values = new double[parts.Count];
         for (int i = 0; i < parts.Count; i++) {
-            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[i])) {
+            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[i], characterAdvance)) {
                 return;
             }
         }

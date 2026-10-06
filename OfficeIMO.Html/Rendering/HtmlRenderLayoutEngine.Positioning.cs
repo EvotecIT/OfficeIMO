@@ -128,7 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double lengthReference = reference ?? 0D;
-        if (TryResolveLength(value, lengthReference, style.Font.Size, out resolved)) {
+        if (TryResolveLength(value, lengthReference, style, out resolved)) {
             return true;
         }
 

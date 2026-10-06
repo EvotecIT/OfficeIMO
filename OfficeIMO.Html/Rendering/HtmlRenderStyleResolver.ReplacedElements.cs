@@ -12,7 +12,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _options.DefaultFontSize,
             _viewportWidth,
             _viewportHeight,
-            out string unsupportedPosition);
+            out string unsupportedPosition, _activeCharacterAdvance);
         if (unsupportedPosition.Length > 0) unsupported.Add(unsupportedPosition);
 
         style.ApplyEmbeddedImageOrientation = HtmlCssReplacedElementParser.ResolveImageOrientation(

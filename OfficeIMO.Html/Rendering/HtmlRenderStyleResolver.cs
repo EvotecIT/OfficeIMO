@@ -14,11 +14,15 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
     private double _activeContainerHeight = double.NaN;
+    private readonly Func<HtmlRenderBoxStyle, double> _measureCharacterAdvance;
+    private double _activeCharacterAdvance = double.NaN;
 
-    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics,
+        Func<HtmlRenderBoxStyle, double> measureCharacterAdvance) {
         _computedStyles = computedStyles;
         _options = options;
         _diagnostics = diagnostics;
+        _measureCharacterAdvance = measureCharacterAdvance;
         _viewportWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
         _viewportHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
     }
@@ -38,7 +42,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             _viewportHeight,
             _activeContainerWidth,
             _activeContainerHeight,
-            out result);
+            out result,
+            _activeCharacterAdvance);
 
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
         HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
@@ -97,6 +102,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.ContainerUnitHeight ?? viewportHeight;
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
+        _activeCharacterAdvance = ContainsCharacterUnit(fontSizeValue)
+            ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
+            : double.NaN;
         double fontSize = computed.IsInheritedValue("font-size")
             ? parentFontSize
             : string.IsNullOrWhiteSpace(fontSizeValue)
@@ -132,6 +140,15 @@ internal sealed partial class HtmlRenderStyleResolver {
             : computed.GetValue("text-transform").Trim().ToLowerInvariant();
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
         OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
+        _activeCharacterAdvance = computed.Properties.Values.Any(ContainsCharacterUnit)
+            ? _measureCharacterAdvance(new HtmlRenderBoxStyle {
+                Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
+                FontDescriptor = fontDescriptor,
+                TextFeatureSettings = textFeatureSettings,
+                WritingMode = writingMode,
+                TextOrientation = textOrientation
+            })
+            : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
         int baselineLevel = ResolveTextBaselineLevel(
@@ -171,9 +188,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             DecorationColor = ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
-            LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
-            LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
-            WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
+            CharacterAdvance = _activeCharacterAdvance,
+            LineHeight = ResolveInheritedLineHeight(computed, fontSize, parent),
+            LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
+            WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
@@ -234,6 +252,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyDimensions(element, physicalComputed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(element, computed, style, pseudoElement);
+        ApplyInheritedTextShadows(computed, style, parent);
         if (style.OutlineColorInvert) {
             OfficeColor backdrop = style.BackgroundColor ?? parent?.BackgroundColor ?? OfficeColor.White;
             style.OutlineColor = OfficeColor.FromRgba((byte)(255 - backdrop.R), (byte)(255 - backdrop.G), (byte)(255 - backdrop.B), backdrop.A);
@@ -245,6 +264,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyColumns(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
         ApplyTable(computed, style);
+        if (computed.IsInheritedValue("border-spacing") && parent != null) {
+            style.BorderSpacingX = parent.BorderSpacingX;
+            style.BorderSpacingY = parent.BorderSpacingY;
+            style.UnsupportedBorderSpacing = parent.UnsupportedBorderSpacing;
+        }
         ApplyBreaks(computed, style);
         ApplyPdfSemanticTag(computed.GetValue("-officeimo-pdf-tag-type"), style);
         ApplyBookmark(computed, style);
@@ -442,7 +466,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 _viewportWidth,
                 _viewportHeight,
                 out style.OverflowClipMarginBox,
-                out style.OverflowClipMargin)) {
+                out style.OverflowClipMargin, style.CharacterAdvance)) {
             style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
         }
 
@@ -493,7 +517,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         string borderSpacing = computed.GetValue("border-spacing");
         if (!string.IsNullOrWhiteSpace(borderSpacing)
-            && !HtmlCssTableParser.TryParseBorderSpacing(borderSpacing, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, out style.BorderSpacingX, out style.BorderSpacingY)) {
+            && !HtmlCssTableParser.TryParseBorderSpacing(borderSpacing, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, out style.BorderSpacingX, out style.BorderSpacingY, style.CharacterAdvance)) {
             style.UnsupportedBorderSpacing = borderSpacing.Trim().ToLowerInvariant();
         }
     }
@@ -840,14 +864,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.ClipPath = NormalizeCssValue(computed.GetValue("clip-path"), "none");
         style.BoxDecorationBreak = NormalizeCssValue(computed.GetValue("box-decoration-break"), "slice");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
-        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
+        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows, style.CharacterAdvance)) {
             style.UnsupportedBoxShadow = boxShadow;
         } else {
             style.BoxShadowLayerCount = shadows.Count;
             style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
         string textShadow = computed.GetValue("text-shadow");
-        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount)) {
+        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount, style.CharacterAdvance)) {
             style.UnsupportedTextShadow = textShadow.Length <= 256 ? textShadow : textShadow.Substring(0, 256);
         } else {
             style.TextShadowLayerCount = textShadowLayerCount;

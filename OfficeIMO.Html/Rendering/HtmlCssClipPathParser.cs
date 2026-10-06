@@ -22,7 +22,7 @@ internal static class HtmlCssClipPathParser {
         double containerHeight,
         HtmlRenderBoxStyle? style,
         out HtmlCssResolvedClipPath? resolved,
-        out string detail) {
+        out string detail, double characterAdvance = double.NaN) {
         resolved = null;
         detail = string.Empty;
         if (value != null && value.Length > MaximumClipPathCharacters) {
@@ -48,10 +48,10 @@ internal static class HtmlCssClipPathParser {
         }
 
         bool success = function switch {
-            "inset" => TryInset(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
-            "circle" => TryCircle(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
-            "ellipse" => TryEllipse(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
-            "polygon" => TryPolygon(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
+            "inset" => TryInset(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved, characterAdvance),
+            "circle" => TryCircle(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved, characterAdvance),
+            "ellipse" => TryEllipse(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved, characterAdvance),
+            "polygon" => TryPolygon(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved, characterAdvance),
             _ => false
         };
         if (success && resolved != null && resolved.ClipPath.Kind != OfficeClipPathKind.Empty && (referenceX != 0D || referenceY != 0D)) {
@@ -71,7 +71,7 @@ internal static class HtmlCssClipPathParser {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out HtmlCssResolvedClipPath? resolved) {
+        out HtmlCssResolvedClipPath? resolved, double characterAdvance = double.NaN) {
         resolved = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(arguments);
         int roundIndex = tokens.ToList().FindIndex(token => string.Equals(token, "round", StringComparison.OrdinalIgnoreCase));
@@ -81,7 +81,7 @@ internal static class HtmlCssClipPathParser {
         var values = new double[insetTokens.Count];
         for (int index = 0; index < insetTokens.Count; index++) {
             double reference = index % 2 == 0 ? height : width;
-            if (!TryLength(insetTokens[index], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[index])) return false;
+            if (!TryLength(insetTokens[index], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[index], characterAdvance)) return false;
         }
         ExpandFour(values, out double top, out double right, out double bottom, out double left);
         double clipWidth = width - left - right;
@@ -125,13 +125,13 @@ internal static class HtmlCssClipPathParser {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out HtmlCssResolvedClipPath? resolved) {
+        out HtmlCssResolvedClipPath? resolved, double characterAdvance = double.NaN) {
         resolved = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(arguments);
         bool hasPosition = SplitAtPosition(tokens, out IReadOnlyList<string> shapeTokens, out IReadOnlyList<string> positionTokens);
         if (shapeTokens.Count > 1
             || hasPosition && positionTokens.Count == 0
-            || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY)) return false;
+            || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY, characterAdvance)) return false;
 
         double radius;
         string radiusToken = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[0];
@@ -141,7 +141,7 @@ internal static class HtmlCssClipPathParser {
         else if (radiusToken == "farthest-corner") radius = ResolveCircleCornerRadius(centerX, centerY, width, height, closest: false);
         else {
             double reference = Math.Sqrt(width * width + height * height) / Math.Sqrt(2D);
-            if (!TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius)) return false;
+            if (!TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius, characterAdvance)) return false;
             if (radius < 0D) return false;
         }
         if (radius <= 0.0001D) {
@@ -162,7 +162,7 @@ internal static class HtmlCssClipPathParser {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out HtmlCssResolvedClipPath? resolved) {
+        out HtmlCssResolvedClipPath? resolved, double characterAdvance = double.NaN) {
         resolved = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(arguments);
         bool hasPosition = SplitAtPosition(tokens, out IReadOnlyList<string> shapeTokens, out IReadOnlyList<string> positionTokens);
@@ -170,15 +170,15 @@ internal static class HtmlCssClipPathParser {
         if (shapeTokens.Count != 0 && !extentKeyword && shapeTokens.Count != 2
             || shapeTokens.Count == 2 && (IsRadialExtent(shapeTokens[0]) || IsRadialExtent(shapeTokens[1]))
             || hasPosition && positionTokens.Count == 0
-            || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY)) return false;
+            || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY, characterAdvance)) return false;
 
         double radiusX;
         double radiusY;
         if (shapeTokens.Count == 0 || extentKeyword) {
             string extent = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[0];
             ResolveEllipseExtent(extent, centerX, centerY, width, height, out radiusX, out radiusY);
-        } else if (!TryLength(shapeTokens[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusX)
-            || !TryLength(shapeTokens[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusY)
+        } else if (!TryLength(shapeTokens[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusX, characterAdvance)
+            || !TryLength(shapeTokens[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusY, characterAdvance)
             || radiusX < 0D || radiusY < 0D) {
             return false;
         }
@@ -200,7 +200,7 @@ internal static class HtmlCssClipPathParser {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out HtmlCssResolvedClipPath? resolved) {
+        out HtmlCssResolvedClipPath? resolved, double characterAdvance = double.NaN) {
         resolved = null;
         if (!HtmlRenderCssValues.TrySplitTopLevelCommas(arguments, MaximumPolygonVertices + 1,
             out IReadOnlyList<string> entries)) return false;
@@ -218,8 +218,8 @@ internal static class HtmlCssClipPathParser {
         for (int index = start; index < entries.Count; index++) {
             IReadOnlyList<string> coordinates = HtmlRenderCssValues.SplitWhitespace(entries[index]);
             if (coordinates.Count != 2
-                || !TryLength(coordinates[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double x)
-                || !TryLength(coordinates[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double y)) return false;
+                || !TryLength(coordinates[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double x, characterAdvance)
+                || !TryLength(coordinates[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double y, characterAdvance)) return false;
             points.Add(new OfficePoint(x, y));
             minX = Math.Min(minX, x);
             minY = Math.Min(minY, y);
@@ -289,11 +289,11 @@ internal static class HtmlCssClipPathParser {
         double containerWidth,
         double containerHeight,
         out double x,
-        out double y) {
+        out double y, double characterAdvance = double.NaN) {
         x = y = 0D;
         if (!HtmlCssGradientPositionParser.TryParse(tokens, out string xValue, out string yValue)) return false;
-        return TryLength(xValue, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out x)
-            && TryLength(yValue, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out y);
+        return TryLength(xValue, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out x, characterAdvance)
+            && TryLength(yValue, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out y, characterAdvance);
     }
 
     private static bool SplitAtPosition(IReadOnlyList<string> tokens, out IReadOnlyList<string> shape, out IReadOnlyList<string> position) {
@@ -343,8 +343,8 @@ internal static class HtmlCssClipPathParser {
         radiusY *= scale;
     }
 
-    private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length) =>
-        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length);
+    private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length, double characterAdvance = double.NaN) =>
+        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length, characterAdvance);
 
     private static bool TryGetClipPathParts(string value, out string name, out string arguments, out string geometryBox) {
         name = string.Empty;

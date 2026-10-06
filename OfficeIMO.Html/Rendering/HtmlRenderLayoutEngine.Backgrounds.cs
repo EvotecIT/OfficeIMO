@@ -216,7 +216,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback);
+        BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback, style.CharacterAdvance);
         if (usedSizeFallback) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
@@ -245,7 +245,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             layer.Position,
             areaWidth - imageSize.Width,
             areaHeight - imageSize.Height,
-            style.Font.Size);
+            style.Font.Size, style.CharacterAdvance);
         double tileX = areaX + offsetX;
         double tileY = areaY + offsetY;
         BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, clipBox.X, clipBox.Width, tileX, imageSize.Width);
@@ -321,7 +321,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
 
         if (layer.ConicGradient != null) {
-            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded)
+            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded, style.CharacterAdvance)
                 || conicGradient == null) {
                 if (conicStopLimitExceeded) {
                     _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
@@ -348,7 +348,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool stopLimitExceeded = false;
         OfficeLinearGradient? linearGradient = null;
         if (layer.LinearGradient != null
-            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out linearGradient, out stopLimitExceeded)) {
+            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out linearGradient, out stopLimitExceeded, style.CharacterAdvance)) {
             if (stopLimitExceeded) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
                     "A repeating CSS linear gradient exceeded the configured materialized color-stop limit and was omitted.",
@@ -366,7 +366,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         fill.FillGradient = linearGradient;
         OfficeRadialGradient? radialGradient = null;
         if (layer.RadialGradient != null
-            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out radialGradient, out stopLimitExceeded)) {
+            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out radialGradient, out stopLimitExceeded, style.CharacterAdvance)) {
             if (stopLimitExceeded) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
                     "A repeating CSS radial gradient exceeded the configured materialized color-stop limit and was omitted.",
@@ -626,7 +626,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicWidth,
         double intrinsicHeight,
         double fontSize,
-        out bool usedFallback) {
+        out bool usedFallback, double characterAdvance = double.NaN) {
         usedFallback = false;
         string normalized = (value ?? string.Empty).Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "auto") {
@@ -650,12 +650,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool heightAuto = parts.Count == 1 || parts[1] == "auto";
         double resolvedWidth = intrinsicWidth;
         double resolvedHeight = intrinsicHeight;
-        if (!widthAuto && !TryResolveLength(parts[0], areaWidth, fontSize, out resolvedWidth)) {
+        if (!widthAuto && !TryResolveLength(parts[0], areaWidth, fontSize, out resolvedWidth, characterAdvance)) {
             usedFallback = true;
             return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
         }
 
-        if (!heightAuto && !TryResolveLength(parts[1], areaHeight, fontSize, out resolvedHeight)) {
+        if (!heightAuto && !TryResolveLength(parts[1], areaHeight, fontSize, out resolvedHeight, characterAdvance)) {
             usedFallback = true;
             return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
         }
@@ -671,7 +671,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new BackgroundImageSize(intrinsicWidth * scale, intrinsicHeight * scale);
     }
 
-    private (double X, double Y) ResolveBackgroundPosition(string value, double availableX, double availableY, double fontSize) {
+    private (double X, double Y) ResolveBackgroundPosition(string value, double availableX, double availableY, double fontSize, double characterAdvance = double.NaN) {
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty).ToList().AsReadOnly();
         string first = parts.Count > 0 ? parts[0].ToLowerInvariant() : "0%";
         string second = parts.Count > 1 ? parts[1].ToLowerInvariant() : "center";
@@ -680,11 +680,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return (
-            ResolveBackgroundAxis(first, availableX, fontSize, horizontal: true),
-            ResolveBackgroundAxis(second, availableY, fontSize, horizontal: false));
+            ResolveBackgroundAxis(first, availableX, fontSize, horizontal: true, characterAdvance),
+            ResolveBackgroundAxis(second, availableY, fontSize, horizontal: false, characterAdvance));
     }
 
-    private double ResolveBackgroundAxis(string value, double available, double fontSize, bool horizontal) {
+    private double ResolveBackgroundAxis(string value, double available, double fontSize, bool horizontal, double characterAdvance = double.NaN) {
         if (value == "center") return available / 2D;
         if (value == (horizontal ? "right" : "bottom")) return available;
         if (value == (horizontal ? "left" : "top")) return 0D;
@@ -693,7 +693,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return available * percentage / 100D;
         }
 
-        return TryResolveLength(value, available, fontSize, out double length)
+        return TryResolveLength(value, available, fontSize, out double length, characterAdvance)
             ? length
             : 0D;
     }

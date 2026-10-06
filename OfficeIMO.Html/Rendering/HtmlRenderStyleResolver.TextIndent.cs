@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         if (value == "initial") return null;
         var indent = new HtmlRenderTextIndent(value, fontSize, _options.DefaultFontSize,
-            _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight);
+            _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, _activeCharacterAdvance);
         if (HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
             && indent.TryResolve(100D, out _)) return indent;
         if (_reportedTextIndentFallbacks.Add(element)) {
@@ -32,10 +32,10 @@ internal sealed partial class HtmlRenderStyleResolver {
 /// </summary>
 internal sealed class HtmlRenderTextIndent {
     private readonly string _value;
-    private readonly double _fontSize, _rootFontSize, _viewportWidth, _viewportHeight, _containerWidth, _containerHeight;
+    private readonly double _fontSize, _rootFontSize, _viewportWidth, _viewportHeight, _containerWidth, _containerHeight, _characterAdvance;
 
     internal HtmlRenderTextIndent(string value, double fontSize, double rootFontSize,
-        double viewportWidth, double viewportHeight, double containerWidth, double containerHeight) {
+        double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, double characterAdvance) {
         _value = value;
         _fontSize = fontSize;
         _rootFontSize = rootFontSize;
@@ -43,11 +43,12 @@ internal sealed class HtmlRenderTextIndent {
         _viewportHeight = viewportHeight;
         _containerWidth = containerWidth;
         _containerHeight = containerHeight;
+        _characterAdvance = characterAdvance;
     }
 
     internal bool TryResolve(double width, out double result) => HtmlRenderCssValues.TryLength(
         _value, width, _fontSize, _rootFontSize, _viewportWidth, _viewportHeight,
-        _containerWidth, _containerHeight, out result);
+        _containerWidth, _containerHeight, out result, _characterAdvance);
 
     internal double Resolve(double width) => TryResolve(width, out double result) ? result : 0D;
 }

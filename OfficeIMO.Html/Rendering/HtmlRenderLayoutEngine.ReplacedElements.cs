@@ -125,7 +125,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.ContainerUnitWidth ?? double.NaN,
                 style.ContainerUnitHeight ?? double.NaN,
                 out double objectX,
-                out double objectY)) {
+                out double objectY, style.CharacterAdvance)) {
             objectX = (contentWidth - objectWidth) / 2D;
             objectY = (contentHeight - objectHeight) / 2D;
         }

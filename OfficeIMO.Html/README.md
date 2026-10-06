@@ -194,6 +194,13 @@ element's font context; percentages use the receiving block's inline size. Page
 continuations do not restart the indent. The `hanging` and `each-line` keywords
 are not implemented and produce `TextIndentValueUnsupported` diagnostics.
 
+Character-relative `ch` lengths use the rendered zero glyph's advance, including
+scoped fonts and active OpenType features, in supported layout and paint values
+and CSS length math. Letter and word spacing do not enlarge that measurement.
+Inherited text spacing, explicit line heights, border spacing and text-shadow
+offsets retain their computed lengths when a descendant changes font; unitless
+line heights continue to scale with the descendant's font.
+
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.
