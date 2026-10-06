@@ -341,8 +341,17 @@ LibTIFF fails on 174 files and cannot display the other 18 despite returning zer
 no full-file native acceptance is claimed. The 768 XPS/OpenXPS exports cover
 510,720 probes per route: MuPDF PDF/SVG errors reach 4/255 and 2/255 without
 warnings. GhostXPS opens all packages but can render blank images (255/255).
-Shared tables, unspecified extras, multi-scan chunky 4×2 alpha and wider native
-acceptance remain outside this qualification.
+Unspecified extras, multi-scan chunky 4×2 alpha and wider native acceptance remain
+outside this qualification; table-only state isolation is covered separately below.
+
+Lossless arithmetic JPEG does not consume quantization or Huffman tables.
+The `JPEGTables` DAC/DRI controls reset before each image, as required by
+[TIFF Technical Note #2](https://libtiff.gitlab.io/libtiff/specification/technote2.html#jpegtables-field).
+Focused eight/twelve/sixteen-bit tests use conflicting table-only conditioning
+and restart settings with images that have no local overrides; pixels remain
+unchanged. Moving those controls into the image changes or rejects decoding,
+confirming that the samples exercise state isolation. This qualifies the
+applicable table-only control behavior, not an independent full-file TIFF reader.
 
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before
