@@ -5,7 +5,7 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     private static readonly HashSet<string> MergeRelationshipNames = new HashSet<string>(new[] {
-        "name", "usemap", "for", "form", "list", "headers", "itemref", "aria-labelledby", "aria-describedby",
+        "id", "name", "usemap", "for", "form", "list", "headers", "itemref", "aria-labelledby", "aria-describedby",
         "aria-controls", "aria-owns", "aria-flowto", "aria-activedescendant", "aria-details", "aria-errormessage"
     }, StringComparer.Ordinal);
 

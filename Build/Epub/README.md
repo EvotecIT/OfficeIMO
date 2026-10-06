@@ -246,6 +246,14 @@ local style, not a claim of qualification for every publisher's citation style.
 It has no third-party test dependency and
 is outside the normal solution and shipped packages.
 
+`merge-id-selectors.epub` and its unmerged `merge-id-selectors-source.epub` qualify
+partial ID comparisons and selectors naming a
+newly assigned ID. The renamed paragraph remains green, bold and bordered; the
+retained paragraph is green and bordered; the unselected paragraph is green without
+a border. The third chapter retains the original shared stylesheet. Check these
+states in intended readers, including support for generated `:is(...)` alternatives
+and `:where(...)` filters.
+
 `manuscript-relationships.epub` imports a labelled section and a forward description
 reference across proposed heading boundaries. The connected sections share one
 content document; a separate chapter and cross-document heading links remain.

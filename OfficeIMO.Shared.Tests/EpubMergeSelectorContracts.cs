@@ -52,8 +52,6 @@ public sealed class EpubMergeSelectorContracts {
     }
 
     [Theory]
-    [InlineData("[id^='head'] {color:red}")]
-    [InlineData("[id|=heading] {color:red}")]
     [InlineData("[id='heading' i] {color:red}")]
     [InlineData("@unknown { #heading {color:red} }")]
     public void UnsupportedSelectorsLeaveAllPackageBytesUnchanged(string css) {

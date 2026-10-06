@@ -15,6 +15,7 @@ internal static class HtmlCssIdSelectorRewriter {
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token,
         Func<string, string, string, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null) {
         var edits = new List<(int Start, int Length, string Value)>();
+        var introducedIds = new HashSet<string>(map.Where(pair => pair.Key != pair.Value).Select(pair => pair.Value), StringComparer.Ordinal);
         var blocks = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
         Rules(0, css.Length, 0, false);
         var result = new StringBuilder(css);
@@ -107,8 +108,13 @@ internal static class HtmlCssIdSelectorRewriter {
                 if (css[i++] != '#') continue;
                 int nameStart = i;
                 if (!HtmlCssIdentifierParser.TryRead(css, ref i, out string id) || i > end) throw Unsupported();
-                if (map.TryGetValue(id, out string? replacement) && replacement != id)
-                    edits.Add((nameStart, i - nameStart, Identifier(replacement)));
+                if (map.TryGetValue(id, out string? replacement)) {
+                    if (replacement != id) edits.Add((nameStart, i - nameStart, Identifier(replacement)));
+                } else if (introducedIds.Contains(id)) {
+                    // A destination-only ID did not match the source. Keep it impossible without
+                    // changing the hash selector's specificity, including inside :not/:is/:has.
+                    edits.Add((nameStart - 1, 0, ":where([id~=\"\"])"));
+                }
             }
         }
 
@@ -127,8 +133,8 @@ internal static class HtmlCssIdSelectorRewriter {
                 return; // Presence remains true after replacement.
             }
             string operation = "=";
-            if (relationship && "~|^$*".IndexOf(css[i]) >= 0) { operation = css[i] + "="; i++; }
-            if (i == end || css[i++] != '=') throw new NotSupportedException("Only exact ID or supported attribute comparisons can be reconciled.");
+            if ("~|^$*".IndexOf(css[i]) >= 0) { operation = css[i] + "="; i++; }
+            if (i == end || css[i++] != '=') throw new NotSupportedException("Only supported attribute comparisons can be reconciled.");
             Trivia(ref i, end);
             int valueStart = i;
             string id;
@@ -145,7 +151,9 @@ internal static class HtmlCssIdSelectorRewriter {
                 Trivia(ref i, end);
             }
             if (i != end) throw Unsupported();
-            HtmlCssAttributeSelectorEdit replacement = relationship ? rewriteRelationship!(name, operation, id) :
+            if (!relationship && operation != "=" && rewriteRelationship == null)
+                throw new NotSupportedException("Partial ID selectors require source attribute evidence.");
+            HtmlCssAttributeSelectorEdit replacement = rewriteRelationship != null ? rewriteRelationship(name, operation, id) :
                 HtmlCssAttributeSelectorEdit.Operand(map.TryGetValue(id, out string? mapped) ? mapped : id);
             if (replacement.ExactValues != null) {
                 string expanded = ExpandAttribute(name, replacement.ExactValues);

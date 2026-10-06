@@ -19,7 +19,7 @@ public sealed class EpubMergeNestedSelectorContracts {
               h1:is(#heading) { font-weight:bold; }
               @media screen {
                 margin:1em;
-                [id='heading'] { color:green; @supports (display:block) { border:1px solid; } }
+                [id^='head'] { color:green; @supports (display:block) { border:1px solid; } }
                 padding:2em;
               }
               background:white;
@@ -30,7 +30,7 @@ public sealed class EpubMergeNestedSelectorContracts {
         var reopened = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
         string result = external ? Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-1")) :
             reopened.GetContentXml("one").Descendants(Html + "style").Single().Value;
-        Assert.Equal(css.Replace("#heading", "#second-heading").Replace("[id='heading']", "[id=\"second-heading\"]"), result);
+        Assert.Equal(css.Replace("#heading", "#second-heading").Replace("[id^='head']", "[id=\"second-heading\"]"), result);
         if (external) Assert.Equal(css, Encoding.UTF8.GetString(reopened.GetResourceBytes("styles")));
     }
 
@@ -52,7 +52,6 @@ public sealed class EpubMergeNestedSelectorContracts {
 
     [Theory]
     [InlineData(".chapter { @unknown { #heading {color:red} } }")]
-    [InlineData(".chapter { & [id^='head'] {color:red} }")]
     public void UnsupportedNestedSyntaxStillFailsAtomically(string css) {
         var book = Book(); AddStyles(book, css, false); byte[] before = book.Write().Bytes;
         Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));

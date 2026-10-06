@@ -753,7 +753,7 @@ source IDs and unresolved destination collisions reject the entire merge.
 
 CSS selectors remain unchanged by default. Set `RewriteChapterSelectors = true`
 with `StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles` to rewrite the
-second chapter's `#id` and exact `[id=value]` selectors using the map and repair
+second chapter's `#id` and ID attribute selectors using the map and repair
 reference-attribute selectors in both chapters. Escaped names,
 selector-list pseudo-classes, media/supports/layer/container groups and scope selectors
 are supported, including nested rules with explicit `&`, implicit descendants and
@@ -763,7 +763,7 @@ and their imports receive private copies in their existing directories, leaving 
 original stylesheets available to other chapters. Each source chapter has its own
 copies, allocated within one combined entry and byte budget for the merge.
 
-Attribute selectors on lowercase, unnamespaced document-local relationships
+Attribute selectors on lowercase, unnamespaced `id`, document-local relationships
 (ARIA references, `itemref`, `headers`, `for`, `form`, `list`, `name` and `usemap`)
 and resource attributes (`href`, `cite`, `src`, `srcset`, `style` and SVG `fill`)
 follow actual repaired values. Presence, exact, token, prefix, suffix, substring
@@ -775,7 +775,10 @@ post-merge attribute values. Multiple values use `:is(...)`, retaining the speci
 of one attribute selector. Expansion is limited to 256 alternatives and 64 KiB per
 selector. Unchanged predicates retain their source text. This describes the static
 publication; later scripts changing attribute values are outside the repair contract.
-Intended readers must support `:is(...)` when expansion produces it.
+Intended readers must support `:is(...)` or `:where(...)` when repair produces them.
+Selectors that did not match before an ID rename remain nonmatching, including
+selectors that name a newly assigned ID. A destination-only hash selector uses
+`:where([id~=""])#id` to retain its original ID specificity without selecting an element.
 
 Merge rejects matching removed scaffolding and repairs that cannot distinguish
 originally matching and nonmatching attributes after their values converge. The
@@ -784,8 +787,8 @@ resolve ambiguity. Both chapters share the final cascade: selector repair does n
 isolate styles or guarantee the same layout.
 
 The automatic profile rejects unknown at-rules,
-namespaced attribute selectors, partial ID matches, case-insensitive comparisons,
-case-variant relationship names,
+namespaced attribute selectors, case-insensitive comparisons,
+case-variant ID or relationship names,
 stylesheet processing instructions, integrity digests and stylesheet package refinements. Reconcile these
 explicitly before merging, or leave automatic rewriting disabled and prepare all
 ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;

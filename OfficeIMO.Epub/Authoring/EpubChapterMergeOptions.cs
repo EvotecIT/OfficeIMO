@@ -20,12 +20,13 @@ public sealed class EpubChapterMergeOptions {
     public IReadOnlyDictionary<string, string> SecondChapterIdMap { get; set; } = new Dictionary<string, string>();
     /// <summary>Repair selectors in both source chapters, applying the identifier map only to the second chapter
     /// and retaining separate private copies of each chapter's linked stylesheets and imports.
-    /// Requires AppendSecondStyles. Supports hash and exact id attribute selectors
+    /// Requires AppendSecondStyles. Supports hash and id attribute selectors
     /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
-    /// values are preserved. Attribute comparisons on document-local relationships and resource-bearing attributes follow actual
+    /// values are preserved. Partial id attribute comparisons use actual source and repaired values; destination-only hash
+    /// identifiers stay nonmatching with their original specificity. Attribute comparisons on document-local relationships and resource-bearing attributes follow actual
     /// repaired values, including rebased URLs and private stylesheet paths. Partial or multivalued matches can
     /// expand into at most 256 exact alternatives and 64 KiB of CSS, using :is when needed. Irreducible
-    /// ambiguities and unsupported syntax fail atomically. Reader support for :is and nested CSS remains independent.</summary>
+    /// ambiguities and unsupported syntax fail atomically. Reader support for :is, :where and nested CSS remains independent.</summary>
     public bool RewriteChapterSelectors { get; set; }
     /// <summary>Allow differing root/body language and direction by wrapping the second chapter's body content
     /// in a div with its effective language and direction. Other scaffold conflicts still reject the merge.
