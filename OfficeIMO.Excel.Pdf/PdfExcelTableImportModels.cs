@@ -40,7 +40,8 @@ public sealed class PdfExcelTableImportEntry {
             IReadOnlyList<PdfExcelTableColumnKind> columnKinds,
             IReadOnlyList<string?> currencyTokens,
             IReadOnlyList<OfficeIMO.Pdf.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
-            IReadOnlyList<bool?> currencyAffixUsesSpacing) {
+            IReadOnlyList<bool?> currencyAffixUsesSpacing,
+            bool firstRowUsedAsHeader = false) {
             PageIndex = pageIndex;
             PageNumber = pageNumber;
             TableIndex = tableIndex;
@@ -60,7 +61,11 @@ public sealed class PdfExcelTableImportEntry {
             CurrencyTokens = Array.AsReadOnly(currencyTokens.ToArray());
             CurrencyAffixPositions = Array.AsReadOnly(currencyAffixPositions.ToArray());
             CurrencyAffixUsesSpacing = Array.AsReadOnly(currencyAffixUsesSpacing.ToArray());
+            FirstRowUsedAsHeader = firstRowUsedAsHeader;
         }
+
+        /// <summary>True when the caller confirmed the first source row as headers for a table with unknown schema.</summary>
+        public bool FirstRowUsedAsHeader { get; }
 
         /// <summary>Zero-based page index within the selected logical page collection.</summary>
         public int PageIndex { get; }
