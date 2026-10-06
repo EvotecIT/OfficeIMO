@@ -135,6 +135,7 @@ internal static partial class PdfWriter {
                     ValidateTableColumnStyleBounds(style, cols);
                     ValidateTableRowStyleBounds(style, tb2.Rows.Count);
                     ValidateTableRowSpansWithinRoleBoundaries(tb2, cols, headerRowCount, footerStartRowIndex);
+                    style = PreparePairedTableBorders(tb2, style);
                     TableColumnLayout preparedColumns = ResolveTableColumnLayout(
                         tb2,
                         currentOpts,

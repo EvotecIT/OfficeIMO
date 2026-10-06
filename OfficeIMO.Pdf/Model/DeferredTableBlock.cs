@@ -62,6 +62,7 @@ internal sealed class DeferredTableBlock : IPdfBlock {
         bool emittedBatch = false;
         int sourceRowIndex = 0;
         int? resolvedColumnCount = null;
+        IndexedTableRow? previousBodyRow = null;
 
         using (System.Collections.Generic.IEnumerator<PdfTableCell[]> enumerator = EnumerateRows().GetEnumerator()) {
             while (headers.Count < headerRowCount && enumerator.MoveNext()) {
@@ -80,10 +81,11 @@ internal sealed class DeferredTableBlock : IPdfBlock {
 
                 IndexedTableRow bodyRow = trailingRows.Dequeue();
                 if (bodyRows.Count == BatchSize) {
-                    DeferredTableBatch batch = CreateBatch(headers, bodyRows, System.Array.Empty<IndexedTableRow>(), effectiveStyle, isFirst: !emittedBatch, isLast: false);
+                    DeferredTableBatch batch = CreateBatch(headers, bodyRows, System.Array.Empty<IndexedTableRow>(), effectiveStyle, isFirst: !emittedBatch, isLast: false, previousBodyRow, bodyRow);
                     ValidateColumnCount(batch, ref resolvedColumnCount);
                     yield return batch;
                     emittedBatch = true;
+                    previousBodyRow = new IndexedTableRow(bodyRows[bodyRows.Count - 1].SourceIndex, batch.Table.Cells[headers.Count + bodyRows.Count - 1].ToArray());
                     bodyRows = new System.Collections.Generic.List<IndexedTableRow>(BatchSize);
                 }
 
@@ -100,7 +102,7 @@ internal sealed class DeferredTableBlock : IPdfBlock {
         }
 
         IndexedTableRow[] footers = trailingRows.ToArray();
-        DeferredTableBatch finalBatch = CreateBatch(headers, bodyRows, footers, effectiveStyle, isFirst: !emittedBatch, isLast: true);
+        DeferredTableBatch finalBatch = CreateBatch(headers, bodyRows, footers, effectiveStyle, isFirst: !emittedBatch, isLast: true, previousBodyRow, null);
         ValidateColumnCount(finalBatch, ref resolvedColumnCount);
         yield return finalBatch;
     }
@@ -117,22 +119,24 @@ internal sealed class DeferredTableBlock : IPdfBlock {
     }
 
     private DeferredTableBatch CreateBatch(
-        System.Collections.Generic.IReadOnlyList<IndexedTableRow> headers,
-        System.Collections.Generic.IReadOnlyList<IndexedTableRow> bodyRows,
-        System.Collections.Generic.IReadOnlyList<IndexedTableRow> footers,
+        System.Collections.Generic.List<IndexedTableRow> headers,
+        System.Collections.Generic.List<IndexedTableRow> bodyRows,
+        IndexedTableRow[] footers,
         PdfTableStyle effectiveStyle,
         bool isFirst,
-        bool isLast) {
-        var rows = new System.Collections.Generic.List<PdfTableCell[]>(headers.Count + bodyRows.Count + footers.Count);
+        bool isLast,
+        IndexedTableRow? previousBodyRow,
+        IndexedTableRow? nextBodyRow) {
+        var rows = new System.Collections.Generic.List<PdfTableCell[]>(headers.Count + bodyRows.Count + footers.Length);
         var sourceIndexes = new System.Collections.Generic.List<int>(rows.Capacity);
         AddRows(headers, rows, sourceIndexes);
         AddRows(bodyRows, rows, sourceIndexes);
         AddRows(footers, rows, sourceIndexes);
 
-        PdfTableStyle batchStyle = CreateBatchStyle(effectiveStyle, sourceIndexes, isFirst, isLast, footers.Count);
+        PdfTableStyle batchStyle = CreateBatchStyle(effectiveStyle, sourceIndexes, isFirst, isLast, footers.Length);
         var table = new TableBlock(rows, Align, batchStyle);
         int bodyRowOffset = bodyRows.Count == 0 ? 0 : bodyRows[0].SourceIndex - headers.Count;
-        return new DeferredTableBatch(table, isFirst, isLast, bodyRowOffset);
+        return new DeferredTableBatch(table, isFirst, isLast, bodyRowOffset, sourceIndexes.ToArray(), previousBodyRow, nextBodyRow);
     }
 
     private static void AddRows(
@@ -210,7 +214,7 @@ internal sealed class DeferredTableBlock : IPdfBlock {
         return mapped;
     }
 
-    private readonly struct IndexedTableRow {
+    internal readonly struct IndexedTableRow {
         internal IndexedTableRow(int sourceIndex, PdfTableCell[] cells) {
             SourceIndex = sourceIndex;
             Cells = cells;
@@ -222,15 +226,23 @@ internal sealed class DeferredTableBlock : IPdfBlock {
 }
 
 internal sealed class DeferredTableBatch {
-    internal DeferredTableBatch(TableBlock table, bool isFirst, bool isLast, int bodyRowOffset) {
+    internal DeferredTableBatch(TableBlock table, bool isFirst, bool isLast, int bodyRowOffset,
+        System.Collections.Generic.IReadOnlyList<int> sourceRowIndexes,
+        DeferredTableBlock.IndexedTableRow? previousBodyRow, DeferredTableBlock.IndexedTableRow? nextBodyRow) {
         Table = table;
         IsFirst = isFirst;
         IsLast = isLast;
         BodyRowOffset = bodyRowOffset;
+        SourceRowIndexes = sourceRowIndexes;
+        PreviousBodyRow = previousBodyRow;
+        NextBodyRow = nextBodyRow;
     }
 
     internal TableBlock Table { get; }
     internal bool IsFirst { get; }
     internal bool IsLast { get; }
     internal int BodyRowOffset { get; }
+    internal System.Collections.Generic.IReadOnlyList<int> SourceRowIndexes { get; }
+    internal DeferredTableBlock.IndexedTableRow? PreviousBodyRow { get; }
+    internal DeferredTableBlock.IndexedTableRow? NextBodyRow { get; }
 }
