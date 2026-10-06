@@ -253,6 +253,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (IsReplacedImageElement(child)) {
                 double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
                 result.Add(IntrinsicTextRun.Replaced(width, childStyle));
+            } else if (childStyle.Display is "inline-block" or "inline-flex" or "inline-grid"
+                && child.LocalName != "math" && !IsFormControlElement(child.LocalName)) {
+                // Atomic inline boxes contribute their complete outer size to the
+                // surrounding flex/grid item, including their own decoration.
+                // Resolve both intrinsic widths through the shared contribution owner.
+                var item = new FlexItem(child, childStyle, sourceIndex: 0);
+                (double minimum, double maximum) = ResolveGridContentContributions(item, availableSize, depth + 1);
+                result.Add(IntrinsicTextRun.Replaced(maximum, childStyle, minimum));
             } else {
                 AppendInFlowIntrinsicTextRuns(child, childStyle, availableSize, depth + 1, result);
             }
