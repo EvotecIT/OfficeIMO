@@ -31,6 +31,8 @@ public sealed class BookKdpDeliveryTests {
         Assert.Equal("not-performed", root.GetProperty("KindlePreviewer").GetString());
         Assert.Equal("not-checked", root.GetProperty("Cover").GetProperty("ColorModeAndSeparation").GetString());
         Assert.Equal("passed", root.GetProperty("Cover").GetProperty("ManagedPixelDecode").GetString());
+        Assert.Equal(format == OfficeImageExportFormat.Jpeg ? "three-component-jpeg" : "rgb-tiff",
+            root.GetProperty("Cover").GetProperty("EncodedColorStructure").GetString());
         Assert.Equal("not-performed", root.GetProperty("Delivery").GetProperty("RetailerAcceptance").GetString());
         foreach (var file in root.GetProperty("Delivery").GetProperty("Files").EnumerateArray()) {
             byte[] bytes = entries[file.GetProperty("Name").GetString()!];
@@ -105,6 +107,45 @@ public sealed class BookKdpDeliveryTests {
     }
 
     [Fact]
+    public void DecodableGrayscaleJpegRequiresAnRgbSourceCover() {
+        byte[] cover = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(625, 1000, OfficeColor.White), OfficeImageExportFormat.Jpeg);
+        Assert.Equal(1, OfficeImageReader.Identify(cover).JpegComponentCount);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(cover, out _));
+        var error = Assert.Throws<InvalidDataException>(() => BookProject.Create("Book").ToKdpDeliveryBytes(cover));
+        Assert.Contains("three-component JPEG or explicitly RGB TIFF", error.Message);
+    }
+
+    [Fact]
+    public void DecodableCmykTiffCannotPassThroughTheRgbaDecoder() {
+        byte[] cover = Cover(OfficeImageExportFormat.Tiff);
+        int offset = BitConverter.ToInt32(cover, 4);
+        int count = BitConverter.ToUInt16(cover, offset);
+        bool changed = false, removedAlpha = false;
+        for (int i = 0; i < count; i++) {
+            int entry = offset + 2 + 12 * i;
+            ushort tag = BitConverter.ToUInt16(cover, entry);
+            if (tag == 262) {
+                BitConverter.GetBytes((ushort)5).CopyTo(cover, entry + 8);
+                changed = true;
+            }
+            if (tag == 338) {
+                // Reinterpret the four encoded channels as CMYK, not RGB plus alpha.
+                Assert.Equal(count - 1, i);
+                BitConverter.GetBytes((ushort)(count - 1)).CopyTo(cover, offset);
+                Array.Clear(cover, entry, 4); // terminal next-IFD pointer after the shortened table
+                removedAlpha = true;
+            }
+        }
+        Assert.True(changed && removedAlpha);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(cover, out var image));
+        Assert.Equal(625, image!.Width);
+        Assert.Equal(1000, image.Height);
+        var error = Assert.Throws<InvalidDataException>(() => BookProject.Create("Book").ToKdpDeliveryBytes(cover));
+        Assert.Contains("three-component JPEG or explicitly RGB TIFF", error.Message);
+    }
+
+    [Fact]
     public void RejectsMultiPageCoverWithoutSelectingOnlyFirstPage() {
         var page = new OfficeRasterImage(625, 1000, OfficeColor.White);
         byte[] cover = OfficeTiffCodec.EncodePages([page, page]);
@@ -145,7 +186,7 @@ public sealed class BookKdpDeliveryTests {
     }
 
     private static byte[] Cover(OfficeImageExportFormat format, int width = 625, int height = 1000) =>
-        OfficeRasterImageEncoder.Encode(new OfficeRasterImage(width, height, OfficeColor.White), format);
+        OfficeRasterImageEncoder.Encode(new OfficeRasterImage(width, height, OfficeColor.CornflowerBlue), format);
 
     private static Dictionary<string, byte[]> Entries(byte[] bytes) {
         using var stream = new MemoryStream(bytes, false);

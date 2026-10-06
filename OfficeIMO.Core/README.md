@@ -220,6 +220,16 @@ fallback instead of receiving a silent approximation.
 
 ### Image metadata and complete-content validation
 
+`OfficeImageReader` exposes `JpegComponentCount` and
+`TiffPhotometricInterpretation` on `OfficeImageInfo` as nullable header evidence.
+The JPEG value is the frame's declared component count. The TIFF value is the raw
+PhotometricInterpretation tag from the first classic-TIFF or BigTIFF directory;
+missing, malformed or duplicate tags produce null. TIFF value 2 declares RGB and
+5 declares separated samples. Three JPEG components alone do not prove RGB.
+Neither field establishes valid pixel data, an ICC profile or color-managed
+rendering. Manually constructed metadata and other image formats leave these
+fields null. Use the decoder and explicit profile APIs for their separate checks.
+
 `OfficeRasterImageDecoder` preserves encoded color channels and applies supported image orientation.
 It does not automatically normalize embedded ICC profiles, PNG gamma, or chromaticities. Applications
 that require color-managed pixels must perform that conversion explicitly before using the decoded

@@ -19,7 +19,8 @@ public sealed partial class BookProject {
     /// listing cover and a versioned manifest. The ZIP is an OfficeIMO handoff, not an upload format.
     /// </summary>
     /// <remarks>
-    /// Requires a single JPEG or TIFF supported by the managed decoder, at least 625 by 1000 pixels,
+    /// Requires a three-component JPEG or explicitly RGB single-page TIFF supported by the managed
+    /// decoder, at least 625 by 1000 pixels,
     /// at most 10000 pixels per axis and within the local byte/pixel bounds. Dimensions describe
     /// the decoded display after embedded orientation is applied. Cover bytes are preserved.
     /// Color mode, color separation, visual orientation, quality, listing consistency, rights,
@@ -37,14 +38,14 @@ public sealed partial class BookProject {
             throw new InvalidDataException("The listing cover must be nonempty and smaller than 50,000,000 bytes.");
         // Keep the checked cover, its hash and its packaged bytes bound to one snapshot.
         byte[] cover = (byte[])listingCover.Clone();
-        OfficeImageInfo info = ValidateKdpCover(cover, cancellationToken);
+        var (info, colorStructure) = ValidateKdpCover(cover, cancellationToken);
         var (publication, package, delivery) = CreateDeliveryPayloads(options, maximumOutputBytes, cancellationToken);
         string coverName = info.Format == OfficeImageFormat.Jpeg ? "listing-cover.jpeg" : "listing-cover.tiff";
         delivery.Files = [.. delivery.Files, DescribeDeliveryFile(coverName, info.MimeType, cover)];
         var manifest = new BookKdpDeliveryManifest {
             Delivery = delivery,
             Cover = new BookKdpCoverChecks {
-                File = coverName, Width = info.Width, Height = info.Height,
+                File = coverName, Width = info.Width, Height = info.Height, EncodedColorStructure = colorStructure,
                 Recommendations = KdpCoverRecommendations(info)
             }
         };
@@ -61,10 +62,15 @@ public sealed partial class BookProject {
             maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
     }
 
-    private static OfficeImageInfo ValidateKdpCover(byte[] cover, CancellationToken cancellationToken) {
+    private static (OfficeImageInfo Info, string ColorStructure) ValidateKdpCover(byte[] cover, CancellationToken cancellationToken) {
         if (!OfficeImageReader.TryIdentifyByContent(cover, null, out OfficeImageInfo info) ||
             info.Format is not (OfficeImageFormat.Jpeg or OfficeImageFormat.Tiff))
             throw new InvalidDataException("The listing cover must contain JPEG or TIFF image data.");
+        // Required structural evidence, not a claim about ICC profiles or absolute color space.
+        if (info.Format == OfficeImageFormat.Jpeg && info.JpegComponentCount != 3 ||
+            info.Format == OfficeImageFormat.Tiff && info.TiffPhotometricInterpretation != 2)
+            throw new InvalidDataException("The listing cover must be a three-component JPEG or explicitly RGB TIFF; grayscale, separated-color and unknown structures are not supported by this delivery profile.");
+        string colorStructure = info.Format == OfficeImageFormat.Jpeg ? "three-component-jpeg" : "rgb-tiff";
         if (info.Width > 10000 || info.Height > 10000)
             throw new InvalidDataException("The listing cover must be at most 10000 pixels per axis.");
         if ((long)info.Width * info.Height > MaximumKdpCoverPixels)
@@ -80,7 +86,7 @@ public sealed partial class BookProject {
         // TIFF identification already applies orientation. Use one display-space contract for both.
         if (image.Width < 625 || image.Height < 1000 || image.Width > 10000 || image.Height > 10000)
             throw new InvalidDataException("The listing cover must display at least 625 by 1000 pixels and at most 10000 pixels per axis after embedded orientation.");
-        return new OfficeImageInfo(info.Format, image.Width, image.Height);
+        return (new OfficeImageInfo(info.Format, image.Width, image.Height), colorStructure);
     }
 
     private static string[] KdpCoverRecommendations(OfficeImageInfo info) {
@@ -114,6 +120,7 @@ internal sealed class BookKdpCoverChecks {
     public string ManagedPixelDecode { get; set; } = "passed";
     public long MaximumEncodedBytes { get; set; } = BookProject.MaximumKdpCoverBytes;
     public long MaximumDecodedPixels { get; set; } = BookProject.MaximumKdpCoverPixels;
+    public string EncodedColorStructure { get; set; } = string.Empty;
     public string ColorModeAndSeparation { get; set; } = "not-checked";
     public string OrientationResolutionAndVisualQuality { get; set; } = "not-checked";
     public string ListingAndEmbeddedCoverConsistency { get; set; } = "not-checked";

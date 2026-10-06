@@ -208,9 +208,10 @@ Extract the ZIP before using KDP: upload `publication.epub` as the manuscript an
 is an OfficeIMO handoff format. `package.opf` and `manifest.json` are inspection
 sidecars. The EPUB's embedded cover is preserved; this API does not replace it.
 
-The API inspects the cover's actual format and dimensions, then decodes it using
-the existing managed Core decoder. It accepts supported single-image JPEG and
-single-page TIFF payloads with a display width of 625–10,000 pixels and a display
+The API inspects the cover's actual format, dimensions and encoded color structure,
+then decodes it using the existing managed Core decoder. It accepts supported
+three-component JPEG and explicitly RGB single-page TIFF payloads with a display
+width of 625–10,000 pixels and a display
 height of 1,000–10,000 pixels after embedded orientation is applied. The manifest
 records this dimension basis; cover bytes and orientation metadata are preserved.
 Recommendations for larger images and a taller aspect ratio
@@ -223,9 +224,12 @@ profiles and multi-page TIFFs are rejected without converting the supplied cover
 
 The version-1 `OfficeIMO.KdpDelivery` manifest nests the ordinary delivery evidence
 under `Delivery`, including exact payload hashes and import/writer diagnostics.
-`Cover` records dimension and decode checks, local limits and recommendations.
-A successful decode does **not** establish RGB color mode or absence of color
-separation. Those checks, visual orientation, resolution, quality, matching the
+`Cover` records dimension and decode checks, local limits, recommendations and
+`EncodedColorStructure` (`three-component-jpeg` or `rgb-tiff`). Grayscale and
+four-component JPEGs, and TIFFs without one valid RGB photometric tag, are rejected.
+The structural check and successful decode do **not** establish an RGB ICC profile
+or validate all color-separation metadata. Those checks, visual orientation,
+resolution, quality, matching the
 listing and embedded cover, rights, commercial terms, accessibility assessment,
 Kindle Previewer and retailer acceptance remain explicitly unchecked. Review
 these separately; no overall retailer-ready status is emitted.
