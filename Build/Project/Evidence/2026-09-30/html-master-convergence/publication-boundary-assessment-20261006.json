@@ -8,7 +8,7 @@
     "feature/html-engine": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
     "feature/html-unknown-page-qualification": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
     "fix/xlsb-neutral-workbook-views": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
-    "fix/excel-html-raster-normalization": "a5cbbce0630f5b891bf71b4ea639960c08b2ab7f",
+    "fix/excel-html-raster-normalization": "8e5a8fd834b045322d5697106800190f19bf0828",
     "feature/html-owned-css-contracts": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
     "fix/pdf-canvas-text-opacity": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
     "feature/math-font-metrics": "0e934cf2d0e628cc89ed0b582d6666952134cb5d"
@@ -69,73 +69,82 @@
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2845",
       "head": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
       "base": "master",
-      "checkedUtc": "2026-10-06T11:04:26.994564+00:00",
+      "checkedUtc": "2026-10-06T12:45:24.501345+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
-        "IN_PROGRESS": 9,
-        "SUCCESS": 50,
-        "QUEUED": 29,
-        "SKIPPED": 4
+        "SUCCESS": 90,
+        "QUEUED": 1,
+        "SKIPPED": 5
       },
-      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "mergeable": "MERGEABLE"
     },
     {
       "number": 2852,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852",
-      "head": "a5cbbce0630f5b891bf71b4ea639960c08b2ab7f",
+      "head": "8e5a8fd834b045322d5697106800190f19bf0828",
       "base": "master",
-      "checkedUtc": "2026-10-06T11:04:30.505808+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
-      "checks": {
-        "SUCCESS": 88,
-        "QUEUED": 2,
-        "SKIPPED": 2
-      },
-      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
-    },
-    {
-      "number": 2864,
-      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2864",
-      "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
-      "base": "master",
-      "checkedUtc": "2026-10-06T11:29:25.038541+00:00",
+      "checkedUtc": "2026-10-06T13:15:47.501978+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
         "QUEUED": 11,
         "SKIPPED": 2
       },
-      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "mergeable": "MERGEABLE"
+    },
+    {
+      "number": 2864,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2864",
+      "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+      "base": "master",
+      "checkedUtc": "2026-10-06T12:45:31.762195+00:00",
+      "threadPages": 1,
+      "unresolvedThreads": 0,
+      "checks": {
+        "SUCCESS": 63,
+        "QUEUED": 21,
+        "SKIPPED": 2,
+        "IN_PROGRESS": 5
+      },
+      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "mergeable": "MERGEABLE"
     },
     {
       "number": 2866,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2866",
       "head": "7069de09e7a8b006e07fa8338e7744ad4d57dd88",
       "base": "master",
-      "checkedUtc": "2026-10-06T11:29:28.242573+00:00",
+      "checkedUtc": "2026-10-06T12:45:34.435144+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
-        "QUEUED": 88,
-        "SKIPPED": 2
+        "SUCCESS": 86,
+        "QUEUED": 2,
+        "SKIPPED": 2,
+        "IN_PROGRESS": 2
       },
-      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "mergeable": "MERGEABLE"
     },
     {
       "number": 2867,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2867",
       "head": "0e934cf2d0e628cc89ed0b582d6666952134cb5d",
       "base": "fix/pdf-canvas-text-opacity",
-      "checkedUtc": "2026-10-06T11:29:31.230742+00:00",
+      "checkedUtc": "2026-10-06T12:45:38.101286+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
-        "QUEUED": 96,
-        "SKIPPED": 3
+        "SUCCESS": 90,
+        "QUEUED": 3,
+        "SKIPPED": 5,
+        "IN_PROGRESS": 5
       },
-      "remaining": "Current-head CI and delayed settlement; no manual hosted review request"
+      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "mergeable": "MERGEABLE"
     }
   ],
   "mergedThisAudit": {
@@ -228,5 +237,56 @@
     "obsoleteCheckpointGeneratedBytesRemoved": 9242074709,
     "decisiveProof": "Final feeds, independent artifacts, sources, failure logs and exact identity receipts retained; no shared-cache cleanup",
     "checkpointArchivesBytes": 795840287
+  },
+  "currentFollowThrough": {
+    "recordedUtc": "2026-10-06T13:18:39.349404+00:00",
+    "mainEvidenceParent": "a6528f24a9b5258cd3600d1ae1b2d8df84ad9a6f",
+    "productSourceUnchanged": "1231730d936a117b6d0c56660197f99beff7604a",
+    "checklist": {
+      "completeFeedbackAtWake": true,
+      "rasterConflictResolvedValidatedPushed": true,
+      "readyMerges": false,
+      "staticPrerequisiteMigrationInventory": true,
+      "completedOutputCleanup": true
+    },
+    "raster": {
+      "head": "8e5a8fd834b045322d5697106800190f19bf0828",
+      "mergedMaster": "50428f9e111533fe219c3fb579e222938ff7cbf1",
+      "conflict": "Generic picture insertion retains bounded normalization and native hyperlink ownership. Rerere resolution inspected against both parents.",
+      "focusedEachFramework": 25,
+      "jointNormalizedPictureTargetCasesEachFramework": 4,
+      "independentNativeArtifacts": 8,
+      "independentChecks": "Open XML schema, ZIP/DrawingML external relationships and native extents, Pillow RGBA within prior RGB<=3/exact-alpha fixture limit; normal public save/reopen controls on net8/net10.",
+      "ownerDllHashEqualities": 12,
+      "scope": "Normal project-reference proof; previous package proofs retained, not new package/platform qualification.",
+      "evidence": "../OfficeIMO-excel-html-raster-normalization/Ignore/ExcelRasterNormalizationQualification/master-picture-link-convergence-20261006",
+      "automaticReviewer": "New-head quota failure is missing optional evidence, not a product defect. Existing owner full/targeted review retained; narrow accepted-link merge directly validated. No retry/manual request."
+    },
+    "nextStaticMigration": {
+      "sourceReconciliation": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/prerequisite-source-reconciliation-1245.json",
+      "referenceInventory": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/selected-static-reference-boundary-1245.json",
+      "differentOwnerSourceFiles": {
+        "ownedDomCss": 5,
+        "pdfOpacity": 1,
+        "coreFontMath": 11
+      },
+      "requirement": "Reconcile the accepted foundation sibling identity/collection contract in the static selector adapter and preserve cascade-trace source absent from the incremental foundation; no whole-directory replacement. Source inventory is not compiled/packed graph qualification."
+    },
+    "heldSteps": {
+      "mergeFocusedPrs": "Required CI pending; raster also needs delayed post-push feedback. No current failures or unresolved findings at recorded snapshots.",
+      "combinedStaticQualification": "Accepted prerequisite settlement, deliberate corrective-owner/other-task overlap convergence and selected extracted graph validation. Separate other-task branches remain read-only.",
+      "longLivedAdoption": "Selected package/profile/platform acceptance; broader H10/native/manual accessibility and historical timing failures stay open."
+    },
+    "cleanup": {
+      "targets": 102,
+      "bytesRemoved": 2606857910,
+      "allAbsent": true,
+      "results": [
+        "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/raster-old-package-cleanup-results.json",
+        "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/xlsb-generated-cleanup-results.json",
+        "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/raster-merge-generated-cleanup-results.json"
+      ],
+      "retained": "Input fixtures with SHA receipts, both framework TRX and original failures, eight native workbooks, independent observations and source/normal DLL receipts. Earlier feeds and final proof remain; no shared-cache deletion."
+    }
   }
 }
