@@ -61,6 +61,39 @@ The checked sample has two overlays. It passes EPUBCheck 5.4.0 and the native
 Its package lacks modern accessibility discovery metadata, so the overall native
 preflight reports that gap. These results do not establish audio decoding, reader
 synchronization, assistive-technology behavior or comprehensive accessibility.
+The opt-in `ProducerEditQualification` runner exercises edits against this sample:
+
+```text
+dotnet run --project Build/Epub/Producer/ProducerEditQualification.csproj -- sample.epub EXPECTED_SHA256 new-output-directory
+```
+
+Supply the archive hash from the retained source-provenance record. The runner checks
+that hash before editing; it does not authenticate the upstream Git revision or obtain
+the sample. It rejects existing output directories and inputs over 128 MiB. It retains
+an unchanged input baseline, then relocates a narrated chapter, its SMIL resource and
+shared audio, splits the introduction, and merges it again. Edited outputs use a fixed
+modification timestamp for repeatability. Run `validate_epub.py` separately over the
+baseline and edited EPUBs; validator failures must remain visible.
+
+The runner reopens each output and checks all 143 non-navigation chapter bodies,
+141 original TOC entries (labels, order, nesting and targets), seven non-XML assets,
+and both SMIL trees after normalizing moved references. Audio bytes, clip timing and
+narration targets are preserved. Its JSON identifies every changed source payload,
+records native preflight findings, and marks a run complete only after all four stages.
+The split and merged editions retain an additional TOC entry for the new boundary.
+
+All four outputs pass EPUBCheck 5.4.0 without warnings. Ace 1.4.6 reports 296 rule
+failures in the unchanged, renamed and merged editions: missing discovery metadata,
+missing document languages, EPUB-type/ARIA-role mappings and heading order. The split
+edition has 297 because its cloned document adds one missing-language finding. These
+are retained failures, not an accessibility pass. Native preflight also reports the
+source's missing modern accessibility metadata. Keep those results separate from
+preservation and EPUBCheck. Independent encoded-audio
+qualification of the retained MP4 found all 40 clips within its 1436.43-second duration
+and a successful full decode; the runner itself does not decode audio. These results
+do not establish synchronized highlighting, seeking, pause/resume or assistive-technology
+acceptance in a reading system.
+
 The sample stays outside shipped packages and is not a runtime dependency.
 
 ## ONIX fixtures
