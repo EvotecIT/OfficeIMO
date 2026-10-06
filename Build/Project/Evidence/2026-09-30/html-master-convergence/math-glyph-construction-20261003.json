@@ -565,8 +565,8 @@
       },
       {
         "requirement": "Fallback/opt-out/cancellation/resource bounds",
-        "proof": "Current authored opt-out, malformed records and cancellation contracts inspected. Original Drawing TRX retains 89 Math-named passing cases/framework; later numeric-face proof is separate. No new production hook or bounds exception added. Current-source hosted Drawing lane remains pending.",
-        "status": "original managed contracts and current integration proven; current hosted lane pending"
+        "proof": "Current authored opt-out, malformed records and cancellation contracts inspected. Original Drawing TRX retains 89 Math-named passing cases/framework; later numeric-face proof is separate. No new production hook or bounds exception added. InstalledMath1/framework and static HTML4367/framework are verified on allthree platforms at12c; this is focused math proof, not a full current Drawing suite.",
+        "status": "Original managed and current focused installed-math/static integration proved; no wider Drawing claim."
       },
       {
         "requirement": "Formula/ActualText/attachment preservation",
@@ -580,8 +580,8 @@
       },
       {
         "requirement": "Framework and packed-consumer qualification",
-        "proof": "Combined HTML4367/PDF8788 eachnet8/net10;19four-target44027 packages, exact canonical/public math consumers. Focused a0 source37327795720 verifies direct mathematical public contracts on native Windowsnet472 and all3OSnet8/net10, plus fresh19package feeds and loaded DLL origins. This does not qualify the newer12contour source budgets.",
-        "status": "Framework correctness and four-target packed MATH execution qualified; newer contour platform/budget acceptance remains open",
+        "proof": "Combined HTML4367/PDF8788 eachnet8/net10;19four-target44027 packages, exact canonical/public math consumers. Focused a0 source37327795720 verifies direct mathematical public contracts on native Windowsnet472 and all3OSnet8/net10, plus fresh19package feeds and loaded DLL origins. This does not qualify the newer12contour source budgets. Later12c run37335168701 now also verifies HTML4367/framework, PDF8788net10, installedMath1/framework/font28/framework, nineteen packages and both packed consumers on Windows/macOS/Linux with actual receipts; Linux attempt2 completes setup and product lanes.",
+        "status": "Current12c all-three-platform correctness and package evidence qualified; later native owners separately qualifying; unchanged timing gate fails.",
         "currentNativePackedMath": "Focused sourcea0 probe37327795720: seven direct MATH executions, including nativeWindowsnet472, normal19four-target feeds and exact origin/loadedDLL verification. New raster12platform route remains separate."
       },
       {
@@ -591,8 +591,8 @@
       },
       {
         "requirement": "Unchanged opt-in budgets",
-        "proof": "Current 44027 candidate/control run 37315963943 dispatched at 13:19:57 UTC; same-runner control d257cecc1. Twenty-one worker/corpus/ceiling/provider/helper files match the control. Results are not checked before 14:45 UTC; historical elapsed/allocation/memory/deadline failures remain retained.",
-        "status": "pending current-source measurements; prior failures remain unresolved until qualified evidence"
+        "proof": "Actual candidate/control37335168701 measurements are retained for allthree platforms at12c/a0. Both sources fail unchanged timing ceilings. Linux13,912.5ms cold and5,874.7/5,901.5/5,880.8ms warm versus12,000/5,000; same-runnercontrol alsofails. Output/allocation/peak/cancellation pass. No more measurement retries or ceiling changes.",
+        "status": "Timing gate remains failed; qualified branch synchronization remains open."
       },
       {
         "requirement": "Committed synchronized clean HTML checkpoints and cleanup",
@@ -614,7 +614,7 @@
       "retainedBytes": 63730,
       "retained": "Consumer source/configuration, exact-origin/assembly receipts, original failed restore, passing logs and requirement/source audit; no expanded private package cache remains"
     },
-    "followThroughRecordedAtUtc": "2026-10-04T15:36:56.718243+00:00",
+    "followThroughRecordedAtUtc": "2026-10-05T23:51:58.809521+00:00",
     "mathBlobsRecheckedAgainst": "ee3df1e28983890c547429479423246ad8fd51b8",
     "mathBlobsStillMatchAudit": true,
     "hostedBudgetFollowThrough": {
@@ -691,11 +691,36 @@
     },
     "rasterRectangleQualificationRecord": "static-delivery-platform-control-20261003.json#/rasterRectangleQualification20261004",
     "currentHostedQualification": {
-      "runId": 37215418944,
-      "source": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
-      "control": "ee3df1e28983890c547429479423246ad8fd51b8",
-      "qualified": false,
-      "initialState": "queued"
+      "runId": 37335168701,
+      "source": "12c99503b7aae7ac934728e5c3ba6fdf655c9a1b",
+      "control": "a0e10b21b9c96190d4e563c4d09fb59a5229f8cd",
+      "currentMathOwnerSourceTreesAlsoMatchNativeCheckpoint": true,
+      "correctnessAndPackagesQualifiedAllThreePlatforms": true,
+      "normalPackagesEachPlatform": 19,
+      "publicConsumersEachPlatform": 2,
+      "linuxSetupAttempt": 2,
+      "overall": "Failure: unchanged candidate and control timing budgets on allthree platforms; deterministic output/allocation/peak/cancellation pass.",
+      "linuxTiming": {
+        "html-static-budget": {
+          "cold": 13912.5275,
+          "warm": [
+            5874.6559,
+            5901.4938,
+            5880.7693
+          ]
+        },
+        "html-static-control-budget": {
+          "cold": 15058.0638,
+          "warm": [
+            6027.0332,
+            5968.0472,
+            5813.4769
+          ]
+        }
+      },
+      "linuxEvidence": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/hosted-37335168701/linux-attempt2-interpretation.json",
+      "linuxPackageReceipt": "Ignore/MasterConvergenceQualification/contour-single-tile-qualification/hosted-37335168701/linux-attempt2-packages/origin-hash-verification.json",
+      "boundary": "Exact12c hosted graph. Current native-adapter checkpoint requires its own declared package proof; timing and long-lived sync remain open."
     },
     "historicalCorePackageNote": "Older 966539fd4 package source retained; later raster changes are qualified in the fresh e377c6ad6 Core package, not asserted byte-identical to that older package.",
     "latestCombinedValidation": {

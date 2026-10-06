@@ -1,6 +1,6 @@
 {
   "$schema": "officeimo.html.h10-job-native-table-evidence",
-  "recordedUtc": "2026-10-04T02:36:00.571392+00:00",
+  "recordedUtc": "2026-10-05T23:51:58.809521+00:00",
   "sourceCommits": {
     "routeAndNativeTableReplay": "4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
     "oneNoteReplay": "1523ae78e32fe389d89914b761452cd4dbf10a51",
@@ -746,10 +746,10 @@
   },
   "remaining": [
     "Classify the remaining sparse planetary page 3 and oversized-figure deferral against named H10 appearance criteria; preserve qualified flex-gap, auto-height padding, exact-once content and authored paint contracts.",
-    "Complete table widths, article/photo order, slide contrast and target-specific native application acceptance.",
+    "Complete broader source/corpus native appearance, article/photo order, slide fragmentation and target-specific native application/manual accessibility acceptance; bounded combined table and linked-header controls are qualified.",
     "Complete remaining corpus/intent/workbench/browser surfaces and operation-level loss/resource checks.",
     "Current clean-source local Mac H4 budget passes unchanged ceilings; hosted macOS/Windows/Linux and unfamiliar-page operation budgets remain open. Preserve prior failed runs and compare equivalent source/platform/domain controls; no timing regression or environmental cause is established merely by local determinism.",
-    "Converge the current master deliberately, replay shared owners and qualify packages/platform budgets before long-lived integration; the selected standalone PRs are merged and their owned worktrees cleaned."
+    "Finish deliberate combined native-owner package proof and current-head standalone gates; preserve required evidence and clean mergedowned worktrees. Supported-platform timing/remaining corpus and qualified long-lived adoption remain separate."
   ],
   "retainedEvidenceRoot": "Ignore/H10JobQualification",
   "publishedPackagesOrFullHtmlPr": false,
@@ -2099,13 +2099,30 @@
     },
     "candidate": {
       "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2838",
-      "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+      "source": "c535d2f5a6442e8a8396be68aeced429469b9bd8",
       "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
       "worktree": "../OfficeIMO-excel-html-generic-table-presentation",
-      "status": "Open; initial exact-head current CI queued/running, complete feedback page contains no threads. Delayed review/CI/merge remain required. Combined-source adoption not performed."
+      "status": "Consolidated complete review wave fixed and validated; allinline threads replied/resolved, current-head CI and delayed review required. Deliberate combined-owner adoption performed and final proof being finished."
     },
     "proofRoot": "../OfficeIMO-excel-html-generic-table-presentation/Ignore/ExcelGenericPresentationQualification",
-    "qualificationReceiptSha256": "9853facd4b493eea8d205b0a1c80d1c3a30a29a4070cc91c483f24377232f9a1"
+    "qualificationReceiptSha256": "9853facd4b493eea8d205b0a1c80d1c3a30a29a4070cc91c483f24377232f9a1",
+    "latestReviewClosure": {
+      "source": "c535d2f5a6442e8a8396be68aeced429469b9bd8",
+      "fullEachFramework": "5301passed/5skipped",
+      "review": "Independent full closure plus targeted confirmation, no remaining findings",
+      "fixedInvariants": [
+        "BestFit only actualautofit",
+        "Manual single-column change preserves adjacent range metadata",
+        "Sparse wrap applies one canonical conditional write lock and contained style batch",
+        "Cross-sheet same-workbook nested lock and sparse no-materialization regression"
+      ],
+      "normalPackages": 6,
+      "publicConsumers": 2,
+      "sourceOrder": "21rows106rawcells;3worksheets values preserved",
+      "completeReceipt": "../OfficeIMO-excel-html-generic-table-presentation/Ignore/ExcelGenericPresentationQualification/review-wave-20261005/final-remediation-receipt.json",
+      "cleanupBytes": 1215949651,
+      "cleanupTargets": 32
+    }
   },
   "powerPointLinkedHeaderReproduction20261005": {
     "proofRoot": "Ignore/MasterConvergenceQualification/ppt-native-header-current-a8df20d61",
@@ -2379,7 +2396,167 @@
         "preserved": "Six package feed, installed origin/hash receipts, original before-failures, final TRX, public native artifacts, independent producer/compatibility controls and final PDF/PNG visuals."
       },
       "evidenceRoot": "../OfficeIMO-powerpoint-hyperlink-text-color/Ignore/PowerPointHyperlinkColorQualification",
-      "next": "Exact-head hosted CI and delayed complete feedback, lower writer dependency settlement, then merge/preserve proof/owned worktree cleanup. Combined H10 source and broader native/profile acceptance remain separate."
+      "next": "Exact-head hosted CI and delayed complete feedback, lower writer dependency settlement, then merge/preserve proof/owned worktree cleanup. Combined H10 source and broader native/profile acceptance remain separate.",
+      "currentHead": "e9038b96bf7792e73222f2c8e5d64416e5c37167",
+      "generatedGuidanceFix": {
+        "productBehaviorChanged": false,
+        "generator": "Build/CompatibilityCatalog",
+        "verifiedCatalogArtifacts": 18,
+        "verifiedPackageReadmeProjections": 67,
+        "cause": "Appended guidance was after generated block; canonical projection moves user guidance before final generated block.",
+        "status": "Published; new exact-headCI/delayed gate required."
+      }
     }
+  },
+  "combinedNativeOwnerQualification20261006": {
+    "cleanSource": "d3e7381374decba717b5c36ebc35a22e9c67593d",
+    "normalPublicSourceControl": "Combined native owner only; unchanged Core/math/static source since12c, exact8owner packages stillpending.",
+    "codeScope": [
+      "Neutral-row/view shared master subset",
+      "Required direct XLSB default-view validator contract",
+      "Excel sparsewrap/manualwidth lock/preservation",
+      "PowerPoint ordered font/hyperlink/color extension ownership"
+    ],
+    "review": "One nonoverlapping integration full pass plus one targeted confirmation; P2 default-view/direct-write mismatch reproduced and fixed. Prior Excel/PPT full+targeted boundaries retained.",
+    "independentNativeObservations": "Five current Excel native table pages pixel-identical to c535 standalone; all3 sheets preserve values,21table rows106cells;12PPT native artifacts preservegeometry/links/actions and8native appearance pages.",
+    "operationLimits": "Whole planetary Excel article remains HasLoss=true; limited tablecontrolsfalse. Does not establish native app whole-article/browser/manual-accessibility acceptance.",
+    "measurementPolicy": "FourPPTstopwatch envelopes retainoriginal work/ceilings in existing opt-in lane; ordinary chartcolors/topology/compound metadata contracts retained. Original30.311s and10.872s failures retained.",
+    "frameworkResults": {
+      "sourceBeforeOptionalTimerAlignment": "ca099b420",
+      "sourceNow": "d3e7381374decba717b5c36ebc35a22e9c67593d",
+      "frameworks": {
+        "combined-ppt-qualified-net10": {
+          "total": "2144",
+          "executed": "2142",
+          "passed": "2142",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-ppt-qualified-net8": {
+          "total": "2144",
+          "executed": "2142",
+          "passed": "2142",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-native-html-net10": {
+          "total": "312",
+          "executed": "312",
+          "passed": "312",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-native-html-final-net8": {
+          "total": "312",
+          "executed": "312",
+          "passed": "312",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-xlsb-neutral-net10": {
+          "total": "249",
+          "executed": "249",
+          "passed": "249",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-xlsb-neutral-net8": {
+          "total": "249",
+          "executed": "249",
+          "passed": "249",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      "boundary": "Later test-only conditional stopwatch.Stop position matches original opt-in measurement scope. Ordinary compiled paths and native runtime owners unchanged."
+    },
+    "packages": {
+      "count": 8,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "publicConsumers": 4,
+      "freshFeedAndSourceDllOriginsVerified": true,
+      "receipt": "packages-clean-d3e738137/origin-hash-verification.json",
+      "receiptSha256": "b9b614db9f9debd9de15e61b1e1251b71fb3fcb9a8ff4ff8cb06ce445cd699e5",
+      "nativeArtifacts": "packed-native-independent-preservation.json",
+      "boundary": "Four-target packages and both native consumers onnet8/net10; native Windowsnet472 and larger nineteen-owner/package/timing adoption remain separate."
+    },
+    "requiredRemaining": [
+      "Current-head standalone CI/delayed review/merge and ownedworktreecleanup",
+      "Supported-platform unchanged timing ceilings remain failed for source/control",
+      "Named native app/wider corpus/resources/allintents/manualaccessibility",
+      "Qualified long-lived branch synchronization"
+    ],
+    "retainedProofRoot": "Ignore/MasterConvergenceQualification/next-native-owner-adoption"
   }
 }
