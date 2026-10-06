@@ -243,6 +243,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (node is not IElement child || ShouldSkipElement(child)) continue;
             EnsureDepth(depth, child);
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
+            childStyle = PrepareButtonChildStyle(child, childStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             if (string.Equals(child.LocalName, "br", StringComparison.OrdinalIgnoreCase)) {
                 result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
@@ -254,7 +255,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
                 result.Add(IntrinsicTextRun.Replaced(width, childStyle));
             } else if (childStyle.Display is "inline-block" or "inline-flex" or "inline-grid"
-                && child.LocalName != "math" && !IsFormControlElement(child.LocalName)) {
+                && child.LocalName != "math" && (!IsFormControlElement(child.LocalName) || UsesButtonChildLayout(child))) {
                 // Atomic inline boxes contribute their complete outer size to the
                 // surrounding flex/grid item, including their own decoration.
                 // Resolve both intrinsic widths through the shared contribution owner.

@@ -202,6 +202,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
+        style = PrepareButtonChildStyle(element, style);
         if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
             // CSS footnote extraction is a paged-media behavior. Continuous output
             // keeps the authored note in normal flow instead of dropping its body.
@@ -256,7 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (IsFormControlElement(tag)) {
+        if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) {
             AssignLogicalTextOrders(runs);
             if (!string.IsNullOrWhiteSpace(style.StringSet)) {
                 runs.Add(new HtmlInlineRun(
