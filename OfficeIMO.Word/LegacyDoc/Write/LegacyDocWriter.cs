@@ -55,7 +55,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort DefaultLanguageId = 0x0409;
         private const ushort FibRgW97WordCount = 0x000E;
         private const ushort FibRgLw97DwordCount = 0x0016;
-        private const ushort FibRgFcLcb97Size = 0x00B7;
         private const ushort OneTableStreamFlag = 0x0200;
         private const ushort ExtendedCharacterFlag = 0x1000;
         private const ushort DefaultFibFlags = 0x1200;

@@ -27,7 +27,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             var stream = new byte[Math.Max(FibLength, streamLength)];
             WriteUInt16(stream, 0x00, WordDocumentMagic);
-            WriteUInt16(stream, 0x02, Word97FibVersion);
+            bool hasNestedTables = papxPages.Any(page => page.Any(segment => segment.Formatting.TableDepth > 1));
+            // Word 97 interprets nested cell marks as ordinary paragraph marks.
+            // Declare the Word 2000 format and its matching FIB extension when needed.
+            ushort fibVersion = hasNestedTables ? (ushort)0x00D9 : Word97FibVersion;
+            ushort fibPairCount = hasNestedTables ? (ushort)0x006C : (ushort)0x005D;
+            WriteUInt16(stream, 0x02, fibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
             ushort fibFlags = DefaultFibFlags;
             if (body.HasPictures) fibFlags = unchecked((ushort)(fibFlags | HasPicturesFibFlag));
@@ -44,7 +49,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0x54, body.HeaderFooterText.Length);
             WriteInt32(stream, 0x5C, body.CommentText.Length);
             WriteInt32(stream, 0x60, body.EndnoteText.Length);
-            WriteUInt16(stream, 0x98, FibRgFcLcb97Size);
+            WriteUInt16(stream, 0x98, fibPairCount);
+            int fibExtensionOffset = 0x9A + fibPairCount * 8;
+            WriteUInt16(stream, fibExtensionOffset, hasNestedTables ? (ushort)2 : (ushort)0);
+            if (hasNestedTables) {
+                WriteUInt16(stream, fibExtensionOffset + 2, fibVersion);
+                WriteUInt16(stream, fibExtensionOffset + 4, 0);
+            }
             WriteInt32(stream, FcStshfOffset, body.HasStyleSheet ? body.StyleSheetOffsetInTableStream : 0);
             WriteInt32(stream, LcbStshfOffset, body.StyleSheet.Bytes.Length);
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);

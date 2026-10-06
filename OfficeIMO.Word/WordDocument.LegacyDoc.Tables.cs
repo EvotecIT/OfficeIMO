@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
             AddLegacyDocTableCore((rows, columns) => section.AddTable(rows, columns, WordTableStyle.TableNormal), tableBlock, styleSheet, notes);
         }
 
-        private static void AddLegacyDocTableCore(Func<int, int, WordTable> createTable, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
+        private static void AddLegacyDocTableCore(Func<int, int, WordTable> createTable, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes, bool projectNestedTables = true) {
             int rowCount = tableBlock.Rows.Count;
             int columnCount = tableBlock.Rows.Count == 0
                 ? 0
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
                 LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
                 ApplyLegacyDocTableRowFormatting(table.Rows[rowIndex], sourceRow);
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
-                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet, notes);
+                    AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet, notes, projectNestedTables);
                     if (columnIndex < sourceRow.CellWidthsTwips.Count) {
                         table.Rows[rowIndex].Cells[columnIndex].WidthType = WordTableWidthUnit.Dxa;
                         table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];

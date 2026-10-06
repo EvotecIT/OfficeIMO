@@ -242,24 +242,51 @@ public partial class Word {
         WordTable outer = storyKind == 0 ? source.AddTable(1, 1, WordTableStyle.TableNormal)
             : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable nested = outer.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableNormal);
+        nested.GridColumnWidth = new List<int> { 1800, 3000 };
+        nested.Rows[0].Height = 720;
         for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
             WordTableCell cell = nested.Rows[row].Cells[column];
+            cell.Width = column == 0 ? 1800 : 3000;
+            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.MarginLeftWidth = 240;
             cell.Paragraphs[0].Text = $"CELL{row}{column}";
             cell.AddParagraph("SECOND");
         }
         byte[] bytes = source.ToBytes(WordFileFormat.Doc);
         for (int cycle = 0; cycle < 2; cycle++) {
+            byte[] stream = ReadCompoundStream(bytes, "WordDocument");
+            Assert.Equal(0x00D9, BitConverter.ToUInt16(stream, 0x02));
+            Assert.Equal(0x006C, BitConverter.ToUInt16(stream, 0x98));
+            Assert.Equal(2, BitConverter.ToUInt16(stream, 0x3FA));
+            Assert.Equal(0x00D9, BitConverter.ToUInt16(stream, 0x3FC));
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             WordTable restoredOuter = storyKind == 0 ? Assert.Single(restored.Tables)
                 : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.Header.Default : restored.Footer.Default).Tables);
             WordTable restoredNested = Assert.Single(restoredOuter.Rows[0].Cells[0].NestedTables);
             Assert.Equal(2, restoredNested.Rows.Count);
+            Assert.Equal(720, restoredNested.Rows[0].Height);
             for (int row = 0; row < 2; row++) {
                 Assert.Equal(2, restoredNested.Rows[row].Cells.Count);
+                Assert.Equal(1800, restoredNested.Rows[row].Cells[0].Width);
+                Assert.Equal(3000, restoredNested.Rows[row].Cells[1].Width);
+                Assert.All(restoredNested.Rows[row].Cells, cell => Assert.Equal((short)240, cell.MarginLeftWidth));
                 for (int column = 0; column < 2; column++) Assert.Equal(new[] { $"CELL{row}{column}", "SECOND" },
                     restoredNested.Rows[row].Cells[column].Paragraphs.Select(paragraph => paragraph.Text));
             }
             bytes = restored.ToBytes(WordFileFormat.Doc);
         }
+    }
+
+    [Fact]
+    public void LegacyDoc_SimpleDocumentKeepsMatchingWord97FormatHeader() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("PLAIN");
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] stream = ReadCompoundStream(bytes, "WordDocument");
+        Assert.Equal(0x00C1, BitConverter.ToUInt16(stream, 0x02));
+        Assert.Equal(0x005D, BitConverter.ToUInt16(stream, 0x98));
+        Assert.Equal(0, BitConverter.ToUInt16(stream, 0x382));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
+        Assert.Equal("PLAIN", Assert.Single(restored.Paragraphs).Text);
     }
 }

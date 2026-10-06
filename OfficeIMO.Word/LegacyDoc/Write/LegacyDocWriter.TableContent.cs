@@ -84,8 +84,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 int rowTerminatorStart = text.Length;
                 text.Append(tableDepth == 1 ? '\a' : '\r');
-                LegacyDocWritableParagraphFormatting rowTerminatorFormatting = tableDepth == 1
-                    ? LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(
+                // Both ordinary and nested row marks must carry the complete cell definitions.
+                LegacyDocWritableParagraphFormatting rowTerminatorFormatting =
+                    LegacyDocWritableParagraphFormatting.Plain.WithTableMarkers(
                         isTableTerminatingParagraph: true,
                         tableCellWidthsTwips: cellWidthsTwips,
                         tableRowHeightTwips: rowFormatting.RowHeightTwips,
@@ -107,8 +108,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         defaultTableCellMargins: defaultCellMargins,
                         defaultTableCellSpacingTwips: defaultCellSpacingTwips,
                         tablePreferredWidth: tablePreferredWidth,
-                        tableAutofit: tableAutofit)
-                    : LegacyDocWritableParagraphFormatting.Plain.WithNestedTableMarkers(tableDepth, isInnerTableTerminatingParagraph: true);
+                        tableAutofit: tableAutofit);
+                if (tableDepth > 1) {
+                    rowTerminatorFormatting = rowTerminatorFormatting.WithNestedTableMarkers(
+                        tableDepth, isInnerTableTerminatingParagraph: true);
+                }
                 paragraphFormats.Add(new LegacyDocWritableParagraph(rowTerminatorStart, 1, rowTerminatorFormatting));
                 if (rowIndex + 1 < rows.Length) {
                     AppendTableRowBoundaryBookmarks(table, row, bookmarks, text.Length);
