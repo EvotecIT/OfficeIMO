@@ -1,5 +1,9 @@
 using System.Threading;
 using OfficeIMO.Pdf;
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Word.Pdf;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -89,10 +93,11 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
         PdfUnderstandingPipelineOptions pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.WordGrouping = new BaselineMergedWordGroupingStage();
 
-        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        PdfDocumentReadResult read = PdfDocument.Load(pdf).Read(new PdfReadOptions {
             Profile = PdfReadProfile.Structured,
             Pipeline = pipeline
-        }).Pages);
+        });
+        PdfLogicalPage page = Assert.Single(read.Pages);
         PdfUnderstandingTableCandidate tagged = Assert.Single(
             page.Analysis.TableCandidates,
             static candidate => candidate.DetectionKind == "tagged-structure");
@@ -103,6 +108,20 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
         Assert.All(
             tagged.SourceLines.SelectMany(static line => line.Words).SelectMany(static word => word.SourceRuns),
             static run => Assert.True(run.MarkedContentId.HasValue));
+        using OfficeIMO.Word.WordDocument word = read.ToWordDocument();
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+        foreach (string text in new[] { read.Text, read.ToMarkdown(), read.ToHtml(), package.MainDocumentPart!.Document!.InnerText }) {
+            foreach (string value in new[] { "Code", "Value", "Outside header", "Outside value" }) {
+                Assert.Single(System.Text.RegularExpressions.Regex.Matches(text,
+                    System.Text.RegularExpressions.Regex.Escape(value)).Cast<System.Text.RegularExpressions.Match>());
+            }
+        }
+        var reader = PdfReaderAdapter.ReadDocument(read);
+        string readerText = string.Join(" ", reader.Blocks.Select(static block => block.Text));
+        Assert.Contains("Outside header", readerText, StringComparison.Ordinal);
+        Assert.Contains("Outside value", readerText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Code", readerText, StringComparison.Ordinal);
+        Assert.Single(reader.Tables);
     }
 
     [Fact]
