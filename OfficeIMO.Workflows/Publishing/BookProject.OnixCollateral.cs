@@ -6,7 +6,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
-    private static XElement? BuildOnixCollateral(IReadOnlyList<BookOnixCollateralText> items, IReadOnlyList<BookOnixSupportingResource> resources, CancellationToken cancellationToken) {
+    private static XElement? BuildOnixCollateral(IReadOnlyList<BookOnixCollateralText> items, IReadOnlyList<BookOnixSupportingResource> resources, IReadOnlyList<XElement> contributors, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(items);
         if (items.Count > 64) throw new ArgumentException("At most 64 collateral text items are supported.", nameof(items));
         ArgumentNullException.ThrowIfNull(resources);
@@ -59,7 +59,7 @@ public sealed partial class BookProject {
             AddDate("15", item.UsableUntil); AddDate("17", item.UpdatedOn);
             result.Add(content);
         }
-        AddOnixSupportingResources(result, resources, ref textBudget, cancellationToken);
+        AddOnixSupportingResources(result, resources, contributors, ref textBudget, cancellationToken);
         return result;
     }
 

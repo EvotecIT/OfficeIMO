@@ -27,6 +27,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "collateral", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-unicode", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "supporting-resources", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "resource-contributors", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "resource-types", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "resource-formats", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-usage", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -97,6 +98,10 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             new("Example Studio", BookOnixContributorRole.Illustrator, true), new("Anne Editor", BookOnixContributorRole.Editor),
             new("Other Creator", BookOnixContributorRole.Other)],
         Commercial = commercial, Accessibility = AccessibilityFixtures.Create(profile.Name)
+    };
+    if (profile.Name == "resource-contributors") options = options with {
+        Contributors = options.Contributors.Select((credit, index) => index < ResourceFixtures.ContributorIdentities.Length
+            ? credit with { Identifiers = [ResourceFixtures.ContributorIdentities[index]] } : credit).ToArray()
     };
     if (profile.Name == "audience-grades") {
         var gradeCodes = new List<object>();

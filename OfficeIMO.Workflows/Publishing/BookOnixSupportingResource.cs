@@ -21,6 +21,12 @@ public sealed record BookOnixSupportingResource {
     public IReadOnlyList<BookOnixCollateralTextValue> CopyrightHolders { get; init; } = [];
     /// <summary>Up to 16 plain-text alternative-text translations. Presence does not establish accessibility.</summary>
     public IReadOnlyList<BookOnixCollateralTextValue> AlternativeTexts { get; init; } = [];
+    /// <summary>
+    /// Up to 16 distinct identity references, each matching a declared product contributor identity.
+    /// Proprietary values must be unambiguous across schemes because resource features omit scheme names.
+    /// Collection-only contributors do not satisfy these references.
+    /// </summary>
+    public IReadOnlyList<BookOnixContributorIdentifier> ContributorReferences { get; init; } = [];
     /// <summary>Optional nonnegative approximate audio/video duration in whole minutes.</summary>
     public int? LengthMinutes { get; init; }
     /// <summary>One to 16 explicit versions of the same resource.</summary>

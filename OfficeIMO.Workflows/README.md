@@ -674,6 +674,32 @@ notes require distinct explicit languages. These properties reuse
 `BookOnixCollateralTextValue`; XHTML notes are outside this profile. Audio and
 video resources may declare a nonnegative whole-number `LengthMinutes` estimate.
 
+`BookOnixContributor.Identifiers` accepts up to 16 identifiers, one per type and
+proprietary scheme name, on product and collection credits. `Isni` and `Orcid`
+use compact ONIX values: 15 ASCII digits followed by a digit or uppercase `X`,
+without spaces, hyphens or a URL prefix. Checksums, registration and ownership
+are not verified. `Proprietary` requires a distinctive `SchemeName`; both the
+name and value are limited to 100 UTF-16 code units.
+
+A resource's `ContributorReferences` accepts up to 16 distinct identifiers and
+emits [list 160 features 05, 06 and 11](https://ns.editeur.org/onix/en/160).
+Every reference must match an exported product contributor; collection-only
+credits do not qualify. The same identity may appear in multiple product roles.
+Proprietary values reused across different scheme names are rejected when
+referenced, because the resource feature cannot retain the scheme name.
+Reference values share the aggregate collateral text budget.
+
+```csharp
+var personId = new BookOnixContributorIdentifier(
+    BookOnixContributorIdentifierType.Proprietary, "writer-42", "Example Press people");
+var portraitOptions = options with {
+    Contributors = [new("Alex Writer", BookOnixContributorRole.Author) {
+        Identifiers = [personId]
+    }],
+    SupportingResources = [cover with { ContributorReferences = [personId] }]
+};
+```
+
 Each version can declare a [list 178 format code](https://ns.editeur.org/onix/en/178),
 positive image dimensions, a filename of at most 255 UTF-16 code units, a
 nonnegative exact `ByteLength`, and a 64-hex-digit `Sha256`. Format, mode, URL and

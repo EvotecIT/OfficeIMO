@@ -12,7 +12,7 @@ public sealed partial class BookProject {
     };
 
     private static void AddOnixSupportingResources(XElement collateral, IReadOnlyList<BookOnixSupportingResource> resources,
-        ref int textBudget, CancellationToken token) {
+        IReadOnlyList<XElement> contributors, ref int textBudget, CancellationToken token) {
         XNamespace ns = OnixNamespace;
         int sequence = 0;
         foreach (var resource in resources) {
@@ -34,6 +34,7 @@ public sealed partial class BookProject {
             }
             if (resource.LengthMinutes != null) element.Add(new XElement(ns + "ResourceFeature", new XElement(ns + "ResourceFeatureType", "04"),
                 new XElement(ns + "FeatureValue", resource.LengthMinutes.Value.ToString(CultureInfo.InvariantCulture))));
+            element.Add(BuildOnixResourceContributorReferences(resource.ContributorReferences, contributors, ref textBudget, token));
             foreach (var version in resource.Versions)
                 element.Add(BuildOnixResourceVersion(version, resource.Mode, ref textBudget, token));
             collateral.Add(element);

@@ -24,7 +24,7 @@ public sealed partial class BookProject {
                 _ => throw new ArgumentOutOfRangeException(nameof(credit.Role))
             };
             result.Add(new XElement(ns + "Contributor", new XElement(ns + "SequenceNumber", result.Count + 1),
-                new XElement(ns + "ContributorRole", role),
+                new XElement(ns + "ContributorRole", role), BuildOnixContributorIdentifiers(credit.Identifiers),
                 new XElement(ns + (credit.IsOrganization ? "CorporateName" : "PersonName"), credit.Name)));
         }
         return result;

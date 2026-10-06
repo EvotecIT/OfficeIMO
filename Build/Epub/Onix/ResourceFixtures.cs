@@ -9,7 +9,17 @@ internal static class ResourceFixtures {
         Type = type, Mode = mode, Audiences = [BookOnixContentAudience.Unrestricted], Versions = versions
     };
 
+    internal static readonly BookOnixContributorIdentifier[] ContributorIdentities = [
+        new(BookOnixContributorIdentifierType.Isni, "0000000121032683"),
+        new(BookOnixContributorIdentifierType.Orcid, "0000000218250097"),
+        new(BookOnixContributorIdentifierType.Proprietary, "studio-1", "Example Press contributors")
+    ];
+
     internal static IReadOnlyList<BookOnixSupportingResource> Create(string profile) {
+        if (profile == "resource-contributors") return [Resource(BookOnixResourceContentType.ContributorPicture,
+            BookOnixResourceMode.Image, Version("https://example.org/contributors.jpg", "D502")) with {
+                ContributorReferences = ContributorIdentities, AlternativeTexts = [new("Three credited contributors")]
+            }];
         if (profile == "resource-types") return Enum.GetValues<BookOnixResourceContentType>().Select(type =>
             Resource(type, BookOnixResourceMode.MultiMode, Version("https://example.org/resources/" + type))).ToArray();
         if (profile == "resource-formats") return new[] {

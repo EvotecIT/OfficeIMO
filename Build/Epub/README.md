@@ -272,6 +272,12 @@ The runner also writes `catalog.onix`, combining two distinct edition ISBNs unde
 one header, and `catalog-priced.epub` for the second product. The message evidence
 retains each source ONIX and EPUB hash. It is outside normal builds and shipped packages.
 
+The `resource-contributors` fixture links a promotional image to product credits
+through ISNI, ORCID and a named proprietary identifier. These are synthetic
+identity assertions; schema validation does not verify their ownership. The
+fixture checks the same exported EPUB preservation contract as other resource
+profiles.
+
 The `update-*` and `delete-*` ONIX fixtures exercise whole-block replacement,
 explicit optional-block clearing, both markets in a supply update, translated and
 omitted deletion reasons, and two-product change messages. The runner checks that

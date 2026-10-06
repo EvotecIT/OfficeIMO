@@ -47,7 +47,7 @@ public sealed partial class BookProject {
         IReadOnlyList<XElement> edition = BuildOnixEdition(options.Edition, cancellationToken);
         IReadOnlyList<XElement> collections = BuildOnixCollections(options, cancellationToken);
         IReadOnlyList<XElement> audience = BuildOnixAudience(options.Audience, cancellationToken);
-        XElement? collateral = BuildOnixCollateral(options.CollateralTexts, options.SupportingResources, cancellationToken);
+        XElement? collateral = BuildOnixCollateral(options.CollateralTexts, options.SupportingResources, contributorElements, cancellationToken);
         EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;

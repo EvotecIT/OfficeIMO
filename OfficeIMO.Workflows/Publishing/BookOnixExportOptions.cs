@@ -30,7 +30,10 @@ public enum BookOnixContributorRole {
 /// <param name="Name">Full credited name.</param>
 /// <param name="Role">Creative responsibility.</param>
 /// <param name="IsOrganization">Writes CorporateName instead of PersonName when true.</param>
-public sealed record BookOnixContributor(string Name, BookOnixContributorRole Role, bool IsOrganization = false);
+public sealed record BookOnixContributor(string Name, BookOnixContributorRole Role, bool IsOrganization = false) {
+    /// <summary>Up to 16 identifiers, with one per type and proprietary scheme name.</summary>
+    public IReadOnlyList<BookOnixContributorIdentifier> Identifiers { get; init; } = [];
+}
 
 /// <summary>
 /// Publisher-supplied assertions for a single-product ONIX 3.1 bibliographic record.
