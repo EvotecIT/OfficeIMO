@@ -17,10 +17,12 @@ namespace OfficeIMO.Word.Pdf {
             if (shape == null) {
                 return false;
             }
+            bool alignToLineTop = shape._drawing == null ||
+                (shape.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout) && layout.Placement == WordDrawingPlacementKind.Anchored);
             // Hidden flow shapes retain their occupied line height while omitting paint.
             if (shape.Hidden == true && GetNativeShapeDimensions(shape) is { Height: > 0D } dimensions) {
-                paragraphSpacing?.BeforeFlowObject();
-                pdf.Spacer(dimensions.Height + spacingAfter);
+                RenderNativeFlowObject(pdf, paragraphSpacing, dimensions.Height + spacingAfter,
+                    flow => flow.Spacer(dimensions.Height + spacingAfter), alignToLineTop);
                 return true;
             }
             OfficeShape? nativeShape = CreateNativeShape(shape);
@@ -28,8 +30,8 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            paragraphSpacing?.BeforeFlowObject();
-            pdf.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter);
+            RenderNativeFlowObject(pdf, paragraphSpacing, nativeShape.Height + spacingAfter,
+                flow => flow.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter), alignToLineTop);
             return true;
         }
 

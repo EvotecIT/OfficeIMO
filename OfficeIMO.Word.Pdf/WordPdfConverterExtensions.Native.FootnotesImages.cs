@@ -283,8 +283,7 @@ namespace OfficeIMO.Word.Pdf {
             if (image.WrapText == WordImageTextWrapping.InFrontOfText && options != null)
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's anchor, clipping, rotation, or page bounds are outside the fixed-placement export contract; it was placed in document flow.");
-            paragraphSpacing?.BeforeFlowObject();
-            pdf.Image(preparedBytes, width, height, align);
+            RenderNativeFlowObject(pdf, paragraphSpacing, height, flow => flow.Image(preparedBytes, width, height, align));
             return true;
         }
 

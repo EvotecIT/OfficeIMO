@@ -81,6 +81,7 @@ internal static partial class PdfWriter {
             }
 
             y -= spacingBefore;
+            if (style.AnchoredCanvas is { } anchoredCanvas) RenderParagraphCanvas(anchoredCanvas, y);
             if (style.PaddingY > 0) RecordFlowPlacement(y);
             else ResolveFloatingBookmarks(y);
             PdfOptions parentOptions = currentOpts;

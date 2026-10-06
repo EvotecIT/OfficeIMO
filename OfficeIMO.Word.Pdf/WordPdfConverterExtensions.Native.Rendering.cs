@@ -140,16 +140,15 @@ namespace OfficeIMO.Word.Pdf {
                 marker == null && paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 &&
                 formFieldControls.Count == 0 && repeatingSectionControls.Count == 0;
             NativeObjectParagraphSpacing? objectSpacing = objectOnly
-                ? new NativeObjectParagraphSpacing(pdf, style.SpacingBefore, style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter)
+                ? new NativeObjectParagraphSpacing(pdf, style, MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap))
                 : null;
             OfficeDrawing? directChartDrawing = PrepareNativeChart(currentRun?.Chart, options, "body paragraph chart");
             List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, paragraph._run);
             bool renderedChart = directChartDrawing != null || runChartDrawings.Count > 0;
             if (directChartDrawing != null) {
-                objectSpacing?.BeforeFlowObject();
-                pdf.Drawing(directChartDrawing, objectAlign,
+                RenderNativeFlowObject(pdf, objectSpacing, directChartDrawing.Height, flow => flow.Drawing(directChartDrawing, objectAlign,
                     spacingBefore: objectOnly ? 0D : 2D,
-                    spacingAfter: 0D);
+                    spacingAfter: 0D));
             }
 
             int groupedImageCount = 0;
@@ -164,7 +163,7 @@ namespace OfficeIMO.Word.Pdf {
                 string.IsNullOrWhiteSpace(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
             RenderNativeRunCharts(pdf, runChartDrawings, objectAlign,
                 objectOnly ? 0D : 2D, 0D, objectSpacing);
-            objectSpacing?.Complete();
+            if (objectSpacing?.Complete() == true) needsAnchorLine = false;
 
             if (!needsAnchorLine && marker == null &&
                 paragraphFootnoteNumbers.Count == 0 &&
@@ -270,13 +269,14 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            double height = MeasureNativeEmptyParagraphHeight(
+            double height = MeasureNativeEmptyParagraphLineHeight(
                 paragraph,
-                style,
                 nativeDefaults,
                 nativeFontMap);
             if (height > 0D) {
+                pdf.ParagraphSpacingBefore(style.SpacingBefore);
                 pdf.Spacer(height);
+                pdf.ParagraphSpacingAfter(style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter);
             }
         }
 
@@ -289,9 +289,8 @@ namespace OfficeIMO.Word.Pdf {
             return !hiddenMark;
         }
 
-        private static double MeasureNativeEmptyParagraphHeight(
+        private static double MeasureNativeEmptyParagraphLineHeight(
             WordParagraph paragraph,
-            PdfCore.PdfParagraphStyle style,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
@@ -302,11 +301,14 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap);
-            double spacingBefore = style.SpacingBefore;
-            double spacingAfter = style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter;
-            double height = spacingBefore + (fontSize * lineHeight) + spacingAfter;
+            double height = fontSize * lineHeight;
             return double.IsNaN(height) || double.IsInfinity(height) ? 0D : Math.Max(0D, height);
         }
+
+        private static double MeasureNativeEmptyParagraphHeight(WordParagraph paragraph, PdfCore.PdfParagraphStyle style,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) =>
+            style.SpacingBefore + MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap) +
+            (style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter);
 
         private static void RenderNativeFormFields(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> formFieldControls, PdfCore.PdfAlign align) {
             for (int index = 0; index < formFieldControls.Count; index++) {
@@ -716,10 +718,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<OfficeDrawing> drawings, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, NativeObjectParagraphSpacing? paragraphSpacing) {
             for (int index = 0; index < drawings.Count; index++) {
-                paragraphSpacing?.BeforeFlowObject();
-                pdf.Drawing(drawings[index], align,
-                    spacingBefore: index == 0 ? spacingBefore : 2D,
-                    spacingAfter: index == drawings.Count - 1 ? spacingAfter : 0D);
+                OfficeDrawing drawing = drawings[index];
+                double before = index == 0 ? spacingBefore : 2D;
+                double after = index == drawings.Count - 1 ? spacingAfter : 0D;
+                RenderNativeFlowObject(pdf, paragraphSpacing, drawing.Height + before + after,
+                    flow => flow.Drawing(drawing, align, spacingBefore: before, spacingAfter: after));
             }
         }
 

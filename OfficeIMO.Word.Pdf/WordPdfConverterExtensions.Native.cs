@@ -120,12 +120,17 @@ namespace OfficeIMO.Word.Pdf {
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
             public bool SupportsPositionedTables => false;
-            private readonly PdfCore.PdfPageBuilder _page;
+            private readonly PdfCore.PdfPageBuilder? _page;
             private readonly PdfCore.PdfContentBuilder _column;
 
             public NativePdfColumnFlow(PdfCore.PdfPageBuilder page, PdfCore.PdfContentBuilder column, PdfCore.PageSize pageSize) {
                 _page = page;
                 _column = column;
+                PageSize = pageSize;
+            }
+
+            internal NativePdfColumnFlow(PdfCore.PdfContentBuilder content, PdfCore.PageSize pageSize) {
+                _column = content;
                 PageSize = pageSize;
             }
 
@@ -152,7 +157,10 @@ namespace OfficeIMO.Word.Pdf {
             public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _column.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
             public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
-            public void Canvas(Action<PdfCore.PdfPageCanvas> build) => _page.Canvas(build);
+            public void Canvas(Action<PdfCore.PdfPageCanvas> build) {
+                if (_page == null) _column.Canvas(build);
+                else _page.Canvas(build);
+            }
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) => _column.Table(rows, align, style);
             public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }

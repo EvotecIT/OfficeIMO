@@ -36,8 +36,8 @@ namespace OfficeIMO.Word.Pdf {
                     bool native = TryAddNativeGroupChildren(scene, group, 0D, 0D, scene.Width, scene.Height, run, drawing, theme, options, 0);
                     if (layout.Placement == WordDrawingPlacementKind.Inline) {
                         if (native) {
-                            paragraphSpacing?.BeforeFlowObject();
-                            pdf.Drawing(scene, align, spacingAfter: 0D);
+                            RenderNativeFlowObject(pdf, paragraphSpacing, scene.Height,
+                                flow => flow.Drawing(scene, align, spacingAfter: 0D));
                             renderedFlowObject = true;
                         }
                         else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The inline shape group contains unsupported geometry or transforms.");
@@ -47,8 +47,8 @@ namespace OfficeIMO.Word.Pdf {
                     if (!TryGetNativeGroupPosition(pdf, paragraph, layout, options, out double x, out double y,
                             out bool paragraphRelative, out double? horizontalMarginOrigin)) {
                         if (native) {
-                            paragraphSpacing?.BeforeFlowObject();
-                            pdf.Drawing(scene, align, spacingAfter: 0D);
+                            RenderNativeFlowObject(pdf, paragraphSpacing, scene.Height,
+                                flow => flow.Drawing(scene, align, spacingAfter: 0D));
                             renderedFlowObject = true;
                             WarnNativeGroup(options, "NativeShapeGroupFlowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");
                         } else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The shape group's geometry and anchor could not be mapped.");

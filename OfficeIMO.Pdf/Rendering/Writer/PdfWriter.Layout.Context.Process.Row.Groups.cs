@@ -100,6 +100,8 @@ internal static partial class PdfWriter {
             if (group.Semantic != null) flowSemanticScopes.Add(group.Semantic);
             if (group.Style != null) {
                 bool continuation = group.Decoration != null;
+                if (!continuation && group.Style.AnchoredCanvas is { } anchoredCanvas)
+                    RenderParagraphCanvas(anchoredCanvas, cursor);
                 group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth,
                     currentPage!.Options, currentOpts, currentOpts) { IsContinuation = continuation };
                 double next = BeginContainerFragment(group.Decoration, cursor);
