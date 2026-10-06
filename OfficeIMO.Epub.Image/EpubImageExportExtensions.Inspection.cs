@@ -24,7 +24,7 @@ public static partial class EpubImageExportExtensions {
     /// <summary>Inspects the page canvas and selected identified positioned, floating, flex or grid regions
     /// in one render pass. Region findings use local border-box coordinates, before the region's own and
     /// ancestor transforms. Descendant transforms and authored clips are retained. Ancestor clips do not
-    /// redefine local containment. Positioned XHTML ink is reported separately, including rectangular contour clipping; path-shaped clips remain unmeasured.
+    /// redefine local containment. Positioned XHTML ink is reported separately, including rectangular/convex contour clipping; unsupported paths remain unmeasured.
     /// Missing, duplicate, hidden or unsupported region targets fail explicitly.</summary>
     /// <param name="source">Publication loaded with raw HTML and resource payloads retained.</param>
     /// <param name="chapterIndex">Zero-based fixed-layout XHTML chapter index.</param>

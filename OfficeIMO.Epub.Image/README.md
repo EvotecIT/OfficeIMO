@@ -87,7 +87,7 @@ Each region also exposes `TextInkDiagnostics` and `HasTextInkOverflow` for posit
 XHTML text in that same local space. A glyph can extend outside its container while
 both the layout box and the page-level ink check still fit. Descendant transforms
 are included; region and ancestor transforms do not change local containment.
-Rectangular clips on the region and its descendants constrain the measured contours.
+Rectangular and single-convex-contour clips on the region and its descendants constrain the measured contours.
 Ancestor clips do not suppress local ink findings. Regional ink warnings contribute
 to the enclosing report's `HasRenderingWarnings`.
 
@@ -101,21 +101,25 @@ more than 1024 scene clips instead of silently truncating the checks.
 
 Path-shaped clips, including rounded overflow boxes, produce
 `HtmlRenderClipGeometryNotInspected` warnings. Their precise clipping geometry is
-not covered by the rectangular check.
+not covered by the rectangular element check. Text-ink inspection below can still
+measure supported convex paths; these are separate evidence scopes.
 
 `TextInkDiagnostics` separately compares positioned XHTML glyph outlines with the
 page canvas, using the shared drawing engine's font fallback, shaping, color-glyph
 layers, synthetic styles and affine transforms. Decorations use conservative stroke
 bounds. The measurement uses nominal CSS-pixel geometry at scale 1; it is not a
 pixel scan. Empty space in a text frame is excluded. Transparent text is ignored.
-Rectangular clips intersect the individual measured contours before their bounds
+Rectangular and single-convex-contour clips intersect the individual measured contours before their bounds
 are compared with the page or region. Nested, transformed and single-axis clips
-are supported. `HtmlRenderClippedTextInkBounds` informational findings identify
-text outline or conservative decoration bounds cropped by an authored rectangle;
+are supported. Rounded rectangles, ellipses and convex polygons use the shared
+Drawing renderer's curve flattening at nominal scale 1, including affine transforms.
+`HtmlRenderClippedTextInkBounds` informational findings identify
+text outline or conservative decoration bounds cropped by a supported authored clip;
 review whether the crop is intentional. Automatic output clipping is excluded.
-Path-shaped clips, embedded vector drawings and unavailable text outlines produce
+Concave, self-intersecting, multi-contour, degenerate or over-budget paths, embedded vector drawings and unavailable text outlines produce
 `HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
-Inspection rejects more than 4096 text runs, 64 nested rectangular clips, or
+Supported paths are limited to 512 commands and 512 flattened vertices.
+Inspection rejects more than 4096 text runs, 64 nested clips, or
 excessive contour-clipping work instead of returning a partial report.
 
 This is managed layout evidence. It does not resolve winding cancellation between overlapping glyph contours, shadows/filters,

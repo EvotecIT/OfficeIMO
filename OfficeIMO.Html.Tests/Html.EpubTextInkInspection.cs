@@ -17,7 +17,10 @@ public sealed class EpubTextInkInspectionTests {
     [InlineData(2000, "overflow:hidden", false, false)]
     [InlineData(2000, "overflow-y:clip;overflow-x:visible", false, false)]
     [InlineData(2000, "overflow-x:clip;overflow-y:visible", true, false)]
-    [InlineData(2000, "overflow:hidden;border-radius:5px", false, true)]
+    [InlineData(2000, "overflow:hidden;border-radius:5px", false, false)]
+    [InlineData(2000, "clip-path:ellipse(50% 50% at center)", false, false)]
+    [InlineData(2000, "clip-path:polygon(0 0,100% 0,50% 50%,100% 100%,0 100%)", false, true)]
+    [InlineData(2000, "clip-path:polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,100% 0,100% 100%,0 100%)", false, true)]
     [InlineData(700, "transform:translateY(-50px)", true, false)]
     public void TextInkReportsOverhangSeparatelyFromLayoutBoxes(int glyphHeight, string style, bool overflow, bool unmeasured) {
         var book = EpubPublication.Create("Text ink", "en");
@@ -36,7 +39,7 @@ public sealed class EpubTextInkInspectionTests {
         Assert.NotEmpty(report.Rendering.Fonts.Faces);
         Assert.Equal(overflow, report.HasTextInkOverflow);
         Assert.Equal(unmeasured, report.TextInkDiagnostics.Any(d => d.Code == HtmlRenderDiagnosticCodes.TextInkNotInspected));
-        Assert.Equal(glyphHeight == 2000 && (style == "overflow:hidden" || style == "overflow-y:clip;overflow-x:visible"),
+        Assert.Equal(glyphHeight == 2000 && (style == "overflow:hidden" || style == "overflow-y:clip;overflow-x:visible" || style == "overflow:hidden;border-radius:5px" || style.StartsWith("clip-path:ellipse")),
             report.TextInkDiagnostics.Any(d => d.Code == HtmlRenderDiagnosticCodes.ClippedTextInkBounds));
         if (overflow || unmeasured) Assert.True(report.HasRenderingWarnings);
         if (style.Length == 0) Assert.False(report.HasCanvasOverflow);

@@ -34,7 +34,7 @@ public sealed class EpubFixedLayoutInspection {
     /// glyph-ink or pixel visibility measurement. Automatic output clipping is excluded.</summary>
     public IReadOnlyList<HtmlDiagnostic> ClippingDiagnostics { get; }
     /// <summary>Positioned XHTML text paint bounds against the canvas, including affine transforms and
-    /// conservative decoration strokes at nominal CSS-pixel scale 1. Rectangular clips constrain contours; path-shaped clips, vector scenes and unavailable outlines are diagnosed as unmeasured.
+    /// conservative decoration strokes at nominal CSS-pixel scale 1. Rectangular and single-convex-contour clips constrain bounds; unsupported paths, vector scenes and unavailable outlines are diagnosed as unmeasured.
     /// This does not establish pixel visibility, regional containment or native-reader equivalence.</summary>
     public IReadOnlyList<HtmlDiagnostic> TextInkDiagnostics { get; }
     /// <summary>Whether measured text paint bounds extend outside the declared canvas.</summary>

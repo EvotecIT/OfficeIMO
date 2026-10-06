@@ -4,11 +4,13 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-// A rectangular scene clip expressed in its own space. Inverse maps measured
-// outline points from the inspection space to that clip's local coordinates.
-internal readonly struct OfficeTextInkClip {
+// Rectangular clips use their local coordinate space; convex paths use inspection-space half-planes.
+internal readonly partial struct OfficeTextInkClip {
+    private readonly IReadOnlyList<OfficePoint>? _polygon;
+    private readonly double _orientation;
     internal OfficeTextInkClip(double left, double top, double width, double height,
         bool horizontal, bool vertical, OfficeTransform inverse) {
+        _polygon = null; _orientation = 0D;
         Left = left; Top = top; Right = left + width; Bottom = top + height;
         Horizontal = horizontal; Vertical = vertical; Inverse = inverse;
     }
@@ -26,12 +28,12 @@ internal readonly struct OfficeTextInkClip {
     internal List<OfficePoint> Apply(List<OfficePoint> points, ref bool clipped, ref long remainingWork,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if ((Horizontal && Right <= Left) || (Vertical && Bottom <= Top)) {
+        if (_polygon == null && ((Horizontal && Right <= Left) || (Vertical && Bottom <= Top))) {
             clipped |= points.Count > 0;
             return new List<OfficePoint>();
         }
-        for (int edge = 0; edge < 4 && points.Count > 0; edge++) {
-            if ((edge < 2 && !Horizontal) || (edge >= 2 && !Vertical)) continue;
+        for (int edge = 0; edge < (_polygon?.Count ?? 4) && points.Count > 0; edge++) {
+            if (_polygon == null && ((edge < 2 && !Horizontal) || (edge >= 2 && !Vertical))) continue;
             if (points.Count > remainingWork) throw new NotSupportedException("Text ink clipping exceeds its point-work limit.");
             remainingWork -= points.Count;
             var output = new List<OfficePoint>();
@@ -56,8 +58,14 @@ internal readonly struct OfficeTextInkClip {
     }
 
     private double Distance(OfficePoint point, int edge) {
-        OfficePoint local = Inverse.TransformPoint(point);
-        double distance = edge switch { 0 => local.X - Left, 1 => Right - local.X, 2 => local.Y - Top, _ => Bottom - local.Y };
+        double distance;
+        if (_polygon != null) {
+            OfficePoint start = _polygon[edge], end = _polygon[(edge + 1) % _polygon.Count];
+            distance = Cross(start, end, point) * _orientation;
+        } else {
+            OfficePoint local = Inverse.TransformPoint(point);
+            distance = edge switch { 0 => local.X - Left, 1 => Right - local.X, 2 => local.Y - Top, _ => Bottom - local.Y };
+        }
         if (double.IsNaN(distance) || double.IsInfinity(distance))
             throw new NotSupportedException("Text ink clipping requires finite geometry.");
         return distance;

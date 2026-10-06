@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderPage {
                 if (visual is HtmlRenderEffectGroup effect) {
                     if (effect.Opacity > 0D) Visit(effect.Visuals, effect.Transform.Then(transform));
                 } else if (visual is HtmlRenderClipGroup clip) {
-                    if (clips.Count >= 64) throw new NotSupportedException("Text ink inspection exceeds its 64 nested rectangular clips limit.");
+                    if (clips.Count >= 64) throw new NotSupportedException("Text ink inspection exceeds its 64 nested clips limit.");
                     if (!transform.TryInvert(out OfficeTransform inverse)) {
                         if (ContainsText(clip.Visuals)) NotInspected(clip, "A singular clip transform cannot establish clipped text geometry.");
                         continue;
@@ -33,8 +33,14 @@ public sealed partial class HtmlRenderPage {
                     clips.Add(new OfficeTextInkClip(clip.ClipX, clip.ClipY, clip.ClipWidth, clip.ClipHeight,
                         clip.ClipHorizontal, clip.ClipVertical, inverse));
                     try { Visit(clip.Visuals, transform); } finally { clips.RemoveAt(clips.Count - 1); }
-                } else if (visual is HtmlRenderPathClipGroup) {
-                    if (ContainsText(InspectionChildren(visual))) NotInspected(visual, "Text inside a path-shaped clip requires separate clipped-ink inspection.");
+                } else if (visual is HtmlRenderPathClipGroup path) {
+                    if (clips.Count >= 64) throw new NotSupportedException("Text ink inspection exceeds its 64 nested clips limit.");
+                    OfficeTransform clipTransform = OfficeTransform.Translate(path.ClipX, path.ClipY).Then(transform);
+                    if (OfficeTextInkClip.TryCreateConvexPath(path.ClipPath, clipTransform, token, out OfficeTextInkClip pathClip)) {
+                        clips.Add(pathClip);
+                        try { Visit(path.Visuals, transform); } finally { clips.RemoveAt(clips.Count - 1); }
+                    } else if (ContainsText(path.Visuals)) NotInspected(path,
+                        "Only bounded single-convex-contour text clipping is inspected; this complex, degenerate or over-budget path was not measured.");
                 } else if (visual is HtmlRenderDrawing) {
                     NotInspected(visual, "Text within an embedded vector drawing is outside positioned XHTML text inspection.");
                 } else if (visual is HtmlRenderText original && original.Text.Length > 0) {
@@ -51,7 +57,7 @@ public sealed partial class HtmlRenderPage {
                         inkTransform: transform, color: text.Color, decorationColor: text.DecorationColor, inkClips: clips);
                     if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(text, "A text outline was unavailable; fallback box estimates cannot establish glyph ink."); continue; }
                     if (ink.IsClipped) diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", HtmlRenderDiagnosticCodes.ClippedTextInkBounds,
-                        "Positioned text outline or conservative decoration bounds intersect an authored rectangular clip. The crop may be intentional; pixel visibility is not established.",
+                        "Positioned text outline or conservative decoration bounds are cropped by an authored rectangular or convex path clip. The crop may be intentional; pixel visibility is not established.",
                         HtmlDiagnosticSeverity.Info, text.Source));
                     if (ink.HasInk && (ink.Left < -.01D || ink.Top < -.01D || ink.Right > width + .01D || ink.Bottom > height + .01D))
                         diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", isRegion ? HtmlRenderDiagnosticCodes.TextInkOutsideRegion : HtmlRenderDiagnosticCodes.TextInkOutsideCanvas,
