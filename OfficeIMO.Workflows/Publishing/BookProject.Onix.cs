@@ -63,6 +63,7 @@ public sealed partial class BookProject {
         IReadOnlyList<XElement> edition = BuildOnixEdition(options.Edition, cancellationToken);
         IReadOnlyList<XElement> collections = BuildOnixCollections(options, cancellationToken);
         IReadOnlyList<XElement> audience = BuildOnixAudience(options.Audience, cancellationToken);
+        XElement? collateral = BuildOnixCollateral(options.CollateralTexts, cancellationToken);
         EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;
@@ -114,9 +115,16 @@ public sealed partial class BookProject {
             new XElement(onix + "Product", new XElement(onix + "RecordReference", options.RecordReference),
                 new XElement(onix + "NotificationType", notification),
                 new XElement(onix + "ProductIdentifier", new XElement(onix + "ProductIDType", "15"), new XElement(onix + "IDValue", isbn)),
-                descriptive, publishing, commercial.Supplies)));
+                descriptive, collateral, publishing, commercial.Supplies)));
         byte[] onixBytes = BookOnixMessage.ValidateAndSerialize(message, schemas, 1024L * 1024, cancellationToken);
         return new BookOnixExportResult(onixBytes, publication, ImportDiagnostics, ImportLossAcknowledged);
+    }
+
+    private static void RequireOnixHttpUrl(string url, string name) {
+        RequireOnixText(url, name);
+        if (url.Any(char.IsWhiteSpace) || !Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
+            (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp) || parsed.UserInfo.Length != 0)
+            throw new ArgumentException("Supply an absolute HTTP(S) URL without credentials.", name);
     }
 
     private static void RequireOnixText(string value, string name) {

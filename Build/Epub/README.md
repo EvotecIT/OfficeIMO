@@ -126,7 +126,10 @@ fixture covers all supported collection, identifier and sequence types; the
 Collection identities are synthetic assignments, not evidence of allocation or ownership.
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
-assertions exercise serialization and do not establish readership or suitability. Accessibility fixtures exercise unknown status, publisher contact
+assertions exercise serialization and do not establish readership or suitability.
+The collateral fixtures cover all supported text/recipient types, multilingual plain
+text, attribution, source links, territory, usage dates, long descriptions and the
+350-scalar Unicode boundary. All quotations and attributions are synthetic. Accessibility fixtures exercise unknown status, publisher contact
 and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
 declarations, including distinct certifier, credentialling organization, independent
 report, intermediary and compatibility-report roles. Those assertions are synthetic
@@ -161,7 +164,9 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/no-collection.onix \
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
-  /path/to/new-onix-evidence/audience-open.onix
+  /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/collateral.onix \
+  /path/to/new-onix-evidence/collateral-unicode.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

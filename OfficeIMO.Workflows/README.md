@@ -485,6 +485,61 @@ validation checks ONIX structure and list values, not membership of individual
 subject codes, supplied scheme versions, classification suitability or discoverability
 in a recipient's catalog.
 
+### Collateral text and attribution
+
+`CollateralTexts` carries publisher-supplied descriptions, review quotes, excerpts,
+cover copy and other supporting text. The recipient of this copy is separate from
+the readership of the book:
+
+```csharp
+var options = existingOptions with {
+    CollateralTexts = [new() {
+        Type = BookOnixTextType.ReviewQuote,
+        Audiences = [BookOnixContentAudience.EndCustomers],
+        Texts = [new("A supplied review quotation.", "eng")],
+        Authors = ["Example Reviewer"],
+        SourceCorporate = "Example Journal",
+        SourceTitles = [new("Review of the book", "eng")],
+        SourceLinks = ["https://example.org/review"],
+        PublishedOn = new DateOnly(2026, 9, 1),
+        UsableFrom = new DateOnly(2026, 10, 1)
+    }]
+};
+```
+
+The profile supports [ONIX list 153](https://ns.editeur.org/onix/en/153) text types
+02–19: short/full product descriptions, table of contents, cover copy, current or
+previous-edition/work review quotes, endorsement, headline, feature, biographical
+note for all contributors, publisher notice, excerpt, index, short/full collection
+descriptions, new feature and version history. Each item requires explicit
+[list 154 recipients](https://ns.editeur.org/onix/en/154). Recipient codes must be
+distinct; `Unrestricted` cannot accompany another code. List order becomes the
+collateral sequence order.
+
+Text is serialized as plain text (`textformat="06"`). Markup-like input remains
+literal; links are never fetched. Each item supports up to 16 language variants,
+16 authors, 16 source-title variants and 16 source links. Language codes use ONIX
+list 74, with distinct languages per variant list including unspecified. Source
+links require absolute HTTP(S) URLs without credentials. Optional `Territory`
+reuses the existing country/worldwide profile and describes use of the collateral,
+independently of product sales rights.
+
+There may be at most 64 items. Each text variant accepts up to 65,536 UTF-16 code
+units, and texts plus source titles share a 524,288-unit export budget. Source
+titles and other attribution fields retain the 4096-unit field bound. Short product
+and collection descriptions additionally permit at most 350 Unicode scalar values,
+so a supplementary character counts once. The complete ONIX document still has its
+1 MiB serialized size limit.
+
+`PublishedOn` and `UpdatedOn` describe the collateral. `UsableFrom` and `UsableUntil`
+carry its permitted-use dates; reversed intervals are rejected. These dates,
+restricted-recipient labels and territory declarations are metadata assertions,
+not access controls: export includes the text and does not enforce embargoes or
+filter a recipient's copy. The publisher remains responsible for accurate attribution,
+permission to use the text and recipient acceptance. Rich XHTML, review ratings,
+media resources and license terms are outside this plain-text profile. No text or
+attribution is inferred from EPUB content, and export does not change the book.
+
 ### Audience categories and age ranges
 
 Use `Audience` for explicit readership assertions:

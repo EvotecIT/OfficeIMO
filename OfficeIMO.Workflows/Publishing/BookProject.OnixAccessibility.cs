@@ -46,10 +46,7 @@ public sealed partial class BookProject {
         if (metadata.AssessmentDate is { } date) Add("91", date.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
         void AddUrl(string code, string? url) {
             if (url == null) return;
-            RequireOnixText(url, nameof(metadata));
-            if (url.Any(char.IsWhiteSpace) || !Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
-                (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp) || parsed.UserInfo.Length != 0)
-                throw new ArgumentException("Accessibility information requires an absolute HTTP(S) URL without credentials.", nameof(metadata));
+            RequireOnixHttpUrl(url, nameof(metadata));
             Add(code, url);
         }
         void AddEmail(string code, string? email) {
