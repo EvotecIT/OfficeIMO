@@ -208,9 +208,11 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SaveAsPdf_UnnamedTableRetainsCustomDocumentDefaultMargins(bool nativeDoc) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_UnnamedTableRetainsCustomDocumentDefaultMargins(bool nativeDoc, bool configuredPdf) {
         using WordDocument source = CreateJoinedParagraphDocument();
         WordTable table = source.AddTable(1, 1); table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
@@ -229,7 +231,9 @@ public partial class Word {
             Assert.Equal((short)240, cell.MarginLeftWidth); Assert.Equal((short)180, cell.MarginRightWidth);
             Assert.Equal((short)60, cell.MarginTopWidth);
         }
-        using var pdf = OpenJoinedParagraphPdf(document);
+        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        if (configuredPdf) options.PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 83.9D, 84.1D);
     }
 }
