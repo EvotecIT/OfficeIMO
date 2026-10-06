@@ -16,13 +16,20 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(700, "lighter", 400, "stylesheet")]
     [InlineData(400, "bolder", 700, "variable")]
     [InlineData(700, "lighter", 400, "shorthand")]
+    [InlineData(400, "bolder", 700, "variable-whitespace-attribute")]
+    [InlineData(700, "lighter", 400, "variable-whitespace-inline")]
     public void SvgRelativeWeightsAreResolvedOnceBeforeNestedTextInheritance(
         int inherited, string relative, int expected, string source) {
-        string attribute = source == "attribute" ? $"font-weight='{relative}'" : "";
+        string attribute = source switch {
+            "attribute" => $"font-weight='{relative}'",
+            "variable-whitespace-attribute" => $"font-weight='var(--empty,) {relative}'",
+            _ => ""
+        };
         string inline = source switch {
             "inline" => $"font-weight:{relative}",
             "variable" => $"--weight:{relative};font-weight:var(--weight)",
             "shorthand" => $"--font:{relative} 16px Arial;font:var(--font)",
+            "variable-whitespace-inline" => $"font-weight:var(--empty,) {relative}",
             _ => ""
         };
         string css = source == "stylesheet" ? $"<style>#weight {{ font-weight:{relative} }}</style>" : "";
