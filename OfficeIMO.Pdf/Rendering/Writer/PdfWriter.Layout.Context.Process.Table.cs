@@ -149,6 +149,9 @@ internal static partial class PdfWriter {
             ValidateTableColumnStyleBounds(style, cols);
             ValidateTableRowStyleBounds(style, tb.Rows.Count);
             ValidateTableRowSpansWithinRoleBoundaries(tb, cols, headerRowCount, footerStartRowIndex);
+
+            style = PreparePairedTableBorders(tb, style);
+            StringBuilder? pairedBorders = null;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             TableColumnLayout preparedColumns = ResolveTableColumnLayout(
                 tb,
@@ -414,7 +417,14 @@ internal static partial class PdfWriter {
                 }
             }
 
+            void FlushPairedBorders() {
+                if (pairedBorders == null) return;
+                sb.Append(pairedBorders);
+                pairedBorders.Clear();
+            }
+
             void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
+                FlushPairedBorders();
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     ColumnFlowScope scope = activeColumnFlow!;
                     QueueColumnBalanceRemainder(MeasurePreparedTableColumnBalanceUnits(tb, style, preparedRows, cols, colPixel, rowGapPx,
@@ -805,11 +815,12 @@ internal static partial class PdfWriter {
                             bool topRight = cellTouchesTop && cellTouchesRight;
                             bool bottomRight = cellTouchesBottom && cellTouchesRight;
                             bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
+                            StringBuilder borderOutput = HasPairedCellBorder(cellBorder) ? pairedBorders ??= new StringBuilder() : sb;
                             if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
-                                DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
+                                DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
                                     GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
                             } else {
-                                DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure,
+                                DrawCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure,
                                     GetCellBorderSegmentLengths(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx),
                                     GetCellBorderSegmentLengths(colPixel, borderColumn, span, colGapPx),
                                     GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
@@ -921,6 +932,7 @@ internal static partial class PdfWriter {
                 DrawTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
             }
 
+            FlushPairedBorders();
             if (style.Position == null) y -= style.SpacingAfter;
             if (restoreVerticalFlow && (!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
