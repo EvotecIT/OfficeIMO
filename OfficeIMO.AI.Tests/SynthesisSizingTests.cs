@@ -39,6 +39,7 @@ public sealed class SynthesisSizingTests {
             Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
             Assert.Equal(2, result.Claims.Count);
             Assert.Equal(2, result.RequestCount);
+            Assert.Contains("synthesis-measurement-failed", result.Diagnostics);
             Assert.DoesNotContain("sensitive", JsonSerializer.Serialize(result), StringComparison.Ordinal);
         } else {
             var exception = await Assert.ThrowsAsync<InvalidDataException>(() => task);
@@ -78,6 +79,73 @@ public sealed class SynthesisSizingTests {
         Assert.All(executor.Requests, request => Assert.InRange(executor.MeasureRequestCharacters(request), 1, 4096));
     }
 
+    [Theory]
+    [InlineData(1, 6, OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(3, 4, OfficeAiSynthesisStatus.Completed)]
+    public async Task ConfiguredReserveFundsHierarchicalSynthesisWithinTheTotalBudget(int reserve, int processed, OfficeAiSynthesisStatus status) {
+        var executor = new SizedExecutor();
+        var document = OfficeAiDocument.FromReadResult([1], new OfficeDocumentReadResult {
+            Blocks = Enumerable.Range(0, 6).Select(index => new OfficeDocumentBlock { Text = "Fact " + index }).ToArray()
+        });
+        var result = await new OfficeAiEngine(executor).RunAsync(document, new() {
+            Operation = OfficeAiOperation.Summarize, Instruction = "Summarize",
+            Limits = new() { MaxRequests = 7, ReservedSynthesisRequests = reserve, MaxRequestCharacters = 4096 }
+        });
+        Assert.Equal(status, result.SynthesisStatus);
+        Assert.Equal(processed, result.ProcessedEvidenceIds.Count);
+        Assert.Equal(6 - processed, result.OmittedEvidenceIds.Count);
+        Assert.InRange(result.RequestCount, 1, 7);
+        Assert.Equal(executor.Requests.Count, result.RequestCount);
+        if (status == OfficeAiSynthesisStatus.Completed) {
+            Assert.Equal(7, result.RequestCount);
+            Assert.Equal(4, Assert.Single(result.Claims).Citations.Count);
+        } else Assert.Contains("synthesis-request-budget-exceeded", result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(OfficeAiOperation.ExtractFields)]
+    [InlineData(OfficeAiOperation.Parse)]
+    public async Task NonReasoningOperationsKeepTheirFullEvidenceBudget(OfficeAiOperation operation) {
+        var executor = new SizedExecutor();
+        var document = OfficeAiDocument.FromReadResult([1], new OfficeDocumentReadResult {
+            Blocks = Enumerable.Range(0, 3).Select(index => new OfficeDocumentBlock { Text = "Fact " + index }).ToArray()
+        });
+        var result = await new OfficeAiEngine(executor).RunAsync(document, new() {
+            Operation = operation, Instruction = "Read the document",
+            Fields = operation == OfficeAiOperation.ExtractFields ? [new("total")] : [],
+            Limits = new() { MaxRequests = 3, ReservedSynthesisRequests = 3, MaxRequestCharacters = 4096 }
+        });
+        Assert.Equal(3, result.RequestCount);
+        Assert.Equal(3, result.ProcessedEvidenceIds.Count);
+        Assert.Empty(result.OmittedEvidenceIds);
+        Assert.Equal(OfficeAiSynthesisStatus.NotRequired, result.SynthesisStatus);
+    }
+
+    [Fact]
+    public async Task SourceLimitationsReachEverySynthesisPass() {
+        var executor = new SizedExecutor();
+        var document = OfficeAiDocument.FromReadResult([1], new OfficeDocumentReadResult {
+            Pages = [new() { Number = 1 }, new() { Number = 2 }],
+            Blocks = Enumerable.Range(0, 4).Select(index => new OfficeDocumentBlock { Text = "Fact " + index, Location = new() { Page = 1 } }).ToArray(),
+            Diagnostics = [new() { Code = "partial-reader", Severity = OfficeDocumentDiagnosticSeverity.Warning }]
+        });
+        var result = await new OfficeAiEngine(executor).RunAsync(document, new() {
+            Operation = OfficeAiOperation.Summarize, Instruction = "Summarize", Limits = new() { MaxRequestCharacters = 4096 }
+        });
+        Assert.Equal(OfficeAiSynthesisStatus.Completed, result.SynthesisStatus);
+        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
+        int calls = 0;
+        foreach (var request in executor.Requests) {
+            using var json = JsonDocument.Parse(request.InputJson);
+            if (!json.RootElement.TryGetProperty("drafts", out _)) continue;
+            calls++;
+            var coverage = json.RootElement.GetProperty("coverage");
+            Assert.True(coverage.GetProperty("sourceReaderDiagnostics").GetBoolean());
+            Assert.Equal(2, Assert.Single(coverage.GetProperty("emptyPages").EnumerateArray()).GetInt32());
+        }
+        Assert.Equal(3, calls);
+    }
+
     private sealed class SizedExecutor : IOfficeAiExecutor {
         public OfficeAiExecutionFailure? SynthesisFailure { get; init; }
         public string? FailMeasurementAt { get; init; }
@@ -108,6 +176,11 @@ public sealed class SynthesisSizingTests {
                 return Task.FromResult(new OfficeAiExecutionResponse(JsonSerializer.Serialize(new { claims = new[] {
                     new { text = "Combined facts", sourceClaimIds = drafts.EnumerateArray().Select(draft => draft.GetProperty("id").GetString()).ToArray() }
                 } })));
+            string operation = json.RootElement.GetProperty("operation").GetString()!;
+            if (operation == nameof(OfficeAiOperation.Parse))
+                return Task.FromResult(new OfficeAiExecutionResponse("{\"claims\":[],\"fields\":[],\"blocks\":[],\"tables\":[]}"));
+            if (operation == nameof(OfficeAiOperation.ExtractFields))
+                return Task.FromResult(new OfficeAiExecutionResponse("{\"claims\":[],\"fields\":{\"field1\":{\"status\":\"missing\",\"rawValue\":null,\"evidence\":[]}},\"blocks\":[],\"tables\":[]}"));
             var evidence = json.RootElement.GetProperty("evidence")[0];
             return Task.FromResult(new OfficeAiExecutionResponse(JsonSerializer.Serialize(new {
                 claims = new[] { new { text = evidence.GetProperty("text").GetString(), evidence = new[] {

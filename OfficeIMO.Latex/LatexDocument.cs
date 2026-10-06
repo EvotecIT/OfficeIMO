@@ -4,7 +4,7 @@ namespace OfficeIMO.Latex;
 
 /// <summary>Parsed LaTeX document with lossless syntax and bounded profile semantics.</summary>
 public sealed partial class LatexDocument {
-    private readonly IReadOnlyList<LatexToken> _tokens;
+    private readonly LatexTokenCollection _tokens;
     private readonly IReadOnlyList<LatexDiagnostic> _diagnostics;
     private readonly IReadOnlyList<LatexCommand> _commands;
     private readonly IReadOnlyList<LatexEnvironment> _environments;
@@ -18,13 +18,14 @@ public sealed partial class LatexDocument {
     private readonly IReadOnlyList<LatexReference> _references;
     private readonly IReadOnlyList<LatexLabel> _labels;
     private readonly IReadOnlyList<LatexTheorem> _theorems;
+    private readonly IReadOnlyList<LatexFootnote> _footnotes;
     private readonly IReadOnlyList<LatexMacroDefinition> _macroDefinitions;
     private readonly LatexParseOptions _options;
 
     internal LatexDocument(
         LatexSourceText source,
         LatexSyntaxTree syntaxTree,
-        IReadOnlyList<LatexToken> tokens,
+        LatexTokenCollection tokens,
         IReadOnlyList<LatexDiagnostic> diagnostics,
         LatexParseOptions options,
         CancellationToken cancellationToken) {
@@ -48,6 +49,7 @@ public sealed partial class LatexDocument {
         _references = model.References;
         _labels = model.Labels;
         _theorems = model.Theorems;
+        _footnotes = model.Footnotes;
         _macroDefinitions = model.MacroDefinitions;
         DocumentClassCommand = Commands.FirstOrDefault(static command => string.Equals(command.Name, "documentclass", StringComparison.Ordinal) && LatexSemanticBuilder.IsActiveSyntax(command.Syntax));
         Body = Environments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal) && LatexSemanticBuilder.IsActiveSyntax(environment.Syntax));
@@ -61,6 +63,7 @@ public sealed partial class LatexDocument {
     public LatexDocumentProfile Profile { get; }
     /// <summary>All exact tokens.</summary>
     public IReadOnlyList<LatexToken> Tokens => _tokens;
+    internal IReadOnlyList<LatexTokenView> TokenViews => _tokens.Views;
     /// <summary>Parser and recovery diagnostics.</summary>
     public IReadOnlyList<LatexDiagnostic> Diagnostics => _diagnostics;
     /// <summary>Commands including unknown commands.</summary>
@@ -87,6 +90,8 @@ public sealed partial class LatexDocument {
     public IReadOnlyList<LatexLabel> Labels => _labels;
     /// <summary>Theorem-like environments.</summary>
     public IReadOnlyList<LatexTheorem> Theorems => _theorems;
+    /// <summary>Source-backed footnote commands with editable bodies and optional explicit marks, in source order.</summary>
+    public IReadOnlyList<LatexFootnote> Footnotes => _footnotes;
     /// <summary>Document-local new/renew/provide command definitions.</summary>
     public IReadOnlyList<LatexMacroDefinition> MacroDefinitions => _macroDefinitions;
     /// <summary>Document class command, when present.</summary>

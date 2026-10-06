@@ -79,7 +79,79 @@ The website reads published Studio assets from the release hub. It shows Windows
 
 Windows binaries and the MSI use the existing OfficeIMO Authenticode certificate profile and a trusted timestamp. A missing signing tool, certificate, or timestamp is a release failure. Do not disable signing for a public artifact.
 
-Updates are manual for the initial product channel: install a newer signed artifact over the existing identity. Automatic update checks and Microsoft Store/App Installer publication remain disabled until a stable release feed and rollback policy exist. Building artifacts does not publish them.
+MSI updates install a newer signed artifact over the existing identity. The MSI installs for all users under `Program Files`; installation, upgrades and removal require administrator approval. Studio runs as a normal user. Microsoft Store distribution through an MSI keeps the installer-based update model. Building artifacts does not publish them.
+
+## WinGet and Microsoft Store catalogs
+
+Reuse the signed MSI assets from a published Studio release. Download its two
+Windows MSIs, `windows-release-manifest.json` and `windows-SHA256SUMS.txt` into one
+directory, then publish those exact MSI bytes as a public immutable delivery
+release. Prepare and submit both catalogs with PowerForge on Windows:
+
+```powershell
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Prepare -AssetRoot ./downloads `
+    -OutputPath ./Artifacts/Studio/Catalog -DeliveryReleaseId '<public delivery release ID>'
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Submit -OutputPath ./Artifacts/Studio/Catalog
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Submit -OutputPath ./Artifacts/Studio/Catalog -Execute
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Status -OutputPath ./Artifacts/Studio/Catalog
+```
+
+Choose a new output directory for each preparation. The shared engine verifies
+release checksums, MSI Authenticode trust and installer identity, version and
+architecture, then generates the WinGet manifests and Store package JSON.
+The product profile maps the delivery release ID to immutable branded Store
+URLs and verifies their downloaded bytes. Submission preflight runs WinGet
+validation and checks both channels' remote hashes. `Submit` performs preflight;
+`-Execute` sends the selected update. Use `-Channel winget` or `-Channel store`
+to run one channel. `catalog-update.json` records completed submissions so
+repeating the same command skips them; `Status` reads remote state without
+updating packages. An uncertain attempt requires explicit reconciliation with
+the remote service before retrying. Keep the prepared directory and receipt.
+Verify embedded executable signatures and exercise installation, upgrade,
+launch and removal on the claimed architectures before catalog acceptance.
+WinGet submission creates a pull request in Microsoft's package repository;
+catalog availability requires its validation and acceptance.
+
+The Store reuses the same signed MSI bytes and `/qn /norestart` switches. Its
+package URLs must return those bytes directly over HTTPS without redirection.
+GitHub release download URLs redirect and are rejected by Partner Center.
+`powerforge.catalog.json` supplies the immutable URL template and artifact keys;
+no manual package URL editing is required. WinGet retains its GitHub release URLs.
+Create a company developer account once, then reserve **OfficeIMO Studio** as an
+MSI/EXE product. Complete the first submission in Partner Center: package URLs,
+availability, properties, age ratings, description, screenshots, support and
+[privacy policy](https://officeimo.com/studio/privacy/). Listing claims and
+screenshots must describe the submitted release, rather than newer source.
+See [Microsoft's MSI requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/app-package-requirements)
+and [first-submission API boundary](https://learn.microsoft.com/en-us/windows/apps/publish/store-submission-api).
+
+For later package updates, associate an Entra application with the required
+Partner Center role once. Supply `PARTNER_CENTER_TENANT_ID`,
+`PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET` and
+`WINGET_CREATE_GITHUB_TOKEN` through local environment variables or the
+`studio-catalog` GitHub environment. The checked-in Store config contains only
+Studio's product identity and environment variable names.
+
+The **Update Studio catalogs** Actions workflow accepts a published Studio tag,
+the public delivery release ID and a channel. Its default is preflight; select
+the execute input to submit. It requalifies the signed release assets, restores
+matching progress from a verified dispatch of the same workflow and branch,
+and archives intent before publishing. Select `verify-authentication` while
+leaving `execute` false to check publishing credentials and Store API readiness.
+The shared workflow prepares and verifies its catalog tools in task scratch.
+Without confirmed receipt history,
+check both catalogs and select `confirm-no-prior-submission` before executing.
+This includes the first submission of a new version; a preflight alone never
+confirms missing history. A canceled or uncertain run
+stops instead of automatically repeating a remote mutation. Retain its receipt
+artifacts; reconcile them using the [shared catalog update commands](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PSPublishModule.CatalogUpdates.md).
+Store certification and WinGet moderator acceptance remain separate from
+submission. This package-only update preserves the listing and age ratings;
+update them separately when product behavior or listing claims change.
+
+PowerForge owns the commands and reusable workflow. Other MSI products supply
+their own catalog profile, release metadata, Store identity and public artifact
+keys, then call the same workflow.
 
 For everyday macOS development and stable privacy permissions, use [`Build-StudioMacDevelopment.ps1`](Build-StudioMacDevelopment.ps1) and the [development signing instructions](Apple/README.md#local-macos-development).
 

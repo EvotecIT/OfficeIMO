@@ -222,6 +222,8 @@ internal static partial class PdfWriter {
         public PdfFormFieldStyle? AppearanceStyle { get; set; }
         public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
         public double FontSize { get; set; }
+        // Keep appearance streams in authored coordinates; the widget rectangle scales them.
+        public double AppearanceScale { get; set; } = 1D;
         public bool IsChecked { get; set; }
         public string CheckedValueName { get; set; } = "Yes";
         public string ExportValue { get; set; } = string.Empty;
@@ -232,10 +234,6 @@ internal static partial class PdfWriter {
         public double ButtonSize { get; set; }
         public double ButtonGap { get; set; }
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
-        public double AppearanceScale { get; set; } = 1D;
-        public PdfFormFieldStyle? AppearanceSourceStyle { get; set; }
-        public PdfFormFieldStyle? AppearanceSourceOverrideStyle { get; set; }
-        public double AppearanceSourceFontSize { get; set; }
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
         public int? StructureParentElementIndex { get; set; }
@@ -261,8 +259,6 @@ internal static partial class PdfWriter {
         public double Y2 { get; set; }
         public string Option { get; set; } = string.Empty;
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
-        public double AppearanceScale { get; set; } = 1D;
-        public PdfFormFieldStyle? AppearanceSourceStyle { get; set; }
         public int? StructureParentElementIndex { get; set; }
         public PageStructElement? StructureParentElement { get; set; }
     }
@@ -371,6 +367,7 @@ internal static partial class PdfWriter {
         public int TableRowSpan { get; set; } = 1;
         public int? ParentElementIndex { get; set; }
         public PageStructElement? ParentElement { get; set; }
+        public bool IsLinkLeadingWhitespace { get; set; }
         public int? AnnotationObjectId { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationObjectIds { get; set; }
         public int? AnnotationStructParentIndex { get; set; }

@@ -9,13 +9,18 @@ namespace OfficeIMO.Adf;
 internal static class AdfPinnedSchema {
     private static readonly Lazy<JsonDocument> Schema = new Lazy<JsonDocument>(Load);
 
-    internal static AdfValidationResult Validate(AdfDocument document, long maximumEvaluations, CancellationToken cancellationToken) {
-        AdfValidationIssue? graphIssue = AdfGraphSafety.Inspect(document, cancellationToken);
+    internal static AdfValidationResult Validate(AdfDocument document, long maximumEvaluations, AdfProcessingOptions options) {
+        AdfValidationIssue? graphIssue = AdfGraphSafety.Inspect(document, options);
         if (graphIssue != null) return new AdfValidationResult(new[] { graphIssue });
-        using JsonDocument value = JsonDocument.Parse(AdfJsonSerializer.Serialize(document, false, cancellationToken), new JsonDocumentOptions { MaxDepth = AdfGraphSafety.MaximumJsonDepth });
+        CancellationToken cancellationToken = options.CancellationToken;
+        int maximumJsonDepth = options.MaxDepth * 3 + 8;
+        string json;
+        try { json = AdfJsonSerializer.Serialize(document, false, options); }
+        catch (InvalidDataException exception) { return new AdfValidationResult(new[] { new AdfValidationIssue("ADF_OUTPUT_LIMIT_EXCEEDED", "$", exception.Message, AdfValidationSeverity.Error) }); }
+        using JsonDocument value = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = maximumJsonDepth });
         cancellationToken.ThrowIfCancellationRequested();
         var issues = new List<AdfValidationIssue>();
-        try { new Walker(maximumEvaluations, cancellationToken).Check(Schema.Value.RootElement, value.RootElement, "$", issues, 0); }
+        try { new Walker(maximumEvaluations, maximumJsonDepth, cancellationToken).Check(Schema.Value.RootElement, value.RootElement, "$", issues, 0); }
         catch (EvaluationLimitException exception) { issues.Add(new AdfValidationIssue("ADF_SCHEMA_LIMIT", exception.Path, "Full-schema validation exceeds MaximumSchemaEvaluations.", AdfValidationSeverity.Error)); }
         return new AdfValidationResult(issues);
     }
@@ -28,16 +33,17 @@ internal static class AdfPinnedSchema {
 
     private sealed class Walker {
         private readonly long _maximumEvaluations;
+        private readonly int _maximumJsonDepth;
         private readonly CancellationToken _cancellationToken;
         private long _evaluations;
 
-        internal Walker(long maximumEvaluations, CancellationToken cancellationToken) { _maximumEvaluations = maximumEvaluations; _cancellationToken = cancellationToken; }
+        internal Walker(long maximumEvaluations, int maximumJsonDepth, CancellationToken cancellationToken) { _maximumEvaluations = maximumEvaluations; _maximumJsonDepth = maximumJsonDepth; _cancellationToken = cancellationToken; }
 
         internal void Check(JsonElement rule, JsonElement value, string path, List<AdfValidationIssue> issues, int depth) {
             _cancellationToken.ThrowIfCancellationRequested();
             if (_evaluations++ >= _maximumEvaluations) throw new EvaluationLimitException(path);
             if (issues.Count >= 1000) return;
-            if (depth > AdfGraphSafety.MaximumJsonDepth) { Error(issues, path, "JSON data exceeds the validation depth limit."); return; }
+            if (depth > _maximumJsonDepth) { Error(issues, path, "JSON data exceeds the validation depth limit."); return; }
             if (rule.TryGetProperty("$ref", out JsonElement reference)) {
                 Check(Resolve(reference.GetString()!), value, path, issues, depth);
                 return;

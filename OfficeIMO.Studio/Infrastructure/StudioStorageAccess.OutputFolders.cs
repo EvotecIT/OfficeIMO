@@ -94,7 +94,7 @@ internal sealed partial class StudioStorageAccess {
             ObjectDisposedException.ThrowIf(_disposed, this);
             token.ThrowIfCancellationRequested();
             IStorageFile? file;
-            try { file = await _folder.GetFileAsync(name).ConfigureAwait(false); }
+            try { file = await FindFolderFileAsync(_folder, name, token).ConfigureAwait(false); }
             catch (FileNotFoundException) { return null; }
             if (file is not null) { Retain(file); EnsureName(file, name); }
             token.ThrowIfCancellationRequested();

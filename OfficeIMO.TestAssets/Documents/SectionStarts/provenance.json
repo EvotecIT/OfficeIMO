@@ -1,0 +1,31 @@
+{
+  "Producer": "Microsoft Word",
+  "Version": "16.0",
+  "Recipe": "InsertBreak with odd/even section starts after two pages, including an inline page break in the first paragraph.",
+  "Artifacts": [
+    {
+      "source": "word-section-OddPage-2.docx",
+      "sourceSha256": "D9D5FCD426900F52084A817A737BAFC76AA6D09F82228081539A986BC4E62485",
+      "breakType": "OddPage",
+      "pages": 3
+    },
+    {
+      "source": "word-section-OddPage-2.doc",
+      "sourceSha256": "90A6F6FDAAAC393D79BE6F5DCB008E77FC99110C14CD195CFB96FE1B377BBAED",
+      "breakType": "OddPage",
+      "pages": 3
+    },
+    {
+      "source": "word-section-EvenPage-2.docx",
+      "sourceSha256": "95DAB2C9B19D35AE25F4E5D434F9D07C90CEEEAFD56C19206D5194F5C6F9B0E4",
+      "breakType": "EvenPage",
+      "pages": 4
+    },
+    {
+      "source": "word-section-EvenPage-2.doc",
+      "sourceSha256": "F2DED59485E07D8BC247FC9958B4EA800F6A8C37B30D64313E6F09B13B88E0BD",
+      "breakType": "EvenPage",
+      "pages": 4
+    }
+  ]
+}

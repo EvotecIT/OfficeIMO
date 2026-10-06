@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var cell = Assert.Single(source.ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.True(cell.TryGetFormattedNumber(out string text, out _)); Assert.Equal(expected, text);
-        using var result = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_date_patterns_do_not_bypass_xlsx_submillisecond_precision_guards() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "HH:mm:ss", new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(1));
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }

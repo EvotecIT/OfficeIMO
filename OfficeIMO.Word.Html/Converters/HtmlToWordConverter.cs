@@ -129,21 +129,20 @@ namespace OfficeIMO.Word.Html {
             InsertTopBookmarkIfNeeded(doc);
         }
 
-        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            await AddHtmlToHeaderFooterAsync(doc, header, document, options, cancellationToken).ConfigureAwait(false);
+        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordSection section, WordHeader header, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            await AddHtmlToHeaderFooterAsync(doc, section, header, document, options, cancellationToken).ConfigureAwait(false);
         }
 
-        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            await AddHtmlToHeaderFooterAsync(doc, footer, document, options, cancellationToken).ConfigureAwait(false);
+        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordSection section, WordFooter footer, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            await AddHtmlToHeaderFooterAsync(doc, section, footer, document, options, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordHeaderFooter headerFooter, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken) {
+        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordSection section, WordHeaderFooter headerFooter, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
             ApplyDocumentMetadata(doc, document);
 
-            var section = doc.Sections.First();
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? headerFooter.AddList(WordListStyle.Headings111) : null;
             if (document.Body != null) {

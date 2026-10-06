@@ -1,4 +1,4 @@
-"""Inventory slide background fills in unchanged native Keynote packages.
+"""Inventory slide background fills in pinned native Keynote packages.
 
 Requires numbers-parser 4.19.0 for IWA framing. Field identities use the pinned
 independent KN schema. Templates are included, but selection belongs to the reader.
@@ -22,7 +22,8 @@ fixtures = {
     'iwork-converter/a.key': '929347827a7478c123dd3e3828e9751b5cf2ae977d2edd2a5f0774014fc4fefc',
     'nim-iwork/simple.key': 'ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb',
     'keynotekit/tabledeck-v15.2.1.key': '384962b1fff18abc5a901b59dc5f8820c2a959977f18f90dc9cd10095bdd0a56',
-    'keynotekit/imagedeck-v15.2.1.key': 'a9af589197588e04ee52388b0aa6c2dad1110e5d6db814b58afe543831cf2128'}
+    'keynotekit/imagedeck-v15.2.1.key': 'a9af589197588e04ee52388b0aa6c2dad1110e5d6db814b58afe543831cf2128',
+    'native-exports/keynote-colors-v15.4.key': 'd9c7c5d0b1bb2bff80e44ea683239601dcc5c2e632205ad8611bb0110f3502f1'}
 sources = []
 for name, expected in fixtures.items():
     source = args.corpus / name
@@ -76,7 +77,11 @@ for name, expected in fixtures.items():
             rgba = [struct.unpack('<f', color[field][0])[0] for field in (3, 4, 5, 6)]
             assert all(0 <= channel <= 1 for channel in rgba)
             result['rgba'] = rgba
-            unsupported |= color[12] != [1] or set(color) != {1, 3, 4, 5, 6, 12} or rgba[3] != 1
+            extra = color.get(13)
+            neutral_extra = extra is None or (len(extra) == 1 and isinstance(extra[0], bytes)
+                                              and len(extra[0]) == 4 and struct.unpack('<f', extra[0])[0] == 1)
+            supported_fields = {1, 3, 4, 5, 6, 12} | ({13} if extra is not None else set())
+            unsupported |= color[12] != [1] or set(color) != supported_fields or not neutral_extra or rgba[3] != 1
             result.update(backgroundKind='solid', rgb=''.join(f'{int(channel * 255 + .5):02X}' for channel in rgba[:3]))
         if unsupported:
             result.update(backgroundKind='unsupported', rgb=None)
@@ -88,6 +93,6 @@ manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
                        'path': 'proto/KN/KNArchives.pb.go',
                        'fieldPath': 'SlideArchive.1 -> SlideStyleArchive.11 / SlideStylePropertiesArchive.1 / FillArchive.1'},
             'sources': sources,
-            'limits': 'Opaque sRGB fills in older fixtures; Display P3 and additional color field 13 in newer fixtures remains unqualified. Includes inactive templates. No Apple PPTX export, rendered background or master-layout qualification.'}
+            'limits': 'Opaque RGB/sRGB fills, including the fixed32 value 1 in field 13 observed in Keynote 15.4 controlled blue/red backgrounds and inherited white. The field meaning is unspecified; other values, Display P3 and other extra fields remain unqualified. Includes inactive templates. Native rendering qualification is limited to native-exports/keynote-colors-v15.4.json; this inventory does not qualify master layouts.'}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
 print('Extracted', sum(len(source['slidesIncludingTemplates']) for source in sources), 'slide background declarations')

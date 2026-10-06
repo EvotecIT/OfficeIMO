@@ -18,10 +18,6 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
     public string? Title { get; }
     /// <summary>Optional hyperlink title.</summary>
     public string? LinkTitle { get; }
-    /// <summary>Optional width hint from an OfficeIMO image-size suffix.</summary>
-    public double? Width { get; set; }
-    /// <summary>Optional height hint from an OfficeIMO image-size suffix.</summary>
-    public double? Height { get; set; }
     /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
     public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
     /// <summary>Source span for the embedded image URL token when parsed from markdown.</summary>
@@ -62,11 +58,7 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
 
         var title = MarkdownEscaper.FormatOptionalTitle(Title);
         var linkTitle = MarkdownEscaper.FormatOptionalTitle(LinkTitle);
-        var image = $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)}{linkTitle})";
-        var size = (MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.RichMarkdown
-            ? MarkdownImageSizeRendering.ToMarkdown(Width, Height)
-            : string.Empty;
-        return image + size;
+        return $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)}{linkTitle})";
     }
     internal string RenderHtml() {
         var o = HtmlRenderContext.Options;
@@ -76,7 +68,6 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         bool imageAllowed = UrlOriginPolicy.IsAllowedHttpImage(o, ImageUrl);
 
         var imgExtra = imageAllowed ? ImageHtmlAttributes.BuildImageAttributes(o, ImageUrl) : string.Empty;
-        var size = MarkdownImageSizeRendering.ToHtml(Width, Height);
         var extra = linkAllowed ? LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl) : string.Empty;
 
         if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
@@ -84,10 +75,10 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
             return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}>{HtmlTextEncoder.Encode(PlainAlt, o)}</a>";
         }
         if (!linkAllowed) {
-            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{size}{imgExtra} />";
+            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{imgExtra} />";
         }
 
-        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{size}{imgExtra} /></a>";
+        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{imgExtra} /></a>";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

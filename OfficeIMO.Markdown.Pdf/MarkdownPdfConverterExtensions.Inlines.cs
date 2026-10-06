@@ -106,20 +106,18 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static void AppendLinkInline(PdfCore.PdfParagraphBuilder builder, LinkInline link, InlineStyle style) {
-        string label = string.IsNullOrWhiteSpace(link.Text) ? link.Url : link.Text;
-        if (string.IsNullOrWhiteSpace(label)) return;
-        string contents = string.IsNullOrWhiteSpace(link.Title) ? label : link.Title!;
+        string label = string.IsNullOrEmpty(link.Text) ? link.Url : link.Text;
         bool underline = style.UnderlineLinks ?? true;
         InlineStyle linkStyle = style.With(underline: underline, color: style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235));
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
             if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { ApplyStyle(builder, style).Text(label); return; }
-            ApplyStyle(builder, linkStyle).LinkToBookmark(label, bookmark!, color: linkStyle.Color, underline: underline, contents: contents);
+            ApplyStyle(builder, linkStyle).LinkToBookmark(label, bookmark!, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
             return;
         }
 
         string? absolute = NormalizeAbsoluteLink(link.Url);
         if (absolute != null) {
-            ApplyStyle(builder, linkStyle).Link(label, absolute, color: linkStyle.Color, underline: underline, contents: contents);
+            ApplyStyle(builder, linkStyle).Link(label, absolute, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
             return;
         }
 
@@ -262,20 +260,18 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static void AddLinkRun(List<PdfTextRun> runs, LinkInline link, InlineStyle style) {
-        string label = string.IsNullOrWhiteSpace(link.Text) ? link.Url : link.Text;
-        if (string.IsNullOrWhiteSpace(label)) return;
-        string contents = string.IsNullOrWhiteSpace(link.Title) ? label : link.Title!;
+        string label = string.IsNullOrEmpty(link.Text) ? link.Url : link.Text;
         PdfCore.PdfColor linkColor = style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235);
         bool underline = style.UnderlineLinks ?? true;
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
             if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { runs.Add(CreateRun(label, style)); return; }
-            runs.Add(CreateLinkRun(label, style, linkColor, underline, contents, uri: null, bookmark: bookmark));
+            runs.Add(CreateLinkRun(label, style, linkColor, underline, link.Title ?? label, uri: null, bookmark: bookmark));
             return;
         }
 
         string? absolute = NormalizeAbsoluteLink(link.Url);
         if (absolute != null) {
-            runs.Add(CreateLinkRun(label, style, linkColor, underline, contents, uri: absolute, bookmark: null));
+            runs.Add(CreateLinkRun(label, style, linkColor, underline, link.Title ?? label, uri: absolute, bookmark: null));
             return;
         }
 

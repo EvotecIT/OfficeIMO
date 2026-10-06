@@ -12,17 +12,24 @@ internal static partial class PdfWriter {
                 width,
                 currentOpts.DefaultFontSize,
                 topLevelSpacing: true);
+            double preparedWidth = width;
             double listHeight = MeasurePreparedListHeight(prepared);
             if (prepared.Style?.KeepTogether == true) {
-                double availableHeight = GetFullPageContentHeight();
+                double availableHeight = GetMaximumBlockContinuationHeight();
                 if (listHeight > availableHeight + 0.001D) {
                     throw new ArgumentException("List height exceeds the available page content height.");
                 }
 
-                if (y < GetCurrentFramePageStartY() - 0.001D && y - listHeight < currentOpts.MarginBottom) {
-                    NewPage();
+                while (ShouldAdvanceForBlockHeight(listHeight)) {
+                    NewBlockFrame();
+                    if (Math.Abs(preparedWidth - width) > .001D) {
+                        prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                        preparedWidth = width;
+                    }
                     prepared.SpacingBefore = 0D;
                     listHeight = MeasurePreparedListHeight(prepared);
+                    if (listHeight > GetMaximumBlockContinuationHeight() + .001D)
+                        throw new ArgumentException("List height exceeds the available page content height.");
                 }
             }
 
@@ -35,50 +42,32 @@ internal static partial class PdfWriter {
                     prepared.Size,
                     listHeight);
                 double keepHeight = listHeight + nextHeight;
-                double availableHeight = GetFullPageContentHeight();
-                if (nextHeight > 0.001D &&
+                double availableHeight = GetMaximumBlockContinuationHeight();
+                while (ReservesWholeKeepGroup() && nextHeight > 0.001D &&
                     keepHeight <= availableHeight + 0.001D &&
-                    y < GetCurrentFramePageStartY() - 0.001D &&
-                    y - keepHeight < currentOpts.MarginBottom) {
-                    NewPage();
+                    ShouldAdvanceForBlockHeight(keepHeight)) {
+                    NewBlockFrame();
+                    if (Math.Abs(preparedWidth - width) > .001D) {
+                        prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                        preparedWidth = width;
+                    }
                     prepared.SpacingBefore = 0D;
+                    listHeight = MeasurePreparedListHeight(prepared);
+                    nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, prepared.Size, listHeight);
+                    keepHeight = listHeight + nextHeight;
+                    availableHeight = GetMaximumBlockContinuationHeight();
                 }
             }
 
             int? listStructureElementIndex = null;
             LayoutResult.Page? listStructurePage = null;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
-                PreparedListItem preparedItem = prepared.Items[itemIndex];
-                PdfListItem item = preparedItem.Item;
-                TableCellTextLayout layout = preparedItem.TextLayout;
-                double spacingBefore = itemIndex == 0 ? prepared.SpacingBefore : 0D;
-                double spacingAfter = itemIndex == prepared.Items.Count - 1
-                    ? prepared.SpacingAfter
-                    : prepared.ItemSpacing;
-                PdfColor? listColor = list.Color ?? prepared.Style?.Color;
-                RenderListItem(
-                    item.Runs,
-                    layout.Lines,
-                    layout.LineHeights,
-                    preparedItem.Marker,
-                    prepared.MarkerFont,
-                    prepared.MarkerNamedFont,
-                    prepared.MarkerSize,
-                    prepared.Style?.MarkerColor ?? listColor,
-                    currentOpts.MarginLeft + prepared.ListLeftIndent + preparedItem.FirstLineOffset,
-                    prepared.MarkerWidth,
-                    list.GetMarkerAlign(prepared.Style),
-                    currentOpts.MarginLeft + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap,
-                    prepared.AlignmentWidth,
-                    list.Align,
-                    listColor,
-                    prepared.Size,
-                    prepared.Leading,
-                    spacingBefore,
-                    spacingAfter,
-                    item.BookmarkName,
-                    ref listStructureElementIndex,
-                    ref listStructurePage);
+                if (activeColumnFlow != null && Math.Abs(preparedWidth - width) > 0.001D) {
+                    prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                    preparedWidth = width;
+                }
+                RenderListItem(prepared, itemIndex, blockList, blockIndex,
+                    ref listStructureElementIndex, ref listStructurePage);
             }
         }
     }

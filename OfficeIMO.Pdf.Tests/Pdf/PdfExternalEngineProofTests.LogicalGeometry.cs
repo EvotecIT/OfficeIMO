@@ -14,15 +14,13 @@ public partial class PdfExternalEngineProofTests {
     [InlineData("moons", true, 0)]
     [InlineData("Résumé 😀", false, 0)]
     [InlineData("moons", false, 1)]
-    [InlineData("moons", false, 2)]
     public void BoundedLogicalSpansPreserveAdjacentPunctuationAndAuthoredSpace(string word, bool textPaint, int embeddedFont) {
         var options = new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers();
         if (embeddedFont != 0) {
             byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ');
-            if (embeddedFont == 2) data = ManagedTextShapingTestAssets.AddTrackingTable(data, PdfFontTrackingTests.Table());
             options.EmbedStandardFont(PdfStandardFont.Helvetica, data);
         }
-        double height = embeddedFont == 2 ? 15D : 12D;
+        double height = 12D;
         static OfficeShape FilledRectangle(double width, double height) {
             OfficeShape shape = OfficeShape.Rectangle(width, height);
             shape.FillColor = OfficeColor.Black;
@@ -77,35 +75,29 @@ public partial class PdfExternalEngineProofTests {
             new PdfTextEditOptions { AllowTextRenderingMode3 = true }));
     }
 
-    [Fact]
-    public void SearchableCarrierKeepsDeclaredWidthWithTrackedEmbeddedFont() {
-        var options = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica,
-            ManagedTextShapingTestAssets.AddTrackingTable(
-                ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' '), PdfFontTrackingTests.Table()));
-        byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.SearchableText("moons", 10D, 28D, 50D, 15D))), options).ToBytes();
-        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
-        Assert.Equal("moons", span.Text);
-        Assert.Equal(50D, span.Advance, 2);
-    }
-
-    [Fact]
-    public void BoundedLogicalSpanRetainsFormulaAndLinkedTranslucentPaint() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BoundedLogicalSpanRetainsFormulaAndLinkedTranslucentPaint(bool replacementOutsideEffect) {
         OfficeShape shape = OfficeShape.Rectangle(50D, 12D);
         shape.FillColor = OfficeColor.Blue;
+        void Paint(PdfPageCanvas paint) => paint
+            .Shape(shape, 10D, 28D, linkUri: "https://example.test/formula", linkContents: "logical")
+            .Text("PaintOnly", 10D, 28D, 50D, 12D, 9D);
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.Structure(PdfCanvasStructureRole.Formula, formula =>
-                formula.Effect(OfficeTransform.Translate(20D, 10D), .5D, effect =>
-                    effect.ActualText("logical", 10D, 28D, 50D, 12D, paint => paint
-                        .Shape(shape, 10D, 28D, linkUri: "https://example.test/formula", linkContents: "logical")
-                        .Text("PaintOnly", 10D, 28D, 50D, 12D, 9D))),
+            canvas.Structure(PdfCanvasStructureRole.Formula, formula => {
+                if (replacementOutsideEffect) formula.ActualText("logical", 10D, 28D, 50D, 12D,
+                    logical => logical.Effect(OfficeTransform.Translate(20D, 10D), .5D, Paint));
+                else formula.Effect(OfficeTransform.Translate(20D, 10D), .5D,
+                    effect => effect.ActualText("logical", 10D, 28D, 50D, 12D, Paint));
+            },
                 new PdfCanvasStructureOptions { AlternativeText = "A logical expression" }))),
             new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers()).ToBytes();
         var read = PdfReadDocument.Open(pdf);
         Assert.Equal("logical", read.ExtractText().Trim());
         PdfTextSpan span = Assert.Single(read.Pages[0].GetTextSpans());
         Assert.Equal(50D, span.Advance, 2);
-        Assert.Equal(30D, span.X, 2);
+        Assert.Equal(replacementOutsideEffect ? 10D : 30D, span.X, 2);
         Assert.Equal("https://example.test/formula", Assert.Single(read.Pages[0].GetLinkAnnotations()).Uri);
         Assert.Contains(read.TaggedContent!.StructureElements, element => element.StructureType == "Formula");
         PdfExternalValidator validator = PdfExternalValidator.PdfText();
@@ -117,7 +109,8 @@ public partial class PdfExternalEngineProofTests {
         Assert.True(result.ExitCode == 0, result.GetDiagnosticText());
         Assert.Equal("logical", result.Output.Trim());
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
-        if (!string.IsNullOrWhiteSpace(output)) File.WriteAllBytes(Path.Combine(output, "bounded-formula.pdf"), pdf);
+        if (!string.IsNullOrWhiteSpace(output)) File.WriteAllBytes(Path.Combine(output,
+            replacementOutsideEffect ? "bounded-formula-outer.pdf" : "bounded-formula.pdf"), pdf);
     }
 }
 #endif

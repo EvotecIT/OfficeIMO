@@ -242,6 +242,42 @@ public sealed class CsvArrowTests {
         }
     }
 
+    [Theory]
+    [InlineData("1.2300", "1.23")]
+    [InlineData("0.0000", "0.00")]
+    [InlineData("-1.2300", "-1.23")]
+    [InlineData("999.99", "999.99")]
+    [InlineData("-999.99", "-999.99")]
+    public void ArrowDecimalsNormalizeExactValuesWithinDeclaredPrecision(string input, string expected) {
+        using var table = new System.Data.DataTable();
+        table.Columns.Add("Value", typeof(decimal));
+        table.Rows.Add(decimal.Parse(input, System.Globalization.CultureInfo.InvariantCulture));
+        using var reader = table.CreateDataReader();
+        using RecordBatch batch = Assert.Single(reader.ReadArrowBatches(
+            new ArrowReadOptions { DecimalPrecision = 5, DecimalScale = 2 }));
+
+        var type = Assert.IsType<Decimal128Type>(batch.Schema.GetFieldByIndex(0).DataType);
+        Assert.Equal(5, type.Precision);
+        Assert.Equal(2, type.Scale);
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture),
+            Assert.IsType<Decimal128Array>(batch.Column(0)).GetValue(0));
+    }
+
+    [Theory]
+    [InlineData("1000")]
+    [InlineData("-1000")]
+    [InlineData("1000.00")]
+    public void ArrowDecimalsRejectValuesOutsideDeclaredPrecision(string input) {
+        using var table = new System.Data.DataTable();
+        table.Columns.Add("Value", typeof(decimal));
+        table.Rows.Add(decimal.Parse(input, System.Globalization.CultureInfo.InvariantCulture));
+        using var reader = table.CreateDataReader();
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reader.ReadArrowBatches(
+            new ArrowReadOptions { DecimalPrecision = 5, DecimalScale = 2 }).ToArray());
+        Assert.Contains("precision 5", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ExplicitColumnTypesSkipReaderSchemaInferenceAndAreValidated() {
         var table = new System.Data.DataTable();

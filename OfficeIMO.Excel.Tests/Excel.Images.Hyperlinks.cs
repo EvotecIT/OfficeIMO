@@ -11,6 +11,42 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelPictureHyperlinkTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void RangeCopiesPreservePictureTargetsAndIndependentRelationshipLifetime(bool transpose, bool twoCellAnchor) {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
+        ExcelImage original = twoCellAnchor
+            ? sheet.AddImageToRange("A1:B2", png, "image/png")
+            : sheet.AddImage(1, 1, png, "image/png", 32, 16);
+        var target = new Uri("../photos/control.png?item=1&view=full", UriKind.Relative);
+        original.HyperlinkUri = target;
+
+        if (transpose) sheet.TransposeRange("A1:B2", "D4");
+        else sheet.CopyRange("A1:B2", "D4");
+
+        ExcelImage copy = sheet.Images.Single(image => image.RowIndex == 4 && image.ColumnIndex == 4);
+        Assert.Equal(target.OriginalString, copy.HyperlinkUri?.OriginalString);
+        Assert.Equal(png, copy.ToBytes());
+        Assert.Equal(twoCellAnchor, copy.HasTwoCellAnchor);
+        original.HyperlinkUri = null;
+        Assert.Equal(target.OriginalString, copy.HyperlinkUri?.OriginalString);
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        using var reopened = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+        ExcelImage reopenedCopy = reopened.Sheets.Single().Images.Single(image => image.RowIndex == 4 && image.ColumnIndex == 4);
+        Assert.Equal(target.OriginalString, reopenedCopy.HyperlinkUri?.OriginalString);
+        Assert.Equal(png, reopenedCopy.ToBytes());
+        using var native = SpreadsheetDocument.Open(new MemoryStream(stream.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(native));
+        Assert.Single(native.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.HyperlinkRelationships);
+    }
+
     [Fact]
     public void IndependentDrawingMlPictureLinkLoadsWithoutChangingNativeTarget() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Pictures", "PictureExternalLink.xlsx");

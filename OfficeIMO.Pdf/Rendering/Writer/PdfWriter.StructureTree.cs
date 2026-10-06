@@ -149,7 +149,8 @@ internal static partial class PdfWriter {
         int parentTreeNextKey = parentTreeEntries.Count == 0
             ? 0
             : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
-        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey, BuildNoteIdTree(objects, pages)));
+        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey,
+            pages.SelectMany(page => page.StructElements).Select(element => element.StructureType), BuildNoteIdTree(objects, pages)));
     }
 
     private static List<int> StructureChildren(IReadOnlyList<LayoutResult.Page> pages,
@@ -160,20 +161,6 @@ internal static partial class PdfWriter {
             children.AddRange(childPage.StructElements.Where(child => ReferenceEquals(child.ParentElement, element)));
         }
         return OrderStructureChildren(children);
-    }
-
-    private static List<int> OrderStructureChildren(List<PageStructElement> children) {
-        // Preserve unannotated siblings in their original slots, including flow text,
-        // links and note owners. Equal explicit orders retain fragment arrival order.
-        if (children.Count(child => child.LogicalOrder.HasValue) > 1) {
-            PageStructElement[] ordered = children.Where(child => child.LogicalOrder.HasValue)
-                .OrderBy(child => child.LogicalOrder!.Value).ToArray();
-            int next = 0;
-            for (int index = 0; index < children.Count; index++) {
-                if (children[index].LogicalOrder.HasValue) children[index] = ordered[next++];
-            }
-        }
-        return children.Select(child => child.ObjectId).ToList();
     }
 
     // A paragraph/cell/heading with interleaved links owns ordered Span/Link children.

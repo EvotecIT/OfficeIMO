@@ -487,8 +487,8 @@ public sealed class EmailCalendarConversionTests {
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
-        byte[] regeneratedEml = new EmailDocumentWriter().ToBytes(storeRoundTrip, EmailFileFormat.Eml);
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        byte[] regeneratedEml = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(storeRoundTrip, EmailFileFormat.Eml);
         using var stream = new MemoryStream(regeneratedEml);
         MimePart calendar = Assert.Single(MimeMessage.Load(stream).BodyParts.OfType<MimePart>(),
             part => part.ContentType.MimeType == "text/calendar");

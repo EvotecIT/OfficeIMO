@@ -6,18 +6,16 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
-    public void Partial_keynote_conversion_preserves_both_independent_source_slides() {
+    public void Native_keynote_conversion_preserves_both_independent_source_slides_without_partial_policy() {
         string path = CorpusFixture("nim-iwork/simple.key");
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path);
 
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(diagnostic => diagnostic.ToString())));
         Assert.Equal(2, result.Value.Slides.Count);
         Assert.NotEmpty(result.Value.Slides.SelectMany(slide => slide.TextBoxes));
-        Assert.True(result.Report.IsPartialEditableReconstruction);
-        result.Report.RequireEditableReconstruction();
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.False(result.Report.IsPartialEditableReconstruction);
+        result.Report.RequireCompleteEditableReconstruction();
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED");
         using var saved = new MemoryStream();
         result.Value.Save(saved);
@@ -158,7 +156,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: PageLayoutFields(float.MaxValue));
         using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -173,7 +171,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: layout);
         using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
     }

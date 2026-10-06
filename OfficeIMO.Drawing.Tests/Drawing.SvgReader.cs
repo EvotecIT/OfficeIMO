@@ -332,18 +332,6 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderAcceptsPackedArcFlagsAndAdjacentCoordinates() {
-        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 20'>"
-            + "<path d='M10 10 a8 8 0 001.631-.151 a8 8 0 0110 0' fill='none' stroke='blue'/></svg>";
-
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
-        Assert.NotNull(drawing);
-        Assert.Equal(0, unsupported);
-        OfficeShape path = Assert.Single(drawing!.Shapes).Shape;
-        Assert.True(path.PathCommands.Count(command => command.Kind == OfficePathCommandKind.CubicBezierTo) >= 2);
-    }
-
-    [Fact]
     public void SvgReaderComposesOrderedNestedTransformsInViewBoxCoordinates() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 100 50'>"
             + "<g transform='translate(10 0)'><g transform='scale(2)'><rect x='10' y='20' width='10' height='10' fill='red'/></g></g>"
@@ -1408,22 +1396,11 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderRejectsExternalEntities() {
+    public void SvgReaderRejectsDocumentsWithDoctypeOrExternalEntities() {
         const string svg = "<!DOCTYPE svg [<!ENTITY xxe SYSTEM 'file:///secret.txt'>]><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>&xxe;</text></svg>";
 
         Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
         Assert.Null(drawing);
-    }
-
-    [Fact]
-    public void SvgReaderIgnoresExternalDtdDeclarationWithoutFetchingIt() {
-        const string svg = "<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'https://invalid.example.test/svg11.dtd'>"
-            + "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><circle cx='5' cy='5' r='4'/></svg>";
-        byte[] bytes = Encoding.UTF8.GetBytes(svg);
-
-        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes));
-        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? drawing));
-        Assert.NotNull(drawing);
     }
 
     [Fact]
@@ -1445,6 +1422,48 @@ public class DrawingSvgReaderTests {
         string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
         Assert.Contains("href=\"https://example.test/details\"", exported, StringComparison.Ordinal);
         Assert.Contains("pointer-events=\"all\"", exported, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("JaVaScRiPt:alert(1)")]
+    [InlineData("java&#x9;script:alert(1)")]
+    [InlineData("vbscript:alert(1)")]
+    [InlineData("data:text/html,hello")]
+    [InlineData("file:///private/document.txt")]
+    public void SvgReaderDropsUnsafeInteractiveTargetsButKeepsPaintedContent(string href) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<a href='" + href + "'><rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Empty(drawing!.Elements.OfType<OfficeDrawingLink>());
+        Assert.Equal(OfficeColor.Red, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(10, 7));
+        Assert.DoesNotContain("<a", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("#details")]
+    [InlineData("guide.html")]
+    [InlineData("mailto:help@example.test")]
+    [InlineData("tel:+15551234567")]
+    public void SvgReaderRetainsSafeLocalMailAndTelephoneTargets(string href) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<a href='" + href + "'><rect x='5' y='4' width='20' height='8'/></a></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(href, Assert.Single(drawing!.Elements.OfType<OfficeDrawingLink>()).Uri);
+        Assert.Contains("href=\"" + href + "\"", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,hello")]
+    [InlineData("file:///private/document.txt")]
+    public void DrawingRejectsUnsafeLinksAddedDirectly(string href) {
+        var drawing = new OfficeDrawing(40, 20);
+        Assert.Throws<ArgumentException>(() => drawing.AddLink(href, 0, 0, 10, 10));
     }
 
     [Fact]

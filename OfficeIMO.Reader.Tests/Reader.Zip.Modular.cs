@@ -42,6 +42,126 @@ public sealed class ReaderZipModularTests {
     }
 
     [Fact]
+    public void ZipTraversalRejectsPhysicalEntriesBeforeOpeningAndKeepsAcceptedEntryBudgetSeparate() {
+        string zipPath = Path.Combine(Path.GetTempPath(), "officeimo-zip-physical-" + Guid.NewGuid().ToString("N") + ".zip");
+        try {
+            using (var file = new FileStream(zipPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(file, ZipArchiveMode.Create, leaveOpen: false)) {
+                WriteTextEntry(archive, "../first.txt", "rejected");
+                WriteTextEntry(archive, "../second.txt", "rejected");
+                WriteTextEntry(archive, "safe.md", "# Accepted");
+            }
+
+            var options = new ZipTraversalOptions {
+                MaxEntries = 1, MaxPhysicalEntries = 3, DeterministicOrder = false
+            };
+            ZipTraversalResult accepted = ZipTraversal.Traverse(zipPath, options);
+            Assert.Equal("safe.md", Assert.Single(accepted.Entries).FullName);
+            Assert.Equal(3, accepted.EntriesVisited);
+
+            options.MaxPhysicalEntries = 2;
+            Assert.Contains("MaxPhysicalEntries", Assert.Throws<InvalidDataException>(
+                () => ZipTraversal.Traverse(zipPath, options)).Message, StringComparison.Ordinal);
+            using var source = File.OpenRead(zipPath);
+            Assert.Throws<InvalidDataException>(() => ZipTraversal.ValidateSource(source, options));
+            Assert.Equal(0, source.Position);
+            Assert.Throws<InvalidDataException>(() => ZipTraversal.Traverse(source, options));
+            using var opened = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
+            Assert.Throws<InvalidDataException>(() => ZipTraversal.Traverse(opened, options));
+        } finally {
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+        }
+    }
+
+    [Fact]
+    public void ZipTraversalBoundsNonSeekableSourceBeforeMetadataMaterialization() {
+        byte[] source = BuildSimpleZipBytes();
+        using var accepted = new NonSeekableReadStream(source);
+        Assert.Single(ZipTraversal.Traverse(accepted).Entries);
+
+        using var oversized = new NonSeekableReadStream(source);
+        Assert.Contains("MaxArchiveBytes", Assert.Throws<InvalidDataException>(() =>
+            ZipTraversal.Traverse(oversized, new ZipTraversalOptions { MaxArchiveBytes = source.Length - 1 })).Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ZipTraversalParsesTheBoundedSnapshotWhenSeekableSourceChanges() {
+        byte[] small = BuildSimpleZipBytes();
+        byte[] replacement;
+        using (var buffer = new MemoryStream()) {
+            using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true)) {
+                for (int index = 0; index < 4; index++) {
+                    WriteTextEntry(archive, "entry-" + index + ".md", "replacement");
+                }
+            }
+            replacement = buffer.ToArray();
+        }
+
+        using var source = new SwitchAfterFullReadStream(small, replacement);
+        ZipTraversalResult result = ZipTraversal.Traverse(source,
+            new ZipTraversalOptions { MaxPhysicalEntries = 1 });
+
+        Assert.True(source.Switched);
+        Assert.Equal("docs/readme.md", Assert.Single(result.Entries).FullName);
+        Assert.Equal(0, source.Position);
+    }
+
+    [Fact]
+    public void ZipTraversalBoundsWarningsWithoutDroppingLaterSafeEntries() {
+        using var source = new MemoryStream();
+        using (var archive = new ZipArchive(source, ZipArchiveMode.Create, leaveOpen: true)) {
+            for (int index = 0; index < 4; index++) {
+                WriteTextEntry(archive, "../unsafe-" + index + ".txt", "rejected");
+            }
+            WriteTextEntry(archive, "safe.md", "# Accepted");
+        }
+        source.Position = 0;
+
+        ZipTraversalResult result = ZipTraversal.Traverse(source, new ZipTraversalOptions {
+            MaxPhysicalEntries = 5, MaxWarnings = 2, DeterministicOrder = false
+        });
+
+        Assert.Equal("safe.md", Assert.Single(result.Entries).FullName);
+        Assert.Equal(2, result.Warnings.Count);
+        Assert.Contains("MaxWarnings", result.Warnings[1].Warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ZipReaderPreflightsOuterAndNestedPhysicalEntryCounts() {
+        byte[] nested;
+        using (var nestedStream = new MemoryStream()) {
+            using (var archive = new ZipArchive(nestedStream, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteTextEntry(archive, "first.md", "First");
+                WriteTextEntry(archive, "second.md", "Second");
+                WriteTextEntry(archive, "third.md", "Third");
+            }
+            nested = nestedStream.ToArray();
+        }
+
+        byte[] outer;
+        using (var outerStream = new MemoryStream()) {
+            using (var archive = new ZipArchive(outerStream, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteBytesEntry(archive, "nested.zip", nested);
+                WriteTextEntry(archive, "safe.md", "Safe");
+            }
+            outer = outerStream.ToArray();
+        }
+
+        var options = new ZipTraversalOptions { MaxPhysicalEntries = 2 };
+        using (var source = new MemoryStream(outer, writable: false)) {
+            ReaderChunk[] chunks = CreateMarkdownZipReader(options).Read(source, "outer.zip").ToArray();
+            Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Zip &&
+                (chunk.Warnings?.Any(warning => warning.Contains("archive parse error", StringComparison.Ordinal)) ?? false));
+            Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Markdown && chunk.Text?.Contains("Safe", StringComparison.Ordinal) == true);
+        }
+
+        options.MaxPhysicalEntries = 1;
+        using var rejected = new MemoryStream(outer, writable: false);
+        Assert.Throws<InvalidDataException>(() => ZipReaderAdapter.Read(rejected, "outer.zip", zipOptions: options).ToArray());
+    }
+
+    [Fact]
     public void ZipTraversal_RespectsCompressionRatioLimit() {
         var zipPath = Path.Combine(Path.GetTempPath(), "officeimo-zip-" + Guid.NewGuid().ToString("N") + ".zip");
         try {
@@ -395,5 +515,30 @@ public sealed class ReaderZipModularTests {
         var entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
         using var stream = entry.Open();
         stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private sealed class SwitchAfterFullReadStream : MemoryStream {
+        private readonly byte[] _replacement;
+
+        internal SwitchAfterFullReadStream(byte[] initial, byte[] replacement)
+            : base(Math.Max(initial.Length, replacement.Length)) {
+            _replacement = replacement;
+            base.Write(initial, 0, initial.Length);
+            base.Position = 0;
+        }
+
+        internal bool Switched { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (!Switched && read > 0 && base.Position == base.Length) {
+                base.Position = 0;
+                base.SetLength(0);
+                base.Write(_replacement, 0, _replacement.Length);
+                base.Position = base.Length;
+                Switched = true;
+            }
+            return read;
+        }
     }
 }

@@ -289,22 +289,8 @@ public sealed class BrowserPdfImportTests {
 
     [Fact]
     public void PdfToPowerPoint_VisualMode_RendersEveryBase14TextFamilyWithPinnedBrowserFallback() {
-        byte[] pdf = PdfDocument.Create(document => document.Content(content => content
-            .Paragraph(p => p.Runs([PdfTextRun.Normal("Helvetica regular", font: PdfStandardFont.Helvetica)]))
-            .Paragraph(p => p.Runs([PdfTextRun.BoldItalic("Helvetica bold italic", font: PdfStandardFont.HelveticaBoldOblique)]))
-            .Paragraph(p => p.Runs([PdfTextRun.Normal("Times regular", font: PdfStandardFont.TimesRoman)]))
-            .Paragraph(p => p.Runs([PdfTextRun.BoldItalic("Times bold italic", font: PdfStandardFont.TimesBoldItalic)]))
-            .Paragraph(p => p.Runs([PdfTextRun.Normal("Courier regular", font: PdfStandardFont.Courier)]))
-            .Paragraph(p => p.Runs([PdfTextRun.BoldItalic("Courier bold italic", font: PdfStandardFont.CourierBoldOblique)]))), new PdfOptions {
-                PageWidth = 500,
-                PageHeight = 600,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 14
-            })
-            .ToBytes();
+        // Pin the converter's input so writer baseline improvements cannot change this rendering snapshot.
+        byte[] pdf = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "base14-font-families.pdf"));
         var source = new SelectedDocument("base14.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
 
         ConversionResult result = _service.ConvertFile(

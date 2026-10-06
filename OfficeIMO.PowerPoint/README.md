@@ -37,6 +37,14 @@ presentation.Save();
 `Create(...)` starts with zero slides, and each `AddSlide()` call creates exactly one. This keeps creation and
 editing deterministic; there is no hidden placeholder slide to reuse.
 
+For a deck from an untrusted source, use the bounded load profile:
+
+```csharp
+using var incoming = PowerPointPresentation.Load("upload.pptx", PowerPointLoadOptions.UntrustedDefaults);
+```
+
+It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with decks containing those parts; set `PackageSecurity` explicitly for another policy.
+
 Load operations are detached from their source. Persistence is explicit by default, and read-only intent or
 save-on-dispose behavior uses the same shared lifecycle options as Word and Excel:
 

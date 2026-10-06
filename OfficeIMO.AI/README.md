@@ -1,30 +1,15 @@
 # OfficeIMO.AI
 
-`OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 8 and .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
+`OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
 
 Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, native Copilot, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
 
-The same `IOfficeAiExecutor` can produce bounded structured tool decisions through
-`OfficeAiToolPlanner`. Tool declarations and provider responses remain inert JSON;
-the planner verifies the response envelope, declared tool identity, uniqueness, size,
-item count, nesting, and every argument against the selected tool schema before returning
-a call. HTML automation uses this contract through
-[OfficeIMO.AI.Html](../OfficeIMO.AI.Html/README.md), whose runtime dispatcher also performs
-typed argument validation before page behavior.
-
-Tool definitions use a closed, dependency-free JSON Schema subset: `type`, `properties`,
-`required`, `additionalProperties: false`, `items`, `enum`, `const`, `anyOf`, scalar and
-array bounds, and absolute `uri` format. Unsupported keywords are rejected when the tool
-is declared. Provider schemas make optional properties required and nullable for strict
-structured-output APIs; the planner removes those synthetic nulls and validates the
-original application contract locally.
-
-## Add to a .NET 8 or .NET 10 application
+## Add to a .NET 10 application
 
 To build from a source checkout, create an application beside the `OfficeIMO` directory and reference the engine project:
 
 ```shell
-dotnet new console --framework net10.0 --name DocumentAssistant # use net8.0 when required
+dotnet new console --framework net10.0 --name DocumentAssistant
 dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/OfficeIMO.AI/OfficeIMO.AI.csproj
 dotnet build DocumentAssistant/DocumentAssistant.csproj
 ```
@@ -78,7 +63,11 @@ For follow-up questions, `ConversationContext` accepts up to 8000 characters of 
 
 `Ask`, `Explain` and `Summarize` first collect source-linked observations from each batch. When more than one batch contributes observations, bounded combination requests relate those facts and retain their original citations. Combination uses the same request count, character limits and deadline as evidence processing. A failed or unfinished combination returns the validated observations with `Partial`; it does not claim a complete answer. Model interpretation still requires review.
 
-Table evidence includes the title and column headers even when there are no rows. Each row retains its title and column labels, and `sourceBlockId` identifies its table and row in execution requests. When Reader supplies a shared anchor for a table placeholder and its data, `sourceAnchor` preserves that association across narrative blocks, table headers and rows, including untitled tables beneath section headings.
+Table evidence includes the title and column headers even when there are no rows. Each row retains its title and column labels, and `sourceBlockId` identifies its table and row in execution requests. When Reader supplies a shared anchor for a table placeholder and its data, `sourceAnchor` preserves that association across narrative blocks, table headers and rows, including untitled tables beneath section headings. Evidence and validated citations also carry immutable `SourceLocation` values for Reader paths, pages, slides, sheets, source ranges and table indices. Table rows retain a one-based data-row ordinal; a table range does not imply independently verified cell coordinates. Source locations are included in request evidence; hosts can read streams under logical source names when filesystem paths should remain private.
+
+OCR-enriched Reader blocks carry immutable `Recognition` evidence through snapshots, requests, citations, synthesis and JSON reports. It records available provider/model/language, confidence counts and comparison/review outcomes. Missing provenance means unknown; it does not certify native extraction. Recognition evidence participates in `SnapshotHash`, so changing the OCR assessment invalidates reuse of a result even when recognized text is unchanged. Reader retention loss prevents passing checks from surviving truncated evidence.
+
+Extraction fields expose `TextValueMatched` and `RecognitionReviewRequired` separately from `Status`. A normalized `Present` value may quote an OCR error exactly. `TextValueMatched` verifies occurrence, while `RecognitionReviewRequired` highlights cited OCR without completed passing checks. Neither establishes that the selected value belongs to the requested field. Image-only values cannot claim a matched text value. Results retain `RequiresReview = true`.
 
 Each snapshot retains the SHA-256 of the original bytes, Reader page provenance, source block identifiers, and available source geometry. A separate `SnapshotHash` binds results and exports to the exact evidence projection, image payload hashes and coverage state; the same original bytes with different observations are not interchangeable. `FromReadResult` is a trusted-adapter entry point: its caller must enforce source permissions and ensure the supplied Reader result and images describe those exact bytes. `OfficeAiImage` takes verified dimensions from the rendering/image owner and copies its payload. It does not decode or certify an image itself.
 
@@ -108,7 +97,9 @@ Executors can throw `OfficeAiExecutionException` with a typed authentication, ac
 
 The response schema matches the selected operation. For field extraction, the executor returns a `fields` object with every requested field key (`field1`, `field2`, and so on) required; each value contains `status`, `rawValue` and `evidence`. Request metadata pairs each stable key with the original field name, so punctuation and Unicode in caller names do not become schema-key restrictions. The schema rejects omitted or unrequested keys and constrains the value and evidence shape for present, missing and uncertain fields. Local validation also rejects duplicate JSON keys. The public `OfficeAiResult.Fields` collection retains the original names and requested field order. Field extraction requires empty claims, blocks and tables; parsing requires empty claims and fields; questions, explanations and summaries require empty fields, blocks and tables. The same rules are checked locally for every provider.
 
-Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Invalid`, and `NotEvaluated`. A field is `Missing` only when the processed evidence did not provide it; incomplete source coverage uses `NotEvaluated` for otherwise missing fields. Conflicting values are not collapsed into one normalized value. Decimal normalization uses the explicit culture and validates grouping. Dates require an exact format containing a year, month, and day of the month. Partial formats such as `MM-dd` or `yyyy-MM` yield `Invalid`; the engine does not fill missing components from the clock or calendar defaults. Integer and Boolean normalization accept their ordinary signed-integer and `true`/`false` forms.
+Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Invalid`, and `NotEvaluated`. A field is `Missing` only when the processed evidence did not provide it; incomplete source coverage uses `NotEvaluated` for otherwise missing fields. Conflicting values are not collapsed into one normalized value. Decimal normalization uses the explicit culture, validates grouping, and rejects values that would round or underflow in `System.Decimal`. The exact raw value and citations remain available with `Invalid`; lossy normalization cannot hide a conflict across batches. Dates require an exact format containing a year, month, and day of the month. Partial formats such as `MM-dd` or `yyyy-MM` yield `Invalid`; the engine does not fill missing components from the clock or calendar defaults. Integer and Boolean normalization accept their ordinary signed-integer and `true`/`false` forms.
+
+Informational detection and adapter messages alone do not mark a source as incomplete. Warnings, content or output limitations, pending OCR and truncated tables still require coverage review.
 
 ## Budgets and cancellation
 
@@ -117,6 +108,10 @@ Field states distinguish `Present`, `Missing`, `Ambiguous`, `Conflicting`, `Inva
 The engine includes the executor's prompt-wrapper measurement when batching. Oversized text records are split into contiguous windows at nearby natural boundaries without splitting a UTF-16 surrogate pair. The snapshot stays unchanged, and validated citations map back to its original identifiers and offsets. `ProcessedTextRanges` records successful windows. `ProcessedEvidenceIds` contains fully processed records; a record with any unprocessed text remains in `OmittedEvidenceIds`.
 
 Multi-batch questions, explanations and summaries combine validated observations through bounded reduction passes. Each combined claim references known draft identifiers; the engine attaches their original citations and rejects unknown identifiers or omitted draft groups. This preserves reference lineage, not a proof of semantic entailment. `SynthesisStatus` reports whether combination completed. If the request budget, response validation, or pass limit prevents completion, validated observations remain available with `Partial` and `answer-synthesis-incomplete` (`summary-synthesis-incomplete` for summaries). `RequestCount` includes evidence and combination attempts. `MaxSynthesisPasses` defaults to three, and every pass shares `MaxRequests` and the operation deadline. Empty observations remain `InsufficientEvidence`; one contributing batch needs no combination.
+
+`ReservedSynthesisRequests` defaults to one for Ask, Explain and Summarize. The planner reserves those calls before reading evidence batches, while leaving at least two evidence calls when the total permits. Budgets of one or two calls retain their existing evidence capacity. Set the reserve to zero to prioritize evidence coverage, or increase it for multiple reduction groups. For example, `new OfficeAiLimits { MaxRequests = 8, ReservedSynthesisRequests = 3 }` permits at most five evidence calls and leaves three calls for combination. Extraction and parsing use the full request budget. Reservation does not guarantee synthesis completion: draft size and provider behavior still matter.
+
+Synthesis receives coverage metadata for omitted evidence, empty pages and source-reader limitations. A completed synthesis over incomplete evidence remains a `Partial` operation. Specific diagnostics distinguish `synthesis-request-budget-exceeded`, `synthesis-request-too-large`, `synthesis-measurement-failed`, `synthesis-pass-limit-exceeded`, `synthesis-no-progress` and `invalid-synthesis-response`; retained drafts keep their original citations.
 
 Use one linked cancellation token for read, render/OCR, inference, and artifact writing when the host needs one end-to-end deadline. Cancellation stops waiting and discards late results. An executor that ignores cancellation retains its execution gate until its actual work settles, preventing overlapping calls through that executor. Callers remain responsible for the lifetime of a supplied stream or provider that continues working after cancellation. The engine makes no automatic repair request.
 
@@ -128,6 +123,6 @@ For `Parse`, `CreateProposedReadResult` produces Reader's canonical transport mo
 
 ## Executor contract
 
-Implement `IOfficeAiExecutor` to use another model client. Supply an immutable profile, report whether the actual route is local and whether it accepts images/enforces schemas, measure transport prompt text in `MeasureRequestCharacters`, and return one bounded response from `ExecuteAsync`. A truncated generation must set `IsComplete = false`. Leave unavailable usage counters null. The executor returns inert JSON and must never execute proposed tools, access files, or grant arbitrary network actions.
+Implement `IOfficeAiExecutor` to use another model client. Supply an immutable profile, report whether the actual route is local and whether it accepts images/enforces schemas, measure transport prompt text in `MeasureRequestCharacters`, and return one bounded response from `ExecuteAsync`. A truncated generation must set `IsComplete = false`. Leave unavailable usage counters null. The provider boundary must not give document content access to tools, files, or arbitrary network actions.
 
 Profile capability declarations require independent qualification. The engine applies the same local response checks to schema-enforced and prompted-JSON output; the latter reports its weaker generation guarantee. See the [architecture and support matrix](../Docs/officeimo.document-assistant-design.md) for current coverage and limits.

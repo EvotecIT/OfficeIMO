@@ -49,7 +49,7 @@ public sealed partial class OfficeAiEngine {
                     maxTableColumns = request.Limits.MaxTableColumns },
                 fields = request.Fields.Select((field, index) => new { key = FieldKey(index), name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
                 evidence = observations.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page,
-                    sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor }),
+                    recognition = item.Recognition, sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor, sourceLocation = item.SourceLocation }),
                 images = attachments.Select(item => new { id = item.Id, page = item.Page, width = item.Width, height = item.Height })
             });
             return new(requestId + "-" + (batches.Count + 1), Instructions, input, outputSchema,
@@ -71,10 +71,13 @@ public sealed partial class OfficeAiEngine {
         PlanningItem[] ordered = text.Select(item => item.Page ?? 0).Concat(images.Select(item => item.Page)).Distinct()
             .SelectMany(page => textByPage[page].Select(item => new PlanningItem(item, null))
                 .Concat(imagesByPage[page].Select(item => new PlanningItem(null, item)))).ToArray();
+        bool combinesClaims = request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain or OfficeAiOperation.Summarize;
+        int reserve = combinesClaims ? Math.Min(request.Limits.ReservedSynthesisRequests, Math.Max(0, request.Limits.MaxRequests - 2)) : 0;
+        int maximumEvidenceRequests = request.Limits.MaxRequests - reserve;
         int position = 0;
         while (position < ordered.Length) {
             token.ThrowIfCancellationRequested();
-            if (batches.Count >= request.Limits.MaxRequests) { omitted.AddRange(ordered.Skip(position).Select(item => item.Id)); break; }
+            if (batches.Count >= maximumEvidenceRequests) { omitted.AddRange(ordered.Skip(position).Select(item => item.Id)); break; }
             PackedPrefix packed = FindFittingPrefix(ordered.Length - position, maxCharacters,
                 length => CreateRequest(new ArraySegment<PlanningItem>(ordered, position, length)), token);
             if (packed.Count > 0) {
@@ -88,7 +91,7 @@ public sealed partial class OfficeAiEngine {
                 int offset = 0;
                 while (offset < item.Text.Length) {
                     token.ThrowIfCancellationRequested();
-                    if (batches.Count >= request.Limits.MaxRequests) { omitted.Add(item.Id); break; }
+                    if (batches.Count >= maximumEvidenceRequests) { omitted.Add(item.Id); break; }
                     string sliceId = item.Id + "@" + offset;
                     int low = 0, high = Math.Min(item.Text.Length - offset, maxCharacters);
                     while (low < high) {

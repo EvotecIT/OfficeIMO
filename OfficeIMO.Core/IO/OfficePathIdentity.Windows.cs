@@ -74,18 +74,29 @@ namespace OfficeIMO.Internal {
         private const int ErrorInvalidParameter = 87;
         private const int ErrorCallNotImplemented = 120;
 
-        private static string ResolveWindowsExistingPath(string path) {
+        private static bool TryResolveWindowsExistingPath(string path, out string resolvedPath) {
             using (SafeFileHandle handle = OpenWindowsPathHandle(path)) {
-                if (handle.IsInvalid) throw WindowsIdentityError(path, "open");
-                return GetWindowsFinalPath(handle);
+                if (!handle.IsInvalid) return TryGetWindowsFinalPath(handle, out resolvedPath);
+                int error = Marshal.GetLastWin32Error();
+                if (error == ErrorFileNotFound || error == ErrorPathNotFound) {
+                    resolvedPath = string.Empty;
+                    return false;
+                }
+                throw WindowsIdentityError(path, "open", error);
             }
         }
 
         private static bool TryGetWindowsMetadata(string path, out OfficeFileMetadata metadata) {
             using (SafeFileHandle handle = OpenWindowsPathHandle(path)) {
                 if (!handle.IsInvalid) {
-                    metadata = GetWindowsMetadata(path, handle);
-                    return true;
+                    try {
+                        metadata = GetWindowsMetadata(path, handle);
+                        return true;
+                    } catch (FileNotFoundException) {
+                        // A rename can temporarily remove the opened entry's final pathname.
+                        metadata = default(OfficeFileMetadata);
+                        return false;
+                    }
                 }
                 int error = Marshal.GetLastWin32Error();
                 if (error == ErrorFileNotFound || error == ErrorPathNotFound) {
@@ -188,6 +199,11 @@ namespace OfficeIMO.Internal {
         }
 
         private static string GetWindowsFinalPath(SafeFileHandle handle) {
+            if (TryGetWindowsFinalPath(handle, out string path)) return path;
+            throw new FileNotFoundException("The opened entry's physical Windows path no longer exists.");
+        }
+
+        private static bool TryGetWindowsFinalPath(SafeFileHandle handle, out string path) {
             var buffer = new StringBuilder(1024);
             uint length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
             if (length >= buffer.Capacity) {
@@ -195,10 +211,16 @@ namespace OfficeIMO.Internal {
                 length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
             }
             if (length == 0 || length >= buffer.Capacity) {
+                int error = Marshal.GetLastWin32Error();
+                if (length == 0 && (error == ErrorFileNotFound || error == ErrorPathNotFound)) {
+                    path = string.Empty;
+                    return false;
+                }
                 throw new IOException("The physical Windows path could not be resolved (OS error " +
-                    Marshal.GetLastWin32Error() + ").");
+                    error + ").");
             }
-            return NormalizeWindowsFinalPath(buffer.ToString());
+            path = NormalizeWindowsFinalPath(buffer.ToString());
+            return true;
         }
 
         private static string GetWindowsAuthority(string path) {

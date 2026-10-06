@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Destination_name_expansion_respects_formula_limits_and_discards_planned_worksheets_on_fallback() {
         using MemoryStream package = CrossBindingPackage(shortNames: true, unnamedTarget: true);
         var read = new IWorkReadOptions { MaximumFormulaCharacters = 30 };
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, read);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, read, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.WorksheetMappings);
@@ -168,7 +168,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Empty_target_body_uses_destination_fallback_instead_of_inventing_a_nonempty_range() {
         using MemoryStream package = CrossBindingPackage(shortNames: true, bodyReference: 1, emptyBody: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.WorksheetMappings);

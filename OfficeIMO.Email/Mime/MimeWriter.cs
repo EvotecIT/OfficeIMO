@@ -487,6 +487,15 @@ internal static partial class MimeWriter {
         }
     }
 
+    /// <summary>Retains part headers while declaring a normalized Base64 replacement payload.</summary>
+    internal static void WriteBase64PartHeaders(Stream output, IEnumerable<EmailHeader> headers) {
+        WritePreservedPartHeaders(output,
+            headers.Where(header => !header.Name.Equals("Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase)),
+            omitPayloadDependentHeaders: true);
+        WriteLine(output, "Content-Transfer-Encoding: base64");
+        WriteLine(output, string.Empty);
+    }
+
     private static void WriteTransferEncodedPayload(Stream output, byte[] data, string? transferEncoding, int base64LineLength) {
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized) {
@@ -595,7 +604,8 @@ internal static partial class MimeWriter {
         }
     }
 
-    private static void WriteBase64(Stream output, Stream input, int lineLength, long maximumInputBytes) {
+    internal static void WriteBase64(Stream output, Stream input, int lineLength, long maximumInputBytes,
+        CancellationToken cancellationToken = default) {
         int bytesPerLine = checked(lineLength / 4 * 3);
         var buffer = new byte[bytesPerLine];
         var encodedCharacters = new char[lineLength];
@@ -603,6 +613,7 @@ internal static partial class MimeWriter {
         long total = 0;
         bool wrote = false;
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             int count = 0;
             while (count < buffer.Length) {
                 int read = input.Read(buffer, count, buffer.Length - count);

@@ -5,7 +5,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return "<< /Type /StructTreeRoot /K [] /RoleMap << >> >>\n";
     }
 
-    internal static string BuildStructTreeRootDictionary(IReadOnlyList<int> childElementIds, int parentTreeId, int parentTreeNextKey, int? idTreeId = null) {
+    internal static string BuildStructTreeRootDictionary(IReadOnlyList<int> childElementIds, int parentTreeId, int parentTreeNextKey, IEnumerable<string>? structureTypes = null, int? idTreeId = null) {
         Guard.NotNull(childElementIds, nameof(childElementIds));
         if (parentTreeNextKey < 0) {
             throw new ArgumentOutOfRangeException(nameof(parentTreeNextKey), parentTreeNextKey, "PDF parent-tree next key must be non-negative.");
@@ -22,7 +22,13 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         }
 
         if (idTreeId.HasValue) sb.Append(" /IDTree ").Append(PdfSyntaxEscaper.IndirectReference(idTreeId.Value));
-        sb.Append(" /RoleMap << >> >>\n");
+        sb.Append(" /RoleMap <<");
+        foreach (string role in (structureTypes ?? Enumerable.Empty<string>())
+            .Where(role => role == "H7" || role == "H8" || role == "H9")
+            .Distinct(StringComparer.Ordinal).OrderBy(role => role, StringComparer.Ordinal)) {
+            sb.Append(" /").Append(role).Append(" /H6");
+        }
+        sb.Append(" >> >>\n");
         return sb.ToString();
     }
 

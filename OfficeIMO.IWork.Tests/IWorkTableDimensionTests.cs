@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstRowHeader: header, duplicate: defect == "duplicate", missingBucket: defect == "missing-bucket");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HEADER_DIMENSIONS_UNSUPPORTED");
         Assert.NotEmpty(result.Report.PreservedRecords);
@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Excel_rejects_an_individual_height_outside_its_range_instead_of_clamping() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstRowHeader: DimensionHeader(0, 410f));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }

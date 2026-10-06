@@ -22,12 +22,7 @@ checkedness and indeterminate state, and option selections independently of HTML
 attributes and text. Clone and import preserve the state. On a mutable tree,
 replace it to edit the captured value or set it to null to return to authored
 defaults. Ordinary HTML serialization retains attributes and text; it does not
-encode this separate state. Use the owned document with OfficeIMO conversion to
-inspect or render the captured values.
-Option state also applies when an option is imported into a select with no live
-state. A select with explicit live state can retain an empty selection. When an
-edit changes a multi-select into a dropdown, the last selected option in document
-order becomes its effective selection; the stored option flags remain available.
+encode this separate state. Consumers can inspect this state separately from authored defaults.
 
 `Clone()` retains detached nodes so existing node IDs remain addressable. For a
 long-lived editor that no longer needs removed content, start the next session
@@ -133,7 +128,7 @@ the `color` definition exposes `CanvasText` as its initial value. The typed func
 slice covers legacy and modern `rgb()`/`rgba()` and `hsl()`/`hsla()`, plus modern
 `hwb()`. Numeric expressions cover constant number and percentage arithmetic through
 `calc()`, `min()`, `max()`, and `clamp()` with type checking. Length-percentage expressions
-retain percentages through parsing and computed-style inspection, then resolve only when
+retain percentages in the owned expression tree, then resolve only when
 the caller supplies the consuming property's percentage reference. Resolution returns a
 specific missing-context status instead of guessing a value.
 
@@ -143,8 +138,9 @@ The length subset covers `px`, `pt`, `pc`, `in`, `cm`, `mm`, `q`, `em`, `rem`, t
 separately and otherwise use the declared default viewport. Container units use the query
 container dimensions and fall back to the small viewport dimensions when no eligible
 container is supplied. The current static subset treats inline and block container sizes as
-explicit context; it does not infer writing mode. Font metric units such as `ex`, `cap`,
-`ch`, `ic`, and `lh`, wider Color 4 spaces, relative colors, color interpolation,
+explicit context; it does not infer writing mode. The `ex` and `ch` units use font-size
+approximations rather than selected glyph metrics. Font metric units such as `cap`,
+`ic`, and `lh`, wider Color 4 spaces, relative colors, color interpolation,
 multi-keyword display values, and `visibility: force-hidden` remain explicit grammar gaps
 even where the full conversion package may already render some of them through its retained
 implementation.

@@ -2,7 +2,7 @@ namespace OfficeIMO.Email;
 
 /// <summary>Result of a bounded email artifact read.</summary>
 public sealed class EmailReadResult : IDisposable {
-    private readonly IDisposable? _resources;
+    private IDisposable? _resources;
     private bool _disposed;
 
     internal EmailReadResult(EmailDocument document, IReadOnlyList<EmailDiagnostic> diagnostics, long bytesRead,
@@ -38,6 +38,14 @@ public sealed class EmailReadResult : IDisposable {
 
     /// <summary>True when retained attachment payloads are reopenable file-backed sources.</summary>
     public bool UsesFileBackedContent => _resources is EmailReadWorkspace workspace && workspace.HasContent;
+
+    // Transfers temporary-content ownership to a store session without retaining the whole document graph.
+    internal IDisposable? DetachResources() {
+        if (_disposed) throw new ObjectDisposedException(nameof(EmailReadResult));
+        IDisposable? resources = _resources;
+        _resources = null;
+        return resources;
+    }
 
     /// <summary>Deletes temporary content owned by a streaming read result.</summary>
     public void Dispose() {

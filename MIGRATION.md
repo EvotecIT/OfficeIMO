@@ -9,28 +9,53 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
-## Mathematical drawing dimensions
+## Static HTML rendering and capability profiles
 
-`OfficeMathRenderOptions.Dpi` defaults to 72 instead of 96, and applies to both measured and painted glyphs. Recompute cached equation bounds with `OfficeMathRenderer.Measure`. Set `Dpi = 96` explicitly when the drawing uses 96 units per inch; it also increases the painted glyph size instead of changing measurement alone. `ScriptScale` defaults to 0.71 instead of 0.7; set 0.7 explicitly if an application requires that scaling factor.
+Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
-## HTML table rows exported to RTF
+`HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
 
-HTML-to-RTF conversion now keeps ordinary table rows together across pages. When
-round-trip RTF metadata explicitly describes a splittable row, including older
-metadata that omitted the false `keepTogether` value, that choice is preserved.
-Older HTML fragments without row metadata cannot be distinguished from ordinary
-HTML; they now receive the keep-together default. If an application depends on
-splitting such rows, set `RtfTableRow.KeepTogether = false` on the converted
-`RtfDocument` before writing it, or regenerate the HTML from its original RTF
-using the round-trip export profile.
+## Owned HTML parser providers
 
-## PDF 2.0 associated-file metadata
+`IHtmlParserProvider.Parse` is replaced by `ParseDocument`, and providers implement
+`ParseFragment` with an owned context element. Rename direct calls to
+`AngleSharpHtmlParser.Instance.Parse` to `ParseDocument`. The conversion entrypoint
+`HtmlConversionDocument.Parse` retains its API. Custom providers return frozen owned
+snapshots for both operations; contextual fragments have an independent document and
+can be imported into a mutable destination with `ImportNode`.
 
-When writing PDF 2.0, supply a MIME type for every catalog attachment through
-`PdfOptions.AddEmbeddedFile` or the fluent attachment builder. Undated files omit
-the optional stream-parameter dictionary; provide `PdfEmbeddedFile.ModificationDate`
-when requesting an archival profile. Structure-associated files also select an
-appropriate PDF version, and explicit profile checks validate that emitted version.
+## Long-document AI request budgets
+
+Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
+
+## OCR review and AI evidence
+
+A single adaptive OCR attempt that passes confidence checks now has `OcrReviewStatus.Unassessed`, emits `adaptive-ocr-unassessed`, and sets `ReviewRecommended` to true. Use `Quality.MeetsThresholds` when you specifically need the old confidence-only signal. Use `new OcrReviewPolicy(OcrRetryMode.CompareAll)` to run every configured variant within the shared deadline. `ChecksPassed` reports agreement and passing checks, not correctness or approval.
+
+Reader OCR blocks carry `Recognition` provenance through JSON and nested projection. AI includes it in evidence snapshot hashes, requests, citations and reports. Recreate cached snapshots/results together; do not combine results with newly captured evidence merely because the original source hash matches. Extraction consumers can inspect `TextValueMatched` and `RecognitionReviewRequired` alongside field status.
+
+## ZIP, drawing links, and MCP filesystem access
+
+`OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
+
+`OfficeDrawing.AddLink` rejects script, data, file, unknown-scheme, and ambiguous targets. SVG import keeps the visible content inside a rejected link but does not export its interactive target. Replace such targets with HTTP(S), mail, telephone, or local relative/fragment links where appropriate.
+
+The OfficeIMO.Tool STDIO MCP server requires `OFFICEIMO_MCP_ALLOWED_ROOTS` at startup. Set it to the document and output directories the client may access. The direct `officeimo agent` command keeps its existing local filesystem behavior when the variable is unset.
+
+## DocBook, ADF and Data projection contracts
+
+ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
+
+DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
+
+Arrow decimals must fit both declared scale and precision. Redundant fractional zeros are accepted. Increase `DecimalPrecision` for values outside the declared coefficient range rather than relying on invalid Arrow output. `CollectionColumnMapping.HeaderPrefix` now changes displayed Excel and PowerPoint headers; use `null` for the original collection-path prefix. Column selection, formatting and flattened dictionary keys retain their original paths.
+
+## OCR and AI extraction
+
+`OfficeDocumentOcrExecutionOptions` bounds a whole operation with a five-minute `TotalTimeout`, 4 Mi recognized characters, 100,000 detailed spans and 4 Mi span characters by default. These totals also apply across attachments in `ApplyOcrTreeAsync`. Set `MaxTotalRecognizedCharacters`, `MaxTotalSpans`, `MaxTotalSpanCharacters` and `TotalTimeout` explicitly for workloads that require larger accepted output or longer execution. Limit diagnostics report truncation or skipped recognition; unresolved candidates remain available.
+
+Decimal field extraction rejects precision loss and underflow instead of returning a rounded `Present` value. Handle `Invalid` and review its exact raw value and citations when the requested decimal cannot represent the source exactly.
+
 ## ODS row layout conversion
 
 ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
@@ -48,7 +73,51 @@ ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by defa
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
+## Apple Mail and Outlook for Mac stores
+
+`EmailStoreReaderOptions` adds `maxDirectoryEntryCount` while retaining its original constructor
+signature. The new bound counts all visited directory entries rather than only message files.
+Use `MaxDirectoryFileCount` for candidate message and Apple sibling-storage files, and `MaxItemCount`
+for cataloged messages. Reader's `MaxItems` independently limits the projected selection.
+Files inside identified Apple attachment storage are payloads, including
+those with `.eml` extensions, and are no longer indexed as independent messages.
+Account directories and empty mailbox folders now participate in directory folder identity. Reopen
+directory sessions and recreate durable checkpoints after upgrading; old fingerprints do not use
+the current catalog schema.
+
+Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]` when editing
+Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
+when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`.
+The default `Block` loss policy also rejects omitted EMLX, OLM and MAPI/TNEF metadata, and partial
+content whose completeness cannot be established, including regenerated embedded messages and
+synthesized Outlook task payloads. Embedded calendar, contact and protected-content losses use the
+same policy. Transport signatures retain the separate `SignatureMutationPolicy` contract.
+Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
+when intentionally exporting the common message content, and inspect the returned diagnostics.
+Strict PST creation rejects omitted EMLX/OLM metadata.
+
+Live EMLX, mbox and OLM sessions verify the complete source before and after selected reads,
+including same-length edits. Directory sessions pin message and recovered attachment files at
+first projection. Detected changes invalidate retained attachment readers. Reopen a changed source,
+or use `EmailStoreSession.OpenSnapshot` for a private, stable copy of a standalone archive whose
+repeated reads avoid additional source-fingerprint scans. Keep actively written archives quiescent
+while opening; source validation does not take an atomic filesystem snapshot.
+
+OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
+`EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
+content has been copied or written. Session disposal expires both new and outstanding readers.
+
+Reader's default store handler also streams OLM and EMLX attachments. Supported attachment text
+is projected before the session closes, while returned assets carry metadata without `PayloadBytes`.
+If an application needs retained attachment bytes, register the handler with
+`new ReaderEmailStoreOptions { StreamAttachmentContent = false }` and leave the item's explicit
+streaming preference disabled. Keep `StoreOptions.RetainAttachmentContent` enabled for that workflow.
+
 ## LaTeX editing and conversion contracts
+
+Known required arguments now accept an unbraced character or control sequence as one token. Code that treated `LATEX007` as a rejection of every unbraced argument should instead inspect `LatexArgument.IsSingleToken` and the actual missing-argument diagnostics. For example, `\textbf ABC` binds only `A`; an edited replacement is written in braces. Handle the additive `LatexSyntaxKind.SingleTokenArgument` enum member in exhaustive syntax switches.
+
+LaTeX footnotes now produce typed Markdown references and definitions. Reader block mode includes `SourceBlockKind = "footnote"` at the note's source location and heading path. Consumers that switch on block kinds should handle it; definition text is separate from the surrounding paragraph.
 
 LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
 
@@ -595,6 +664,14 @@ these methods.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork conversion acceptance and source reuse
+
+`RequireCompleteVisualCoverage` defaults to `true`. Incomplete raster previews and embedded PDFs with unknown source coverage are rejected. Applications intentionally accepting a preview must use `ToWordDocumentResult`, `ToExcelDocumentResult` or `ToPowerPointPresentationResult` (or the static result equivalent), set `RequireCompleteVisualCoverage = false`, and inspect the retained report before saving.
+
+Value-only conversion APIs require complete editable reconstruction even when `AllowPartialEditableReconstruction` or preview acceptance is enabled. Use a result API to handle reported partial output. `result.RequireCompleteEditableReconstruction()` checks assessed completeness, returns the destination on success and disposes rejected output. Record-level fidelity and identical appearance remain separate checks.
+
+Use `source.WithCancellation(newToken)` for another independently cancellable operation on an already loaded source. It replaces the old token while sharing source bytes and parsed messages. Empty shared line-spacing/tab-stop declarations now resolve to single spacing and no custom tabs; sources previously incomplete solely for these defaults can convert strictly. Numbers Natural alignment maps to General rather than forcing numeric cells left. Apple epoch timestamps use tick arithmetic consistently across runtimes, retaining submillisecond root-comment times on legacy consumers.
+
 ### iWork cell decoding evidence
 
 Use `IWorkTableCell.HasDecodeError` to distinguish storage/value decoding failures from recovered native error markers, instead of comparing `Error` to `"#ERROR"`. Inspect `IWorkConversionReport.SourceCellIssues` for table identities and coordinates. `IWORK_TABLE_CELL_DECODE` now has fidelity category `Unassessed`, rather than `Omission`; unreadable cell content does not establish what was omitted. Workflow evidence retains the count as `sourceCellIssueCount`.
@@ -785,8 +862,6 @@ internal AngleSharp/CSS implementation.
 
 | Previous code or behavior | Replacement |
 | --- | --- |
-| Call `IHtmlParserProvider.Parse(source, options)` | Implement or call `ParseDocument(source, options)`. Providers also implement contextual `ParseFragment(source, contextElement, options)` through the same owned contract. |
-| Call `AngleSharpHtmlParser.Instance` from a full `OfficeIMO.Html` workflow | Use `HtmlDocumentEngine.Default.ParseDocument(...)` or `ParseFragment(...)`. Construct `HtmlDocumentEngine` with a selected `IHtmlParserProvider` when provider choice is application policy. Document-only consumers may keep the explicit adapter from `OfficeIMO.Html.AngleSharp`. |
 | `AngleSharp.Html.Dom.IHtmlDocument html = conversion.CreateDocumentForConversion()` | Use `HtmlDocument` or `var`; the result is an independent mutable conversion tree. |
 | Mutate a retained source tree | Read `conversion.Document`; use `conversion.Edit(edit => ...)` to obtain a new conversion snapshot. |
 | Pass native DOMs to `HtmlNormalizer`, `HtmlResourcePipeline`, `HtmlComputedStyleEngine` or `OfficeHtmlSemanticEnvelope` | Pass an owned document, or use the string/conversion-document overload. |
@@ -797,12 +872,6 @@ internal AngleSharp/CSS implementation.
 | Pass native nodes to custom context conversion helpers | Pass nodes from that callback's owned snapshot. Cross-snapshot nodes are rejected. |
 | In-place `HtmlActiveMediaFilter.Filter(nativeDocument, media)` returning a Boolean | Assign the returned owned snapshot from `HtmlActiveMediaFilter.Filter(document, media)`; the input is unchanged. |
 | Catch native selector exceptions | Invalid selectors use `ArgumentException` on the owned selector API. |
-
-### HTML table display and pagination
-
-Computed display values for table structure now use their CSS table roles: `caption` is `table-caption`, `colgroup` is `table-column-group`, `col` is `table-column`, `thead` is `table-header-group`, `tbody` is `table-row-group`, `tfoot` is `table-footer-group`, `tr` is `table-row`, and `td`/`th` are `table-cell`. Code that compared these elements with the older generic `block` value must use the corresponding table display value.
-
-Paged table repetition follows the computed row-group display. An authored `display: table-row-group` on `thead` or `tfoot` disables repetition, while `display: table-header-group` or `table-footer-group` can enable it on another row group. Row and row-group break avoidance, row forced breaks, and rowspan boundaries now affect pagination. Oversized multi-cell rows split only at a line boundary shared safely by every active cell; an oversized avoided row still makes bounded progress and emits `HtmlRenderForcedFragment`.
 
 `HtmlConversionDocument.FromDocument(tree)` replaces native-DOM conversion inputs.
 Conversion capture retains the attached tree and template contents; detached nodes
@@ -834,142 +903,6 @@ source streams. Explicit encodings retain precedence and streams remain open wit
 seekable positions restored. The default web charset provider still registers
 `CodePagesEncodingProvider` globally; it is isolated in the provider package rather
 than removed. External stylesheet/data-URI decoding has separate provider arguments.
-
-### Mathematical font defaults
-
-MathML roots now select the generic `math` family with regular weight and style
-instead of implicitly inheriting surrounding typography. Font size still inherits.
-If a document relies on the previous appearance, add
-`math { font-family: inherit; font-weight: inherit; font-style: inherit; }`.
-Supply a mathematical face through `HtmlRenderOptions.Fonts` when output must be
-independent of installed fonts.
-
-Balanced HTML-to-PDF output can now use a supported installed mathematical face
-without enabling document-selected host fonts. To disable host-dependent font
-selection, use `PdfResourcePolicy.CreatePortableDeterministic()` or set
-`HtmlToPdfOptions.AllowSystemFontFallback = false`.
-
-### HTML capability inspection
-
-The renderer capability catalog now describes document, CSS, layout, resource,
-output, and interaction claims per versioned profile and processing stage. This
-separates qualification from observable handling and identifies temporary
-providers without exposing them through the document API.
-
-| Previous code | Replacement |
-| --- | --- |
-| `capability.SupportLevel == HtmlRenderSupportLevel.Full` | Select a profile binding and test `binding.Coverage == HtmlCapabilityCoverage.Qualified` plus the applicable `capability.Stages`. |
-| `capability.SupportLevel == HtmlRenderSupportLevel.Fallback` | Test `binding.Handling == HtmlCapabilityHandling.Fallback`; inspect `capability.Limitations` and `capability.DiagnosticCodes`. |
-| `capability.SupportLevel == HtmlRenderSupportLevel.Ignored` | Test `binding.Handling == HtmlCapabilityHandling.Ignored`. |
-| `capability.SupportLevel == HtmlRenderSupportLevel.Rejected` | Test `binding.Handling == HtmlCapabilityHandling.Rejected`. |
-| Treat `officeimo html capabilities --format json` as a top-level array with `supportLevel` on each entry | Read the schema-2 object: `schemaVersion`, `profiles`, `renderProfiles`, and `capabilities`. Each render profile exposes its CSS media, surface, pagination, page sets, encoders, qualification and evidence. Each capability exposes `stages` and `profileBindings`; each binding exposes coverage, handling, maturity, promotion, providers, specifications, and evidence. |
-
-`HtmlRenderSupportLevel` and `HtmlRenderCapability.SupportLevel` are removed.
-Use `HtmlRenderCapabilityCatalog.GetProfile(profileId)` for the versioned provider,
-specification, evidence, platform, and output manifest. Use
-`capability.GetProfileBinding(profileId)` for `Coverage`, `Handling`, `Maturity`,
-`Promotion`, and the provider/specification/evidence references that apply to that
-claim. `HtmlRenderCapabilityCatalog.SchemaVersion` is `2` for this shape.
-
-```csharp
-HtmlRenderCapability capability = HtmlRenderCapabilityCatalog.Get("layout-grid");
-HtmlCapabilityProfileBinding binding = capability.GetProfileBinding(
-    HtmlCapabilityProfileIds.StaticScreenV1);
-
-bool hasQualifiedNativeGrid =
-    binding.Coverage == HtmlCapabilityCoverage.Qualified &&
-    binding.Handling == HtmlCapabilityHandling.Native &&
-    capability.Stages.HasFlag(HtmlCapabilityStage.Layout);
-```
-
-### HTML runtime worker deployment
-
-`HtmlProcessRuntimeProvider` now validates the deployed worker before advertising
-its profiles and capabilities. Deploy the complete output of
-`OfficeIMO.Html.Runtime.Worker`, including
-`OfficeIMO.Html.Runtime.Worker.manifest.json`, and keep the worker and
-`OfficeIMO.Html.Runtime` assembly versions aligned. A copied worker DLL without
-its manifest, or a worker built for another runtime version or protocol, is
-rejected when the provider is created.
-
-| Previous deployment | Replacement |
-| --- | --- |
-| Copy only `OfficeIMO.Html.Runtime.Worker.dll` and selected dependencies | Deploy the complete worker build or publish directory, including `OfficeIMO.Html.Runtime.Worker.manifest.json`. |
-| Combine an older worker with a newer `OfficeIMO.Html.Runtime` client | Build and deploy matching versions of the runtime and worker together. |
-
-### HTML runtime evidence and model adapters
-
-Runtime traces now include structured resource, redirect, console, policy,
-lifecycle, download and artifact events. URLs, console messages and failure
-messages remain disabled unless explicitly enabled. Code that persists traces
-with a closed enum or rejects unknown JSON members must accept the new event kinds
-and fields. Apply `HtmlRuntimeTraceOptions.Redactor` before enabling optional text
-or URLs.
-
-Every `HtmlScriptCapture` now exposes a deterministic schema-1
-`ArtifactManifest`. Serialized captures therefore contain an additional
-`artifactManifest` member. Readers should consume it when artifact identity and
-entry hashes are useful and tolerate it otherwise.
-
-Provider qualification is available from `EvaluateProvider` on
-`HtmlRuntimeQualificationCatalog` in `OfficeIMO.Html.Runtime.Conformance`.
-Profiles that declare consuming adapters require actual workflow outcomes through
-`EvaluateConsumer`; the combined `Evaluate` result fails when any declared
-consumer evidence is absent or failed. The optional `OfficeIMO.AI.Html` package
-adapts a caller-owned `OfficeIMO.AI.IOfficeAiExecutor`; the core runtime and tool
-schemas remain model-SDK neutral. Use `OfficeIMO.AI.IntelligenceX` for supported
-hosted or local model routes. Applications continue to own prompts, credentials,
-model choice, approvals and retries.
-
-Replace the previous Microsoft adapter directly:
-
-| Previous API | OfficeIMO-owned replacement |
-| --- | --- |
-| `OfficeIMO.Html.Runtime.MicrosoftExtensionsAI` | `OfficeIMO.AI.Html` |
-| `Microsoft.Extensions.AI.IChatClient` | `OfficeIMO.AI.IOfficeAiExecutor` |
-| `HtmlAutomationChatPlanner` | `HtmlAutomationAiPlanner` |
-| `HtmlAutomationChatRequestFactory` | `HtmlAutomationAiInstructionFactory` |
-
-The replacement remains available on .NET 8 and .NET 10. Use the existing
-`OfficeIMO.AI.IntelligenceX` executor or supply another `IOfficeAiExecutor`.
-
-### Explicit HTML rendering intent
-
-Existing image APIs still map `HtmlRenderOptions.Mode == Continuous` to the
-screen-full-page profile and `Mode == Paged` to the print-paged profile. Existing
-HTML-to-PDF APIs remain print-paged. Replace mode or output-format inference with an
-`HtmlRenderRequest` when the application needs viewport clipping, screen CSS in a
-paged layout, a frozen screen composition sliced into pages, explicit page
-selection, or a retained cross-encoder result.
-
-| Previous code or ambiguous intent | Explicit replacement |
-| --- | --- |
-| `source.ExportImages(format, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged })` | Create `HtmlRenderRequest` with `PrintPaged` and the matching encoder, then call `source.RenderImages(request)`. |
-| Use PDF output and expect screen CSS | Create a `ScreenMediaPaged` request with the `Pdf` encoder, then call `source.RenderToPdfResult(request)`. |
-| Paginate a completed screen composition without reflow | Create a `ScreenSnapshotPaged` request with the `Pdf` encoder. |
-| Infer which page was encoded from an output filename | Select `HtmlRenderPageSet.Page(...)`, `Pages(...)`, or `Stitched()` and inspect `HtmlRenderResult.Surfaces`. |
-| Build preview, coordinate, and click-target logic from separate layout calls | Use `HtmlRenderResult.OutputSurfaces`; each `HtmlRenderSurface` creates a Drawing preview, maps output points to source placements, and performs bounded clip-aware hit testing over the retained scene. |
-| Treat archive packaging as a page-selection mode | Select pages with `HtmlRenderPageSet`, choose the `Png` or `Svg` encoder, then call `HtmlRenderResult.ExportArchive()`. Packaging no longer changes layout or selection semantics. |
-
-Named profiles provide defaults rather than hiding the axes. Use
-`WithCssMedia(...)`, `WithLayoutSurface(...)`, or `WithPagination(...)` for
-coherent custom combinations. Use `WithLayout(...)` or `WithAxes(...)` when
-surface and pagination must change atomically. Check `MatchesNamedProfile` and `Coverage`
-before relying on qualification evidence. A custom combination reports
-`Unqualified`. Stitched consumers should enumerate
-`HtmlRenderSurfaceResult.SourcePlacements` instead of treating the first source
-page as the complete provenance record.
-
-PNG/SVG archive packaging is an output operation over a completed retained result.
-The archive manifest preserves request axes, qualification, surface geometry,
-source placements, provider identity, retained diagnostics and their provenance,
-per-page encoder diagnostics, and encoded entry hashes. `HasLoss` now includes
-scale reduction and other page-encoding fallback instead of describing only HTML
-layout. MHTML rendering also retains MIME diagnostics in the result, manifest, and
-CLI diagnostic stream. Use `WithAdditionalDiagnostics(...)` when another owning
-container must attach equivalent input-boundary evidence.
-Element-aware placement remains unsupported and throws instead of silently
-changing layout behavior.
 
 ### PDF positioned-text rendering limit
 
@@ -2899,7 +2832,3 @@ Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false
 - Review `HasLoss`, omitted-content, and resource-policy diagnostics before accepting converted output.
 - Clean package caches, lock files, `bin`, and `obj` outputs when old and new assemblies were restored together.
 - Run the application test suite on every supported operating system after the coordinated package upgrade.
-
-## Formula sources in tagged HTML-to-PDF output
-
-Tagged MathML formulas include recoverable MathML supplements on their PDF structure elements. Ordinary output containing a painted formula uses PDF 2.0; configured PDF/A-3 groundwork permits these associations in PDF 1.7. If an archival policy requires embedded-file modification dates, supply `HtmlToPdfOptions.MathMlSourceModificationDate`. Explicit incompatible conformance policies still reject output. Untagged output emits no formula source attachments.

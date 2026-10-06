@@ -1,6 +1,6 @@
-# OfficeIMO.IWork - bounded Apple iWork readers for .NET
+# OfficeIMO.IWork - Apple iWork readers and native Keynote creation for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 ## Reference from a source checkout
 
@@ -14,6 +14,26 @@ For source-based development, reference the bounded reader and the opt-in adapte
 ```
 
 Use `OfficeIMO.Word.IWork` for Pages or `OfficeIMO.PowerPoint.IWork` for Keynote in place of the Excel adapter. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
+
+## Create a native Keynote presentation
+
+```csharp
+using OfficeIMO.IWork;
+
+var presentation = IWorkKeynoteDocument.Create(); // 960 × 540 points
+var slide = presentation.AddSlide("E6F2FF");
+slide.AddText("Zażółć gęślą jaźń\nA😀B — café", 60, 100, 840, 260,
+    fontName: "Arial", fontSizePoints: 40, color: "003366");
+presentation.AddSlide(); // blank white slide
+presentation.Save("created.key"); // rejects an existing destination
+byte[] package = presentation.SaveBytes();
+```
+
+The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. Text boxes have one font, size and opaque color throughout, left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
+
+`IWorkKeynoteWriteOptions` limits slides, total text boxes, UTF-16 text length and package/intermediate archive size. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
+
+The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. This qualifies that fixture and font environment. Other native versions, rich runs, images, tables, transitions, builds and editing loaded packages remain outside the creation contract. Native Pages and Numbers writing is unsupported.
 
 ## Read and inspect a source
 
@@ -82,9 +102,11 @@ Table text formatting is separate from typed values. `IWorkTable.TextStyles` exp
 
 `IWorkKeynoteSlide.HasBackgroundFill` indicates a recovered slide-style background. `BackgroundColor` contains its opaque RGB color; a null color with `HasBackgroundFill = true` denotes explicit no-fill. Selected style inheritance and unsupported-fill diagnostics are described in the [background contract](../Docs/officeimo.iwork-support-matrix.md#keynote-slide-backgrounds).
 
+Keynote `IWorkTextBox.Layout` exposes selected inherited margins in points, `VerticalAlignment` and `ShrinkToFit`; a null layout means those frame properties were not recovered. `IWorkTextParagraph.ListLayout` exposes qualified character-marker indentation in points, text indentation relative to font size and marker scale. These immutable source properties let callers inspect layout without constructing a destination. The [support matrix](../Docs/officeimo.iwork-support-matrix.md#qualified-everyday-subset) defines the bounded PPTX mapping and other destination limits.
+
 ## Cancellation
 
-Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Once it is cancelled, reopen the source with a new token for another operation. Caller-owned streams remain open when loading succeeds or is cancelled.
+Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Use `source.WithCancellation(newToken)` for an independently cancellable projection or conversion without rereading the package. The view shares loaded bytes and parsed messages and replaces the previous token; `CancellationToken.None` permits reuse after the opening token is cancelled. Caller-owned streams remain open when loading succeeds or is cancelled.
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
@@ -96,7 +118,7 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
 
-The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections and shared Reader extraction on macOS arm64 under .NET 8 and 10 using hash-pinned Pages, Numbers and Keynote fixtures. A separate native conversion host checks partial editable DOCX/XLSX/PPTX save/reopen and selected Numbers recalculation on both runtimes. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
+The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned fixtures require complete editable reconstruction, save/reopen and selected Numbers recalculation; the native creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
 
 ## Opt in to an Office destination adapter
 
@@ -119,9 +141,9 @@ Advanced charts, vector effects, animations, non-cell comments/change tracking, 
 
 `IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
 
-All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. Set `RequireCompleteVisualCoverage = true` to reject fallback assets without known full-document coverage. `AllowPartialEditableReconstruction = true` retains bounded recoverable objects and exposes `IsPartialEditableReconstruction`; source and destination limits still apply.
+All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. `RequireCompleteVisualCoverage` defaults to `true`, so incomplete or unknown preview coverage is rejected. Set it to `false` explicitly on a result API to retain and inspect preview output. Value-only adapter APIs require complete editable reconstruction and reject partial or preview results even under permissive options. `AllowPartialEditableReconstruction = true` retains bounded recoverable objects and exposes `IsPartialEditableReconstruction`; source and destination limits still apply.
 
-A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
+A raster preview is classified as first-page or composite coverage. An embedded PDF has unknown coverage: its path and structural validity do not establish that it matches the current complete source. Coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
 `IWorkTextParagraph.ListMarkerKind` distinguishes native image, literal-text and numbered markers. A text marker such as `1.` stays a literal DOCX bullet and an unordered Reader list; it does not become a counter. PPTX retains single-character text bullets and reports unsupported multi-character markers through destination fallback. Image markers remain unassessed, retain declaration evidence at the selected list-style field `11`, and require explicit partial reconstruction for editable output. Native numbered markers expose the qualified initial format; counters, restarts and continuation remain unqualified.
 
@@ -164,7 +186,7 @@ Qualified cross-table cell and rectangular-range references remain incomplete un
 
 Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports expose source payloads through `PreservedRecords` when `PreserveSourceRecords` is enabled. `PreservedRecordCount` counts source payloads regardless of that detail setting. `UnassessedRecordCount` includes consumed and auxiliary records whose field-level fidelity has not been assessed; it is not an omission count. `IWORK_RECORD_FIDELITY_UNASSESSED` uses `OfficeConversionLossKind.Unassessed`, so strict no-loss policies reject it without claiming those records are missing content. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
 
-There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
+Loaded Pages, Numbers and Keynote packages remain read-only. Native Keynote creation uses the separate `IWorkKeynoteDocument` model; it does not provide save-back or preservation of edited source packages.
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
 
@@ -195,7 +217,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 0 | 0 | 0 | 0 | 1 | 0 |
+| Create | 1 | 0 | 0 | 0 | 1 | 0 |
 | Read | 1 | 0 | 0 | 0 | 0 | 0 |
 | Edit | 0 | 0 | 0 | 0 | 1 | 0 |
 | Preserve | 0 | 0 | 0 | 0 | 1 | 0 |

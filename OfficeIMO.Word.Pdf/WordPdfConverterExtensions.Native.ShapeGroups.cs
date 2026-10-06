@@ -39,7 +39,8 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (!TryGetNativeGroupPosition(pdf, paragraph, layout, options, out double x, out double y, out bool paragraphRelative)) {
+                    if (!TryGetNativeGroupPosition(pdf, paragraph, layout, options, out double x, out double y,
+                            out bool paragraphRelative, out double? horizontalMarginOrigin)) {
                         if (native) {
                             pdf.Drawing(scene, align, spacingAfter: 0D);
                             WarnNativeGroup(options, "NativeShapeGroupFlowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");
@@ -70,7 +71,7 @@ namespace OfficeIMO.Word.Pdf {
                         }
                         WarnNativeGroup(options, "NativeShapeGroupVmlFallback", "The shape group was rendered through its VML fallback because its DrawingML geometry or transforms are unsupported.");
                     }
-                    AddNativeGroupCanvas(style, canvas, paragraphRelative, layout.RelativeHeight);
+                    AddNativeGroupCanvas(style, canvas, paragraphRelative, layout.RelativeHeight, horizontalMarginOrigin);
                 }
                 foreach (V.Group legacy in run.EnumerateEffectiveRunContent().SelectMany(child => child.Descendants().Prepend(child))
                     .OfType<V.Group>().Where(group => !group.Ancestors<V.Group>().Any())) {
@@ -79,11 +80,15 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas, bool paragraphRelative, long zOrder) {
+        private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas,
+            bool paragraphRelative, long zOrder, double? horizontalMarginOrigin = null) {
             var combined = new PdfCore.PdfPageCanvas();
             if (style.AnchoredCanvas != null) combined.AddItems(style.AnchoredCanvas.Items);
-            IReadOnlyList<PdfCore.PdfCanvasItem> items = paragraphRelative
-                ? new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasParagraphAnchorItem(canvas.Items) } : canvas.Items;
+            IReadOnlyList<PdfCore.PdfCanvasItem> items = canvas.Items;
+            if (horizontalMarginOrigin.HasValue)
+                items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, horizontalMarginOrigin.Value) };
+            if (paragraphRelative)
+                items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasParagraphAnchorItem(items) };
             combined.AddItems(new[] { new PdfCore.PdfCanvasBehindTextItem(items, zOrder) });
             style.AnchoredCanvas = new PdfCore.PdfCanvasBlock(combined.Items);
         }
@@ -126,8 +131,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool TryGetNativeGroupPosition(INativePdfFlow pdf, WordParagraph paragraph,
-            WordDrawingLayoutSnapshot layout, WordToPdfOptions? options, out double x, out double y, out bool paragraphRelative) {
+            WordDrawingLayoutSnapshot layout, WordToPdfOptions? options, out double x, out double y,
+            out bool paragraphRelative, out double? horizontalMarginOrigin) {
             x = y = 0D;
+            horizontalMarginOrigin = null;
             paragraphRelative = layout.VerticalRelativeFrom == "paragraph";
             if (layout.Wrap != WordDrawingWrapKind.None || !layout.BehindDocument) return false;
             PdfCore.PageMargins margins = PdfCore.PageMargins.Uniform(0D);
@@ -135,6 +142,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (paragraph.Parent is not WordSection section) return false;
                 margins = GetNativeMargins(section, options);
             }
+            if (layout.HorizontalRelativeFrom == "margin") horizontalMarginOrigin = margins.Left;
             if (!TryGetNativeGroupAxis(layout.HorizontalRelativeFrom, layout.HorizontalOffsetPoints,
                     layout.HorizontalAlignment, pdf.PageSize.Width, margins.Left, margins.Right, layout.WidthPoints, false, out x) ||
                 !TryGetNativeGroupAxis(layout.VerticalRelativeFrom, layout.VerticalOffsetPoints,

@@ -15,6 +15,20 @@ The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT 
 dotnet add package OfficeIMO.Core
 ```
 
+## Mathematical drawing
+
+`OfficeMathRenderer` renders the owned equation model using caller-supplied fonts.
+Register a mathematical face in `OfficeMathRenderOptions.Fonts` and select its family
+through `Font`. OpenType MATH constants, glyph variants and assemblies determine
+fraction rules, script spacing, stretched delimiters, radicals and accents when
+available. Fonts without those tables use the existing geometric fallback.
+
+`UseFontMathMetrics` selects font-derived layout, including available stretched
+glyph variants and assemblies. Disable it explicitly when the application requires
+the geometric fallback. Rendering cancellation applies during
+font measurement and equation construction. These options do not execute scripts or
+require an external rendering engine.
+
 ## Per-column row mapping
 
 `RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
@@ -72,6 +86,8 @@ continues to follow the reader's mapping-error policy.
 `OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.
 
 `OfficeDrawing.ExportImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
+
+Interactive `OfficeDrawing` links accept HTTP(S), mail, telephone, and local relative or fragment targets. SVG import keeps the painted content but omits links with executable, data, file, or other unsupported schemes; direct `AddLink` calls reject those targets. SVG export retains accepted links as interactive anchors.
 
 Raster strokes preserve fractional widths, caps, joins, miter limits, and dash phase. The renderer paints
 overlapping pieces of one stroke together, so an extra point or intersecting subpath does not darken
@@ -224,7 +240,7 @@ that require color-managed pixels must perform that conversion explicitly before
 image. The profile APIs above provide bounded color conversion; metadata validation alone does not
 mean a raster image has been converted to sRGB.
 
-For already unpacked, tightly packed 8-bit Gray, RGB, or CMYK device samples, use the explicit raster
+For already unpacked, tightly packed 8-bit RGB or CMYK device samples, use the explicit raster
 converter with the corresponding embedded profile bytes:
 
 ```csharp
@@ -276,29 +292,6 @@ their `use` element. Symbol dimensions clip the content; they do not rescale it.
 Native import resolves omitted dimensions from the containing viewport. Caller-raster
 safety checks require explicit symbol width and height in documents with nested
 viewports or symbol references whose viewport context cannot be resolved by that check.
-When another layout engine has already resolved an SVG viewport, pass both
-`OfficeSvgDrawingReaderOptions.ViewportWidth` and `ViewportHeight` in CSS pixels. This lets
-the reader project an SVG without intrinsic dimensions without changing its source markup.
-The pair remains subject to the reader's viewport dimension and area limits; a lone
-dimension is rejected. Authored dimensions are checked independently because a
-raster fallback may still allocate from them. An authored `viewBox` still supplies
-the drawing coordinates.
-
-Routed SVG filters on non-text shape/group content support `SourceGraphic`,
-`SourceAlpha`, preceding named results, Gaussian blur, offset, matrix color transforms,
-source-over composition and separable blend modes. These operations use managed RGBA
-buffers at one pixel per drawing unit, then retain a PNG in the scene. The default
-filter color space is linear RGB; a uniform `sRGB` declaration is also supported.
-The filter region clips every input/result and the final paint. Simple unrouted
-blur/offset/drop-shadow filters retain their existing vector approximation.
-
-Managed filter graphs accept at most 32 primitives, blur deviation up to 64 drawing
-pixels per axis, and cumulative document work/intermediate-surface limits. Rotated
-or sheared graphs, explicit primitive subregions, mixed filter color spaces,
-unsupported primitives and graphs containing text, logical `ActualText`, links or
-pattern cells report unsupported features and preserve source geometry. Links on
-the filtered container retain their original geometry. Pass
-`OfficeSvgDrawingReaderOptions.CancellationToken` to cancel import and filter work.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -542,8 +535,6 @@ if (OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out var page, out v
 
 Set `FrameLossPolicy` to `RejectMultipleFrames` when a static result must not discard animation frames or document pages. Animated WebP pixel composition remains a caller-codec boundary, but its frame inventory is still available for a fail-closed decision.
 
-AVIF decoding accepts bounded, whole, untransformed 8/10-bit YUV420 color or monochrome grayscale items with reduced or full still-picture headers and optional same-depth full-range monochrome alpha. Full headers use one unlayered operating point, no timing/decoder model, and one shown key frame in a combined frame OBU. Primary grayscale items may use full or limited range; an auxiliary alpha plane must use full range. It produces eight-bit straight-alpha RGBA using the declared CICP range and supported non-constant-luminance matrix. It does not apply ICC, transfer-function or gamut transforms. Image grids, image sequences, twelve-bit coding, crop/rotation properties and applied film grain are outside this decoder contract. The original encoded buffer, reconstruction planes and final pixels share the retained-memory limit; cancellation and work limits apply through reconstruction and composition. Malformed selected items and limit failures cannot invoke a caller codec. A validated item with an unsupported color matrix may use the explicitly supplied `ImageCodec`.
-
 ### Optimize encoded images for a placement
 
 `OfficeImageOptimizer` resizes and re-encodes a static raster image for the pixel bounds where it will be used:
@@ -659,15 +650,25 @@ string latex = OfficeMathMarkup.ToLatex(expression);
 OfficeDrawing mathDrawing = OfficeMathRenderer.Render(expression);
 ```
 
-`OfficeMathRenderOptions.Font.Size` is expressed in points. `Dpi` defaults to 72 and scales both measured and painted glyphs; set it to 96 for a drawing with 96 units per inch. Supply font bytes through `OfficeMathRenderOptions.Fonts` to keep shaping, advances and painted bounds on the same scoped faces. Cancellable overloads of `Measure`, `Render` and `AddToDrawing` accept a `CancellationToken`.
+Supply a math font when equations need its OpenType MATH spacing, glyph variants,
+or stretch assemblies:
 
-`UseFontMathMetrics` defaults to `true`. When the selected static TrueType or CFF math face supplies usable OpenType MATH constants, fractions use its axis, baseline shifts, minimum gaps and rule thickness. Right and left scripts use its vertical shifts, minimum separation, outer spacing and first/second script percentages; each deeper script level applies a further 0.71 scale. Upper/lower limits and over/underbars use the corresponding font spacing constants. `DisplayStyle = false` selects compact fraction geometry and reduced children. Measurement and paint share those values.
+```csharp
+var mathOptions = new OfficeMathRenderOptions {
+    Font = new OfficeFontInfo("Document Math", 24D),
+    Dpi = 144D
+};
+mathOptions.Fonts.Add("Document Math", File.ReadAllBytes("document-math.otf"));
+OfficeDrawing equation = OfficeMathRenderer.Render(expression, mathOptions);
+```
 
-Set `UseFontMathMetrics = false` to use `ScriptScale`, `RuleGap` and `RuleThickness` for custom geometry. Those settings also provide fallback behavior when math constants are missing, malformed or unavailable for a variable-font instance. Font providers can implement `IOfficeMathFontProgram` and return a detached `OfficeMathFontConstants` snapshot. Constants are design units except the named percentage values. Device pixel corrections are omitted to keep outline geometry consistent across screen and print.
-
-The managed static TrueType and CFF readers also supply designed glyph variants and assemblies. Radicals, common row fences and matrix brackets select a large enough variant or join extender pieces with legal connector overlap; display-style large operators select a designed variant at the original em size. Radical degrees start two math depths smaller. Single-glyph bases and scripts use per-corner math kerning and italic correction; upper/lower limits retain the operator's center. Accents use both glyph attachment points, horizontal constructions where supplied, and tight ink bounds. Explicit MathML `stretchy="false"` and `largeop="false"` retain their natural operators.
-
-Constructions are bounded to 256 variants or parts per font record, 1,024 assembled glyphs and one million outline points per construction. Unusable construction metadata falls back without discarding valid constants or the font. When a target exceeds the assembly bound, the largest available variant provides fallback. Variable MATH metrics, device corrections, the full MathML attribute/CSS grammar and complete matrix/stack typesetting remain outside this subset. Fonts without these records and `UseFontMathMetrics = false` retain approximate construction. A readable MATH table alone does not establish full mathematical typesetting support.
+`UseFontMathMetrics` is enabled by default. Available MATH constants, italic corrections,
+accent positions, math kerning, variants and assemblies guide layout; missing data uses
+the existing geometric fallback. Set the option to `false` to use the caller's script and
+rule settings. Font size is in points and `Dpi` controls drawing density. Optical-size
+selection and font tracking use the authored point size for both measurement and paint.
+Fonts are caller supplied; OfficeIMO.Core does not ship a math font or require a native
+rendering engine.
 
 The same immutable expression tree feeds native OneNote math and Word OMML adapters. The shared model includes right and left scripts, centered upper/lower limits, built-up and slashed fractions, delimiter lists, stacks, matrices, equation arrays, n-ary operators, accents, bars, boxes, and phantoms. OneNote maps all of those structures natively. Word maps the lossless OMML subset; `Stack` and `StretchStack` fail with `NotSupportedException` because OMML has no equivalent, and callers can choose `EquationArray` explicitly when that projection is intended. Drawing owns the AST, portable markup, measurement, and visual layout; each document package owns only its native codec. MathML and LaTeX parsing default to a nesting limit of 128 and expose bounded overloads; excessive nesting fails with `OfficeMathParseException.Code == "DRAWING_MATH_DEPTH"`.
 
@@ -856,8 +857,6 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 
 `OfficeFontFaceCollection` accepts TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is available on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. The engine is part of `OfficeIMO.Core`; it does not require another font-program package or a license key.
 
-Scoped built-in TrueType measurement and raster rendering select an `opsz` axis from the authored text size, clamped to the font's axis range. Raster output scaling preserves that selection. Supplying `opsz` through `FontVariationResolver` fixes the optical coordinate explicitly; other supplied axes are preserved. Exporters can use the size-aware `TryResolveFaceForText` overload to obtain the same outline instance. CFF2 and provider-owned programs retain their selected axes.
-
 ## What it provides
 
 - `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.
@@ -880,6 +879,8 @@ Scoped built-in TrueType measurement and raster rendering select an `opsz` axis 
 - Drawing quality diagnostics for canvas bounds and text overlap checks.
 
 Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when every image must render. An unsupported image, failed optional codec, or decoded raster above `MaximumRasterPixels` then stops rendering with `NotSupportedException`. Successful image decoding happens in the drawing pass, including nested groups and patterns.
+
+High-quality image minification shares the operation's `MaximumRasterPixels` budget with decoded images. The renderer charges its additional output buffer and floating-point sampling scratch before allocation. When that budget prevents an SVG safety comparison, structural findings remain available and the report identifies the unavailable visual inspection.
 
 ## Boundaries
 

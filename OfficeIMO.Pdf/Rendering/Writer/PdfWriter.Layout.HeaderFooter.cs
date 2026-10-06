@@ -44,20 +44,29 @@ internal static partial class PdfWriter {
         };
     }
 
-    private static void GetImageAnnotationBounds(PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight, out double x1, out double y1, out double x2, out double y2) {
-        x1 = pageImage.X;
-        y1 = pageImage.Y;
-        x2 = pageImage.X + pageImage.W;
-        y2 = pageImage.Y + pageImage.H;
-
-        if (style.Fit != OfficeImageFit.Cover && style.ClipPath == null && style.SourceCrop?.HasCrop != true) {
-            return;
+    private static void GetImageAnnotationBounds(PageImage pageImage, out double x1, out double y1, out double x2, out double y2) {
+        // Use the same destination transform and source-space crop as the image draw.
+        // Its explicit/fit clip is applied in page coordinates before that transform.
+        OfficeTransform transform = new OfficeImageProjection(
+            new OfficeImagePlacement(pageImage.X, pageImage.Y, pageImage.W, pageImage.H),
+            rotationDegrees: pageImage.RotationAngle,
+            rotationCenterX: pageImage.RotationCenterX,
+            rotationCenterY: pageImage.RotationCenterY,
+            flipHorizontal: pageImage.HorizontalFlip,
+            flipVertical: pageImage.VerticalFlip).CreateUnitSquareTransform();
+        PdfImageSourceCrop? crop = pageImage.SourceCrop;
+        (x1, y1, x2, y2) = transform.TransformRectangleBounds(
+            crop?.Left ?? 0D, crop?.Bottom ?? 0D,
+            1D - (crop?.Left ?? 0D) - (crop?.Right ?? 0D),
+            1D - (crop?.Bottom ?? 0D) - (crop?.Top ?? 0D));
+        if (pageImage.ClipPath != null) {
+            x1 = Math.Max(x1, pageImage.ClipX);
+            x2 = Math.Min(x2, pageImage.ClipX + pageImage.ClipPath.Width);
+            y1 = Math.Max(y1, pageImage.ClipY + pageImage.ClipHeight - pageImage.ClipPath.Height);
+            y2 = Math.Min(y2, pageImage.ClipY + pageImage.ClipHeight);
+            x2 = Math.Max(x1, x2);
+            y2 = Math.Max(y1, y2);
         }
-
-        x1 = targetX;
-        y1 = targetBottomY;
-        x2 = targetX + targetWidth;
-        y2 = targetBottomY + targetHeight;
     }
 
     private static void AddHeaderFooterImages(
@@ -133,7 +142,7 @@ internal static partial class PdfWriter {
         ImageBlock block = image.ToImageBlock();
         PdfImageStyle style = block.Style ?? new PdfImageStyle();
         PageImage pageImage = CreatePageImage(block, style, x, y);
-        GetImageAnnotationBounds(style, pageImage, x, y, image.Width, image.Height, out double visibleX1, out double visibleY1, out double visibleX2, out double visibleY2);
+        GetImageAnnotationBounds(pageImage, out double visibleX1, out double visibleY1, out double visibleX2, out double visibleY2);
         ReportHeaderFooterBounds(
             options,
             source,
@@ -671,7 +680,7 @@ internal static partial class PdfWriter {
             } else if (shape.Kind == OfficeShapeKind.Polygon) {
                 DrawPolygon(sb, fillColor, ToHeaderFooterPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, xShape, bottomY, shape.Height);
             } else if (shape.Kind == OfficeShapeKind.Path) {
-                DrawPath(sb, fillColor, ToHeaderFooterPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, xShape, bottomY, shape.Height, shape.FillRule);
+                DrawPath(sb, fillColor, ToHeaderFooterPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, xShape, bottomY, shape.Height);
             }
 
             if (shape.ClipPath != null) {

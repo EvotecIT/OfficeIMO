@@ -5,6 +5,41 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void TransformedTextPaint_KeepsTextMadeVisibleByItsEnclosingEffect() {
+        const string html = "<style>@page{size:400px 400px;margin:0}body{margin:0;font:16px Arial}</style>"
+            + "<div style='position:relative;top:-80px;transform:translateY(80px);transform-origin:0 0'>VisibleEffectMarker</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.Contains(Enumerable.Range(0, 24), y => Enumerable.Range(0, 200)
+            .Any(x => raster.GetPixel(x, y) != OfficeColor.White));
+    }
+
+    [Fact]
+    public void TransformedTextPaint_KeepsOverflowGlyphPaintTranslatedIntoThePage() {
+        string html = "<style>@page{size:400px 400px;margin:0}body{margin:0;font:16px Arial}</style>"
+            + "<div style='position:relative;top:10px;width:200px;white-space:nowrap;transform:translateX(-200px)'>"
+            + string.Concat(Enumerable.Repeat("ABCDEFGHIJKLMNO ", 8)) + "</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.Contains(Enumerable.Range(300, 100), x => Enumerable.Range(10, 24)
+            .Any(y => raster.GetPixel(x, y) != OfficeColor.White));
+    }
+
+    [Fact]
+    public void TransformedTextPaint_ClipsPositionedOverlaySnapshotsToTheViewport() {
+        const string html = "<style>body{margin:0;font:16px Arial}</style>"
+            + "<div style='position:absolute;top:-100px'>AboveViewport</div>"
+            + "<div style='position:absolute;left:-20px;top:20px'>PartiallyVisible</div>"
+            + "<div style='position:absolute;top:700px'>BelowViewport</div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D, ViewportHeight = 100D, Margins = HtmlRenderMargins.All(0D)
+        });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
+        Assert.Contains(Enumerable.Range(20, 24), y => Enumerable.Range(0, 140)
+            .Any(x => raster.GetPixel(x, y) != OfficeColor.White));
+    }
+
     [Theory]
     [InlineData("j", 80, "italic", 40)]
     [InlineData("ffffffffffffffffffffffffffffffffffffffffffffffffff", -200, "italic", 40)]

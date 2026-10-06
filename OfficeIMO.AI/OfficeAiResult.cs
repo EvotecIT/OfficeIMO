@@ -16,8 +16,13 @@ public enum OfficeAiResultStatus {
 
 /// <summary>Deterministically checked source reference; semantic entailment is deliberately not implied.</summary>
 public sealed record OfficeAiCitation(string EvidenceId, int? Page, string? Quote, bool QuoteMatched) {
+    /// <summary>Recognition provenance copied from source evidence; never supplied by the model.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; init; }
+
     /// <summary>Zero-based UTF-16 offset of the matched quote in the original snapshot evidence; null for images.</summary>
     public int? QuoteStart { get; init; }
+    /// <summary>Original snapshot location, copied from evidence rather than supplied by the model.</summary>
+    public OfficeAiSourceLocation? SourceLocation { get; init; }
 }
 
 /// <summary>A contiguous UTF-16 range supplied in a successfully validated request.</summary>
@@ -54,7 +59,15 @@ public enum OfficeAiFieldStatus {
 
 /// <summary>Raw and locally normalized extraction; normalized values use invariant transport syntax.</summary>
 public sealed record OfficeAiField(string Name, OfficeAiFieldType Type, OfficeAiFieldStatus Status,
-    string? RawValue, string? NormalizedValue, IReadOnlyList<OfficeAiCitation> Citations);
+    string? RawValue, string? NormalizedValue, IReadOnlyList<OfficeAiCitation> Citations) {
+    /// <summary>Whether a present normalized value occurs in a matched text quote. This does not verify field meaning or OCR correctness.</summary>
+    public bool TextValueMatched => Status == OfficeAiFieldStatus.Present && RawValue is not null && NormalizedValue is not null
+        && Citations.Any(citation => citation.QuoteMatched && citation.Quote?.Contains(RawValue, StringComparison.Ordinal) == true);
+    /// <summary>Whether any cited OCR evidence lacks completed passing review checks.</summary>
+    public bool RecognitionReviewRequired => Citations.Any(citation => citation.Recognition is { } recognition
+        && (recognition.ReviewRecommended != false || recognition.ConfidenceChecksPassed != true
+            || recognition.ComparisonIncomplete == true || recognition.HasDisagreement == true));
+}
 
 /// <summary>AI-proposed block expressed in Reader's model, with evidence kept separately.</summary>
 public sealed record OfficeAiBlock(OfficeDocumentBlock Block, IReadOnlyList<OfficeAiCitation> Citations);

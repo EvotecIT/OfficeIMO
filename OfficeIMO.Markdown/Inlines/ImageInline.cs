@@ -13,10 +13,6 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
     public string Src { get; }
     /// <summary>Optional title attribute shown as tooltip in HTML.</summary>
     public string? Title { get; }
-    /// <summary>Optional width hint from an OfficeIMO image-size suffix.</summary>
-    public double? Width { get; set; }
-    /// <summary>Optional height hint from an OfficeIMO image-size suffix.</summary>
-    public double? Height { get; set; }
     /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
     public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
     /// <summary>Source span for the image source token when parsed from markdown.</summary>
@@ -46,11 +42,7 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
         }
 
         var title = MarkdownEscaper.FormatOptionalTitle(Title);
-        var image = $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
-        var size = (MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.RichMarkdown
-            ? MarkdownImageSizeRendering.ToMarkdown(Width, Height)
-            : string.Empty;
-        return image + size;
+        return $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
     }
     internal string RenderHtml() {
         var o = HtmlRenderContext.Options;
@@ -59,8 +51,7 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
-        var size = MarkdownImageSizeRendering.ToHtml(Width, Height);
-        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{titleAttr}{size}{extra} />";
+        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{titleAttr}{extra} />";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

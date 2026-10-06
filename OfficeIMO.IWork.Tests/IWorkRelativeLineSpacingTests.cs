@@ -53,7 +53,6 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
@@ -61,7 +60,6 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(5)]
     public void Unqualified_line_spacing_does_not_reuse_an_ancestor_multiplier(int variant) {
         byte[] spacing = variant switch {
-            0 => Message(),
             1 => Message(VarintField(1, 2), FloatField(2, 12)),
             2 => Message(FloatField(2, 1.5f), FloatField(3, 0)),
             3 => Message(FloatField(2, 1.5f), FloatField(2, 2)),
@@ -104,10 +102,10 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(kind, BytesField(13, FloatField(2, multiplier)));
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: options);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
             Assert.True(result.IsVisualFallback);
         } else {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: options);
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
             Assert.True(result.IsVisualFallback);
         }
     }

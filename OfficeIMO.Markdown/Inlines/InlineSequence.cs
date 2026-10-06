@@ -201,10 +201,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         }
 
         var title = MarkdownEscaper.FormatOptionalTitle(image.Title);
-        var markdown = $"![{textEscaper(image.PlainAlt)}]({MarkdownEscaper.EscapeImageSrc(image.Src)}{title})";
-        return markdown + ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.RichMarkdown
-            ? MarkdownImageSizeRendering.ToMarkdown(image.Width, image.Height)
-            : string.Empty);
+        return $"![{textEscaper(image.PlainAlt)}]({MarkdownEscaper.EscapeImageSrc(image.Src)}{title})";
     }
 
     private static string RenderImageLinkMarkdownWithEscapedText(ImageLinkInline imageLink, Func<string?, string> textEscaper) {
@@ -214,10 +211,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
         var title = MarkdownEscaper.FormatOptionalTitle(imageLink.Title);
         var linkTitle = MarkdownEscaper.FormatOptionalTitle(imageLink.LinkTitle);
-        var markdown = $"[![{textEscaper(imageLink.PlainAlt)}]({MarkdownEscaper.EscapeImageSrc(imageLink.ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(imageLink.LinkUrl)}{linkTitle})";
-        return markdown + ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.RichMarkdown
-            ? MarkdownImageSizeRendering.ToMarkdown(imageLink.Width, imageLink.Height)
-            : string.Empty);
+        return $"[![{textEscaper(imageLink.PlainAlt)}]({MarkdownEscaper.EscapeImageSrc(imageLink.ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(imageLink.LinkUrl)}{linkTitle})";
     }
 
     private static string? TryRenderInlineSyntaxMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {

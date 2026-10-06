@@ -44,9 +44,29 @@ namespace OfficeIMO.Word {
         /// </summary>
         A6,
         /// <summary>
-        /// A B5 piece of paper measures 176 × 250 mm or 6.9 × 9.8 inches.
+        /// JIS B5 paper, 182 × 257 millimeters. This retains the established B5 preset.
         /// </summary>
-        B5
+        B5,
+        /// <summary>US Tabloid, 11 × 17 inches.</summary>
+        Tabloid,
+        /// <summary>JIS B4, 257 × 364 millimeters.</summary>
+        B4Jis,
+        /// <summary>Number 9 envelope, 3.875 × 8.875 inches.</summary>
+        Envelope9,
+        /// <summary>Number 10 envelope, 4.125 × 9.5 inches.</summary>
+        Envelope10,
+        /// <summary>US C sheet, 17 × 22 inches.</summary>
+        CSheet,
+        /// <summary>DL envelope, 110 × 220 millimeters.</summary>
+        EnvelopeDl,
+        /// <summary>C5 envelope, 162 × 229 millimeters.</summary>
+        EnvelopeC5,
+        /// <summary>C4 envelope, 229 × 324 millimeters.</summary>
+        EnvelopeC4,
+        /// <summary>B5 envelope, 176 × 250 millimeters.</summary>
+        EnvelopeB5,
+        /// <summary>Monarch envelope, 3.875 × 7.5 inches.</summary>
+        EnvelopeMonarch
     }
 
     /// <summary>Dimensions and Word paper code for a built-in page-size preset.</summary>
@@ -70,7 +90,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helpers for manipulating Word page size and orientation.
     /// </summary>
-    public class WordPageSizes {
+    public partial class WordPageSizes {
         private readonly WordSection _section;
         private readonly WordDocument _document;
 
@@ -91,27 +111,13 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        if ((pageSizeBuiltin.Width == null && pageSize.Width == null) &&
-                            (pageSizeBuiltin.Height == null && pageSize.Height == null) &&
-                            (pageSizeBuiltin.Code == null && pageSize.Code == null)) {
-                            return wordPageSize;
-                        }
-
-                        if (pageSizeBuiltin.Width != null && pageSize.Width != null &&
-                            pageSizeBuiltin.Height != null && pageSize.Height != null &&
-                            pageSizeBuiltin.Code != null && pageSize.Code != null &&
-                            pageSizeBuiltin.Width == pageSize.Width &&
-                            pageSizeBuiltin.Height == pageSize.Height &&
-                            pageSizeBuiltin.Code == pageSize.Code) {
-                            return wordPageSize;
-                        }
-
-                        if (pageSizeBuiltin.Width != null && pageSize.Width != null &&
-                            pageSizeBuiltin.Height != null && pageSize.Height != null &&
-                            pageSizeBuiltin.Code != null && pageSize.Code != null &&
-                            pageSizeBuiltin.Width == pageSize.Height &&
-                            pageSizeBuiltin.Height == pageSize.Width &&
-                            pageSizeBuiltin.Code == pageSize.Code) {
+                        // Printer codes are optional in producer DOCX files and native DOC
+                        // imports. A one-twip tolerance accepts producer unit rounding.
+                        if ((pageSize.Code == null || pageSizeBuiltin.Code == pageSize.Code) &&
+                            ((PageDimensionMatches(pageSizeBuiltin.Width, pageSize.Width) &&
+                              PageDimensionMatches(pageSizeBuiltin.Height, pageSize.Height)) ||
+                             (PageDimensionMatches(pageSizeBuiltin.Width, pageSize.Height) &&
+                              PageDimensionMatches(pageSizeBuiltin.Height, pageSize.Width)))) {
                             return wordPageSize;
                         }
                     }
@@ -122,6 +128,9 @@ namespace OfficeIMO.Word {
             }
             set => SetPageSize(value);
         }
+
+        private static bool PageDimensionMatches(DocumentFormat.OpenXml.UInt32Value? expected, DocumentFormat.OpenXml.UInt32Value? actual) =>
+            expected != null && actual != null && Math.Abs((long)expected.Value - actual.Value) <= 1L;
 
         private void SetPageSize(WordPageSize? wordPageSize) {
             var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
@@ -138,7 +147,7 @@ namespace OfficeIMO.Word {
             }
 
             if (pageSize == null) {
-                _section._sectionProperties.Append(pageSizeSettings);
+                _section._sectionProperties.AddChild(pageSizeSettings, true);
                 return;
             }
 
@@ -150,7 +159,7 @@ namespace OfficeIMO.Word {
             }
 
             pageSize.Remove();
-            _section._sectionProperties.Append(pageSizeSettings);
+            _section._sectionProperties.AddChild(pageSizeSettings, true);
 
             if (requiresPageOrient) {
                 SetOrientation(_section._sectionProperties, pageOrientation);
@@ -161,7 +170,7 @@ namespace OfficeIMO.Word {
             var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
             if (pageSize == null) {
                 pageSize = new PageSize();
-                _section._sectionProperties.Append(pageSize);
+                _section._sectionProperties.AddChild(pageSize, true);
             }
             return pageSize;
         }
@@ -227,7 +236,7 @@ namespace OfficeIMO.Word {
                 // we need to setup default values for A4 
                 pageSize = ToOpenXmlPageSize(WordPageSizes.A4);
                 pageSize.Orient = PageOrientationValues.Portrait;
-                sectionProperties.Append(pageSize);
+                sectionProperties.AddChild(pageSize, true);
             }
             if (pageSize.Orient == null) {
                 pageSize.Orient = PageOrientationValues.Portrait;
@@ -260,68 +269,6 @@ namespace OfficeIMO.Word {
             _section = wordSection;
             _document = wordDocument;
         }
-
-        private static PageSize? GetDefault(WordPageSize? pageSize) {
-            if (pageSize == null) {
-                return null;
-            }
-
-            switch (pageSize) {
-                case WordPageSize.A3: return ToOpenXmlPageSize(A3);
-                case WordPageSize.A4: return ToOpenXmlPageSize(A4);
-                case WordPageSize.A5: return ToOpenXmlPageSize(A5);
-                case WordPageSize.Executive: return ToOpenXmlPageSize(Executive);
-                case WordPageSize.Unknown: return null;
-                case WordPageSize.A6: return ToOpenXmlPageSize(A6);
-                case WordPageSize.B5: return ToOpenXmlPageSize(B5);
-                case WordPageSize.Letter: return ToOpenXmlPageSize(Letter);
-                case WordPageSize.Statement: return ToOpenXmlPageSize(Statement);
-                case WordPageSize.Legal: return ToOpenXmlPageSize(Legal);
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(pageSize));
-        }
-
-        /// <summary>
-        /// Gets the default A3 page size.
-        /// </summary>
-        public static WordPageSizeDefinition A3 { get; } = new WordPageSizeDefinition(16838U, 23811U, 8);
-
-        /// <summary>
-        /// Gets the default A4 page size.
-        /// </summary>
-        public static WordPageSizeDefinition A4 { get; } = new WordPageSizeDefinition(11906U, 16838U, 9);
-
-        /// <summary>
-        /// Gets the default A5 page size.
-        /// </summary>
-        public static WordPageSizeDefinition A5 { get; } = new WordPageSizeDefinition(8391U, 11906U, 11);
-
-        /// <summary>
-        /// Gets the default Executive page size.
-        /// </summary>
-        public static WordPageSizeDefinition Executive { get; } = new WordPageSizeDefinition(10440U, 15120U, 7);
-
-        /// <summary>
-        /// Gets the default A6 page size.
-        /// </summary>
-        public static WordPageSizeDefinition A6 { get; } = new WordPageSizeDefinition(5953U, 8391U, 70);
-        /// <summary>
-        /// Gets the default B5 page size.
-        /// </summary>
-        public static WordPageSizeDefinition B5 { get; } = new WordPageSizeDefinition(10318U, 14570U, 13);
-        /// <summary>
-        /// Gets the default Statement page size.
-        /// </summary>
-        public static WordPageSizeDefinition Statement { get; } = new WordPageSizeDefinition(7920U, 12240U, 6);
-        /// <summary>
-        /// Gets the default Legal page size.
-        /// </summary>
-        public static WordPageSizeDefinition Legal { get; } = new WordPageSizeDefinition(12240U, 20160U, 5);
-        /// <summary>
-        /// Gets the default Letter page size.
-        /// </summary>
-        public static WordPageSizeDefinition Letter { get; } = new WordPageSizeDefinition(12240U, 15840U, 1);
 
         private static PageSize ToOpenXmlPageSize(WordPageSizeDefinition definition) =>
             new PageSize {

@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: "Shape", includePreview: true,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

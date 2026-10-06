@@ -30,12 +30,14 @@ public sealed class ReaderEmailStoreModularTests {
         Assert.Equal(EmailStoreReaderOptions.Default.MaxInputBytes, capability.DefaultMaxInputBytes);
     }
 
-    [Fact]
-    public void EmlxUsesSharedEmailChunksMetadataDiagnosticsAndAttachmentAssets() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EmlxUsesSharedEmailChunksMetadataDiagnosticsAndAttachmentAssets(bool streamAttachments) {
         byte[] emlx = CreateEmlx(CreateMultipartMessage(),
             "<plist><dict><key>remote-id</key><string>remote-42</string></dict></plist>");
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-            .AddEmailStoreHandler()
+            .AddEmailStoreHandler(new ReaderEmailStoreOptions { StreamAttachmentContent = streamAttachments })
             .Build();
         using var stream = new MemoryStream(emlx, writable: false);
         stream.Position = 3;
@@ -59,11 +61,15 @@ public sealed class ReaderEmailStoreModularTests {
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
         Assert.Equal("payload.bin", asset.FileName);
         Assert.Equal("application/octet-stream", asset.MediaType);
-        Assert.Equal(new byte[] { 1, 2, 3, 4 }, asset.PayloadBytes);
+        Assert.Equal(4, asset.LengthBytes);
+        if (streamAttachments) Assert.Null(asset.PayloadBytes);
+        else Assert.Equal(new byte[] { 1, 2, 3, 4 }, asset.PayloadBytes);
     }
 
-    [Fact]
-    public void OlmPreservesFolderHierarchyInLogicalReaderPaths() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OlmPreservesFolderHierarchyInLogicalReaderPaths(bool streamAttachments) {
         const string attachmentPath = "Local/com.microsoft.__Messages/Account/Inbox/com.microsoft.__Attachments/logo";
         const string xml = "<emails><email>" +
             "<OPFMessageCopySubject>Nested OLM message</OPFMessageCopySubject>" +
@@ -76,7 +82,7 @@ public sealed class ReaderEmailStoreModularTests {
             [attachmentPath] = new byte[] { 9, 8, 7 }
         });
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-            .AddEmailStoreHandler()
+            .AddEmailStoreHandler(new ReaderEmailStoreOptions { StreamAttachmentContent = streamAttachments })
             .Build();
 
         OfficeDocumentReadResult result = reader.ReadDocument(archive, "mailbox.olm");
@@ -86,7 +92,10 @@ public sealed class ReaderEmailStoreModularTests {
         Assert.Contains("officeimo.email.store.olm", result.CapabilitiesUsed);
         Assert.Contains(result.Metadata, item =>
             item.Name == "FolderCount" && item.Value == "3");
-        Assert.Equal(new byte[] { 9, 8, 7 }, Assert.Single(result.Assets).PayloadBytes);
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal(3, asset.LengthBytes);
+        if (streamAttachments) Assert.Null(asset.PayloadBytes);
+        else Assert.Equal(new byte[] { 9, 8, 7 }, asset.PayloadBytes);
     }
 
     [Fact]
@@ -206,7 +215,8 @@ public sealed class ReaderEmailStoreModularTests {
                 MaxItems = 10,
                 StoreOptions = storeOptions
             };
-            using EmailStoreSession session = EmailStoreSession.Open(root, storeOptions);
+            // Catalog validity and the Reader's narrower projection bound are separate.
+            using EmailStoreSession session = EmailStoreSession.Open(root);
 
             OfficeIMO.Reader.Email.EmailStoreProjection projection = EmailStoreReaderProjection.Create(
                 session,
@@ -220,6 +230,65 @@ public sealed class ReaderEmailStoreModularTests {
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public void DirectoryTraversalBoundSurvivesReaderOptionCloning() {
+        string root = Path.Combine(Path.GetTempPath(),
+            "officeimo-reader-entry-bound-" + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            File.WriteAllText(Path.Combine(root, "first.eml"), "Subject: First\r\n\r\nBody");
+            File.WriteAllText(Path.Combine(root, "unrelated.txt"), "Counts as a visited entry");
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddEmailStoreHandler().Build();
+            var options = new ReaderEmailStoreOptions {
+                MaxItems = 10,
+                StoreOptions = new EmailStoreReaderOptions(maxDirectoryEntryCount: 1)
+            };
+
+            EmailStoreLimitExceededException failure = Assert.Throws<EmailStoreLimitExceededException>(() =>
+                reader.ReadEmailStoreItems(root, emailStoreOptions: options).ToArray());
+
+            Assert.Contains("MaxDirectoryEntryCount", failure.Message, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(".emlx")]
+    [InlineData(".olm")]
+    public void StreamingTextAttachmentsAreProjectedBeforeTheStoreSessionCloses(string extension) {
+        const string text = "Streamed Zażółć 日本語 evidence";
+        byte[] payload = Encoding.UTF8.GetBytes(text);
+        byte[] source;
+        if (extension == ".emlx") {
+            var document = new EmailDocument { Subject = "Streaming attachment" };
+            document.Attachments.Add(new EmailAttachment {
+                FileName = "note.txt", ContentType = "text/plain", Content = payload
+            });
+            source = CreateEmlx(new EmailDocumentWriter().ToBytes(document), null);
+        } else {
+            const string attachmentPath = "Local/com.microsoft.__Messages/Inbox/com.microsoft.__Attachments/note";
+            string xml = "<emails><email><OPFMessageCopySubject>Streaming attachment</OPFMessageCopySubject>" +
+                "<OPFMessageCopyAttachmentList><messageAttachment OPFAttachmentName=\"note.txt\" " +
+                "OPFAttachmentURL=\"" + attachmentPath + "\" OPFAttachmentContentType=\"text/plain\" />" +
+                "</OPFMessageCopyAttachmentList></email></emails>";
+            source = CreateOlmArchive(new Dictionary<string, byte[]> {
+                ["Local/com.microsoft.__Messages/Inbox/message.xml"] = Encoding.UTF8.GetBytes(xml),
+                [attachmentPath] = payload
+            });
+        }
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddEmailStoreHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(source, "mailbox" + extension);
+
+        Assert.Contains(result.Chunks, chunk => chunk.Location.Path!.EndsWith("!/note.txt", StringComparison.Ordinal) &&
+            chunk.Text.Contains(text, StringComparison.Ordinal));
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal(payload.Length, asset.LengthBytes);
+        Assert.Null(asset.PayloadBytes);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_READER_FAILED");
     }
 
     [Fact]

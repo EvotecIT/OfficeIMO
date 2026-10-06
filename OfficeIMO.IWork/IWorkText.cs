@@ -120,7 +120,7 @@ public sealed class IWorkParagraphStyle {
     public double? SpaceBeforePoints { get; }
     /// <summary>Gets spacing after the paragraph in points.</summary>
     public double? SpaceAfterPoints { get; }
-    /// <summary>Gets explicit positive relative line spacing; null when absent, cleared or unqualified.</summary>
+    /// <summary>Gets positive relative line spacing, including the qualified single-line default of an empty source declaration; null when absent, cleared or unqualified.</summary>
     public double? LineSpacingMultiplier { get; }
     /// <summary>Gets qualified custom tabs; null means unspecified and an empty list clears inherited source tabs.</summary>
     public IReadOnlyList<IWorkTabStop>? TabStops { get; }
@@ -158,13 +158,14 @@ public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
         ulong? listIdentifier, int listLevel, string? listLabel,
         IWorkParagraphBreakKind breakKind, string? listFontName = null,
-        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text) {
+        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text, IWorkListLayout? listLayout = null) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
         ListIdentifier = listIdentifier;
         ListLevel = listLevel;
         ListLabel = listLabel;
         ListFontName = listFontName;
+        ListLayout = listLayout;
         ListMarkerKind = listLevel < 0 ? IWorkListMarkerKind.None : listMarkerKind;
         BreakKind = breakKind;
     }
@@ -182,6 +183,8 @@ public sealed class IWorkTextParagraph {
     public string? ListLabel { get; }
     /// <summary>Gets the explicit marker font, including inherited list-style formatting, or null when unspecified or cleared.</summary>
     public string? ListFontName { get; }
+    /// <summary>Gets selected character-marker layout, or null when unspecified or unqualified.</summary>
+    public IWorkListLayout? ListLayout { get; }
     /// <summary>Gets the native marker kind; literal text labels are never inferred to be numbering.</summary>
     public IWorkListMarkerKind ListMarkerKind { get; }
     /// <summary>Gets the delimiter that ended the paragraph.</summary>

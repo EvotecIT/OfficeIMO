@@ -17,13 +17,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(text.IsFormattingComplete);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package);
+            using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+            using var fallback = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+            using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;
@@ -75,7 +75,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Paragraph_layout_declarations_share_the_existing_issue_budget() {
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Numbers,
-            Message(BytesField(13, Message()), BytesField(25, Message())));
+            Message(BytesField(13, Message(VarintField(1, 2), FloatField(2, 24))),
+                BytesField(25, BytesField(1, Message(FloatField(1, 18), StringField(3, "."))))));
         var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
@@ -90,7 +91,8 @@ public sealed partial class IWorkBoundaryTests {
         foreach (var style in manifest.RootElement.GetProperty("styles").EnumerateArray()) {
             ulong identifier = style.GetProperty("recordIdentifier").GetUInt64();
             foreach (var declaration in style.GetProperty("declarations").EnumerateArray()) {
-                if (declaration.TryGetProperty("relativeMultiplier", out _) || declaration.TryGetProperty("tabStops", out _)) {
+                if (declaration.TryGetProperty("relativeMultiplier", out _) || declaration.TryGetProperty("tabStops", out _)
+                    || declaration.TryGetProperty("defaultLineSpacing", out _)) {
                     Assert.DoesNotContain(result.Report.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == identifier
                         && item.FieldPath == declaration.GetProperty("fieldPath").GetString());
                     continue;

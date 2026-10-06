@@ -8,7 +8,9 @@ public sealed partial class PdfOptions {
     internal long PageSizeConfigurationState => _pageSizeConfigurationVersion;
 
     private PdfPageParity? _pageStartParity;
-    /// <summary>Optional physical-page parity for a composed page or section. A blank page is inserted before a later section when needed; the first section starts without padding.</summary>
+    /// <summary>Uses the page number continuing the preceding group for start parity. Numbering restarts are applied after padding. Default is false, which uses the physical page index.</summary>
+    public bool UseContinuingPageNumberForStartParity { get; set; }
+    /// <summary>Optional start parity for a composed page or section. Uses the physical page index unless <see cref="UseContinuingPageNumberForStartParity"/> is enabled. A blank page is inserted before a later section when needed; the first section starts without padding.</summary>
     public PdfPageParity? PageStartParity {
         get => _pageStartParity;
         set {
@@ -52,6 +54,8 @@ public sealed partial class PdfOptions {
     public double MarginLeft { get; set; } = 72; // 1 in
     /// <summary>Right margin in points. Default 72 (1 inch).</summary>
     public double MarginRight { get; set; } = 72;
+    /// <summary>Swaps the left and right margins on even visible page numbers. Numbering starts and restarts determine parity.</summary>
+    public bool MirrorMargins { get; set; }
     /// <summary>Top margin in points. Default 72 (1 inch).</summary>
     public double MarginTop { get; set; } = 72;
     /// <summary>Bottom margin in points. Default 72 (1 inch).</summary>

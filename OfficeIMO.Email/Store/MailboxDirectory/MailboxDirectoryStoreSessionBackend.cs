@@ -1,22 +1,25 @@
-using Microsoft.Win32.SafeHandles;
 using OfficeIMO.Email;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace OfficeIMO.Email.Store;
 
-internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBackend {
+internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly string _root;
     private readonly string _unixOpenRoot;
     private readonly string _windowsOpenRoot;
     private readonly StringComparison _rootComparison;
     private readonly EmailStoreReaderOptions _options;
+    private readonly EmailStoreReadResources _resources;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private readonly List<EmailStoreFolderInfo> _folders = new List<EmailStoreFolderInfo>();
     private readonly List<MailboxFile> _files = new List<MailboxFile>();
+    private readonly List<EmailStoreItemReference> _items = new List<EmailStoreItemReference>();
+    private readonly HashSet<string> _diagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, AggregateItem> _aggregateItems =
+        new Dictionary<string, AggregateItem>(StringComparer.Ordinal);
     private readonly Dictionary<string, MailboxFile> _filesById =
         new Dictionary<string, MailboxFile>(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<MailboxFile>> _partialFiles;
     private readonly Dictionary<string, EmailStoreFolderInfo> _foldersById =
         new Dictionary<string, EmailStoreFolderInfo>(StringComparer.Ordinal);
     private long _sourceLength;
@@ -27,6 +30,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         string rootWithoutSeparator = TrimTrailingDirectorySeparators(_root);
         string? rootParent = Path.GetDirectoryName(rootWithoutSeparator);
         _rootComparison = EmailStorePathIdentity.GetComparison(rootParent ?? rootWithoutSeparator);
+        _partialFiles = new Dictionary<string, List<MailboxFile>>(EmailStorePathIdentity.GetComparer(rootParent ?? rootWithoutSeparator));
         _unixOpenRoot = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? _root
             : AppendSeparator(ResolveUnixRealPath(rootWithoutSeparator) ?? rootWithoutSeparator);
@@ -35,6 +39,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 rootWithoutSeparator))
             : _root;
         _options = options;
+        _resources = new EmailStoreReadResources(options);
         DisplayName = new DirectoryInfo(path).Name;
         Index(cancellationToken);
     }
@@ -51,23 +56,45 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         HashSet<string>? folders = ResolveFolderIds(options);
         if (!options.IncludeRegularItems) yield break;
         int count = 0;
-        foreach (MailboxFile file in _files) {
+        foreach (EmailStoreItemReference item in _items) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (folders != null && !folders.Contains(file.FolderId)) continue;
+            if (folders != null && !folders.Contains(item.FolderId)) continue;
             if (++count > options.MaxItems) yield break;
-            yield return new EmailStoreItemReference(file.Id, file.FolderId, false, false);
+            yield return item;
         }
     }
 
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
-        CancellationToken cancellationToken) =>
-        EmailStoreItemSummary.FromItem(ReadItem(reference,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (TryGetAggregate(reference, out AggregateItem aggregate)) {
+            return aggregate.Backend.ReadSummary(aggregate.Reference, cancellationToken);
+        }
+        if (!_filesById.TryGetValue(reference.Id, out MailboxFile? file) || file.FolderId != reference.FolderId ||
+            reference.IsAssociated || reference.IsOrphaned) throw new KeyNotFoundException("The item reference does not belong to this mailbox-directory session.");
+        if (file.Summary != null) {
+            using FileStream input = OpenRegularMailboxFile(file.Path);
+            ValidateFileSource(file, input, cancellationToken);
+            return file.Summary;
+        }
+        file.Summary = EmailStoreItemSummary.FromItem(ReadItem(reference,
             new EmailStoreItemReadOptions(EmailStoreItemReadParts.Metadata), cancellationToken));
+        return file.Summary;
+    }
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
+        if (TryGetAggregate(reference, out AggregateItem aggregate)) {
+            EmailStoreItem item = aggregate.Backend.ReadItem(aggregate.Reference, options, cancellationToken);
+            ApplyDirectoryProperties(item.Document, reference.Id, reference.FolderId, aggregate.RelativePath);
+            foreach (EmailStoreDiagnostic diagnostic in aggregate.Backend.Diagnostics) {
+                AddDiagnostic(diagnostic, aggregate.RelativePath);
+            }
+            return new EmailStoreItem(reference.Id, reference.FolderId, item.Document,
+                loadedParts: item.LoadedParts, format: Format, summary: aggregate.Backend.ReadSummary(aggregate.Reference, cancellationToken));
+        }
         if (!_filesById.TryGetValue(reference.Id, out MailboxFile? file) ||
             file.FolderId != reference.FolderId || reference.IsAssociated || reference.IsOrphaned) {
             throw new KeyNotFoundException(
@@ -76,22 +103,25 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         bool includeAttachmentContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         bool includeEmbeddedMessages = options.Includes(EmailStoreItemReadParts.EmbeddedItems);
         using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
+            ValidateFileSource(file, stream, cancellationToken);
             EmailDocument document;
             if (file.IsEmlx) {
-                EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent, options.MaxDecodedPropertyBytes, includeEmbeddedMessages)
+                EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent, options.MaxDecodedPropertyBytes,
+                    includeEmbeddedMessages, _resources, options.PreferStreamingAttachmentContent,
+                    part => OpenPartialPart(file, part, cancellationToken))
                     .Read(stream, Path.GetFileName(file.Path), cancellationToken);
-                foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) _diagnostics.Add(diagnostic);
+                ValidateFileSource(file, stream, cancellationToken);
+                foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) AddDiagnostic(diagnostic, file.RelativePath);
                 document = result.Store.Folders.SelectMany(folder => folder.Items).Single().Document;
             } else {
-                EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken,
-                    includeAttachmentContent, options.MaxDecodedPropertyBytes, includeEmbeddedMessages);
+                using EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken,
+                    includeAttachmentContent, options.MaxDecodedPropertyBytes, includeEmbeddedMessages, options.PreferStreamingAttachmentContent);
                 CopyDiagnostics(result.Diagnostics, file.RelativePath);
                 document = result.Document;
+                ValidateFileSource(file, stream, cancellationToken);
+                _resources.Adopt(result);
             }
-            document.Properties["EmailStore:ContainerFormat"] = Format.ToString();
-            document.Properties["EmailStore:ItemId"] = file.Id;
-            document.Properties["EmailStore:FolderId"] = file.FolderId;
-            document.Properties["EmailStore:RelativePath"] = file.RelativePath;
+            ApplyDirectoryProperties(document, file.Id, file.FolderId, file.RelativePath);
             ApplyMaildirFlags(document, file.MaildirFlags);
             EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
             if (!includeAttachmentContent) loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
@@ -101,216 +131,70 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         }
     }
 
-    public void Dispose() { }
+    public void Dispose() => _resources.Dispose();
 
-    internal string GetCatalogFingerprint(CancellationToken cancellationToken) {
-        using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        AppendFingerprint(fingerprint, "OfficeIMO.MailboxDirectory.Catalog.v2");
-        AppendInt64(fingerprint, _files.Count);
-        foreach (MailboxFile file in _files) {
-            cancellationToken.ThrowIfCancellationRequested();
-            var info = new FileInfo(file.Path);
-            AppendFingerprint(fingerprint, file.RelativePath);
-            try {
-                info.Refresh();
-                AppendFingerprint(fingerprint, info.Exists
-                    ? info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    : "missing");
-                AppendFingerprint(fingerprint, info.Exists
-                    ? info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    : "missing");
-                AppendFingerprint(fingerprint, info.Exists &&
-                    (info.Attributes & FileAttributes.ReparsePoint) != 0
-                        ? "reparse"
-                        : "regular");
-            } catch (Exception exception) when (
-                exception is IOException || exception is UnauthorizedAccessException) {
-                AppendFingerprint(fingerprint, "unavailable");
-            }
-        }
-        return EmailHashing.ToHexLower(fingerprint.GetHashAndReset());
+    private void ValidateFileSource(MailboxFile file, Stream input, CancellationToken cancellationToken) {
+        // Directory catalogs remain lazy: pin each selected file at its first projection.
+        if (file.SourceGuard == null) file.SourceGuard = new EmailStoreSourceGuard(input, file.Length,
+            _options.MaxInputBytes, _resources.Dispose, cancellationToken);
+        else file.SourceGuard.Validate(input, cancellationToken);
     }
 
-    internal string GetContentFingerprint(CancellationToken cancellationToken) {
-        using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        AppendFingerprint(fingerprint, "OfficeIMO.MailboxDirectory.Content.v2");
-        AppendInt64(fingerprint, _files.Count);
-        var buffer = new byte[64 * 1024];
-        long aggregateLength = 0;
-        foreach (MailboxFile file in _files) {
-            cancellationToken.ThrowIfCancellationRequested();
-            AppendFingerprint(fingerprint, file.RelativePath);
-            var info = new FileInfo(file.Path);
-            info.Refresh();
-            if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0) {
-                throw new InvalidDataException("A mailbox-directory source changed after it was indexed.");
-            }
-            using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
-                long declaredLength = stream.Length;
-                aggregateLength = AddBounded(aggregateLength, declaredLength);
-                AppendInt64(fingerprint, declaredLength);
-                long totalRead = 0;
-                while (totalRead < declaredLength) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int read = stream.Read(buffer, 0,
-                        (int)Math.Min(buffer.Length, declaredLength - totalRead));
-                    if (read == 0) {
-                        throw new InvalidDataException("A mailbox-directory source changed while it was fingerprinted.");
-                    }
-                    fingerprint.AppendData(buffer, 0, read);
-                    totalRead += read;
-                }
-                if (totalRead != declaredLength || stream.Length != declaredLength) {
-                    throw new InvalidDataException("A mailbox-directory source changed while it was fingerprinted.");
-                }
-            }
+    private Stream? OpenPartialPart(MailboxFile message, string part, CancellationToken cancellationToken) {
+        string name = Path.GetFileName(message.Path);
+        const string suffix = ".partial.emlx";
+        if (!name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return null;
+        string identifier = name.Substring(0, name.Length - suffix.Length);
+        if (identifier.Length == 0 || identifier.Any(value => value < '0' || value > '9')) return null;
+        string directory = Path.GetDirectoryName(message.Path)!;
+        if (Path.GetFileName(directory) != "Messages") return null;
+        string path = Path.Combine(Path.GetDirectoryName(directory)!, "Attachments", identifier, part);
+        // Only files captured inside the caller-selected root can supply a part; a MIME filename never becomes a path.
+        if (!_partialFiles.TryGetValue(path, out List<MailboxFile>? files) || files.Count != 1) return null;
+        FileStream input = OpenRegularMailboxFile(files[0].Path);
+        try {
+            ValidateFileSource(files[0], input, cancellationToken);
+            return new EmailStoreValidatedReadStream(input, files[0].SourceGuard!, cancellationToken);
         }
-        if (aggregateLength != _sourceLength) {
-            throw new InvalidDataException("The mailbox-directory aggregate source length changed after it was indexed.");
-        }
-        return EmailHashing.ToHexLower(fingerprint.GetHashAndReset());
+        catch { input.Dispose(); throw; }
     }
 
-    private static void AppendFingerprint(IncrementalHash fingerprint, string value) {
-        byte[] bytes = Encoding.UTF8.GetBytes(value);
-        AppendInt64(fingerprint, bytes.Length);
-        fingerprint.AppendData(bytes);
+    private bool TryGetAggregate(EmailStoreItemReference reference, out AggregateItem aggregate) {
+        aggregate = null!;
+        if (!_aggregateItems.TryGetValue(reference.Id, out AggregateItem? found)) return false;
+        aggregate = found;
+        if (reference.FolderId != aggregate.FolderId || reference.IsAssociated || reference.IsOrphaned) {
+            throw new KeyNotFoundException("The item reference does not belong to this mailbox-directory session.");
+        }
+        return true;
     }
 
-    private static void AppendInt64(IncrementalHash fingerprint, long value) {
-        var bytes = new byte[8];
-        ulong unsigned = unchecked((ulong)value);
-        for (int index = 0; index < bytes.Length; index++) {
-            bytes[index] = (byte)(unsigned >> (index * 8));
-        }
-        fingerprint.AppendData(bytes);
+    private void ApplyDirectoryProperties(EmailDocument document, string id, string folderId, string relativePath) {
+        document.Properties["EmailStore:ContainerFormat"] = Format.ToString();
+        document.Properties["EmailStore:ItemId"] = id;
+        document.Properties["EmailStore:FolderId"] = folderId;
+        document.Properties["EmailStore:RelativePath"] = relativePath;
     }
 
-    private void Index(CancellationToken cancellationToken) {
-        var candidates = new List<MailboxCandidate>();
-        var pending = new Stack<DirectoryCandidate>();
-        pending.Push(new DirectoryCandidate(TrimTrailingDirectorySeparators(_root), 0));
-        while (pending.Count > 0) {
-            cancellationToken.ThrowIfCancellationRequested();
-            DirectoryCandidate current = pending.Pop();
-            FileSystemInfo[] entries;
-            try {
-                entries = new DirectoryInfo(current.Path).GetFileSystemInfos();
-            } catch (Exception exception) when (
-                exception is IOException || exception is UnauthorizedAccessException) {
-                _diagnostics.Add(new EmailStoreDiagnostic(
-                    "EMAIL_STORE_DIRECTORY_ENUMERATION_FAILED",
-                    exception.Message,
-                    EmailStoreDiagnosticSeverity.Warning,
-                    ToRelativePath(current.Path)));
-                continue;
-            }
-
-            StringComparer entryComparer = EmailStorePathIdentity.GetComparer(current.Path);
-            foreach (FileSystemInfo entry in entries.OrderBy(item => item.Name, entryComparer)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if ((entry.Attributes & FileAttributes.ReparsePoint) != 0) {
-                    _diagnostics.Add(new EmailStoreDiagnostic(
-                        "EMAIL_STORE_DIRECTORY_REPARSE_POINT_SKIPPED",
-                        "A symbolic link or reparse point was skipped to keep traversal inside the mailbox root.",
-                        EmailStoreDiagnosticSeverity.Information,
-                        ToRelativePath(entry.FullName)));
-                    continue;
-                }
-                if (entry is DirectoryInfo directory) {
-                    if (current.Depth >= _options.MaxDirectoryDepth) {
-                        throw new EmailStoreLimitExceededException(
-                            nameof(EmailStoreReaderOptions.MaxDirectoryDepth),
-                            current.Depth + 1L,
-                            _options.MaxDirectoryDepth);
-                    }
-                    pending.Push(new DirectoryCandidate(directory.FullName, current.Depth + 1));
-                    continue;
-                }
-                if (!(entry is FileInfo file) || !IsMailboxFile(file)) continue;
-                if (!IsRegularMailboxFile(file.FullName)) {
-                    _diagnostics.Add(new EmailStoreDiagnostic(
-                        "EMAIL_STORE_DIRECTORY_SPECIAL_FILE_SKIPPED",
-                        "A non-regular mailbox candidate was skipped without opening it as a blocking stream.",
-                        EmailStoreDiagnosticSeverity.Warning,
-                        ToRelativePath(file.FullName)));
-                    continue;
-                }
-                if (candidates.Count >= _options.MaxDirectoryFileCount) {
-                    throw new EmailStoreLimitExceededException(
-                        nameof(EmailStoreReaderOptions.MaxDirectoryFileCount),
-                        candidates.Count + 1L,
-                        _options.MaxDirectoryFileCount);
-                }
-                _sourceLength = AddBounded(_sourceLength, file.Length);
-                candidates.Add(new MailboxCandidate(
-                    file.FullName,
-                    ToRelativePath(file.FullName),
-                    IsEmlx(file),
-                    GetLogicalFolderPath(ToRelativePath(file.DirectoryName ?? _root)),
-                    ParseMaildirFlags(file.Name, file.Directory?.Name)));
-            }
+    private void AddDiagnostic(EmailStoreDiagnostic diagnostic, string? source = null) {
+        const int maximum = 10_000;
+        if (_diagnostics.Count > maximum) return;
+        string? location = source == null ? diagnostic.Location : diagnostic.Location == null
+            ? source : string.Concat(source, "/", diagnostic.Location);
+        string key = string.Concat(diagnostic.Code.Length, ":", diagnostic.Code,
+            diagnostic.Message.Length, ":", diagnostic.Message, ":", (int)diagnostic.Severity, ":", location);
+        if (!_diagnosticKeys.Add(key)) return;
+        if (_diagnostics.Count == maximum) {
+            _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_DIAGNOSTICS_TRUNCATED",
+                "Additional mailbox-directory diagnostics were omitted after the 10,000-entry limit.",
+                EmailStoreDiagnosticSeverity.Warning));
+            _diagnosticKeys.Clear();
+            return;
         }
-
-        var folderCounts = candidates
-            .GroupBy(candidate => candidate.FolderPath, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
-        foreach (string path in folderCounts.Keys.OrderBy(item => item, StringComparer.Ordinal)) {
-            EnsureFolder(path, folderCounts);
-        }
-        foreach (MailboxCandidate candidate in candidates.OrderBy(
-            item => item.RelativePath, StringComparer.Ordinal)) {
-            string folderId = GetFolderId(candidate.FolderPath);
-            string id = string.Concat("directory:item:", candidate.RelativePath.Replace('\\', '/'));
-            var file = new MailboxFile(
-                id, folderId, candidate.Path, candidate.RelativePath, candidate.IsEmlx,
-                candidate.MaildirFlags);
-            _files.Add(file);
-            _filesById.Add(id, file);
-        }
-    }
-
-    private void EnsureFolder(string path, IReadOnlyDictionary<string, int> counts) {
-        if (_foldersById.ContainsKey(GetFolderId(path))) return;
-        string? parentPath = GetParentPath(path);
-        if (parentPath != null) EnsureFolder(parentPath, counts);
-        string id = GetFolderId(path);
-        string? parentId = parentPath == null ? null : GetFolderId(parentPath);
-        string name = path == "." ? (DisplayName ?? "Mailbox") : GetLastPart(path);
-        int count = counts.TryGetValue(path, out int directCount) ? directCount : 0;
-        var folder = new EmailStoreFolderInfo(id, parentId, name, count, 0);
-        _folders.Add(folder);
-        _foldersById.Add(id, folder);
-    }
-
-    private HashSet<string>? ResolveFolderIds(EmailStoreEnumerationOptions options) {
-        if (options.FolderId == null) return null;
-        if (!_foldersById.ContainsKey(options.FolderId)) {
-            throw new KeyNotFoundException(
-                "The requested folder does not belong to this mailbox-directory session.");
-        }
-        var result = new HashSet<string>(StringComparer.Ordinal) { options.FolderId };
-        if (!options.IncludeDescendants) return result;
-        bool added;
-        do {
-            added = false;
-            foreach (EmailStoreFolderInfo folder in _folders) {
-                if (folder.ParentId != null && result.Contains(folder.ParentId) && result.Add(folder.Id)) {
-                    added = true;
-                }
-            }
-        } while (added);
-        return result;
-    }
-
-    private bool IsMailboxFile(FileInfo file) {
-        string extension = file.Extension;
-        if (extension.Equals(".emlx", StringComparison.OrdinalIgnoreCase) ||
-            extension.Equals(".eml", StringComparison.OrdinalIgnoreCase) ||
-            extension.Equals(".mime", StringComparison.OrdinalIgnoreCase)) return true;
-        string? parent = file.Directory?.Name;
-        return string.Equals(parent, "cur", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(parent, "new", StringComparison.OrdinalIgnoreCase);
+        _diagnostics.Add(new EmailStoreDiagnostic(diagnostic.Code, diagnostic.Message, diagnostic.Severity,
+            location, diagnostic.Operation, diagnostic.ByteOffset, diagnostic.LimitName,
+            diagnostic.ActualValue, diagnostic.MaximumValue, diagnostic.Disposition,
+            diagnostic.DataLossRisk, diagnostic.SuggestedAction, diagnostic.IsRetryable));
     }
 
     private long AddBounded(long current, long length) {
@@ -336,12 +220,13 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
     private static string GetLogicalFolderPath(string relativeDirectory) {
         string[] parts = relativeDirectory.Replace('\\', '/')
             .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-        string[] mailboxParts = parts
+        int firstMailbox = Array.FindIndex(parts, part => part.EndsWith(".mbox", StringComparison.OrdinalIgnoreCase));
+        string[] mailboxParts = parts.Skip(firstMailbox < 0 ? parts.Length : firstMailbox)
             .Where(part => part.EndsWith(".mbox", StringComparison.OrdinalIgnoreCase))
             .Select(part => part.Substring(0, part.Length - 5))
             .Where(part => part.Length > 0)
             .ToArray();
-        if (mailboxParts.Length > 0) return string.Join("/", mailboxParts);
+        if (mailboxParts.Length > 0) return string.Join("/", parts.Take(firstMailbox).Concat(mailboxParts));
         int length = parts.Length;
         if (length > 0 && (string.Equals(parts[length - 1], "cur", StringComparison.OrdinalIgnoreCase) ||
                            string.Equals(parts[length - 1], "new", StringComparison.OrdinalIgnoreCase) ||
@@ -357,7 +242,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
 
     private void CopyDiagnostics(IEnumerable<EmailDiagnostic> diagnostics, string location) {
         foreach (EmailDiagnostic diagnostic in diagnostics) {
-            _diagnostics.Add(new EmailStoreDiagnostic(
+            AddDiagnostic(new EmailStoreDiagnostic(
                 diagnostic.Code,
                 diagnostic.Message,
                 diagnostic.Severity == EmailDiagnosticSeverity.Error
@@ -385,203 +270,6 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             return false;
         }
     }
-
-    private bool IsRegularMailboxFile(string path) {
-        if (!TryOpenRegularMailboxFile(path, 4 * 1024, out FileStream stream)) return false;
-        stream.Dispose();
-        return true;
-    }
-
-    private FileStream OpenRegularMailboxFile(string path) {
-        if (TryOpenRegularMailboxFile(path, 64 * 1024, out FileStream stream)) return stream;
-        throw new IOException("The mailbox item is no longer a regular readable file.");
-    }
-
-    private bool TryOpenRegularMailboxFile(
-        string path,
-        int bufferSize,
-        out FileStream stream) {
-        stream = null!;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            try {
-                stream = new FileStream(
-                    path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize,
-                    FileOptions.SequentialScan);
-                if (!OpenedPathRemainsInsideRoot(stream.SafeFileHandle, path)) {
-                    stream.Dispose();
-                    stream = null!;
-                    return false;
-                }
-                return true;
-            } catch (Exception exception) when (
-                exception is IOException || exception is UnauthorizedAccessException) {
-                return false;
-            }
-        }
-
-        int nonBlocking = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x0004 : 0x0800;
-        int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
-        int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
-        int descriptor = OpenUnixPathWithoutLinks(path, nonBlocking | closeOnExec | noFollow);
-        if (descriptor < 0) return false;
-        if (!IsRegularUnixDescriptor(descriptor)) {
-            CloseUnix(descriptor);
-            return false;
-        }
-        if (SeekUnix(descriptor, 0L, 1) < 0L) {
-            CloseUnix(descriptor);
-            return false;
-        }
-
-        var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
-        try {
-            stream = new FileStream(handle, FileAccess.Read, bufferSize, isAsync: false);
-            return true;
-        } catch {
-            handle.Dispose();
-            throw;
-        }
-    }
-
-    private static bool IsRegularUnixDescriptor(int descriptor) =>
-        GetUnixFileStatus(new IntPtr(descriptor), out UnixFileStatus status) == 0
-        && (status.Mode & 0xF000) == 0x8000;
-
-    private bool OpenedPathRemainsInsideRoot(SafeFileHandle handle, string requestedPath) {
-        var buffer = new StringBuilder(1024);
-        uint length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
-        if (length == 0) return false;
-        if (length >= buffer.Capacity) {
-            buffer = new StringBuilder(checked((int)length + 1));
-            length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
-            if (length == 0 || length >= buffer.Capacity) return false;
-        }
-        return IsResolvedPathInsideRoot(EmailStorePathIdentity.NormalizeWindowsFinalPath(buffer.ToString()), requestedPath);
-    }
-
-    private bool IsResolvedPathInsideRoot(string resolvedPath, string requestedPath) {
-        string normalized;
-        try {
-            normalized = Path.GetFullPath(resolvedPath);
-        } catch (Exception exception) when (
-            exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException) {
-            return false;
-        }
-        string requested = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? EmailStorePathIdentity.ResolvePhysicalPath(requestedPath)
-            : Path.GetFullPath(requestedPath);
-        return normalized.StartsWith(_windowsOpenRoot, _rootComparison)
-            && string.Equals(normalized, requested, _rootComparison);
-    }
-
-    private int OpenUnixPathWithoutLinks(string path, int fileFlags) {
-        string normalized = Path.GetFullPath(path);
-        if (!normalized.StartsWith(_root, _rootComparison)) return -1;
-        string relative = normalized.Substring(_root.Length);
-        string[] segments = relative.Split(
-            new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
-            StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0 || segments.Any(segment => segment == "." || segment == "..")) return -1;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            const int noFollow = 0x00000100;
-            const int noFollowAny = 0x20000000;
-            string canonicalPath = Path.Combine(_unixOpenRoot, string.Join(Path.DirectorySeparatorChar.ToString(), segments));
-            return OpenUnix(canonicalPath, (fileFlags & ~noFollow) | noFollowAny);
-        }
-
-        const int linuxCloseOnExec = 0x00080000;
-        const int linuxNoFollow = 0x00020000;
-        const int linuxDirectory = 0x00010000;
-        int directory = OpenUnix(
-            TrimTrailingDirectorySeparators(_unixOpenRoot),
-            linuxCloseOnExec | linuxNoFollow | linuxDirectory);
-        if (directory < 0) return -1;
-        try {
-            for (int index = 0; index < segments.Length - 1; index++) {
-                int child = OpenAtUnix(
-                    directory,
-                    segments[index],
-                    linuxCloseOnExec | linuxNoFollow | linuxDirectory);
-                if (child < 0) return -1;
-                CloseUnix(directory);
-                directory = child;
-            }
-            return OpenAtUnix(directory, segments[segments.Length - 1], fileFlags);
-        } finally {
-            CloseUnix(directory);
-        }
-    }
-
-    internal static string TrimTrailingDirectorySeparators(string path) {
-        string root = Path.GetPathRoot(path) ?? string.Empty;
-        int length = path.Length;
-        while (length > root.Length
-               && (path[length - 1] == Path.DirectorySeparatorChar
-                   || path[length - 1] == Path.AltDirectorySeparatorChar)) {
-            length--;
-        }
-        return length == path.Length ? path : path.Substring(0, length);
-    }
-
-    private static string? ResolveUnixRealPath(string path) {
-        IntPtr resolved = RealPathUnix(path, IntPtr.Zero);
-        if (resolved == IntPtr.Zero) return null;
-        try {
-            return Marshal.PtrToStringAnsi(resolved);
-        } finally {
-            FreeUnix(resolved);
-        }
-    }
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern uint GetFinalPathNameByHandle(
-        SafeFileHandle file,
-        StringBuilder filePath,
-        uint filePathLength,
-        uint flags);
-
-    [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
-    private static extern int OpenUnix(string path, int flags);
-
-    [DllImport("libc", EntryPoint = "openat", SetLastError = true, CharSet = CharSet.Ansi)]
-    private static extern int OpenAtUnix(int directoryDescriptor, string path, int flags);
-
-    [DllImport("libc", EntryPoint = "lseek", SetLastError = true)]
-    private static extern long SeekUnix(int descriptor, long offset, int origin);
-
-    [DllImport("System.Native", EntryPoint = "SystemNative_FStat", SetLastError = true)]
-    private static extern int GetUnixFileStatus(IntPtr descriptor, out UnixFileStatus status);
-
-    [DllImport("libc", EntryPoint = "close", SetLastError = true)]
-    private static extern int CloseUnix(int descriptor);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct UnixFileStatus {
-        internal int Flags;
-        internal int Mode;
-        internal uint Uid;
-        internal uint Gid;
-        internal long Size;
-        internal long AccessTime;
-        internal long AccessTimeNanoseconds;
-        internal long ModificationTime;
-        internal long ModificationTimeNanoseconds;
-        internal long ChangeTime;
-        internal long ChangeTimeNanoseconds;
-        internal long BirthTime;
-        internal long BirthTimeNanoseconds;
-        internal long Device;
-        internal long RawDevice;
-        internal long Inode;
-        internal uint UserFlags;
-        internal int HardLinkCount;
-    }
-
-    [DllImport("libc", EntryPoint = "realpath", SetLastError = true, CharSet = CharSet.Ansi)]
-    private static extern IntPtr RealPathUnix(string path, IntPtr resolvedPath);
-
-    [DllImport("libc", EntryPoint = "free")]
-    private static extern void FreeUnix(IntPtr pointer);
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
         if (name == null) throw new ArgumentNullException(nameof(name));
@@ -627,25 +315,46 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             : string.Concat(path, Path.DirectorySeparatorChar.ToString());
 
     private sealed class DirectoryCandidate {
-        internal DirectoryCandidate(string path, int depth) { Path = path; Depth = depth; }
+        internal DirectoryCandidate(string path, int depth, bool isAttachmentStorage = false) {
+            Path = path; Depth = depth; IsAttachmentStorage = isAttachmentStorage;
+        }
         internal string Path { get; }
         internal int Depth { get; }
+        internal bool IsAttachmentStorage { get; }
     }
 
     private sealed class MailboxCandidate {
         internal MailboxCandidate(string path, string relativePath, bool isEmlx, string folderPath,
-            string? maildirFlags) {
+            string? maildirFlags, bool isAggregate = false, bool isAttachmentStorage = false) {
             Path = path;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
             FolderPath = folderPath;
             MaildirFlags = maildirFlags;
+            IsAggregate = isAggregate;
+            IsAttachmentStorage = isAttachmentStorage;
         }
         internal string Path { get; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
         internal string FolderPath { get; }
         internal string? MaildirFlags { get; }
+        internal bool IsAggregate { get; }
+        internal bool IsAttachmentStorage { get; }
+    }
+
+    private sealed class AggregateItem {
+        internal AggregateItem(MboxStoreSessionBackend backend, EmailStoreItemReference reference,
+            string folderId, string relativePath) {
+            Backend = backend;
+            Reference = reference;
+            FolderId = folderId;
+            RelativePath = relativePath;
+        }
+        internal MboxStoreSessionBackend Backend { get; }
+        internal EmailStoreItemReference Reference { get; }
+        internal string FolderId { get; }
+        internal string RelativePath { get; }
     }
 
     private sealed class MailboxFile {
@@ -654,6 +363,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             Id = id;
             FolderId = folderId;
             Path = path;
+            Length = new FileInfo(path).Length;
             RelativePath = relativePath;
             IsEmlx = isEmlx;
             MaildirFlags = maildirFlags;
@@ -661,6 +371,9 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
         internal string Id { get; }
         internal string FolderId { get; }
         internal string Path { get; }
+        internal long Length { get; }
+        internal EmailStoreItemSummary? Summary { get; set; }
+        internal EmailStoreSourceGuard? SourceGuard { get; set; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
         internal string? MaildirFlags { get; }

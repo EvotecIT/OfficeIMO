@@ -414,9 +414,14 @@ public sealed class OfficeOperationCapabilityCatalogTests {
             row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
         Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
             row.Operation == OfficeOperationKind.Inspect && row.State == OfficeOperationSupportState.Supported);
-        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
+        Assert.All(new[] { OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
             Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
                 row.Operation == operation && row.State == OfficeOperationSupportState.Unsupported));
+        OfficeOperationCapability creation = Assert.Single(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle"
+            && row.Operation == OfficeOperationKind.Create);
+        Assert.Equal(extension == ".key" ? OfficeOperationSupportState.Supported : OfficeOperationSupportState.Unsupported,
+            creation.State);
+        Assert.False(string.IsNullOrWhiteSpace(creation.Limitation));
     }
 
     [Theory]

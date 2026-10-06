@@ -9,12 +9,14 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeDrawingLink : OfficeDrawingElement {
     /// <summary>Creates a drawing link over a local rectangle.</summary>
     public OfficeDrawingLink(string uri, double x, double y, double width, double height, string? alternativeText = null) {
-        if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Drawing link URI cannot be empty.", nameof(uri));
+        if (!OfficeDrawingLinkPolicy.TryNormalize(uri, out string safeUri)) {
+            throw new ArgumentException("Drawing link URI must be a safe web, mail, telephone, or local target.", nameof(uri));
+        }
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
         ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
-        Uri = uri!.Trim();
+        Uri = safeUri;
         X = x;
         Y = y;
         Width = width;

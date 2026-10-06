@@ -199,7 +199,7 @@ public sealed class DocBookNode {
                 DocBookNames.GetKind(child.Name, _document.Namespace) == DocBookNodeKind.TableBody);
             if (followingSection == null) parent.Add(element); else followingSection.AddBeforeSelf(element);
         } else {
-            parent.Add(element);
+            _document.AddBodyElement(parent, element);
         }
         _document.MarkModified();
         return new DocBookNode(_document, element);

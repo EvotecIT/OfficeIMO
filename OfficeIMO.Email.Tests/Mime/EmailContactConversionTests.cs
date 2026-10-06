@@ -563,9 +563,9 @@ public sealed class EmailContactConversionTests {
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument stored = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         EmailDocument roundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(stored, EmailFileFormat.Eml)).Document;
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(stored, EmailFileFormat.Eml)).Document;
 
         Assert.Equal("Literal \\n value", document.Body.Text);
         Assert.Equal("Literal \\n value", roundTrip.Body.Text);
@@ -628,10 +628,10 @@ public sealed class EmailContactConversionTests {
             "FN:Ada Lovelace\r\nCATEGORIES:Blue,Project\\, X\r\nEND:VCARD\r\n");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
-        byte[] msg = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg);
+        byte[] msg = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg);
         EmailDocument roundTrip = new EmailDocumentReader().Read(msg).Document;
         EmailDocument regeneratedVcard = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(roundTrip, EmailFileFormat.Eml)).Document;
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(roundTrip, EmailFileFormat.Eml)).Document;
 
         Assert.Equal(new[] { "Blue", "Project, X" }, document.MessageMetadata.Categories);
         Assert.Equal(new[] { "Blue", "Project, X" }, roundTrip.MessageMetadata.Categories);
@@ -646,8 +646,8 @@ public sealed class EmailContactConversionTests {
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
-        byte[] regenerated = new EmailDocumentWriter().ToBytes(storeRoundTrip, EmailFileFormat.Eml);
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        byte[] regenerated = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(storeRoundTrip, EmailFileFormat.Eml);
         using var stream = new MemoryStream(regenerated);
         MimePart vcard = Assert.IsAssignableFrom<MimePart>(MimeMessage.Load(stream).Body);
         using var content = new MemoryStream();

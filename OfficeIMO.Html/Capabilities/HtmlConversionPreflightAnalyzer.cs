@@ -10,7 +10,7 @@ internal static class HtmlConversionPreflightAnalyzer {
         HtmlTargetCapabilityContract contract = HtmlTargetCapabilityContracts.Get(target);
         HtmlSemanticDocument semantic = document.SemanticDocument;
         IHtmlDocument dom = document.CreatePolicyNormalizedDocumentForConversion();
-        IReadOnlyList<HtmlSemanticBlock> blocks = Flatten(semantic.Sections.SelectMany(section => section.Blocks)).ToList();
+        IReadOnlyList<HtmlSemanticBlock> blocks = Flatten(semantic.Sections.SelectMany(section => section.EnumerateContentBlocks())).ToList();
         var features = new List<HtmlFeaturePreflightResult>();
         var diagnostics = new List<HtmlDiagnostic>();
         foreach (HtmlSemanticFeature feature in global::OfficeIMO.Internal.EnumCompat.GetValues<HtmlSemanticFeature>()) {

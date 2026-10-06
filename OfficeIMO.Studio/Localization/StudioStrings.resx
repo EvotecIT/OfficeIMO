@@ -1565,6 +1565,10 @@
   <data name="Forms.ApplyTabOrder" xml:space="preserve"><value>Apply tab order</value></data>
   <data name="Forms.AdvancedGeometry" xml:space="preserve"><value>Advanced placement</value></data>
   <data name="Forms.ShowField" xml:space="preserve"><value>Show field on page</value></data>
+  <data name="Forms.ChooseField" xml:space="preserve"><value>Choose a form field</value></data>
+  <data name="Forms.PreviousField" xml:space="preserve"><value>Previous form field</value></data>
+  <data name="Forms.NextField" xml:space="preserve"><value>Next form field</value></data>
+  <data name="Forms.FieldPosition" xml:space="preserve"><value>Field {0} of {1}</value></data>
   <data name="Forms.PreviewAppearance" xml:space="preserve"><value>Preview field appearance</value></data>
   <data name="Forms.CancelPreview" xml:space="preserve"><value>Cancel preview</value></data>
   <data name="Forms.PreviewHint" xml:space="preserve"><value>Preview of this field on its first page. Other fields show their saved values. Apply or save to keep this edit.</value></data>
@@ -2077,6 +2081,10 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Shell.MoveDownTip" xml:space="preserve"><value>Move selected pages later (Alt+Down)</value></data>
   <data name="Shell.PageNumber" xml:space="preserve"><value>Current page</value></data>
   <data name="Shell.PageNumberTip" xml:space="preserve"><value>Type a page number and press Enter</value></data>
+  <data name="Reader.GoToPage" xml:space="preserve"><value>Go to page</value></data>
+  <data name="Reader.Go" xml:space="preserve"><value>Go</value></data>
+  <data name="Reader.PageRange" xml:space="preserve"><value>Page 1 to {0}</value></data>
+  <data name="Reader.InvalidPage" xml:space="preserve"><value>Enter a whole page number from 1 to {0}.</value></data>
   <data name="Shell.PageCount" xml:space="preserve"><value>of {0:N0}</value></data>
   <data name="Shell.UnsavedChanges" xml:space="preserve"><value>Unsaved changes</value></data>
   <data name="Shell.RedactionSection" xml:space="preserve"><value>Permanent redaction</value></data>
@@ -2461,6 +2469,9 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Apple.ReopenTab" xml:space="preserve"><value>Reopen Closed Tab</value></data>
   <data name="Apple.Open" xml:space="preserve"><value>Open…</value></data>
   <data name="Apple.SaveAs" xml:space="preserve"><value>Save As…</value></data>
+  <data name="Tabs.CloseDocument" xml:space="preserve"><value>Close {0}</value></data>
+  <data name="Tabs.MoveLeft" xml:space="preserve"><value>Move Tab Left</value></data>
+  <data name="Tabs.MoveRight" xml:space="preserve"><value>Move Tab Right</value></data>
   <data name="Book.New" xml:space="preserve"><value>New book</value></data>
   <data name="Book.Open" xml:space="preserve"><value>Open or import…</value></data>
   <data name="Book.SaveProject" xml:space="preserve"><value>Save book project…</value></data>
@@ -2492,4 +2503,19 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Book.AcceptLoss" xml:space="preserve"><value>I reviewed and accept these import changes</value></data>
   <data name="Command.PublishBook.Title" xml:space="preserve"><value>Publish a book</value></data>
   <data name="Command.PublishBook.Description" xml:space="preserve"><value>Import manuscripts, organize chapters, review and export an EPUB book.</value></data>
+  <data name="Conversion.CompactSetup" xml:space="preserve"><value>Setup</value></data>
+  <data name="Conversion.CompactQueue" xml:space="preserve"><value>Queue</value></data>
+  <data name="Conversion.CompactDetails" xml:space="preserve"><value>Details</value></data>
+  <data name="Shell.OrganizerTouchStatus" xml:space="preserve"><value>Select pages, then choose Move, Rotate, Extract or Delete.</value></data>
+  <data name="Home.OnThisDevice" xml:space="preserve"><value>On this device</value></data>
+  <data name="Provenance.WorkingCopyHint" xml:space="preserve">
+    <value>Choose a file to import a working copy. Results stay on this device. Open a result in Jobs to share it or save it to Files.</value>
+  </data>
+  <data name="Provenance.ImportFile" xml:space="preserve"><value>Import from Files</value></data>
+  <data name="Provenance.ProviderTitle" xml:space="preserve"><value>Optional C2PA verification</value></data>
+  <data name="Provenance.ProviderHint" xml:space="preserve"><value>Configure an executable you trust. No tool is downloaded. Verification is offline with a 30-second limit. Readiness checks the tool, not signer trust. Settings apply to this session.</value></data>
+  <data name="Provenance.ToolPath" xml:space="preserve"><value>c2patool executable path</value></data>
+  <data name="Provenance.TrustAnchors" xml:space="preserve"><value>Trust anchors PEM path (optional)</value></data>
+  <data name="Provenance.AllowedList" xml:space="preserve"><value>Allowed certificates PEM path (optional)</value></data>
+  <data name="Provenance.CheckProvider" xml:space="preserve"><value>Check verifier</value></data>
 </root>

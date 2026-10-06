@@ -12,6 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" />
     <ProjectReference Include="../OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj" />
+    <ProjectReference Include="../OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj" />
     <ProjectReference Include="../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj" />
     <ProjectReference Include="../Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/DocumentInputs.cs" Link="Example/DocumentInputs.cs" />
@@ -23,5 +24,13 @@
     <Compile Include="../Examples/OfficeIMO.AI.Example/ArtifactWriter.cs" Link="Example/ArtifactWriter.cs" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/ExampleOptions.cs" Link="Example/ExampleOptions.cs" />
     <Compile Include="../Examples/OfficeIMO.AI.Example/ExampleExecution.cs" Link="Example/ExampleExecution.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/01.01a-INVOICE_ubl.xml" LogicalName="EvaluationInvoices.01.01a.xml" />
+    <EmbeddedResource Include="../OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/01.05a-INVOICE_ubl.xml" LogicalName="EvaluationInvoices.01.05a.xml" />
+    <None Include="../OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt" Link="EvaluationInvoices/LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Examples/OfficeIMO.AI.Example/EvaluationIndependentInvoiceCorpus.cs" Link="Example/EvaluationIndependentInvoiceCorpus.cs" />
   </ItemGroup>
 </Project>

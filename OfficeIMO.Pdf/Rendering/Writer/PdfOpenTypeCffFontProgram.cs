@@ -33,6 +33,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         Dictionary<string, TableRecord> tables,
         int cffTableLength) {
         _data = data.ToArray();
+        LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
         UnitsPerEm = unitsPerEm;
@@ -50,6 +51,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     private PdfOpenTypeCffFontProgram(PdfOpenTypeCffFontProgram source) {
         _data = source._data;
+        LineMetrics = source.LineMetrics;
         _tables = source._tables;
         FontName = source.FontName;
         UnitsPerEm = source.UnitsPerEm;
@@ -68,6 +70,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
 
     public string FontName { get; }
+    internal OfficeOpenTypeLineMetrics? LineMetrics { get; }
     public int UnitsPerEm { get; }
     public int[] FontBBox { get; }
     public int Ascent { get; }

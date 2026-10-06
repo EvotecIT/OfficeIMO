@@ -34,6 +34,8 @@ Structural inspection reports whether the carrier shape is safe to interpret or 
 
 `IOfficeProvenanceSignalDetector` is the extension point for vendor-specific watermark and disclosure services. Each result retains the provider name, signal type, and `Detected`, `NotDetected`, `Inconclusive`, `ProviderUnavailable`, or `Error` status. `OfficeProvenanceAssessment` combines those results with structural, verification, and Unicode evidence without producing an `IsAi` property.
 
+Detectors attach optional evidence with `result.WithMeasurement(measurement)`. `OfficeProvenanceSignalMeasurement` records the detector version, algorithm, named score, threshold, token count/tokenizer, configuration identifier and calibration reference. A SHA-256 text digest can bind a UTF-16 span to the full extracted UTF-8 text. Scores retain their provider-defined scale; they are not AI-authorship probabilities. Canonical v2 reports include these additive fields only when a provider supplies them.
+
 Providers can opt into cooperative cancellation through `ICancellableOfficeProvenanceSignalDetector` and `ICancellableOfficeProvenanceVerifier`. The original interfaces remain supported, so existing provider implementations do not need to change.
 
 ## Transformation and authoring
@@ -46,7 +48,9 @@ For signed Office, OpenDocument, EPUB, or PDF packages, use the owning package's
 
 ## Text integrity
 
-`OfficeTextIntegrityInspector` reports exact BOMs, zero-width characters, word joiners, bidi controls, Unicode tags, variation selectors, typographic spaces, selected invisible format characters, controls, and unpaired surrogates. Findings retain UTF-16 offsets and distinguish informational, context-dependent, and potentially dangerous values. `OfficeTextIntegrityCleaner` removes only findings explicitly selected by the caller and verifies that the selected code point still occupies the recorded range.
+`OfficeTextIntegrityInspector` reports exact BOMs, zero-width characters, word joiners, bidi controls, Unicode tags, variation selectors, typographic spaces, selected invisible format characters, controls, and unpaired surrogates. Findings retain UTF-16 offsets and distinguish informational, context-dependent, and potentially dangerous values. `OfficeTextIntegrityCleaner` removes only findings explicitly selected by the caller and verifies that the selected code point still occupies the recorded range. The recognized England, Scotland and Wales subdivision-flag tag sequences are context-dependent; arbitrary or incomplete tag payloads remain potentially dangerous. No finding alone proves a hidden watermark.
+
+Local Word assessment reuses the native content-safety traversal for body/table runs, headers, footers, footnotes, endnotes, comments and supported alternative text. Findings carry native node locations and node-relative UTF-16 offsets. Character, finding, package-entry and cumulative expanded-data limits apply. Text is assessed per node; formatting can split a sequence across nodes. These coordinates are evidence, not file-byte offsets or an automatic document-cleaning plan. This does not extend document-text assessment to Excel, PowerPoint or browser buffer workflows.
 
 ## Workflow and command-line orchestration
 
@@ -56,9 +60,20 @@ The workflow accepts only an extension registered to a named OfficeIMO format ow
 
 `OfficeIMO.Tool` exposes the same contract under `officeimo provenance`. CLI, Studio and browser downloads share `officeimo.provenance.result.v2`; batches use `officeimo.provenance.batch.v2`. Reports retain input/output hashes, exact evidence and diagnostics, coverage notes and explicit check states. `--format text` provides an interactive summary. `audit` performs read-only bounded file/directory assessment; `check` adds an explicit evidence policy and exit code 1 for selected findings. Both export NDJSON or SARIF 2.1.0. Execution failures retain the tool's shared error codes. Directory discovery excludes symbolic links and generated/VCS directories; it does not fetch websites or read Git index contents.
 
-Studio's File origin and text integrity workbench operates on local files, presents assessment and carrier-copy results, rejects source changes after review, respects live output ownership and exports the canonical report. It does not configure optional providers or operate on provider-only storage locations.
+Studio's File origin and text integrity workbench operates on local files, presents assessment and carrier-copy results, rejects source changes after review, respects live output ownership and exports the canonical report. On desktop, its optional C2PA panel accepts a trusted executable and local trust/allowed-list paths, checks readiness, and presents verification status and findings. Settings last for the session; changing them invalidates the reviewed result. Mobile working-copy hosts do not execute external tools. Provider-only storage locations remain unsupported.
 
-Provider-backed verification and signal detection are dependency-injected workflow services. The default CLI does not bundle credentials, trust material, vendor APIs, or a `c2patool` executable, so its `assess` command reports structural and text-integrity evidence unless a host composes additional providers.
+Provider-backed verification and signal detection are dependency-injected workflow services. The default CLI does not bundle credentials, trust material, vendor APIs, or a `c2patool` executable, so its `assess` command reports structural and text-integrity evidence unless `--c2patool` is explicitly configured. Custom signal detectors still require host composition.
+
+### Configure a verifier
+
+```sh
+officeimo provenance doctor --c2patool /path/to/c2patool
+officeimo provenance assess photo.jpg --c2patool /path/to/c2patool --trust-anchors /path/to/anchors.pem
+```
+
+`doctor` executes the selected tool with `--version` and checks process containment. It does not inspect an asset or validate a trust list. `assess` and `batch assess` accept `--c2patool`, optional `--trust-anchors` and `--allowed-list` PEM paths, and `--verification-timeout-seconds` (1–300, default 30). They keep network resolution disabled. Configure only an executable you trust. A recognized credential can still be `Untrusted` when its signer is outside the configured trust policy. A provider error or unavailable tool is not evidence that credentials are absent.
+
+The standalone CLI archive configuration is in [Build/Tool](../Build/Tool/README.md). The NuGet tool remains available; neither distribution bundles c2patool or detector credentials.
 
 ## Memory-only and browser hosts
 
@@ -94,3 +109,7 @@ The browser provenance tool processes files locally in the tab. Its host limits 
 - BMFF/AVIF, audio, and video remain an intentional product boundary. Provenance does not acquire standalone parsers for those containers. A format becomes eligible only after an OfficeIMO owner supports its required read, preserve, write, reopen, and carrier-validation contract. The signer commits only formats that Core can independently confirm after the installed tool signs them.
 
 The browser's separate text review uses `OfficeTextIntegrityReview` and accepts strict UTF-8 or BOM-declared UTF-16/32. Its limits are 1 MiB encoded text, 262,144 UTF-16 code units and 512 findings. Users select exact occurrences; export preserves the source encoding, BOM, line endings and unselected characters. Pasted text exports as UTF-8 without a BOM. Text reports use `officeimo.text-integrity.result.v1` and bind findings/selections to source hashes. This is Unicode inspection and selected-character cleanup, not statistical watermark removal.
+
+## Independent corpus validation
+
+[Build/ProvenanceInterop](../Build/ProvenanceInterop/README.md) provides an opt-in, hash-pinned C2PA public-corpus check against a host-supplied c2patool. It checks unmarked, signed and tampered JPEG files, then reopens strict-removal output, verifies credential absence through c2patool, and compares decoded pixels. The shared structural reader supports paired embedded-file assertion boxes, C2PA description salts, and repeated JPEG continuation headers. This is a bounded legacy-JPEG profile; broader producer versions, trust configurations and file families need their own evidence.

@@ -25,7 +25,7 @@ AdfValidationResult validation = document.Validate(new AdfValidationOptions {
 }, cancellationToken);
 ```
 
-The package embeds the unmodified ADF schema from `@atlaskit/adf-schema` 57.6.21. Its [provenance and license notices](THIRD-PARTY-NOTICES.md) identify the source and checksum. Validation checks required node/mark properties, attributes, child alternatives, and schema limits without another runtime package. A rule-budget exhaustion returns an invalid result with `ADF_SCHEMA_LIMIT`. Node graphs reject cycles and null entries and are bounded to 64 levels and one million nodes and marks.
+The package embeds the unmodified ADF schema from `@atlaskit/adf-schema` 57.6.21. Its [provenance and license notices](THIRD-PARTY-NOTICES.md) identify the source and checksum. Validation checks required node/mark properties, attributes, child alternatives, and schema limits without another runtime package. A rule-budget exhaustion returns an invalid result with `ADF_SCHEMA_LIMIT`. Both profiles report invalid graph structure and resource-limit violations without recursing into unsafe graphs.
 
 Schema validity and acceptance by a specific Jira or Confluence API are separate contracts. Product settings and destination capabilities can impose further restrictions.
 
@@ -53,13 +53,29 @@ The policy copies its lists and compares names case-sensitively. Null lists leav
 
 Caller lists describe the destination capabilities the caller has qualified. They do not prove current Jira or Confluence API acceptance, attribute-specific product rules, permissions, or tenant configuration.
 
+## Bound processing
+
+`AdfProcessingOptions` bounds JSON input, model nodes/marks, nesting, text and output. `AdfConversionOptions` and `AdfValidationOptions` inherit those limits. Defaults allow 16 MiB input, 64 node levels, 100,000 nodes/marks, 16 Mi characters of text, 32 MiB JSON output and 32 Mi characters of Markdown/HTML output. Explicit limits support larger trusted documents.
+
+```csharp
+var limits = new AdfProcessingOptions { MaxInputBytes = 2 * 1024 * 1024 };
+AdfDocument bounded = AdfDocument.Parse(adfJson, limits);
+string json = bounded.ToJson(limits);
+```
+
+Writing and conversion reject limit violations without returning truncated content. Validation reports graph-limit failures as invalid results. Cycles and null nodes/marks are rejected. Markdown object input and resolver results are checked for depth, object count and cycles before recursive rendering. Cancellation is observed during traversal, validation and JSON writing; synchronous Markdown/HTML parsing is checked before and after its calls. The two-argument validation overload honors both its token and `AdfValidationOptions.CancellationToken`.
+
+Native `content`, `marks` and `attrs` properties retain explicit empty values through JSON round trips. Typed nodes with required content, including empty table rows, emit the required array. The [opt-in schema runner](../Build/StructuredFormatVerification/README.md) compares native output and both validation profiles against independent pinned validators.
+
 ## Project visible content with fidelity evidence
 
 Mentions, emoji, status/date nodes, cards, media, expand/panel/decision containers, nested tasks, and rich table cells have visible projections where the target model can carry them. The library uses local labels and metadata and does not fetch card, media, or mention resources.
 
 Known nodes also report attributes, marks, and extension properties omitted or approximated by projection. Inspect `Report.Diagnostics`, or call `Report.RequireNoLoss()` to reject a lossy result. Retaining data in native JSON does not make a Markdown or HTML projection lossless.
 
-Markdown-to-ADF conversion uses parent-aware output. Tasks and other blocks that are invalid in their destination context receive a visible fallback with a diagnostic. Task IDs are deterministic for identical input; callers can supply a unique-ID policy:
+Adjacent styled text retains its text and marks through Markdown round trips; empty inline HTML comments separate delimiter runs when needed. Standalone Markdown images become external `mediaSingle` nodes. Inline images retain linked alternate text and report lost image semantics. Nested task lists retain hierarchy and completion state.
+
+Markdown-to-ADF conversion uses parent-aware output. Tasks and other blocks that are invalid in their destination context receive a visible fallback with a diagnostic. Task IDs derive from bounded converted task-list content and its source paths, after graph checks. Changing unrelated content at the same source paths does not change task IDs; callers can supply a unique-ID policy:
 
 ```csharp
 var options = new AdfConversionOptions {

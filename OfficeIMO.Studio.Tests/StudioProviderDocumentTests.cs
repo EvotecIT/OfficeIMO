@@ -263,6 +263,31 @@ public sealed class StudioProviderDocumentTests {
     }
 
     [Fact]
+    public async Task InvalidNativeBookmarkNeverFallsBackToAnAccessibleLocalFile() {
+        using var root = new TestDirectory();
+        string path = System.IO.Path.Combine(root.Path, "source.pdf");
+        File.WriteAllBytes(path, CreatePdf());
+        using var storage = new StudioStorageAccess();
+        storage.Remember(new(path, "source.pdf", "officeimo.mac.v1:invalid"));
+        Exception? error = await Record.ExceptionAsync(() => storage.ReadSnapshotAsync(path, default));
+        Assert.True(error is IOException or PlatformNotSupportedException);
+        Assert.NotEmpty(File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public async Task CancellationDuringOpenDisposesTheReturnedProviderStream() {
+        using var storage = new StudioStorageAccess();
+        using var cancellation = new CancellationTokenSource();
+        var file = new TestStorageFile("content://documents/cancelled", CreatePdf());
+        string location = await storage.RegisterAsync(file.Item, default);
+        file.BeforeRead = cancellation.Cancel;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => storage.OpenReadAsync(location, cancellation.Token));
+        Assert.Equal(1, file.ClosedReads);
+        storage.Dispose();
+        Assert.Equal(1, file.Disposals);
+    }
+
+    [Fact]
     public async Task ProtectedAndExtractedCopiesUseProviderPublicationWithoutChangingSource() {
         using var root = new TestDirectory();
         using var storage = new StudioStorageAccess();

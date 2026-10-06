@@ -284,9 +284,8 @@ internal static class OfficeSvgPathDataParser {
 
         internal bool TryReadFlag(out bool flag) {
             flag = false;
-            SkipSeparators();
-            if (_index >= _value.Length || _value[_index] is not ('0' or '1')) return false;
-            flag = _value[_index++] == '1';
+            if (!TryReadNumber(out double value) || (value != 0D && value != 1D)) return false;
+            flag = value == 1D;
             return true;
         }
 

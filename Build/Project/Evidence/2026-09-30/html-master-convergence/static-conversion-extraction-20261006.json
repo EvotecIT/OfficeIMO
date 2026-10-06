@@ -1,0 +1,302 @@
+{
+  "base": "d32b576f495fe962ff497b4af22c408590e14d25",
+  "selectedCheckpoint": "e6b2ff24c2478d343d36249649b833f207e875c8",
+  "scope": "Static HTML renderer and canonical conversion jobs over released retained providers; no interactive runtime or worker graph. Accepted current master owner behavior is preserved through explicit three-way reconciliation.",
+  "implementation": [
+    "print, screen-media and screen-snapshot profiles through HtmlConversionDocument/HtmlRenderRequest and Tool",
+    "bounded virtual MHTML/ZIP resources, deadline and truthful loss reporting",
+    "static layout, semantic source order, math/font, clipping and overflow contracts",
+    "Core ZIP/SVG/shadow and PDF tracking/ActualText/appearance prerequisites",
+    "native adapter caption/image/run ownership corrections"
+  ],
+  "proof": {
+    "htmlNet8": {
+      "passed": 4514,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "3574cd89effbbcf09e8cd178e1f83bfed46226ed",
+      "htmlOwnerUnchanged": true
+    },
+    "htmlNet10": {
+      "passed": 4514,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "3574cd89effbbcf09e8cd178e1f83bfed46226ed",
+      "htmlOwnerUnchanged": true
+    },
+    "drawingNet10": {
+      "passed": 3443,
+      "failed": 0,
+      "skipped": 4
+    },
+    "toolNet10": {
+      "passed": 287,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pdfFocusedNet10": {
+      "passed": 209,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pdfNet8": {
+      "passed": 9155,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "743e796c7136ccd02e57180b1e117ec187b5002a",
+      "measurementCategoryExcluded": true,
+      "rasterizer": "Poppler26.05.0",
+      "baselineUpdateMode": false
+    },
+    "pdfNet10": {
+      "passed": 9155,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "743e796c7136ccd02e57180b1e117ec187b5002a",
+      "measurementCategoryExcluded": true,
+      "rasterizer": "Poppler26.05.0",
+      "baselineUpdateMode": false
+    },
+    "packages": {
+      "count": 19,
+      "frameworks": [
+        "netstandard2.0",
+        "net472",
+        "net8.0",
+        "net10.0"
+      ],
+      "freshPublicConsumersPerFramework": 2,
+      "executedFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "feedInstalledSourceAndLoadedDllHashesVerified": true,
+      "coreExternalRuntimeDependencies": 0,
+      "nativeWindowsExecution": "Requires current-head hosted CI; Mac cross-target packs are not native proof."
+    },
+    "profiles": {
+      "validator": "veraPDF1.30.2",
+      "machineChecks": [
+        {
+          "label": "a3b",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 2125,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-a3b",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 2139,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-ua1",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 553,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "unlinked-ua1",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 530,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "formula-free-ua1",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 531,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        }
+      ],
+      "linkedMathMlAttachmentsPreserved": true,
+      "standaloneUa1MathMlRejected": "Effective PDF2.0 for structure-associated files conflicts with UA1/PDF1.7. Formula-free UA1 control passes.",
+      "manualAccessibility": false
+    },
+    "frozenApiTool": {
+      "cases": 3,
+      "profiles": 3,
+      "routes": 9,
+      "pages": 97,
+      "apiToolBytesEqual": true,
+      "rawUtf8LfPerPageTextEqual": true,
+      "fullCharactersTokensAndDecodedImagesPerPagePreserved": true,
+      "outputsByteIdenticalToE3": true,
+      "allOperationsRetainHasLoss": true,
+      "annotationChanges": "Unique URI targets and existing occurrences retained; additional painted regions gain annotations. See explicit observations, not an all-geometry-equal claim.",
+      "diagnostics": "Additional SvgContentUnsupported feature1 observations remain classified; exact unsupported declaration not identified for each occurrence.",
+      "pagePaint": {
+        "identical": 91,
+        "changed": 6,
+        "classification": "Small first-page NASA navigation disclosure circles only; six paired renders inspected. No full browser appearance claim."
+      }
+    },
+    "staticCorpus": {
+      "cases": 18,
+      "directArtifacts": 104,
+      "directByteIdenticalToAcceptedB40": 104,
+      "pdfArtifacts": 36,
+      "pagesCountTextFormulasLinksDecodedAttachmentsPreserved": true,
+      "externalRasterPages": 46,
+      "allExternalPixelsEqual": true,
+      "screenNormalizedHashesPreserved": true,
+      "screenObserver": "Exact raw input equality to e3 canonical-normalizer receipts; earlier raw-vs-normalized observer comparison retained."
+    },
+    "taggedStructure": {
+      "pagedColumnNotes": 2,
+      "uniqueIdsAndIdTreeReferencesVerified": true,
+      "freshPackedPublicControls": 3,
+      "logicalMcids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "multiwordLinkAnnotations": 1,
+      "interleavedLinkAnnotations": 2,
+      "separateColumnLinkParents": 2,
+      "review": "One fresh scoped full and targeted confirmation complete; word-owned whitespace refinement directly tested and broad suites passed."
+    },
+    "scaledWidgets": {
+      "publicPackedControls": 16,
+      "equivalentAuthoredAppearanceRasterPairs": 8,
+      "allPixelsEqual": true,
+      "originalNonEquivalentPaddingControlRetained": true
+    }
+  },
+  "originalFailuresRetained": [
+    "initial prerequisite compile failures",
+    "first combined HTML 4492 pass/10 fail",
+    "first focused PDF 208 pass/1 fail (AAB vs AB)",
+    "Matched-rasterizer stale baselines: isolated prior/current controls were pixel-identical; baselines refreshed without tolerance changes",
+    "Packed A3b/combined profile prerequisites omitted during extraction, restored precisely and machine-validated",
+    "Column-note IDTree and linked-child recovery; before13failures, recovered serialization reviewed",
+    "Shared-contents interleaved and cross-parent links before3failures; owned multiword spaces reconciled without unrelated-content coalescing",
+    "Private public consumer initially used an internal convenience API; corrected to supported Content builder/options",
+    "Naive raw-vs-normalized screen observer and paged-note expectation on screen composition corrected; original observations retained"
+  ],
+  "remaining": [
+    "Current-head supported-platform CI and delayed complete feedback",
+    "Normal PR merge and unique-proof-preserving cleanup",
+    "Deliberate optional-runtime source reconciliation and qualified one-branch adoption",
+    "Broader H10/native/resource/all-intent and unchanged platform timing acceptance"
+  ],
+  "historicalEvidence": "321 already-referenced HTML evidence files are preserved to keep owner documentation links resolvable. They are historical evidence, not current extraction qualification.",
+  "broaderLimits": "No browser parity, native-app/manual accessibility parity or timing acceptance is claimed. Prior timing failures remain open; ceilings are unchanged.",
+  "retainedEvidence": "Ignore/StaticConversionExtractionQualification",
+  "testReceipts": [
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/drawing-net10.trx",
+      "sha256": "84cbbe30a04759efef21634358df53d305c9d883fdef4d2ffdf28e1f1ed8fc4a"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/html-final-net10.trx",
+      "sha256": "97555899e7560778b2dd90ee758e94fd8ea1cc8de0ea7ac87880d199bcebdf67"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/html-final-net8.trx",
+      "sha256": "e06352957661c61bcd37fde30b4f628c4addeb5d576b4c459b7978925110b813"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/pdf-focused-final-net10.trx",
+      "sha256": "463174ca80ee79e2fc686e07ba99a04b68d700748e815238cfc212b3ab3e0b67"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/tool-net10.trx",
+      "sha256": "d550fa37b274cfdf79a803a8de86e3d4b730ca904739c61c33e0e84a76e68647"
+    }
+  ],
+  "qualifiedProductSource": "743e796c7136ccd02e57180b1e117ec187b5002a",
+  "prerequisiteImageNormalizationSource": "9d25575e4c23ddf9b455319e371958b97bd31e30",
+  "qualificationCaveat": "Current local source, four-target packs and fresh .NET8/.NET10 consumers are qualified for selected static profiles. Current supported-platform CI, delayed feedback and merge remain required; broader timing, H10 and manual accessibility are separate open criteria.",
+  "finalEvidenceReceipts": [
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/final-pdf-743e796c7/net10.0.trx",
+      "sha256": "ce4589a4d222b3e8f481267e13a7427406567f3f68e49b9b4470438a08d0b57e"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/final-pdf-743e796c7/net8.0.trx",
+      "sha256": "cc2d37ba669d728dcc0093893141b0334f839c7d64be3fda8c9bd476e3e9fe49"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/packages-clean-743e796c7/origin-hash-verification.json",
+      "sha256": "4a346474ae77309494f7634da3c271a84d37569dff8ddaf6e85e3a5fec32500c"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/packed-profiles-743e796c7/machine-summary.json",
+      "sha256": "e12447b8583f757988b07584fe27a08e499865bd364150114a4d4927faee334b"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/packed-profiles-743e796c7/origin-verification.json",
+      "sha256": "eaf1fe9436d19e2410e9ae73b0f5755f1872fe564af7b976e993f92c720e404f"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/corpus-clean-743e796c7/independent-comparison.json",
+      "sha256": "cf7c9a9627b52f731e2f835c7418280a88384a799c5afc0699921e922db8350a"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/independent-static-comparison.json",
+      "sha256": "8f9669f95e71496890bc6fa4102c4d942223eeffe42bc2c06080610320ef6518"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/external-page-paint-comparison.json",
+      "sha256": "5dd82a9d82a3170fcd4bff2e1e7a3833f232368aea4a621226c66ae28b38738e"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/screen-text-observer-final.json",
+      "sha256": "9035196ae53c0e39661604ec5b9516a01ac32e666860f63f96b841470f825034"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/independent-note-idtree-observations.json",
+      "sha256": "0700a15e3c22a4cf17d5d3ffa14585b2d839a5617cf63c5a63d41d568126b9ee"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/public-link-structure-743e796c7/independent-structure-observations.json",
+      "sha256": "8a3aba0911dce7b65952218596f05b7118a0d330f3878adf3ea5524b41544317"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/review-boundaries.json",
+      "sha256": "a5684f12ddf83a3b1aa2893026503cf3299e0d28b54fea506cf12183dd4b36a6"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/corpus-clean-743e796c7/paint/appearance-classification.json",
+      "sha256": "c6a2a53a78ac90759c4ad10492844fd7db8909be41bb56970f4c3217962a0b38"
+    }
+  ],
+  "publicationAssessment": {
+    "usefulOutcome": "One bounded static HTML/MHTML/ZIP conversion contract reaches PDF/SVG/raster and native projections through owning adapters and thin API/Tool surfaces.",
+    "ownership": "OfficeIMO owns renderer/layout/pagination/resources/encoding; approved AngleSharp/Css provide parsing and style, optional Js/Jint are excluded from this shipped graph.",
+    "api": "Explicit conversion document/render request/results with migration notes; superseded paths removed instead of compatibility bridges.",
+    "dependencyImpact": "Existing approved retained providers; Core zero external runtime dependencies; no browser executable or comparison tool enters product artifacts.",
+    "qualification": "Local selected profile proof complete; native platform CI/delayed feedback/merge still required; broader H10/timing/manual accessibility remain open."
+  }
+}

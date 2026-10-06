@@ -4,11 +4,6 @@ internal sealed class HtmlRenderOperationBudget {
     internal long LayoutOperations { get; private set; }
     internal long BackgroundImageTiles { get; private set; }
 
-    internal void Reset() {
-        LayoutOperations = 0L;
-        BackgroundImageTiles = 0L;
-    }
-
     internal void ChargeLayoutOperations(long count, int limit, string source) {
         if (count < 0L || LayoutOperations > limit - count) {
             LayoutOperations = (long)limit + 1L;

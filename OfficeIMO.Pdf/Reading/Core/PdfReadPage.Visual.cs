@@ -790,8 +790,6 @@ public sealed partial class PdfReadPage {
 
         clip = drawingClip;
         if (allowRedundantPageClipRemoval &&
-            x >= 0D && y >= 0D &&
-            x + shape.Width <= drawing.Width && y + shape.Height <= drawing.Height &&
             clip.IsRectangle &&
             CanDropRedundantClipForEditableShape(shape) &&
             ContainsShapeBounds(clip, shape, x, y)) {

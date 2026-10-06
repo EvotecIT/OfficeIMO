@@ -22,6 +22,8 @@ internal static class OfficeWorkflowPathIdentity {
 
     internal static string Normalize(string path) => OfficePathIdentity.Normalize(path);
 
+    internal static string NormalizeDirectoryEntry(string path) => OfficePathIdentity.NormalizeDirectoryEntry(path);
+
     internal static string Normalize(string path, bool caseInsensitive) =>
         OfficePathIdentity.Normalize(path, caseInsensitive);
 

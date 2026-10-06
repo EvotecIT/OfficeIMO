@@ -4,6 +4,39 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailStreamingSafetyTests {
+    [Theory]
+    [InlineData(65535, false)]
+    [InlineData(65536, false)]
+    [InlineData(98305, true)]
+    public void LargeBase64AttachmentsKeepPayloadAcrossDecodeBlocksAndRecoveredPadding(int length, bool omitPadding) {
+        byte[] expected = Enumerable.Range(0, length).Select(value => (byte)value).ToArray();
+        string encoded = Convert.ToBase64String(expected);
+        if (omitPadding) encoded = encoded.TrimEnd('=');
+        using EmailReadResult result = new EmailDocumentReader().ReadStreaming(new MemoryStream(Base64Artifact(encoded)), "blocks.eml");
+        using Stream input = Assert.Single(result.Document.Attachments).OpenContentStream();
+        using var output = new MemoryStream();
+        input.CopyTo(output);
+        Assert.Equal(expected, output.ToArray());
+        Assert.Equal(omitPadding, result.Diagnostics.Any(diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_PADDING_RECOVERED"));
+        Assert.False(result.HasErrors);
+    }
+
+    [Fact]
+    public void InvalidBase64AfterAFullBlockPreservesTheEntireUndecodedPayload() {
+        string encoded = new string('A', 90000) + "!AAA";
+        using EmailReadResult result = new EmailDocumentReader().ReadStreaming(new MemoryStream(Base64Artifact(encoded)), "late-invalid.eml");
+        using Stream input = Assert.Single(result.Document.Attachments).OpenContentStream();
+        using var reader = new StreamReader(input, Encoding.ASCII);
+        Assert.Equal(encoded, reader.ReadToEnd());
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID");
+    }
+
+    private static byte[] Base64Artifact(string payload) => Encoding.ASCII.GetBytes(
+        "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=blocks\r\n\r\n" +
+        "--blocks\r\nContent-Type: application/octet-stream; name=payload.bin\r\n" +
+        "Content-Disposition: attachment; filename=payload.bin\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
+        payload + "\r\n--blocks--\r\n");
+
 #if NET8_0_OR_GREATER
     [Fact]
     public void EmailTemporaryStorageCreatesOwnerOnlyUnixDirectories() {

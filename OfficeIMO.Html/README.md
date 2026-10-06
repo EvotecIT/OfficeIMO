@@ -426,9 +426,9 @@ Inline SVG without intrinsic dimensions uses its resolved painted object size as
 vector viewport, including `object-fit` sizing and cropping. The element's CSS
 background and the SVG's supported strokes remain in the same retained scene
 for screen, print, and screen-to-page output. The
-[named-page evidence](../Build/Project/Evidence/2026-09-19/html-svg-css-viewport/README.md)
-records the qualified reference and the remaining browser-default typography and
-body-margin differences on adjacent SVG text pages.
+[HTML support matrix](../Docs/officeimo.html-support-matrix.md) lists supported
+SVG capabilities and known limits. Font and page defaults can change geometry
+across these output intents.
 When a caller supplies an SVG raster codec, inline SVG reaches that fallback only
 if the shared SVG safety predicate accepts its authored dimensions and resource
 work. Rejected inline content receives an omission diagnostic.
@@ -707,6 +707,11 @@ foreach (HtmlResourceSessionEntry resource in session.Resources) {
 ```
 
 The session owns one immutable policy and limit snapshot for the operation. It deduplicates canonical requests, validates MIME types, enforces request/count/per-resource/total-byte/import-depth budgets, and records accepted resource digests. Synchronous rendering uses the configured synchronous package resolver; application/network resolution remains an explicit asynchronous boundary.
+
+When an implicit section takes its title from a heading, `section.TitleHeading`
+retains that heading's level, rich runs, style and source location. It remains
+separate from `section.Blocks`, which contains the section body. If the heading
+already belongs to the body, `TitleHeading` is null; read it from `Blocks`.
 
 ## Semantic envelope v2 and fidelity scoring
 

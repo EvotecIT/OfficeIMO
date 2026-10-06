@@ -1,6 +1,17 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static PdfFormFieldStyle ScaleFormWidgetStyle(PdfFormFieldStyle style, double scale) {
+        if (scale == 1D) return style;
+        PdfFormFieldStyle scaled = style.Clone();
+        scaled.BorderWidth *= scale;
+        scaled.CornerRadius *= scale;
+        if (scaled.BorderDashPattern != null) {
+            scaled.BorderDashPattern = scaled.BorderDashPattern.Select(value => value * scale).ToArray();
+        }
+        return scaled;
+    }
+
     private static readonly char[] FormTextFieldLineSeparators = { '\n' };
     private static readonly double[] FormFieldDefaultBorderDashPattern = { 3D };
 
@@ -90,8 +101,6 @@ internal static partial class PdfWriter {
         out IReadOnlyList<string> selectedValues,
         out IReadOnlyList<int> selectedIndices,
         out int? topIndex) {
-        double fontSize = field.AppearanceScale == 1D ? field.FontSize : field.AppearanceSourceFontSize;
-        PdfFormFieldStyle style = field.AppearanceScale == 1D ? field.Style : field.AppearanceSourceStyle ?? field.Style;
         options = field.ChoiceOptions.Count > 0
             ? field.ChoiceOptions
             : field.Options.Select(option => new PdfFormFieldOption(option, option)).ToList();
@@ -103,8 +112,8 @@ internal static partial class PdfWriter {
                 width,
                 height,
                 ResolveChoiceAppearanceValue(field),
-                fontSize,
-                style,
+                field.FontSize,
+                field.Style,
                 formOptions,
                 ensureFont,
                 out fontResources);
@@ -112,7 +121,8 @@ internal static partial class PdfWriter {
 
         IReadOnlyList<int> resolvedIndices = ResolveChoiceSelectedIndices(field, options);
         (selectedIndices, selectedValues) = SortChoiceSelections(resolvedIndices, field.Values);
-        double rowHeight = Math.Max(fontSize + 2D, fontSize * 1.2D);
+        PdfFormFieldStyle style = field.Style;
+        double rowHeight = Math.Max(field.FontSize + 2D, field.FontSize * 1.2D);
         int visibleRows = Math.Max(1, (int)Math.Floor(Math.Max(rowHeight, height - 4D) / rowHeight));
         int maximumTopIndex = Math.Max(0, options.Count - visibleRows);
         topIndex = selectedIndices.Count == 0 ? 0 : Math.Min(selectedIndices[0], maximumTopIndex);
@@ -141,9 +151,9 @@ internal static partial class PdfWriter {
                 textStyle.TextColor = PdfColor.White;
             }
 
-            IReadOnlyList<RichSeg> segments = BuildFormAppearanceSegments(options[optionIndex].DisplayText, fontSize, textStyle, formOptions);
+            IReadOnlyList<RichSeg> segments = BuildFormAppearanceSegments(options[optionIndex].DisplayText, field.FontSize, textStyle, formOptions);
             EnsureCanWriteFormAppearanceLine(segments, formOptions);
-            double baseline = rowBottom + Math.Max(2D, (rowHeight - fontSize) / 2D + fontSize * 0.72D);
+            double baseline = rowBottom + Math.Max(2D, (rowHeight - field.FontSize) / 2D + field.FontSize * 0.72D);
             AppendFormAppearanceSegments(sb, segments, 3D, baseline, textStyle.TextColor, formOptions, ensureFont, resources);
         }
 
@@ -151,9 +161,6 @@ internal static partial class PdfWriter {
         fontResources = resources;
         return sb.ToString();
     }
-
-    private static string ScaleFormAppearanceContent(string content, double scale) =>
-        scale == 1D ? content : "q\n" + FormatAppearanceNumber(scale) + " 0 0 " + FormatAppearanceNumber(scale) + " 0 0 cm\n" + content + "Q\n";
 
     private static (IReadOnlyList<int> Indices, IReadOnlyList<string> Values) SortChoiceSelections(
         IReadOnlyList<int> indices,

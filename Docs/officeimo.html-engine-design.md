@@ -11,8 +11,8 @@ AngleSharp.Css supply HTML/DOM and CSS capabilities; AngleSharp.Js supplies scri
 bindings; Jint supplies JavaScript execution. OfficeIMO owns its public document,
 resource, rendering, conversion and host contracts. Reusable provider defects and
 extension points belong upstream. Temporary forks carry only necessary, tested
-deltas until a qualified upstream release supplies the contract. The [provider
-development guide](../External/README.md) defines source setup and ownership.
+deltas until a qualified upstream release supplies the contract. OfficeIMO
+provider adapters own the integration contract and identify the effective provider.
 
 There is no planned AngleSharp parser replacement, general CSS-engine rewrite,
 JavaScript interpreter or dependency-free browser milestone. Existing owned syntax
@@ -333,8 +333,7 @@ retirement. Jint supplies the per-job host eligibility hook used to stop queued
 work after a realm retires. These responsibilities remain in their existing
 owners rather than being copied into a second DOM or script engine.
 
-The [runtime contract](../OfficeIMO.Html.Runtime/README.md) states the current
-limits: auxiliary realms belong to the browsing session and survive root
+The optional runtime contract defines separate realm and document lifetimes: auxiliary realms belong to the browsing session and survive root
 replacement, while AngleSharp incrementally parses script-created input streams.
 OfficeIMO forwards retained opener references to the current root and checks
 origin access. Reverse about-child opening now follows the HTML URL and

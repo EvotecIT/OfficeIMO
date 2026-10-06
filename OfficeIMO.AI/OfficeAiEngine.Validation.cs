@@ -9,12 +9,15 @@ public sealed partial class OfficeAiEngine {
     private sealed record ParsedBatch(IReadOnlyList<OfficeAiClaim> Claims, IReadOnlyList<OfficeAiField> Fields,
         IReadOnlyList<OfficeAiBlock> Blocks, IReadOnlyList<OfficeAiTable> Tables);
 
-    private static ParsedBatch Parse(OfficeAiExecutionResponse response, Batch batch, OfficeAiRequest request, OfficeAiDocument document) {
+    private static ParsedBatch Parse(OfficeAiExecutionResponse response, Batch batch, OfficeAiRequest request, OfficeAiDocument document,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (response is null || !response.IsComplete || string.IsNullOrWhiteSpace(response.Json)
             || response.Json.Length > request.Limits.MaxResponseCharacters)
             throw Invalid();
         try {
             using JsonDocument json = JsonDocument.Parse(response.Json, new JsonDocumentOptions { MaxDepth = 12 });
+            cancellationToken.ThrowIfCancellationRequested();
             JsonElement root = json.RootElement;
             CheckObject(root, "claims", "fields", "blocks", "tables");
             int maximum = Math.Min(200, request.Limits.MaxResultItems);
@@ -30,11 +33,13 @@ public sealed partial class OfficeAiEngine {
                 || (request.Operation != OfficeAiOperation.Parse && (blockItems.Length != 0 || tableItems.Length != 0))) throw Invalid();
             var claims = new List<OfficeAiClaim>();
             foreach (JsonElement item in claimItems) {
+                cancellationToken.ThrowIfCancellationRequested();
                 CheckObject(item, "text", "evidence");
-                claims.Add(new(Text(item.GetProperty("text")), Citations(item.GetProperty("evidence"), batch, required: true)));
+                claims.Add(new(Text(item.GetProperty("text")), Citations(item.GetProperty("evidence"), batch, true, cancellationToken)));
             }
             var fields = new List<OfficeAiField>();
             for (int fieldIndex = 0; fieldIndex < request.Fields.Count; fieldIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 OfficeAiFieldDefinition definition = request.Fields[fieldIndex];
                 string name = definition.Name;
                 JsonElement item = fieldItems.GetProperty(FieldKey(fieldIndex));
@@ -45,7 +50,7 @@ public sealed partial class OfficeAiEngine {
                 };
                 JsonElement rawElement = item.GetProperty("rawValue");
                 string? raw = rawElement.ValueKind == JsonValueKind.Null ? null : Text(rawElement);
-                IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, fieldStatus != OfficeAiFieldStatus.Missing);
+                IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, fieldStatus != OfficeAiFieldStatus.Missing, cancellationToken);
                 if (fieldStatus == OfficeAiFieldStatus.Missing && (raw is not null || citations.Count != 0)) throw Invalid();
                 if (fieldStatus == OfficeAiFieldStatus.Present && raw is null) throw Invalid();
                 // A text-only field value must actually occur in its quoted source. Visual readings stay review candidates.
@@ -56,14 +61,14 @@ public sealed partial class OfficeAiEngine {
                     fieldStatus = OfficeAiFieldStatus.Invalid;
                 Func<string, int, int, bool>? isComplete = definition.Type switch {
                     OfficeAiFieldType.Decimal or OfficeAiFieldType.Integer => (source, start, length) =>
-                        IsCompleteNumberAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).NumberFormat),
+                        IsCompleteNumberAt(source, start, length, CultureInfo.GetCultureInfo(request.Culture).NumberFormat, cancellationToken),
                     OfficeAiFieldType.Boolean => IsCompleteWordValueAt,
                     OfficeAiFieldType.Date => (source, start, length) =>
                         IsCompleteDateAt(source, start, length, raw!, CultureInfo.GetCultureInfo(request.Culture).DateTimeFormat),
                     _ => null
                 };
                 if (fieldStatus == OfficeAiFieldStatus.Present && isComplete is not null
-                    && !TryValidateValueEvidence(raw!, citations, batch, document, isComplete, out citations)) {
+                    && !TryValidateValueEvidence(raw!, citations, batch, document, isComplete, cancellationToken, out citations)) {
                     fieldStatus = OfficeAiFieldStatus.Invalid;
                     normalized = null;
                 }
@@ -71,17 +76,19 @@ public sealed partial class OfficeAiEngine {
             }
             var blocks = new List<OfficeAiBlock>();
             foreach (JsonElement item in blockItems) {
+                cancellationToken.ThrowIfCancellationRequested();
                 CheckObject(item, "kind", "text", "evidence");
                 string kind = Text(item.GetProperty("kind"));
                 if (kind is not ("heading" or "paragraph" or "list-item" or "caption")) throw Invalid();
-                IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, required: true);
+                IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, true, cancellationToken);
                 blocks.Add(new(new OfficeDocumentBlock {
                     Id = batch.Request.RequestId + "-block-" + (blocks.Count + 1), Kind = kind,
-                    Text = Text(item.GetProperty("text")), Location = new ReaderLocation { Page = CommonPage(citations) }
+                    Text = Text(item.GetProperty("text")), Location = CommonLocation(citations)
                 }, citations));
             }
             var tables = new List<OfficeAiTable>();
             foreach (JsonElement item in tableItems) {
+                cancellationToken.ThrowIfCancellationRequested();
                 CheckObject(item, "title", "columns", "rows", "evidence");
                 string title = Text(item.GetProperty("title"), allowEmpty: true);
                 string[] columns = Items(item.GetProperty("columns"), request.Limits.MaxTableColumns).Select(value => Text(value, allowEmpty: true)).ToArray();
@@ -90,14 +97,15 @@ public sealed partial class OfficeAiEngine {
                 if ((long)rows.Length * columns.Length > request.Limits.MaxTableCells) throw Invalid();
                 var values = new List<IReadOnlyList<string>>();
                 foreach (JsonElement row in rows) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string[] cells = Items(row, request.Limits.MaxTableColumns).Select(value => Text(value, allowEmpty: true)).ToArray();
                     if (cells.Length != columns.Length) throw Invalid();
                     values.Add(Array.AsReadOnly(cells));
                 }
-                IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, required: true);
+                IReadOnlyList<OfficeAiCitation> citations = Citations(item.GetProperty("evidence"), batch, true, cancellationToken);
                 tables.Add(new(new ReaderTable { Title = title, Kind = "ai-proposed", Columns = Array.AsReadOnly(columns),
                     Rows = values.AsReadOnly(), TotalRowCount = values.Count,
-                    Location = new ReaderLocation { Page = CommonPage(citations) } }, citations));
+                    Location = CommonLocation(citations) }, citations));
             }
             return new(claims.AsReadOnly(), fields.AsReadOnly(), blocks.AsReadOnly(), tables.AsReadOnly());
         } catch (JsonException) { throw Invalid(); }
@@ -105,12 +113,13 @@ public sealed partial class OfficeAiEngine {
           catch (KeyNotFoundException) { throw Invalid(); }
     }
 
-    private static IReadOnlyList<OfficeAiCitation> Citations(JsonElement element, Batch batch, bool required) {
+    private static IReadOnlyList<OfficeAiCitation> Citations(JsonElement element, Batch batch, bool required, CancellationToken cancellationToken) {
         JsonElement[] items = Items(element, 32);
         if (required && items.Length == 0) throw Invalid();
         var citations = new List<OfficeAiCitation>();
         var unique = new HashSet<(string, string?)>();
         foreach (JsonElement item in items) {
+            cancellationToken.ThrowIfCancellationRequested();
             CheckObject(item, "id", "quote");
             string id = Text(item.GetProperty("id"));
             JsonElement quoteElement = item.GetProperty("quote");
@@ -120,7 +129,9 @@ public sealed partial class OfficeAiEngine {
                 if (quote is null || !observation.Text.Contains(quote, StringComparison.Ordinal)) throw Invalid();
                 EvidenceSlice slice = batch.Slices.TryGetValue(id, out var fragment) ? fragment : new(id, 0, observation.Text.Length);
                 citations.Add(new(slice.OriginalId, observation.Page, quote, true) {
-                    QuoteStart = slice.Start + observation.Text.IndexOf(quote, StringComparison.Ordinal)
+                    QuoteStart = slice.Start + observation.Text.IndexOf(quote, StringComparison.Ordinal),
+                    Recognition = observation.Recognition,
+                    SourceLocation = observation.SourceLocation
                 });
             } else if (batch.Images.TryGetValue(id, out OfficeAiImage? image)) {
                 if (quote is not null) throw Invalid();
@@ -130,9 +141,24 @@ public sealed partial class OfficeAiEngine {
         return citations.AsReadOnly();
     }
 
-    private static int? CommonPage(IReadOnlyList<OfficeAiCitation> citations) {
-        int? first = citations[0].Page;
-        return citations.All(citation => citation.Page == first) ? first : null;
+    private static ReaderLocation CommonLocation(IReadOnlyList<OfficeAiCitation> citations) {
+        OfficeAiCitation first = citations[0];
+        string? path = first.SourceLocation?.Path;
+        if (citations.Any(citation => citation.SourceLocation?.Path != path)) return new();
+        OfficeAiSourceLocation? location = first.SourceLocation;
+        bool samePage = citations.All(citation => citation.Page == first.Page);
+        bool sameSlide = citations.All(citation => citation.SourceLocation?.Slide == location?.Slide);
+        bool sameSheet = citations.All(citation => citation.SourceLocation?.Sheet == location?.Sheet);
+        bool sameTable = samePage && sameSlide && sameSheet
+            && citations.All(citation => citation.SourceLocation?.TableIndex == location?.TableIndex);
+        return new() {
+            Path = path,
+            Page = samePage ? first.Page : null,
+            Slide = sameSlide ? location?.Slide : null,
+            Sheet = sameSheet ? location?.Sheet : null,
+            A1Range = sameTable && citations.All(citation => citation.SourceLocation?.A1Range == location?.A1Range) ? location?.A1Range : null,
+            TableIndex = sameTable ? location?.TableIndex : null
+        };
     }
 
     private static void CheckObject(JsonElement item, params string[] names) {
@@ -164,7 +190,7 @@ public sealed partial class OfficeAiEngine {
             case OfficeAiFieldType.Decimal:
                 if (!ValidGrouping(raw, culture.NumberFormat) || !decimal.TryParse(raw,
                     NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowThousands,
-                    culture, out decimal number)) return false;
+                    culture, out decimal number) || !IsExactDecimal(raw, number, culture.NumberFormat)) return false;
                 normalized = number.ToString(CultureInfo.InvariantCulture); return true;
             case OfficeAiFieldType.Integer:
                 if (!ValidGrouping(raw, culture.NumberFormat)
@@ -202,9 +228,11 @@ public sealed partial class OfficeAiEngine {
         return groups[0].Length > 0 && (leadingMaximum == 0 || groups[0].Length <= leadingMaximum);
     }
 
-    private static IReadOnlyList<OfficeAiField> MergeFields(List<OfficeAiField> fields, IReadOnlyList<OfficeAiFieldDefinition> definitions) {
+    private static IReadOnlyList<OfficeAiField> MergeFields(List<OfficeAiField> fields, IReadOnlyList<OfficeAiFieldDefinition> definitions,
+        CancellationToken cancellationToken) {
         var results = new List<OfficeAiField>();
         foreach (OfficeAiFieldDefinition definition in definitions) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeAiField[] candidates = fields.Where(field => field.Name == definition.Name && field.Status != OfficeAiFieldStatus.Missing).ToArray();
             if (candidates.Length == 0) {
                 results.Add(new(definition.Name, definition.Type, OfficeAiFieldStatus.Missing, null, null, Array.Empty<OfficeAiCitation>()));

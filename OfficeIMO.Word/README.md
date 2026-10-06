@@ -43,6 +43,14 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
+
+```csharp
+using var incoming = WordDocument.Load("upload.docx", WordLoadOptions.UntrustedDefaults);
+```
+
+This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with documents containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
 `AsFluent()` wraps the same `WordDocument`; `End()` returns that document for
 direct object-model work:
 
@@ -56,6 +64,69 @@ document.AsFluent()
 
 document.Save();
 ```
+
+## Paragraph formatting and inheritance
+
+Use `LineSpacing = 360` with `LineSpacingRule = WordLineSpacingRule.Auto` for 1.5 lines. `LineSpacingPoints = 18` selects exact spacing when the paragraph has no explicit rule; declare `AtLeast` to use an 18-point minimum. Assigning `null` to `LineSpacingPoints` removes its numeric value and retains an authored rule in DOCX. Word applies a spacing rule only with a numeric value in the same declaration; otherwise the complete value/rule pair is inherited. Native DOC saving carries document-default spacing into root paragraph styles without changing the source styles.
+
+Paragraph pagination controls support explicit on, off, and inherited values. Use the nullable `*Override` properties to disable a setting enabled by a paragraph style, or set them to `null` to remove direct formatting:
+
+```csharp
+var paragraph = document.AddParagraph("Continue on this page");
+paragraph.PageBreakBeforeOverride = false;
+paragraph.KeepWithNextOverride = true;
+paragraph.KeepLinesTogetherOverride = null;
+paragraph.AvoidWidowAndOrphanOverride = true;
+paragraph.ContextualSpacing = true;
+paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
+```
+
+`WordParagraphStyleDefinition` exposes the same controls without the `Override` suffix. `ContextualSpacing`, `SuppressLineNumbers`, `SuppressAutoHyphens`, and `MirrorIndents` are nullable on both paragraphs and style definitions. These values survive DOCX and supported native DOC saves, including explicit false values. Existing Boolean pagination properties keep their previous behavior; use the nullable properties when style inheritance matters.
+
+`OutlineLevel` returns directly authored formatting. Word fixes the effective outline level of paragraphs using built-in Heading1–Heading9 styles to the corresponding heading level, even if a different direct value is stored.
+
+PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
+
+## Page sizes and orientation
+
+Set a section's paper preset and orientation through `PageSettings`:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+var page = document.Sections[0].PageSettings;
+page.PageSize = WordPageSize.Tabloid;
+page.Orientation = OfficePageOrientation.Landscape;
+WordPageSizeDefinition? definition = WordPageSizes.GetDefinition(WordPageSize.Tabloid);
+```
+
+Presets include Letter, Legal, Statement, Executive, A3–A6, JIS B4/B5, Tabloid, C sheet, and number 9, number 10, DL, C5, C4, B5 and Monarch envelopes. `WordPageSize.B5` retains its established JIS dimensions of 182 × 257 mm; `EnvelopeB5` measures 176 × 250 mm. The shared `OfficePageSizes` catalog owns physical dimensions.
+
+`Width` and `Height` expose custom dimensions in twips (1/20 point). Changing `Orientation` swaps those dimensions. The preset getter recognizes matching dimensions when a producer omits the optional printer code, with a one-twip tolerance for unit rounding. Native DOC retains physical dimensions and orientation; its imported page settings do not carry the DOCX printer code. PDF conversion preserves stored width and height, including a wide custom page without an orientation flag, and supports explicit export orientation overrides.
+
+Set `section.Margins.Gutter` in twips to reserve binding space. `document.Settings.GutterAtTop` places that space above the body; otherwise `section.RtlGutter` selects the right edge and the default is the left edge. `document.Settings.MirrorMargins` stores the document's facing-page margin setting. These settings survive DOCX and supported native DOC saves. Present on/off XML elements without a `val` attribute remain enabled. The [PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) describes rendering support separately.
+
+`document.AddSection(WordSectionBreakType.OddPage)` returns the new section. Its `BreakType` property gets or changes how that section starts relative to the preceding section; the preceding section retains its own start type. `AddSection()` starts on the next page and continues page numbering. Set a new section's numbering restart explicitly when needed. All five start types survive DOCX and supported native DOC saves.
+
+## Section columns
+
+Set `ColumnCount` and `ColumnsSpace` for equal-width columns. Set `ColumnDefinitions` to author or inspect individual widths and following gaps. Values are in twips, where 20 twips equals one point:
+
+```csharp
+var section = document.Sections[0];
+section.ColumnDefinitions = new[] {
+    new WordSectionColumn(2000, 400),
+    new WordSectionColumn(6000, 0)
+};
+int firstWidth = section.ColumnDefinitions[0].WidthTwips;
+```
+
+The property takes a snapshot and synchronizes the column count. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing. The fluent section builder accepts the same definitions through `Columns(definitions)`.
+
+An omitted `SpaceAfterTwips` has an effective gap of zero for unequal columns. `ColumnsSpace` applies to equal-width columns. DOCX retains the omitted individual value; native DOC writes its effective zero explicitly.
+
+DOCX preserves these settings. Native DOC preserves indexed widths and individual gaps, with up to 44 columns, widths from 718 through 32767 twips and gaps from zero through 32767 twips. Saving a layout outside those native limits fails before creating output. Invalid or incomplete native indexed records produce an import diagnostic. PDF column flow is described separately in the [conversion contract](../OfficeIMO.Word.Pdf/README.md).
 
 ## Paragraph tab stops
 
@@ -122,6 +193,18 @@ paragraph.AddText(" on ");
 paragraph.AddText(DateTime.Today.ToString("yyyy-MM-dd")).Italic = true;
 ```
 
+`KerningMinimumFontSizePoints` controls the minimum font size at which a run uses kerning.
+Set it to `null` to inherit the threshold or `0` to disable kerning. Values from `0` to
+`1638` points round to the nearest half point and persist in DOCX and supported native DOC content.
+The property reads the run's explicit threshold; an inherited value reads as `null`.
+
+```csharp
+var title = document.AddParagraph("AV typography");
+title.FontFamily = "Arial";
+title.FontSizePoints = 24;
+title.KerningMinimumFontSizePoints = 8;
+```
+
 ### Tables with structure
 
 ```csharp
@@ -142,6 +225,10 @@ table.Rows[2].Cells[0].Paragraphs[0].Text = "Generated by OfficeIMO.Word";
 
 Use `table.Rows[0].MinimumHeight = 400` to set a 20-point minimum height that grows with cell content. `Height` sets an exact height in twips; setting either property replaces the other constraint. Setting `MinimumHeight` to null removes a minimum constraint while preserving an exact height.
 
+Table-level shading uses `table.StyleDetails.ShadingFillColorHex`, `ShadingColorHex` and `ShadingPattern`; the color properties also accept `OfficeColor` values. These settings read and write direct table formatting, including imported tables without a named style. For example, set `ShadingFillColorHex = "80C0FF"` for the fill and `ShadingPattern = WordShadingPattern.Clear`. With positive cell spacing, the table fill colors the gaps between cells. Set the fill to `"auto"` to clear inherited table fill, or set `ShadingFillColor` or `ShadingPattern` to null to remove direct shading and restore style inheritance. Clearing `ShadingColor` retains the fill and pattern. Cell shading remains independent through `table.Rows[row].Cells[column]`; table gap formatting does not replace cell-style colors.
+
+DOCX retains table-level shading. Native DOC saving accepts clear shading patterns and Word 97–2003 palette colors; it rejects visible table gap shading when cell spacing is positive. Zero spacing or an automatic gap fill addresses the spacing restriction; unsupported patterns and colors still require changes before saving as DOC. Cell fills retain their own direct, conditional and ordinary style precedence, including automatic fills that clear a lower-priority color.
+
 ### Headers and footers
 
 ```csharp
@@ -157,8 +244,6 @@ document.FooterDefaultOrCreate.AddParagraph()
 var paragraph = document.AddParagraph();
 paragraph.AddImage("logo.png", width: 160, height: 64);
 ```
-
-Supported static WebP and AVIF images are decoded by OfficeIMO.Core and embedded as PNG because Word image parts do not accept those formats. AVIF uses the [bounded still-image profile](../OfficeIMO.Core/README.md#inspect-and-select-frames-or-pages) owned by Core. Animated, unsupported or undecodable input in these formats is rejected rather than silently reduced to one frame.
 
 Use `paragraph.Image.Clone(destinationParagraph)` to copy an image to another paragraph,
 header, footer, or document. The destination owns its image relationships and fresh DrawingML

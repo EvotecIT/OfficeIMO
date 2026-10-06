@@ -19,6 +19,11 @@ public class LatexParseBenchmarks {
     public void Setup() {
         _fixture = LatexBenchmarkCorpus.Get(Scale);
         LatexBenchmarkValidation.Validate(_fixture);
+        LatexBenchmarkValidation.InspectTokens(LatexDocument.Parse(_fixture.Source));
+        Console.WriteLine("Loaded native SHA256: " + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            File.ReadAllBytes(typeof(LatexDocument).Assembly.Location))));
+        Console.WriteLine("Loaded harness SHA256: " + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            File.ReadAllBytes(typeof(LatexParseBenchmarks).Assembly.Location))));
     }
 
     /// <summary>Parses the complete source into the lossless syntax and semantic models.</summary>
@@ -28,4 +33,12 @@ public class LatexParseBenchmarks {
     /// <summary>Parses and writes the complete source through preserve mode.</summary>
     [Benchmark(Description = "Parse + preserve write")]
     public string ParseAndPreserveWrite() => LatexDocument.ParseResult(_fixture.Source).Document.ToLatex();
+
+    /// <summary>Parses and inspects every public token's exact text, span, value, and termination state.</summary>
+    [Benchmark(Description = "Parse + inspect every token")]
+    public LatexParseResult ParseAndInspectTokens() {
+        LatexParseResult result = LatexDocument.ParseResult(_fixture.Source);
+        LatexBenchmarkValidation.InspectTokens(result.Document);
+        return result;
+    }
 }

@@ -2,7 +2,7 @@
 
 `OfficeIMO.Drawing.CodeGlyphX` is an optional convenience package for turning CodeGlyphX QR codes, matrix symbols, and linear barcodes into reusable `OfficeDrawing` scenes.
 
-Both core libraries remain independent. CodeGlyphX produces standard SVG without referencing OfficeIMO, and `OfficeIMO.Drawing` can read that SVG without referencing CodeGlyphX. Use this bridge for typed symbol extensions.
+Both core libraries remain independent. CodeGlyphX produces standard SVG without referencing OfficeIMO, and `OfficeIMO.Drawing` can read that SVG without referencing CodeGlyphX. Install this bridge only when typed extension methods make the handoff more convenient.
 
 ## Install
 

@@ -241,14 +241,7 @@ public static partial class MarkdownReader {
         var plainAlt = TryStripPlainAltTrailingAttributes(image.PlainAlt, out var strippedPlainAlt)
             ? strippedPlainAlt
             : altWithoutAttributeBlock;
-        var rewritten = new ImageInline(altWithoutAttributeBlock, image.Src, image.Title, plainAlt) {
-            Width = image.Width,
-            Height = image.Height
-        };
-        rewritten.SetAttributes(image.Attributes);
-        MarkdownGenericAttributeSourceSpans.Set(rewritten,
-            MarkdownGenericAttributeSourceSpans.GetSourceText(image),
-            MarkdownGenericAttributeSourceSpans.GetSourceSpan(image));
+        var rewritten = new ImageInline(altWithoutAttributeBlock, image.Src, image.Title, plainAlt);
         CopyImageInlineSourceMetadata(image, rewritten, remainingAltSpan);
         replacement = rewritten;
         return true;
@@ -280,14 +273,7 @@ public static partial class MarkdownReader {
         var plainAlt = TryStripPlainAltTrailingAttributes(image.PlainAlt, out var strippedPlainAlt)
             ? strippedPlainAlt
             : altWithoutAttributeBlock;
-        var rewritten = new ImageLinkInline(altWithoutAttributeBlock, image.ImageUrl, image.LinkUrl, image.Title, image.LinkTitle, plainAlt) {
-            Width = image.Width,
-            Height = image.Height
-        };
-        rewritten.SetAttributes(image.Attributes);
-        MarkdownGenericAttributeSourceSpans.Set(rewritten,
-            MarkdownGenericAttributeSourceSpans.GetSourceText(image),
-            MarkdownGenericAttributeSourceSpans.GetSourceSpan(image));
+        var rewritten = new ImageLinkInline(altWithoutAttributeBlock, image.ImageUrl, image.LinkUrl, image.Title, image.LinkTitle, plainAlt);
         CopyImageLinkInlineSourceMetadata(image, rewritten, remainingAltSpan);
         replacement = rewritten;
         return true;

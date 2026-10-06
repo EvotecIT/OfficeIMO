@@ -206,7 +206,7 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult();
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
@@ -216,7 +216,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(new[] { 200, 200, unknownIndex ? 200 : 600 }, table.RowHeight);
             Assert.Equal(new[] { 810, 400 }, table.ColumnWidth);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult();
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
@@ -234,7 +234,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal((40.5d * 96d / 72d - 5d) / 7d, double.Parse(sheet.Descendants(SpreadsheetNs + "col")
                 .Single().Attribute("width")!.Value, CultureInfo.InvariantCulture), 10);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult();
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);

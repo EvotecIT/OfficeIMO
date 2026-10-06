@@ -48,15 +48,19 @@ public sealed class PdfNoteStructureTests {
     [InlineData(false, 0)]
     [InlineData(false, 1)]
     [InlineData(false, 2)]
+    [InlineData(false, 3)]
     [InlineData(true, 0)]
     [InlineData(true, 1)]
     [InlineData(true, 2)]
+    [InlineData(true, 3)]
     public void MixedRunsKeepLogicalContentInSourceOrder(bool inNote, int variant) {
         var runs = variant == 0
             ? new[] { PdfTextRun.Link("LINK", "https://example.test"), PdfTextRun.Normal(" AFTER") }
             : variant == 1
                 ? new[] { PdfTextRun.Normal("BEFORE "), PdfTextRun.Link("LINK", "https://example.test"), PdfTextRun.Normal(" AFTER") }
-                : new[] { PdfTextRun.Link("FIRST", "https://example.test/1"), PdfTextRun.Link("SECOND", "https://example.test/2"), PdfTextRun.Normal(" AFTER") };
+                : variant == 2
+                    ? new[] { PdfTextRun.Link("FIRST", "https://example.test/1"), PdfTextRun.Link("SECOND", "https://example.test/2"), PdfTextRun.Normal(" AFTER") }
+                    : new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description"), PdfTextRun.Normal("x"), PdfTextRun.Link("B", "https://example.test", contents: "Shared description") };
         var document = PdfDocument.Create().TaggedPdfCatalogMarkers();
         if (inNote) document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Note,
             note => note.Text(runs, 20, 20, 300, 20)));
@@ -76,6 +80,33 @@ public sealed class PdfNoteStructureTests {
         Assert.Equal(ordered.OrderBy(value => value).Distinct(), ordered);
         Assert.All(tagged.StructureElements.Where(element => element.StructureType == "Link"),
             link => Assert.Equal(1, link.ObjectReferenceCount));
+    }
+
+    [Fact]
+    public void AdjacentLinksWithSharedMetadataCanCoalesceInsideOneParent() {
+        var document = PdfDocument.Create().TaggedPdfCatalogMarkers().Canvas(canvas => canvas.Text(new[] {
+            PdfTextRun.Link("A", "https://example.test", contents: "Shared description"),
+            PdfTextRun.Link("B", "https://example.test", contents: "Shared description")
+        }, 20, 20, 100, 20));
+        var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
+        var link = Assert.Single(tagged.StructureElements, element => element.StructureType == "Link");
+        Assert.Equal(2, link.MarkedContentReferenceCount);
+        Assert.Equal(1, link.ObjectReferenceCount);
+    }
+
+    [Fact]
+    public void SameTargetLinksInAdjacentColumnsRetainTheirOwnParagraphParents() {
+        var document = PdfDocument.Create().TaggedPdfCatalogMarkers().Row(row => row.Gap(0)
+            .FixedColumn(12, column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description") })))
+            .FixedColumn(12, column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("B", "https://example.test", contents: "Shared description") }))));
+        var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
+        var links = tagged.StructureElements.Where(element => element.StructureType == "Link").ToArray();
+        Assert.Equal(2, links.Length);
+        Assert.Equal(2, links.Select(link => link.ParentObjectNumber).Distinct().Count());
+        Assert.All(links, link => {
+            Assert.Equal(1, link.MarkedContentReferenceCount);
+            Assert.Equal(1, link.ObjectReferenceCount);
+        });
     }
 
     [Theory]

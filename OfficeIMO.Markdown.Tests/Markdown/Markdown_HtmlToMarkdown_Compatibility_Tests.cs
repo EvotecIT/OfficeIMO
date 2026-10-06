@@ -7,21 +7,6 @@ namespace OfficeIMO.Tests;
 
 public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     [Fact]
-    public void HtmlToMarkdown_BodyOnly_OmitsDocumentMetadataMixedIntoArticle() {
-        const string html = """
-<main>
-  <meta name="description" content="Metadata, not article text">
-  <link rel="stylesheet" href="theme.css">
-  <p>Article text</p>
-</main>
-""";
-
-        string markdown = Normalize(HtmlConversionDocument.Parse(html).ToMarkdown());
-
-        Assert.Equal("Article text", markdown);
-    }
-
-    [Fact]
     public void HtmlToMarkdown_SmartHref_EmitsPlainTextForSelfLinks() {
         const string html = """
 <p>

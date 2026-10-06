@@ -22,8 +22,6 @@ public sealed partial class MhtmlDocument {
 
         var diagnostics = new List<HtmlDiagnostic>();
         var embedded = new Dictionary<string, string?>(HtmlResourceIdentityComparer.Instance);
-        var embeddedLengths = new Dictionary<string, long>(HtmlResourceIdentityComparer.Instance);
-        var counted = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
         int requests = 0;
         int resourceCount = 0;
         long resourceBytes = 0;
@@ -73,40 +71,46 @@ public sealed partial class MhtmlDocument {
                         embedded.Add(resolvedSource, null);
                         continue;
                     }
-                    dataUri = "data:" + mediaType + ";base64," + Convert.ToBase64String(resource.EncodedContent);
-                    embedded.Add(resolvedSource, dataUri);
-                    embeddedLengths.Add(resolvedSource, resource.Length);
-                }
-                if (dataUri == null) continue;
-                long growth = Math.Max(0L, (long)dataUri.Length - source.Length);
-                if (_editableSourceCharacterLimit is int maximum
-                    && growth > (long)maximum - projectedChars - 512) {
-                    AddImageDiagnostic(diagnostics, HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded,
-                        "Embedding the image would exceed the editable HTML source limit.", source,
-                        $"projected={projectedChars + growth}; limit={maximum}");
-                    continue;
-                }
-                if (!counted.Contains(resolvedSource)) {
-                    long length = embeddedLengths[resolvedSource];
+                    // Admission precedes both the cloned payload and its base64 expansion.
+                    long uriLength = 13L + mediaType.Length + ((resource.Length + 2L) / 3L) * 4L;
+                    if (!CanEmbed(uriLength)) {
+                        // Expansion depends on this authored src's length. A later alias
+                        // may fit even when this occurrence does not; each retry remains
+                        // bounded by the request limit and still precedes encoding.
+                        continue;
+                    }
                     if (resourceCount >= limits.MaxResourceCount) {
                         AddImageDiagnostic(diagnostics, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded,
                             "The archived image exceeded the resource count limit.", source);
-                        embedded[resolvedSource] = null;
+                        embedded.Add(resolvedSource, null);
                         continue;
                     }
-                    if (length > limits.MaxTotalResourceBytes - resourceBytes) {
+                    if (resource.Length > limits.MaxTotalResourceBytes - resourceBytes) {
                         AddImageDiagnostic(diagnostics, HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
                             "The archived image exceeded the total resource byte limit.", source,
-                            $"bytes={length}; remaining={limits.MaxTotalResourceBytes - resourceBytes}");
-                        embedded[resolvedSource] = null;
+                            $"bytes={resource.Length}; remaining={limits.MaxTotalResourceBytes - resourceBytes}");
+                        embedded.Add(resolvedSource, null);
                         continue;
                     }
-                    counted.Add(resolvedSource);
+                    dataUri = "data:" + mediaType + ";base64," + Convert.ToBase64String(resource.EncodedContent);
+                    embedded.Add(resolvedSource, dataUri);
                     resourceCount++;
-                    resourceBytes += length;
+                    resourceBytes += resource.Length;
                 }
+                if (dataUri == null || !CanEmbed(dataUri.Length)) continue;
+                long growth = Math.Max(0L, (long)dataUri.Length - source.Length);
                 image.SetAttribute("src", dataUri);
                 projectedChars += growth;
+
+                bool CanEmbed(long uriLength) {
+                    long extra = Math.Max(0L, uriLength - source.Length);
+                    int maximum = _editableSourceCharacterLimit ?? int.MaxValue;
+                    if (uriLength <= int.MaxValue && extra <= (long)maximum - projectedChars - 512) return true;
+                    AddImageDiagnostic(diagnostics, HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded,
+                        "Embedding the image would exceed the editable HTML source limit.", source,
+                        $"projected={projectedChars + extra}; limit={maximum}");
+                    return false;
+                }
             }
         });
         return new MhtmlImageEmbeddingResult(editable, diagnostics, resourceCount, resourceBytes);

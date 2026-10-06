@@ -8,6 +8,7 @@ public sealed partial class PdfEmbeddedFontFamily {
     private readonly byte[]? _bold;
     private readonly byte[]? _italic;
     private readonly byte[]? _boldItalic;
+    private readonly bool _regularHasPhysicalSlant;
 
     /// <summary>Creates a reusable TrueType font family from font file bytes.</summary>
     /// <param name="familyName">Family name used for generated PDF font resource names.</param>
@@ -73,14 +74,15 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal PdfEmbeddedFontFamily Clone() => this;
 
     internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot() =>
-        new PdfEmbeddedFontFamily(FamilyName, _regular, shareRegularAcrossStyles: true);
+        new PdfEmbeddedFontFamily(FamilyName, _regular, _regularHasPhysicalSlant);
 
-    private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool shareRegularAcrossStyles) {
+    private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool hasPhysicalSlant) {
         FamilyName = familyName;
         _regular = regular;
-        _bold = shareRegularAcrossStyles ? regular : null;
-        _italic = shareRegularAcrossStyles ? regular : null;
-        _boldItalic = shareRegularAcrossStyles ? regular : null;
+        _bold = null;
+        _regularHasPhysicalSlant = hasPhysicalSlant;
+        _italic = hasPhysicalSlant ? regular : null;
+        _boldItalic = hasPhysicalSlant ? regular : null;
     }
 
     /// <summary>Creates a reusable TrueType font family from font files on disk.</summary>

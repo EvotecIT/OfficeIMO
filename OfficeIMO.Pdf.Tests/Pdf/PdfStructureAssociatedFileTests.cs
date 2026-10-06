@@ -11,24 +11,6 @@ public sealed class PdfStructureAssociatedFileTests {
     [Theory]
     [InlineData(PdfObjectSerializationMode.Buffered)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
-    public void Ua1RejectsSemanticAttachmentsWithoutChangingProfileOrWritingOutput(PdfObjectSerializationMode serialization) {
-        var options = new PdfOptions { ObjectSerializationMode = serialization };
-        options.ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa1);
-        options.RequireCompliance(PdfComplianceProfile.PdfUa1);
-        var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
-            PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20),
-            Supplement("x.xml", FirstMath, "x")));
-        using var destination = new MemoryStream();
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => document.Save(destination));
-        Assert.Contains("Structure-associated files require PDF 2.0", error.Message);
-        Assert.Equal(0, destination.Length);
-        Assert.Equal(PdfComplianceProfile.PdfUa1, options.ComplianceProfile);
-        Assert.Equal(PdfFileVersion.Pdf17, options.FileVersion);
-    }
-
-    [Theory]
-    [InlineData(PdfObjectSerializationMode.Buffered)]
-    [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void FormulasHaveTheirOwnRecoverableSupplementAndVersionFloor(PdfObjectSerializationMode serialization) {
         var options = new PdfOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,

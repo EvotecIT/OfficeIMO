@@ -7,13 +7,13 @@ public static partial class OfficeSvgDrawingReader {
     // Polygon coverage visits every edge for each of nine samples. Curves flatten
     // to at most 24 segments in the shared renderer; clips incur the same edge work.
     // Charge those costs before synchronous source rasterization, not just nodes.
-    private static double EstimateSvgFilterSourceWork(OfficeDrawing drawing, double canvasPixels, CancellationToken token) {
+    private static double EstimateSvgFilterSourceWork(OfficeDrawing drawing, double surfacePixels, CancellationToken token) {
         double work = 0D;
         foreach (OfficeDrawingElement element in drawing.Elements) {
             token.ThrowIfCancellationRequested();
-            work += canvasPixels;
+            work += surfacePixels;
             if (element is OfficeDrawingShape shape) {
-                work += canvasPixels * 9D * (shape.Shape.Kind switch {
+                work += surfacePixels * 9D * (shape.Shape.Kind switch {
                     OfficeShapeKind.Polygon => shape.Shape.Points.Count,
                     OfficeShapeKind.Path => shape.Shape.PathCommands.Count * 24D,
                     OfficeShapeKind.Ellipse => 72D,
@@ -21,17 +21,17 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeShapeKind.Rectangle when shape.Shape.Transform.HasValue => 4D,
                     _ => 0D
                 });
-                work += canvasPixels * EstimateSvgFilterClipWork(shape.Shape.ClipPath);
+                work += surfacePixels * EstimateSvgFilterClipWork(shape.Shape.ClipPath);
             } else if (element is OfficeDrawingGroup group) {
-                work += canvasPixels * EstimateSvgFilterClipWork(group.ClipPath) + EstimateSvgFilterSourceWork(group.InnerDrawing, canvasPixels, token);
+                work += surfacePixels * EstimateSvgFilterClipWork(group.ClipPath)
+                    + EstimateSvgFilterSourceWork(group.InnerDrawing, surfacePixels, token);
             } else if (element is OfficeDrawingEffectGroup effect) {
-                // Effects render their complete private canvas before compositing,
-                // even when the parent filter region or clip is only one pixel.
-                double surfacePixels = Math.Ceiling(effect.InnerDrawing.Width) * Math.Ceiling(effect.InnerDrawing.Height);
-                work += EstimateSvgFilterSourceWork(effect.InnerDrawing, surfacePixels, token);
+                double effectPixels = Math.Ceiling(effect.InnerDrawing.Width) * Math.Ceiling(effect.InnerDrawing.Height);
+                work += EstimateSvgFilterSourceWork(effect.InnerDrawing, effectPixels, token);
                 if (effect.SoftMask != null) {
-                    OfficeDrawing mask = effect.SoftMask.InnerDrawing;
-                    work += surfacePixels + EstimateSvgFilterSourceWork(mask, Math.Ceiling(mask.Width) * Math.Ceiling(mask.Height), token);
+                    double maskPixels = Math.Ceiling(effect.SoftMask.InnerDrawing.Width)
+                        * Math.Ceiling(effect.SoftMask.InnerDrawing.Height);
+                    work += EstimateSvgFilterSourceWork(effect.SoftMask.InnerDrawing, maskPixels, token);
                 }
             }
         }

@@ -50,12 +50,24 @@ public sealed class AdfDocument {
     /// <remarks>Parsing checks JSON shape and required fields; call <see cref="Validate()"/> to inspect ADF structural rules.</remarks>
     public static AdfDocument Parse(string json) => AdfJsonSerializer.Parse(json);
 
+    /// <summary>Parses ADF JSON with explicit resource limits and cancellation.</summary>
+    public static AdfDocument Parse(string json, AdfProcessingOptions options) => AdfJsonSerializer.Parse(json, options);
+
     /// <summary>Serializes this document to ADF JSON without performing structural validation.</summary>
-    /// <remarks>Node graphs are bounded to 64 levels and one million nodes and marks. Null values and ancestor cycles are rejected.</remarks>
+    /// <remarks>Default graph limits are 64 levels and 100,000 nodes and marks. Null values and ancestor cycles are rejected.</remarks>
     public string ToJson(bool indented = false) => AdfJsonSerializer.Serialize(this, indented);
+
+    /// <summary>Serializes ADF JSON with explicit resource limits and cancellation.</summary>
+    public string ToJson(AdfProcessingOptions options, bool indented = false) => AdfJsonSerializer.Serialize(this, indented, options);
 
     /// <summary>Validates the structural ADF contract without rejecting unknown node or mark types.</summary>
     public AdfValidationResult Validate() => AdfValidator.Validate(this);
+
+    /// <summary>Validates ADF structure with explicit resource limits and cancellation.</summary>
+    public AdfValidationResult Validate(AdfProcessingOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return options is AdfValidationOptions validation ? Validate(validation) : AdfValidator.Validate(this, options);
+    }
 
     /// <summary>Validates against the selected structural or bundled full-schema contract.</summary>
     public AdfValidationResult Validate(AdfValidationOptions options) => Validate(options, CancellationToken.None);
@@ -64,13 +76,17 @@ public sealed class AdfDocument {
     public AdfValidationResult Validate(AdfValidationOptions options, CancellationToken cancellationToken) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (options.MaximumSchemaEvaluations < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSchemaEvaluations must be positive.");
-        cancellationToken.ThrowIfCancellationRequested();
+        using var linked = options.CancellationToken.CanBeCanceled && cancellationToken.CanBeCanceled && options.CancellationToken != cancellationToken
+            ? CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken, cancellationToken) : null;
+        CancellationToken effectiveToken = linked?.Token ?? (cancellationToken.CanBeCanceled ? cancellationToken : options.CancellationToken);
+        AdfProcessingOptions processing = effectiveToken == options.CancellationToken ? options : options.WithCancellation(effectiveToken);
+        processing.Check();
         AdfValidationResult result = options.Profile switch {
-            AdfValidationProfile.ForwardCompatible => AdfValidator.Validate(this, cancellationToken),
-            AdfValidationProfile.FullSchema => AdfPinnedSchema.Validate(this, options.MaximumSchemaEvaluations, cancellationToken),
+            AdfValidationProfile.ForwardCompatible => AdfValidator.Validate(this, processing),
+            AdfValidationProfile.FullSchema => AdfPinnedSchema.Validate(this, options.MaximumSchemaEvaluations, processing),
             _ => throw new ArgumentOutOfRangeException(nameof(options), "Unknown ADF validation profile.")
         };
-        return options.DestinationPolicy?.Validate(this, result, cancellationToken) ?? result;
+        return options.DestinationPolicy?.Validate(this, result, effectiveToken) ?? result;
     }
 }
 

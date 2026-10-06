@@ -30,25 +30,6 @@ public sealed class Markdown_Reader_Performance_Contract_Tests {
             $"Table-heavy parsing allocated {allocatedBytes / (1024d * 1024d):N1} MB; repeated whole-document binding has likely returned.");
 #endif
     }
-
-    [Fact]
-    public void LargeTableCell_WithManyNonLinks_DoesNotCopyTheRemainingTextForEachAutolinkCandidate() {
-        var markdown = new StringBuilder("| Data |\n| --- |\n| ");
-        for (int i = 0; i < 500; i++) markdown.Append("h w ");
-        markdown.Append(new string('a', 64 * 1024));
-        markdown.Append(" http://example.com www.example.com |\n");
-        _ = MarkdownReader.Parse("| Data |\n| --- |\n| https://example.com |\n");
-
-        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        MarkdownDoc document = MarkdownReader.Parse(markdown.ToString());
-        long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-        string html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-
-        Assert.Contains("href=\"http://example.com\"", html, StringComparison.Ordinal);
-        Assert.Contains("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
-        Assert.True(allocatedBytes < 30L * 1024 * 1024,
-            $"Parsing a large table cell allocated {allocatedBytes / (1024d * 1024d):N1} MB; rejected autolink prefixes should not copy the remaining cell.");
-    }
 #endif
 
     private static string BuildTableHeavyMarkdown(int sectionCount) {

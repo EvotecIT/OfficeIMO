@@ -39,43 +39,6 @@
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
-    <None Update="TestAssets\Avif\entropy-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\partition-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\prelude-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\mode-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\palette-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\palette-main10-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\transform-reference.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\coefficient-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\copy-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\tile-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\restoration-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\residual-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\residual-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\prediction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\prediction-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\reconstruction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\reconstruction-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\deblock-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\deblock-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\cdef-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\cdef-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\restored-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\restored-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\upscaled-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\color-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\color-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="TestAssets\Avif\*.avif" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\avif-*.rgba" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMonochrome\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMonochrome\*.rgba" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifFullHeaders\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifFullHeaders\*.rgba" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifFullHeaders\*.yuv16" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.rgba" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.yuv16" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Math.cs" Link="ManagedTextShapingTestAssets.Math.cs" />

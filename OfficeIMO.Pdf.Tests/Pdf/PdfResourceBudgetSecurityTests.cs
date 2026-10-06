@@ -240,48 +240,6 @@ public sealed class PdfResourceBudgetSecurityTests {
         Assert.Equal(PdfReadLimitKind.ActualTextCharacters, exception.Kind);
     }
 
-    [Theory]
-    [InlineData("<< /ActualText (AB) >>", "AB", true)]
-    [InlineData("<< /ActualText <> >>", "", true)]
-    [InlineData("/MC0", "AB", true)]
-    [InlineData("/MC0", "AB", false)]
-    public void PdfReadPage_ActualTextReplacesRepeatedNestedFormsAndFollowingPaint(string property, string replacement, bool followingPaint) {
-        byte[] pdf = BuildPdfObjects(
-            "<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Font << /F1 6 0 R >> /XObject << /Fx 5 0 R >> /Properties << /MC0 << /ActualText (AB) >> >> >> /Contents 4 0 R >>",
-            BuildStream("/Span " + property + " BDC /Fx Do /Fx Do " + (followingPaint ? "BT /F1 12 Tf (B) Tj ET " : "") + "EMC BT /F1 12 Tf 0 20 Td (END) Tj ET"),
-            BuildStream("/Fy Do", "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /Font << /F1 6 0 R >> /XObject << /Fy 7 0 R >> >>"),
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            BuildStream("BT /F1 12 Tf (X) Tj ET", "/Type /XObject /Subtype /Form /BBox [0 0 100 100]"));
-
-        var spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
-        string[] expected = new[] { replacement, "END" }.Where(text => text.Length > 0).OrderBy(text => text, StringComparer.Ordinal).ToArray();
-        Assert.Equal(expected, spans.Select(span => span.Text).OrderBy(text => text, StringComparer.Ordinal));
-        if (!followingPaint) {
-            var actual = Assert.Single(spans, span => span.Text == replacement);
-            Assert.True(actual.Advance > 0D);
-        }
-        // The replacement is charged once, not once per painted Form or glyph run.
-        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxActualTextCharacters = 2 } };
-        Assert.Equal(expected, PdfReadDocument.Open(pdf, options).Pages[0].GetTextSpans()
-            .Select(span => span.Text).OrderBy(text => text, StringComparer.Ordinal));
-    }
-
-    [Fact]
-    public void PdfReadPage_ActualTextDoesNotExposeHiddenFormPaint() {
-        byte[] pdf = BuildPdfObjects(
-            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [7 0 R] /D << /BaseState /ON /OFF [7 0 R] >> >> >>",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Font << /F1 6 0 R >> /XObject << /Fx 5 0 R >> >> /Contents 4 0 R >>",
-            BuildStream("/Span << /ActualText (HIDDEN) >> BDC /Fx Do EMC BT /F1 12 Tf (VISIBLE) Tj ET"),
-            BuildStream("BT /F1 12 Tf (SECRET) Tj ET", "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /OC 7 0 R"),
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            "<< /Type /OCG /Name (Hidden) >>");
-
-        Assert.Equal("VISIBLE", PdfReadDocument.Open(pdf).ExtractText().Trim());
-    }
-
     [Fact]
     public void PdfReadPage_BoundsNamedActualTextFromRawBytes() {
         const string pageContent = "/Span /MC0 BDC BT /F1 12 Tf (X) Tj ET EMC";

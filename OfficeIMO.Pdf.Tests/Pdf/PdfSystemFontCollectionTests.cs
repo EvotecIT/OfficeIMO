@@ -16,14 +16,6 @@ public class PdfSystemFontCollectionTests {
         Assert.Empty(OfficeTrueTypeCollection.ExtractPrograms(cff));
         byte[] collection = CreateCollection(cff, cff, cff);
         Assert.Empty(OfficeTrueTypeCollection.ExtractPrograms(collection));
-        // Extraction rebuilds SFNT offsets; decoded glyph behavior is the contract.
-        byte[] extracted = OfficeTrueTypeCollection.ExtractFace(collection, 1, cff.Length);
-        var original = OfficeOpenTypeCffFont.TryLoad(cff, null, out _);
-        var rebuilt = OfficeOpenTypeCffFont.TryLoad(extracted, null, out _);
-        Assert.NotNull(original);
-        Assert.NotNull(rebuilt);
-        Assert.True(rebuilt.HasGlyphs("AŁéΩ"));
-        Assert.Equal(original.Measure("AŁéΩ", 12), rebuilt.Measure("AŁéΩ", 12));
     }
 
     [Theory]

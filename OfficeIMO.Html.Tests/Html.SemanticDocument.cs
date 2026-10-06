@@ -14,6 +14,8 @@ public partial class Html {
         Assert.Equal("Only title", section.Title);
         Assert.Equal(HtmlSemanticSectionTitleSource.Heading, section.TitleSource);
         Assert.Empty(section.Blocks);
+        Assert.Equal("Only title", section.TitleHeading!.Text);
+        Assert.Equal(1, section.TitleHeading.Level);
     }
 
     [Fact]
@@ -24,6 +26,7 @@ public partial class Html {
         Assert.Equal("Imported 1", section.Title);
         Assert.Equal(HtmlSemanticSectionTitleSource.Generated, section.TitleSource);
         Assert.Empty(section.Blocks);
+        Assert.Null(section.TitleHeading);
     }
 
     [Fact]

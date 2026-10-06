@@ -31,6 +31,14 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
+
+```csharp
+using var incoming = ExcelDocument.Load("upload.xlsx", ExcelLoadOptions.UntrustedDefaults);
+```
+
+This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with workbooks containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
 For ordinary workbook work, use `ExcelDocument.Create(...)` or
 `ExcelDocument.Load(...)`, edit the same document through its sheets, then call
 `Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only
@@ -1371,7 +1379,19 @@ document.Compose("Members", composer => {
 document.Save();
 ```
 
-Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Existing stored workbook heights remain unchanged when loaded.
+## Worksheet print areas
+
+Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+
+```csharp
+document.SetPrintArea(sheet, "B2:D20,F2:H20");
+IReadOnlyList<string> areas = sheet.GetPrintAreas();
+string? definedNameText = sheet.GetPrintArea();
+```
+
+`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+
+Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Auto-fit no longer inflates stored heights by 1.5; existing stored workbook heights remain unchanged when loaded.
 
 ## Managed image export
 

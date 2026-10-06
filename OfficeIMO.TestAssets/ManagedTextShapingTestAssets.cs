@@ -45,11 +45,11 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithInkedNotdef() =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }), inkedNotdef: true);
 
-    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
+    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment, bool includeSpace = false) {
         if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2),
-            glyphCount: 3,
+            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2, includeSpace ? 32 : null, 3),
+            glyphCount: includeSpace ? 4 : 3,
             kern: CreateKernTable(1, 2, adjustment));
     }
 

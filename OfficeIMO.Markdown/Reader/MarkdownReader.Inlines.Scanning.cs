@@ -89,7 +89,7 @@ public static partial class MarkdownReader {
             }
         }
 
-        return ContainsPotentialBareAutolinkSyntax(text, options);
+        return allowLinks && ContainsPotentialBareAutolinkSyntax(text, options);
     }
 
     private static bool ContainsPotentialBareAutolinkSyntax(string text, MarkdownReaderOptions options) {

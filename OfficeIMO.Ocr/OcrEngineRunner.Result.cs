@@ -9,7 +9,7 @@ public static partial class OcrEngineRunner {
         if (result == null) return null!; // The caller classifies a null result separately.
         var captured = new OcrResult {
             Text = result.Text, Confidence = result.Confidence, Language = result.Language,
-            Provider = result.Provider, Model = result.Model,
+            Provider = result.Provider, Model = result.Model, Review = result.Review,
             Orientation = result.Orientation == null ? null : new OcrOrientationResult {
                 ClockwiseRotationDegrees = result.Orientation.ClockwiseRotationDegrees,
                 Confidence = result.Orientation.Confidence, Script = result.Orientation.Script
@@ -19,6 +19,7 @@ public static partial class OcrEngineRunner {
         int diagnosticCount = diagnostics.Count;
         var retainedDiagnostics = new List<OcrDiagnostic>();
         int remainingAttributes = limits.MaxDiagnosticAttributes;
+        bool omittedAttributes = false;
         // Inspect terminal severity outside the retained prefix, without copying discarded attributes.
         for (int index = 0; index < diagnosticCount; index++) {
             checkDeadline();
@@ -31,6 +32,7 @@ public static partial class OcrEngineRunner {
             if (index < limits.MaxDiagnostics) retainedDiagnostics.Add(CaptureDiagnostic(diagnostic, ref remainingAttributes, checkDeadline));
         }
         captured.Diagnostics = retainedDiagnostics.ToArray();
+        foreach (OcrDiagnostic? diagnostic in retainedDiagnostics) omittedAttributes |= diagnostic?.OmittedAttributeCount > 0;
         captured.OmittedDiagnosticCount = AddOmittedCount(result.OmittedDiagnosticCount, diagnosticCount - retainedDiagnostics.Count);
         IReadOnlyList<OcrTextSpan> spans = result.Spans ?? Array.Empty<OcrTextSpan>();
         int spanCount = spans.Count;
@@ -43,6 +45,9 @@ public static partial class OcrEngineRunner {
         }
         captured.Spans = retainedSpans.ToArray();
         captured.OmittedSpanCount = AddOmittedCount(result.OmittedSpanCount, spanCount - spanLimit);
+        if (captured.Review != null && (captured.OmittedSpanCount > 0 || captured.OmittedDiagnosticCount > 0 || omittedAttributes))
+            captured.Review = new OcrReviewEvidence(captured.Review.Quality, captured.Review.CompletedAttempts,
+                captured.Review.HasDisagreement, incomplete: true);
         checkDeadline();
         return captured;
     }

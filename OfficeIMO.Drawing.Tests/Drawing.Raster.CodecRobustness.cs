@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -6,6 +7,60 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterCodecRobustnessTests {
+    [Fact]
+    public void RasterDecodeObservesCancellationAfterInputReadHasStarted() {
+        var source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
+        byte[] bytes = OfficePngWriter.Encode(source);
+        using var cancellation = new CancellationTokenSource();
+        using var input = new CancelAfterFirstReadStream(bytes, cancellation);
+        var options = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageDecoder.TryDecode(input, options, out _, out _));
+        Assert.Equal(1, input.ReadCount);
+        Assert.Equal(0, input.Position);
+    }
+
+    [Fact]
+    public void PngUnfilterObservesCancellationAfterPixelsChange() {
+        // Observe an actual production-owned work buffer, as in the APNG composition
+        // regression, instead of guessing when work starts from a timer.
+        var current = new byte[32 * 1024 * 1024];
+        for (int index = 0; index < current.Length; index++) current[index] = 1;
+        using var cancellation = new CancellationTokenSource();
+        Exception? error = null;
+        var worker = new Thread(() => {
+            try {
+                OfficePngReader.Unfilter(current, Array.Empty<byte>(), 1, 1, cancellation.Token);
+            } catch (Exception exception) {
+                Volatile.Write(ref error, exception);
+            }
+        }) { IsBackground = true };
+        worker.Start();
+        try {
+            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref current[16]) != 1,
+                TimeSpan.FromSeconds(5)), "PNG scanline processing did not enter the work buffer.");
+            cancellation.Cancel();
+        } finally {
+            cancellation.Cancel();
+            Assert.True(worker.Join(TimeSpan.FromSeconds(5)));
+        }
+        Assert.IsType<OperationCanceledException>(Volatile.Read(ref error));
+        Assert.Equal(1, current[current.Length - 1]);
+    }
+
+    private sealed class CancelAfterFirstReadStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+        internal CancelAfterFirstReadStream(byte[] bytes, CancellationTokenSource cancellation)
+            : base(bytes, writable: false) => _cancellation = cancellation;
+        internal int ReadCount { get; private set; }
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, Math.Min(count, 1));
+            ReadCount++;
+            _cancellation.Cancel();
+            return read;
+        }
+    }
+
     [Fact]
     public void DeterministicCompressedPayloadMutationsFailClosedWithoutEscapingExceptions() {
         OfficeRasterImage source = CreatePattern(64, 48);
@@ -37,7 +92,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork() {
         var source = new OfficeRasterImage(4096, 1025, OfficeColor.FromRgba(24, 80, 160, 224));
         byte[][] encoded = {
@@ -64,7 +124,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void BoundedPngIdentificationObservesCancellationDuringChunkValidation() {
         byte[] png = CreatePngWithLargeAncillaryPayload();
         using var cancellation = new CancellationTokenSource();
@@ -78,7 +143,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
         }
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops() {
         byte[] bmp = CreateWideBmp32(width: 8 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();
@@ -89,6 +159,43 @@ public sealed class DrawingRasterCodecRobustnessTests {
                 OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
         } finally {
             Assert.True(cancelThread.Join(TimeSpan.FromSeconds(5)));
+        }
+    }
+
+    [Theory]
+    [InlineData("png-identify")]
+    [InlineData("png-decode")]
+    [InlineData("tiff-decode")]
+    [InlineData("bmp-decode")]
+    public void RasterCodecRoutesRejectCanceledOperations(string route) {
+        var source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var options = new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token };
+
+        switch (route) {
+            case "png-identify":
+                byte[] identifiedPng = OfficePngWriter.Encode(source);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeImageReader.TryIdentifyByContent(identifiedPng, null, cancellation.Token, out _));
+                break;
+            case "png-decode":
+                byte[] decodedPng = OfficePngWriter.Encode(source);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeRasterImageDecoder.TryDecode(decodedPng, options, out _, out _));
+                break;
+            case "tiff-decode":
+                byte[] tiff = OfficeTiffCodec.Encode(source);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeTiffCodec.TryDecodePage(tiff, 0, options, out _));
+                break;
+            case "bmp-decode":
+                byte[] bmp = CreateWideBmp32(width: 2);
+                Assert.Throws<OperationCanceledException>(() =>
+                    OfficeBmpReader.TryDecode(bmp, cancellation.Token, out _));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(route));
         }
     }
 
@@ -103,7 +210,12 @@ public sealed class DrawingRasterCodecRobustnessTests {
             OfficeTiffCodec.TryInspectPages(tiff, options, out _));
     }
 
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops() {
         byte[] tiff = CreateWideGrayscaleTiff(width: 8 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();

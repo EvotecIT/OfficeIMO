@@ -87,6 +87,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private IReadOnlyList<Rect> _activeSearchHighlights = Array.Empty<Rect>();
 
     private double _zoom;
+    private double _renderScaling = 1D;
 
     internal PdfPageViewModel(
         int pageNumber,
@@ -114,6 +115,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     }
 
     public int PageNumber { get; }
+
+    /// <summary>The page identity used by item containers and assistive technology.</summary>
+    public override string ToString() => PageLabel;
 
     public string PageLabel => _localizer.Format("PdfPage.Label", PageNumber);
 
@@ -147,11 +151,25 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     internal void SetZoom(double zoom) {
         if (_disposed || Math.Abs(_zoom - zoom) < 0.001D) return;
-        double previousRenderScale = GetRenderScale(_zoom);
+        double previousRenderScale = GetRenderScale();
         _zoom = zoom;
         UpdateDisplaySize();
+        RerenderIfRasterScaleChanged(previousRenderScale);
+    }
 
-        if (Scene?.RequiresRasterFallback != true || Math.Abs(previousRenderScale - GetRenderScale(_zoom)) < 0.001D) {
+    /// <summary>Applies the presenting display's scaling, for example after the window moved to another monitor.</summary>
+    internal void SetRenderScaling(double renderScaling) {
+        renderScaling = PdfRasterScale.NormalizeRenderScaling(renderScaling);
+        if (_disposed || Math.Abs(_renderScaling - renderScaling) < 0.001D) return;
+        double previousRenderScale = GetRenderScale();
+        _renderScaling = renderScaling;
+        RerenderIfRasterScaleChanged(previousRenderScale);
+    }
+
+    private void RerenderIfRasterScaleChanged(double previousRenderScale) {
+        // Until the scene arrives, a presentation change must supersede the captured first load.
+        if (Scene is { RequiresRasterFallback: false } ||
+            (Scene is not null && Math.Abs(previousRenderScale - GetRenderScale()) < 0.001D)) {
             return;
         }
 
@@ -182,7 +200,8 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         CancellationToken token = cancellation.Token;
         _loadCancellation = cancellation;
         long generation = ++_loadGeneration;
-        double requestedScale = GetRenderScale(_zoom);
+        double zoom = _zoom;
+        double renderScaling = _renderScaling;
 
         IsRendering = true;
         RenderError = null;
@@ -204,6 +223,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
             Bitmap? bitmap = null;
             IReadOnlyList<string> diagnostics = scene.Diagnostics;
+            double requestedScale = GetRenderScale(scene, zoom, renderScaling);
             if (scene.RequiresRasterFallback) {
                 PdfRenderedPage rendered = await _renderCoordinator
                     .GetPageAsync(PageNumber, requestedScale, token)
@@ -274,5 +294,17 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         DisplayHeight = Math.Round(_pageHeight * _zoom, 2);
     }
 
-    private static double GetRenderScale(double zoom) => Math.Clamp(zoom, 0.5D, 2.5D);
+    private double GetRenderScale() => GetRenderScale(Scene, _zoom, _renderScaling);
+
+    // The canvas stretches the drawing over the zoomed page box, so the bitmap matches it in device pixels.
+    private double GetRenderScale(PdfPageScene? scene, double zoom, double renderScaling) {
+        double drawingWidth = scene?.Drawing.Width ?? _visualWidth;
+        double drawingHeight = scene?.Drawing.Height ?? _visualHeight;
+        return PdfRasterScale.Compose(
+            _pageWidth * zoom / Math.Max(1D, drawingWidth),
+            renderScaling,
+            drawingWidth,
+            drawingHeight,
+            StudioPdfSecurityPolicy.MaximumRasterPixels);
+    }
 }

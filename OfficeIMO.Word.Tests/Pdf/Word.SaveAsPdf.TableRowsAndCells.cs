@@ -1376,7 +1376,9 @@ public partial class Word {
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
-                Margins = PdfCore.PageMargins.Uniform(72)
+                Margins = PdfCore.PageMargins.Uniform(72),
+                FontFamily = "Helvetica",
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
         }
 
@@ -1388,8 +1390,11 @@ public partial class Word {
 
         double firstGap = alpha.BoundingBox.Bottom - beta.BoundingBox.Bottom;
         double secondGap = beta.BoundingBox.Bottom - gamma.BoundingBox.Bottom;
-        Assert.InRange(firstGap, 13D, 18D);
-        Assert.InRange(secondGap, 13D, 18D);
+        // TableGrid has single spacing. The substituted Helvetica face advances
+        // at 1.15 times the document's declared 11pt size, rather than Calibri metrics.
+        // The style's half-point border adds a quarter point on each side.
+        Assert.Equal(11D * 1.15D + .5D, firstGap, precision: 3);
+        Assert.Equal(firstGap, secondGap, precision: 3);
     }
 
     private (double LeftX, double RightX) RenderNativeTableCellDefaultTabStop(int defaultTabStopTwips, string fileName) {
@@ -1859,6 +1864,13 @@ public partial class Word {
         Assert.Equal("Column span metadata", horizontal.Contents);
         Assert.Equal("Row span metadata", vertical.Contents);
         Assert.True(horizontal.Width > 110D);
-        Assert.True(vertical.Height > 30D);
+        using PdfPigDocument mergedPdf = PdfPigDocument.Open(bytes);
+        var mergedWords = mergedPdf.GetPage(1).GetWords().ToList();
+        var upper = Assert.Single(mergedWords, word => word.Text == "Upper");
+        var lower = Assert.Single(mergedWords, word => word.Text == "Lower");
+        double rowPitch = upper.BoundingBox.Bottom - lower.BoundingBox.Bottom;
+        Assert.True(vertical.Height >= rowPitch * 1.9D);
+        Assert.True(vertical.Y1 <= lower.BoundingBox.Bottom);
+        Assert.True(vertical.Y2 >= upper.BoundingBox.Top);
     }
 }

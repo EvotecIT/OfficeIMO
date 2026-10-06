@@ -15,8 +15,6 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// The provider is an optional adapter over the shared
 /// <see cref="IOfficeTextShapingProvider"/> contract. Core Drawing and PDF
 /// packages remain independent of HarfBuzz and its native assets.
-/// Size-dependent AAT tracking remains in the font program; this adapter returns
-/// glyph advances without applying the font's <c>trak</c> table at an implicit point size.
 /// </remarks>
 public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
@@ -238,7 +236,6 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
     }
 
     private sealed class CachedFontCollection {
-        private static readonly HarfBuzzSharp.Tag TrackingTableTag = HarfBuzzSharp.Tag.Parse("trak");
         private readonly object _sync = new();
         private readonly object _resultCacheSync = new();
         private readonly Blob _blob;
@@ -327,16 +324,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
             lock (_sync) {
                 int collectionIndex = request.FontCollectionIndex ?? 0;
                 if (!_faces.TryGetValue(collectionIndex, out CachedFace? cached)) {
-                    var sourceFace = new Face(_blob, collectionIndex);
-                    // The request is in design units and has no authored point size. Hiding only trak
-                    // keeps GSUB/GPOS/variation data intact and prevents implicit-size double tracking.
-                    using Blob trackingTable = sourceFace.ReferenceTable(TrackingTableTag);
-                    var face = trackingTable.Length == 0 ? sourceFace
-                        : new Face((_, tag) => tag == TrackingTableTag
-                            ? Blob.Empty : sourceFace.ReferenceTable(tag));
+                    var face = new Face(_blob, collectionIndex);
                     var font = new Font(face);
                     font.SetFunctionsOpenType();
-                    cached = new CachedFace(sourceFace, face, font);
+                    cached = new CachedFace(face, font);
                     _faces.Add(collectionIndex, cached);
                 }
 
@@ -378,12 +369,11 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
             foreach (CachedFace cached in _faces.Values) {
                 cached.Font.Dispose();
                 cached.Face.Dispose();
-                if (!ReferenceEquals(cached.SourceFace, cached.Face)) cached.SourceFace.Dispose();
             }
             _blob.Dispose();
         }
 
-        private sealed record CachedFace(Face SourceFace, Face Face, Font Font);
+        private sealed record CachedFace(Face Face, Font Font);
 
         private sealed record CachedShapeResult(
             ShapeCacheKey Key,

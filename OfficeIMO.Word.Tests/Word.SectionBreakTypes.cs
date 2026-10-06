@@ -15,10 +15,12 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Create(filePath);
             WordSection previousSection = document.Sections[0];
-            document.AddSection(breakType);
+            WordSection newSection = document.AddSection(breakType);
 
             Assert.Equal(2, document.Sections.Count);
-            SectionType sectionType = Assert.IsType<SectionType>(previousSection._sectionProperties.GetFirstChild<SectionType>());
+            Assert.Equal(WordSectionBreakType.NextPage, previousSection.BreakType);
+            Assert.Equal(breakType, newSection.BreakType);
+            SectionType sectionType = Assert.IsType<SectionType>(newSection._sectionProperties.GetFirstChild<SectionType>());
             Assert.Equal(expected, sectionType.Val?.InnerText);
         }
 
@@ -31,7 +33,8 @@ namespace OfficeIMO.Tests {
             document.AsFluent().Section(section => section.New(WordSectionBreakType.Continuous)).End();
 
             Assert.Equal(2, document.Sections.Count);
-            SectionType sectionType = Assert.IsType<SectionType>(previousSection._sectionProperties.GetFirstChild<SectionType>());
+            Assert.Equal(WordSectionBreakType.NextPage, previousSection.BreakType);
+            SectionType sectionType = Assert.IsType<SectionType>(document.Sections[1]._sectionProperties.GetFirstChild<SectionType>());
             Assert.Equal(SectionMarkValues.Continuous, sectionType.Val?.Value);
         }
 

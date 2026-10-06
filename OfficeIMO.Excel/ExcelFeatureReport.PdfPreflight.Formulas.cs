@@ -11,63 +11,31 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            return IsDefaultPdfSelectedCell(sheet, row, column);
+        }
+
+        private static bool IsDefaultPdfSelectedCell(ExcelSheet sheet, int row, int column) {
             if (IsPdfHiddenRow(sheet, row) || IsPdfHiddenColumn(sheet, column)) {
                 return false;
             }
 
-            if (!TryGetDefaultPdfBodyRange(sheet, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
-                return true;
-            }
-
+            IReadOnlyList<string> areas = sheet.GetPrintAreas();
+            if (areas.Count == 0) return true;
             ExcelPrintTitles titles = sheet.GetPrintTitles();
-            if (titles.HasRows
-                && row >= titles.FirstRow!.Value
-                && row <= titles.LastRow!.Value
-                && column >= firstColumn
-                && column <= lastColumn) {
-                return true;
+            foreach (string area in areas) {
+                // Invalid metadata is reported separately; remain conservative about cached formula results.
+                if (!sheet.TryParsePrintAreaReference(area, out ExcelReference? reference) || reference == null) return true;
+                int firstRow = reference.Kind == ExcelReferenceKind.WholeColumn ? 1 : Math.Min(reference.Start.Row, reference.End.Row);
+                int lastRow = reference.Kind == ExcelReferenceKind.WholeColumn ? A1.MaxRows : Math.Max(reference.Start.Row, reference.End.Row);
+                int firstColumn = reference.Kind == ExcelReferenceKind.WholeRow ? 1 : Math.Min(reference.Start.Column, reference.End.Column);
+                int lastColumn = reference.Kind == ExcelReferenceKind.WholeRow ? A1.MaxColumns : Math.Max(reference.Start.Column, reference.End.Column);
+                bool selectedRow = row >= firstRow && row <= lastRow
+                    || titles.HasRows && row >= titles.FirstRow!.Value && row <= Math.Min(titles.LastRow!.Value, lastRow);
+                bool selectedColumn = column >= firstColumn && column <= lastColumn
+                    || titles.HasColumns && column >= titles.FirstColumn!.Value && column <= Math.Min(titles.LastColumn!.Value, lastColumn);
+                if (selectedRow && selectedColumn) return true;
             }
-
-            return row >= firstRow
-                   && row <= lastRow
-                   && column >= firstColumn
-                   && column <= lastColumn;
-        }
-
-        private static bool TryGetDefaultPdfBodyRange(ExcelSheet sheet, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
-            firstRow = 0;
-            firstColumn = 0;
-            lastRow = 0;
-            lastColumn = 0;
-
-            string? printArea = sheet.GetPrintArea();
-            if (string.IsNullOrWhiteSpace(printArea)) {
-                return false;
-            }
-
-            if (ContainsMultiplePrintAreas(printArea!)) {
-                return false;
-            }
-
-            string range = StripSheetPrefix(printArea!).Replace("$", string.Empty);
-            if (A1.TryParseRange(range, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
-                return true;
-            }
-
-            if (!A1.TryParseCellReferenceFast(range, out firstRow, out firstColumn)) {
-                return false;
-            }
-
-            lastRow = firstRow;
-            lastColumn = firstColumn;
-            return true;
-        }
-
-        private static string StripSheetPrefix(string reference) {
-            int separator = reference.LastIndexOf('!');
-            return separator >= 0 && separator + 1 < reference.Length
-                ? reference.Substring(separator + 1)
-                : reference;
+            return false;
         }
 
         private static bool IsPdfHiddenRow(ExcelSheet sheet, int rowIndex) {

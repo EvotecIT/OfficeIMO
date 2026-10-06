@@ -908,11 +908,8 @@ internal static partial class PdfWriter {
             if (page.FormFields.Count > 0) {
                 foreach (var field in page.FormFields) {
                     string formField;
-                    double appearanceWidth = field.X2 - field.X1;
-                    double appearanceHeight = field.Y2 - field.Y1;
-                    double sourceAppearanceWidth = appearanceWidth / field.AppearanceScale;
-                    double sourceAppearanceHeight = appearanceHeight / field.AppearanceScale;
-                    PdfFormFieldStyle sourceAppearanceStyle = field.AppearanceScale == 1D ? field.Style : field.AppearanceSourceStyle ?? field.Style;
+                    double appearanceWidth = (field.X2 - field.X1) / field.AppearanceScale;
+                    double appearanceHeight = (field.Y2 - field.Y1) / field.AppearanceScale;
                     if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
                         if (field.RadioWidgets.Count > 0) {
                             string selectedValue = positionedRadioValues[field.Name];
@@ -935,16 +932,13 @@ internal static partial class PdfWriter {
                                     throw new ArgumentException("Canvas radio button options must be unique within one field name.");
                                 }
                                 RadioButtonWidgetAnnotation widgetFrame = field.RadioWidgets[optionIndex];
-                                double widgetWidth = widgetFrame.X2 - widgetFrame.X1;
-                                double widgetHeight = widgetFrame.Y2 - widgetFrame.Y1;
-                                double sourceWidgetWidth = widgetWidth / widgetFrame.AppearanceScale;
-                                double sourceWidgetHeight = widgetHeight / widgetFrame.AppearanceScale;
-                                PdfFormFieldStyle sourceWidgetStyle = widgetFrame.AppearanceScale == 1D ? widgetFrame.Style : widgetFrame.AppearanceSourceStyle ?? widgetFrame.Style;
-                                string positionedOffAppearance = ScaleFormAppearanceContent(PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(sourceWidgetWidth, sourceWidgetHeight, selected: false, sourceWidgetStyle), widgetFrame.AppearanceScale);
+                                double widgetWidth = (widgetFrame.X2 - widgetFrame.X1) / field.AppearanceScale;
+                                double widgetHeight = (widgetFrame.Y2 - widgetFrame.Y1) / field.AppearanceScale;
+                                string positionedOffAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(widgetWidth, widgetHeight, selected: false, widgetFrame.Style);
                                 byte[] positionedOffBytes = PdfEncoding.Latin1GetBytes(positionedOffAppearance);
                                 string positionedOffDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedOffBytes.Length);
                                 int positionedOffAppearanceId = AddStreamObject(objects, positionedOffDictionary, positionedOffBytes);
-                                string positionedSelectedAppearance = ScaleFormAppearanceContent(PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(sourceWidgetWidth, sourceWidgetHeight, selected: true, sourceWidgetStyle), widgetFrame.AppearanceScale);
+                                string positionedSelectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(widgetWidth, widgetHeight, selected: true, widgetFrame.Style);
                                 byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
                                 string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedSelectedBytes.Length);
                                 int positionedSelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes);
@@ -959,7 +953,7 @@ internal static partial class PdfWriter {
                                     selectedValue,
                                     positionedOffAppearanceId,
                                     positionedSelectedAppearanceId,
-                                    widgetFrame.Style,
+                                    ScaleFormWidgetStyle(widgetFrame.Style, field.AppearanceScale),
                                     widgetStructureReference?.StructParentIndex);
                                 int widgetObjectId = AddObject(objects, widget);
                                 CompleteAnnotationStructureReference(page, widgetStructureReference, widgetObjectId);
@@ -974,12 +968,12 @@ internal static partial class PdfWriter {
                         int parentFieldId = ReserveObject(objects);
                         double appearanceButtonWidth = field.ButtonSize;
                         double appearanceButtonHeight = field.ButtonSize;
-                        string offAppearance = ScaleFormAppearanceContent(PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(appearanceButtonWidth / field.AppearanceScale, appearanceButtonHeight / field.AppearanceScale, selected: false, sourceAppearanceStyle), field.AppearanceScale);
+                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(appearanceButtonWidth, appearanceButtonHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
                         string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceButtonWidth, appearanceButtonHeight, offAppearanceBytes.Length);
                         int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
 
-                        string selectedAppearance = ScaleFormAppearanceContent(PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(appearanceButtonWidth / field.AppearanceScale, appearanceButtonHeight / field.AppearanceScale, selected: true, sourceAppearanceStyle), field.AppearanceScale);
+                        string selectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(appearanceButtonWidth, appearanceButtonHeight, selected: true, field.Style);
                         byte[] selectedAppearanceBytes = PdfEncoding.Latin1GetBytes(selectedAppearance);
                         string selectedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceButtonWidth, appearanceButtonHeight, selectedAppearanceBytes.Length);
                         int selectedAppearanceId = AddStreamObject(objects, selectedAppearanceDictionary, selectedAppearanceBytes);
@@ -1017,21 +1011,21 @@ internal static partial class PdfWriter {
 
                     AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement);
                     if (field.Kind == FormFieldAnnotationKind.CheckBox) {
-                        string offAppearance = ScaleFormAppearanceContent(PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(sourceAppearanceWidth, sourceAppearanceHeight, selected: false, sourceAppearanceStyle), field.AppearanceScale);
+                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
                         string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, offAppearanceBytes.Length);
                         int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
 
-                        string checkedAppearance = ScaleFormAppearanceContent(PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(sourceAppearanceWidth, sourceAppearanceHeight, selected: true, sourceAppearanceStyle), field.AppearanceScale);
+                        string checkedAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: true, field.Style);
                         byte[] checkedAppearanceBytes = PdfEncoding.Latin1GetBytes(checkedAppearance);
                         string checkedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, checkedAppearanceBytes.Length);
                         int checkedAppearanceId = AddStreamObject(objects, checkedAppearanceDictionary, checkedAppearanceBytes);
 
-                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex, field.ExportValue);
+                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, ScaleFormWidgetStyle(field.Style, field.AppearanceScale), formWidgetStructureReference?.StructParentIndex, field.ExportValue);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
                         string appearanceContent = BuildChoiceFieldAppearanceContent(
-                            sourceAppearanceWidth,
-                            sourceAppearanceHeight,
+                            appearanceWidth,
+                            appearanceHeight,
                             field,
                             pageOpts,
                             EnsureFont,
@@ -1040,32 +1034,32 @@ internal static partial class PdfWriter {
                             out IReadOnlyList<string> selectedValues,
                             out IReadOnlyList<int> selectedIndices,
                             out int? topIndex);
-                        byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(ScaleFormAppearanceContent(appearanceContent, field.AppearanceScale));
+                        byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceFontResources, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = field.ChoiceOptions.Count > 0
                             ? PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize,
-                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize * field.AppearanceScale,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, ScaleFormWidgetStyle(field.Style, field.AppearanceScale),
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex)
                             : PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize,
-                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize * field.AppearanceScale,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, ScaleFormWidgetStyle(field.Style, field.AppearanceScale),
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex);
                     } else {
                         string appearanceContent = BuildFormFieldTextAppearanceContent(
-                            sourceAppearanceWidth,
-                            sourceAppearanceHeight,
+                            appearanceWidth,
+                            appearanceHeight,
                             field.AppearanceValue ?? field.Value,
-                            field.AppearanceScale == 1D ? field.FontSize : field.AppearanceSourceFontSize,
-                            field.AppearanceScale == 1D ? field.AppearanceStyle ?? field.Style : field.AppearanceSourceOverrideStyle ?? sourceAppearanceStyle,
+                            field.FontSize,
+                            field.AppearanceStyle ?? field.Style,
                             pageOpts,
                             EnsureFont,
                             out IReadOnlyList<(string Name, int Id)> appearanceFontResources);
-                        byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(ScaleFormAppearanceContent(appearanceContent, field.AppearanceScale));
+                        byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceFontResources, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId, field.Style, formWidgetStructureReference?.StructParentIndex);
+                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize * field.AppearanceScale, appearanceId, ScaleFormWidgetStyle(field.Style, field.AppearanceScale), formWidgetStructureReference?.StructParentIndex);
                     }
 
                     int formFieldId = AddObject(objects, formField);
@@ -1874,10 +1868,9 @@ internal static partial class PdfWriter {
             bool firstPageOfGroup = pageNumber == 1;
             if (pending.Count == 0 || (firstPageOfGroup && page.Options.HasExplicitPageNumberStart)) {
                 currentSequenceId = nextSequenceId++;
-                currentVisiblePageNumber = page.Options.HasExplicitPageNumberStart ? page.Options.PageNumberStart : 1;
-            } else {
-                currentVisiblePageNumber++;
             }
+            currentVisiblePageNumber = ResolveNextVisiblePageNumber(pending.Count, firstPageOfGroup,
+                currentVisiblePageNumber, page.Options);
 
             pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId));
         }

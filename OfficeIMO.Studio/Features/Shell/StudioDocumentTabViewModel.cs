@@ -1,51 +1,28 @@
-using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
-/// <summary>Represents one live document workspace in the desktop tab strip.</summary>
-public sealed partial class StudioDocumentTabViewModel : ObservableObject, IDisposable {
+/// <summary>Adapts shared document-tab state to Avalonia commands and localized labels.</summary>
+public sealed partial class StudioDocumentTabViewModel : ObservableObject, IStudioDocumentTab<MainWindowViewModel> {
+    private readonly StudioDocumentTabState<MainWindowViewModel> _state;
     private readonly Func<StudioDocumentTabViewModel, Task> _close;
-    private bool _disposed;
-
-    internal StudioDocumentTabViewModel(
-        MainWindowViewModel document,
-        Func<StudioDocumentTabViewModel, Task> close) {
-        Document = document ?? throw new ArgumentNullException(nameof(document));
-        _close = close ?? throw new ArgumentNullException(nameof(close));
-        _title = document.DocumentName;
-        Document.PropertyChanged += OnDocumentPropertyChanged;
+    internal StudioDocumentTabViewModel(MainWindowViewModel document, Func<StudioDocumentTabViewModel, Task> close) {
+        _state = new(document);
+        _close = close;
+        _state.PropertyChanged += (_, args) => {
+            OnPropertyChanged(args.PropertyName);
+            if (args.PropertyName == nameof(DisplayTitle)) OnPropertyChanged(nameof(CloseLabel));
+        };
     }
-
-    internal MainWindowViewModel Document { get; }
-
+    internal MainWindowViewModel Document => _state.Document;
+    MainWindowViewModel IStudioDocumentTab<MainWindowViewModel>.Document => Document;
+    public string Title { get => _state.Title; set => _state.Title = value; }
+    public string DisplayTitle => _state.DisplayTitle;
+    public string CloseLabel => Infrastructure.Localization.StudioLocalization.Current.Format("Tabs.CloseDocument", DisplayTitle);
+    public bool IsDirty => _state.IsDirty;
+    public string? SourcePath => _state.SourcePath;
     public override string ToString() => Title;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DisplayTitle))]
-    private string _title;
-
-    /// <summary>The document name without the unsaved-changes marker; the tab shows a dot instead.</summary>
-    public string DisplayTitle => Title.TrimEnd(' ', '*');
-
-    public bool IsDirty => Document.IsDirty;
-
-    public string? SourcePath => Document.DocumentPath;
-
-    [RelayCommand]
-    private Task CloseAsync() => _close(this);
-
-    public void Dispose() {
-        if (_disposed) return;
-        _disposed = true;
-        Document.PropertyChanged -= OnDocumentPropertyChanged;
-        Document.Dispose();
-    }
-
-    private void OnDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e) {
-        if (e.PropertyName == nameof(MainWindowViewModel.DocumentName)) Title = Document.DocumentName;
-        else if (e.PropertyName == nameof(MainWindowViewModel.IsDirty)) OnPropertyChanged(nameof(IsDirty));
-        else if (e.PropertyName == nameof(MainWindowViewModel.DocumentPath)) OnPropertyChanged(nameof(SourcePath));
-    }
+    [RelayCommand] private Task CloseAsync() => _close(this);
+    public void Dispose() => _state.Dispose();
 }

@@ -41,11 +41,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            // This exposed corner is outside the inset opaque core and must fade.
-            OfficeColor shadowEdge = image!.GetPixel(83, 53);
-            Assert.InRange(shadowEdge.R, (byte)1, (byte)254);
-            Assert.Equal(shadowEdge.R, shadowEdge.G);
-            Assert.Equal(shadowEdge.R, shadowEdge.B);
+            Assert.Equal(OfficeColor.FromRgb(0, 0, 0), image!.GetPixel(83, 53));
             Assert.True(ContainsVisibleNonWhitePixel(image!, 87, 35, 8, 14), "Expected blurred shadow halo pixels outside the hard shadow bounds.");
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }

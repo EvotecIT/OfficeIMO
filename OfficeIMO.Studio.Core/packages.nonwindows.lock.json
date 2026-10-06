@@ -1,0 +1,390 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "CommunityToolkit.Mvvm": {
+        "type": "Direct",
+        "requested": "[8.4.2, )",
+        "resolved": "8.4.2",
+        "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
+      },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+      },
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.8.3",
+        "contentHash": "IiXdbBHzeKRUDayOFT/5nAqkY7Tqbtzr9dqoWrsfseLRs2r1j94qP8MmKnfs9aX+WHucmlmX8xq9QosIUJ/sbA=="
+      },
+      "AngleSharp.Css": {
+        "type": "Transitive",
+        "resolved": "1.1.2",
+        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
+        "dependencies": {
+          "AngleSharp": "[1.5.0, 2.0.0)"
+        }
+      },
+      "BouncyCastle.Cryptography": {
+        "type": "Transitive",
+        "resolved": "2.7.0",
+        "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
+      },
+      "DocumentFormat.OpenXml": {
+        "type": "Transitive",
+        "resolved": "3.5.1",
+        "contentHash": "zxdOf5VVCe/uNklbRhj8dVBzQGj3DoqkUuqOp9cAZVuN8mNYDjof1lvSQA2OQNr8Ptc9d7pbA7Azq/ReaI3FpA==",
+        "dependencies": {
+          "DocumentFormat.OpenXml.Framework": "3.5.1"
+        }
+      },
+      "DocumentFormat.OpenXml.Framework": {
+        "type": "Transitive",
+        "resolved": "3.5.1",
+        "contentHash": "U5txtc3ORno73xQx9Lf2gWzfaSZnZwKHfLkTAslhlew9lxe5XbUiCt0dY1fHeAf8yRqszUAe5i/+xLC9R/Xfsw==",
+        "dependencies": {
+          "System.IO.Packaging": "10.0.2"
+        }
+      },
+      "System.IO.Packaging": {
+        "type": "Transitive",
+        "resolved": "10.0.8",
+        "contentHash": "6Dzmgfpi7BdqgQ3g/6jZuJzgGspIFSEfSchY4ejTVkZTMOKRZRJiYp5/q0gIZ8H1+Eq8/sxJNnyWtzAHp6iTcQ=="
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      },
+      "System.Security.Cryptography.Xml": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "Mz6Y+s+uMQKj1H2BUF0OhlmaOQkLgSG34/IrUaBDirYBQ6bgwcFvO/XtXWcoDlBLFoFB0uKqDNhybHOd+fQK1A==",
+        "dependencies": {
+          "System.Security.Cryptography.Pkcs": "10.0.10"
+        }
+      },
+      "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.csv": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.email.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Email": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Html.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.epub": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )"
+        }
+      },
+      "officeimo.epub.image": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Epub": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )"
+        }
+      },
+      "officeimo.excel": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.excel.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Excel": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.html": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.8.3, )",
+          "AngleSharp.Css": "[1.1.2, )",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
+          "OfficeIMO.Html.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.html.anglesharp": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.8.3, )",
+          "OfficeIMO.Html.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.html.core": {
+        "type": "Project"
+      },
+      "officeimo.html.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.html.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
+      "officeimo.invoicing.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Invoicing": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing.validation": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Invoicing": "[3.4.4, )"
+        }
+      },
+      "officeimo.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.markdown.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Markdown": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.ocr": {
+        "type": "Project"
+      },
+      "officeimo.opendocument": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.pdf.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.powerpoint": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.powerpoint.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.PowerPoint": "[3.4.4, )"
+        }
+      },
+      "officeimo.project": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.reader.core": {
+        "type": "Project"
+      },
+      "officeimo.reader.image": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.reader.ocr": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.reader.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.rtf.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.security": {
+        "type": "Project",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "[2.7.0, 3.0.0)",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "System.Security.Cryptography.Pkcs": "[10.0.10, )",
+          "System.Security.Cryptography.Xml": "[10.0.10, )"
+        }
+      },
+      "officeimo.visio": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "System.IO.Packaging": "[10.0.8, )"
+        }
+      },
+      "officeimo.word": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.word.html": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )"
+        }
+      },
+      "officeimo.word.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )"
+        }
+      },
+      "officeimo.workflows": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.CSV": "[3.4.4, )",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Email.Html": "[3.4.4, )",
+          "OfficeIMO.Epub": "[3.4.4, )",
+          "OfficeIMO.Epub.Image": "[3.4.4, )",
+          "OfficeIMO.Excel": "[3.4.4, )",
+          "OfficeIMO.Excel.Pdf": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Html.Pdf": "[3.4.4, )",
+          "OfficeIMO.Invoicing": "[3.4.4, )",
+          "OfficeIMO.Invoicing.Pdf": "[3.4.4, )",
+          "OfficeIMO.Invoicing.Validation": "[3.4.4, )",
+          "OfficeIMO.Markdown": "[3.4.4, )",
+          "OfficeIMO.Markdown.Pdf": "[3.4.4, )",
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.OpenDocument": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Pdf.Ocr": "[3.4.4, )",
+          "OfficeIMO.PowerPoint": "[3.4.4, )",
+          "OfficeIMO.PowerPoint.Pdf": "[3.4.4, )",
+          "OfficeIMO.Project": "[3.4.4, )",
+          "OfficeIMO.Reader.Image": "[3.4.4, )",
+          "OfficeIMO.Reader.Ocr": "[3.4.4, )",
+          "OfficeIMO.Rtf.Pdf": "[3.4.4, )",
+          "OfficeIMO.Visio": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )",
+          "OfficeIMO.Word.Html": "[3.4.4, )",
+          "OfficeIMO.Word.Pdf": "[3.4.4, )"
+        }
+      }
+    },
+    "net10.0/linux-arm64": {
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      }
+    },
+    "net10.0/linux-x64": {
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      }
+    },
+    "net10.0/osx-arm64": {
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      }
+    },
+    "net10.0/osx-x64": {
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      }
+    },
+    "net10.0/win-arm64": {
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      }
+    },
+    "net10.0/win-x64": {
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "KG8t5RHczdgB3IWvRndpI0nE1DSo7ikDYSDbITxfgRFyIvnYiKzuPjaZOsPnwFQ1aOGUl9sEulJul9wlHLEUoA=="
+      }
+    }
+  }
+}

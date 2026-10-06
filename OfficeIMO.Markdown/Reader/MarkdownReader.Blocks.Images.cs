@@ -82,9 +82,7 @@ public static partial class MarkdownReader {
             linkTargetLength: null,
             linkTitleStart: null,
             linkTitleLength: null);
-        if (!TryConsumeImageTrailingBlocks(t.Substring(parenClose + 1), parenClose + 1, image, options, ref sizeSpec, ref attributeStart, ref attributeLength)) {
-            return false;
-        }
+        ConsumeImageTrailingBlocks(t.Substring(parenClose + 1), parenClose + 1, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
         ranges = new MarkdownImageSyntaxRanges(
             ranges.AltStart,
             ranges.AltLength,
@@ -161,9 +159,7 @@ public static partial class MarkdownReader {
             hrefTitleStart,
             hrefTitleLength);
 
-        if (!TryConsumeImageTrailingBlocks(t.Substring(consumed), consumed, image, options, ref sizeSpec, ref attributeStart, ref attributeLength)) {
-            return false;
-        }
+        ConsumeImageTrailingBlocks(t.Substring(consumed), consumed, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
         ranges = new MarkdownImageSyntaxRanges(
             ranges.AltStart,
             ranges.AltLength,
@@ -181,11 +177,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    /// <summary>
-    /// Accepts only supported size and attribute blocks after a standalone image. Other
-    /// trailing content must be parsed with the image as part of a paragraph.
-    /// </summary>
-    private static bool TryConsumeImageTrailingBlocks(
+    private static void ConsumeImageTrailingBlocks(
         string? suffix,
         int suffixStart,
         ImageBlock image,
@@ -222,20 +214,9 @@ public static partial class MarkdownReader {
                 restStart++;
             }
         }
-        // An image followed by ordinary text belongs to a paragraph. Treating it as a
-        // standalone image block silently discards that text during load and rewrite.
-        return restStart == suffix.Length;
     }
 
     private static bool TryApplyImageSizeSpec(string? block, ImageBlock image) {
-        if (!TryParseImageSizeSpec(block, out var width, out var height)) return false;
-        if (width.HasValue) image.Width = width;
-        if (height.HasValue) image.Height = height;
-        return true;
-    }
-
-    private static bool TryParseImageSizeSpec(string? block, out double? width, out double? height) {
-        width = height = null;
         bool applied = false;
         foreach (var part in (block ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
             int eq = part.IndexOf('=');
@@ -250,10 +231,10 @@ public static partial class MarkdownReader {
             }
 
             if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) {
-                width = num;
+                image.Width = num;
                 applied = true;
             } else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) {
-                height = num;
+                image.Height = num;
                 applied = true;
             }
         }

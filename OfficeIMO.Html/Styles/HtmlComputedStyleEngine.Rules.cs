@@ -202,13 +202,13 @@ public static partial class HtmlComputedStyleEngine {
                 RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector), providerSelectorObjects[selectorIndex]);
             }
         }
-        if (!retainedSelectors.Any(retained => retained)) return;
-
         Dictionary<string, StyleDeclaration>? ownedDeclarations = ownedRule == null
             ? null
             : ownedDeclarationsOverride ?? TryCreateOwnedDeclarations(ownedRule);
+        if (!retainedSelectors.Any(retained => retained)) return;
         for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
-            if (retainedSelectors[selectorIndex]) budget.RecordRule(ownedDeclarations?.Count ?? styleRule.Style.Length);
+            if (retainedSelectors[selectorIndex])
+                budget.RecordRule(ownedDeclarations?.Count ?? styleRule.Style.Length);
         }
 
         var declarations = ownedDeclarations ?? new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);

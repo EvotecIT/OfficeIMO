@@ -182,6 +182,7 @@ public static partial class MarkdownReader {
         }
         bool TryConsumeBareAutolinkNode(int start, out int nextPosition) {
             nextPosition = start;
+            if (!allowLinks) return false;
 
             if (options.AutolinkUrls && StartsWithHttp(text, start, options, out int urlEnd)) {
                 var url = text.Substring(start, urlEnd - start);
@@ -267,7 +268,7 @@ public static partial class MarkdownReader {
                     sourceMap?.GetSpan(start + labelLength + 1, 2));
             }
         }
-        int AddInlineImageNode(
+        void AddInlineImageNode(
             string alt,
             string resolvedSource,
             string? title,
@@ -281,8 +282,7 @@ public static partial class MarkdownReader {
             int? titleStart,
             int? titleLength) {
             var image = new ImageInline(alt, resolvedSource, title, plainAlt);
-            int suffixLength = ConsumeInlineImageTrailingBlocks(text, start + length, options, image, sourceMap);
-            AddRawNode(image, start, length + suffixLength);
+            AddRawNode(image, start, length);
             MarkdownInlineMetadataSourceSpans.SetImageParts(
                 image,
                 sourceMap?.GetSpan(altStart, altLength),
@@ -298,7 +298,6 @@ public static partial class MarkdownReader {
                 sourceMap?.GetSpan(start + length - 1, 1),
                 "](",
                 sourceMap?.GetSpan(altStart + altLength, 2));
-            return suffixLength;
         }
         void AddReferenceImageNode(
             string alt,
@@ -536,8 +535,7 @@ public static partial class MarkdownReader {
                     } else {
                         var plainAlt2 = ExtractImageAltPlainText(alt2, options, state, imageAltDepth);
                         var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2, plainAlt2);
-                        int suffixLength = ConsumeInlineImageTrailingBlocks(text, pos + consumed, options, imageLink, sourceMap);
-                        AddRawNode(imageLink, pos, consumed + suffixLength);
+                        AddRawNode(imageLink, pos, consumed);
                         int outerSeparatorStart = FindLinkedImageOuterSeparatorStart(pos, consumed, imageLinkHrefStart);
                         MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
                             imageLink,
@@ -558,7 +556,6 @@ public static partial class MarkdownReader {
                             sourceMap?.GetSpan(pos + consumed - 1, 1),
                             outerSeparatorStart >= 0 ? "](" : null,
                             outerSeparatorStart >= 0 ? sourceMap?.GetSpan(outerSeparatorStart, 2) : null);
-                        consumed += suffixLength;
                     }
                     pos += consumed; continue;
                 }
@@ -632,7 +629,7 @@ public static partial class MarkdownReader {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state, imageAltDepth), pos, consumedImg);
                         } else {
                             var plainAltImg = ExtractImageAltPlainText(altImg, options, state, imageAltDepth);
-                            int suffixLength = AddInlineImageNode(
+                            AddInlineImageNode(
                                 altImg,
                                 srcResolved!,
                                 titleImg,
@@ -645,7 +642,6 @@ public static partial class MarkdownReader {
                                 srcLengthImg,
                                 titleStartImg,
                                 titleLengthImg);
-                            consumedImg += suffixLength;
                         }
                         pos += consumedImg; continue;
                     }
@@ -666,7 +662,7 @@ public static partial class MarkdownReader {
             // Angle-bracket autolinks: <https://example.com>, <mailto:user@example.com>, <tel:+123>, <user@example.com>
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
-                if (resolved is null) {
+                if (!allowLinks || resolved is null) {
                     AddTextNode(text.Substring(pos, consumedAngle), pos, consumedAngle);
                 } else {
                     AddAutolinkNode(
@@ -995,10 +991,10 @@ public static partial class MarkdownReader {
                 if (text[pos] == '\\' && pos + 1 < text.Length && IsBackslashEscapable(text[pos + 1])) break;
                 if (text[pos] == '&' && TryConsumeHtmlEntityText(text, pos, out _, out _)) break;
                 if (text[pos] == '<' && IsAngleAutolinkStart(text, pos)) break;
-                if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, options, out _)) break;
-                if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
-                if (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
-                if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
+                if (allowLinks && options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, options, out _)) break;
+                if (allowLinks && options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
+                if (allowLinks && options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
+                if (allowLinks && options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
                 if (options.Abbreviations && TryConsumeAbbreviation(text, pos, state, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(
