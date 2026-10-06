@@ -50,6 +50,8 @@ public partial class DrawingRasterTests {
     [InlineData(true, 48)]
     [InlineData(false, 2049)]
     [InlineData(true, 2049)]
+    [InlineData(false, 5000)]
+    [InlineData(true, 5000)]
     public void ManyDisjointContourColumnsRetainCoverageAcrossScratchGrowth(bool nonZero, int columns) {
         var contours = Enumerable.Range(0, columns).Select(i => (IReadOnlyList<OfficePoint>)new[] {
             new OfficePoint(2D * i + 0.25D, -0.25D), new OfficePoint(2D * i + 1.5D, -0.25D),

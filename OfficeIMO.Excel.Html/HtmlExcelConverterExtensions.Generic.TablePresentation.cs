@@ -59,18 +59,45 @@ public static partial class HtmlExcelConverterExtensions {
                 + "; originalLength=" + table.Caption.Length);
     }
 
-    private static void FormatSimpleGenericTableSheet(ExcelSheet sheet, HtmlSemanticTable table) {
-        // Generic two-column tables are often term/definition data. Keep both
-        // columns within a printable width and let longer values wrap visibly.
-        if (table.Rows.Count == 0 || table.Rows.Any(row => row.Cells.Count != 2
-            || row.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))) return;
+    private static void FormatGenericTableSheet(ExcelSheet sheet, HtmlSemanticTable table) {
         // The imported grid can contain empty source rows or stop at MaxTableCells.
         // Only format values that made it into the worksheet.
-        ExcelCellValueInfo[] importedCells = sheet.EnumerateCells()
-            .Where(cell => cell.Column is 1 or 2)
-            .ToArray();
+        ExcelCellValueInfo[] importedCells = sheet.EnumerateCells().ToArray();
         if (importedCells.Length == 0) return;
 
+        if (table.Rows.Count > 0 && table.Rows.All(row => row.Cells.Count == 2
+            && row.Cells.All(cell => cell.RowSpan == 1 && cell.ColumnSpan == 1))) {
+            // Preserve the established printable term/definition presentation.
+            FormatTwoColumnGenericTableSheet(sheet, importedCells);
+        } else {
+            // Use Excel's existing sizing rather than a separate HTML text
+            // estimator. Bound long columns and fit rows after enabling wrapping.
+            sheet.AutoFitColumnsFor(importedCells.Select(cell => cell.Column));
+            ExcelColumnSnapshot[] columns = sheet.GetColumnDefinitions().ToArray();
+            const double minimumWidth = 12D;
+            double minimumTotal = columns.Sum(column => (column.EndIndex - column.StartIndex + 1) * minimumWidth);
+            double extraTotal = columns.Sum(column => (column.EndIndex - column.StartIndex + 1)
+                * (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth));
+            // Reuse the existing printable width without squeezing a wide grid's
+            // columns below the readable minimum. Only surplus width is shared.
+            double extraBudget = Math.Max(75D, minimumTotal) - minimumTotal;
+            double scale = extraTotal > 0D ? Math.Min(1D, extraBudget / extraTotal) : 1D;
+            var fittedWidths = new Dictionary<int, double>();
+            foreach (ExcelColumnSnapshot column in columns) {
+                double width = minimumWidth
+                    + (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth) * scale;
+                for (int index = column.StartIndex; index <= column.EndIndex; index++) {
+                    fittedWidths.Add(index, width);
+                }
+            }
+            sheet.SetColumnWidths(fittedWidths);
+        }
+
+        sheet.CellWrapTextFor(importedCells.Select(cell => (cell.Row, cell.Column)));
+        sheet.AutoFitRows();
+    }
+
+    private static void FormatTwoColumnGenericTableSheet(ExcelSheet sheet, ExcelCellValueInfo[] importedCells) {
         int firstLength = 0;
         int secondLength = 0;
         foreach (ExcelCellValueInfo cell in importedCells) {
@@ -89,9 +116,5 @@ public static partial class HtmlExcelConverterExtensions {
 
         sheet.SetColumnWidth(1, firstWidth);
         sheet.SetColumnWidth(2, secondWidth);
-        foreach (ExcelCellValueInfo cell in importedCells) {
-            sheet.CellWrapText(cell.Row, cell.Column);
-        }
-        sheet.AutoFitRows();
     }
 }
