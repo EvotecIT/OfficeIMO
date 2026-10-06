@@ -87,12 +87,12 @@ internal static partial class OfficeJpegReader {
                     byte c;
                     byte m;
                     byte y0;
-                    var kVal = SampleComponent(states, isYcck ? ycckK : kIndex, x, y, maxH, maxV, 0, highQualityChroma);
+                    var kVal = SampleComponent(states, isYcck ? ycckK : kIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height);
 
                     if (isYcck) {
-                        var yVal = SampleComponent(states, ycckY, x, y, maxH, maxV, 128, highQualityChroma);
-                        var cbVal = SampleComponent(states, ycckCb, x, y, maxH, maxV, 128, highQualityChroma);
-                        var crVal = SampleComponent(states, ycckCr, x, y, maxH, maxV, 128, highQualityChroma);
+                        var yVal = SampleComponent(states, ycckY, x, y, maxH, maxV, 128, highQualityChroma, frame.Width, frame.Height);
+                        var cbVal = SampleComponent(states, ycckCb, x, y, maxH, maxV, 128, highQualityChroma, frame.Width, frame.Height);
+                        var crVal = SampleComponent(states, ycckCr, x, y, maxH, maxV, 128, highQualityChroma, frame.Width, frame.Height);
                         YccToRgb(yVal, cbVal, crVal, out byte r, out byte g, out byte b);
                         if (adobeTransform.HasValue) {
                             c = (byte)(255 - r);
@@ -105,9 +105,9 @@ internal static partial class OfficeJpegReader {
                             y0 = (byte)(255 - b);
                         }
                     } else {
-                        c = (byte)SampleComponent(states, cIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                        m = (byte)SampleComponent(states, mIndex, x, y, maxH, maxV, 0, highQualityChroma);
-                        y0 = (byte)SampleComponent(states, yIndex, x, y, maxH, maxV, 0, highQualityChroma);
+                        c = (byte)SampleComponent(states, cIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height);
+                        m = (byte)SampleComponent(states, mIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height);
+                        y0 = (byte)SampleComponent(states, yIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height);
                         if (adobeTransform.HasValue) {
                             c = (byte)(255 - c);
                             m = (byte)(255 - m);
@@ -129,7 +129,7 @@ internal static partial class OfficeJpegReader {
             for (var y = 0; y < frame.Height; y++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < frame.Width; x++) {
-                    var v = SampleComponent(states, grayIndex, x, y, maxH, maxV, 0, highQualityChroma);
+                    var v = SampleComponent(states, grayIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height);
                     WriteGrayPixel(components, y * frame.Width + x, (byte)v, outputRgba);
                 }
             }
@@ -187,17 +187,17 @@ internal static partial class OfficeJpegReader {
                     WriteRgbPixel(
                         components,
                         y * frame.Width + x,
-                        (byte)SampleComponent(states, firstIndex, x, y, maxH, maxV, 0, highQualityChroma),
-                        (byte)SampleComponent(states, secondIndex, x, y, maxH, maxV, 0, highQualityChroma),
-                        (byte)SampleComponent(states, thirdIndex, x, y, maxH, maxV, 0, highQualityChroma),
+                        (byte)SampleComponent(states, firstIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height),
+                        (byte)SampleComponent(states, secondIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height),
+                        (byte)SampleComponent(states, thirdIndex, x, y, maxH, maxV, 0, highQualityChroma, frame.Width, frame.Height),
                         outputRgba);
                 } else if (frame.ComponentCount == 3) {
                     byte r;
                     byte g;
                     byte b;
-                    var yVal = SampleComponent(states, yIndex2, x, y, maxH, maxV, 128, highQualityChroma);
-                    var cbVal = SampleComponent(states, cbIndex, x, y, maxH, maxV, 128, highQualityChroma);
-                    var crVal = SampleComponent(states, crIndex, x, y, maxH, maxV, 128, highQualityChroma);
+                    var yVal = SampleComponent(states, yIndex2, x, y, maxH, maxV, 128, highQualityChroma, frame.Width, frame.Height);
+                    var cbVal = SampleComponent(states, cbIndex, x, y, maxH, maxV, 128, highQualityChroma, frame.Width, frame.Height);
+                    var crVal = SampleComponent(states, crIndex, x, y, maxH, maxV, 128, highQualityChroma, frame.Width, frame.Height);
                     YccToRgb(yVal, cbVal, crVal, out r, out g, out b);
                     WriteRgbPixel(components, y * frame.Width + x, r, g, b, outputRgba);
                 } else {
@@ -211,7 +211,9 @@ internal static partial class OfficeJpegReader {
                             maxH,
                             maxV,
                             0,
-                            highQualityChroma);
+                            highQualityChroma,
+                            frame.Width,
+                            frame.Height);
                     }
                 }
             }
@@ -362,7 +364,9 @@ internal static partial class OfficeJpegReader {
         int maxH,
         int maxV,
         int fallback,
-        bool highQualityChroma) {
+        bool highQualityChroma,
+        int imageWidth,
+        int imageHeight) {
         if (index < 0 || index >= states.Length) return fallback;
         var state = states[index];
         if (!highQualityChroma || (state.Component.H == maxH && state.Component.V == maxV)) {
@@ -372,12 +376,15 @@ internal static partial class OfficeJpegReader {
             return state.Buffer[sy * stride + sx];
         }
 
-        return SampleComponentBilinear(state, x, y, maxH, maxV);
+        return SampleComponentBilinear(state, x, y, maxH, maxV, imageWidth, imageHeight);
     }
 
-    private static int SampleComponentBilinear(BaselineComponentState state, int x, int y, int maxH, int maxV) {
+    private static int SampleComponentBilinear(BaselineComponentState state, int x, int y, int maxH, int maxV, int imageWidth, int imageHeight) {
         var stride = state.Stride;
-        var height = state.Buffer.Length / stride;
+        // The buffer includes complete transform blocks beyond the visible
+        // image. Replicate the real component edge, not those padding samples.
+        var width = (imageWidth * state.Component.H + maxH - 1) / maxH;
+        var height = (imageHeight * state.Component.V + maxV - 1) / maxV;
 
         var fx = (x + 0.5) * state.Component.H / maxH - 0.5;
         var fy = (y + 0.5) * state.Component.V / maxV - 0.5;
@@ -389,7 +396,7 @@ internal static partial class OfficeJpegReader {
 
         if (x0 < 0) x0 = 0;
         if (y0 < 0) y0 = 0;
-        if (x1 >= stride) x1 = stride - 1;
+        if (x1 >= width) x1 = width - 1;
         if (y1 >= height) y1 = height - 1;
 
         var dx = fx - x0;
