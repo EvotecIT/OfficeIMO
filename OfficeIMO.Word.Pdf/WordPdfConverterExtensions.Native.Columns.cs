@@ -1,333 +1,79 @@
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
-using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
-namespace OfficeIMO.Word.Pdf {
-    public static partial class WordPdfConverterExtensions {
-        private static bool TryRenderNativeSectionColumns(
-            PdfCore.PdfPageBuilder page,
-            WordSection section,
-            IReadOnlyList<WordElement> elements,
-            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
-            Dictionary<WordParagraph, (int Level, int Index)> listIndices,
-            Dictionary<long, int> footnoteNumbersById,
-            WordToPdfOptions? options,
-            IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries,
-            IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
-            NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap) {
-            IReadOnlyList<double> columnWidthPercents = GetNativeSectionColumnWidthPercents(section);
-            int columnCount = columnWidthPercents.Count;
-            if (columnCount <= 1) {
-                return false;
-            }
+namespace OfficeIMO.Word.Pdf;
 
-            IReadOnlyList<IReadOnlyList<WordElement>> columns = SplitNativeElementsByColumnBreaks(elements, columnCount);
-            double gap = GetNativeSectionColumnGap(section);
-            PdfCore.PageSize pageSize = GetNativePageSize(section, options);
-            PdfCore.PageMargins margins = GetNativeMargins(section, options);
-            double sectionContentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
-            double availableColumnWidth = Math.Max(1D, sectionContentWidth - (gap * Math.Max(0, columnCount - 1)));
-            page.Content(content => content.Row(row => {
-                row.Gap(gap);
-                if (section.HasColumnSeparator) {
-                    row.ColumnSeparator(PdfCore.PdfColor.Black, 0.5D);
-                }
-
-                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                    IReadOnlyList<WordElement> columnElements = columns[columnIndex];
-                    row.PercentColumn(columnWidthPercents[columnIndex], column => {
-                        INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));
-                        double columnContentWidth = availableColumnWidth * columnWidthPercents[columnIndex] / 100D;
-                        bool hasContent = false;
-                        for (int i = 0; i < columnElements.Count; i++) {
-                            WordElement element = columnElements[i];
-                            if (element is WordFootNote) {
-                                continue;
-                            }
-
-                            if (TryRenderNativeList(
-                                flow,
-                                columnElements,
-                                ref i,
-                                listMarkers,
-                                listIndices,
-                                footnoteNumbersById,
-                                nativeDefaults,
-                                nativeFontMap)) {
-                                hasContent = true;
-                                continue;
-                            }
-
-                            RenderNativeElement(
-                                flow,
-                                element,
-                                section,
-                                paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
-                                GetNativeFootnoteNumbersForElement(columnElements, i, footnoteNumbersById),
-                                footnoteNumbersById,
-                                options,
-                                tableOfContentsEntries,
-                                headingDestinations,
-                                columnContentWidth,
-                                nativeDefaults,
-                                nativeFontMap,
-                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(columnElements, i),
-                                nextElement: GetNextNativeRenderableElement(columnElements, i));
-                            hasContent = true;
-                        }
-
-                        if (!hasContent) {
-                            column.Spacer(0);
-                        }
-                    });
-                }
-            }));
-            return true;
+public static partial class WordPdfConverterExtensions {
+    private static bool TryRenderNativeSectionColumns(
+        PdfCore.PdfPageBuilder page,
+        WordSection section,
+        IReadOnlyList<WordElement> elements,
+        Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+        Dictionary<WordParagraph, (int Level, int Index)> listIndices,
+        Dictionary<long, int> footnoteNumbersById,
+        WordToPdfOptions? options,
+        IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries,
+        IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
+        NativeDocumentDefaults nativeDefaults,
+        NativeFontMap nativeFontMap,
+        bool balanceColumns) {
+        int count = section.ColumnCount ?? 1;
+        if (count <= 1) return false;
+        double gap = section.ColumnsSpace is int spacing ? ConvertNativeTwipsToPoints(spacing) ?? 36D : 36D;
+        // Word 2013 layout ignores this legacy option without clearing its stored value.
+        bool suppressBalancing = !UsesModernNativeWordLayout(section._document) &&
+            section._document.CompatibilitySettings.DoNotBalanceTextColumns;
+        var columnOptions = new PdfCore.PdfMultiColumnOptions {
+            ColumnCount = count, Gap = gap,
+            BalanceLastPage = balanceColumns && !suppressBalancing,
+            BalanceKeptParagraphLines = !UsesModernNativeWordLayout(section._document),
+            HonorKeepWithNextWhenBalancing = UsesModernNativeWordLayout(section._document),
+            BalanceTableRowLines = UsesModernNativeWordLayout(section._document),
+            FinalColumnSpacingAfter = GetNativeColumnSectionMarkHeight(section, elements, balanceColumns, nativeDefaults, nativeFontMap),
+            SeparatorColor = section.HasColumnSeparator ? PdfCore.PdfColor.Black : null,
+            SeparatorWidth = section.HasColumnSeparator ? 0.5D : 0D
+        };
+        IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
+        if (definitions.Count > 0) {
+            columnOptions.ColumnDefinitions = definitions.Select(column => new PdfCore.PdfFlowColumn(
+                PdfCore.PdfColumnWidth.Fixed(ConvertNativeTwipsToPoints(column.WidthTwips) ?? 0D),
+                column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) : 0D)).ToArray();
         }
-
-        private static int GetNativeSectionColumnCount(WordSection section) {
-            int? explicitColumnCount = section._sectionProperties
-                .GetFirstChild<W.Columns>()?
-                .Elements<W.Column>()
-                .Count();
-            int count = section.ColumnCount ?? explicitColumnCount ?? 1;
-            if (count < 1) {
-                return 1;
+        PdfCore.PageSize pageSize = GetNativePageSize(section, options);
+        PdfCore.PageMargins margins = GetNativeMargins(section, options);
+        double sectionContentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
+        double totalGap = definitions.Count > 0
+            ? definitions.Take(count - 1).Sum(column => column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) ?? 0D : 0D)
+            : gap * (count - 1);
+        double firstColumnWidth = definitions.Count > 0
+            ? ConvertNativeTwipsToPoints(definitions[0].WidthTwips) ?? 0D
+            : (sectionContentWidth - totalGap) / count;
+        page.Content(content => content.Columns(column => {
+            INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));
+            for (int index = 0; index < elements.Count; index++) {
+                WordElement element = elements[index];
+                if (element is WordFootNote) continue;
+                if (TryRenderNativeList(flow, elements, ref index, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap)) continue;
+                RenderNativeElement(flow, element, section,
+                    paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
+                    GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById), footnoteNumbersById,
+                    options, tableOfContentsEntries, headingDestinations, firstColumnWidth, nativeDefaults, nativeFontMap,
+                    renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, index),
+                    nextElement: GetNextNativeRenderableElement(elements, index));
             }
-
-            return Math.Min(count, 8);
-        }
-
-        private static IReadOnlyList<double> GetNativeSectionColumnWidthPercents(WordSection section) {
-            int columnCount = GetNativeSectionColumnCount(section);
-            if (columnCount <= 1) {
-                return new[] { 100D };
-            }
-
-            List<int>? explicitWidths = GetNativeExplicitSectionColumnWidths(section, columnCount);
-            if (explicitWidths == null || explicitWidths.Count == 0) {
-                return CreateEqualNativeColumnWidths(columnCount);
-            }
-
-            int total = explicitWidths.Sum();
-            if (total <= 0) {
-                return CreateEqualNativeColumnWidths(columnCount);
-            }
-
-            var widths = new List<double>(explicitWidths.Count);
-            double accumulated = 0D;
-            for (int i = 0; i < explicitWidths.Count; i++) {
-                double percent = i == explicitWidths.Count - 1
-                    ? 100D - accumulated
-                    : explicitWidths[i] * 100D / total;
-                widths.Add(percent);
-                accumulated += percent;
-            }
-
-            return widths;
-        }
-
-        private static List<double> CreateEqualNativeColumnWidths(int columnCount) {
-            var widths = new List<double>(columnCount);
-            for (int i = 0; i < columnCount; i++) {
-                widths.Add(100D / columnCount);
-            }
-
-            return widths;
-        }
-
-        private static List<int>? GetNativeExplicitSectionColumnWidths(WordSection section, int columnCount) {
-            W.Columns? columns = section._sectionProperties.GetFirstChild<W.Columns>();
-            if (columns == null) {
-                return null;
-            }
-
-            var widths = new List<int>(columnCount);
-            foreach (W.Column column in columns.Elements<W.Column>().Take(columnCount)) {
-                if (!TryParseNativeTwips(column.Width?.Value, out int width) || width <= 0) {
-                    return null;
-                }
-
-                widths.Add(width);
-            }
-
-            return widths.Count == columnCount ? widths : null;
-        }
-
-        private static double GetNativeSectionColumnGap(WordSection section) {
-            double? gap = section.ColumnsSpace.HasValue ? ConvertNativeTwipsToPoints(section.ColumnsSpace.Value) : null;
-            if (!gap.HasValue) {
-                W.Column? firstColumn = section._sectionProperties.GetFirstChild<W.Columns>()?.Elements<W.Column>().FirstOrDefault();
-                if (TryParseNativeTwips(firstColumn?.Space?.Value, out int columnGap)) {
-                    gap = ConvertNativeTwipsToPoints(columnGap);
-                }
-            }
-
-            if (!gap.HasValue || gap.Value < 0D) {
-                return 36D;
-            }
-
-            return gap.Value;
-        }
-
-        private static bool TryParseNativeTwips(string? value, out int twips) {
-            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out twips);
-        }
-
-        private static IReadOnlyList<IReadOnlyList<WordElement>> SplitNativeElementsByColumnBreaks(IReadOnlyList<WordElement> elements, int columnCount) {
-            var columns = new List<List<WordElement>>(columnCount);
-            for (int i = 0; i < columnCount; i++) {
-                columns.Add(new List<WordElement>());
-            }
-
-            bool sawColumnBreak = false;
-            int currentColumn = 0;
-            foreach (WordElement element in elements) {
-                if (element is WordBreak wordBreak && wordBreak.BreakType == WordBreakType.Column) {
-                    sawColumnBreak = true;
-                    AdvanceNativeColumn(columns, ref currentColumn);
-                    continue;
-                }
-
-                if (element is WordParagraph paragraph) {
-                    WordParagraph? remaining = paragraph;
-                    while (remaining != null && TrySplitNativeParagraphAtColumnBreak(remaining, out WordParagraph? beforeColumnBreak, out WordParagraph? afterColumnBreak)) {
-                        sawColumnBreak = true;
-                        if (beforeColumnBreak != null) {
-                            columns[currentColumn].Add(beforeColumnBreak);
-                        }
-
-                        AdvanceNativeColumn(columns, ref currentColumn);
-
-                        remaining = afterColumnBreak;
-                    }
-                    if (remaining != null) columns[currentColumn].Add(remaining);
-
-                    continue;
-                }
-
-                columns[currentColumn].Add(element);
-            }
-
-            if (!sawColumnBreak) {
-                return SplitNativeElementsAcrossAutomaticColumns(elements, columnCount);
-            }
-
-            return columns;
-        }
-
-        private static bool TrySplitNativeParagraphAtColumnBreak(WordParagraph paragraph, out WordParagraph? before, out WordParagraph? after) {
-            return TrySplitNativeParagraphAtVisibleBreak(paragraph, W.BreakValues.Column, out before, out after);
-        }
-
-        private static IReadOnlyList<IReadOnlyList<WordElement>> SplitNativeElementsAcrossAutomaticColumns(IReadOnlyList<WordElement> elements, int columnCount) {
-            var columns = new List<List<WordElement>>(columnCount);
-            for (int i = 0; i < columnCount; i++) {
-                columns.Add(new List<WordElement>());
-            }
-
-            if (elements.Count == 0) {
-                return columns;
-            }
-
-            int totalWeight = 0;
-            var weights = new int[elements.Count];
-            for (int i = 0; i < elements.Count; i++) {
-                int weight = GetNativeAutomaticColumnWeight(elements[i]);
-                weights[i] = weight;
-                totalWeight += weight;
-            }
-
-            int currentColumn = 0;
-            int currentWeight = 0;
-            for (int i = 0; i < elements.Count; i++) {
-                int remainingElements = elements.Count - i;
-                int remainingColumnsAfterCurrent = columnCount - currentColumn - 1;
-                if (currentColumn < columnCount - 1 &&
-                    columns[currentColumn].Count > 0) {
-                    double targetWeight = (double)totalWeight * (currentColumn + 1) / columnCount;
-                    if (remainingElements <= remainingColumnsAfterCurrent ||
-                        currentWeight >= targetWeight) {
-                        if (!TryAdvanceNativeAutomaticColumnKeepingTrailingContent(columns, ref currentColumn)) {
-                            currentColumn++;
-                        }
-                    }
-                }
-
-                columns[currentColumn].Add(elements[i]);
-                currentWeight += weights[i];
-            }
-
-            return columns;
-        }
-
-        private static bool TryAdvanceNativeAutomaticColumnKeepingTrailingContent(List<List<WordElement>> columns, ref int currentColumn) {
-            if (currentColumn >= columns.Count - 1) {
-                return false;
-            }
-
-            List<WordElement> current = columns[currentColumn];
-            if (current.Count <= 1) {
-                return false;
-            }
-
-            int moveStart = current.Count - 1;
-            if (!ShouldKeepNativeElementWithFollowingContent(current[moveStart])) {
-                return false;
-            }
-
-            while (moveStart > 0 && ShouldKeepNativeElementWithFollowingContent(current[moveStart - 1])) {
-                moveStart--;
-            }
-
-            if (moveStart == 0) {
-                return false;
-            }
-
-            List<WordElement> next = columns[currentColumn + 1];
-            for (int i = moveStart; i < current.Count; i++) {
-                next.Add(current[i]);
-            }
-
-            current.RemoveRange(moveStart, current.Count - moveStart);
-            currentColumn++;
-            return true;
-        }
-
-        private static bool ShouldKeepNativeElementWithFollowingContent(WordElement element) =>
-            element is WordParagraph paragraph &&
-            (ShouldKeepNativeParagraphWithFollowingContent(paragraph) || GetHeadingLevel(paragraph) > 0);
-
-        private static bool ShouldKeepNativeParagraphWithFollowingContent(WordParagraph paragraph) =>
-            ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ??
-            GetNativeParagraphStyleDefaults(paragraph).KeepWithNext ??
-            false;
-
-        private static int GetNativeAutomaticColumnWeight(WordElement element) {
-            if (element is WordParagraph paragraph) {
-                return Math.Max(1, (paragraph.Text?.Length ?? 0) / 80 + 1);
-            }
-
-            if (element is WordTable table) {
-                return Math.Max(2, table.Rows.Count * 2);
-            }
-
-            return 1;
-        }
-
-        private static void AdvanceNativeColumn(List<List<WordElement>> columns, ref int currentColumn) {
-            if (columns[currentColumn].Count > 0) {
-                currentColumn = Math.Min(columns.Count - 1, currentColumn + 1);
-            }
-        }
-
+        }, columnOptions));
+        return true;
     }
+
+    private static double GetNativeColumnSectionMarkHeight(WordSection section, IReadOnlyList<WordElement> elements,
+        bool balanceColumns, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        if (!balanceColumns || !UsesModernNativeWordLayout(section._document) || elements.Count < 2 ||
+            elements[elements.Count - 1] is not WordParagraph paragraph ||
+            elements[elements.Count - 2] is not WordTable || !WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) return 0D;
+        // Modern Word lays out the table's trailing section mark after balancing its row fragments.
+        return MeasureNativeEmptyParagraphHeight(paragraph,
+            CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap), nativeDefaults, nativeFontMap);
+    }
+
 }

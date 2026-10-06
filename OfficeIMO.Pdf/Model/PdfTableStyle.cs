@@ -65,6 +65,11 @@ public class PdfTableStyle {
     public bool ConsumesVerticalFlow { get; set; } = true;
     /// <summary>Document adapters can retain glyph positions while containing their painting in the cell.</summary>
     internal bool ClipTextToCellBounds { get; set; }
+    /// <summary>
+    /// Document adapters can measure vertical cell margins from the inner edge
+    /// of the border paint instead of the cell's grid boundary.
+    /// </summary>
+    internal bool CellVerticalPaddingFromBorderInterior { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -687,6 +692,7 @@ public class PdfTableStyle {
             CellPaddingRight = CellPaddingRight,
             CellPaddingTop = CellPaddingTop,
             CellPaddingBottom = CellPaddingBottom,
+            CellVerticalPaddingFromBorderInterior = CellVerticalPaddingFromBorderInterior,
             CellSpacing = CellSpacing,
             MinRowHeight = MinRowHeight,
             RowMinHeights = RowMinHeights,

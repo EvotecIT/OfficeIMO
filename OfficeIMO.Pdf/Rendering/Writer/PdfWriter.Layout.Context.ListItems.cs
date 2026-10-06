@@ -63,7 +63,9 @@ internal static partial class PdfWriter {
 
             while (lineIndex < lines.Count) {
                 double available = y - currentOpts.MarginBottom;
-                double firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading);
+                double closingPadding = itemIndex == prepared.Items.Count - 1 ? GetClosingContainerPadding() : 0D;
+                if (closingPadding > 0D) closingPadding += spacingAfter;
+                double firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                 if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("List line height exceeds the available page content height.");
                 while (available + .001D < firstLineHeight) {
@@ -71,7 +73,7 @@ internal static partial class PdfWriter {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     NewListFrame();
                     available = y - currentOpts.MarginBottom;
-                    firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading);
+                    firstLineHeight = GetRichLineHeight(lineHeights, lineIndex, leading) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     }
@@ -81,7 +83,7 @@ internal static partial class PdfWriter {
                 double heightSum = 0;
                 for (int k = lineIndex; k < lines.Count; k++) {
                     double lineHeight = GetRichLineHeight(lineHeights, k, leading);
-                    if (heightSum + lineHeight > available) {
+                    if (heightSum + lineHeight + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
                         break;
                     }
 

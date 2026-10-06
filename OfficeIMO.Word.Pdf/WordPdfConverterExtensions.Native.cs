@@ -59,6 +59,7 @@ namespace OfficeIMO.Word.Pdf {
             bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
             void PageBreak(bool preserveEmptyPage = false);
+            void ColumnBreak();
             void Spacer(double height);
             void Bookmark(string name);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
@@ -90,13 +91,14 @@ namespace OfficeIMO.Word.Pdf {
             public PdfCore.PageSize PageSize { get; }
 
             public void PageBreak(bool preserveEmptyPage = false) => _pdf.PageBreak(preserveEmptyPage);
+            public void ColumnBreak() => _pdf.PageBreak(preserveEmptyPage: true);
             public void Spacer(double height) => _pdf.Spacer(height);
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _pdf.Panel(build, style);
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
-                _pdf.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
+                _pdf.Panel(content => content.Paragraph(build, align, defaultColor, CreateNativePanelParagraphStyle(paragraphStyle, style)), style);
             public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {
                 _pdf.Heading(level, text, build, align, color, style);
             }
@@ -126,13 +128,14 @@ namespace OfficeIMO.Word.Pdf {
             public PdfCore.PageSize PageSize { get; }
 
             public void PageBreak(bool preserveEmptyPage = false) => _column.PageBreak(preserveEmptyPage);
+            public void ColumnBreak() => _column.ColumnBreak();
             public void Spacer(double height) => _column.Spacer(height);
             public void Bookmark(string name) => _column.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.Paragraph(build, align, defaultColor, style);
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _column.Panel(build, style);
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
-                _column.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
+                _column.Panel(content => content.Paragraph(build, align, defaultColor, CreateNativePanelParagraphStyle(paragraphStyle, style)), style);
             public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {
                 _column.Heading(level, text, build, align, color, style);
             }
@@ -148,8 +151,14 @@ namespace OfficeIMO.Word.Pdf {
             public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }
 
-        private static PdfCore.PdfParagraphStyle? NativePanelAnchorStyle(PdfCore.PdfParagraphStyle? style) =>
-            style?.AnchoredCanvas is { } canvas ? new PdfCore.PdfParagraphStyle { AnchoredCanvas = canvas } : null;
+        /// <summary>Preserves text layout inside decorations while the surrounding panel owns paragraph spacing.</summary>
+        private static PdfCore.PdfParagraphStyle? CreateNativePanelParagraphStyle(PdfCore.PdfParagraphStyle? style, PdfCore.PdfPanelStyle? panelStyle) {
+            if (style == null) return null;
+            PdfCore.PdfParagraphStyle result = style.Clone();
+            result.SpacingBefore = 0D;
+            result.SpacingAfter = panelStyle == null ? 0D : Math.Max(0D, (style.SpacingAfter ?? 0D) - panelStyle.SpacingAfter);
+            return result;
+        }
 
         private static PdfCore.PdfImageStyle CreateNativeImageStyle() => new() {
             ScaleDownToFit = true
@@ -226,7 +235,8 @@ namespace OfficeIMO.Word.Pdf {
                             tableOfContentsEntries,
                             headingDestinations,
                             nativeDefaults,
-                            nativeFontMap)) {
+                            nativeFontMap,
+                            balanceColumns: currentSectionIndex + 1 < sectionGroupEnd)) {
                             RenderNativeFootnotes(flow, footnotes);
                             continue;
                         }
@@ -336,10 +346,6 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (HasNativeSectionColumns(previous) || HasNativeSectionColumns(current)) {
-                return false;
-            }
-
             if (!NativePageSizesEquivalent(GetNativePageSize(previous, options), GetNativePageSize(current, options))) {
                 return false;
             }
@@ -367,9 +373,6 @@ namespace OfficeIMO.Word.Pdf {
             }
             return null;
         }
-
-        private static bool HasNativeSectionColumns(WordSection section) =>
-            (section.ColumnCount ?? 1) > 1 || section.HasColumnSeparator;
 
         private static bool NativePageSizesEquivalent(PdfCore.PageSize first, PdfCore.PageSize second) =>
             NativeDoubleEquals(first.Width, second.Width) &&

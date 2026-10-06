@@ -12,6 +12,8 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double MaxNativeParagraphBorderSpacingPoints = 31D;
+        // Word places side borders outside the text frame, including a 1.5-point gap.
+        private const double NativeParagraphBorderHorizontalGapPoints = 1.5D;
 
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
@@ -303,18 +305,38 @@ namespace OfficeIMO.Word.Pdf {
                 Background = background,
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,
-                PaddingX = ResolveNativeParagraphPanelPaddingX(borders, 6D),
-                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 4D),
+                PaddingX = 0D,
+                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 0D),
+                RepeatFragmentDecoration = !hasParagraphBorder,
+                FragmentBottomInset = hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
+                    ? ResolveNativeParagraphPanelPaddingY(borders, 0D) : 0D,
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = backgroundOnly ? 0D : paragraphStyle.SpacingAfter ?? 6D,
+                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                KeepWithNext = paragraphStyle.KeepWithNext,
                 Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
             };
 
-            if (border == null && hasParagraphBorder) {
+            if (hasParagraphBorder) {
                 style.TopBorder = CreateNativePanelBorder(borders.Top);
                 style.RightBorder = CreateNativePanelBorder(borders.Right);
                 style.BottomBorder = CreateNativePanelBorder(borders.Bottom);
                 style.LeftBorder = CreateNativePanelBorder(borders.Left);
+                if (style.TopBorder is { } top) {
+                    top.Offset = -top.Width / 2D;
+                    style.TopBorder = top;
+                }
+                if (style.BottomBorder is { } bottom) {
+                    bottom.Offset = -bottom.Width / 2D;
+                    style.BottomBorder = bottom;
+                }
+                if (style.LeftBorder is { } left) {
+                    left.Offset = NativeParagraphBorderHorizontalGapPoints + Math.Min(borders.Left.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + left.Width / 2D;
+                    style.LeftBorder = left;
+                }
+                if (style.RightBorder is { } right) {
+                    right.Offset = NativeParagraphBorderHorizontalGapPoints + Math.Min(borders.Right.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + right.Width / 2D;
+                    style.RightBorder = right;
+                }
             }
 
             return style;
@@ -432,28 +454,16 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static double ResolveNativeParagraphPanelPaddingX(NativeParagraphBorders borders, double defaultPadding) {
-            uint? left = HasNativeBorder(borders.Left.Style) ? borders.Left.Space : null;
-            uint? right = HasNativeBorder(borders.Right.Style) ? borders.Right.Space : null;
-            if (!left.HasValue && !right.HasValue) {
-                return defaultPadding;
-            }
-
-            return Math.Min(
-                Math.Max(left.GetValueOrDefault(), right.GetValueOrDefault()),
-                MaxNativeParagraphBorderSpacingPoints);
-        }
-
         private static double ResolveNativeParagraphPanelPaddingY(NativeParagraphBorders borders, double defaultPadding) {
-            uint? top = HasNativeBorder(borders.Top.Style) ? borders.Top.Space : null;
-            uint? bottom = HasNativeBorder(borders.Bottom.Style) ? borders.Bottom.Space : null;
+            double? top = HasNativeBorder(borders.Top.Style)
+                ? Math.Min(borders.Top.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (borders.Top.Size ?? 4U) / 8D : null;
+            double? bottom = HasNativeBorder(borders.Bottom.Style)
+                ? Math.Min(borders.Bottom.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (borders.Bottom.Size ?? 4U) / 8D : null;
             if (!top.HasValue && !bottom.HasValue) {
                 return defaultPadding;
             }
 
-            return Math.Min(
-                Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault()),
-                MaxNativeParagraphBorderSpacingPoints);
+            return Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault());
         }
 
         private static bool HasNativeOnlyBottomParagraphBorder(NativeParagraphBorders borders) =>

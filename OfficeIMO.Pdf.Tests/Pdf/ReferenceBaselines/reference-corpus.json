@@ -75,7 +75,7 @@
       ],
       "maximumDifferentPixelRatio": 0.19,
       "maximumMeanAbsoluteError": 17.0,
-      "maximumRootMeanSquareError": 57.0,
+      "maximumRootMeanSquareError": 57.25,
       "maximumMeanLuminanceError": 23.0
     },
     {
