@@ -6,7 +6,7 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubPublication {
     /// <summary>
     /// Checks the current publication using the selected save policy and inspects all retained XHTML/SVG
-    /// identifiers, root language declarations and image alternatives. Schema conformance, comprehensive accessibility and reader
+    /// identifiers, root and descendant language declarations and image alternatives. Schema conformance, comprehensive accessibility and reader
     /// presentation remain explicitly unchecked. No file is written and no external process is invoked.
     /// </summary>
     public EpubPreflightReport Preflight(EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
@@ -37,6 +37,7 @@ public sealed partial class EpubPublication {
                     throw new NotSupportedException("Content requires external access or decryption; this preflight cannot inspect it.");
                 XDocument document = GetContentXml(item.Id);
                 CheckDocumentLanguage(document.Root!, path, languageFindings);
+                CheckDescendantLanguages(document.Root!, path, languageFindings, cancellationToken);
                 languageInspected = true;
                 HashSet<string> ids = EpubContentIdentifiers.Collect(document.Root!, path, true, cancellationToken);
                 EpubContentIdentifiers.ValidateReferences(document.Root!, ids, path, cancellationToken);

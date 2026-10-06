@@ -1072,8 +1072,11 @@ and document-local ARIA/table-header references, and checks HTML image alternati
 presence and EPUB 3 accessibility discovery declarations. The `document-language` check
 reports missing, malformed, or conflicting root `lang`/`xml:lang` declarations in
 XHTML and SVG, independently of the package language. Tags are checked for BCP 47
-syntax, not registry membership or whether they describe the actual text. Language
-changes within a document still require accessibility review. The `media-overlays` check
+syntax, not registry membership or whether they describe the actual text. Descendant
+XHTML/SVG `lang` and all descendant `xml:lang` declarations are also checked for
+malformed tags and conflicts. Empty descendant values are accepted as an explicit
+unknown-language reset. Findings identify the resource and element where possible.
+Whether language changes correctly describe the text still requires accessibility review. The `media-overlays` check
 verifies retained SMIL text/sequence targets, manifest associations, audio declarations,
 explicit clip intervals and duration sums. It also inspects unchanged imported content, even when saving preserves that
 content byte-for-byte.
