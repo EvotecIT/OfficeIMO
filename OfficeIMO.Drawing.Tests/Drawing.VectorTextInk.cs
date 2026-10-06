@@ -33,9 +33,9 @@ public sealed class DrawingVectorTextInkTests {
         var child = Create(0);
         var hidden = new OfficeDrawing(100, 100); hidden.AddEffectDrawing(child, OfficeTransform.Identity, opacity: 0);
         Assert.Empty(Inspect(hidden, OfficeTransform.Identity));
-        var legacy = new OfficeDrawing(100, 100);
-        legacy.AddText("A", 0, 0, 100, 100);
-        var result = Assert.Single(Inspect(legacy, OfficeTransform.Identity));
+        var vertical = new OfficeDrawing(100, 100);
+        vertical.AddVerticalText("A", 0, 0, 100, 100);
+        var result = Assert.Single(Inspect(vertical, OfficeTransform.Identity));
         Assert.False(result.Measured); Assert.NotNull(result.Reason);
     }
 
@@ -182,6 +182,55 @@ public sealed class DrawingVectorTextInkTests {
         if (rich) drawing.AddRichText(new[] { new OfficeRichTextRun(text, 12, OfficeColor.Black) }, 0, 0, 100, 100);
         else drawing.AddText(text, 0, 0, 100, 100, wrapText: true);
         Assert.Throws<NotSupportedException>(() => Inspect(drawing, OfficeTransform.Identity));
+    }
+
+    [Theory]
+    [InlineData(OfficeTextAlignment.Left, OfficeFontStyle.Regular, 90D)]
+    [InlineData(OfficeTextAlignment.Center, OfficeFontStyle.Bold, 90D)]
+    [InlineData(OfficeTextAlignment.Right, OfficeFontStyle.Italic, 50D)]
+    [InlineData(OfficeTextAlignment.Right, OfficeFontStyle.Italic | OfficeFontStyle.Underline, 50D)]
+    public void HorizontalTextInkMatchesActualPaint(OfficeTextAlignment alignment, OfficeFontStyle style, double width) {
+        var drawing = new OfficeDrawing(120, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A', '.'));
+        drawing.AddText("AAAA", 10, 15, width, 60, new OfficeFontInfo("Ink", 25, style), alignment: alignment);
+        var ink = new List<(double Left, double Top, double Right, double Bottom)>();
+        new OfficeRasterCanvas(new OfficeRasterImage(1, 1)).InspectDrawingTextInk(drawing, OfficeTransform.Identity,
+            Array.Empty<OfficeTextInkClip>(), (b, reason) => {
+                Assert.True(b.IsMeasured, reason);
+                if (b.HasInk) ink.Add((b.Left, b.Top, b.Right, b.Bottom));
+            });
+        Assert.NotEmpty(ink);
+        var raster = OfficeDrawingRasterRenderer.Render(drawing);
+        var pixels = Enumerable.Range(0, 100).SelectMany(y => Enumerable.Range(0, 120).Select(x => (X: x, Y: y)))
+            .Where(p => raster.GetPixel(p.X, p.Y).A > 0).ToArray();
+        Assert.NotEmpty(pixels);
+        Assert.InRange(Math.Abs(pixels.Min(p => p.X) - ink.Min(b => b.Left)), 0, 2);
+        Assert.InRange(Math.Abs(pixels.Min(p => p.Y) - ink.Min(b => b.Top)), 0, 2);
+        Assert.InRange(Math.Abs(pixels.Max(p => p.X) + 1 - ink.Max(b => b.Right)), 0, 2);
+        Assert.InRange(Math.Abs(pixels.Max(p => p.Y) + 1 - ink.Max(b => b.Bottom)), 0, 2);
+        if (width == 50D && style == OfficeFontStyle.Italic) {
+            var ellipsis = new OfficeDrawing(120, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A', '.'));
+            ellipsis.AddText("...", 10, 15, width, 60, new OfficeFontInfo("Ink", 25, style), alignment: alignment);
+            Assert.Equal(ellipsis.ExportImage(OfficeImageExportFormat.Png).Bytes, drawing.ExportImage(OfficeImageExportFormat.Png).Bytes);
+        }
+    }
+
+    [Fact]
+    public void BaselineTextRespectsParentClipping() {
+        var child = new OfficeDrawing(100, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'));
+        child.AddText("A", 60, 10, 40, 60, new OfficeFontInfo("Ink", 30));
+        var parent = new OfficeDrawing(120, 120);
+        parent.AddClippedDrawing(child, 10, 10, OfficeClipPath.Rectangle(70, 100));
+        var ink = Assert.Single(Inspect(parent, OfficeTransform.Identity));
+        Assert.True(ink.Measured && ink.HasInk && ink.Clipped);
+        Assert.Equal(80D, ink.Right, 5);
+    }
+
+    [Fact]
+    public void BaselineEllipsisWorkIsBounded() {
+        var drawing = new OfficeDrawing(100, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A', '.'));
+        drawing.AddText(new string('A', 5000), 0, 0, 20, 80, new OfficeFontInfo("Ink", 30));
+        var error = Assert.Throws<NotSupportedException>(() => Inspect(drawing, OfficeTransform.Identity));
+        Assert.Contains("ellipsis", error.Message);
     }
 
     private static OfficeDrawing Create(double x) {

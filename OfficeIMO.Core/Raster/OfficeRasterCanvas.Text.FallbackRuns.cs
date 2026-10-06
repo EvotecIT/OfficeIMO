@@ -35,6 +35,7 @@ public sealed partial class OfficeRasterCanvas {
         double measured = MeasurePositionedText(value, size, fontFamily, style, featureSettings, textDirection);
         if (!retainOverflow) {
             while (measured > availableWidth && value.Length > 0) {
+                _textInkLayoutWork?.Invoke(value.Length);
                 value = OfficeTextElements.RemoveLast(value);
                 if (value.Length == 0) break;
                 measured = MeasurePositionedText(value + "...", size, fontFamily, style, featureSettings, textDirection);

@@ -99,7 +99,8 @@ public sealed partial class OfficeRasterCanvas {
             bool usesPositionedPaint = text.TextAdvanceWidth.HasValue || text.OverflowBehavior == OfficeTextOverflowBehavior.Clip
                 || text.BaselineScale != 1D || text.BaselineOffset != 0D || !text.FeatureSettings.IsDefault
                 || !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase);
-            if (!positioned && text.TextDirection != OfficeTextDirection.TopToBottom) {
+            bool usesLayoutPaint = !positioned || !usesPositionedPaint || (text.HasFrameTransform && !text.TextAdvanceWidth.HasValue);
+            if (usesLayoutPaint && text.TextDirection != OfficeTextDirection.TopToBottom) {
                 ChargeLayout(text.RasterText.Length);
                 bool saved = canvas.PreservePaintedGlyphOrder;
                 canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;

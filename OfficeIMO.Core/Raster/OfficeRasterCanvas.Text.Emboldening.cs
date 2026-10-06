@@ -5,7 +5,8 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private void FillTextContours(IReadOnlyList<List<OfficePoint>> contours, OfficeColor color, double boldOffset = 0D) {
         if (boldOffset == 0D) {
-            FillContours(contours, color, OfficeFillRule.NonZero);
+            if (_textInkObserver != null) { if (color.A != 0) _textInkObserver(contours); }
+            else FillContours(contours, color, OfficeFillRule.NonZero);
             return;
         }
         var shifted = new List<List<OfficePoint>>(contours.Count);
@@ -14,9 +15,12 @@ public sealed partial class OfficeRasterCanvas {
             foreach (OfficePoint point in contour) copy.Add(new OfficePoint(point.X + boldOffset, point.Y));
             shifted.Add(copy);
         }
-        FillContourPaint(contours, OfficeFillRule.NonZero, (_, _) => color, shifted);
+        FillTextContourUnion(contours, shifted, color);
     }
 
-    private void FillTextContourUnion(IReadOnlyList<List<OfficePoint>> contours, IReadOnlyList<List<OfficePoint>> shifted, OfficeColor color) =>
-        FillContourPaint(contours, OfficeFillRule.NonZero, (_, _) => color, shifted);
+    private void FillTextContourUnion(IReadOnlyList<List<OfficePoint>> contours, IReadOnlyList<List<OfficePoint>> shifted, OfficeColor color) {
+        if (_textInkObserver != null) {
+            if (color.A != 0) { _textInkObserver(contours); _textInkObserver(shifted); }
+        } else FillContourPaint(contours, OfficeFillRule.NonZero, (_, _) => color, shifted);
+    }
 }

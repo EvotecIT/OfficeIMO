@@ -212,6 +212,7 @@ public sealed partial class OfficeRasterCanvas {
             double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
             if (!retainOverflow) {
                 while (measured > availableWidth && value.Length > 0) {
+                    _textInkLayoutWork?.Invoke(value.Length);
                     value = OfficeTextElements.RemoveLast(value);
                     if (value.Length == 0) break;
                     measured = MeasureResolvedText(value + "...", font, size, featureSettings, textDirection);
@@ -271,6 +272,7 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (_textInkObserver != null) { _textInkObserver(null); return; }
         DrawFallbackText(
             value,
             retainOverflow ? x : x + 3D,
@@ -441,11 +443,9 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                if (_textInkObserver != null) { _textInkObserver(contours); _textInkObserver(shifted); }
-                else FillTextContourUnion(contours, shifted, color);
+                FillTextContourUnion(contours, shifted, color);
             } else {
-                if (_textInkObserver != null) _textInkObserver(contours);
-                else FillTextContours(contours, color);
+                FillTextContours(contours, color);
             }
 
             DrawTextLineDecorations(x, width, top, fontHeight, decorationColor ?? color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);

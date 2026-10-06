@@ -7,6 +7,7 @@ public sealed partial class OfficeRasterCanvas {
     // Installed only on the inspection canvas. Null contours mean the painter
     // fell back to stroke text without a measurable font outline.
     private Action<IReadOnlyList<List<OfficePoint>>?>? _textInkObserver;
+    private Action<int>? _textInkLayoutWork;
 
     // Decorations retain the inspection contract's conservative stroke envelope.
     private bool InspectTextDecoration(double x, double width, double y, double fontHeight,
@@ -30,6 +31,12 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<OfficeTextInkClip> clips, Action charge,
         Action<(double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped), string?> report) {
         var previous = _textInkObserver;
+        var previousLayoutWork = _textInkLayoutWork;
+        long layoutWork = 1_000_000;
+        _textInkLayoutWork = length => {
+            charge();
+            if ((layoutWork -= length) < 0) throw new NotSupportedException("Text ink ellipsis measurement exceeds its character-work limit.");
+        };
         long clipWork = 4_000_000;
         _textInkObserver = contours => {
             charge();
@@ -52,6 +59,6 @@ public sealed partial class OfficeRasterCanvas {
             bounds.IsClipped |= clipped;
             report(bounds, bounds.IsMeasured ? null : "Laid-out drawing text exceeds supported contour geometry.");
         };
-        try { paint(); } finally { _textInkObserver = previous; }
+        try { paint(); } finally { _textInkObserver = previous; _textInkLayoutWork = previousLayoutWork; }
     }
 }
