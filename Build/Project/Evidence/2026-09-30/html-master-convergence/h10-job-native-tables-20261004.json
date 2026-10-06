@@ -2894,5 +2894,106 @@
     },
     "held2845": "Its prior drawing/PDF net472 failures are observer scheduling assumptions. The separate test-policy/observer change in PR2850 must pass, merge and be adopted before current-head XLSB CI can be required again. No product failure/root-cause fix claim or CI bypass.",
     "studioLocalBoundary": "Four viewport controls passed after upper-layer server rebase; twelve light/dark/invalid captures inspected. Prior pointer timeout was not reproduced locally; current hosted lane still required."
+  },
+  "nativePictureHyperlinkOwner20261006": {
+    "standalone": {
+      "pr": 2851,
+      "candidate": "716a1b8e1822ab626e2c5e1e60cac4cfcd7c22ef",
+      "implementation": [
+        "ExcelImage.HyperlinkUri with writable/current native owner checks",
+        "Thin generic and semantic HTML mapping; inert semantic metadata",
+        "Safe SVG policy reuse, omission for rejected interactive targets; raster remains non-interactive",
+        "Native click/hover/media relationships survive template cloning with original scoped IDs"
+      ],
+      "frameworkProof": {
+        "Excel": {
+          "net8.0": {
+            "passed": 5309,
+            "skipped": 5
+          },
+          "net10.0": {
+            "passed": 5309,
+            "skipped": 5
+          }
+        },
+        "ExcelHtmlPriorStableSource": {
+          "net8.0": 148,
+          "net10.0": 148
+        },
+        "normalPackages": 6,
+        "targets": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "freshPublicControlsPerFramework": 10,
+        "coreExternalRuntimeDependencies": 0
+      },
+      "evidenceRoot": "../OfficeIMO-excel-picture-hyperlinks/Ignore/ExcelPictureHyperlinkQualification",
+      "validationReceiptSha256": "17dee3c71dea1eab228658c75066989b8ced5a1c4a81fa123ff7608e67e16de1",
+      "packageOriginReceiptSha256": "27cb7e0cea999d908ccf7483796bd51c573aa25ebd8bd257fa482b127c9c2822",
+      "review": "One full independent read-only pass and one targeted confirmation. Both pre-existing template preservation findings reproduced and fixed; final sequential-ID alias corrected with distinct-media legal-permutation and save/reopen controls. No new full review solely for SHA.",
+      "initialHostedState": "Exact716 head, normal OPEN PR, 88queued2skipped and complete page0threads; CI/native Windowsnet472 and delayed current-head feedback remain required."
+    },
+    "browserEvidence": {
+      "engine": "HtmlTinkerX3.0.3/Chromium153.0.8010.12 test-only",
+      "viewports": [
+        960,
+        360
+      ],
+      "paint": "Linked and unwrapped picture PNG bytes identical at both widths; 160x80 picture bounds retained.",
+      "interaction": "Owned local photo target and fragment reached at both widths; rejected javascript target retains image without anchor.",
+      "runtimeErrors": [],
+      "receiptSha256": "d3ad97b231ac485ba472d3a8d1811c3ff9400950404bdeecec74c717053ed20c"
+    },
+    "nativeControlBoundary": "Independent ZIP/XML/DrawingML/schema control and native save/reopen artifacts, not an independent Excel application producer or whole-page/native accessibility acceptance.",
+    "combined": {
+      "source": "d21525ffa30d153689082003e021ab52a91bbe54",
+      "candidateAdoptionCommits": [
+        "92acbb32b",
+        "c201f6f74",
+        "4aba63d6e"
+      ],
+      "sharedCorePolicy": "Exact existing internal OfficeDrawingLinkPolicy blob from20e4e0337; no other master security/ZIP changes adopted.",
+      "nativeTests": {
+        "net8.0": 173,
+        "net10.0": 173
+      },
+      "affectedHtmlTests": {
+        "net8.0": 170,
+        "net10.0": 170
+      },
+      "freshProjectReferencePublicControlsPerFramework": 13,
+      "normalLoadedOwnerDllHashesVerified": 6,
+      "cellsAndMediaEqualToPrior": true,
+      "pngSha256": "a25b5ef4e1e66694bf0f48656df4a87d0722231b01dfc1b17185069c317479fe",
+      "nativePictureTarget": "https://example.org/linked-photo",
+      "namedTableOmissionRemainsTrue": true,
+      "supersededOmissionAssertionsRemoved": 2,
+      "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+      "receipt": "independent-main-picture-observations.json",
+      "initialFailures": [
+        "initial-picture-adoption-compile-failure.json",
+        "main-picture-public-net8.0.log",
+        "obsolete-picture-omission-assertions-before.trx"
+      ],
+      "boundary": "Combined focused/project-reference proof; no fresh full main packages/hosted/timing or qualified long-lived adoption claimed."
+    },
+    "cleanup": {
+      "standaloneTargets": 87,
+      "standaloneBytes": 2405228811,
+      "standaloneAbsentVerified": true,
+      "mainTargets": 84,
+      "mainBytes": 1620778412,
+      "mainAbsentVerified": true,
+      "mainReceipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/picture-main-build-cleanup-results.json"
+    },
+    "remaining": [
+      "Exact-head standalone hosted CI and delayed feedback/authorized merge/unique-proof preservation",
+      "Native Excel whole-page image/link appearance and explicit named-table reconstruction",
+      "Wider native targets/corpus/all profiles/manual accessibility",
+      "Actual unchanged supported-platform timing and qualified long-lived synchronization"
+    ]
   }
 }
