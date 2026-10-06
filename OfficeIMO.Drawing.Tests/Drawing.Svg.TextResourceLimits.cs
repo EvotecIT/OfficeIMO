@@ -7,6 +7,52 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingSvgTextResourceLimitTests {
+    [Fact]
+    public void RepeatedTransformedCffRunsRetainTheSameRandomDependentGlyphPaint() {
+        byte[] font = CreateRandomOverhangFont(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf")));
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("Random CFF", font);
+        OfficeDrawing Read(string runs) {
+            string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='900' height='120' font-family='Random CFF' font-size='20'>" + runs + "</svg>";
+            Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
+            Assert.Equal(0, unsupported);
+            return drawing!;
+        }
+        OfficeRasterImage single = OfficeDrawingRasterRenderer.Render(Read("<text transform='translate(100 80)' y='0'>A</text>"));
+        OfficeRasterImage expected = new OfficeRasterImage(900, 120);
+        int painted = 0;
+        for (int y = 0; y < single.Height; y++) {
+            for (int x = 0; x < single.Width; x++) {
+                OfficeColor pixel = single.GetPixel(x, y);
+                if (pixel.A == 0) continue;
+                painted++;
+                for (int index = 0; index < 8; index++) {
+                    if (x + index * 100 < expected.Width) expected.SetPixel(x + index * 100, y, pixel);
+                }
+            }
+        }
+        Assert.True(painted > 0);
+        string repeated = string.Concat(Enumerable.Range(1, 8).Select(index =>
+            "<text transform='translate(" + index * 100 + " 80)' y='0'>A</text>"));
+        byte[] actual = OfficeDrawingRasterRenderer.Render(Read(repeated)).GetPixels();
+        int maximumDifference = expected.GetPixels().Zip(actual, (left, right) => Math.Abs(left - right)).Max();
+        Assert.True(maximumDifference == 0, "Repeated runs changed or clipped glyph paint; maximum channel difference: " + maximumDifference);
+    }
+
+    private static byte[] CreateRandomOverhangFont(byte[] data) {
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeCffFontData cff = OfficeCffFontData.Parse(reader, OfficeFontVariationModel.None);
+        OfficeCffFontData.CffSlice glyph = cff.GetCharString(reader.MapGlyph('A'));
+        var program = new List<byte> {
+            12, 23, 28, 0xF0, 0x60, 12, 24, 28, 0, 0, 21, // random * -4000, 0 rmoveto
+            239, 139, 139, 239, 39, 39, 5 // 100,0 / 0,100 / -100,-100 rlineto
+        };
+        program.Add(14);
+        Assert.Equal(glyph.Length, program.Count);
+        program.CopyTo(glyph.Data, glyph.Offset);
+        return glyph.Data;
+    }
+
     [Theory]
     [InlineData("root")]
     [InlineData("nested")]
