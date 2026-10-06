@@ -79,16 +79,23 @@ public sealed partial class BookProject {
                 throw new ArgumentException("Collateral text exceeds the per-field or aggregate text limit.", nameof(values));
             textBudget -= value.Text.Length;
             XmlConvert.VerifyXmlChars(value.Text);
+            if (!Enum.IsDefined(value.Format)) throw new ArgumentOutOfRangeException(nameof(value.Format));
+            if (elementName != "Text" && value.Format != BookOnixCollateralTextFormat.PlainText)
+                throw new ArgumentException("Source titles accept plain text only.", nameof(values));
+            XElement? fragment = value.Format == BookOnixCollateralTextFormat.Xhtml
+                ? ReadOnixCollateralXhtml(value.Text, cancellationToken) : null;
             if (shortText) {
                 int characters = 0;
-                foreach (var rune in value.Text.EnumerateRunes()) {
+                foreach (var rune in (fragment?.Value ?? value.Text).EnumerateRunes()) {
                     if (++characters > 350) throw new ArgumentException("Short descriptions cannot exceed 350 Unicode scalar values.", nameof(values));
                 }
             }
             if (value.LanguageCode != null) RequireOnixLanguageCode(value.LanguageCode, nameof(value.LanguageCode));
             if (!languages.Add(value.LanguageCode ?? "")) throw new ArgumentException("Text variant languages must be distinct.", nameof(values));
-            var element = new XElement(ns + elementName, value.Text);
-            if (elementName == "Text") element.Add(new XAttribute("textformat", "06"));
+            var element = new XElement(ns + elementName);
+            if (fragment == null) element.Add(value.Text);
+            else element.Add(fragment.Nodes());
+            if (elementName == "Text") element.Add(new XAttribute("textformat", fragment == null ? "06" : "05"));
             if (value.LanguageCode != null) element.Add(new XAttribute("language", value.LanguageCode));
             result.Add(element);
         }

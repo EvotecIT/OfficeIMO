@@ -23,6 +23,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
     (Name: "confirmed", Language: "fr", Onix: "fre", Notification: BookOnixNotification.Confirmed),
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
+    (Name: "collateral-xhtml", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-unicode", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -52,7 +53,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         SentAt = timestamp, Notification = profile.Notification, IdentifierId = "digital-isbn", LanguageCode = profile.Onix,
         TitleId = profile.Name == "discoverability" ? "selected-title" : null,
         Audience = AudienceFixtures.Create(profile.Name),
-        CollateralTexts = CollateralFixtures.Create(profile.Name),
+        CollateralTexts = profile.Name == "collateral-xhtml" ? CollateralXhtmlFixtures.Create() : CollateralFixtures.Create(profile.Name),
         Collections = profile.Name == "collection" ? CollectionFixtures.Create() : [],
         NoCollection = profile.Name == "no-collection",
         Edition = profile.Name == "edition" ? new() { Number = 2, VersionNumber = "1.2",
@@ -74,7 +75,21 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             project.ExportOnix(options with { Edition = new() { Types = [type] } }, schemas,
                 new EpubWriteOptions { ModifiedAt = timestamp });
     }
+    if (profile.Name == "collateral-xhtml") {
+        bool invalidNestingRejected = false;
+        try {
+            project.ExportOnix(options with { CollateralTexts = [new() {
+                Type = BookOnixTextType.Description, Audiences = [BookOnixContentAudience.Unrestricted],
+                Texts = [new("<p><div>Invalid block nesting</div></p>") { Format = BookOnixCollateralTextFormat.Xhtml }]
+            }] }, schemas);
+        } catch (InvalidDataException error) when (error.Message.StartsWith("ONIX schema validation failed:", StringComparison.Ordinal)) {
+            invalidNestingRejected = true;
+        }
+        if (!invalidNestingRejected) throw new InvalidDataException("The supplied schema accepted invalid XHTML paragraph nesting.");
+    }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+    if (profile.Name == "collateral-xhtml" && !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
+        throw new InvalidDataException("XHTML record composition changed mixed content or whitespace.");
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);
     if (profile.Name is "early" or "priced") {
         // Existing single-record fixtures deliberately share an ISBN. Create a distinct second edition

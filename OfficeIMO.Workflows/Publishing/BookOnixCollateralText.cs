@@ -70,8 +70,19 @@ public enum BookOnixContentAudience {
     Teens = 12
 }
 
-/// <summary>Plain text and an optional ONIX list 74 language; markup is never interpreted.</summary>
-public sealed record BookOnixCollateralTextValue(string Text, string? LanguageCode = null);
+/// <summary>Representation of a collateral text variant.</summary>
+public enum BookOnixCollateralTextFormat {
+    /// <summary>Literal plain text (ONIX 06).</summary>
+    PlainText,
+    /// <summary>Well-formed XHTML fragment in the supported semantic authoring profile (ONIX 05).</summary>
+    Xhtml
+}
+
+/// <summary>Text or an explicit XHTML fragment, with optional ONIX list 74 language.</summary>
+public sealed record BookOnixCollateralTextValue(string Text, string? LanguageCode = null) {
+    /// <summary>Plain text by default. XHTML is supported for Texts, not SourceTitles.</summary>
+    public BookOnixCollateralTextFormat Format { get; init; }
+}
 
 /// <summary>Publisher-supplied supporting text, attribution and usage assertions. No content is fetched or inferred.</summary>
 public sealed record BookOnixCollateralText {

@@ -516,8 +516,9 @@ descriptions, new feature and version history. Each item requires explicit
 distinct; `Unrestricted` cannot accompany another code. List order becomes the
 collateral sequence order.
 
-Text is serialized as plain text (`textformat="06"`). Markup-like input remains
-literal; links are never fetched. Each item supports up to 16 language variants,
+Text defaults to plain text (`textformat="06"`). Markup-like input remains
+literal unless the variant explicitly selects `Format = BookOnixCollateralTextFormat.Xhtml`;
+links are never fetched. Each item supports up to 16 language variants,
 16 authors, 16 source-title variants and 16 source links. Language codes use ONIX
 list 74, with distinct languages per variant list including unspecified. Source
 links require absolute HTTP(S) URLs without credentials. Optional `Territory`
@@ -536,9 +537,46 @@ carry its permitted-use dates; reversed intervals are rejected. These dates,
 restricted-recipient labels and territory declarations are metadata assertions,
 not access controls: export includes the text and does not enforce embargoes or
 filter a recipient's copy. The publisher remains responsible for accurate attribution,
-permission to use the text and recipient acceptance. Rich XHTML, review ratings,
-media resources and license terms are outside this plain-text profile. No text or
+permission to use the text and recipient acceptance. Review ratings, media resources and license terms are outside this collateral-text profile. No text or
 attribution is inferred from EPUB content, and export does not change the book.
+
+#### XHTML collateral variants
+
+Use an explicit fragment when the description needs semantic formatting:
+
+```csharp
+var variant = new BookOnixCollateralTextValue(
+    "<p>A <strong>formatted</strong> description.</p><ul><li>A feature</li></ul>", "eng") {
+    Format = BookOnixCollateralTextFormat.Xhtml
+};
+```
+
+XHTML variants emit `textformat="05"`. Input must be well-formed XML fragments,
+not HTML requiring parser repair. Multiple elements and surrounding text are allowed.
+Elements without an explicit namespace, in the standard XHTML namespace, or in the
+ONIX reference namespace are normalized to the ONIX namespace used by its XHTML
+subset schema. `xml:lang` becomes the subset's `lang` attribute; conflicting values
+are rejected. The outer variant language remains an ONIX list 74 code. This is
+semantic serialization, not byte-for-byte preservation of the original markup.
+
+The authoring profile supports paragraphs/divisions, headings, ordered/unordered and
+definition lists, block quotations, preformatted text, links, line breaks, rules,
+common emphasis and code/phrase elements, and tables with captions, row groups and
+column groups. Allowed attributes are `title`, `lang`, `dir`, link `href`/`hreflang`,
+quotation `cite`, ordered-list `start`/`type`, cell `colspan`/`rowspan`, header-cell
+`scope`, and column/group `span`, subject to the supplied schema's element rules.
+Links and citations must be absolute HTTP(S) URLs without credentials. The profile
+rejects styles/classes, identifiers/local anchors, images, active content, event
+handlers, foreign elements/attributes, comments, processing instructions and DTDs.
+No entities or resources are retrieved. Use numeric references or XML's built-in
+entities; HTML-only entities such as `&nbsp;` are not defined.
+
+Fragments need nonblank text and are bounded to 32 nested elements and 4096 XML
+nodes before tree materialization. Existing source-text length and aggregate limits
+include markup. For short descriptions, the 350-scalar limit counts decoded text,
+including supplied whitespace, while excluding markup. `SourceTitles` remains plain
+text only. Full-schema validation checks nesting and attribute values; recipient
+rendering and acceptance are separate qualifications.
 
 ### Audience categories and age ranges
 
