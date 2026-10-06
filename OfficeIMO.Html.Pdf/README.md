@@ -156,7 +156,7 @@ result.Save("report.pdf").RequireNoLoss();
 
 ## Fonts and text shaping
 
-The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding, including supported OpenType features. Variable instances and text that requires vector paint use outlines plus logical `ActualText`, preserving extraction and accessibility.
+The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding, including supported OpenType features. Color glyphs and feature-bearing color fonts retain palette-aware outlines. Variable instances and text that requires vector paint use outlines plus logical `ActualText`, preserving extraction and accessibility.
 
 PDF outline expansion is fail-closed. The selected program must implement
 `IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion

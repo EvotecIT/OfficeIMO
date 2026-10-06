@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.TestAssets;
@@ -48,6 +50,33 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
             HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options));
 
+        Assert.Contains("point budget", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("liga", "normal")]
+    [InlineData("liga", "dark")]
+    [InlineData("ss01", "normal")]
+    [InlineData("ss01", "dark")]
+    public void SubstitutedColorGlyphsRetainPalettePaintAndOutlineLimits(string feature, string palette) {
+        byte[] font = ManagedTextShapingTestAssets.CreateColorLigatureFont('f', 'i', feature);
+        string html = "<p style=\"margin:0;font:32px ColorLigature;font-feature-settings:'"
+            + feature + "' 1;font-palette:" + palette + "\">fi</p>";
+        var options = new HtmlToPdfOptions();
+        options.Fonts.Add("ColorLigature", font);
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        OfficeColor[] paints = PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes
+            .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent).ToArray();
+
+        Assert.Contains(palette == "dark" ? OfficeColor.Yellow : OfficeColor.Red, paints);
+        Assert.Contains(palette == "dark" ? OfficeColor.FromRgb(0, 128, 0) : OfficeColor.Blue, paints);
+        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Trim());
+
+        options.MaxOutlinedTextPathCommands = 1;
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options));
         Assert.Contains("point budget", error.Message, StringComparison.Ordinal);
     }
 }

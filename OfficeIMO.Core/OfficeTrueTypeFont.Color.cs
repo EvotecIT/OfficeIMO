@@ -15,6 +15,9 @@ internal sealed class OfficeColorGlyphContours {
 }
 
 public sealed partial class OfficeTrueTypeFont {
+    /// <summary>Whether this program has palette layers that shaped glyph substitution can select.</summary>
+    internal bool HasColorGlyphs => _colorGlyphs != null;
+
     internal bool TryGetColorTextContours(
         string text,
         double x,

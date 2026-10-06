@@ -153,6 +153,20 @@ internal static partial class ManagedTextShapingTestAssets {
             baseGlyphHeight: baseGlyphHeight);
     }
 
+    internal static byte[] CreateColorLigatureFont(int firstScalar, int secondScalar, string featureTag = "liga") {
+        byte[] colr = CreateColrV0();
+        WriteUInt16(colr, 14, 3);
+        WriteUInt16(colr, 20, 1);
+        WriteUInt16(colr, 24, 2);
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, 32, 4),
+            glyphCount: 5,
+            distinctSecondGlyph: true,
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3),
+            colr: colr,
+            cpal: CreateCpalV1());
+    }
+
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
         if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
         if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
