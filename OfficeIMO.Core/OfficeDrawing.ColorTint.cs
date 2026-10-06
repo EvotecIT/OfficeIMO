@@ -27,7 +27,7 @@ public sealed partial class OfficeDrawing {
                     text.DecorationColor.HasValue ? WithTint(text.DecorationColor.Value, tint) : null,
                     text.FeatureSettings,
                     text.FontPalette,
-                    text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs, FontMetricScale = text.FontMetricScale };
+                    text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs, FontMetricScale = text.FontMetricScale, ClipToFrame = text.ClipToFrame };
                 ((OfficeDrawingText)replacement).SetPaintedText(text.Text, text.RasterText);
             } else if (current is OfficeDrawingRichText richText) {
                 var runs = new List<OfficeRichTextRun>(richText.Runs.Count);

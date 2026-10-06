@@ -19,7 +19,8 @@ public sealed partial class OfficeDrawing {
             OfficeTextOverflowBehavior.Clip, textAdvanceWidth,
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
             baselineLevel: 0, baselineScale: 1D, baselineOffset: 0D, decorationColor: null,
-            featureSettings: null, fontPalette: null, allowOverflow: true, textDirection: textDirection);
+            featureSettings: null, fontPalette: null, allowOverflow: true, textDirection: textDirection,
+            clipToFrame: false);
 
     internal OfficeDrawing AddClippedPositionedTextWithNaturalAdvance(
         string text, double x, double y, double width, double height,
@@ -46,7 +47,8 @@ public sealed partial class OfficeDrawing {
             OfficeTextOverflowBehavior.Clip, textAdvanceWidth,
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
             baselineLevel: 0, baselineScale: 1D, baselineOffset: 0D, decorationColor: null,
-            featureSettings: null, fontPalette: null, allowOverflow: true, textDirection: textDirection);
+            featureSettings: null, fontPalette: null, allowOverflow: true, textDirection: textDirection,
+            clipToFrame: false);
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
