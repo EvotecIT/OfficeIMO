@@ -105,6 +105,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         if (!invalidNestingRejected) throw new InvalidDataException("The supplied schema accepted invalid XHTML paragraph nesting.");
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+    if (profile.Name == "collection") CollectionFixtures.Verify(result, schemas);
     if (profile.Name == "collateral-xhtml" && !BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
         throw new InvalidDataException("XHTML record composition changed mixed content or whitespace.");
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);

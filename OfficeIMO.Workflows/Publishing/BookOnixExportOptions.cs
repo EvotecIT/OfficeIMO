@@ -21,7 +21,9 @@ public enum BookOnixContributorRole {
     /// <summary>Illustrator (A12).</summary>
     Illustrator,
     /// <summary>Other creative responsibility (Z99).</summary>
-    Other
+    Other,
+    /// <summary>Editor of the series to which the product belongs (B09).</summary>
+    SeriesEditor
 }
 
 /// <summary>An explicitly classified ONIX credit; names are not parsed or inferred from EPUB creator text.</summary>

@@ -63,4 +63,8 @@ public sealed record BookOnixCollection {
     public IReadOnlyList<BookOnixCollectionIdentifier> Identifiers { get; init; } = [];
     /// <summary>Up to 16 positions; at most one per type and proprietary sequence name.</summary>
     public IReadOnlyList<BookOnixCollectionSequence> Sequences { get; init; } = [];
+    /// <summary>Up to 100 ordered collection credits, independent of product credits. Empty makes no assertion.</summary>
+    public IReadOnlyList<BookOnixContributor> Contributors { get; init; } = [];
+    /// <summary>Explicit assertion of no collection contributors; mutually exclusive with Contributors.</summary>
+    public bool NoContributors { get; init; }
 }

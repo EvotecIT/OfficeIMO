@@ -35,6 +35,8 @@ public sealed partial class BookProject {
                 title.Element(ns + "Subtitle")?.Add(new XAttribute("language", collection.LanguageCode));
             }
             element.Add(new XElement(ns + "TitleDetail", new XElement(ns + "TitleType", "01"), title));
+            element.Add(BuildOnixContributors(collection.Contributors, collection.NoContributors,
+                requireDeclaration: false, cancellationToken));
             result.Add(element);
         }
         return result;

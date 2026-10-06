@@ -644,7 +644,8 @@ var options = existingOptions with {
         Identifiers = [new(BookOnixCollectionIdentifierType.Proprietary,
             "studies", "Publisher catalog")],
         Sequences = [new(BookOnixCollectionSequenceType.Publication, "3"),
-                     new(BookOnixCollectionSequenceType.Narrative, "2.1")]
+                     new(BookOnixCollectionSequenceType.Narrative, "2.1")],
+        Contributors = [new("Alex Editor", BookOnixContributorRole.SeriesEditor)]
     }]
 };
 ```
@@ -668,12 +669,20 @@ must be ASCII digits or a hyphen, separated by dots. Each sequence type/name may
 occur once. Named proprietary identifiers and sequences require a name; standard
 types omit it. All text fields retain the 4096-character bound.
 
+Each collection can carry up to 100 ordered `Contributors`, using the same person or
+organization credit model as product credits. `SeriesEditor` writes ONIX role `B09`.
+Collection credit numbering starts at 1 for each membership. Credits are never copied
+between the product, collections and EPUB metadata; place them according to the
+recipient's requirements. An empty list makes no assertion. `NoContributors = true`
+explicitly asserts no collection contributors and cannot accompany credits.
+
 `NoCollection = true` explicitly asserts no collection membership and cannot accompany
 `Collections`. An empty list with the default `NoCollection = false` makes no assertion.
 This profile writes one top-level collection title per membership; hierarchical
-titles, collection-level credits, publication frequency and other identifier schemes
+titles, publication frequency and other identifier schemes
 are not represented. Collection claims and recipient acceptance remain the publisher's
 responsibility. The [ONIX collection types](https://ns.editeur.org/onix/en/148),
+[contributor roles](https://ns.editeur.org/onix/en/17),
 [identifier schemes](https://ns.editeur.org/onix/en/13) and
 [sequence types](https://ns.editeur.org/onix/en/197) define the trade semantics.
 

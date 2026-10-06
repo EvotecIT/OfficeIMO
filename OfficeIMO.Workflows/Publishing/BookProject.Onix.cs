@@ -36,26 +36,9 @@ public sealed partial class BookProject {
         RequireOnixLanguageCode(options.LanguageCode, nameof(options.LanguageCode));
         if (options.TitleId != null) RequireOnixText(options.TitleId, nameof(options.TitleId));
         if (options.Subtitle != null) RequireOnixText(options.Subtitle, nameof(options.Subtitle));
-        ArgumentNullException.ThrowIfNull(options.Contributors);
-        if (options.Contributors.Count > 100 || options.NoContributors == (options.Contributors.Count != 0))
-            throw new ArgumentException("Supply 1-100 credits, or explicitly select NoContributors.", nameof(options));
-        var credits = options.Contributors.ToArray();
         XNamespace onix = OnixNamespace;
-        var contributorElements = new List<XElement>();
-        foreach (BookOnixContributor credit in credits) {
-            cancellationToken.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(credit);
-            RequireOnixText(credit.Name, nameof(credit.Name));
-            string role = credit.Role switch {
-                BookOnixContributorRole.Author => "A01", BookOnixContributorRole.Editor => "B01",
-                BookOnixContributorRole.Translator => "B06", BookOnixContributorRole.Illustrator => "A12",
-                BookOnixContributorRole.Other => "Z99", _ => throw new ArgumentOutOfRangeException(nameof(credit.Role))
-            };
-            contributorElements.Add(new XElement(onix + "Contributor",
-                new XElement(onix + "SequenceNumber", contributorElements.Count + 1),
-                new XElement(onix + "ContributorRole", role),
-                new XElement(onix + (credit.IsOrganization ? "CorporateName" : "PersonName"), credit.Name)));
-        }
+        IReadOnlyList<XElement> contributorElements = BuildOnixContributors(options.Contributors,
+            options.NoContributors, requireDeclaration: true, cancellationToken);
 
         OnixCommercialParts commercial = BuildOnixCommercial(options.Commercial, options.PublicationDate, cancellationToken);
         IReadOnlyList<XElement> accessibility = BuildOnixAccessibility(options.Accessibility, cancellationToken);
@@ -95,8 +78,7 @@ public sealed partial class BookProject {
             new XElement(onix + "ProductFormDetail", "E101"),
             accessibility, collections,
             new XElement(onix + "TitleDetail", new XElement(onix + "TitleType", "01"), titleElement));
-        if (options.NoContributors) descriptive.Add(new XElement(onix + "NoContributor"));
-        else descriptive.Add(contributorElements);
+        descriptive.Add(contributorElements);
         descriptive.Add(edition);
         descriptive.Add(new XElement(onix + "Language", new XElement(onix + "LanguageRole", "01"),
             new XElement(onix + "LanguageCode", options.LanguageCode)));

@@ -156,8 +156,10 @@ assignments are synthetic and do not establish vocabulary membership or suitabil
 The `edition` and `no-edition` fixtures cover numbered minor revisions, multilingual
 plain-text statements and explicit absence of edition information. The generator
 also validates each supported edition type against the schema. The `collection`
-fixture covers all supported collection, identifier and sequence types; the
-`no-collection` fixture distinguishes explicit absence from omitted membership.
+fixture covers all supported collection, identifier and sequence types, ordered
+person and organization credits, every supported contributor role, and omitted
+versus explicitly absent collection credits. The schema must reject misplaced
+credits and conflicting contributor assertions. The `no-collection` fixture distinguishes explicit absence from omitted membership.
 Collection identities are synthetic assignments, not evidence of allocation or ownership.
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
