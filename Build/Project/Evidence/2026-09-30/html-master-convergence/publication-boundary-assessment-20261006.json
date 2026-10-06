@@ -69,32 +69,16 @@
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852",
       "head": "8e5a8fd834b045322d5697106800190f19bf0828",
       "base": "master",
-      "checkedUtc": "2026-10-06T13:15:47.501978+00:00",
+      "checkedUtc": "2026-10-06T15:28:54.953404+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
-        "QUEUED": 11,
-        "SKIPPED": 2
+        "SUCCESS": 88,
+        "SKIPPED": 3,
+        "QUEUED": 3
       },
-      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
-      "mergeable": "MERGEABLE"
-    },
-    {
-      "number": 2864,
-      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2864",
-      "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
-      "base": "master",
-      "checkedUtc": "2026-10-06T12:45:31.762195+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
-      "checks": {
-        "SUCCESS": 63,
-        "QUEUED": 21,
-        "SKIPPED": 2,
-        "IN_PROGRESS": 5
-      },
-      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
-      "mergeable": "MERGEABLE"
+      "remaining": "Three checks queued at latest complete snapshot. Exact-head CI and mergeability verification remain required; latest attempted read failed on TCP timeout.",
+      "mergeable": "UNKNOWN"
     },
     {
       "number": 2866,
@@ -110,7 +94,7 @@
         "SKIPPED": 2,
         "IN_PROGRESS": 2
       },
-      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "remaining": "Current CLI CI settled, but complete delayed feedback reads failed on intermittent TCP timeout. Do not merge from partial state.",
       "mergeable": "MERGEABLE"
     },
     {
@@ -118,16 +102,14 @@
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2867",
       "head": "0e934cf2d0e628cc89ed0b582d6666952134cb5d",
       "base": "fix/pdf-canvas-text-opacity",
-      "checkedUtc": "2026-10-06T12:45:38.101286+00:00",
+      "checkedUtc": "2026-10-06T15:35:35.725778+00:00",
       "threadPages": 1,
       "unresolvedThreads": 0,
       "checks": {
-        "SUCCESS": 90,
-        "QUEUED": 3,
-        "SKIPPED": 5,
-        "IN_PROGRESS": 5
+        "SUCCESS": 99,
+        "SKIPPED": 6
       },
-      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
+      "remaining": "Latest complete delayed snapshot is CLEAN with all CI settled and no feedback; merge depends on PDF-opacity prerequisite settlement and any server-side branch/head changes.",
       "mergeable": "MERGEABLE"
     }
   ],
@@ -145,7 +127,7 @@
     "ordinaryWorktreeAndLocalBranchRemoved": true
   },
   "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
-  "nextDeliverable": "Complete current-head CI and delayed feedback for four focused PRs, merge ready layers in dependency order and preserve/clean their owned worktrees. Apply the prepared selector bridge during deliberate static owner convergence; qualify the extracted renderer/job graph before long-lived adoption. Larger H10/runtime/performance goals remain incomplete.",
+  "nextDeliverable": "Settle the three remaining focused PRs in dependency order with exact-head gates and preserved proof. Continue precise PDF/font/math corrective convergence while preserving static shadow behavior and resolving other-task overlaps deliberately. Qualify the extracted static renderer/job graph before long-lived adoption; broader H10/runtime/performance goals remain incomplete.",
   "wrapUpUtc": "2026-10-06T11:40:40.405648+00:00",
   "wrapUpSource": "f6aa381c4ce7425f483b33a4c37e04711c17f993",
   "focusedMerges": [
@@ -187,6 +169,28 @@
       "evidence": "Ignore/MasterConvergenceQualification/merged-xlsb-neutral-views-bc73b7b8f",
       "preservedFiles": 21,
       "preservedBytes": 1230145,
+      "worktreeAndLocalBranchRemoved": true
+    },
+    {
+      "number": 2864,
+      "mergeCommit": "a894aba63ac267f6b83ba5558974c22968f64b56",
+      "mergedAt": "2026-10-06T15:32:50Z",
+      "head": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+      "checks": {
+        "SUCCESS": 91,
+        "SKIPPED": 3
+      },
+      "feedback": {
+        "checkedUtc": "2026-10-06T15:28:59.576613+00:00",
+        "threadPages": 1,
+        "unresolvedThreads": 0,
+        "reviews": 0,
+        "reviewComments": 0,
+        "issueComments": 0
+      },
+      "evidence": "Ignore/MasterConvergenceQualification/merged-owned-html-css-f8cc0c224",
+      "preservedFiles": 166,
+      "preservedBytes": 52383045,
       "worktreeAndLocalBranchRemoved": true
     }
   ],
@@ -245,15 +249,17 @@
     "checkpointArchivesBytes": 795840287
   },
   "currentFollowThrough": {
-    "recordedUtc": "2026-10-06T15:06:28.605464+00:00",
-    "mainEvidenceParent": "9f04e0301a80e8ee454adf57d7f674ed8016e513",
-    "productSourceUnchanged": "1231730d936a117b6d0c56660197f99beff7604a",
+    "recordedUtc": "2026-10-06T15:37:20.652301+00:00",
+    "mainEvidenceParent": "60bad0b555fba2d16fe7d45a85300bd872311655",
     "checklist": {
       "xlsbCurrentHeadFeedbackMergeCleanup": true,
-      "remainingFourCompleteFeedback": false,
       "preparedStaticAdapterCompileAndIndependentSelectorProof": true,
       "completedOutputCleanup": true,
-      "qualifiedStaticExtraction": false
+      "qualifiedStaticExtraction": false,
+      "ownedDocumentCssCurrentHeadFeedbackMergeCleanup": true,
+      "staticFoundationSourceConvergence": true,
+      "staticFoundationFocusedConsumerAndH4": true,
+      "remainingThreeSettlement": false
     },
     "raster": {
       "head": "8e5a8fd834b045322d5697106800190f19bf0828",
@@ -272,11 +278,11 @@
       "sourceReconciliation": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/prerequisite-source-reconciliation-1245.json",
       "referenceInventory": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/selected-static-reference-boundary-1245.json",
       "differentOwnerSourceFiles": {
-        "ownedDomCss": 5,
+        "ownedDomCss": 0,
         "pdfOpacity": 1,
         "coreFontMath": 11
       },
-      "requirement": "Reconcile the accepted foundation sibling identity/collection contract in the static selector adapter and preserve cascade-trace source absent from the incremental foundation; no whole-directory replacement. Source inventory is not compiled/packed graph qualification.",
+      "requirement": "The five foundation corrective blobs and sibling adapter bridge are adopted and focused normal consumer/H4 proof passes. Preserve cascade trace and ancestor combinators. Next reconcile PDF opacity and font/math corrections deliberately, preserving the existing static shadow expansion contract and separately inspecting other-task overlaps.",
       "preparedAdapter": {
         "recordedUtc": "2026-10-06T15:05:27.980790+00:00",
         "foundationCandidate": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
@@ -288,7 +294,7 @@
         "before": "Exact source adapter fails against foundation on two CS0535 members: sibling parent identity and sibling enumeration.",
         "after": "Compile 0 warnings/errors on net8/net10; 20 explicit selector outcomes per framework, evaluation and canceled traversal pass. All 20 agree independently with Chromium153.0.8010.12 through isolated test-only HtmlTinkerX3.0.3.",
         "comparatorLimit": "Retained AngleSharp1.8.3 matcher disagrees on nine root/fragment structural outcomes; original failed observer and full differences retained. Chromium confirms the predeclared outcomes. No provider patch, upstream claim or general selector/browser parity.",
-        "scope": "Linked-source adapter compatibility preparation only. No tracked product edit, shipped browser tool, full computed-style/renderer/cascade qualification, package or platform claim. Apply the retained patch as part of the selected static integration extraction; preserve HtmlCssCascadeTrace.",
+        "scope": "Historical linked-source preparation: this retained receipt precedes the tracked product convergence at 60bad0b555. Its isolated proof is distinct from the subsequent normal consumer build/H4 proof. Neither qualifies a full extracted renderer/job, packages or platform budgets.",
         "evidence": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/static-selector-migration",
         "frameworks": {
           "net8.0": {
@@ -300,11 +306,109 @@
             "loadedCoreSha256": "4941e798ae4e7512f812031e15f7cc60d521cf08c37fb4a1c194724913f3b6a8"
           }
         }
-      }
+      },
+      "appliedProductCandidate": {
+        "recordedUtc": "2026-10-06T15:28:48.725132+00:00",
+        "sourceCommit": "60bad0b555fba2d16fe7d45a85300bd872311655",
+        "parent": "f3c9fbbf51cde5bc8a3006d115d6b05c22f4b44e",
+        "sourceBlobs": {
+          "OfficeIMO.Html.AngleSharp/Internal/HtmlDocumentParser.cs": "5c498b5e3e41d0f7f3f53e188207996b3791cc06",
+          "OfficeIMO.Html.Core/Css/HtmlCssAnPlusBParser.cs": "9226789395887c5cc9592040aa881ec780e48130",
+          "OfficeIMO.Html.Core/Css/HtmlCssSelectorContracts.cs": "9a02e2c58803d2f373a998da30daa9821f67fa34",
+          "OfficeIMO.Html.Core/Css/HtmlCssSelectorParser.cs": "75b871ff22ba5c804d23967e339be5094088d9c4",
+          "OfficeIMO.Html.Core/Css/HtmlCssTypedValueParsers.cs": "b351c70b3851a1631cba1ac736450647737a8387",
+          "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.SelectorElements.cs": "c3e52f056efbb22d4a26b51df1d849b3fac0f2ad"
+        },
+        "validation": {
+          "net8.0": {
+            "css": {
+              "total": "101",
+              "executed": "101",
+              "passed": "101",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "fragment-h4": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          "net10.0": {
+            "css": {
+              "total": "101",
+              "executed": "101",
+              "passed": "101",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            },
+            "fragment-h4": {
+              "total": "28",
+              "executed": "28",
+              "passed": "28",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          }
+        },
+        "standardBuild": "netstandard2.0 normal Html graph, 0 warnings and errors",
+        "h4EachFramework": 8,
+        "scope": "Six-file pinned foundation source convergence and focused compiled static consumer proof. Frozen all-page replay, packages/platform budgets, PDF/math corrections, and accepted-master/other-task owner convergence remain open.",
+        "cascadeTraceSha256": "a9b2c2f7c3142d36e4f6af6115f6d6dc38eeed2e5c52e2d0dac601cd937e166c",
+        "evidence": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/static-selector-migration"
+      },
+      "remainingOwnerPlan": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/remaining-owner-convergence-plan.json",
+      "remainingOwnerPlanScope": "One PDF and ten font/math file corrections are candidates for deliberate adoption; the twelfth differing file contains an unrelated shadow contract and must not be blindly replaced. No remaining-owner edit in this checkpoint."
     },
     "heldSteps": {
-      "mergeFocusedPrs": "Four remaining PRs require complete latest-head feedback and current CI verification; this wake complete API reads failed on TCP timeouts. Raster checks remain pending; PDF/math CLI checks pass but delayed complete feedback could not be verified. DOM/CSS current CLI check timed out.",
-      "combinedStaticQualification": "Apply the independently checked sibling migration while deliberately converging the precise corrective owners and read-only other-task overlaps; separate extraction tests and a linked-source probe do not qualify the full renderer/job.",
+      "mergeFocusedPrs": "Raster CI/mergeability remains pending; PDF opacity complete delayed feedback reads fail on TCP timeouts; math current-head CI and complete feedback are clean but depend on the PDF layer and revalidation of any server-side branch change.",
+      "combinedStaticQualification": "Six-file foundation source convergence has 129 focused cases per framework, including eight H4 cases, and a normal netstandard2.0 build. PDF/math corrective adoption, other-task overlap convergence, frozen all-page and packed extraction proof remain open.",
       "longLivedAdoption": "Selected package/profile/platform acceptance; wider H10/native/manual accessibility and historical timing failures stay open."
     },
     "cleanup": {
@@ -324,7 +428,7 @@
       "evidence": "Ignore/MasterConvergenceQualification/merged-xlsb-neutral-views-bc73b7b8f"
     },
     "apiTransport": {
-      "state": "Intermittent api.github.com TCP connection timeouts; bounded read attempts incomplete. GitHub accepted and confirmed XLSB merge; other merges held.",
+      "state": "Intermittent api.github.com TCP connection timeouts. XLSB and DOM/CSS merges accepted and independently confirmed; raster and math latest full feedback snapshots recovered, PDF full feedback remains incomplete. No auth/network-security weakening or merge from partial state.",
       "failedReads": [
         "snapshot-bounded-2852-1445.json",
         "snapshot-bounded-2864-1445.json",
@@ -337,11 +441,16 @@
       ],
       "observedPrChecksAt1448": {
         "2852": "pending, exit8",
-        "2864": "transport timeout; no current receipt",
+        "2864": "Subsequent 15:28 complete snapshot and merge gate verify 91 successes/3 skips, MERGEABLE/CLEAN; merged.",
         "2866": "exit0 all reported checks settled",
         "2867": "exit0 all reported checks settled"
       },
-      "scope": "These CLI receipts do not replace failed complete current-head metadata/review/comment/reaction snapshots; no additional merges authorized from partial reads."
+      "scope": "These CLI receipts do not replace failed complete current-head metadata/review/comment/reaction snapshots; no additional merges authorized from partial reads.",
+      "lastSuccessfulFullSnapshots": {
+        "2852": "2026-10-06T15:28:54.953404+00:00",
+        "2866": "2026-10-06T12:45:34.435144+00:00",
+        "2867": "2026-10-06T15:35:35.725778+00:00"
+      }
     },
     "cleanupAt1445": {
       "targets": 8,
@@ -352,6 +461,23 @@
         "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/selector-browser-cleanup-results.json"
       ],
       "retained": "Private cache origin metadata, identical local-feed packages and loaded DLL receipts preserved; final controls/source/fixtures/failures retained. No shared cache or unrelated checkout removal."
+    },
+    "previousProductSource": "1231730d936a117b6d0c56660197f99beff7604a",
+    "productSource": "60bad0b555fba2d16fe7d45a85300bd872311655",
+    "cleanupProductMigration": {
+      "targets": 64,
+      "bytesRemoved": 1161852988,
+      "allAbsent": true,
+      "nativeExecutionErrorsRecovered": 33,
+      "results": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/static-selector-migration/product-output-cleanup-results.json",
+      "retained": "Stable source/blob and normal owner DLL hashes, original failure logs, final TRX, selector/Chromium controls and sources preserved. Native filesystem errors recovered through fresh guarded DotNet preflight, no policy bypass or shared-cache cleanup."
+    },
+    "cleanupTotalThisWake": {
+      "targets": 72,
+      "bytesRemoved": 1889732879,
+      "allAbsent": true,
+      "mergedWorktreesRemoved": 2,
+      "preservedProofBytes": 53613190
     }
   }
 }
