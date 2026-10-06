@@ -57,7 +57,9 @@ using var presentation = parsed.Document.ToPowerPointPresentation();
 presentation.Save("report.pptx");
 ```
 
-For Word markup, select `OfficeMarkupProfile.Document` and import `OfficeIMO.Markup.Word` and call `parsed.Document.ToWordDocument()`. Word markup fits unsized embedded images to the current section and honors explicit image dimensions. Both markup exporters expose `AllowDataUriImages` and `MaximumDataUriImageBytes` in their options.
+The parser preserves transformed fences within list items, slide bodies and directive columns (`::column`, `::left` and `::right`). Text-only presentation layouts use the normal block renderer when a list contains images or other nested content.
+
+For Word markup, select `OfficeMarkupProfile.Document` and import `OfficeIMO.Markup.Word`, then call `parsed.Document.ToWordDocument()`. Word markup fits unsized embedded images to the current section and honors explicit image dimensions. Both markup exporters expose `AllowDataUriImages` and `MaximumDataUriImageBytes` in their options.
 
 The PowerPoint exporter embeds the generated PNG bytes in process, preserves their aspect ratio and alternative text, and includes image captions. PNG and JPEG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupToPowerPointOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
 

@@ -94,31 +94,25 @@ internal sealed class OfficeMarkupWordExporter {
         ApplyTextStyle(paragraph, context.Styles.Resolve(heading));
     }
 
-    private static void AddList(WordExportContext context, OfficeMarkupListBlock list) {
-        if (context.CurrentSection != null) {
-            foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
-                string indent = new string(' ', entry.Depth * 2);
-                ApplyTextStyle(context.CurrentSection.AddParagraph(indent + entry.Marker + " " + entry.Item.Text),
-                    context.Styles.Resolve("body", entry.SourceList.Attributes));
+    private static void AddList(WordExportContext context, OfficeMarkupListBlock list) =>
+        AddList(context, list, 0);
+
+    private static void AddList(WordExportContext context, OfficeMarkupListBlock list, int depth) {
+        WordList? wordList = context.CurrentSection == null
+            ? list.Ordered ? context.Document.AddListNumbered() : context.Document.AddListBulleted()
+            : null;
+        if (wordList != null && list.Ordered && list.Start != 1) wordList.SetStartNumberingValue(list.Start, depth);
+        for (int index = 0; index < list.Items.Count; index++) {
+            var item = list.Items[index];
+            var paragraph = wordList != null
+                ? wordList.AddItem(item.Text, depth)
+                : context.AddParagraph(new string(' ', depth * 2)
+                    + (list.Ordered ? (list.Start + index).ToString(CultureInfo.InvariantCulture) + "." : "-") + " " + item.Text);
+            ApplyTextStyle(paragraph, context.Styles.Resolve("body", list.Attributes));
+            foreach (var child in OfficeMarkupListTraversal.ContentBlocks(item)) {
+                if (child is OfficeMarkupListBlock nested) AddList(context, nested, depth + 1);
+                else ExportBlock(context, child);
             }
-
-            return;
-        }
-
-        var wordLists = new Dictionary<OfficeMarkupListBlock, WordList>();
-        foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
-            if (!wordLists.TryGetValue(entry.SourceList, out var wordList)) {
-                wordList = entry.SourceList.Ordered
-                    ? context.Document.AddListNumbered()
-                    : context.Document.AddListBulleted();
-                if (entry.SourceList.Ordered && entry.SourceList.Start != 1) {
-                    wordList.SetStartNumberingValue(entry.SourceList.Start, entry.Depth);
-                }
-                wordLists.Add(entry.SourceList, wordList);
-            }
-
-            ApplyTextStyle(wordList.AddItem(entry.Item.Text, entry.Depth),
-                context.Styles.Resolve("body", entry.SourceList.Attributes));
         }
     }
 

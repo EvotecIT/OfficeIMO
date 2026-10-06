@@ -196,34 +196,13 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static string NormalizeTransitionToken(string? value) =>
         new string((value ?? string.Empty).Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
-    private static IReadOnlyList<OfficeMarkupBlock> ParseLightweightMarkdown(string body) {
-        var blocks = new List<OfficeMarkupBlock>();
-        foreach (var rawLine in body.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
-            var line = rawLine.Trim();
-            if (line.Length == 0) {
-                continue;
-            }
-
-            if (line.StartsWith("### ", StringComparison.Ordinal)) {
-                blocks.Add(new OfficeMarkupHeadingBlock(3, line.Substring(4)));
-            } else if (line.StartsWith("## ", StringComparison.Ordinal)) {
-                blocks.Add(new OfficeMarkupHeadingBlock(2, line.Substring(3)));
-            } else if (line.StartsWith("# ", StringComparison.Ordinal)) {
-                blocks.Add(new OfficeMarkupHeadingBlock(1, line.Substring(2)));
-            } else if (line.StartsWith("- ", StringComparison.Ordinal)) {
-                var list = blocks.LastOrDefault() as OfficeMarkupListBlock;
-                if (list == null) {
-                    list = new OfficeMarkupListBlock(false);
-                    blocks.Add(list);
-                }
-
-                list.Items.Add(new OfficeMarkupListItem(line.Substring(2)));
-            } else {
-                blocks.Add(new OfficeMarkupParagraphBlock(line));
-            }
-        }
-
-        return blocks;
+    private static IEnumerable<OfficeMarkupBlock> GetColumnBlocks(OfficeMarkupBlock block) {
+        if (block is OfficeMarkupColumnBlock column && column.Blocks.Count > 0) return column.Blocks;
+        var body = GetColumnBody(block);
+        return string.IsNullOrWhiteSpace(body) ? Array.Empty<OfficeMarkupBlock>()
+            : OfficeMarkupParser.Parse(body, new OfficeMarkupParserOptions {
+                Profile = OfficeMarkupProfile.Presentation
+            }).Document.Blocks;
     }
 
     private static bool IsExtension(OfficeMarkupBlock block, string command) =>

@@ -208,7 +208,7 @@ public sealed class OfficeMarkupDocument {
     /// <summary>Gets the mutable top-level block sequence.</summary>
     public IList<OfficeMarkupBlock> Blocks => _blocks;
 
-    /// <summary>Enumerates top-level blocks and blocks nested in slides or sections in depth-first order.</summary>
+    /// <summary>Enumerates top-level blocks and blocks nested in slides, sections, lists or columns in depth-first order.</summary>
     public IEnumerable<OfficeMarkupBlock> DescendantsAndSelf() {
         for (int i = 0; i < _blocks.Count; i++) {
             foreach (var block in EnumerateBlock(_blocks[i])) {
@@ -225,6 +225,10 @@ public sealed class OfficeMarkupDocument {
             children = slide.Blocks;
         } else if (block is OfficeMarkupSectionBlock section) {
             children = section.Blocks;
+        } else if (block is OfficeMarkupListBlock list) {
+            children = list.Items.SelectMany(item => item.Blocks);
+        } else if (block is OfficeMarkupColumnBlock column) {
+            children = column.Blocks;
         }
 
         if (children == null) {
@@ -589,6 +593,7 @@ public sealed class OfficeMarkupColumnsBlock : OfficeMarkupBlock {
 
 /// <summary>One column's kind, body text, and optional width.</summary>
 public sealed class OfficeMarkupColumnBlock : OfficeMarkupBlock {
+    private readonly List<OfficeMarkupBlock> _blocks = new List<OfficeMarkupBlock>();
     /// <summary>Creates a column; blank kinds become <c>column</c>.</summary>
     public OfficeMarkupColumnBlock(string columnKind, string body) : base(OfficeMarkupNodeKind.Column) {
         ColumnKind = string.IsNullOrWhiteSpace(columnKind) ? "column" : columnKind.Trim();
@@ -599,6 +604,9 @@ public sealed class OfficeMarkupColumnBlock : OfficeMarkupBlock {
     public string ColumnKind { get; }
     /// <summary>Gets the column body, or empty when null was supplied.</summary>
     public string Body { get; }
+    /// <summary>Gets the parsed body blocks, including caller-applied Markdown transforms.</summary>
+    /// <remarks>Exporters use these blocks when present; otherwise they parse Body with default Markdown options.</remarks>
+    public IList<OfficeMarkupBlock> Blocks => _blocks;
     /// <summary>Gets or sets an optional width expression.</summary>
     public string? Width { get; set; }
 }

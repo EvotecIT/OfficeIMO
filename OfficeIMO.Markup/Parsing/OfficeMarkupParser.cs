@@ -40,7 +40,7 @@ public static partial class OfficeMarkupParser {
 
         var markdownOptions = CreateMarkdownOptions(options);
         if (!TryMapOfficeSyntax(source, document, profile, diagnostics, markdownOptions)) {
-            var markdownDocument = MarkdownReader.ParseSemanticProjection(source, markdownOptions);
+            var markdownDocument = MarkdownReader.ParseProjectionWithBlockSpans(source, markdownOptions);
             MapMarkdownBlocks(markdownDocument.Blocks, document.Blocks, profile, diagnostics, markdownOptions);
         }
 

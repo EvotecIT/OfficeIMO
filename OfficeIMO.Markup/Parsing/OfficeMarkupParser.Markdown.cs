@@ -230,10 +230,18 @@ public static partial class OfficeMarkupParser {
                 break;
         }
 
+        if (block is OfficeMarkupColumnBlock column) PopulateColumn(column, profile, diagnostics, markdownOptions);
         block.SourceText = sourceText;
         ApplyPlacement(block, directive.Attributes);
         CopyAttributes(directive.Attributes, block.Attributes);
         return block;
+    }
+
+    private static void PopulateColumn(OfficeMarkupColumnBlock column, OfficeMarkupProfile profile,
+        IList<OfficeMarkupDiagnostic> diagnostics, MarkdownReaderOptions markdownOptions) {
+        if (string.IsNullOrWhiteSpace(column.Body)) return;
+        var nested = MarkdownReader.ParseProjectionWithBlockSpans(column.Body, markdownOptions);
+        MapMarkdownBlocks(nested.Blocks, column.Blocks, profile, diagnostics, markdownOptions);
     }
 
     private static OfficeMarkupSlideBlock CreateSlide(
@@ -254,7 +262,7 @@ public static partial class OfficeMarkupParser {
         }
 
         if (!string.IsNullOrWhiteSpace(directive.Body)) {
-            var nested = MarkdownReader.ParseSemanticProjection(directive.Body, markdownOptions);
+            var nested = MarkdownReader.ParseProjectionWithBlockSpans(directive.Body, markdownOptions);
             MapMarkdownBlocks(nested.Blocks, slide.Blocks, profile, diagnostics, markdownOptions);
         }
 
@@ -272,7 +280,7 @@ public static partial class OfficeMarkupParser {
         };
 
         if (!string.IsNullOrWhiteSpace(directive.Body)) {
-            var nested = MarkdownReader.ParseSemanticProjection(directive.Body, markdownOptions);
+            var nested = MarkdownReader.ParseProjectionWithBlockSpans(directive.Body, markdownOptions);
             MapMarkdownBlocks(nested.Blocks, section.Blocks, profile, diagnostics, markdownOptions);
         }
 

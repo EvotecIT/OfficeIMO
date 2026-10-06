@@ -36,7 +36,8 @@ public static partial class OfficeMarkupParser {
             TryParseAttributeLine(lines[i], metadata);
         }
 
-        markup = string.Join("\n", lines.Skip(end + 1));
+        // Keep original line positions after extracting metadata.
+        markup = new string('\n', end + 1) + string.Join("\n", lines.Skip(end + 1));
         return metadata;
     }
 
@@ -249,7 +250,7 @@ public static partial class OfficeMarkupParser {
                 return;
             }
 
-            var nested = MarkdownReader.ParseSemanticProjection(markdown, markdownOptions);
+            var nested = MarkdownReader.ParseProjectionWithBlockSpans(markdown, markdownOptions);
             MapMarkdownBlocks(nested.Blocks, target, profile, diagnostics, markdownOptions);
         }
 
@@ -280,7 +281,7 @@ public static partial class OfficeMarkupParser {
             if (trimmed.StartsWith("::", StringComparison.Ordinal)) {
                 FlushMarkdown();
                 var directive = ReadColonDirective(lines, ref i);
-                var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics);
+                var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics, profile, markdownOptions);
                 if (block is OfficeMarkupExtensionBlock extension
                     && string.Equals(extension.Command, "notes", StringComparison.OrdinalIgnoreCase)
                     && slideContext != null) {
@@ -296,7 +297,7 @@ public static partial class OfficeMarkupParser {
                 FlushMarkdown();
                 var directive = ReadAtDirective(lines, ref i);
                 if (!string.Equals(directive.Command, "slide", StringComparison.OrdinalIgnoreCase)) {
-                    var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics);
+                    var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics, profile, markdownOptions);
                     if (block != null) {
                         target.Add(block);
                     }
@@ -387,7 +388,9 @@ public static partial class OfficeMarkupParser {
         IDictionary<string, string> attributes,
         string body,
         string sourceText,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        OfficeMarkupProfile profile,
+        MarkdownReaderOptions markdownOptions) {
         var normalized = NormalizeCommand(command);
         OfficeMarkupBlock? block;
         switch (normalized) {
@@ -515,6 +518,7 @@ public static partial class OfficeMarkupParser {
                 break;
         }
 
+        if (block is OfficeMarkupColumnBlock column) PopulateColumn(column, profile, diagnostics, markdownOptions);
         block.SourceText = sourceText;
         ApplyPlacement(block, attributes);
         CopyAttributes(attributes, block.Attributes);
