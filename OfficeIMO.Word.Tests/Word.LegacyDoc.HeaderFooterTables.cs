@@ -168,7 +168,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", file));
         WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
         AssertHeaderFooterTableCells(story);
-        Assert.Contains(story.Paragraphs, paragraph => paragraph.Text == "AFTERTABLE");
+        Assert.Equal("AFTERTABLE", Assert.Single(story.Paragraphs).Text);
     }
 
     private static void AssertHeaderFooterTableCells(WordHeaderFooter story) {
@@ -179,6 +179,55 @@ public partial class Word {
             for (int column = 0; column < 2; column++) {
                 Assert.Equal($"CELL{row + 1}{column + 1}", Assert.Single(table.Rows[row].Cells[column].Paragraphs).Text);
             }
+        }
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void LegacyDoc_HeaderFooterTableRepeatedSavePreservesIntentionalParagraphs(bool footer, bool trailingBlank) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("BODY");
+        source.AddHeadersAndFooters();
+        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        story.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0].Text = "CELL";
+        story.AddParagraph("AFTER");
+        if (trailingBlank) story.AddParagraph();
+        string[] expected = trailingBlank ? new[] { "AFTER", "" } : new[] { "AFTER" };
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        for (int cycle = 0; cycle < 3; cycle++) {
+            using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
+            WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+            Assert.Equal(expected, restoredStory.Paragraphs.Select(paragraph => paragraph.Text));
+            Assert.Equal("CELL", Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs[0].Text);
+            bytes = restored.ToBytes(WordFileFormat.Doc);
+        }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void LegacyDoc_TableEmptyCellBookmarkRemainsEditableAfterRepeatedSave(int storyKind) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("BODY");
+        source.AddHeadersAndFooters();
+        WordTable table = storyKind == 0 ? source.AddTable(1, 2, WordTableStyle.TableNormal)
+            : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 2, WordTableStyle.TableNormal);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
+        table.Rows[0].Cells[1].Paragraphs[0].AddBookmark("EmptyCell");
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        for (int cycle = 0; cycle < 3; cycle++) {
+            using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
+            WordTable restoredTable = storyKind == 0 ? Assert.Single(restored.Tables)
+                : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.Header.Default : restored.Footer.Default).Tables);
+            WordParagraph empty = Assert.Single(restoredTable.Rows[0].Cells[1].Paragraphs);
+            Assert.Equal("", empty.Text);
+            Assert.Equal("EmptyCell", empty.Bookmark?.Name);
+            Assert.Equal("FIRST", restoredTable.Rows[0].Cells[0].Paragraphs[0].Text);
+            bytes = restored.ToBytes(WordFileFormat.Doc);
         }
     }
 }

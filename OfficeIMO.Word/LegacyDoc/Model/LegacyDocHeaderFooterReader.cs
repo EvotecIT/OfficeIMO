@@ -62,6 +62,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     character.CharacterPosition >= headerBaseCharacterPosition + startCharacter &&
                     character.CharacterPosition < headerBaseCharacterPosition + endCharacter).ToArray();
                 if (storyCharacters.Any(character => GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset).IsInTable == true)) {
+                    // MS-DOC 2.3.3 places a guard paragraph mark outside the story content.
+                    // Remove that one mark while retaining authored empty paragraphs.
+                    LegacyDocTextCharacter lastCharacter = storyCharacters[storyCharacters.Length - 1];
+                    if (lastCharacter.Character == '\r'
+                        && lastCharacter.CharacterPosition == headerBaseCharacterPosition + endCharacter - 1) {
+                        storyCharacters = storyCharacters.Take(storyCharacters.Length - 1).ToArray();
+                    }
                     IReadOnlyList<LegacyDocBodyBlock> blocks = LegacyDocDocument.BuildStoryBlocks(
                         storyCharacters, formattingRanges, paragraphFormattingRanges, bookmarkProjection, picturesByCharacterPosition);
                     if (blocks.Count > 0) stories.Add(new LegacyDocHeaderFooterStory(sectionIndex, isHeader, type, blocks));

@@ -169,6 +169,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     AddSectionBreaksAtBodyBoundary(textCharacter.CharacterPosition + 1);
+                    currentParagraphStartCharacter = textCharacter.CharacterPosition + 1;
                     continue;
                 }
 
