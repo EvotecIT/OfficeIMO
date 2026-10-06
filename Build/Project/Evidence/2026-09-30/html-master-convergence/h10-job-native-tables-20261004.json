@@ -2857,5 +2857,42 @@
       "totalBytesThisSlice": 5861689974,
       "boundary": "Exact generated targets only; final feeds, source archives, native XLSX/HTML/PNG, framework tests, failed probes and origin/hash receipts retained. Shared caches and unrelated worktrees untouched."
     }
+  },
+  "nativeStandaloneSettlement20261006": {
+    "observedUtc": "2026-10-06T04:00:00Z",
+    "merged": [
+      {
+        "pr": 2838,
+        "merge": "320e9ff4ee24b5e106fd3ffdba5c4466facadcf9"
+      },
+      {
+        "pr": 2840,
+        "merge": "bda4b10b90874d88531020fbbab8d1ad27239e9f"
+      },
+      {
+        "pr": 2826,
+        "merge": "800b30c3c29f2df449ff8f24e110ed38c81ae6fb"
+      },
+      {
+        "pr": 2847,
+        "merge": "90a60b64a237ca20cbd279252ff56761aa012997"
+      }
+    ],
+    "boundary": "Exact-head CI, complete paginated feedback/reactions, delayed review and accurate text verified before each authorized merge. Four owned worktrees/local branches removed after SHA-preserving unique proof. No full HTML-to-master merge or release.",
+    "preservationReceipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/merged-preservation-0400.json",
+    "preservationReceiptSha256": "026739d903214930708fc4c3ca85f909074ced4fdfa9f69fa0ed76de07fe1708",
+    "otherLaneCleanup": {
+      "targets": 270,
+      "bytes": 5342851140,
+      "allAbsent": true,
+      "receipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/remaining-pr-output-cleanup-20261006.json"
+    },
+    "currentHeadsPending": {
+      "2841": "e39b35a6f8dcf9d31f47ca617358e596dc6c0dc2",
+      "2849": "c6a354b8b8150d89862090d1afb905e02e57dede",
+      "2850": "6b846359362ec869679768928b1693027e7d91a8"
+    },
+    "held2845": "Its prior drawing/PDF net472 failures are observer scheduling assumptions. The separate test-policy/observer change in PR2850 must pass, merge and be adopted before current-head XLSB CI can be required again. No product failure/root-cause fix claim or CI bypass.",
+    "studioLocalBoundary": "Four viewport controls passed after upper-layer server rebase; twelve light/dark/invalid captures inspected. Prior pointer timeout was not reproduced locally; current hosted lane still required."
   }
 }
