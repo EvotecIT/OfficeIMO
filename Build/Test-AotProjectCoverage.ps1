@@ -104,6 +104,11 @@ $nonNativeValidated = @(
         evidence = 'The local ASP.NET Core workbench is validated as a managed browser-hosted tool and is not distributed or advertised as NativeAOT-compatible.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Studio.Core'
+        classification = 'managed-cross-platform'
+        evidence = 'The UI-independent Studio core targets managed .NET 10 and passes trim and AOT analyzers; it is not rooted in a NativeAOT qualification host.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Studio'
         classification = 'managed-cross-platform'
         evidence = 'The Avalonia desktop application is distributed through managed cross-platform publish profiles and is not advertised as NativeAOT-compatible.'

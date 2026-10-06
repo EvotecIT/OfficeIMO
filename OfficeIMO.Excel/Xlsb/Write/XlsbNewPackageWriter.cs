@@ -206,7 +206,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (document.HasPackagePropertiesDirty) {
                 throw new NotSupportedException("Native XLSB generation does not yet support modified document properties.");
             }
-            if (document.WorkbookRoot.ChildElements.Any(element => element is not Sheets)) {
+            if (document.WorkbookRoot.ChildElements.Any(element => element is not Sheets
+                && !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views)))) {
                 throw new NotSupportedException("Native XLSB direct tabular generation requires default workbook metadata.");
             }
             if (document.WorkbookPartRoot.ExternalRelationships.Any()) {

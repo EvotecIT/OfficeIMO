@@ -94,7 +94,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            WordParagraph? currentRun = runs.FirstOrDefault(run => ReferenceEquals(run._run, paragraph._run));
+            WordParagraph? currentChartRun = runs.FirstOrDefault(run =>
+                ReferenceEquals(run._run, paragraph._run) && run.Chart != null);
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
             IReadOnlyList<W.SdtRun> checkboxControls = GetNativeCheckBoxControls(paragraph);
             IReadOnlyList<W.SdtRun> formFieldControls = GetNativeFormFieldControls(paragraph);
@@ -135,15 +136,16 @@ namespace OfficeIMO.Word.Pdf {
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
-            WordShape? currentShape = currentRun?.Shape;
+            WordShape? currentShape = runs.Where(run => ReferenceEquals(run._run, paragraph._run))
+                .Select(run => run.Shape).FirstOrDefault(shape => shape != null);
             bool objectOnly = !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&
                 marker == null && paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 &&
                 formFieldControls.Count == 0 && repeatingSectionControls.Count == 0;
             NativeObjectParagraphSpacing? objectSpacing = objectOnly
                 ? new NativeObjectParagraphSpacing(pdf, style, MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap))
                 : null;
-            OfficeDrawing? directChartDrawing = PrepareNativeChart(currentRun?.Chart, options, "body paragraph chart");
-            List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, paragraph._run);
+            OfficeDrawing? directChartDrawing = PrepareNativeChart(currentChartRun?.Chart, options, "body paragraph chart");
+            List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, currentChartRun);
             bool renderedChart = directChartDrawing != null || runChartDrawings.Count > 0;
             if (directChartDrawing != null) {
                 RenderNativeFlowObject(pdf, objectSpacing, flow => flow.Drawing(directChartDrawing, objectAlign,
@@ -401,20 +403,33 @@ namespace OfficeIMO.Word.Pdf {
         private readonly record struct NativeTableCellEmbeddedContent(
             IReadOnlyList<PdfCore.PdfTableCellCheckBox> CheckBoxes,
             IReadOnlyList<PdfCore.PdfTableCellFormField> FormFields,
-            IReadOnlyList<PdfCore.PdfTableCellImage> Images);
+            IReadOnlyList<PdfCore.PdfTableCellImage> Images,
+            IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> InlineImages);
 
         private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options) {
             List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
             List<PdfCore.PdfTableCellFormField>? formFields = null;
             List<PdfCore.PdfTableCellImage>? images = null;
+            var inlineImages = new Dictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>();
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 int imageCount = 0;
+                W.Paragraph? paragraphElement = paragraph._paragraph;
+                bool supportsInlineImages = paragraphElement != null &&
+                    WordEquation.GetOccurrences(paragraph._document, paragraphElement).Count == 0;
                 void AddImage(WordImage image) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
                     if (++imageCount > imageLimit)
                         throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
+                    if (supportsInlineImages && paragraphElement != null && image._Image?.Inline != null &&
+                        !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
+                        ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
+                            paragraphElement.Ancestors<W.TextBoxContent>().FirstOrDefault())) {
+                        if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline))
+                            inlineImages[image._Image] = inline!;
+                        return;
+                    }
                     images ??= new List<PdfCore.PdfTableCellImage>();
                     AddNativeTableCellImage(images, image);
                 }
@@ -447,7 +462,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeTableCellEmbeddedContent(
                 checkBoxes ?? (IReadOnlyList<PdfCore.PdfTableCellCheckBox>)Array.Empty<PdfCore.PdfTableCellCheckBox>(),
                 formFields ?? (IReadOnlyList<PdfCore.PdfTableCellFormField>)Array.Empty<PdfCore.PdfTableCellFormField>(),
-                images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>());
+                images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>(), inlineImages);
         }
 
         private static IEnumerable<WordImage> EnumerateNativeParagraphImages(WordParagraph paragraph, CancellationToken cancellationToken, int textBoxDepth = 0) {
@@ -460,6 +475,7 @@ namespace OfficeIMO.Word.Pdf {
                 W.Run? run = imageRun._run;
                 if (run == null) continue;
                 if (run.Ancestors<W.DeletedRun>().Any() || run.Ancestors<W.MoveFromRun>().Any()) continue;
+                if (IsNativeHiddenTextRun(imageRun, paragraph)) continue;
                 if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
                 W.TextBoxContent? currentTextBox = paragraph._paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault();
                 foreach (WordImage image in imageRun.EnumerateImages()) {
@@ -485,7 +501,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (control.Ancestors<W.DeletedRun>().Any() || control.Ancestors<W.MoveFromRun>().Any()) continue;
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
                 WordImage? image = pictureParagraph.PictureControl?.Image;
-                if (image != null) yield return image;
+                if (image != null && !IsNativeHiddenImageContent(image, paragraph)) yield return image;
             }
         }
 
@@ -684,9 +700,11 @@ namespace OfficeIMO.Word.Pdf {
             }
             foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, control);
-                Add(pictureParagraph.PictureControl?.Image, control);
+                WordImage? image = pictureParagraph.PictureControl?.Image;
+                if (image != null && !IsNativeHiddenImageContent(image, paragraph)) Add(image, control);
             }
             foreach (WordParagraph run in runs) {
+                if (IsNativeHiddenTextRun(run, paragraph)) continue;
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
             var anchoredCanvas = new PdfCore.PdfPageCanvas();
@@ -701,10 +719,12 @@ namespace OfficeIMO.Word.Pdf {
             return renderedFlowObject;
         }
 
-        private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, W.Run? currentRun) {
+        private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, WordParagraph? currentChartRun) {
             var drawings = new List<OfficeDrawing>();
             foreach (WordParagraph run in runs) {
-                if (currentRun != null && ReferenceEquals(run._run, currentRun)) {
+                // Only the selected view has already been dispatched. Other views
+                // can share its source run while owning different drawings.
+                if (ReferenceEquals(run, currentChartRun)) {
                     continue;
                 }
 

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlFoundationLimitTests {
     private const string TemplateSource = "<!doctype html><template><div><span>x</span></div></template>";
-    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+    private static HtmlDocument Parse(string source) => AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
     private static HtmlConversionDocumentOptions Options(int? nodes = null, int? depth = null, int? characters = null) =>
         new HtmlConversionDocumentOptions { Limits = new HtmlConversionLimits { MaxHtmlNodes = nodes, MaxHtmlDepth = depth, MaxInputCharacters = characters } };
 
@@ -22,14 +22,14 @@ public sealed class HtmlFoundationLimitTests {
         var options = Options(nodes, depth);
         Assert.Equal(limit, Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.Parse(TemplateSource, options)).LimitSource);
         Assert.Equal(limit, Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.FromDocument(Parse(TemplateSource), options)).LimitSource);
-        Assert.Throws<HtmlParseLimitException>(() => AngleSharpHtmlParser.Instance.Parse(TemplateSource, new HtmlParseOptions { MaxNodes = nodes, MaxDepth = depth }));
+        Assert.Throws<HtmlParseLimitException>(() => AngleSharpHtmlParser.Instance.ParseDocument(TemplateSource, new HtmlParseOptions { MaxNodes = nodes, MaxDepth = depth }));
     }
 
     [Fact]
     public void TemplateBudgetIncludesFragmentWithoutAddingElementDepth() {
         var options = Options(9, 5);
         HtmlConversionDocument native = HtmlConversionDocument.Parse(TemplateSource, options);
-        HtmlDocument parsed = AngleSharpHtmlParser.Instance.Parse(TemplateSource, new HtmlParseOptions { MaxNodes = 9, MaxDepth = 5 });
+        HtmlDocument parsed = AngleSharpHtmlParser.Instance.ParseDocument(TemplateSource, new HtmlParseOptions { MaxNodes = 9, MaxDepth = 5 });
         HtmlConversionDocument captured = HtmlConversionDocument.FromDocument(parsed, options);
         Assert.Equal(parsed.OuterHtml, native.Document.OuterHtml);
         Assert.Equal(parsed.OuterHtml, captured.Document.OuterHtml);
@@ -203,6 +203,8 @@ public sealed class HtmlFoundationLimitTests {
         private readonly HtmlDocument _document;
         internal SuppliedParser(HtmlDocument document) { _document = document; }
         public string Id => "supplied";
-        public HtmlDocument Parse(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => _document;
+        public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) => _document;
+        public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }
