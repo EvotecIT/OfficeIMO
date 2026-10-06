@@ -378,6 +378,11 @@ foreach (HtmlResourceSessionEntry resource in session.Resources) {
 
 The session owns one immutable policy and limit snapshot for the operation. It deduplicates canonical requests, validates MIME types, enforces request/count/per-resource/total-byte/import-depth budgets, and records accepted resource digests. Synchronous rendering uses the configured synchronous package resolver; application/network resolution remains an explicit asynchronous boundary.
 
+When an implicit section takes its title from a heading, `section.TitleHeading`
+retains that heading's level, rich runs, style and source location. It remains
+separate from `section.Blocks`, which contains the section body. If the heading
+already belongs to the body, `TitleHeading` is null; read it from `Blocks`.
+
 ## Semantic envelope v2 and fidelity scoring
 
 Current OfficeIMO semantic exports identify schema `2` and public-safe restoration metadata. Public-safe envelopes can be imported from untrusted input. A target-specific envelope marked `trusted-target` restores private target metadata only when the prepared input is trusted; otherwise the adapter uses the shared generic semantic path and reports the boundary. Schema `1` remains readable.
