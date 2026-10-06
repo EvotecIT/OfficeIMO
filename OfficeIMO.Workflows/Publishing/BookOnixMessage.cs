@@ -7,18 +7,23 @@ using System.Xml.Schema;
 
 namespace OfficeIMO.Workflows;
 
-/// <summary>A schema-validated ONIX 3.1 message composed from complete exported product records.</summary>
-public sealed class BookOnixMessage {
-    private BookOnixMessage(byte[] bytes, BookOnixExportResult[] products) {
+/// <summary>A schema-validated ONIX 3.1 complete-record, block-update or deletion message derived from complete export results.</summary>
+public sealed partial class BookOnixMessage {
+    private BookOnixMessage(byte[] bytes, BookOnixExportResult[] products, BookOnixMessageKind kind) {
         Bytes = bytes;
         Products = Array.AsReadOnly(products);
+        Kind = kind;
     }
 
     /// <summary>UTF-8 ONIX XML, at most 16 MiB, with products in the supplied order.</summary>
     public byte[] Bytes { get; }
 
+    /// <summary>The explicit operation encoded by this message.</summary>
+    public BookOnixMessageKind Kind { get; }
+
     /// <summary>
-    /// Original export results, retaining each exact EPUB, hash, writer report and import diagnostics.
+    /// Original complete export results, retaining each exact EPUB, hash, writer report and import diagnostics.
+    /// For updates or deletions these are provenance, not copies of the partial records in Bytes.
     /// The collection is snapshotted, but the results' byte arrays remain caller-owned and mutable.
     /// Integrity is checked during composition; later edits do not update this message.
     /// </summary>
@@ -31,7 +36,10 @@ public sealed class BookOnixMessage {
     /// Callers own schema provenance and must not mutate inputs or schemas during this operation.
     /// </summary>
     public static BookOnixMessage Create(IReadOnlyList<BookOnixExportResult> products, XmlSchemaSet schemas,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) => Compose(products, schemas, BookOnixMessageKind.CompleteRecords, null, cancellationToken);
+
+    private static BookOnixMessage Compose(IReadOnlyList<BookOnixExportResult> products, XmlSchemaSet schemas,
+        BookOnixMessageKind kind, Func<int, XElement, XElement>? transform, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(products);
         ArgumentNullException.ThrowIfNull(schemas);
         cancellationToken.ThrowIfCancellationRequested();
@@ -45,7 +53,8 @@ public sealed class BookOnixMessage {
         var references = new HashSet<string>(StringComparer.Ordinal);
         var isbns = new HashSet<string>(StringComparer.Ordinal);
         long inputBytes = 0;
-        foreach (BookOnixExportResult product in snapshot) {
+        for (int index = 0; index < snapshot.Length; index++) {
+            BookOnixExportResult product = snapshot[index];
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(product);
             inputBytes += product.Bytes.LongLength;
@@ -70,10 +79,10 @@ public sealed class BookOnixMessage {
                 .Element(ns + "IDValue")!.Value;
             if (!references.Add(reference) || !isbns.Add(isbn))
                 throw new ArgumentException("Each product must have a distinct record reference and ISBN.", nameof(products));
-            root.Add(new XElement(record));
+            root.Add(transform == null ? new XElement(record) : transform(index, record));
         }
         byte[] bytes = ValidateAndSerialize(new XDocument(root), schemas, 16L * 1024 * 1024, cancellationToken);
-        return new BookOnixMessage(bytes, snapshot);
+        return new BookOnixMessage(bytes, snapshot, kind);
     }
 
     internal static void RequireSchema(XmlSchemaSet schemas) {

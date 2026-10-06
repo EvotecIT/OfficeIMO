@@ -8,7 +8,7 @@ public sealed partial class BookProject {
     }
 
     // Repeated parallel text needs an explicit language on every instance, within its own composite.
-    private static void RequireOnixTranslationLanguage(string? language, int count, string name) {
+    internal static void RequireOnixTranslationLanguage(string? language, int count, string name) {
         if (count > 1 && language == null)
             throw new ArgumentException("Repeated ONIX translations require an explicit language on every entry.", name);
         if (language != null) RequireOnixLanguageCode(language, name);

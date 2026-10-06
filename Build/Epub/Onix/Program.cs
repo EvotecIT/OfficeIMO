@@ -133,6 +133,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         if (!invalidNestingRejected) throw new InvalidDataException("The supplied schema accepted invalid XHTML paragraph nesting.");
     }
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+    ChangeFixtures.Write(profile.Name, result, schemas, outputDirectory);
     if (profile.Name == "collateral-usage") UsageFixtures.ProbeRecentCodes(project, options, schemas, outputDirectory, timestamp);
     if (profile.Name == "collateral-licenses") LicenseFixtures.ProbeDatedLicenses(project, options, schemas, outputDirectory, timestamp);
     if (profile.Name == "alternative-titles") AlternativeTitleFixtures.Verify(result, schemas);
@@ -186,6 +187,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         invalidCountryRejected, invalidCurrencyRejected, accessibilityAssertionsSynthetic = options.Accessibility != null });
 }
 var catalog = BookOnixMessage.Create(messageProducts, schemas);
+ChangeFixtures.WriteCatalog(messageProducts, schemas, outputDirectory);
 File.WriteAllBytes(Path.Combine(outputDirectory, "catalog.onix"), catalog.Bytes);
 File.WriteAllText(Path.Combine(outputDirectory, "evidence.json"), JsonSerializer.Serialize(new {
     schemaFiles = schemaFiles.Select(path => new { name = Path.GetFileName(path), sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) }),

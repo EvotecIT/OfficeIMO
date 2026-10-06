@@ -252,6 +252,13 @@ The runner also writes `catalog.onix`, combining two distinct edition ISBNs unde
 one header, and `catalog-priced.epub` for the second product. The message evidence
 retains each source ONIX and EPUB hash. It is outside normal builds and shipped packages.
 
+The `update-*` and `delete-*` ONIX fixtures exercise whole-block replacement,
+explicit optional-block clearing, both markets in a supply update, translated and
+omitted deletion reasons, and two-product change messages. The runner checks that
+collateral XHTML whitespace and complete supply blocks survive composition, and
+validates every change message against the supplied schema. These files do not
+establish recipient update handling, delivery sequencing or acknowledgment.
+
 Obtain the ONIX 3.1 reference XSD from [EDItEUR](https://www.editeur.org/93/Release-3.0-and-3.1-Downloads/)
 and retain its unchanged adjacent code-list and XHTML schemas and their license
 notices. The local schema directory must contain `ONIX_BookProduct_3.1_reference.xsd`,
@@ -268,6 +275,13 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/priced.onix \
   /path/to/new-onix-evidence/withdrawn.onix \
   /path/to/new-onix-evidence/catalog.onix \
+  /path/to/new-onix-evidence/update-catalog.onix \
+  /path/to/new-onix-evidence/update-collateral.onix \
+  /path/to/new-onix-evidence/update-supply.onix \
+  /path/to/new-onix-evidence/update-clears.onix \
+  /path/to/new-onix-evidence/delete-catalog.onix \
+  /path/to/new-onix-evidence/delete-record.onix \
+  /path/to/new-onix-evidence/delete-record-no-reason.onix \
   /path/to/new-onix-evidence/taxed.onix \
   /path/to/new-onix-evidence/discounted.onix \
   /path/to/new-onix-evidence/discount-coded.onix \

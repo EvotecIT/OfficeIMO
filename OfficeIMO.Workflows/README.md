@@ -1202,8 +1202,54 @@ writer report, import diagnostics and loss acknowledgment. The collection is
 snapshotted; its results' byte arrays remain mutable. Do not modify inputs during
 composition, and keep exported bytes unchanged when using their recorded hashes.
 Composition accepts 1–1000 records, at most 16 MiB of source ONIX XML, and at most
-16 MiB of combined XML. Individual exports retain their 1 MiB limit. It performs no
-retailer submission, block update, deletion notification or recipient acknowledgment.
+16 MiB of combined XML. Individual exports retain their 1 MiB limit. Composition
+does not submit files or obtain recipient acknowledgment.
+
+### ONIX block updates and record deletions
+
+Create changes from complete `ExportOnix` results. Select entire blocks to replace;
+omitted blocks remain unchanged at the recipient. Clearing a block is a separate,
+explicit instruction:
+
+```csharp
+var current = book.ExportOnix(options, schemas);
+var update = BookOnixMessage.CreateBlockUpdates([
+    new(current) {
+        ReplaceBlocks = [BookOnixBlock.DescriptiveDetail, BookOnixBlock.PublishingDetail],
+        ClearBlocks = [BookOnixBlock.CollateralDetail]
+    }
+], schemas);
+File.WriteAllBytes("update.onix", update.Bytes);
+
+// Only for a metadata record issued in error, not a book withdrawn from sale.
+var deletion = BookOnixMessage.CreateDeletions([
+    new(current) { Reasons = [new("Record issued in error", "eng")] }
+], schemas);
+File.WriteAllBytes("delete.onix", deletion.Bytes);
+```
+
+Block updates use notification `04`; record deletions use `05`. Each factory creates
+one kind of message, exposed by `Kind`. They retain the same header matching,
+identity, source-integrity, schema, count and byte limits as `Create`. `Products`
+holds the original complete exports and EPUB evidence, not partial record copies.
+
+Every selected replacement must exist in the source and is copied in full,
+including unchanged fields. `ProductSupply` copies **all** source markets; per-market
+updates using `MarketReference` are not supported. Only `CollateralDetail`,
+`PromotionDetail`, `ContentDetail`, `RelatedMaterial` and `ProductionDetail` can be
+cleared. Empty selections, duplicate blocks and overlapping replace/clear requests
+are rejected. A missing replacement is an error, never an inferred clear.
+
+Deletion reasons are optional plain text: at most 16 translations of 100 UTF-16
+code units each. Multiple translations require distinct three-letter ONIX language
+codes, checked against the supplied schema. Product cancellation, withdrawal from
+sale and out-of-print status belong in publishing and availability metadata.
+
+These operations do not compare a recipient's existing record, discover changes,
+sequence deliveries or transmit deletions. Supply a complete current block, retain
+stable record references, and agree update handling with the recipient before
+delivery. See [BIC's block-update guidance](https://bic.org.uk/wp-content/uploads/2025/06/BIC_DRE_Delta-Files-vs.-Block-Updates.pdf).
+Schema validation is not recipient acceptance.
 
 ## Optional checkpoints
 

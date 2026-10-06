@@ -44,7 +44,7 @@ public sealed record BookOnixExportOptions {
     public required string RecordReference { get; init; }
     /// <summary>Explicit message timestamp, serialized in UTC.</summary>
     public required DateTimeOffset SentAt { get; init; }
-    /// <summary>Complete-record notification intent; block updates and deletion are not supported.</summary>
+    /// <summary>Complete-record notification intent. Use BookOnixMessage to compose explicit block updates or record deletions.</summary>
     public required BookOnixNotification Notification { get; init; }
     /// <summary>OPF id of the dc:identifier containing this digital edition's ISBN-13.</summary>
     public required string IdentifierId { get; init; }
