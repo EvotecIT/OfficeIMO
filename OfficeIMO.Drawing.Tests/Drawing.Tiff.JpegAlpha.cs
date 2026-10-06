@@ -40,6 +40,7 @@ public sealed class TiffJpegAlphaTests {
     [InlineData("TiffJpegArithmeticLosslessColor")]
     [InlineData("TiffJpegArithmeticLosslessChroma")]
     [InlineData("TiffJpegArithmeticExtra")]
+    [InlineData("TiffJpegArithmeticMultiscan")]
     public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
@@ -69,6 +70,7 @@ public sealed class TiffJpegAlphaTests {
     [InlineData("TiffJpegArithmetic12", 64)]
     [InlineData("TiffJpegArithmeticLosslessColor", 24)]
     [InlineData("TiffJpegArithmeticExtra", 6)]
+    [InlineData("TiffJpegArithmeticMultiscan", 18)]
     public void ArithmeticCmykAlphaMatchesIndependentProfiledCompositing(string folder, int count) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var profile));

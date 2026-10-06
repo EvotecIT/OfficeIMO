@@ -341,8 +341,8 @@ LibTIFF fails on 174 files and cannot display the other 18 despite returning zer
 no full-file native acceptance is claimed. The 768 XPS/OpenXPS exports cover
 510,720 probes per route: MuPDF PDF/SVG errors reach 4/255 and 2/255 without
 warnings. GhostXPS opens all packages but can render blank images (255/255).
-Multi-scan chunky 4×2 alpha and wider native acceptance remain outside this
-qualification; unspecified extras and table-only state isolation are covered below.
+Wider native acceptance remains outside this qualification; unspecified extras,
+multi-scan chunky alpha and table-only state isolation are covered below.
 
 The [unspecified-extra corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticExtra/README.md)
 qualifies 114 lossless-arithmetic TIFFs with one extra channel declared unspecified.
@@ -354,6 +354,19 @@ producer corpus. LibTIFF fails all 114 files because of codec, precision or layo
 limits. Across 456 XPS/OpenXPS exports and 303,240 probes per route, MuPDF PDF/SVG
 errors reach 2/255 without warnings. GhostXPS opens 452 packages with errors up to
 255/255 and crashes on four twelve-bit CMYK strip exports.
+
+The [multi-scan lossless arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticMultiscan/README.md)
+qualifies 54 chunky TIFFs: five-component CMYK and four-component 4×2 YCbCr with
+associated, straight or unspecified extras. The 243 frames combine independently
+encoded single-component streams without changing entropy bytes; forward/reverse
+scan order and frame geometry are checked against the planar source references.
+Managed alpha is exact and visible compositing agrees within 3/255, including 18
+explicit-profile CMYK cases. These constructed frames do not establish independent
+full-file producer acceptance. LibTIFF rejects all 54 files. Across 216 XPS/OpenXPS
+exports and 143,640 probes per route, MuPDF PDF/SVG errors reach 4/255 and 2/255
+without warnings. GhostXPS opens 204 packages with errors up to 255/255 and crashes
+on 12 twelve-bit CMYK strip exports. Wider native producer/reader acceptance remains
+open; no default CMYK interpretation is implied.
 
 Lossless arithmetic JPEG does not consume quantization or Huffman tables.
 The `JPEGTables` DAC/DRI controls reset before each image, as required by
