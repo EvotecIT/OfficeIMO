@@ -1,9 +1,9 @@
 ---
 title: "Privacy"
-description: "How the OfficeIMO website, browser tools, Studio, and libraries handle your documents and data. Documents stay on your device unless you choose to send them somewhere."
+description: "How the OfficeIMO website, browser tools, Studio, and libraries handle your data. Your documents stay on your device unless you choose to send them."
 layout: page
 slug: privacy
-meta.seo_title: "OfficeIMO privacy policy"
+meta.seo_title: "OfficeIMO privacy policy: documents, data, and downloads"
 meta.social_card_badge: "Privacy"
 ---
 
