@@ -32,8 +32,13 @@
         <div class="imo-workbench__lede">
           <p>{{ app.summary }}</p>
           <div class="imo-workbench__actions">
+            {{ if app.stores }}
+            {{ stores = app.stores }}{{ store_filter = "available" }}{{ include "sections/store-badges" }}
+            <a class="imo-btn imo-btn-ghost" href="{{ app.primaryUrl }}">{{ app.storesPrimaryLabel ?? app.primaryLabel }}</a>
+            {{ else }}
             <a class="imo-btn imo-btn-primary" href="{{ app.primaryUrl }}">{{ app.primaryLabel }}</a>
             <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
+            {{ end }}
           </div>
           <ul class="imo-workbench__facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
           <p class="imo-workbench__availability">{{ app.availability }}</p>
@@ -75,6 +80,7 @@
     <div class="imo-container" id="application-guide"><article class="imo-application-guide imo-prose">{{ content }}</article></div>
     <section class="imo-container imo-application-channels" aria-labelledby="channels-title">
       <h2 id="channels-title">Installation channels</h2>
+      {{ if app.stores }}{{ stores = app.stores }}{{ store_filter = "all" }}<div class="imo-application-stores">{{ include "sections/store-badges" }}</div>{{ end }}
       <div class="imo-application-channel-grid">
         {{ for channel in app.channels }}
         <article><p class="imo-application-eyebrow">{{ channel.state }}</p><h3>{{ channel.name }}</h3><p>{{ channel.detail }}</p>{{ if channel.url }}<a href="{{ channel.url }}">{{ channel.label }} →</a>{{ end }}</article>
