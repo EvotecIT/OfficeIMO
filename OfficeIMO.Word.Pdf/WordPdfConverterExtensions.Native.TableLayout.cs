@@ -306,6 +306,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeTableCellSpacing(W.TableCellSpacing? spacing) {
+            // Word treats these explicit units as zero rather than falling
+            // through to a positive spacing value from the table style.
+            if (spacing?.Type?.Value == W.TableWidthUnitValues.Auto ||
+                spacing?.Type?.Value == W.TableWidthUnitValues.Pct) return 0D;
             if (spacing?.Type?.Value != W.TableWidthUnitValues.Dxa) {
                 return null;
             }
