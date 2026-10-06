@@ -16,7 +16,7 @@ public static class WordCompatibilityCatalog {
             Native("Structure.MainStory", "Structure", "Main-story paragraphs, runs, tabs, and line, page, and column breaks."),
             Native("Structure.Sections", "Structure", "Sections, page size, margins, orientation, columns, and supported section flags."),
             Subset("Structure.HeadersFooters", "Structure", "Default, first-page, and even-page headers and footers.",
-                "Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."),
+                "Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."),
             Subset("Text.CharacterFormatting", "Text", "Character formatting, fonts, colors, language, and text effects supported by DOC.",
                 "Common and tested sprm mappings are editable; unsupported Open XML-only effects block legacy output."),
             Subset("Text.ParagraphFormatting", "Text", "Paragraph styles, alignment, spacing, indents, borders, shading, tabs, and pagination.",

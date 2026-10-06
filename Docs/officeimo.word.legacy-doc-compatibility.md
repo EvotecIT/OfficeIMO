@@ -62,7 +62,7 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Common character and paragraph formatting | Projected |
 | Built-in and custom paragraph styles | Projected |
 | Simple and supported nested tables | Projected |
-| Sections, page setup, headers, and footers | Projected |
+| Sections, page setup, headers, and footers | Projected, including supported tables in default, first-page, and even-page stories |
 | Bookmarks and supported internal/external hyperlinks | Projected |
 | Static and supported field display results | Projected |
 | Footnotes and endnotes, including supported formatting | Projected |
@@ -79,6 +79,8 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 ## Native DOC write capability
 
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
+
+Default, first-page, and even-page headers and footers retain supported tables as editable rows and cells, alongside ordinary story paragraphs. Their tables use the same width, merge, border, palette-shading, nesting, and formatting limits as body tables. Hyperlinks and inline pictures resolve against the containing header or footer part, including pictures within supported nested tables.
 
 The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet, including multiple, exact and at-least line spacing. Exact line spacing accepts 1–31,680 twips; exact zero is unrepresentable in DOC and is rejected before writing output. Paragraph boundaries are retained even when adjacent paragraphs have identical formatting.
 

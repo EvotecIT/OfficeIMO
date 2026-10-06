@@ -58,6 +58,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                LegacyDocTextCharacter[] storyCharacters = textContent.AllCharacters.Where(character =>
+                    character.CharacterPosition >= headerBaseCharacterPosition + startCharacter &&
+                    character.CharacterPosition < headerBaseCharacterPosition + endCharacter).ToArray();
+                if (storyCharacters.Any(character => GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset).IsInTable == true)) {
+                    IReadOnlyList<LegacyDocBodyBlock> blocks = LegacyDocDocument.BuildStoryBlocks(
+                        storyCharacters, formattingRanges, paragraphFormattingRanges, bookmarkProjection, picturesByCharacterPosition);
+                    if (blocks.Count > 0) stories.Add(new LegacyDocHeaderFooterStory(sectionIndex, isHeader, type, blocks));
+                    continue;
+                }
+
                 IReadOnlyList<LegacyDocHeaderFooterParagraph> paragraphs = BuildStoryParagraphs(
                     textContent.AllCharacters,
                     headerBaseCharacterPosition + startCharacter,

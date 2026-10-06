@@ -484,8 +484,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     break;
                 case Table table:
-                    // Adjacent rows otherwise belong to the same binary DOC table.
-                    if (text.Length > 0 && text[text.Length - 1] == '\a') text.Append('\r');
                     AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
                     bodyContentCount++;
                     break;
