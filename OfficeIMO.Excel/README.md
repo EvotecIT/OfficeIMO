@@ -333,6 +333,8 @@ rows can still be faster sequentially.
 
 ### Append to an existing table
 
+Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.
+
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");
 var rows = new DataTable();

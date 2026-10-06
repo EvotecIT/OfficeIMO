@@ -20,6 +20,9 @@ public static partial class ExcelHtmlConverterExtensions {
         ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
+        if (operation.ExportProfile == ExcelHtmlExportProfile.SemanticTables) {
+            ReportNamedTableLoss(workbook.GetTables(), diagnostics);
+        }
         string html = operation.ExportProfile == ExcelHtmlExportProfile.VisualReview
             ? ConvertWorkbookVisual(workbook, operation, diagnostics)
             : ConvertWorkbookSemantic(workbook, operation, diagnostics);
@@ -39,6 +42,7 @@ public static partial class ExcelHtmlConverterExtensions {
         ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
+        ReportNamedTableLoss(sheet.GetTables(), diagnostics);
         string html = operation.ExportProfile == ExcelHtmlExportProfile.VisualReview
             ? ConvertSheetVisual(sheet, operation, diagnostics)
             : ConvertSheetSemantic(sheet, operation, diagnostics);
@@ -93,11 +97,13 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Visual Review"))).Append("</h1>");
         ExcelWorkbookImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
+        var reportedTableSheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int svgIndex = 0;
         foreach (OfficeImageExportResult result in workbook.ExportImages(OfficeImageExportFormat.Svg, visualOptions)) {
             AppendSvgResult(body, result, CreateSvgNamespacePrefix(result, ++svgIndex), diagnostics);
             string? resultName = result.Name;
             if (!string.IsNullOrWhiteSpace(resultName) && sheetsByName.TryGetValue(resultName!, out ExcelSheet? sheet)) {
+                if (reportedTableSheets.Add(sheet.Name)) ReportNamedTableLoss(sheet.GetTables(), diagnostics);
                 AppendVisualCommentInventory(body, sheet.GetComments());
                 if (options.IncludePivotInventory) AppendPivotInventory(body, sheet.GetPivotTables(), diagnostics);
             }

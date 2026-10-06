@@ -25,6 +25,8 @@ imported.Save("report-roundtrip.xlsx");
 
 Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, supported chart inventory, and inert pivot-definition review metadata. HTML `rowspan` and `colspan` values become native Excel merged ranges. Pivot refresh, drill, caches, slicers, and timelines remain native workbook behavior and are not executed in HTML.
 
+Named Excel tables export as worksheet cells without their native table definitions. Table names, table-scoped filters, table styles and totals metadata are not restored; workbook and worksheet export reports mark this omission. Ordinary HTML table IDs do not create named Excel tables.
+
 `HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
 
 `ToExcelDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists. Use `ToExcelDocumentResult()` to receive the workbook plus structured diagnostics and loss classification. Export callers can use `ToHtmlResult()` for the same evidence shape; pivot simplification, truncation, unavailable chart or image content, and visual-renderer fallbacks are operation-scoped diagnostics rather than HTML-only prose.
@@ -90,7 +92,7 @@ See the [complete OfficeIMO package map](../README.md) for related formats and c
 
 ## Generic table presentation
 
-Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Unspanned two-column tables receive content-based widths and wrapped row heights. Other generic grids retain native default widths, so long labels can clip beside populated cells even when their complete values are saved. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
+Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
