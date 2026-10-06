@@ -507,6 +507,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
+        if (children.Count == 0 && contentVisuals.Count == 0) {
+            breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
+                element,
+                Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+                Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+                style.MarginTop + style.BorderTopWidth,
+                outerHeight));
+        }
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
         IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));
         IEnumerable<HtmlRenderContinuationGroup> adjustedContinuationGroups = continuationGroups.Select(group => group.Translate(contentX, contentYForBreaks));

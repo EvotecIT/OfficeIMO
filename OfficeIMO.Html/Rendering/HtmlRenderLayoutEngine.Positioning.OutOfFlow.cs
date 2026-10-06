@@ -264,6 +264,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.ZIndex = "auto";
         HtmlRenderFlowBlock block = LayoutElementWithoutEditableRegionMarker(
             request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
+        double translatedX = 0D;
+        double translatedY = 0D;
+        bool localPagedBox = _options.Mode == HtmlRenderMode.Paged && !request.IsFixed
+            && !ReferenceEquals(request.ContainingBlock, _document.Body ?? _document.DocumentElement);
+        bool tookTranslation = localPagedBox && TryTakePositionedTranslation(
+            ref block, style, Math.Max(1D, outerWidth), out translatedX, out translatedY);
         block = WrapEditableLayoutRegion(block, request.Element, request.Style, HtmlRenderLayoutRegionKind.Positioned);
         int artifactIndex = 0;
         foreach (FlattenedSemanticBoundary boundary in request.FlattenedSemanticBoundaries) {
@@ -287,7 +293,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             top.HasValue || bottom.HasValue);
         double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
-        return new PositionedLayer(block, x, y);
+        return new PositionedLayer(block, x + translatedX, y + translatedY,
+            supportsBoundaryBreaks: localPagedBox && (request.Style.Transform == "none" || tookTranslation));
     }
 
     private static HtmlRenderFlowBlock ApplyPositionedArtifactBoundary(
@@ -422,14 +429,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class PositionedLayer {
-        internal PositionedLayer(HtmlRenderFlowBlock block, double x, double y) {
+        internal PositionedLayer(HtmlRenderFlowBlock block, double x, double y, bool supportsBoundaryBreaks) {
             Block = block;
             X = x;
             Y = y;
+            SupportsBoundaryBreaks = supportsBoundaryBreaks;
         }
         internal HtmlRenderFlowBlock Block { get; }
         internal double X { get; }
         internal double Y { get; }
+        internal bool SupportsBoundaryBreaks { get; }
     }
 
     private sealed class PositionedRequestPlacement {
