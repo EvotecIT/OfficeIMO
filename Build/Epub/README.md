@@ -106,7 +106,10 @@ their hashes and the three schema hashes, and checks that the schema rejects an
 invalid language code. Commercial fixtures cover worldwide exclusions, distinct
 Polish and British markets, all seven supported price bases, decimal scale, effective
 dates, free and unannounced pricing, an unknown supply date, and withdrawal after
-rights are lost. Accessibility fixtures exercise unknown status, publisher contact
+rights are lost. The `taxed` fixture covers all three tax types, six rate classifications,
+multiple components, percentage-only and amount-only assertions, decimal scale,
+zero rating and exemption. Its rates and classifications are synthetic serialization
+inputs. Accessibility fixtures exercise unknown status, publisher contact
 and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
 declarations, including distinct certifier, credentialling organization, independent
 report, intermediary and compatibility-report roles. Those assertions are synthetic
@@ -130,7 +133,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/confirmed.onix \
   /path/to/new-onix-evidence/priced.onix \
   /path/to/new-onix-evidence/withdrawn.onix \
-  /path/to/new-onix-evidence/catalog.onix
+  /path/to/new-onix-evidence/catalog.onix \
+  /path/to/new-onix-evidence/taxed.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

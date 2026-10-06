@@ -327,8 +327,8 @@ recommended, fixed, supplier-net and publisher agency price bases and tax inclus
 Currency codes use ONIX list 96. Price territories default to the declared supply
 market and may narrow it; they cannot broaden it. Optional `ValidFrom` and `ValidUntil`
 dates preserve the supplied effective period and reject a reversed interval.
-Tax breakdowns, discounts, overlapping-offer resolution and jurisdiction-specific
-business rules are not calculated or qualified by this profile.
+Discounts and overlapping-offer resolution are not supported by this profile.
+Jurisdiction-specific business rules are not calculated or qualified.
 
 Forthcoming publishing status requires `PublicationDate`; cancelled or indefinitely
 postponed status forbids it. Supplier availability has its own date: not-yet-available
@@ -336,6 +336,40 @@ or temporarily unavailable supply requires `ExpectedSupplyDate`, or the explicit
 `ExpectedSupplyDateUnknown` exception when no date is known. Other availability states
 do not accept that expected-date declaration. Product publishing status and supplier
 availability are separate assertions.
+
+Tax-inclusive prices can carry up to 16 explicit `BookOnixTax` components:
+
+```csharp
+var price = new BookOnixPrice {
+    Kind = BookOnixPriceKind.RecommendedIncludingTax,
+    Amount = 10.50m,
+    CurrencyCode = "PLN",
+    Taxes = [new() {
+        Type = BookOnixTaxType.ValueAdded,
+        RateCode = BookOnixTaxRateCode.Lower,
+        RatePercent = 5.00m,
+        TaxableAmount = 10.00m,
+        Amount = 0.50m
+    }]
+};
+```
+
+These are illustrative publisher-supplied values, not a tax-rate recommendation.
+Types follow [ONIX list 171](https://ns.editeur.org/onix/en/171); optional rate
+classifications follow [list 62](https://ns.editeur.org/onix/en/62). Each component
+needs a percentage, a tax amount, or both, and can describe the affected price part.
+Values retain decimal scale and use the price's currency and territory. Percentages
+are bounded to 0–100, taxable amounts must be positive, and tax amounts cannot be
+negative. Each supplied taxable amount plus its tax must fit within the price;
+the sum of supplied tax amounts cannot exceed it. Zero-rate assertions cannot carry
+positive tax amounts. Different taxes may share a taxable base, so taxable bases
+are not summed.
+
+Use `TaxExempt = true` with an empty `Taxes` list to assert exemption. A zero-rated
+tax uses `BookOnixTaxRateCode.Zero`; an empty list alone leaves tax information
+unstated. Tax components require a tax-inclusive price kind. OfficeIMO does not
+calculate missing values, reconcile percentage arithmetic or rounding, determine
+applicable laws, or verify that a rate classification applies to the market.
 
 Commercial metadata is bounded to 32 rights declarations, 32 supplies, 16 prices per
 supply and 250 unique codes per country list. The total XML byte limit still applies.

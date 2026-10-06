@@ -108,6 +108,7 @@ public sealed partial class BookProject {
         if (!market.Covers(territory)) throw new ArgumentException("A price territory cannot extend outside its supply market.", nameof(price));
         var result = new XElement(ns + "Price", new XElement(ns + "PriceType", type),
             new XElement(ns + "PriceAmount", price.Amount.ToString(CultureInfo.InvariantCulture)),
+            BuildOnixTaxes(price),
             new XElement(ns + "CurrencyCode", price.CurrencyCode), territory.ToXml());
         if (price.ValidFrom is { } from) result.Add(OnixCommercialDate("PriceDate", "PriceDateRole", "14", from));
         if (price.ValidUntil is { } until) result.Add(OnixCommercialDate("PriceDate", "PriceDateRole", "15", until));
