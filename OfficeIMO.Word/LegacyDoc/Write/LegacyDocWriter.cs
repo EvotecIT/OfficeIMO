@@ -288,21 +288,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static EndnotePositionValues? ReadDocumentEndnotePosition(IReadOnlyList<LegacyDocWritableSection> sections) {
-            EndnotePositionValues? position = null;
-            foreach (LegacyDocWritableSection section in sections) {
-                EndnotePositionValues? sectionPosition = section.Format.EndnotePosition;
-                if (sectionPosition == null) {
-                    continue;
-                }
-
-                if (position != null && position.Value != sectionPosition.Value) {
-                    throw new NotSupportedException("Native DOC saving supports only one endnote placement for the whole document.");
-                }
-
-                position = sectionPosition;
-            }
-
-            return position;
+            return ReadDocumentNoteValue(sections, section => section.EndnotePosition,
+                EndnotePositionValues.DocumentEnd, "endnote placement");
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {

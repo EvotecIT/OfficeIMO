@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OpenMcdf;
+using OfficeIMO.Word.LegacyDoc.Model;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -123,6 +124,66 @@ public partial class Word {
         else second.AddFootnoteProperties(numberingFormat: WordNumberFormat.UpperLetter);
         NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
         Assert.Contains("whole document", error.Message);
+    }
+
+    [Fact]
+    public void LegacyDoc_RejectsExplicitSectionEndPlacementBesideImplicitDocumentEndPlacement() {
+        using WordDocument source = CreateLegacyMetadataDocument(false);
+        WordSection second = source.AddSection();
+        second.AddParagraph("SECOND SECTION");
+        second.AddEndnoteProperties(position: WordEndnotePosition.SectionEnd);
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Contains("whole document", error.Message);
+    }
+
+    [Theory]
+    [InlineData(0x0101, 0x0088, 2)]
+    [InlineData(0x010C, 0x00A4, 2)]
+    [InlineData(0x0112, 0x00B7, 5)]
+    public void LegacyDoc_LaterFibExtensionKeepsAuthoritativeSectionNoteOptions(int version, int pairCount, int extensionWords) {
+        using WordDocument source = CreateLegacyMetadataDocument(false);
+        source.Sections[0].AddFootnoteProperties(WordNumberFormat.UpperLetter, WordFootnotePosition.BeneathText,
+            WordNoteNumberRestart.EachPage, startNumber: 3);
+        source.Sections[0].AddEndnoteProperties(WordNumberFormat.LowerLetter, WordEndnotePosition.DocumentEnd,
+            WordNoteNumberRestart.EachSection, startNumber: 9);
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] fib = ReadCompoundStream(bytes, "WordDocument");
+        byte[] table = ReadCompoundStream(bytes, "1Table");
+        int offset = BitConverter.ToInt32(fib, 0x192);
+        // Word's later files retain a C1 base version and supersede it in FibRgCswNew.
+        BitConverter.GetBytes((ushort)pairCount).CopyTo(fib, 0x98);
+        int extensionOffset = 0x9A + pairCount * 8;
+        BitConverter.GetBytes((ushort)extensionWords).CopyTo(fib, extensionOffset);
+        BitConverter.GetBytes((ushort)version).CopyTo(fib, extensionOffset + 2);
+        BitConverter.GetBytes((ushort)0x0020).CopyTo(table, offset);
+        BitConverter.GetBytes((ushort)4).CopyTo(table, offset + 2);
+        BitConverter.GetBytes((3u << 16) | 4).CopyTo(table, offset + 52);
+        BitConverter.GetBytes((ushort)0).CopyTo(table, offset + 492);
+        BitConverter.GetBytes((ushort)2).CopyTo(table, offset + 494);
+        using var package = new MemoryStream();
+        using (RootStorage root = RootStorage.Create(package, OpenMcdf.Version.V3, StorageModeFlags.LeaveOpen)) {
+            using (CfbStream stream = root.CreateStream("WordDocument")) stream.Write(fib, 0, fib.Length);
+            using (CfbStream stream = root.CreateStream("1Table")) stream.Write(table, 0, table.Length);
+        }
+        using WordDocument restored = WordDocument.Load(new MemoryStream(package.ToArray()));
+        Assert.Equal(WordFootnotePosition.BeneathText, restored.FootnoteSettings.Position);
+        Assert.Equal(WordNoteNumberRestart.EachPage, restored.FootnoteSettings.NumberingRestart);
+        Assert.Equal(3, restored.FootnoteSettings.StartNumber);
+        Assert.Equal(WordNumberFormat.UpperLetter, restored.FootnoteSettings.NumberingFormat);
+        Assert.Equal(WordNoteNumberRestart.EachSection, restored.EndnoteSettings.NumberingRestart);
+        Assert.Equal(9, restored.EndnoteSettings.StartNumber);
+        Assert.Equal(WordNumberFormat.LowerLetter, restored.EndnoteSettings.NumberingFormat);
+    }
+
+    [Fact]
+    public void LegacyDoc_DeclaredFibExtensionMustFitInsideItsStream() {
+        using WordDocument source = CreateLegacyMetadataDocument(false);
+        byte[] fib = ReadCompoundStream(source.ToBytes(WordFileFormat.Doc), "WordDocument");
+        int extensionOffset = 0x9A + BitConverter.ToUInt16(fib, 0x98) * 8;
+        BitConverter.GetBytes((ushort)5).CopyTo(fib, extensionOffset);
+        Array.Resize(ref fib, extensionOffset + 4);
+        Assert.False(LegacyDocFib.TryRead(fib, out _, out string? error));
+        Assert.Contains("extension is truncated", error);
     }
 
     private static WordDocument CreateLegacyMetadataDocument(bool nested) {
