@@ -426,9 +426,9 @@ Inline SVG without intrinsic dimensions uses its resolved painted object size as
 vector viewport, including `object-fit` sizing and cropping. The element's CSS
 background and the SVG's supported strokes remain in the same retained scene
 for screen, print, and screen-to-page output. The
-[named-page evidence](../Build/Project/Evidence/2026-09-19/html-svg-css-viewport/README.md)
-records the qualified reference and the remaining browser-default typography and
-body-margin differences on adjacent SVG text pages.
+[HTML support matrix](../Docs/officeimo.html-support-matrix.md) lists supported
+SVG capabilities and known limits. Font and page defaults can change geometry
+across these output intents.
 When a caller supplies an SVG raster codec, inline SVG reaches that fallback only
 if the shared SVG safety predicate accepts its authored dimensions and resource
 work. Rejected inline content receives an omission diagnostic.
