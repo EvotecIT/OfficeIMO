@@ -176,17 +176,36 @@ Windows acceptance.
 
 Twelve-bit TIFF retains native samples through color conversion and alpha
 unassociation for packed uncompressed/LZW/Deflate/PackBits data and extended
-sequential JPEG. The [188-file independent corpus](../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/README.md)
+sequential JPEG. The [228-file independent corpus](../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/README.md)
 covers both byte orders, chunky/planar strips/tiles, white/black grayscale, RGB,
-associated/straight RGBA and centered 2×2 YCbCr JPEG. Packed pixels agree exactly
+associated/straight RGBA, CMYK and centered 2×2 YCbCr JPEG. Packed pixels agree exactly
 with LibTIFF-derived samples; JPEG pixels agree with libjpeg-turbo within 3/255.
-LibTIFF full-file samples agree for 174 cases; 14 odd-width JPEG files expose its
+LibTIFF full-file samples agree for 212 cases; 16 odd-width JPEG files expose its
 omitted final-sample packing behavior and use direct JPEG references instead.
 The 376 XPS/OpenXPS exports provide 250,040 pixel-center probes per route. MuPDF
 agrees within 4/255 for PDF and 2/255 for SVG without warnings. GhostXPS opens
-all exports but differs by up to 255/255, including blank output. Twelve-bit
-CMYK/ICC, lossless JPEG, wider legacy layouts and native Windows acceptance
-remain independently unqualified. Packed twelve-bit data requires Predictor 1.
+all exports but differs by up to 255/255, including blank output. Forty additional CMYK files cover packed and JPEG payloads with the existing
+explicit CMYK profile; LittleCMS double-input references agree within 3/255.
+This qualifies that profile, not a default SWOP profile. Wider legacy layouts
+and native Windows acceptance remain independently unqualified. Packed
+twelve-bit data requires Predictor 1.
+
+Twelve-bit Huffman lossless TIFF qualification includes a
+[280-fixture corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless12/README.md)
+covering all seven predictors, point transforms 0/1/6/11, restarts,
+separate/interleaved scans, both byte orders, chunky/planar strips/tiles,
+gray/RGB/CMYK/YCbCr and associated/straight alpha. All 239,904 JPEG component
+words and 186,200 TIFF RGBA pixels agree exactly with independent sample decoding
+and the declared color equations. ICC output agrees within 1/255 with reference
+TIFFs that rescale native samples to sixteen bits. Full-file LibTIFF decoding
+matches 182 files; 70 expose its odd-row final-sample omission, and 28 chunky
+YCbCr-alpha files are rejected at container sizing. These remain independent
+full-file decoder gaps despite the qualified segment and managed TIFF paths.
+The lossless and CMYK additions produce 1,280 light/dark XPS/OpenXPS exports
+with 851,200 pixel-center probes per route. MuPDF differs by at most 5/255 for
+PDF and 2/255 for SVG, without warnings. GhostXPS exits with signal 11 on 192
+CMYK exports and differs by up to 255/255 on others, including blank output.
+These results do not establish native Windows or universal consumer acceptance.
 
 Standalone twelve-bit Huffman DCT JPEG supports extended sequential and progressive
 frames. The shared decoder retains native-width sample planes through IDCT and

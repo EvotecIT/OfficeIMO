@@ -136,5 +136,6 @@
   <ItemGroup><None Update="TestAssets/TiffJpegLegacy/**/*.tif;TestAssets/TiffJpegLegacy/**/*.tiff;TestAssets/TiffJpegLegacy/**/*.png;TestAssets/TiffJpegLegacy/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/JpegLosslessPrecision/*.jpg;TestAssets/JpegLosslessPrecision/*.raw;TestAssets/JpegLosslessPrecision/*.rgba;TestAssets/JpegLosslessPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/JpegDct12/*.jpg;TestAssets/JpegDct12/*.rgba;TestAssets/JpegDct12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
-  <ItemGroup><None Update="TestAssets/Tiff12/*.tif;TestAssets/Tiff12/*.raw;TestAssets/Tiff12/manifest.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/Tiff12/*.tif;TestAssets/Tiff12/*.raw;TestAssets/Tiff12/*.srgb;TestAssets/Tiff12/manifest.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLossless12/*.tif;TestAssets/TiffJpegLossless12/*.rgba;TestAssets/TiffJpegLossless12/*.jpg;TestAssets/TiffJpegLossless12/*.raw;TestAssets/TiffJpegLossless12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

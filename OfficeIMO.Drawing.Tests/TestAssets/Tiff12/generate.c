@@ -9,7 +9,7 @@ static int sample(int x,int y,int c,int kind){
  if(x>34)x=34;if(y>18)y=18;
  int v=(x*137+y*211+c*1103+((x/5+y/3)%2)*897)&4095;
  if(x==0)v=0;if(x==34)v=4095;
- if(kind>=3){int a=(x+y)%7==0?1:((x*71+y*157)&4095);if(c==3)return a;if(kind==3)v=v*a/4095;}
+ if(kind==3||kind==4){int a=(x+y)%7==0?1:((x*71+y*157)&4095);if(c==3)return a;if(kind==3)v=v*a/4095;}
  return v;
 }
 static void put(unsigned char*b,int n,int v){for(int k=0;k<12;k++)if(v&(1<<(11-k)))b[(n*12+k)/8]|=128>>((n*12+k)%8);}
@@ -17,7 +17,7 @@ static int get(const unsigned char*b,int n){int bit=n*12,at=bit/8;return bit%8?(
 int main(int argc,char**argv){
  if(argc!=8)return 2;
  int kind=atoi(argv[2]),comp=atoi(argv[3]),be=atoi(argv[4]),planar=atoi(argv[5]),tile=atoi(argv[6]),tables=atoi(argv[7]);
- int photo=kind==0?0:kind==1?1:kind==5?6:2,channels=kind<2?1:kind>=3&&kind<=4?4:3;
+ int photo=kind==0?0:kind==1?1:kind==5?6:kind==6?5:2,channels=kind<2?1:(kind==3||kind==4||kind==6)?4:3;
  int w=35,h=19,sw=tile?16:w,sh=tile||kind==5?16:8,sc=planar==2?1:channels;
  TIFF*t=TIFFOpen(argv[1],be?"wb":"wl");if(!t)return 3;
  TIFFSetField(t,256,w);TIFFSetField(t,257,h);TIFFSetField(t,258,12);TIFFSetField(t,277,channels);TIFFSetField(t,262,photo);TIFFSetField(t,284,planar);TIFFSetField(t,259,comp);
@@ -53,7 +53,7 @@ int main(int argc,char**argv){
    struct jpeg_decompress_struct d;struct jpeg_error_mgr err;d.err=jpeg_std_error(&err);jpeg_create_decompress(&d);
    uint32_t ts=0;void*tb=NULL;if(TIFFGetField(t,TIFFTAG_JPEGTABLES,&ts,&tb)){jpeg_mem_src(&d,tb,ts);jpeg_read_header(&d,FALSE);}
    jpeg_mem_src(&d,encoded,size);jpeg_read_header(&d,TRUE);d.dct_method=JDCT_ISLOW;
-   d.out_color_space=planar==2||channels==1?JCS_GRAYSCALE:JCS_RGB;
+   d.out_color_space=planar==2||channels==1?JCS_GRAYSCALE:photo==5?JCS_CMYK:JCS_RGB;
    jpeg_start_decompress(&d);J12SAMPLE*line=calloc(d.output_width*d.output_components,sizeof(J12SAMPLE));
    while(d.output_scanline<d.output_height){int yy=d.output_scanline;J12SAMPROW row=line;jpeg12_read_scanlines(&d,&row,1);
     if(y+yy<h)for(int xx=0;xx<sw&&x+xx<w;xx++)for(int c=0;c<sc;c++)values[((y+yy)*w+x+xx)*channels+(planar==2?p:c)]=line[xx*sc+c];

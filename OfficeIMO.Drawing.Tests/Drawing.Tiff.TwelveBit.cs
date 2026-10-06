@@ -21,22 +21,40 @@ public sealed class DrawingTiffTwelveBitTests {
             Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, out var image), file);
             Assert.Equal((35, 19), (image!.Width, image.Height));
             int kind = int.Parse(Path.GetFileName(file).Substring(1, 1));
-            int channels = kind < 2 ? 1 : kind == 3 || kind == 4 ? 4 : 3;
+            int channels = kind < 2 ? 1 : kind == 3 || kind == 4 || kind == 6 ? 4 : 3;
             byte[] raw = File.ReadAllBytes(file + ".raw");
             Assert.Equal(35 * 19 * channels * 2, raw.Length);
             int Sample(int at) => raw[at * 2] | raw[at * 2 + 1] << 8;
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
-                int p = (y * 35 + x) * channels, alpha = channels == 4 ? Sample(p + 3) : 4095;
+                int p = (y * 35 + x) * channels, alpha = kind == 3 || kind == 4 ? Sample(p + 3) : 4095;
                 int Component(int c) {
                     double value = kind == 3 && alpha == 0 ? 0 : Math.Min(1D, Sample(p + (channels == 1 ? 0 : c)) / (double)(kind == 3 ? alpha : 4095));
                     if (kind == 0) value = 1 - value;
                     return (int)Math.Floor(value * 255 + .5);
                 }
+                int Expected(int c) => kind == 6 ? 255 - Math.Min(255, Component(c) + Component(3)) : Component(c);
                 var actual = image.GetPixel(x, y);
                 int tolerance = compression == 7 ? 3 : 0;
-                Assert.True(Math.Abs(actual.R - Component(0)) <= tolerance && Math.Abs(actual.G - Component(1)) <= tolerance && Math.Abs(actual.B - Component(2)) <= tolerance,
-                    $"{Path.GetFileName(file)} {x},{y}: {actual.R},{actual.G},{actual.B}; expected {Component(0)},{Component(1)},{Component(2)}");
+                Assert.True(Math.Abs(actual.R - Expected(0)) <= tolerance && Math.Abs(actual.G - Expected(1)) <= tolerance && Math.Abs(actual.B - Expected(2)) <= tolerance,
+                    $"{Path.GetFileName(file)} {x},{y}: {actual.R},{actual.G},{actual.B}; expected {Expected(0)},{Expected(1)},{Expected(2)}");
                 Assert.Equal((byte)((alpha * 255 + 2047) / 4095), actual.A);
+            }
+        }
+    }
+
+    [Fact]
+    public void TwelveBitCmykIccMatchesIndependentNativeColorTransform() {
+        byte[] profileBytes = File.ReadAllBytes(Path.Combine(Corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc"));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out var profile));
+        foreach (string file in Directory.GetFiles(Corpus, "k6-*.tif")) {
+            Assert.True(OfficeIccRasterConverter.TryDecodeToSrgb(File.ReadAllBytes(file), profile!, new(), out var image), file);
+            byte[] expected = File.ReadAllBytes(file + ".srgb");
+            for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
+                int at = (y * 35 + x) * 3; var pixel = image!.GetPixel(x, y);
+                Assert.InRange(Math.Abs(pixel.R - expected[at]), 0, 3);
+                Assert.InRange(Math.Abs(pixel.G - expected[at + 1]), 0, 3);
+                Assert.InRange(Math.Abs(pixel.B - expected[at + 2]), 0, 3);
+                Assert.Equal(255, pixel.A);
             }
         }
     }

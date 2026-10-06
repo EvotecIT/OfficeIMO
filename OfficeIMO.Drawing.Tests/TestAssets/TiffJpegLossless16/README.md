@@ -31,5 +31,7 @@ and vertical subsampling, odd/even dimensions and separate/interleaved scans;
 twelve compatible TIFF wrappers exercise the same samples through TIFF. These
 are independent-decoder checks, not independent-producer evidence.
 
-Twelve-bit DCT, lossless precisions other than eight/sixteen, arithmetic JPEG,
-independent full-file TIFF decoding and native Windows acceptance remain open.
+The same generator accepts optional precision and output-folder arguments; see
+the [twelve-bit lossless corpus](../TiffJpegLossless12/README.md). Arithmetic JPEG,
+other TIFF sample precisions, independent full-file sixteen-bit TIFF decoding
+and native Windows acceptance remain open.

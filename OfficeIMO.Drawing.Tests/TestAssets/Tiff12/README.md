@@ -1,9 +1,9 @@
 # Twelve-bit TIFF fixtures
 
-The 188 files are independently produced and decoded with LibTIFF 4.7.2 and
+The 228 files are independently produced and decoded with LibTIFF 4.7.2 and
 libjpeg-turbo 3.2.0. They cover 35×19 images, both byte orders, chunky/separate
 planes, partial strips and 16×16 edge tiles, white/black grayscale, RGB,
-associated/straight RGBA and centered 2×2 YCbCr JPEG. Unsigned packed samples use
+associated/straight RGBA, CMYK and centered 2×2 YCbCr JPEG. Unsigned packed samples use
 no compression, LZW, Deflate or PackBits; JPEG uses extended sequential Huffman
 coding. RGBA includes alpha 0 and 1 to exercise precision before unassociation.
 
@@ -23,8 +23,8 @@ inversion are checked against the declared equations rather than a native RGBA A
 Each `.tif.libtiff.raw` retains the full-file LibTIFF decode separately. LibTIFF's
 [twelve-bit packing loop](https://github.com/libsdl-org/libtiff/blob/v4.7.2/libtiff/tif_jpeg.c#L1495)
 only writes complete pairs. Odd-width JPEG rows can consequently omit their last
-sample; 14 files differ from direct JPEG decoding. The tests use the direct JPEG
-reference for those samples, not the omitted native output. The remaining 174
+sample; 16 files differ from direct JPEG decoding. The tests use the direct JPEG
+reference for those samples, not the omitted native output. The remaining 212
 full-file sample outputs agree exactly with their retained references.
 
 JPEG strips contain local tables; tiles share quantization tables and retain local
@@ -33,7 +33,12 @@ redefinitions for twelve-bit encoding, contrary to the global-table restriction 
 [TIFF Technical Note 2](https://libtiff.gitlab.io/libtiff/specification/technote2.html).
 The generator avoids that configuration without altering encoded files afterward.
 
-This corpus does not qualify twelve-bit CMYK/ICC, lossless JPEG, legacy table-pointer
+Forty CMYK cases include independent LittleCMS double-precision input references
+for the existing explicit CMYK ICC profile. `generate-icc.py` records its version,
+relative-colorimetric intent and reference hashes in `icc-reference.json`. This
+qualifies that explicit profile, not a default SWOP profile.
+
+This corpus does not qualify lossless JPEG, legacy table-pointer
 layouts, unusual YCbCr sampling or native Windows consumption. The self-contained
 legacy JPEG regression reuses a compression-7 stream under compression 6; it is
 container compatibility evidence, not an independent legacy producer.
