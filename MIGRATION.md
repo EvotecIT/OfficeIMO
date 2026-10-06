@@ -25,8 +25,9 @@ JPEG/TIFF gray and RGB resources without a usable ICC profile use native sRGB
 sample defaults, including resources with non-ICC calibration metadata. TIFF
 display orientation is ignored by XPS conversion; document geometry controls
 placement. An unspecified TIFF extra sample is ignored rather than used as alpha.
-The shared managed TIFF decoder rejects signed, floating-point and undefined
-sample encodings instead of interpreting them as unsigned eight-bit components.
+The shared managed TIFF decoder rejects signed and undefined sample encodings
+instead of interpreting them as unsigned eight-bit components. Qualified floating-point
+TIFF images retain their declared sample encoding.
 
 ## XPS/OpenXPS Reader identity and native order
 
