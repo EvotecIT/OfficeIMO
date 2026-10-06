@@ -578,7 +578,7 @@ including supplied whitespace, while excluding markup. `SourceTitles` remains pl
 text only. Full-schema validation checks nesting and attribute values; recipient
 rendering and acceptance are separate qualifications.
 
-### Audience categories and age ranges
+### Audience categories, ages and school grades
 
 Use `Audience` for explicit readership assertions:
 
@@ -589,6 +589,7 @@ var options = existingOptions with {
                       new(BookOnixAudienceType.Teenage)],
         AgeRanges = [new(BookOnixAgeRangeType.InterestYears, Minimum: 10, Maximum: 14),
                      new(BookOnixAgeRangeType.ReadingYears, Minimum: 9, Maximum: 12)],
+        GradeRanges = [new(BookOnixGradeSystem.UnitedStates, BookOnixGrade.Grade5, BookOnixGrade.Grade8)],
         Descriptions = [new("Readers of adventure and exploration", "eng")]
     }
 };
@@ -609,10 +610,23 @@ month-based interest ages allow a first value up to 36 and a second value up to 
 Thus 36–42 months is valid, while an exact age of 42 months or a lone upper bound of
 42 months is not.
 
-Audience categories and age ranges are independent assertions. Supply an appropriate
+`GradeRanges` adds school and college levels for `UnitedStates` (qualifier 11),
+`CanadaExcludingQuebec` (26), and `China` (29). The first two use
+[ONIX list 77](https://ns.editeur.org/onix/en/77); China uses
+[list 227](https://ns.editeur.org/onix/en/227). Values are `Preschool` (P),
+`Kindergarten` (K), then `Grade1` through `Grade17`, in that order. Their educational
+meaning depends on the selected system; grades 13–17 denote tertiary levels.
+The Canadian profile does not represent Québec's grading system.
+
+Each system may appear once, with at least one bound. Equal bounds express an exact
+grade; a lone minimum means “from” and a lone maximum means “to”. Closed ranges
+must follow grade order, including preschool before kindergarten before grade 1.
+Age and grade ranges may coexist. No age-to-grade conversion is performed.
+
+Audience categories, age ranges and grade ranges are independent assertions. Supply an appropriate
 range for children's, teenage and school material when known; export does not guess
 one from a category or inspect the book to assess suitability. This profile does not
-represent proprietary/national audience schemes, school-grade ranges, adult-content
+represent proprietary/national audience codes, other national grade schemes, adult-content
 ratings or reading-complexity schemes. Schema validity does not establish educational
 suitability or recipient acceptance, and audience export does not change EPUB metadata.
 

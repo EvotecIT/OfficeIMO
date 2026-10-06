@@ -26,6 +26,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "collateral-xhtml", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "collateral-unicode", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "audience-grades", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience-months", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "audience-open", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
@@ -69,6 +70,22 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             new("Other Creator", BookOnixContributorRole.Other)],
         Commercial = commercial, Accessibility = AccessibilityFixtures.Create(profile.Name)
     };
+    if (profile.Name == "audience-grades") {
+        var gradeCodes = new List<object>();
+        foreach (var system in Enum.GetValues<BookOnixGradeSystem>())
+            foreach (var grade in Enum.GetValues<BookOnixGrade>()) {
+                var gradeResult = project.ExportOnix(options with { Audience = new() { GradeRanges = [new(system, grade, grade)] } },
+                    schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+                System.Xml.Linq.XNamespace ns = "http://ns.editeur.org/onix/3.1/reference";
+                var range = System.Xml.Linq.XDocument.Load(new MemoryStream(gradeResult.Bytes)).Descendants(ns + "AudienceRange").Single();
+                gradeCodes.Add(new { system = system.ToString(), grade = grade.ToString(),
+                    qualifier = range.Element(ns + "AudienceRangeQualifier")!.Value,
+                    precision = range.Element(ns + "AudienceRangePrecision")!.Value,
+                    value = range.Element(ns + "AudienceRangeValue")!.Value });
+            }
+        File.WriteAllText(Path.Combine(outputDirectory, "audience-grade-codes.json"), JsonSerializer.Serialize(gradeCodes,
+            new JsonSerializerOptions { WriteIndented = true }));
+    }
     if (profile.Name == "edition") {
         // Exercise every supported list 21 mapping against the authoritative schema.
         foreach (var type in Enum.GetValues<BookOnixEditionType>())

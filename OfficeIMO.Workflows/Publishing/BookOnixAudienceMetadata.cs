@@ -55,6 +55,8 @@ public sealed record BookOnixAudienceMetadata {
     public IReadOnlyList<BookOnixAudience> Categories { get; init; } = [];
     /// <summary>At most one range per age type. Interest months and years are mutually exclusive.</summary>
     public IReadOnlyList<BookOnixAgeRange> AgeRanges { get; init; } = [];
+    /// <summary>At most one ordered school/college grade range per supported grading system.</summary>
+    public IReadOnlyList<BookOnixGradeRange> GradeRanges { get; init; } = [];
     /// <summary>At most 16 plain-text descriptions, with distinct languages including unspecified.</summary>
     public IReadOnlyList<BookOnixAudienceDescription> Descriptions { get; init; } = [];
 }

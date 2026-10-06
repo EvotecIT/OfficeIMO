@@ -7,10 +7,11 @@ public sealed partial class BookProject {
         if (audience == null) return [];
         ArgumentNullException.ThrowIfNull(audience.Categories);
         ArgumentNullException.ThrowIfNull(audience.AgeRanges);
+        ArgumentNullException.ThrowIfNull(audience.GradeRanges);
         ArgumentNullException.ThrowIfNull(audience.Descriptions);
-        if (audience.Categories.Count > 13 || audience.AgeRanges.Count > 3 || audience.Descriptions.Count > 16)
+        if (audience.Categories.Count > 13 || audience.AgeRanges.Count > 3 || audience.GradeRanges.Count > 3 || audience.Descriptions.Count > 16)
             throw new ArgumentException("Audience metadata exceeds its category, range or description limit.", nameof(audience));
-        if (audience.Categories.Count == 0 && audience.AgeRanges.Count == 0 && audience.Descriptions.Count == 0)
+        if (audience.Categories.Count == 0 && audience.AgeRanges.Count == 0 && audience.GradeRanges.Count == 0 && audience.Descriptions.Count == 0)
             throw new ArgumentException("Supply at least one audience assertion, or omit Audience.", nameof(audience));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
@@ -43,6 +44,13 @@ public sealed partial class BookProject {
         }
         if (rangeTypes.Contains(BookOnixAgeRangeType.InterestMonths) && rangeTypes.Contains(BookOnixAgeRangeType.InterestYears))
             throw new ArgumentException("Interest age cannot be specified in both months and years.", nameof(audience));
+        var gradeSystems = new HashSet<BookOnixGradeSystem>();
+        foreach (var range in audience.GradeRanges) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ArgumentNullException.ThrowIfNull(range);
+            if (!gradeSystems.Add(range.System)) throw new ArgumentException("Grade systems must be distinct.", nameof(audience));
+            result.Add(BuildOnixGradeRange(range));
+        }
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var description in audience.Descriptions) {
             cancellationToken.ThrowIfCancellationRequested();

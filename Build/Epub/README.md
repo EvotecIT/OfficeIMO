@@ -127,6 +127,11 @@ Collection identities are synthetic assignments, not evidence of allocation or o
 The audience fixtures cover every supported category, a main-audience marker, multilingual
 descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
 assertions exercise serialization and do not establish readership or suitability.
+The `audience-grades` fixture covers US preschool-to-kindergarten, Canadian grades
+9–12 and an open-ended Chinese tertiary range. The generator also validates every
+supported grade code in all three systems against the supplied schema. Grading
+systems remain explicit; these synthetic assertions do not establish age equivalence
+or educational suitability.
 The collateral fixtures cover all supported text/recipient types, multilingual plain
 text, attribution, source links, territory, usage dates, long descriptions and the
 350-scalar Unicode boundary. All quotations and attributions are synthetic. The `collateral-xhtml` fixture exercises
@@ -168,6 +173,7 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/audience-grades.onix \
   /path/to/new-onix-evidence/collateral.onix \
   /path/to/new-onix-evidence/collateral-unicode.onix \
   /path/to/new-onix-evidence/collateral-xhtml.onix
