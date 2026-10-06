@@ -345,14 +345,11 @@ namespace OfficeIMO.Word {
         public WordTablePosition Position { get; }
 
         /// <summary>
-        /// Gets the table style details. WIP
+        /// Gets direct table formatting settings, including tables without a named style.
         /// </summary>
         public WordTableStyleDetails? StyleDetails {
             get {
-                if (_tableProperties != null && _tableProperties.TableStyle != null) {
-                    return new WordTableStyleDetails(this);
-                }
-                return null;
+                return new WordTableStyleDetails(this);
             }
         }
 
@@ -592,7 +589,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal void CheckTableProperties() {
             if (_tableProperties == null) {
-                _table.AppendChild(new TableProperties());
+                _table.AddChild(new TableProperties(), true);
             }
         }
     }
