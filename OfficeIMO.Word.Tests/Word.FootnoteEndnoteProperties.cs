@@ -23,6 +23,7 @@ namespace OfficeIMO.Tests {
                                             WordEndnotePosition.SectionEnd,
                                             WordNoteNumberRestart.EachSection,
                                             5);
+                Assert.Empty(document.ValidateDocument());
                 document.Save();
             }
 

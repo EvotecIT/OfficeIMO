@@ -76,6 +76,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbStshfOffset = 0xA6;
         private const int FcDopOffset = 0x192;
         private const int LcbDopOffset = 0x196;
+        private const int FcSttbfAssocOffset = 0x19A;
+        private const int LcbSttbfAssocOffset = 0x19E;
         private const int FcPlcfBtePapxOffset = 0x102;
         private const int LcbPlcfBtePapxOffset = 0x106;
         private const int FcSttbfFfnOffset = 0x112;
@@ -267,6 +269,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
                 settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
                 settings?.GetFirstChild<Compatibility>()?.Elements<NoColumnBalance>().Any(IsOnOffEnabled) == true,
+                checked((ushort)(ReadTwipValue(settings?.GetFirstChild<DefaultTabStop>()?.Val, 720, "default tab interval") ?? 720)),
                 ReadDocumentEndnotePosition(sections),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);

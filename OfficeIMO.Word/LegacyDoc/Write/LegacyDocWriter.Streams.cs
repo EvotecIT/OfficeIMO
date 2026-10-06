@@ -93,8 +93,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, LcbPlcfBklOffset, body.HasBookmarks ? body.PlcfBkl.Length : 0);
             WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
-            WriteInt32(stream, FcDopOffset, body.HasDocumentOptions ? body.DopOffsetInTableStream : 0);
-            WriteInt32(stream, LcbDopOffset, body.HasDocumentOptions ? body.DopLength : 0);
+            WriteInt32(stream, FcDopOffset, body.DopOffsetInTableStream);
+            WriteInt32(stream, LcbDopOffset, body.DopLength);
+            WriteInt32(stream, FcSttbfAssocOffset, body.SttbfAssocOffsetInTableStream);
+            WriteInt32(stream, LcbSttbfAssocOffset, SttbfAssocLength);
             WriteInt32(stream, 0x1A2, 0);
             WriteInt32(stream, 0x1A6, ClxLength);
             Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
@@ -196,10 +198,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Buffer.BlockCopy(body.PlcfendTxt, 0, table, body.PlcfendTxtOffsetInTableStream, body.PlcfendTxt.Length);
             }
 
-            if (body.HasDocumentOptions) {
-                byte[] dop = CreateDopBase(body);
-                Buffer.BlockCopy(dop, 0, table, body.DopOffsetInTableStream, dop.Length);
-            }
+            byte[] dop = CreateDopBase(body);
+            Buffer.BlockCopy(dop, 0, table, body.DopOffsetInTableStream, dop.Length);
+            // Required18-string STTB; scalar metadata remains owned by the OLE streams.
+            WriteUInt16(table, body.SttbfAssocOffsetInTableStream, 0xFFFF);
+            WriteUInt16(table, body.SttbfAssocOffsetInTableStream + 2, 18);
 
             if (body.HasBookmarks) {
                 Buffer.BlockCopy(body.SttbfBkmk, 0, table, body.SttbfBkmkOffsetInTableStream, body.SttbfBkmk.Length);

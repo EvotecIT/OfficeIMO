@@ -180,6 +180,7 @@ namespace OfficeIMO.Word {
             document.Settings.MirrorMargins = legacyDocument.MirrorMargins;
             document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
             document.CompatibilitySettings.DoNotBalanceTextColumns = legacyDocument.NoColumnBalance;
+            if (legacyDocument.DefaultTabStop != null) document.Settings.DefaultTabStop = legacyDocument.DefaultTabStop.Value;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
             }

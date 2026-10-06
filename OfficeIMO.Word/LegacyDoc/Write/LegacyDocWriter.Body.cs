@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 bool mirrorMargins,
                 bool gutterAtTop,
                 bool noColumnBalance,
+                ushort defaultTabStop,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
@@ -59,6 +60,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 MirrorMargins = mirrorMargins;
                 GutterAtTop = gutterAtTop;
                 NoColumnBalance = noColumnBalance;
+                DefaultTabStop = defaultTabStop;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
@@ -181,6 +183,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool NoColumnBalance { get; }
 
+            internal ushort DefaultTabStop { get; }
+
             internal byte[] PictureData { get; }
 
             internal bool HasPictures { get; }
@@ -237,17 +241,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
-            internal bool HasDocumentOptions => FacingPages
-                || MirrorMargins
-                || GutterAtTop
-                || NoColumnBalance
-                || EndnotePosition != null
-                || TrackRevisions
-                || LockRevisionTracking;
-
-            internal int DopLength => NoColumnBalance ? Dop95Length
-                : GutterAtTop ? DopBaseFullLength
-                : EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+            internal int DopLength => HasNestedTables ? Dop2000Length : Dop97Length;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 
@@ -292,9 +286,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterEndnoteDataOffsetInTableStream => AfterCommentDataOffsetInTableStream + (HasEndnotes ? PlcfendRef.Length + PlcfendTxt.Length : 0);
 
-            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterFieldTablesOffsetInTableStream) : AfterFieldTablesOffsetInTableStream;
+            internal int DopOffsetInTableStream => AlignToEven(AfterFieldTablesOffsetInTableStream);
 
-            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterFieldTablesOffsetInTableStream;
+            internal int SttbfAssocOffsetInTableStream => DopOffsetInTableStream + DopLength;
+
+            private int AfterDocumentOptionsOffsetInTableStream => SttbfAssocOffsetInTableStream + SttbfAssocLength;
 
             internal int SttbfBkmkOffsetInTableStream => HasBookmarks ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
 

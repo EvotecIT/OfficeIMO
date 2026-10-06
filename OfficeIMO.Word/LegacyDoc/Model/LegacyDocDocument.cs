@@ -59,6 +59,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool NoColumnBalance { get; private set; }
 
+        internal int? DefaultTabStop { get; private set; }
+
         internal bool RevisionMarkingEnabled { get; private set; }
 
         internal bool LockedRevisionTrackingEnabled { get; private set; }
@@ -193,6 +195,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 LegacyDocSectionFormattingReader.ReadSections(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning),
                 fib,
                 dopEndnotePosition);
+            Sections = ApplyDopNoteSettings(Sections, tableStream, fib);
             SectionFormat = Sections.Count == 0 ? LegacyDocSectionFormat.Default : Sections[0].Format;
             if (sectionFormattingWarning != null) {
                 AddWarning("DOC-SEPX-INVALID", sectionFormattingWarning);
