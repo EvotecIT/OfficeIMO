@@ -128,6 +128,19 @@ An omitted `SpaceAfterTwips` has an effective gap of zero for unequal columns. `
 
 DOCX preserves these settings. Native DOC preserves indexed widths and individual gaps, with up to 44 columns, widths from 718 through 32767 twips and gaps from zero through 32767 twips. Saving a layout outside those native limits fails before creating output. Invalid or incomplete native indexed records produce an import diagnostic. PDF column flow is described separately in the [conversion contract](../OfficeIMO.Word.Pdf/README.md).
 
+## Hidden text
+
+`WordParagraph.Hidden` controls the current run, including hyperlink and inline content-control runs. Set it to `true` to hide the text, `false` to override a hidden style, or `null` to remove the direct setting and inherit. The getter reports the directly authored value. Hidden text remains in the document; PDF export omits it according to the effective formatting. DOCX preserves the direct setting, and native DOC preserves supported hidden formatting.
+
+```csharp
+var run = document.AddParagraph("Internal reference");
+run.Hidden = true;
+run.Hidden = false; // Explicitly visible, even under a hidden style.
+run.Hidden = null;  // Restore inheritance.
+```
+
+Native DOC saving supports field display runs with one effective formatting set. Equivalent runs can use different direct settings, such as an omitted hidden setting and an explicit visible setting. A field whose display runs have different effective formatting, including visibility inherited from a paragraph or table style, raises `NotSupportedException`.
+
 ## Paragraph tab stops
 
 Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.
