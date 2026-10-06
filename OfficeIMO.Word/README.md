@@ -139,6 +139,8 @@ run.Hidden = false; // Explicitly visible, even under a hidden style.
 run.Hidden = null;  // Restore inheritance.
 ```
 
+Native DOC saving supports field display runs with one effective formatting set. Equivalent runs can use different direct settings, such as an omitted hidden setting and an explicit visible setting. A field whose display runs have different effective formatting, including visibility inherited from a paragraph or table style, raises `NotSupportedException`.
+
 ## Paragraph tab stops
 
 Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.

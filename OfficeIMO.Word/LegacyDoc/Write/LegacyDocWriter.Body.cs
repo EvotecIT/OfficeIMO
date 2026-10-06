@@ -402,7 +402,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 if (segments.Count > 0) {
                     LegacyDocWritableSegment previous = segments[segments.Count - 1];
                     if (previous.EndCharacter == startCharacter
-                        && previous.Formatting.Equals(formatting)
+                        && previous.Formatting.HasSameEncoding(formatting)
                         && previous.PictureDataOffset == pictureDataOffset) {
                         segments[segments.Count - 1] = previous.Extend(length);
                         return;
