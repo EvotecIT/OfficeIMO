@@ -32,8 +32,9 @@ public static partial class WordPdfConverterExtensions {
             W.EndnoteProperties? end = section._sectionProperties.GetFirstChild<W.EndnoteProperties>();
             W.FootnoteDocumentWideProperties? documentFoot = settings?.GetFirstChild<W.FootnoteDocumentWideProperties>();
             W.EndnoteDocumentWideProperties? documentEnd = settings?.GetFirstChild<W.EndnoteDocumentWideProperties>();
-            W.EndnotePositionValues endnotePosition = end?.GetFirstChild<W.EndnotePosition>()?.Val?.Value ??
-                documentEnd?.GetFirstChild<W.EndnotePosition>()?.Val?.Value ?? W.EndnotePositionValues.DocumentEnd;
+            // Unlike numbering, endnote placement is document-wide. Word ignores
+            // a section-level w:pos, including stale values retained when it saves.
+            W.EndnotePositionValues endnotePosition = documentEnd?.GetFirstChild<W.EndnotePosition>()?.Val?.Value ?? W.EndnotePositionValues.DocumentEnd;
             EndnotesAtDocumentEnd = endnotePosition == W.EndnotePositionValues.DocumentEnd;
             footnoteFormat = foot?.NumberingFormat?.Val?.Value ?? documentFoot?.NumberingFormat?.Val?.Value ?? W.NumberFormatValues.Decimal;
             endnoteFormat = end?.NumberingFormat?.Val?.Value ?? documentEnd?.NumberingFormat?.Val?.Value ?? W.NumberFormatValues.LowerRoman;

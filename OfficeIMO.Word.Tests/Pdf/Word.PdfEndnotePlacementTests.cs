@@ -52,12 +52,45 @@ public sealed class WordPdfEndnotePlacementTests {
     [InlineData(true)]
     public void DocumentWidePlacementAppliesWhenSectionsOmitTheirPosition(bool sectionEnd) {
         using WordDocument source = CreateTwoSections(null);
-        W.Settings settings = source._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
-        W.EndnoteDocumentWideProperties? properties = settings.GetFirstChild<W.EndnoteDocumentWideProperties>();
-        if (properties == null) { properties = new W.EndnoteDocumentWideProperties(); settings.AddChild(properties, true); }
-        properties.RemoveAllChildren<W.EndnotePosition>();
-        properties.AddChild(new W.EndnotePosition { Val = sectionEnd ? W.EndnotePositionValues.SectionEnd : W.EndnotePositionValues.DocumentEnd }, true);
+        SetDocumentPosition(source, sectionEnd ? WordEndnotePosition.SectionEnd : WordEndnotePosition.DocumentEnd);
         string text = ReadPdfText(source, false);
+        AssertOrder(text, sectionEnd ? "FIRSTENDNOTEBODY" : "FINALBODY", sectionEnd ? "FINALBODY" : "FIRSTENDNOTEBODY");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SectionOnlyPositionDoesNotOverrideDefaultDocumentEnd(bool emptyDocumentProperties) {
+        using WordDocument source = CreateTwoSections(WordEndnotePosition.SectionEnd);
+        W.Settings settings = source._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
+        settings.RemoveAllChildren<W.EndnoteDocumentWideProperties>();
+        if (emptyDocumentProperties) settings.AddChild(new W.EndnoteDocumentWideProperties(), true);
+        AssertOrder(ReadPdfText(source, false), "FINALBODY", "FIRSTENDNOTEBODY");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void DocumentPositionOverridesStaleSectionPositionsAcrossFormats(bool native, bool sectionEnd) {
+        using WordDocument source = CreateTwoSections(sectionEnd ? WordEndnotePosition.DocumentEnd : WordEndnotePosition.SectionEnd);
+        SetDocumentPosition(source, sectionEnd ? WordEndnotePosition.SectionEnd : WordEndnotePosition.DocumentEnd);
+        string text = ReadPdfText(source, native);
+        AssertOrder(text, sectionEnd ? "FIRSTENDNOTEBODY" : "FINALBODY", sectionEnd ? "FINALBODY" : "FIRSTENDNOTEBODY");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeDocumentPositionIsProjectedIntoSavedDocx(bool sectionEnd) {
+        using WordDocument source = CreateTwoSections(sectionEnd ? WordEndnotePosition.SectionEnd : WordEndnotePosition.DocumentEnd);
+        using WordDocument native = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(native.ToBytes(WordFileFormat.Docx)));
+        W.EndnotePositionValues? position = docx._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
+            .GetFirstChild<W.EndnoteDocumentWideProperties>()?.GetFirstChild<W.EndnotePosition>()?.Val?.Value;
+        Assert.Equal(sectionEnd ? W.EndnotePositionValues.SectionEnd : W.EndnotePositionValues.DocumentEnd, position);
+        string text = ReadPdfText(docx, true);
         AssertOrder(text, sectionEnd ? "FIRSTENDNOTEBODY" : "FINALBODY", sectionEnd ? "FINALBODY" : "FIRSTENDNOTEBODY");
     }
 
@@ -76,7 +109,16 @@ public sealed class WordPdfEndnotePlacementTests {
         if (columns) last.ColumnCount = 2;
         last.AddParagraph("FINALBODY");
         last.AddParagraph("LASTREFERENCE").AddEndNote("LASTENDNOTEBODY");
+        if (position.HasValue) SetDocumentPosition(source, position.Value);
         return source;
+    }
+
+    private static void SetDocumentPosition(WordDocument source, WordEndnotePosition position) {
+        W.Settings settings = source._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
+        W.EndnoteDocumentWideProperties? properties = settings.GetFirstChild<W.EndnoteDocumentWideProperties>();
+        if (properties == null) { properties = new W.EndnoteDocumentWideProperties(); settings.AddChild(properties, true); }
+        properties.RemoveAllChildren<W.EndnotePosition>();
+        properties.AddChild(new W.EndnotePosition { Val = position == WordEndnotePosition.SectionEnd ? W.EndnotePositionValues.SectionEnd : W.EndnotePositionValues.DocumentEnd }, true);
     }
 
     private static string ReadPdfText(WordDocument source, bool native) {
