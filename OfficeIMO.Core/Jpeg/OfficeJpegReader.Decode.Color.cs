@@ -285,7 +285,7 @@ internal static partial class OfficeJpegReader {
             byte thirdValue = third.Buffer[thirdRow + thirdX];
             if (transformYccToRgb) {
                 int red = firstValue + CrToR[thirdValue];
-                int green = firstValue - CbToG[secondValue] - CrToG[thirdValue];
+                int green = firstValue + ((CbToG[secondValue] + CrToG[thirdValue]) >> 16);
                 int blue = firstValue + CbToB[secondValue];
                 output[target++] = ClampToByte(red);
                 output[target++] = ClampToByte(green);
@@ -349,7 +349,7 @@ internal static partial class OfficeJpegReader {
 
     private static void YccToRgb(int y, int cb, int cr, out byte r, out byte g, out byte b) {
         var rVal = y + CrToR[cr];
-        var gVal = y - CbToG[cb] - CrToG[cr];
+        var gVal = y + ((CbToG[cb] + CrToG[cr]) >> 16);
         var bVal = y + CbToB[cb];
         r = ClampToByte(rVal);
         g = ClampToByte(gVal);
