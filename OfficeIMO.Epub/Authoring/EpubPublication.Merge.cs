@@ -36,11 +36,13 @@ public sealed partial class EpubPublication {
         var firstIds = EpubContentIdentifiers.Collect(first.Root, firstPath, true, cancellationToken);
         var secondIds = EpubContentIdentifiers.Collect(second.Root, secondPath, true, cancellationToken);
         if (firstIds.Contains(boundaryId) || secondIds.Contains(boundaryId)) throw new ArgumentException("The merge boundary ID already exists in chapter content.", nameof(boundaryId));
-        if (!SameMergeAttributes(first.Root, second.Root) || !SameMergeAttributes(firstBody, secondBody))
+        if (!SameMergeScaffoldAttributes(first.Root, second.Root, options.PreserveSecondChapterLanguageAndDirection) || !SameMergeScaffoldAttributes(firstBody, secondBody, options.PreserveSecondChapterLanguageAndDirection))
             throw new NotSupportedException("Resolve differing root/body attributes before merging; their language, direction, styling and semantics cannot be discarded.");
         if (!MergeRootNotes(first.Root).SequenceEqual(MergeRootNotes(second.Root), StringComparer.Ordinal))
             throw new NotSupportedException("Chapter root-level annotations conflict.");
-        var shared = FindMergeSeam(firstBody, secondBody, cancellationToken);
+        XElement? languageWrapper = options.PreserveSecondChapterLanguageAndDirection ? CreateMergeLanguageWrapper(first.Root, second.Root) : null;
+        var shared = languageWrapper == null ? FindMergeSeam(firstBody, secondBody, cancellationToken) :
+            new HashSet<string>(secondBody.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
         foreach (XAttribute id in second.Root.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")) shared.Add(id.Value);
         var idMap = PrepareMergeIdentifierMap(second.Root, firstIds, secondIds, shared, boundaryId, options.SecondChapterIdMap, cancellationToken);
         VerifyMergeStylesheetFragments(idMap, cancellationToken);
@@ -61,14 +63,19 @@ public sealed partial class EpubPublication {
             PrepareMergeSelectors(first, firstPath, new Dictionary<string, string>(), Map, firstRelationshipAttributes!, selectorStyles, cancellationToken);
             PrepareMergeSelectors(second, firstPath, idMap, Map, secondRelationshipAttributes!, selectorStyles, cancellationToken);
         }
-        if (!SameMergeAttributes(first.Root, second.Root) || !SameMergeAttributes(firstBody, secondBody))
+        if (!SameMergeScaffoldAttributes(first.Root, second.Root, options.PreserveSecondChapterLanguageAndDirection) || !SameMergeScaffoldAttributes(firstBody, secondBody, options.PreserveSecondChapterLanguageAndDirection))
             throw new NotSupportedException("Root/body attributes resolve differently after reference repair; resolve their styling and semantics before merging.");
         XElement firstHead = first.Root.Element(Html + "head")!, secondHead = second.Root.Element(Html + "head")!;
         ReconcileMergeHeadStyles(firstHead, secondHead, stylePolicy, cancellationToken);
         if (!first.Nodes().Where(node => node != first.Root).Select(node => node.ToString()).SequenceEqual(second.Nodes().Where(node => node != second.Root).Select(node => node.ToString()), StringComparer.Ordinal))
             throw new NotSupportedException("Resolve conflicting chapter heads or document instructions before merging. Styles and metadata are not silently combined or discarded.");
         var boundary = new XElement(Html + "span", new XAttribute("id", boundaryId), new XAttribute("title", secondHead.Element(Html + "title")!.Value));
-        JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
+        if (languageWrapper == null) JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
+        else {
+            languageWrapper.Add(boundary);
+            languageWrapper.Add(secondBody.Nodes());
+            firstBody.Add(languageWrapper);
+        }
         EpubContentIdentifiers.ValidateReferences(first.Root, EpubContentIdentifiers.Collect(first.Root, firstPath, true, cancellationToken), firstPath, cancellationToken);
         if (first.Descendants(Html + "map").Attributes("name").GroupBy(attribute => attribute.Value, StringComparer.Ordinal).Any(group => group.Count() > 1))
             throw new InvalidDataException("Image-map names collide in the merged chapter.");

@@ -706,6 +706,20 @@ Later rules can restyle **both** chapters. This is an explicit cascade choice, n
 isolation or a promise to preserve each chapter's original appearance. Assess the merged
 result in the intended readers.
 
+For chapters with different languages or base text directions, set
+`PreserveSecondChapterLanguageAndDirection = true`. The second body's contents and
+navigation boundary move into a `div` carrying its effective `lang`, `xml:lang` and
+`dir`. Body declarations override root declarations; missing language stays unknown
+and missing direction becomes `ltr`, so neither accidentally inherits the first
+chapter's context. Descendant overrides stay intact. The first chapter retains its
+root and body attributes.
+
+This explicit structural change can affect selectors and layout. Root/body `dir=auto`,
+conflicting `lang`/`xml:lang`, and other differing scaffold attributes still reject the
+merge. The wrapper prevents joining the second chapter's containers with the first;
+colliding container IDs need explicit replacements. Qualify language switching and
+bidirectional presentation in the intended readers.
+
 Supply an explicit second-chapter map when body IDs collide:
 
 ```csharp

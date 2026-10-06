@@ -79,6 +79,7 @@ WriteFixture("merge-selectors", MergeSelectorsFixture.Create());
 WriteFixture("merge-nested-selectors", MergeSelectorsFixture.Create(nested: true));
 WriteFixture("merge-relationships", MergeRelationshipsFixture.Create());
 WriteFixture("merge-resource-selectors", MergeResourceSelectorsFixture.Create());
+WriteFixture("merge-language", MergeLanguageFixture.Create());
 File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer.Serialize(new {
     publications = evidence, previewBoundary = "Browser previews add simulated reader theme/font CSS. They are not EPUB reading-system acceptance."
 }, new JsonSerializerOptions { WriteIndented = true }));

@@ -335,3 +335,11 @@ two-pixel dotted border after its target is repaired. Follow the third-chapter l
 and return to the renamed second heading. Shared CSS imports receive separate
 private copies for both chapters. These are expected reader
 checks; passing native preflight or an independent validator does not prove rendering.
+
+
+`merge-language.epub` merges an English chapter with an Arabic chapter while
+retaining an explicit French/LTR passage. Check Arabic right-to-left paragraph
+layout, French left-to-right layout, reciprocal links and both TOC targets. Inspect
+screen-reader language switching separately. The wrapper carries source language
+and direction; package conformance and automated accessibility checks do not prove
+native presentation or speech behavior.

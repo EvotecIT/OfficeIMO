@@ -27,6 +27,11 @@ public sealed class EpubChapterMergeOptions {
     /// expand into at most 256 exact alternatives and 64 KiB of CSS, using :is when needed. Irreducible
     /// ambiguities and unsupported syntax fail atomically. Reader support for :is and nested CSS remains independent.</summary>
     public bool RewriteChapterSelectors { get; set; }
+    /// <summary>Allow differing root/body language and direction by wrapping the second chapter's body content
+    /// in a div with its effective language and direction. Other scaffold conflicts still reject the merge.
+    /// Explicit auto direction on either source root/body is unsupported. Wrapper structure can affect CSS;
+    /// this option does not isolate styles or establish equivalent reader layout.</summary>
+    public bool PreserveSecondChapterLanguageAndDirection { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }
 }
