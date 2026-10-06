@@ -22,7 +22,7 @@ internal sealed partial class PdfWorkspace {
         }
         await VerifyAsync(cancellationToken).ConfigureAwait(false);
         if (_storage.UsesProviderPublication(destination)) {
-            using var serialized = new OfficeBoundedMemoryStream(Infrastructure.StudioStorageAccess.MaximumDocumentBytes);
+            using var serialized = new OfficeBoundedMemoryStream(Infrastructure.StudioDocumentStorage.MaximumDocumentBytes);
             await writer(serialized, cancellationToken).ConfigureAwait(false);
             await _storage.PublishAsync(destination, serialized.ToArray(), expectedFingerprint: null,
                 VerifyAsync, cancellationToken).ConfigureAwait(false);

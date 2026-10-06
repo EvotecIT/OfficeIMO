@@ -107,7 +107,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
 
     private static bool IsExpiredMetadata(byte[] bytes, int schemaVersion, string path, DateTimeOffset now) {
         try {
-            RecoveryMetadata? metadata = JsonSerializer.Deserialize<RecoveryMetadata>(bytes);
+            RecoveryMetadata? metadata = JsonSerializer.Deserialize(bytes, RecoveryJsonContext.Default.RecoveryMetadata);
             if (metadata is null) return IsOldMalformed(path, now);
             if (metadata.SchemaVersion != schemaVersion) return false;
             if (metadata.UpdatedAt == default || metadata.UpdatedAt > now.AddDays(1) || metadata.Revision < 0 ||

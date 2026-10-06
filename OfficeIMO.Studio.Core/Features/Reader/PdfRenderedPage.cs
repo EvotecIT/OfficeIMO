@@ -1,7 +1,8 @@
 namespace OfficeIMO.Studio.Features.Reader;
 
 /// <summary>
-/// Immutable encoded page result retained by the bounded Studio render cache.
+/// Immutable encoded page result retained by the bounded Studio render cache. Scale is pixels per PDF point;
+/// the host supplies its presentation pixel scale and owns bitmap decoding.
 /// </summary>
 internal sealed record PdfRenderedPage(
     int PageNumber,

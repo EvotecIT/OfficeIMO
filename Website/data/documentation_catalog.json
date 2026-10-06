@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 255,
-    "productionComponentCount": 131,
-    "testProjectCount": 49,
+    "projectCount": 257,
+    "productionComponentCount": 132,
+    "testProjectCount": 50,
     "benchmarkProjectCount": 35,
     "validationProjectCount": 41,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 53725
+    "conceptualWordCount": 53775
   },
   "categories": [
     {
@@ -66,8 +66,8 @@
         68,
         69,
         70,
-        118,
-        119
+        119,
+        120
       ]
     },
     {
@@ -87,7 +87,7 @@
         62,
         81,
         114,
-        130
+        131
       ]
     },
     {
@@ -117,14 +117,14 @@
         77,
         78,
         79,
-        120,
         121,
         122,
         123,
         124,
         125,
         126,
-        127
+        127,
+        128
       ]
     },
     {
@@ -169,7 +169,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 18,
+      "componentCount": 19,
       "componentIndexes": [
         1,
         2,
@@ -187,8 +187,9 @@
         115,
         116,
         117,
-        128,
-        129
+        118,
+        129,
+        130
       ]
     }
   ],
@@ -629,7 +630,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 310,
+      "sourceFileCount": 311,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -642,7 +643,7 @@
       "description": "AngleSharp-backed HTML parsing and syntax services for the owned OfficeIMO HTML document model.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
-      "sourceFileCount": 6,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-angle-sharp/",
@@ -652,10 +653,10 @@
       "name": "OfficeIMO.Html.Core",
       "packageId": "OfficeIMO.Html.Core",
       "category": "Publishing and conversion",
-      "description": "Owned HTML document, node, editing and parser provider contracts for OfficeIMO.",
+      "description": "Owned HTML document, editing, parser provider and lossless CSS syntax contracts for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
-      "sourceFileCount": 9,
+      "sourceFileCount": 30,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-core/",
@@ -1136,7 +1137,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1290,
+      "sourceFileCount": 1293,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1695,8 +1696,21 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 288,
+      "sourceFileCount": 249,
       "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
+    },
+    {
+      "name": "OfficeIMO.Studio.Core",
+      "packageId": "OfficeIMO.Studio.Core",
+      "category": "Specialized components",
+      "description": "UI-independent document sessions, editing, storage and recovery for OfficeIMO Studio hosts.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj",
+      "sourceFileCount": 58,
+      "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -1760,7 +1774,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 733,
+      "sourceFileCount": 734,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1838,7 +1852,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 57,
+      "sourceFileCount": 60,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",
