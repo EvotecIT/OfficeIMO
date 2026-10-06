@@ -29,6 +29,7 @@ public partial class Word {
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount=2; columns.ColumnsSpace=400;
             WordTable table = document.AddTable(1, 1);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
             table.LayoutMode=WordTableLayoutMode.Fixed; table.Width=4000; table.WidthType=WordTableWidthUnit.Dxa;
             WordTableCell cell=table.Rows[0].Cells[0]; cell.Width=4000; cell.WidthType=WordTableWidthUnit.Dxa;
             cell.MarginTopWidth=0; cell.MarginBottomWidth=0; cell.MarginLeftWidth=0; cell.MarginRightWidth=0;
