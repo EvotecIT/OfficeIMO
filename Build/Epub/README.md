@@ -273,6 +273,16 @@ unmerged third headings remain blue. Verify all three borders and the links betw
 chapters. The merged chapter uses private copies of the second chapter's stylesheet
 and import; the third chapter retains the original stylesheet paths.
 
+`merge-nested-selectors.epub` exercises the same colors, borders and links with
+nested heading rules, a nested media condition and interleaved declarations. The
+custom property `--heading-data` retains its literal `#heading` value. Assess validator
+acceptance and reader support separately; the writer preserves nesting rather than
+flattening these rules.
+EPUBCheck 5.4.0 reports `CSS-008` for this fixture's nested media rule and
+custom-property block syntax. Ace 1.4.6 passes its automated checks, and browser
+inspection confirms the expected styles and literal custom-property value. These
+results do not qualify the nested fixture for EPUBCheck-gated delivery or native readers.
+
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
   /path/to/task-evidence/typography

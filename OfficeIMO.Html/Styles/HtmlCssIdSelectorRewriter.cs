@@ -11,19 +11,20 @@ internal static class HtmlCssIdSelectorRewriter {
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token) {
         var edits = new List<(int Start, int Length, string Value)>();
         var blocks = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
-        int[] openings = blocks.Keys.OrderBy(value => value).ToArray();
-        Rules(0, css.Length, 0);
+        Rules(0, css.Length, 0, false);
         var result = new StringBuilder(css);
         foreach (var edit in edits.OrderByDescending(edit => edit.Start)) result.Remove(edit.Start, edit.Length).Insert(edit.Start, edit.Value);
         return result.ToString();
 
-        void Rules(int start, int end, int depth) {
+        void Rules(int start, int end, int depth, bool declarations) {
             if (depth > 64) throw new NotSupportedException("Selector reconciliation exceeds 64 rule levels.");
             int cursor = start;
             while (cursor < end) {
                 token.ThrowIfCancellationRequested();
                 Trivia(ref cursor, end);
                 if (cursor == end) break;
+                if (css[cursor] == ';') { cursor++; continue; }
+                if (declarations && TryDeclaration(ref cursor, end)) continue;
                 int prelude = cursor;
                 string? at = null;
                 if (css[cursor] == '@') {
@@ -41,17 +42,39 @@ internal static class HtmlCssIdSelectorRewriter {
                 if (!blocks.TryGetValue(delimiter, out int close) || close >= end) throw Unsupported();
                 if (at == null) {
                     Selector(prelude, delimiter);
-                    // Nested style rules and custom-property blocks need a separate grammar.
-                    int next = Array.BinarySearch(openings, delimiter) + 1;
-                    if (next < openings.Length && openings[next] < close) throw new NotSupportedException("Selector reconciliation does not support nested style declarations.");
+                    Rules(delimiter + 1, close, depth + 1, true);
                 } else if (at == "media" || at == "supports" || at == "layer" || at == "container" || at == "scope") {
                     if (at == "scope") Selector(cursor, delimiter);
                     if (at == "supports") SupportSelectors(cursor, delimiter);
-                    Rules(delimiter + 1, close, depth + 1);
+                    Rules(delimiter + 1, close, depth + 1, declarations);
                 } else if (at != "font-face" && at != "page" && at != "counter-style" && at != "property" &&
                     at != "font-feature-values" && at != "keyframes" && at != "-webkit-keyframes") throw Unsupported();
                 cursor = close + 1;
             }
+        }
+
+        bool TryDeclaration(ref int cursor, int end) {
+            int valueStart = cursor;
+            if (!HtmlCssIdentifierParser.TryRead(css, ref valueStart, out string property)) return false;
+            Trivia(ref valueStart, end);
+            if (valueStart >= end || css[valueStart] != ':') return false;
+            valueStart++; Trivia(ref valueStart, end);
+            bool custom = property.StartsWith("--", StringComparison.Ordinal);
+            int delimiter = Delimiter(valueStart, end);
+            if (delimiter < end && css[delimiter] == '{' && !custom && delimiter != valueStart)
+                return false; // A type-selector pseudo-class, such as h2:hover { ... }, is a nested rule.
+            int i = valueStart;
+            while (i < end) {
+                token.ThrowIfCancellationRequested();
+                if (Component(ref i, end)) continue;
+                if (css[i] == ';') { cursor = i + 1; return true; }
+                if (css[i] == '(' || css[i] == '[' || css[i] == '{') {
+                    i = Closing(i, end, css[i] == '(' ? ')' : css[i] == '[' ? ']' : '}') + 1;
+                    continue;
+                }
+                i++;
+            }
+            cursor = end; return true;
         }
 
         void SupportSelectors(int start, int end) {
@@ -61,7 +84,7 @@ internal static class HtmlCssIdSelectorRewriter {
                 int nameStart = i;
                 if (HtmlCssIdentifierParser.TryRead(css, ref i, out string name)) {
                     if (name.Equals("selector", StringComparison.OrdinalIgnoreCase) && i < end && css[i] == '(') {
-                        int close = Closing(i, end, '(', ')');
+                        int close = Closing(i, end, ')');
                         Selector(i + 1, close); i = close + 1;
                     }
                 } else i = nameStart + 1;
@@ -73,7 +96,7 @@ internal static class HtmlCssIdSelectorRewriter {
                 token.ThrowIfCancellationRequested();
                 if (SkipLiteral(ref i, end)) continue;
                 if (css[i] == '[') {
-                    int close = Closing(i, end, '[', ']');
+                    int close = Closing(i, end, ']');
                     Attribute(i + 1, close); i = close + 1; continue;
                 }
                 if (css[i++] != '#') continue;
@@ -118,8 +141,8 @@ internal static class HtmlCssIdSelectorRewriter {
         int Delimiter(int start, int end) {
             for (int i = start; i < end;) {
                 token.ThrowIfCancellationRequested();
-                if (SkipLiteral(ref i, end)) continue;
-                if (css[i] == '(' || css[i] == '[') { i = Closing(i, end, css[i], css[i] == '(' ? ')' : ']') + 1; continue; }
+                if (Component(ref i, end)) continue;
+                if (css[i] == '(' || css[i] == '[') { i = Closing(i, end, css[i] == '(' ? ')' : ']') + 1; continue; }
                 if (css[i] == '{' || css[i] == ';') return i;
                 if (css[i] == '}') throw Unsupported();
                 i++;
@@ -127,16 +150,40 @@ internal static class HtmlCssIdSelectorRewriter {
             return end;
         }
 
-        int Closing(int start, int end, char open, char close) {
-            int depth = 1;
+        int Closing(int start, int end, char close) {
+            var endings = new Stack<char>(); endings.Push(close);
             for (int i = start + 1; i < end;) {
                 token.ThrowIfCancellationRequested();
-                if (SkipLiteral(ref i, end)) continue;
-                if (css[i] == open) depth++;
-                if (css[i] == close && --depth == 0) return i;
+                if (Component(ref i, end)) continue;
+                char current = css[i];
+                if (current == '(' || current == '[' || current == '{') {
+                    if (endings.Count >= 256) throw Unsupported();
+                    endings.Push(current == '(' ? ')' : current == '[' ? ']' : '}');
+                } else if (current == ')' || current == ']' || current == '}') {
+                    if (current != endings.Pop()) throw Unsupported();
+                    if (endings.Count == 0) return i;
+                }
                 i++;
             }
             throw Unsupported();
+        }
+
+        bool Component(ref int i, int end) {
+            int nameEnd = i;
+            if (HtmlCssIdentifierParser.TryRead(css, ref nameEnd, out string name)) {
+                if (name.Equals("url", StringComparison.OrdinalIgnoreCase) && nameEnd < end && css[nameEnd] == '(') {
+                    int value = nameEnd + 1;
+                    while (value < end && char.IsWhiteSpace(css[value])) value++;
+                    if (value < end && css[value] != '\'' && css[value] != '"') {
+                        // An unquoted URL token owns slash/star and escaped delimiters as path data.
+                        while (value < end && css[value] != ')') Advance(ref value);
+                        if (value == end) throw Unsupported();
+                        i = value + 1; return true;
+                    }
+                }
+                i = nameEnd; return true;
+            }
+            return SkipLiteral(ref i, end);
         }
 
         bool SkipLiteral(ref int i, int end) {

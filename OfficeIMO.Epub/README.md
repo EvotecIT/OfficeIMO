@@ -729,18 +729,25 @@ CSS selectors remain unchanged by default. Set `RewriteSecondChapterIdSelectors 
 with `StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles` to rewrite the
 second chapter's `#id` and exact `[id=value]` selectors using the map. Escaped names,
 selector-list pseudo-classes, media/supports/layer/container groups and scope selectors
-are supported. Comments and declarations retain their source text. Linked stylesheets
+are supported, including nested rules with explicit `&`, implicit descendants and
+type selectors. Interleaved declarations stay in order; custom-property blocks remain
+data rather than selectors. Comments and declarations retain their source text. Linked stylesheets
 and their imports receive private copies in their existing directories, leaving the
 original stylesheets available to other chapters. These copies count against the
 publication's retained-entry and byte limits.
 
-The automatic profile rejects nested style declarations, unknown at-rules,
+The automatic profile rejects unknown at-rules,
 namespaced attribute selectors, partial or case-insensitive ID matches, selectors
 on ID relationships such as `href` or `aria-labelledby`, stylesheet processing
 instructions, integrity digests and stylesheet package refinements. Reconcile these
 explicitly before merging, or leave automatic rewriting disabled and prepare all
 ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;
-selector repair does not isolate generic rules or prove visual equivalence.
+selector repair does not isolate generic rules or prove visual equivalence. Nested
+CSS remains nested in the output and needs support in the intended reading systems;
+rewriting does not transpile it into older CSS syntax.
+The [nested merge fixture](../Build/Epub/README.md) renders in the tested browser but
+is rejected by EPUBCheck 5.4.0. Use reader-qualified CSS for distribution targets
+that require a clean EPUBCheck result.
 A fragment-only URL in any retained stylesheet, such as `url(#paint)`, that names
 a changed ID rejects the merge: a shared rule cannot choose between the original
 and replacement definitions. Reconcile that rule first or use a document-qualified

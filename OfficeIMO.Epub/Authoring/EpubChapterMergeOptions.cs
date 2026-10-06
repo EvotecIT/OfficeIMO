@@ -20,7 +20,8 @@ public sealed class EpubChapterMergeOptions {
     public IReadOnlyDictionary<string, string> SecondChapterIdMap { get; set; } = new Dictionary<string, string>();
     /// <summary>Rewrite second-chapter ID selectors using the identifier map, retaining private copies of linked
     /// stylesheets and their imports. Requires AppendSecondStyles. Supports hash and exact id attribute selectors
-    /// in ordinary rules and media/supports/layer/container/scope groups; unsupported syntax fails atomically.</summary>
+    /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
+    /// values are preserved; unsupported syntax fails atomically. Reader support for nested CSS remains independent.</summary>
     public bool RewriteSecondChapterIdSelectors { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }

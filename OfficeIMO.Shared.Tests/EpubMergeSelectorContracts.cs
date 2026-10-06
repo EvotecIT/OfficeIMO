@@ -50,7 +50,6 @@ public sealed class EpubMergeSelectorContracts {
     }
 
     [Theory]
-    [InlineData("#heading { & .nested { color:red } }")]
     [InlineData("[id^='head'] {color:red}")]
     [InlineData("[id|=heading] {color:red}")]
     [InlineData("[id='heading' i] {color:red}")]
