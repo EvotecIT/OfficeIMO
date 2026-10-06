@@ -365,19 +365,24 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         ApplyImageTransforms(item, importedImage, budget, result);
+        ApplyImageHyperlink(importedImage, item.GetAttribute("data-officeimo-image-hyperlink"), result);
         for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
             if (!IsElement(parent, "a")) continue;
-            ReportImageHyperlinkLoss(parent.GetAttribute("href"), result);
+            ApplyImageHyperlink(importedImage, parent.GetAttribute("href"), result);
             break;
         }
         result.Images++;
         imageReservation.Commit();
     }
 
-    private static void ReportImageHyperlinkLoss(string? target, HtmlToExcelResult result) {
+    private static void ApplyImageHyperlink(ExcelImage image, string? target, HtmlToExcelResult result) {
         if (string.IsNullOrWhiteSpace(target)) return;
+        if (Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+            image.HyperlinkUri = uri;
+            return;
+        }
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
-            "A worksheet image hyperlink was not retained because Excel picture hyperlinks are not yet supported.",
+            "A worksheet image hyperlink was omitted because its target was not a valid URI.",
             lossKind: OfficeConversionLossKind.Omission, source: target);
     }
 

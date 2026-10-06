@@ -78,6 +78,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Unsupported conditional formatting differential-format feature.</summary>
     public const string ConditionalDifferentialFormatUnsupported = "ExcelConditionalDifferentialFormatUnsupported";
 
+    /// <summary>A native picture hyperlink cannot be represented safely in interactive SVG.</summary>
+    public const string ImageHyperlinkUnsupported = "ExcelImageHyperlinkUnsupported";
+
     /// <summary>Worksheet image bytes could not be read.</summary>
     public const string ImageBytesMissing = "ExcelImageBytesMissing";
 

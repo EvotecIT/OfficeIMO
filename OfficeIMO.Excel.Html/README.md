@@ -89,7 +89,7 @@ See the [complete OfficeIMO package map](../README.md) for related formats and c
 
 ## Generic table presentation
 
-Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
+Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Linked images retain their native picture hyperlink. Semantic image inventories preserve the target as inert metadata for round-trip import. Visual-review SVG preserves web, mail, telephone, and relative targets allowed by the shared drawing-link policy; rejected interactive targets retain the image and report an omission. Raster images do not carry clickable links.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

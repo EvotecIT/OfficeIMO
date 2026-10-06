@@ -41,12 +41,25 @@ namespace OfficeIMO.Excel {
 
             string clipId = "xl-image-clip-" + (++index).ToString(System.Globalization.CultureInfo.InvariantCulture);
             OfficeImageProjection projection = CreateImageProjection(image, scale);
+            string safeUri = string.Empty;
+            bool linked = image.HyperlinkUri != null
+                && OfficeDrawingLinkPolicy.TryNormalize(image.HyperlinkUri.OriginalString, out safeUri);
+            if (linked) {
+                builder.Append("<a href=\"").Append(EscapeXml(safeUri)).Append("\">");
+            } else if (image.HyperlinkUri != null) {
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ImageHyperlinkUnsupported,
+                    "The picture hyperlink target is not supported by the safe SVG link policy; the image is retained without an interactive link.",
+                    image.Source));
+            }
             OfficeSvgImageRenderer.AppendImageInViewport(
                 builder,
                 dataUri,
                 projection,
                 clipId,
                 new OfficeImagePlacement(0D, 0D, snapshot.Width * scale, snapshot.Height * scale));
+            if (linked) builder.Append("</a>");
         }
 
         private static OfficeImageProjection CreateImageProjection(ExcelVisualImage image, double scale) =>
