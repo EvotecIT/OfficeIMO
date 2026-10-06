@@ -752,10 +752,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private static bool IsPreformatted(string tag, string whiteSpace) => tag == "pre" || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
+    private static bool IsPreformatted(string tag, string whiteSpace) =>
+        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
 
     private static bool PreventsTextWrapping(string tag, string whiteSpace) =>
-        tag == "pre" || whiteSpace == "pre" || whiteSpace == "nowrap";
+        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private static void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
         if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "table" || tag == "figure" || tag == "ul" || tag == "ol") {
