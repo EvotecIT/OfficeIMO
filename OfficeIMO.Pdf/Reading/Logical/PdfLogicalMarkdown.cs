@@ -72,6 +72,8 @@ public static class PdfLogicalMarkdownExtensions {
     private static List<MarkdownItem> BuildPageItems(PdfLogicalPage page, PdfLogicalMarkdownOptions options) {
         var items = new List<MarkdownItem>();
         int sequence = 0;
+        var listOwnedLines = new HashSet<PdfLogicalTextBlock>(page.ListItems
+            .Where(static item => item.CanProjectAsList).SelectMany(static item => item.Lines));
 
         for (int i = 0; i < page.Headings.Count; i++) {
             PdfLogicalHeading heading = page.Headings[i];
@@ -81,7 +83,7 @@ public static class PdfLogicalMarkdownExtensions {
 
         for (int i = 0; i < page.Paragraphs.Count; i++) {
             PdfLogicalParagraph paragraph = page.Paragraphs[i];
-            if (IsParagraphRepresentedByStructuredElement(paragraph, page)) {
+            if (IsParagraphRepresentedByStructuredElement(paragraph, page, listOwnedLines)) {
                 continue;
             }
 
@@ -90,6 +92,7 @@ public static class PdfLogicalMarkdownExtensions {
 
         for (int i = 0; i < page.ListItems.Count; i++) {
             PdfLogicalListItem listItem = page.ListItems[i];
+            if (!listItem.CanProjectAsList) continue;
             string indent = new string(' ', Math.Max(listItem.Level - 1, 0) * 2);
             items.Add(new MarkdownItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, indent + FormatListMarker(listItem.Marker) + " " + EscapeInline(listItem.Text)));
         }
@@ -114,7 +117,7 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
-        AppendUnmatchedTextBlocks(page, items, ref sequence);
+        AppendUnmatchedTextBlocks(page, items, listOwnedLines, ref sequence);
 
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
@@ -160,10 +163,10 @@ public static class PdfLogicalMarkdownExtensions {
         return items;
     }
 
-    private static void AppendUnmatchedTextBlocks(PdfLogicalPage page, List<MarkdownItem> items, ref int sequence) {
+    private static void AppendUnmatchedTextBlocks(PdfLogicalPage page, List<MarkdownItem> items, HashSet<PdfLogicalTextBlock> listOwnedLines, ref int sequence) {
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfLogicalTextBlock block = page.TextBlocks[i];
-            if (IsTextBlockRepresented(block, page)) {
+            if (IsTextBlockRepresented(block, page, listOwnedLines)) {
                 continue;
             }
 
@@ -171,8 +174,8 @@ public static class PdfLogicalMarkdownExtensions {
         }
     }
 
-    private static bool IsTextBlockRepresented(PdfLogicalTextBlock block, PdfLogicalPage page) {
-        if (block.Kind == PdfLogicalElementKind.Heading || block.Kind == PdfLogicalElementKind.ListItem) {
+    private static bool IsTextBlockRepresented(PdfLogicalTextBlock block, PdfLogicalPage page, HashSet<PdfLogicalTextBlock> listOwnedLines) {
+        if (block.Kind == PdfLogicalElementKind.Heading || listOwnedLines.Contains(block)) {
             return true;
         }
 
@@ -198,14 +201,14 @@ public static class PdfLogicalMarkdownExtensions {
         return false;
     }
 
-    private static bool IsParagraphRepresentedByStructuredElement(PdfLogicalParagraph paragraph, PdfLogicalPage page) {
+    private static bool IsParagraphRepresentedByStructuredElement(PdfLogicalParagraph paragraph, PdfLogicalPage page, HashSet<PdfLogicalTextBlock> listOwnedLines) {
         if (paragraph.Lines.Count == 0) {
             return false;
         }
 
         for (int i = 0; i < paragraph.Lines.Count; i++) {
             PdfLogicalTextBlock line = paragraph.Lines[i];
-            bool represented = false;
+            bool represented = listOwnedLines.Contains(line);
 
             for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
                 if (IsTextBlockRepresentedByTable(line, page.Tables[tableIndex])) {

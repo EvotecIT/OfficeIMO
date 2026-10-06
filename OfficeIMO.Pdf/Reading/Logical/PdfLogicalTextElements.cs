@@ -186,6 +186,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         }
 
         return string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
+            left.MarkedContentId == right.MarkedContentId &&
+            left.ContentStreamObjectNumber == right.ContentStreamObjectNumber &&
             left.FontWeight == right.FontWeight &&
             left.FontDescriptorFlags == right.FontDescriptorFlags &&
             Math.Abs(left.FontSize - right.FontSize) <= 0.001D &&
@@ -287,6 +289,9 @@ public sealed class PdfLogicalHeading {
 /// Detected bullet or numbered list item.
 /// </summary>
 public sealed class PdfLogicalListItem {
+    /// <summary>False when projecting the association as one list would conceal a heading/table or unrelated text on a shared line.</summary>
+    internal bool CanProjectAsList { get; set; } = true;
+
     internal PdfLogicalListItem(
         int pageNumber,
         int level,
