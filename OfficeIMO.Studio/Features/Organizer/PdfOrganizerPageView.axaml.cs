@@ -9,6 +9,7 @@ public sealed partial class PdfOrganizerPageView : UserControl {
     // containers far outside the viewport keep their preview released.
     private const double PrefetchMargin = 480D;
     private PdfOrganizerPageViewModel? _viewModel;
+    private TopLevel? _topLevel;
     private bool _attached;
     private bool _nearViewport = true;
 
@@ -17,10 +18,12 @@ public sealed partial class PdfOrganizerPageView : UserControl {
         DataContextChanged += (_, _) => UpdateViewModel();
         AttachedToVisualTree += (_, _) => {
             _attached = true;
+            TrackRenderScaling(TopLevel.GetTopLevel(this));
             UpdateViewModel();
         };
         DetachedFromVisualTree += (_, _) => {
             _attached = false;
+            TrackRenderScaling(null);
             _viewModel?.Detach();
         };
         EffectiveViewportChanged += OnEffectiveViewportChanged;
@@ -37,14 +40,30 @@ public sealed partial class PdfOrganizerPageView : UserControl {
         else _viewModel?.Detach();
     }
 
+    // Thumbnail bitmaps are requested in device pixels; moving between displays changes how many that is.
+    private void TrackRenderScaling(TopLevel? topLevel) {
+        if (ReferenceEquals(_topLevel, topLevel)) return;
+        if (_topLevel is not null) _topLevel.ScalingChanged -= OnTopLevelScalingChanged;
+        _topLevel = topLevel;
+        if (_topLevel is not null) _topLevel.ScalingChanged += OnTopLevelScalingChanged;
+    }
+
+    private void OnTopLevelScalingChanged(object? sender, EventArgs e) => ApplyRenderScaling();
+
+    private void ApplyRenderScaling() {
+        if (_topLevel is not null) _viewModel?.SetRenderScaling(_topLevel.RenderScaling);
+    }
+
     private void UpdateViewModel() {
         if (ReferenceEquals(_viewModel, DataContext)) {
+            ApplyRenderScaling();
             if (_attached && _nearViewport) _viewModel?.Attach();
             return;
         }
 
         _viewModel?.Detach();
         _viewModel = DataContext as PdfOrganizerPageViewModel;
+        ApplyRenderScaling();
         if (_attached && _nearViewport) _viewModel?.Attach();
     }
 }

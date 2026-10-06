@@ -164,8 +164,8 @@ internal sealed class PdfDocumentSession {
             ContinueOnError = true,
             MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRasterPixels,
             RenderTimeout = StudioPdfSecurityPolicy.RenderTimeout,
-            MaxTotalOutputBytes = 16L * 1024L * 1024L,
-            MaxOutputBytesPerPage = 16L * 1024L * 1024L
+            MaxTotalOutputBytes = StudioPdfSecurityPolicy.MaximumRasterOutputBytes,
+            MaxOutputBytesPerPage = StudioPdfSecurityPolicy.MaximumRasterOutputBytes
         };
 
         PdfPageRenderResult result;

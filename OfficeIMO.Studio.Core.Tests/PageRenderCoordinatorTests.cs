@@ -32,11 +32,30 @@ public sealed class PageRenderCoordinatorTests {
             });
 
         PdfRenderedPage first = await coordinator.GetPageAsync(1, 1D, CancellationToken.None);
-        PdfRenderedPage second = await coordinator.GetPageAsync(1, 1.02D, CancellationToken.None);
+        PdfRenderedPage second = await coordinator.GetPageAsync(1, 0.9D, CancellationToken.None);
 
         Assert.Same(first, second);
         Assert.Equal(1, renderCount);
         Assert.Equal(1, coordinator.CachedEntryCount);
+    }
+
+    [Theory]
+    [InlineData(1.9D, 2D)]
+    [InlineData(2D, 2D)]
+    [InlineData(3D, 3D)]
+    [InlineData(3.6D, 3.75D)]
+    [InlineData(0.18D, 0.18D)]
+    [InlineData(9D, 4D)]
+    public async Task RendersTheScaleBucketThatCoversTheRequest(double requested, double expected) {
+        var rendered = new List<double>();
+        using var coordinator = new PageRenderCoordinator((page, scale, _) => {
+            rendered.Add(scale);
+            return Task.FromResult(CreatePage(page, scale, 32));
+        });
+
+        await coordinator.GetPageAsync(1, requested, CancellationToken.None);
+
+        Assert.Equal([expected], rendered);
     }
 
     [Fact]
