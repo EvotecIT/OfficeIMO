@@ -5,6 +5,8 @@ low='--low-alpha' in sys.argv[2:]
 arithmetic='--arithmetic' in sys.argv[2:]
 environment=dict(os.environ)
 environment.pop('TIFF_JPEG_ARITHMETIC',None)
+environment.pop('TIFF_JPEG_PRECISION',None)
+environment.pop('TIFF_JPEG_OPAQUE',None)
 if arithmetic:environment['TIFF_JPEG_ARITHMETIC']='1'
 root=Path(__file__).resolve().parent
 if low:root=root.parent/'TiffJpegLowAlpha'

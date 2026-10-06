@@ -50,5 +50,6 @@ XPS/OpenXPS tests retain alpha and require explicit ICC for CMYK. The 1,920
 black/white exports cover 1,276,800 pixel-center probes per route. Independent
 MuPDF PDF/SVG rendering differs by at most 4/255 and 2/255 respectively, without
 warnings. GhostXPS opens all exports but differs by up to 255/255, including blank
-images. Native Windows behavior, twelve-bit arithmetic TIFF color/alpha and
-lossless arithmetic color/alpha remain separate qualification gaps.
+images. The [twelve-bit corpus](../TiffJpegArithmetic12/README.md) separately qualifies
+high-precision samples. Native Windows behavior and lossless arithmetic
+color/alpha remain separate qualification gaps.

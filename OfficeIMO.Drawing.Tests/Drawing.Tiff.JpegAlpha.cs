@@ -36,6 +36,7 @@ public sealed class TiffJpegAlphaTests {
     [Theory]
     [InlineData("TiffJpegLowAlpha")]
     [InlineData("TiffJpegArithmeticLowAlpha")]
+    [InlineData("TiffJpegArithmetic12")]
     public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
@@ -48,7 +49,7 @@ public sealed class TiffJpegAlphaTests {
             Assert.Equal(19, image.Height);
             for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) {
                 var actual = image.GetPixel(x, y); int p = (y * image.Width + x) * 4;
-                Assert.Equal(expected[p + 3], actual.A);
+                Assert.True(Math.Abs(expected[p + 3] - actual.A) <= (folder == "TiffJpegArithmetic12" ? 1 : 0), $"{name} {x},{y}: alpha {actual.A} != {expected[p + 3]}");
                 byte[] channels = { actual.R, actual.G, actual.B };
                 foreach (int background in new[] { 0, 255 }) for (int c = 0; c < 3; c++) {
                     double visible = (channels[c] * actual.A + background * (255 - actual.A)) / 255D;
@@ -62,18 +63,19 @@ public sealed class TiffJpegAlphaTests {
     [Theory]
     [InlineData("TiffJpegArithmeticAlpha")]
     [InlineData("TiffJpegArithmeticLowAlpha")]
+    [InlineData("TiffJpegArithmetic12")]
     public void ArithmeticCmykAlphaMatchesIndependentProfiledCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var profile));
         string[] references = Directory.GetFiles(corpus, "*.icc-rgba");
-        Assert.Equal(folder == "TiffJpegArithmeticAlpha" ? 48 : 32, references.Length);
+        Assert.Equal(folder == "TiffJpegArithmeticLowAlpha" ? 32 : folder == "TiffJpegArithmetic12" ? 64 : 48, references.Length);
         foreach (string reference in references) {
             byte[] expected = File.ReadAllBytes(reference);
             Assert.True(OfficeIccRasterConverter.TryDecodeToSrgb(File.ReadAllBytes(reference.Substring(0, reference.Length - ".icc-rgba".Length)),
                 profile!, new(), out var image), reference);
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
                 var actual = image!.GetPixel(x, y); int at = (y * 35 + x) * 4;
-                Assert.Equal(expected[at + 3], actual.A);
+                Assert.True(Math.Abs(expected[at + 3] - actual.A) <= (folder == "TiffJpegArithmetic12" ? 1 : 0), $"{reference} {x},{y}: alpha {actual.A} != {expected[at + 3]}");
                 byte[] components = { actual.R, actual.G, actual.B };
                 foreach (int background in new[] { 0, 255 }) for (int c = 0; c < 3; c++) {
                     double rendered = (components[c] * actual.A + background * (255 - actual.A)) / 255D;

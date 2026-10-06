@@ -1,6 +1,6 @@
 """Test-only LittleCMS references from independently decoded TIFF CMYK samples."""
 from pathlib import Path
-import ctypes as C,ctypes.util,os,json,hashlib
+import ctypes as C,ctypes.util,os,json,hashlib,struct
 root=Path(__file__).resolve().parent
 library=os.environ.get('LCMS_LIBRARY') or C.util.find_library('lcms2')
 if not library:raise RuntimeError('Set LCMS_LIBRARY to the existing test-only LittleCMS library.')
@@ -14,12 +14,15 @@ target=api('cmsCreate_sRGBProfile',P)()
 transform=api('cmsCreateTransform',P,P,U,P,U,U,U)(source,(1<<22)|(6<<16)|(4<<3),target,(4<<16)|(3<<3)|1,1,0x0100)
 assert source and target and transform
 run=api('cmsDoTransform',None,P,P,P,U)
-for corpus in (root,root.parent/'TiffJpegArithmeticLowAlpha'):
+for corpus in (root,root.parent/'TiffJpegArithmeticLowAlpha',root.parent/'TiffJpegArithmetic12'):
+ maximum=4095 if corpus.name=='TiffJpegArithmetic12' else 255
  for p in sorted(corpus.glob('p5-*.tif')):
   extra=int(p.stem.rsplit('-e',1)[1]);raw=Path(str(p)+'.raw').read_bytes();values=[];alpha=[]
-  for i in range(0,len(raw),5):
-   a=raw[i+4] if extra else 255;alpha.append(a)
-   for c in raw[i:i+4]:values.append((min(1,c/a) if a else 0)*100 if extra==1 else c*100/255)
+  if maximum==4095:raw=struct.unpack('<'+'H'*(len(raw)//2),raw)
+  stride=4 if extra<0 else 5
+  for i in range(0,len(raw),stride):
+   a=raw[i+4] if extra>0 else maximum;alpha.append(int(a*255/maximum+.5))
+   for c in raw[i:i+4]:values.append((min(1,c/a) if a else 0)*100 if extra==1 else c*100/maximum)
   inp=(C.c_double*len(values))(*values);out=(C.c_ubyte*(35*19*3))();run(transform,inp,out,35*19)
   Path(str(p)+'.icc-rgba').write_bytes(bytes(v for i,a in enumerate(alpha) for v in (*out[i*3:i*3+3],a)))
  files=sorted(corpus.glob('*.icc-rgba'))

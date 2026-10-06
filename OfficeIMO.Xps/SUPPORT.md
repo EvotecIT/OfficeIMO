@@ -246,7 +246,7 @@ JPEG/TIFF exports cover 239,400 pixel-center probes per route; MuPDF PDF/SVG
 rendering differs by at most 2/255 without warnings. GhostXPS opens all exports but
 differs by up to 255/255, including blank output. PDF and SVG normalize arithmetic
 JPEG to portable pixel images. Eight-bit arithmetic CMYK/alpha and planar/tiled TIFF qualification is described
-below; twelve-bit variants and native Windows acceptance remain open.
+below alongside twelve-bit variants; native Windows acceptance remains open.
 
 Progressive arithmetic JPEG supports eight/twelve-bit SOF10 frames through the same
 Core decoder and portable PDF/SVG normalization. Initial/refinement DC and AC scans
@@ -287,8 +287,20 @@ component references still cover those files. All 80 CMYK cases compare explicit
 ICC conversion with LittleCMS; compositing differs by at most 3/255 with exact alpha.
 The 1,920 XPS/OpenXPS exports cover 1,276,800 pixel-center probes per route; MuPDF
 PDF/SVG differences reach 4/255 and 2/255 without warnings. GhostXPS opens all files
-but differs by up to 255/255, including blank images. Twelve-bit arithmetic TIFF
-color/alpha, lossless arithmetic color/alpha and native Windows acceptance remain open.
+but differs by up to 255/255, including blank images.
+
+The [twelve-bit arithmetic TIFF corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic12/README.md)
+adds 384 opaque/extra-channel files across the same layouts, including low alpha
+and 64 explicit-profile CMYK cases. Visible compositing agrees with independent
+references within 3/255; twelve-bit IDCT rounding permits one eight-bit alpha level.
+LibTIFF agrees exactly on 176 complete files and 337,820 samples. Another 96
+files differ only in the final column, 96 hit native layout limits, and 16 ordinary
+subsampled YCbCr files require a richer raw-component oracle. JPEG component
+references cover every file. The 1,536 XPS/OpenXPS exports cover 1,021,440 probes
+per route; MuPDF PDF/SVG differences reach 4/255 and 2/255 without warnings.
+GhostXPS opens 1,408 exports with differences up to 255/255, and crashes on 128
+CMYK strip exports. Lossless arithmetic color/alpha and native Windows acceptance
+remain open.
 
 Standalone arithmetic lossless JPEG supports SOF11 precisions 2–16, all seven
 predictors, point transforms and row-aligned restarts. Shared lossless sample
