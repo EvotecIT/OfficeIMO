@@ -57,12 +57,12 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeSectionWatermark(page, section, options);
             bool hasEvenPageStory = section.DocumentOddEvenSettingEnabled;
 
-            NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default, listMarkers, nativeFontMap);
-            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First, listMarkers, nativeFontMap) : null;
-            NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.Header?.Even, listMarkers, nativeFontMap) : null;
-            NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.Footer?.Default, listMarkers, nativeFontMap);
-            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Footer?.First, listMarkers, nativeFontMap) : null;
-            NativeHeaderFooterText? evenFooter = hasEvenPageStory ? GetNativeHeaderFooterText(section.Footer?.Even, listMarkers, nativeFontMap) : null;
+            NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default, listMarkers, nativeFontMap, options);
+            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First, listMarkers, nativeFontMap, options) : null;
+            NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.Header?.Even, listMarkers, nativeFontMap, options) : null;
+            NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.Footer?.Default, listMarkers, nativeFontMap, options);
+            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Footer?.First, listMarkers, nativeFontMap, options) : null;
+            NativeHeaderFooterText? evenFooter = hasEvenPageStory ? GetNativeHeaderFooterText(section.Footer?.Even, listMarkers, nativeFontMap, options) : null;
             IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.Header?.Default, options, "default header image");
             IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.Header?.First, options, "first header image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = hasEvenPageStory ? GetNativeHeaderFooterImages(section.Header?.Even, options, "even header image") : Array.Empty<NativeHeaderFooterImage>();
