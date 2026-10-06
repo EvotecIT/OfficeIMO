@@ -19,6 +19,7 @@ public sealed class EmailHtmlExportResult {
 }
 
 /// <summary>Creates safe local HTML copies, saving embedded images without downloading remote resources.</summary>
+/// <remarks>The caller selects the output path. Copies retain the body, sender and To recipients; HTML sanitization does not anonymize message content.</remarks>
 public static class EmailHtmlExporter {
     /// <summary>Exports a handle-free message with an operation-scoped full read.</summary>
     public static EmailHtmlExportResult Export(EmailMessage message, string path, bool includeAttachments = false,

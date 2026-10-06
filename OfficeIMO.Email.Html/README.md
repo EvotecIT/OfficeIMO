@@ -13,6 +13,8 @@ Console.WriteLine(copy.AssetsDirectory);
 
 The exporter selects HTML, then RTF, then plain text, removes active content, and blocks remote resources. Embedded attachments are extracted into a fresh companion resource directory, and supported image attributes, responsive sources, and CSS URLs are rewritten through the shared HTML resource policy. `includeAttachments` also saves regular files and adds download links. Extraction results retain original names, logical attachment indexes, byte counts, and hashes.
 
+The copy retains the message body, sender, and To recipients at the path you choose. HTML sanitization does not anonymize message content.
+
 Keep the HTML file and its `.assets-<id>` directory together. HTML commits use an atomic fail-or-replace policy. An overwrite creates a fresh resource directory; earlier resource files survive cancellation or later failures and may be removed when no longer needed. Native email artifacts remain the appropriate choice when original message structure and format-specific metadata matter.
 
 `OfficeIMO.Email.Html` is the optional HTML bridge for `OfficeIMO.Email`. It selects an HTML, RTF, or plain-text body once, applies the shared untrusted HTML policy, indexes CID and content-location resources, and exposes a prepared `HtmlConversionDocument` to renderers and readers.
