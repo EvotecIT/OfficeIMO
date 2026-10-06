@@ -111,7 +111,10 @@ multiple components, percentage-only and amount-only assertions, decimal scale,
 zero rating and exemption. Its rates and classifications are synthetic serialization
 inputs. The `discounted` fixture covers all four discount types, closed and open-ended
 quantity ranges, percentage-only and amount-only values, and explicit zero discount.
-It validates serialization, not trading-partner eligibility or tier calculation. Accessibility fixtures exercise unknown status, publisher contact
+It validates serialization, not trading-partner eligibility or tier calculation.
+The `discount-coded` fixture covers all seven code schemes, named proprietary
+schemes, and structurally formatted BIC and ISNI codes. These synthetic codes do
+not assert allocation, ownership or any actual trade agreement. Accessibility fixtures exercise unknown status, publisher contact
 and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
 declarations, including distinct certifier, credentialling organization, independent
 report, intermediary and compatibility-report roles. Those assertions are synthetic
@@ -137,7 +140,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/withdrawn.onix \
   /path/to/new-onix-evidence/catalog.onix \
   /path/to/new-onix-evidence/taxed.onix \
-  /path/to/new-onix-evidence/discounted.onix
+  /path/to/new-onix-evidence/discounted.onix \
+  /path/to/new-onix-evidence/discount-coded.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

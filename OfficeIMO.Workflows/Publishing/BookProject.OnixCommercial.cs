@@ -107,6 +107,7 @@ public sealed partial class BookProject {
         OnixTerritory territory = price.Territory == null ? market : ReadOnixTerritory(price.Territory);
         if (!market.Covers(territory)) throw new ArgumentException("A price territory cannot extend outside its supply market.", nameof(price));
         var result = new XElement(ns + "Price", new XElement(ns + "PriceType", type),
+            BuildOnixDiscountCodes(price),
             BuildOnixDiscounts(price),
             new XElement(ns + "PriceAmount", price.Amount.ToString(CultureInfo.InvariantCulture)),
             BuildOnixTaxes(price),

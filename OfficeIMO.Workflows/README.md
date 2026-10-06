@@ -327,7 +327,7 @@ recommended, fixed, supplier-net and publisher agency price bases and tax inclus
 Currency codes use ONIX list 96. Price territories default to the declared supply
 market and may narrow it; they cannot broaden it. Optional `ValidFrom` and `ValidUntil`
 dates preserve the supplied effective period and reject a reversed interval.
-Coded discount schemes and overlapping-offer resolution are not supported by this profile.
+Overlapping-offer resolution is not supported by this profile.
 Jurisdiction-specific business rules are not calculated or qualified.
 
 Forthcoming publishing status requires `PublicationDate`; cancelled or indefinitely
@@ -366,6 +366,33 @@ The exporter preserves declaration order. It does not resolve overlapping tiers,
 select a discount, stack declarations, check percentage/amount arithmetic, calculate
 net prices or recalculate taxes. Cumulative periods and purchaser eligibility remain
 trading-partner agreements; price effective dates are not a cumulative-order period.
+
+For trading-partner codes, use `BookOnixPrice.DiscountCodes`:
+
+```csharp
+var codedPrice = new BookOnixPrice {
+    Kind = BookOnixPriceKind.RecommendedExcludingTax,
+    Amount = 10.00m,
+    CurrencyCode = "GBP",
+    DiscountCodes = [new() {
+        Scheme = BookOnixDiscountScheme.ProprietaryDiscount,
+        SchemeName = "Example Press trade terms",
+        Code = "A1"
+    }]
+};
+```
+
+The seven schemes follow [ONIX list 100](https://ns.editeur.org/onix/en/100).
+Proprietary discount and commission schemes require a distinctive `SchemeName`;
+other schemes omit it. Up to 16 codes are retained in supplied order, before numeric
+discounts. Codes and scheme names use the existing 4096-character text limit.
+BIC codes require five ASCII letters followed by one to three alphanumeric
+characters. ISNI-based codes require 15 digits and a final digit or `X`, followed
+by a hyphen and one to three alphanumeric characters. Input is preserved verbatim.
+These checks do not verify ISNI checksums or allocation, BIC prefix ownership,
+local terms-code membership, partner eligibility, or code-to-rate mappings.
+Discount and commission codes keep their distinct scheme values; neither changes
+the price or creates a numeric discount automatically.
 
 Tax-inclusive prices can carry up to 16 explicit `BookOnixTax` components:
 
