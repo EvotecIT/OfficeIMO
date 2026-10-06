@@ -5,11 +5,14 @@ First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tabl
 ## Semantic round trips
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Excel.Html;
 
-using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", readOnly: true);
+using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly
+});
 string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
