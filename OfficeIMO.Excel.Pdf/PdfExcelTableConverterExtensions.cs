@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).CloneForConversion();
+            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).Clone();
             CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForExcel(document, operation, effectiveCancellationToken)
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).CloneForConversion();
+            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).Clone();
             CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForExcel(document, operation, effectiveCancellationToken)
@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfTablesToExcelOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).CloneForConversion();
+            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).Clone();
             operation.CancellationToken = cancellationToken;
             ExcelDocument workbook = ExcelDocument.Create();
             try {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel.Pdf {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(workbookPath)) throw new ArgumentException("Workbook path cannot be empty.", nameof(workbookPath));
-            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).CloneForConversion();
+            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).Clone();
             CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
             if (!workbookStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(workbookStream));
-            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).CloneForConversion();
+            PdfTablesToExcelOptions operation = (options ?? new PdfTablesToExcelOptions()).Clone();
             CancellationToken effectiveCancellationToken = cancellationToken;
             operation.CancellationToken = effectiveCancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel.Pdf {
             options.CancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
                 document,
-                options.MaxRows,
+                options.UseFirstRowAsHeader && options.MaxRows > 0 && options.MaxRows < int.MaxValue ? options.MaxRows + 1 : options.MaxRows,
                 options.MergePageContinuations,
                 options.SuppressRepeatedBodyHeaderRows,
                 options.MaximumContinuationSegments,
@@ -210,13 +210,18 @@ namespace OfficeIMO.Excel.Pdf {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalTableContinuationGroup group = tables[i];
                 PdfCore.PdfLogicalTableExtraction extraction = group.Primary;
+                bool confirmedHeader = options.UseFirstRowAsHeader && !group.Data.Structure.HasHeaderRow && group.Rows.Count > 0;
+                IReadOnlyList<string> columns = confirmedHeader ? group.Rows[0] : group.Columns;
+                IReadOnlyList<IReadOnlyList<string>> rows = confirmedHeader ? group.Rows.Skip(1).ToArray() : group.Rows;
+                int totalRows = group.TotalRowCount - (confirmedHeader ? 1 : 0);
+                if (options.UseFirstRowAsHeader && options.MaxRows > 0) rows = rows.Take(options.MaxRows).ToArray();
                 string requestedTableName = BuildTableName(options.TableNamePrefix, extraction, i);
                 (DataTable dataTable, IReadOnlyList<PdfExcelTableColumnKind> columnKinds, IReadOnlyList<string?> currencyTokens,
                     IReadOnlyList<PdfCore.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
                     IReadOnlyList<bool?> currencyAffixUsesSpacing) = ToDataTable(
                     requestedTableName,
-                    group.Columns,
-                    group.Rows,
+                    columns,
+                    rows,
                     options);
                 ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize);
                 string range = sheet.InsertDataTableAsTable(
@@ -227,7 +232,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ApplyTypedColumnFormats(
                     sheet,
                     dataTable,
-                    group.Rows,
+                    rows,
                     columnKinds,
                     currencyTokens,
                     currencyAffixPositions,
@@ -248,10 +253,10 @@ namespace OfficeIMO.Excel.Pdf {
                     sheet.Name,
                     actualTableName,
                     range,
-                    group.Columns.Count,
-                    group.Rows.Count,
-                    group.TotalRowCount,
-                    group.Truncated,
+                    columns.Count,
+                    rows.Count,
+                    totalRows,
+                    rows.Count < totalRows,
                     group.Segments.Select(static segment => segment.PageNumber).ToArray(),
                     group.Segments.Count,
                     group.SuppressedRepeatedHeaderRows,
@@ -259,7 +264,8 @@ namespace OfficeIMO.Excel.Pdf {
                     columnKinds,
                     currencyTokens,
                     currencyAffixPositions,
-                    currencyAffixUsesSpacing));
+                    currencyAffixUsesSpacing,
+                    confirmedHeader));
             }
 
             return results.AsReadOnly();

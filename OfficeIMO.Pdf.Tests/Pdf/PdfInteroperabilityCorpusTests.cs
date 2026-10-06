@@ -55,7 +55,7 @@ public class PdfInteroperabilityCorpusTests {
                     : PdfRewritePreservationMatrixClassification.RewriteSafe,
                 PreservationOptions = new PdfRewritePreservationOptions {
                     OriginalReadOptions = item.ReadOptions,
-                    PreserveSecurityState = !item.Features.Contains("encrypted", StringComparer.Ordinal)
+                    RewrittenReadOptions = item.ReadOptions
                 }.AllowMetadataChanges("Title")
             }
             .WithSourceFeatures(item.Features.ToArray());

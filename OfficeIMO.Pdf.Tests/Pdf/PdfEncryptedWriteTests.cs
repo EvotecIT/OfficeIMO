@@ -160,7 +160,7 @@ public class PdfEncryptedWriteTests {
         Assert.False(userPreflight.CanFlattenSimpleFormFields);
         Assert.False(userPreflight.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.NotEmpty(userPreflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.False(PdfInspector.Probe(ownerFilled.ToBytes()).HasEncryption);
+        Assert.True(PdfInspector.Probe(ownerFilled.ToBytes()).HasEncryption);
         Assert.Equal("Grace", Assert.Single(ownerFilled.Inspect().FormFields).Value);
     }
 

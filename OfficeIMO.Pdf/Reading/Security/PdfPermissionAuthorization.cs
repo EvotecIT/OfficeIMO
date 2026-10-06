@@ -35,8 +35,10 @@ internal static class PdfPermissionAuthorization {
             case PdfMutationOperation.FillFormFields:
             case PdfMutationOperation.FlattenFormFields:
             case PdfMutationOperation.FillAndFlattenFormFields:
-            case PdfMutationOperation.ModifyAcroForm:
                 return security.AllowsFormFilling == true || security.AllowsModification == true;
+            case PdfMutationOperation.ModifyAcroForm:
+                // ISO 32000-1, Table 22: structural form edits require permission bits 4 and 6.
+                return security.AllowsModification == true && security.AllowsAnnotationChanges == true;
             default:
                 return security.AllowsModification == true;
         }
