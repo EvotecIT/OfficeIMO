@@ -196,6 +196,11 @@ boundary within the recorded inter-sentence silence while retaining both cue IDs
 a list sequence and a containing section sequence. `read-aloud-nested-revised.epub`
 updates its timing through nested replacement, preserving sequence and cue IDs.
 Reader skipping and escaping remain separate native acceptance checks.
+`read-aloud-svg.epub` and `read-aloud-inline-svg.epub` pair the same recording with
+SVG text targets and a group sequence, including a timing replacement. They cover
+standalone SVG and SVG inside XHTML respectively. Ace 1.4.6 does not inspect the
+standalone SVG spine page; keep that coverage gap separate from EPUBCheck results
+and native highlighting/playback acceptance.
 
 `merged-chapters.epub` merges those split reading positions back into one resource,
 retaining both TOC entries and repairing the incoming reference. Check its chapter

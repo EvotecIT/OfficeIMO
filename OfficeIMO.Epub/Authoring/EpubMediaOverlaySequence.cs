@@ -1,6 +1,6 @@
 namespace OfficeIMO.Epub;
 
-/// <summary>A nested narration sequence whose children target descendants of one XHTML element.</summary>
+/// <summary>A nested narration sequence whose children target descendants of one XHTML or SVG element.</summary>
 public sealed class EpubMediaOverlaySequence : EpubMediaOverlayNode {
     /// <summary>Creates a sequence with a snapshot of one to 10,000 ordered child nodes.</summary>
     public EpubMediaOverlaySequence(string elementId, IReadOnlyList<EpubMediaOverlayNode> children) : base(elementId) {

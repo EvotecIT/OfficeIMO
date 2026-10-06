@@ -19,9 +19,9 @@ public sealed partial class EpubPublication {
                 token.ThrowIfCancellationRequested();
                 if (++count > 10000) throw new ArgumentException("An overlay supports at most 10,000 total nodes.", nameof(overlay));
                 if (node == null || node.ElementId.Length == 0 || node.ElementId.Length > 1024 ||
-                    !targets.TryGetValue(node.ElementId, out XElement? target) || target.Name.Namespace != Html || !seen.Add(node.ElementId) ||
+                    !targets.TryGetValue(node.ElementId, out XElement? target) || !IsNarratableElement(target) || !seen.Add(node.ElementId) ||
                     !(target.Ancestors().Contains(parentTarget) || depth == 0 && target == body))
-                    throw new InvalidDataException("Narration nodes require distinct XHTML targets contained by their parent sequence.");
+                    throw new InvalidDataException("Narration nodes require distinct supported content targets contained by their parent sequence.");
                 string? semantic = OverlaySemantic(node.Semantic);
                 XElement element;
                 if (node is EpubMediaOverlayCue cue) {

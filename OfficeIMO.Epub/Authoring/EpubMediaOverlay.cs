@@ -1,6 +1,6 @@
 namespace OfficeIMO.Epub;
 
-/// <summary>Bounded ordered narration for one XHTML document. Audio is retained, not decoded.</summary>
+/// <summary>Bounded ordered narration for one XHTML or SVG document. Audio is retained, not decoded.</summary>
 public sealed class EpubMediaOverlay {
     /// <summary>One to 10,000 cues in playback order. Text targets must be distinct and in document order.</summary>
     public IReadOnlyList<EpubMediaOverlayCue> Cues { get; set; } = Array.Empty<EpubMediaOverlayCue>();

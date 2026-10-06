@@ -1,6 +1,6 @@
 namespace OfficeIMO.Epub;
 
-/// <summary>One narrated XHTML element and an explicit interval in a retained audio resource.</summary>
+/// <summary>One narrated XHTML or SVG element and an explicit interval in a retained audio resource.</summary>
 public sealed class EpubMediaOverlayCue : EpubMediaOverlayNode {
     /// <summary>Creates a cue. Targets and timings are checked when the overlay is added.</summary>
     public EpubMediaOverlayCue(string elementId, string audioManifestId, TimeSpan clipBegin, TimeSpan clipEnd) : base(elementId) {

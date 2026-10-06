@@ -3,7 +3,7 @@ namespace OfficeIMO.Epub;
 /// <summary>A text-associated narration cue or nested sequence.</summary>
 public abstract class EpubMediaOverlayNode {
     internal EpubMediaOverlayNode(string elementId) => ElementId = elementId ?? throw new ArgumentNullException(nameof(elementId));
-    /// <summary>Existing unqualified id of an XHTML body element.</summary>
+    /// <summary>Existing unqualified id of an XHTML body element or a supported SVG element.</summary>
     public string ElementId { get; }
     /// <summary>Optional structural meaning offered to reading systems for skipping or escaping.</summary>
     public EpubMediaOverlaySemantic? Semantic { get; set; }

@@ -8,7 +8,7 @@ public sealed partial class EpubPublication {
     private static readonly XNamespace Smil = "http://www.w3.org/ns/SMIL";
 
     /// <summary>
-    /// Atomically adds ordered SMIL narration for one XHTML document, its manifest association,
+    /// Atomically adds ordered SMIL narration for one XHTML or SVG document, its manifest association,
     /// and exact clip-sum duration metadata. Existing overlays are never replaced. Audio durations
     /// are caller declarations; encoded audio and reading-system playback require independent validation.
     /// </summary>
@@ -52,8 +52,10 @@ public sealed partial class EpubPublication {
         string contentPath = RequireLocalPath(contentItem);
         if (Manifest.Count(item => item.Reference.ContainerPath == contentPath) != 1)
             throw new InvalidDataException("Media-overlay authoring requires a uniquely declared content resource.");
-        XDocument content = EditableXhtml(contentItem.Id);
-        XElement body = content.Root!.Element(Html + "body") ?? throw new InvalidDataException("Content has no XHTML body.");
+        XDocument content = EditableOverlayContent(contentItem);
+        XElement body = content.Root!.Name == Html + "html"
+            ? content.Root.Element(Html + "body") ?? throw new InvalidDataException("Content has no XHTML body.")
+            : content.Root;
         EpubContentIdentifiers.Collect(content.Root, contentPath, rejectDuplicates: true, cancellationToken);
         if (overlay.AudioDurations == null || overlay.AudioDurations.Count > 10000)
             throw new ArgumentException("Audio duration declarations are required and limited to 10,000 resources.", nameof(overlay));
@@ -72,12 +74,9 @@ public sealed partial class EpubPublication {
             EpubMediaOverlayCue cue = node.Cue;
             cancellationToken.ThrowIfCancellationRequested();
             if (cue == null || cue.ElementId.Length == 0 || cue.ElementId.Length > 1024 ||
-                !targets.TryGetValue(cue.ElementId, out var target) || target.Element.Name.Namespace != Html ||
+                !targets.TryGetValue(cue.ElementId, out var target) ||
                 target.Index <= previousIndex || previousTarget != null && target.Element.Ancestors().Contains(previousTarget))
-                throw new InvalidDataException("Cue targets must be distinct, non-nested XHTML body elements in document order.");
-            if (new[] { "script", "style", "link", "meta", "template" }.Contains(target.Element.Name.LocalName) ||
-                target.Element.Ancestors(Html + "template").Any())
-                throw new InvalidDataException("A narration cue must select body content.");
+                throw new InvalidDataException("Cue targets must be distinct, non-nested content elements in document order.");
             if (!overlay.AudioDurations.TryGetValue(cue.AudioManifestId, out TimeSpan audioDuration) || audioDuration <= TimeSpan.Zero ||
                 cue.ClipBegin < TimeSpan.Zero || cue.ClipEnd <= cue.ClipBegin || cue.ClipEnd > audioDuration)
                 throw new ArgumentException("Each clip requires 0 <= begin < end <= the declared positive audio duration.", nameof(overlay));

@@ -77,7 +77,7 @@ public sealed partial class EpubPublication {
         RequireOverlayShape(sequence, Smil + "seq", new[] { Ops + "textref" }, null);
         EpubReference sequenceTarget = EpubReference.Resolve(path, (string?)sequence.Attribute(Ops + "textref") ?? string.Empty);
         if (sequenceTarget.Kind != EpubReferenceKind.Container || sequenceTarget.ContainerPath != contentPath || sequenceTarget.Fragment != null)
-            throw new NotSupportedException("The overlay sequence must target its associated whole XHTML document.");
+            throw new NotSupportedException("The overlay sequence must target its associated whole content document.");
         var result = new Dictionary<string, string?>(StringComparer.Ordinal);
         int nodeCount = 0;
         void ReadNodes(XElement parent, int depth) {

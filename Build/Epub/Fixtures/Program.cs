@@ -53,6 +53,8 @@ WriteFixture("read-aloud", MediaOverlayFixture.Create());
 WriteFixture("read-aloud-revised", MediaOverlayFixture.Revised());
 WriteFixture("read-aloud-nested", MediaOverlayFixture.Nested());
 WriteFixture("read-aloud-nested-revised", MediaOverlayFixture.Nested(true));
+WriteFixture("read-aloud-svg", SvgNarrationFixture.Create(false));
+WriteFixture("read-aloud-inline-svg", SvgNarrationFixture.Create(true));
 WriteFixture("fixed-layout-svg", SvgPageFixture.Create());
 WriteFixture("fixed-layout-escaped-id", FixedLayoutFixture.EscapedIdentifier());
 WriteFixture("fixed-layout-item-overrides", FixedLayoutFixture.Create(false, false));

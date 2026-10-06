@@ -336,7 +336,7 @@ DOCX and Markdown composition and editable book projects belong to
 
 ### Read-aloud narration
 
-`AddMediaOverlay` adds an EPUB 3 SMIL overlay for one existing XHTML document.
+`AddMediaOverlay` adds an EPUB 3 SMIL overlay for one existing XHTML or SVG document.
 Add the audio resource first, then supply ordered cues and the measured duration
 of each audio file:
 
@@ -359,7 +359,7 @@ rounding. Each clip must satisfy `0 <= begin < end <= audio duration`. Audio dur
 are caller declarations; OfficeIMO does not decode the media to verify them.
 
 This profile accepts 1–10,000 narration nodes and local, nonempty, unencrypted `audio/mpeg`
-or `audio/mp4` resources. Targets use existing unqualified XHTML body element ids,
+or `audio/mp4` resources. Targets use existing unqualified XHTML body or supported SVG element ids,
 are distinct and non-nested, and follow document order. Clips can select different
 files or reuse portions of a file; their list order determines playback. Narration
 may cover only part of a chapter. An existing overlay is never overwritten.
@@ -368,7 +368,7 @@ expressible exactly as a `TimeSpan`, before the publication total can be recalcu
 
 For structured narration, supply `Nodes` instead of `Cues`. An
 `EpubMediaOverlaySequence(elementId, children)` groups cues and child sequences under
-an existing XHTML container. Children must target descendants of that container;
+an existing XHTML or SVG container. Children must target descendants of that container;
 leaf cues still follow document order. The whole tree is limited to 10,000 nodes
 and 32 nested sequences. Empty sequences, duplicate targets, and simultaneous
 `Cues` and `Nodes` are rejected.
@@ -395,8 +395,22 @@ unchanged. Other retained renditions must not depend on the replaced resource.
 Use `SetMetadataProperty("media:active-class", "narration-active")` with a matching
 CSS class in every narrated document for active-text styling. Validate the final
 EPUB with EPUBCheck and check synchronization, highlighting, seeking and pause/resume
-in target reading systems. General SMIL editing, SVG narration, synthesized speech
-and playback are outside this authoring profile.
+in target reading systems. General SMIL editing, synthesized speech and playback
+are outside this authoring profile.
+
+SVG targets can belong to a standalone SVG document or inline SVG within an XHTML
+body. Supported targets include SVG text, text spans, paths, basic shapes, images,
+`use` elements and the `svg`, `g`, `a` and `switch` containers. Targets inside
+`defs`, symbols, clipping/masking/filter definitions, metadata, titles/descriptions
+or `foreignObject` are rejected, as are animation elements. Reference the rendered
+`use` element instead of its symbol definition. Nested sequences must still contain
+their child targets, and cue order follows DOM order, not visual coordinates.
+
+The writer preserves SVG content and does not infer CSS visibility, select `switch`
+branches, expand `use` instances or establish accessible reading order. Active-text
+CSS must style the chosen SVG target. Qualify highlighting, scaling and playback in
+the intended readers. Ace 1.4.6 skips standalone SVG spine documents; its result does
+not provide accessibility coverage for those pages.
 
 ### Fixed-layout XHTML pages
 
