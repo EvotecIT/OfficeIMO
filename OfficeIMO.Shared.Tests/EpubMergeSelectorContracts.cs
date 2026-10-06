@@ -28,10 +28,12 @@ public sealed class EpubMergeSelectorContracts {
         Assert.Equal("shared.css", (string?)reopened.GetContentXml("three").Descendants(Html + "link").Single().Attribute("href"));
         var merged = reopened.GetContentXml("one");
         Assert.Equal(new[] { "heading", "second.heading" }, merged.Descendants(Html + "h1").Attributes("id").Select(a => a.Value));
-        Assert.Equal(new[] { "shared.css", "merge-style-1.css" }, merged.Descendants(Html + "link").Attributes("href").Select(a => a.Value));
-        Assert.Equal("@import url(\"nested/merge-style-2.css\") screen; /* keep */ #second\\2e heading/**/.lead { color: navy; }",
-            Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-1")));
-        string clonedChild = Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-2"));
+        Assert.Equal(new[] { "merge-style-1.css", "merge-style-3.css" }, merged.Descendants(Html + "link").Attributes("href").Select(a => a.Value));
+        Assert.Equal("@import url(\"nested/merge-style-4.css\") screen; /* keep */ #second\\2e heading/**/.lead { color: navy; }",
+            Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-3")));
+        Assert.Contains("#heading/**/.lead", Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-1")));
+        Assert.Contains("[id='heading']", Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-2")));
+        string clonedChild = Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-4"));
         Assert.Contains("selector(:is(#second\\2e heading))", clonedChild);
         Assert.Contains("[id=\"second\\2e heading\"]", clonedChild);
         Assert.Contains("content: '#heading'", clonedChild);
@@ -105,7 +107,7 @@ public sealed class EpubMergeSelectorContracts {
         byte[] before = book.Write().Bytes;
         Assert.Throws<ArgumentException>(() => book.MergeChapters("one", "two", "boundary", options));
         Assert.Equal(before, book.Write().Bytes);
-        options.StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles; options.RewriteSecondChapterIdSelectors = false;
+        options.StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles; options.RewriteChapterSelectors = false;
         book.MergeChapters("one", "two", "boundary", options);
         Assert.Equal("#heading {color:green}", book.GetContentXml("one").Descendants(Html + "style").Single().Value);
     }
@@ -144,7 +146,7 @@ public sealed class EpubMergeSelectorContracts {
         return book;
     }
     private static EpubChapterMergeOptions Options() => new() {
-        StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteSecondChapterIdSelectors = true,
+        StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteChapterSelectors = true,
         SecondChapterIdMap = new Dictionary<string, string> { ["heading"] = "second.heading" }
     };
     private static void AddStyle(EpubPublication book, string chapter, string css) {

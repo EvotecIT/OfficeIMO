@@ -29,7 +29,7 @@ internal static class MergeRelationshipsFixture {
             """));
         book.SetContentXml("two", second);
         book.MergeChapters("one", "two", "second-start", new EpubChapterMergeOptions {
-            StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteSecondChapterIdSelectors = true,
+            StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteChapterSelectors = true,
             SecondChapterIdMap = new Dictionary<string, string> { ["heading"] = "second-heading", ["column"] = "second-column" }
         });
         book.SetAccessibilityMetadata(new EpubAccessibilityMetadata {

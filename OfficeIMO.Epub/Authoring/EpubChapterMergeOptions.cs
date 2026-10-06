@@ -14,18 +14,19 @@ public sealed class EpubChapterMergeOptions {
     /// <summary>
     /// Explicit replacements for second-chapter body identifiers, excluding shared merge containers.
     /// Fragment URLs and document-local relationships are repaired. CSS selectors remain unchanged unless
-    /// RewriteSecondChapterIdSelectors is enabled. Fragment-only URLs in retained
+    /// RewriteChapterSelectors is enabled. Fragment-only URLs in retained
     /// stylesheets naming changed IDs are rejected as ambiguous. At most 10,000 replacements.
     /// </summary>
     public IReadOnlyDictionary<string, string> SecondChapterIdMap { get; set; } = new Dictionary<string, string>();
-    /// <summary>Rewrite second-chapter ID selectors using the identifier map, retaining private copies of linked
-    /// stylesheets and their imports. Requires AppendSecondStyles. Supports hash and exact id attribute selectors
+    /// <summary>Repair selectors in both source chapters, applying the identifier map only to the second chapter
+    /// and retaining separate private copies of each chapter's linked stylesheets and imports.
+    /// Requires AppendSecondStyles. Supports hash and exact id attribute selectors
     /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
     /// values are preserved. Exact and whitespace-token selectors on document-local relationships follow actual
     /// attribute changes. Exact and presence selectors on resource-bearing attributes follow rebased URLs and final
     /// stylesheet clone paths, including merges without identifier replacements. Ambiguous replacements, partial
     /// URL matches and unsupported syntax fail atomically. Reader support for nested CSS remains independent.</summary>
-    public bool RewriteSecondChapterIdSelectors { get; set; }
+    public bool RewriteChapterSelectors { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }
 }

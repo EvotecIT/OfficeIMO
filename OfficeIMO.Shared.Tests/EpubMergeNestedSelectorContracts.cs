@@ -77,7 +77,7 @@ public sealed class EpubMergeNestedSelectorContracts {
         return book;
     }
     private static EpubChapterMergeOptions Options() => new() {
-        StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteSecondChapterIdSelectors = true,
+        StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteChapterSelectors = true,
         SecondChapterIdMap = new Dictionary<string, string> { ["heading"] = "second-heading" }
     };
     private static void AddStyles(EpubPublication book, string css, bool external) {

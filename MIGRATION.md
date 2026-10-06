@@ -1,5 +1,14 @@
 # Upgrading OfficeIMO
 
+## EPUB chapter selector reconciliation
+
+Replace `EpubChapterMergeOptions.RewriteSecondChapterIdSelectors` with
+`RewriteChapterSelectors`. The option repairs reference-attribute selectors in both
+source chapters; the identifier map still applies only to the second chapter.
+Linked stylesheets receive separate private copies for each chapter, so merges may
+use more entries and retained bytes. Keep `AppendSecondStyles` explicit, and handle
+atomic rejection when first-chapter selectors are ambiguous or unsupported.
+
 ## Book project revision storage
 
 `BookProject.ToProjectBytes()` writes version-2 `.oibook` files, including named

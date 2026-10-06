@@ -94,7 +94,7 @@ public sealed class EpubMergeResourceSelectorContracts {
         return book;
     }
     private static EpubChapterMergeOptions Options(bool renameIds = true) => new() {
-        StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteSecondChapterIdSelectors = true,
+        StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteChapterSelectors = true,
         SecondChapterIdMap = renameIds ? new Dictionary<string, string> { ["heading"] = "second-heading" } : new Dictionary<string, string>()
     };
     private static void AddStyle(EpubPublication book, string css) {

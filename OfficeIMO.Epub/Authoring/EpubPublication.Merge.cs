@@ -19,7 +19,7 @@ public sealed partial class EpubPublication {
         EpubChapterMergeStylePolicy stylePolicy = options.StylePolicy;
         if (stylePolicy != EpubChapterMergeStylePolicy.RequireEquivalent && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
             throw new ArgumentOutOfRangeException(nameof(options.StylePolicy));
-        if (options.RewriteSecondChapterIdSelectors && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
+        if (options.RewriteChapterSelectors && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
             throw new ArgumentException("Selector reconciliation requires AppendSecondStyles.", nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
         RequireText(boundaryId, nameof(boundaryId)); XmlConvert.VerifyNCName(boundaryId);
@@ -44,7 +44,9 @@ public sealed partial class EpubPublication {
         foreach (XAttribute id in second.Root.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")) shared.Add(id.Value);
         var idMap = PrepareMergeIdentifierMap(second.Root, firstIds, secondIds, shared, boundaryId, options.SecondChapterIdMap, cancellationToken);
         VerifyMergeStylesheetFragments(idMap, cancellationToken);
-        var relationshipAttributes = options.RewriteSecondChapterIdSelectors ?
+        var firstRelationshipAttributes = options.RewriteChapterSelectors ?
+            CaptureMergeRelationshipAttributes(first.Root, cancellationToken) : null;
+        var secondRelationshipAttributes = options.RewriteChapterSelectors ?
             CaptureMergeRelationshipAttributes(second.Root, cancellationToken) : null;
         ApplyMergeIdentifierMap(second.Root, idMap, cancellationToken);
         VerifyMergeLocalReferences(second.Root, shared, secondPath, cancellationToken);
@@ -54,8 +56,11 @@ public sealed partial class EpubPublication {
             (reference.ContainerPath!, reference.Fragment);
         RewriteMovedXml(first, firstPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
         RewriteMovedXml(second, secondPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
-        MergeSelectorStyles selectorStyles = options.RewriteSecondChapterIdSelectors ?
-            PrepareMergeSelectors(second, firstPath, idMap, Map, relationshipAttributes!, cancellationToken) : new MergeSelectorStyles();
+        var selectorStyles = new MergeSelectorStyles();
+        if (options.RewriteChapterSelectors) {
+            PrepareMergeSelectors(first, firstPath, new Dictionary<string, string>(), Map, firstRelationshipAttributes!, selectorStyles, cancellationToken);
+            PrepareMergeSelectors(second, firstPath, idMap, Map, secondRelationshipAttributes!, selectorStyles, cancellationToken);
+        }
         if (!SameMergeAttributes(first.Root, second.Root) || !SameMergeAttributes(firstBody, secondBody))
             throw new NotSupportedException("Root/body attributes resolve differently after reference repair; resolve their styling and semantics before merging.");
         XElement firstHead = first.Root.Element(Html + "head")!, secondHead = second.Root.Element(Html + "head")!;

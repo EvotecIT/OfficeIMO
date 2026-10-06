@@ -37,7 +37,7 @@ internal static class MergeSelectorsFixture {
             """ : "@media screen { #heading[id='heading'].lead { color:#185b3a } }"));
         book.SetContentXml("two", second);
         book.MergeChapters("one", "two", "second-start", new EpubChapterMergeOptions {
-            StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteSecondChapterIdSelectors = true,
+            StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles, RewriteChapterSelectors = true,
             SecondChapterIdMap = new Dictionary<string, string> { ["heading"] = "second-heading" }
         });
         book.SetAccessibilityMetadata(new EpubAccessibilityMetadata {

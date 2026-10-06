@@ -270,7 +270,7 @@ qualification of the original bytes.
 `merge-selectors.epub` merges two chapters with colliding heading IDs and shared
 stylesheets. The second heading receives a new ID and green styling; the first and
 unmerged third headings remain blue. Verify all three borders and the links between
-chapters. The merged chapter uses private copies of the second chapter's stylesheet
+chapters. The merged chapter uses separate private copies of each chapter's stylesheet
 and import; the third chapter retains the original stylesheet paths.
 
 `merge-nested-selectors.epub` exercises the same colors, borders and links with
@@ -279,9 +279,10 @@ custom property `--heading-data` retains its literal `#heading` value. Assess va
 acceptance and reader support separately; the writer preserves nesting rather than
 flattening these rules.
 EPUBCheck 5.4.0 reports `CSS-008` for this fixture's nested media rule and
-custom-property block syntax. Ace 1.4.6 passes its automated checks, and browser
-inspection confirms the expected styles and literal custom-property value. These
-results do not qualify the nested fixture for EPUBCheck-gated delivery or native readers.
+custom-property block syntax. Ace 1.4.6 passes its automated checks. Verify the
+expected styles and literal custom-property value separately in reading systems;
+automated checks do not qualify the nested fixture for EPUBCheck-gated delivery
+or native readers.
 
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
@@ -327,6 +328,8 @@ native preflight and source-preservation checks.
 and repairs exact selectors for local links, citation URLs and an image source.
 The first and third local links are blue; the second local link and quotation are
 green. Local links retain three-pixel bottom borders, and the image retains its
-four-pixel green border. Follow the third-chapter link and return to the renamed
-second heading. Shared CSS imports are privately cloned. These are expected reader
+four-pixel green border. The first chapter's forward link remains brown with a
+two-pixel dotted border after its target is repaired. Follow the third-chapter link
+and return to the renamed second heading. Shared CSS imports receive separate
+private copies for both chapters. These are expected reader
 checks; passing native preflight or an independent validator does not prove rendering.

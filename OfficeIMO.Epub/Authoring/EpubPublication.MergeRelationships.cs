@@ -25,7 +25,7 @@ public sealed partial class EpubPublication {
         return result;
     }
 
-    // Preserve attribute-selector truth over the second document, including foreign vocabulary and
+    // Preserve attribute-selector truth over each source document, including foreign vocabulary and
     // ordinary name/for attributes that the content rewriter intentionally leaves unchanged.
     private sealed class MergeRelationshipSelectors {
         private static readonly char[] Separators = { ' ', '\t', '\r', '\n', '\f' };
