@@ -148,7 +148,9 @@ namespace OfficeIMO.Word.Pdf {
                 double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
                     style.PreferredWidth = preferredWidth.Value;
-                    style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns;
+                    // Separate-border tables retain their existing spacing
+                    // policy until their outer and cell frames are resolved.
+                    style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns && style.CellSpacing <= 0D;
                     style.PreserveWidth = true;
                 }
             }

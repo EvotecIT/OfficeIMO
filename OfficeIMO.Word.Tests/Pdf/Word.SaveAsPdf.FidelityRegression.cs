@@ -401,7 +401,9 @@ public partial class Word {
 
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Issued 2020-01-02 approved", pdfText);
-        Assert.Contains("Cell date 2020-01-03 done", pdfText);
+        // The authored narrow cell can wrap its field and following text.
+        string normalizedText = string.Join(" ", pdfText.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("Cell date 2020-01-03 done", normalizedText);
     }
 
     [Fact]

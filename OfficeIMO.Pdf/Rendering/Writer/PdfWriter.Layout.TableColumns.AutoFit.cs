@@ -157,6 +157,12 @@ internal static partial class PdfWriter {
 
         var preferredWidths = new double[cols];
         var minimumWidths = new double[cols];
+        var importedSpanMinimums = new System.Collections.Generic.List<(int Column, int Span, double Width)>();
+        if (style.AutoFitWidthUsesContentMinimum) {
+            for (int column = 0; column < cols; column++)
+                minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
+                    "Table minimum column widths must be positive finite values.") ?? 0D;
+        }
         var normalFont = ToOfficeFontInfo(ChooseNormal(options.DefaultFont), fontSize);
         var measurer = OfficeIMO.Drawing.OfficeTextMeasurer.Create(normalFont);
         bool useLargeDenseTechnicalTable = table.Rows.Count >= 100 && cols >= 6;
@@ -203,10 +209,11 @@ internal static partial class PdfWriter {
                     double wordWidth = MeasureImportedTableMinimumTextWidth(cell, rowStandardFont, rowSize, options);
                     // Subtracting the padding again during layout must not
                     // round the inner width below the measured word width.
-                    double minimum = Math.Max(1D, Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding + .001D) / cell.ColumnSpan;
-                    for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols; c++)
-                        minimumWidths[c] = Math.Max(minimumWidths[c], Math.Max(minimum,
-                            GetOptionalColumnWidth(style.ColumnMinWidthPoints, c, "Table minimum column widths must be positive finite values.") ?? 0D));
+                    double minimum = Math.Max(1D, Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding + .001D);
+                    if (cell.ColumnSpan == 1)
+                        minimumWidths[cell.Column] = Math.Max(minimumWidths[cell.Column], minimum);
+                    else
+                        importedSpanMinimums.Add((cell.Column, cell.ColumnSpan, minimum));
                     continue;
                 }
                 double tokenWidth = 0D;
@@ -303,6 +310,20 @@ internal static partial class PdfWriter {
             }
         }
 
+        // A merged cell constrains the sum of its columns. Apply it after
+        // single-column minima so unequal authored grids grow only by a deficit.
+        foreach (var span in importedSpanMinimums) {
+            int endColumn = Math.Min(cols, span.Column + span.Span);
+            double available = 0D;
+            for (int column = span.Column; column < endColumn; column++)
+                available += minimumWidths[column];
+            double deficit = span.Width - available - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing;
+            if (deficit <= 0D) continue;
+            for (int column = span.Column; column < endColumn; column++)
+                minimumWidths[column] += available > 0D
+                    ? deficit * minimumWidths[column] / available
+                    : deficit / (endColumn - span.Column);
+        }
         return new AutoFitTableMeasurements(profiles, preferredWidths, minimumWidths);
     }
 

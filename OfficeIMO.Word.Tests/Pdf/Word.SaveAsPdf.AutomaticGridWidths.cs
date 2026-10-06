@@ -63,6 +63,68 @@ public partial class Word {
             $"No-wrap text exceeds the page's right content edge: {letter.BoundingBox.Right}"));
     }
 
+    [Theory]
+    [InlineData("left")]
+    [InlineData("right")]
+    [InlineData("first")]
+    public void SaveAsPdf_AutomaticNoWrapCellIncludesParagraphIndentsInItsFrame(string indent) {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0];
+        cell.WrapText = false;
+        WordParagraph paragraph = cell.Paragraphs[0];
+        paragraph.Text = new string('W', 40);
+        if (indent == "left") paragraph.IndentationBeforePoints = 36;
+        else if (indent == "right") paragraph.IndentationAfterPoints = 36;
+        else paragraph.IndentationFirstLinePoints = 36;
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(40, letters.Count(letter => letter.Value == "W"));
+        Assert.Equal(2, letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count());
+        Assert.All(letters, letter => Assert.True(letter.BoundingBox.Right <= 540D));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_AutomaticGridUsesHyphenBreaksAcrossStyledRuns(bool styledRuns) {
+        using WordDocument document = WordDocument.Create();
+        WordTableCell cell = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0];
+        string text = string.Concat(Enumerable.Repeat("part-", 12)) + "end";
+        cell.Paragraphs[0].Text = styledRuns ? text.Substring(0, 27) : text;
+        if (styledRuns) cell.Paragraphs[0].AddText(text.Substring(27)).Bold = true;
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(text, string.Concat(letters.Select(letter => letter.Value)));
+        Assert.True(letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().Count() >= 4);
+        Assert.All(letters, letter => Assert.True(letter.BoundingBox.Right <= 192D));
+    }
+
+    [Theory]
+    [InlineData(18, 80D)]
+    [InlineData(24, 94D)]
+    public void SaveAsPdf_AutomaticUnequalGridGrowsOnlyByItsSpanningCellDeficit(int characters, double expectedGap) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateAutomaticWidthControl(document, 1600, 3200);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Span0";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "Span1";
+        WordTableRow row = table.AddRow();
+        row.Cells[0].MergeHorizontally(1);
+        WordTableCell cell = row.Cells[0];
+        cell.Width = 0; cell.WidthType = WordTableWidthUnit.Auto;
+        cell.Paragraphs[0].Text = new string('W', characters);
+        cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
+        table.GridColumnWidth = new List<int> { 1600, 3200 };
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double gap = Assert.Single(words, word => word.Text == "Span1").BoundingBox.Left -
+            Assert.Single(words, word => word.Text == "Span0").BoundingBox.Left;
+        Assert.InRange(gap, expectedGap, expectedGap + 1D);
+        Assert.Contains(words, word => word.Text == new string('W', characters));
+    }
+
     private static WordTable CreateAutomaticWidthControl(WordDocument document, params int[] gridTwips) {
         WordTable table = document.AddTable(1, gridTwips.Length);
         table.ConditionalFormattingFirstRow = false;
