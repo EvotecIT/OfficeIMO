@@ -17,7 +17,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double height = style.ExplicitHeight.Value;
             extent = style.BorderBox ? height - style.VerticalInsets : height;
         } else {
-            double? containingHeight = ResolveContainingBlockHeight(parentStyle);
+            // A table cell's authored height is a row minimum. It must not
+            // truncate an auto-height orthogonal child while measuring the row;
+            // keep the cell's height available for percentage-sized descendants.
+            double? containingHeight = parentStyle.SemanticRole is "table-cell" or "table-header"
+                ? null
+                : ResolveContainingBlockHeight(parentStyle);
             double surfaceHeight = containingHeight ?? (_options.Mode == HtmlRenderMode.Paged
                 ? _activePageGeometry.ContentHeight
                 : (_options.ViewportHeight ?? fallback) - _options.Margins.Top - _options.Margins.Bottom);

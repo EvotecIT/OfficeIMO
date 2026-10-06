@@ -8,13 +8,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle style,
         int depth) {
-        // A cell's authored height is a minimum for the row, not a definite
-        // containing height for its children. Orthogonal inline blocks must
-        // be able to expand the row before their own height limit is applied.
-        if (style.ExplicitHeight.HasValue) {
-            style = style.Clone();
-            style.ExplicitHeight = null;
-        }
         if (!HasBlockChildren(cell, contentWidth, style, depth)) {
             return LayoutInlineNodes(cell.ChildNodes, contentWidth, style, depth, null, cell);
         }
