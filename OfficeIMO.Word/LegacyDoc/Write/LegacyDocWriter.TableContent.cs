@@ -193,7 +193,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         } else {
                             paragraphFormatting = tableDepth == 1
                                 ? paragraphFormatting.WithTableMarkers(isTableTerminatingParagraph: false)
-                                : paragraphFormatting.WithNestedTableMarkers(tableDepth);
+                                : paragraphFormatting.WithNestedTableMarkers(tableDepth, isCellTerminator: false);
                             text.Append('\r');
                             AddParagraphMarkRunFormatting(runs, text.Length - 1, paragraphMarkFormatting);
                             paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));

@@ -1467,7 +1467,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
-        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false) {
+        /// <summary>Marks nested cell and row endings while retaining ordinary paragraphs at the same table depth.</summary>
+        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false, bool isCellTerminator = true) {
             if (tableDepth <= 1) {
                 throw new ArgumentOutOfRangeException(nameof(tableDepth), "Nested DOC table markers require a table depth greater than 1.");
             }
@@ -1527,7 +1528,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 outlineLevel: OutlineLevel,
                 tableDepth: tableDepth,
-                hasInnerTableCellMarker: true,
+                hasInnerTableCellMarker: isCellTerminator && !isInnerTableTerminatingParagraph,
                 hasInnerTableTerminatingParagraphMarker: isInnerTableTerminatingParagraph,
                 lineSpacingIsMultiple: LineSpacingIsMultiple);
         }

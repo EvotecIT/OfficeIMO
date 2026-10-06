@@ -230,4 +230,36 @@ public partial class Word {
             bytes = restored.ToBytes(WordFileFormat.Doc);
         }
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void LegacyDoc_NestedTableKeepsMultipleParagraphsWithinTheirCells(int storyKind) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("BODY");
+        source.AddHeadersAndFooters();
+        WordTable outer = storyKind == 0 ? source.AddTable(1, 1, WordTableStyle.TableNormal)
+            : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 1, WordTableStyle.TableNormal);
+        WordTable nested = outer.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableNormal);
+        for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
+            WordTableCell cell = nested.Rows[row].Cells[column];
+            cell.Paragraphs[0].Text = $"CELL{row}{column}";
+            cell.AddParagraph("SECOND");
+        }
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        for (int cycle = 0; cycle < 2; cycle++) {
+            using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
+            WordTable restoredOuter = storyKind == 0 ? Assert.Single(restored.Tables)
+                : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.Header.Default : restored.Footer.Default).Tables);
+            WordTable restoredNested = Assert.Single(restoredOuter.Rows[0].Cells[0].NestedTables);
+            Assert.Equal(2, restoredNested.Rows.Count);
+            for (int row = 0; row < 2; row++) {
+                Assert.Equal(2, restoredNested.Rows[row].Cells.Count);
+                for (int column = 0; column < 2; column++) Assert.Equal(new[] { $"CELL{row}{column}", "SECOND" },
+                    restoredNested.Rows[row].Cells[column].Paragraphs.Select(paragraph => paragraph.Text));
+            }
+            bytes = restored.ToBytes(WordFileFormat.Doc);
+        }
+    }
 }
