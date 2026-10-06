@@ -40,11 +40,17 @@ public sealed partial class BookProject {
             var languages = new HashSet<string>(StringComparer.Ordinal);
             foreach (var note in restriction.Notes) {
                 token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(note);
-                RequireOnixRestrictionText(note.Text, 300, ref budget);
+                if (!Enum.IsDefined(note.Format)) throw new ArgumentOutOfRangeException(nameof(note.Format));
+                bool xhtml = note.Format == BookOnixCollateralTextFormat.Xhtml;
+                RequireOnixRestrictionText(note.Text, xhtml ? 4096 : 300, ref budget);
+                XElement? fragment = xhtml ? ReadOnixXhtmlFragment(note.Text, token) : null;
+                if (fragment != null && fragment.Value.Length > 300)
+                    throw new ArgumentException("Decoded restriction notes cannot exceed 300 UTF-16 code units.", nameof(restrictions));
                 RequireOnixTranslationLanguage(note.LanguageCode, restriction.Notes.Count, nameof(restriction.Notes));
                 if (!languages.Add(note.LanguageCode ?? string.Empty)) throw new ArgumentException("Restriction note languages must be distinct.", nameof(restrictions));
-                element.Add(new XElement(ns + "SalesRestrictionNote", new XAttribute("textformat", "06"),
-                    note.LanguageCode != null ? new XAttribute("language", note.LanguageCode) : null, note.Text));
+                element.Add(new XElement(ns + "SalesRestrictionNote", new XAttribute("textformat", xhtml ? "05" : "06"),
+                    note.LanguageCode != null ? new XAttribute("language", note.LanguageCode) : null,
+                    fragment == null ? (object)note.Text : fragment.Nodes()));
             }
             if (restriction.ValidFrom is { } from) element.Add(new XElement(ns + "StartDate", new XAttribute("dateformat", "00"), from.ToString("yyyyMMdd", CultureInfo.InvariantCulture)));
             if (restriction.ValidUntil is { } until) element.Add(new XElement(ns + "EndDate", new XAttribute("dateformat", "00"), until.ToString("yyyyMMdd", CultureInfo.InvariantCulture)));

@@ -291,6 +291,12 @@ identity assertions; schema validation does not verify their ownership. The
 fixture checks the same exported EPUB preservation contract as other resource
 profiles.
 
+The `restriction-xhtml.onix` and `update-restriction-xhtml.onix` fixtures exercise
+formatted notes in rights and supply restrictions, namespace normalization,
+complete-record composition and combined publishing/market replacement. The
+accompanying EPUB remains unchanged. Schema validation does not establish recipient
+rendering or acceptance of the commercial assertions.
+
 The `update-*` and `delete-*` ONIX fixtures exercise whole-block replacement,
 explicit optional-block clearing, both markets in a supply update, translated and
 omitted deletion reasons, and two-product change messages. The runner checks that

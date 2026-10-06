@@ -82,7 +82,7 @@ public sealed partial class BookProject {
             if (elementName != "Text" && value.Format != BookOnixCollateralTextFormat.PlainText)
                 throw new ArgumentException("This ONIX element accepts plain text only.", nameof(values));
             XElement? fragment = value.Format == BookOnixCollateralTextFormat.Xhtml
-                ? ReadOnixCollateralXhtml(value.Text, cancellationToken) : null;
+                ? ReadOnixXhtmlFragment(value.Text, cancellationToken) : null;
             if (shortText) {
                 int characters = 0;
                 foreach (var rune in (fragment?.Value ?? value.Text).EnumerateRunes()) {

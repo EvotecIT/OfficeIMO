@@ -70,7 +70,7 @@ public enum BookOnixContentAudience {
     Teens = 12
 }
 
-/// <summary>Representation of a collateral text variant.</summary>
+/// <summary>Representation of ONIX collateral text or a sales restriction note.</summary>
 public enum BookOnixCollateralTextFormat {
     /// <summary>Literal plain text (ONIX 06).</summary>
     PlainText,

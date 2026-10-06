@@ -4,7 +4,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
-    private static XElement ReadOnixCollateralXhtml(string text, CancellationToken cancellationToken) {
+    private static XElement ReadOnixXhtmlFragment(string text, CancellationToken cancellationToken) {
         // ONIX's chameleon XHTML schema places inline markup in the ONIX namespace.
         // Parse bounded XML, not forgiving HTML; never retrieve a DTD, entity or linked resource.
         string wrapped = "<fragment xmlns=\"" + OnixNamespace + "\">" + text + "</fragment>";
@@ -18,23 +18,23 @@ public sealed partial class BookProject {
             while (reader.Read()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if ((reader.NodeType == XmlNodeType.Element && reader.Depth > 32) || (reader.Depth > 0 && reader.NodeType != XmlNodeType.EndElement && ++nodes > 4096))
-                    throw new ArgumentException("XHTML collateral exceeds 32 levels or 4096 XML nodes.", nameof(text));
+                    throw new ArgumentException("ONIX XHTML exceeds 32 levels or 4096 XML nodes.", nameof(text));
                 if (reader.NodeType is XmlNodeType.Comment or XmlNodeType.ProcessingInstruction or XmlNodeType.DocumentType)
-                    throw new ArgumentException("XHTML collateral does not accept comments, processing instructions or declarations.", nameof(text));
+                    throw new ArgumentException("ONIX XHTML does not accept comments, processing instructions or declarations.", nameof(text));
             }
             // The immutable string has passed depth/node bounds before tree materialization.
             fragment = XElement.Parse(wrapped, LoadOptions.PreserveWhitespace);
         } catch (XmlException error) {
             throw new ArgumentException("Supply a well-formed XHTML fragment without declarations or external entities.", nameof(text), error);
         }
-        if (string.IsNullOrWhiteSpace(fragment.Value)) throw new ArgumentException("XHTML collateral requires nonblank textual content.", nameof(text));
+        if (string.IsNullOrWhiteSpace(fragment.Value)) throw new ArgumentException("ONIX XHTML requires nonblank textual content.", nameof(text));
         XNamespace ns = OnixNamespace;
         foreach (var element in fragment.Descendants()) {
             cancellationToken.ThrowIfCancellationRequested();
             string tag = element.Name.LocalName;
             string namespaceName = element.Name.NamespaceName;
             if ((namespaceName != "" && namespaceName != OnixNamespace && namespaceName != "http://www.w3.org/1999/xhtml") || !IsOnixCollateralTag(tag))
-                throw new ArgumentException("Unsupported XHTML collateral element: " + element.Name, nameof(text));
+                throw new ArgumentException("Unsupported ONIX XHTML element: " + element.Name, nameof(text));
             foreach (var attribute in element.Attributes().ToArray()) {
                 if (attribute.IsNamespaceDeclaration) { attribute.Remove(); continue; }
                 if (attribute.Name == XNamespace.Xml + "lang") {
@@ -47,7 +47,7 @@ public sealed partial class BookProject {
                 }
                 string name = attribute.Name.LocalName;
                 if (attribute.Name.NamespaceName.Length != 0 || !IsOnixCollateralAttribute(tag, name))
-                    throw new ArgumentException("Unsupported XHTML collateral attribute: " + attribute.Name, nameof(text));
+                    throw new ArgumentException("Unsupported ONIX XHTML attribute: " + attribute.Name, nameof(text));
                 if (name is "href" or "cite") RequireOnixHttpUrl(attribute.Value, name);
             }
             element.Name = ns + tag;

@@ -1354,8 +1354,8 @@ subscription-service restrictions need at least one named or identified outlet.
 `NoRestrictions` is an explicit assertion; an empty list makes no assertion.
 
 Each territory or market accepts up to 32 restrictions. Each restriction accepts
-16 outlets and 16 translated plain-text notes; repeated notes require distinct
-explicit language codes. Notes allow 300 UTF-16 code units, outlet names 200,
+16 outlets and 16 translated notes; repeated notes require distinct
+explicit language codes. Notes allow 300 decoded UTF-16 code units, outlet names 200,
 and identifiers and proprietary scheme names 100. The combined restriction text
 budget across rights and supply is 524,288 UTF-16 code units; the existing XML byte
 limit still applies. Effective dates may be open-ended or equal, but cannot run
@@ -1370,7 +1370,25 @@ three uppercase alphanumeric characters for ONIX codes, 13 digits for GLN, and
 seven digits for SAN. It does not verify codelist membership, check digits,
 assignment, ownership or outlet existence. Distinct proprietary schemes may coexist;
 repeated identifier schemes are rejected. Optional outlet-name language requires
-a name. XHTML notes and recipient eligibility enforcement are outside this profile.
+a name. Recipient eligibility enforcement is outside this profile.
+
+Notes default to literal plain text. Set `Format = BookOnixCollateralTextFormat.Xhtml`
+for a well-formed fragment using the same bounded XHTML profile as collateral text:
+
+```csharp
+var formattedNote = new BookOnixSalesRestrictionNote(
+    "<p>Only <strong>approved</strong> outlets &amp; partners.</p>", "eng") {
+    Format = BookOnixCollateralTextFormat.Xhtml
+};
+```
+
+XHTML notes allow at most 4,096 UTF-16 source units and 300 decoded text units;
+markup overhead counts toward the combined restriction text budget. Whitespace is
+preserved. The shared parser normalizes supported namespaces and rejects active
+content, unsafe links, declarations, comments and unsupported elements or attributes.
+The supplied schema checks XHTML nesting. Plain-text notes retain literal markup
+characters and their existing 300-unit source limit. Recipient rendering of
+formatted notes remains a separate qualification step.
 
 Use `BookOnixSupply.MarketSegments` when channel restrictions differ across parts
 of one supply territory:

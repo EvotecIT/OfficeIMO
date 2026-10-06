@@ -74,14 +74,17 @@ public sealed record BookOnixSalesOutlet {
     public IReadOnlyList<BookOnixSalesOutletIdentifier> Identifiers { get; init; } = [];
 }
 
-/// <summary>A plain-text sales restriction note, optionally tagged with an ONIX language code.</summary>
-public sealed record BookOnixSalesRestrictionNote(string Text, string? LanguageCode = null);
+/// <summary>A sales restriction note, optionally tagged with an ONIX language code.</summary>
+public sealed record BookOnixSalesRestrictionNote(string Text, string? LanguageCode = null) {
+    /// <summary>Plain text by default; XHTML uses the shared bounded ONIX fragment profile. Text is limited to 300 UTF-16 code units after decoding, and XHTML source to 4096.</summary>
+    public BookOnixCollateralTextFormat Format { get; init; } = BookOnixCollateralTextFormat.PlainText;
+}
 
 /// <summary>Explicit non-territorial restriction within the containing rights territory or supply market. Does not enforce purchase eligibility.</summary>
 public sealed record BookOnixSalesRestriction(BookOnixSalesRestrictionKind Kind) {
     /// <summary>Up to 16 affected outlets. Required for retailer and selected-subscription restrictions.</summary>
     public IReadOnlyList<BookOnixSalesOutlet> Outlets { get; init; } = [];
-    /// <summary>Up to 16 distinct-language translations, at most 300 UTF-16 code units each. Required for Unspecified.</summary>
+    /// <summary>Up to 16 distinct-language translations, at most 300 decoded UTF-16 code units each (4096 source units for XHTML). Required for Unspecified.</summary>
     public IReadOnlyList<BookOnixSalesRestrictionNote> Notes { get; init; } = [];
     /// <summary>Optional first effective date.</summary>
     public DateOnly? ValidFrom { get; init; }
