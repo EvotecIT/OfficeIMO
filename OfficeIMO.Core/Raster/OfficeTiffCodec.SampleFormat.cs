@@ -22,12 +22,10 @@ public static partial class OfficeTiffCodec {
     }
 
     private static bool TryGetSampleByteCount(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        bool littleEndian, int samples, int photometric, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) {
+        bool littleEndian, int samples, int photometric, int compression, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) {
         sampleBytes = 0; floating = false; packedBits = 0; sampleBits = 0;
         if (!TryReadScalarOrDefault(bytes, entries, 266, littleEndian, 1, out int fillOrder) ||
-            (fillOrder != 1 && (fillOrder != 2 ||
-             !TryReadScalarOrDefault(bytes, entries, 259, littleEndian, 1, out int compression) ||
-             !IsTiffFaxCompression(compression)))) return false;
+            (fillOrder != 1 && (fillOrder != 2 || !IsTiffFaxCompression(compression)))) return false;
         int[] bits;
         if (entries.ContainsKey(258)) {
             if (!TryReadValues(bytes, entries, 258, littleEndian, samples, out bits) ||
@@ -40,6 +38,13 @@ public static partial class OfficeTiffCodec {
             if (!TryReadValues(bytes, entries, 339, littleEndian, samples, out int[] formats) ||
                 Array.Exists(formats, value => value != formats[0])) return false;
             format = formats[0];
+        }
+        // JPEG lossless samples can have any precision from 2 through 16. Keep
+        // non-eight-bit samples as native words until alpha/color conversion.
+        // The JPEG frame parser separately restricts DCT to eight/twelve bits.
+        if (compression == 7 && format == 1 && bits[0] >= 2 && bits[0] <= 16 && photometric != 3) {
+            sampleBytes = bits[0] == 8 ? 1 : 2;
+            return true;
         }
         if (format == 1 && (bits[0] == 1 || bits[0] == 4) && samples == 1 &&
             (photometric == 0 || photometric == 1 || photometric == 3)) {

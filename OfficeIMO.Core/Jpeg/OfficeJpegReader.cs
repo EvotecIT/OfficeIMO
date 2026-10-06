@@ -354,9 +354,10 @@ internal static partial class OfficeJpegReader {
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
                 frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker);
-                if (preserveRaw16 && (((marker != 0xC3 && marker != 0xCB) || frame.Precision != 16) && (marker != 0xC1 && marker != 0xC3 && marker != 0xCB && marker != 0xC9 || frame.Precision != 12) ||
-                    requestedColorTransform != 0 || !returnColorComponents))
-                    throw new FormatException("Raw sample words require a supported twelve-bit or sixteen-bit JPEG frame.");
+                bool rawWordFrame = marker == 0xC3 || marker == 0xCB ||
+                    frame.Precision == 12 && (marker == 0xC1 || marker == 0xC9);
+                if (preserveRaw16 && (!rawWordFrame || requestedColorTransform != 0 || !returnColorComponents))
+                    throw new FormatException("Raw sample words require a lossless or twelve-bit sequential JPEG frame.");
                 hasFrame = true;
                 progressive = marker == 0xC2 || marker == 0xCA;
                 lossless = marker == 0xC3 || marker == 0xCB;

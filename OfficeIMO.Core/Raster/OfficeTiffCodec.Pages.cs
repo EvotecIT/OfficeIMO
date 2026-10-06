@@ -243,7 +243,7 @@ public static partial class OfficeTiffCodec {
             (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
              orientation < 1 || orientation > 8)) return false;
 
-        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) ||
+        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, compression, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) ||
                     (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
                     (photometric == 6 && compression != 6 && compression != 7) ||
                     ((compression == 6 || compression == 7) && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||

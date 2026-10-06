@@ -89,9 +89,12 @@ public sealed class JpegLossless16Tests {
     }
 
     [Fact]
-    public void RawSixteenBitModeEnforcesPrecisionAndItsOutputBudget() {
+    public void RawNativeWordsPreserveEightBitSamplesAndEnforceOutputBudget() {
         byte[] eightBit = File.ReadAllBytes(Path.Combine(Corpus, "..", "TiffJpegLossless", "p2-d1-l2-t7-s1-r2.tif.jpg"));
-        Assert.False(OfficeJpegCodec.TryDecodeColorComponents(eightBit, 0, false, out _, out _, out _, out _, preserveRaw16: true));
+        Assert.True(OfficeJpegCodec.TryDecodeColorComponents(eightBit, 0, false, out byte[] bytes, out _, out _, out _));
+        Assert.True(OfficeJpegCodec.TryDecodeColorComponents(eightBit, 0, false, out byte[] words, out _, out _, out _, preserveRaw16: true));
+        Assert.Equal(bytes.Length * 2, words.Length);
+        for (int i = 0; i < bytes.Length; i++) Assert.Equal((int)bytes[i], words[i * 2] | words[i * 2 + 1] << 8);
         long retained = OfficeRasterGuards.MaximumDecodedBytes - 64L * 1024 - 4L * 1024 * 1024;
         Assert.True(OfficeJpegReader.TryInitializeDecodeWorkingSet(retained, 1024, 1024, 1, out _, 4, 1));
         Assert.False(OfficeJpegReader.TryInitializeDecodeWorkingSet(retained, 1024, 1024, 1, out _, 4, 2));
