@@ -340,12 +340,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
         if (IsReplacedImageElementTag(tag)) return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
-        string content = ApplyTextTransform(CollapseFlexText(ResolveDisclosureTextContent(element, depth)), style);
-        double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
-        double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(token => MeasureInlineText(token, style))
-            .DefaultIfEmpty(1D)
-            .Max();
+        // Shrink-to-fit uses the same styled descendants as painting, including
+        // their visibility, line boundaries and atomic inline box decoration.
+        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(
+            new FlexItem(element, style, sourceIndex: 0), containingWidth, depth + 1);
+        double preferredContentWidth = MeasureMaxContentRuns(textRuns);
+        double minimumContentWidth = MeasureMinContentRuns(textRuns);
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
         double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
         double resolvedBoxWidth = contentWidth + style.HorizontalInsets;

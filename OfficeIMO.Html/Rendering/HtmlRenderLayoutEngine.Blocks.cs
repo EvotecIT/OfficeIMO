@@ -479,7 +479,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             overflowContent,
             positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop
+            + ResolveButtonChildContentOffset(element, style, boxHeight, contentHeight);
         foreach (HtmlRenderVisual visual in contentVisuals) {
             overflowContent.Add(visual.Translate(contentX, contentY, overflowContent.Count));
         }
@@ -506,7 +507,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         ReportUnsupportedLayout(element, style);
-        double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double contentYForBreaks = contentY;
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
         if (children.Count == 0 && contentVisuals.Count == 0) {

@@ -56,4 +56,61 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("Actual input", text, StringComparison.Ordinal);
         Assert.DoesNotContain("omitted label", text, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("display:inline-block")]
+    [InlineData("display:inline-flex")]
+    [InlineData("display:inline-grid")]
+    public void HtmlRendering_ButtonChildrenHonorHiddenButtonInInlineAndIntrinsicLayout(string containerStyle) {
+        string html = "<p><span style='" + containerStyle + "'>Before<button hidden><span>hidden label</span>"
+            + "</button>After</span>Tail</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        Assert.DoesNotContain("hidden label", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Before", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Tail", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("button", "")]
+    [InlineData("button", "display:inline-block;")]
+    [InlineData("span", "display:inline-block;")]
+    public void HtmlRendering_ButtonChildrenAndInlineBlocksSizeStyledDescendants(string tag, string display) {
+        string html = "<p><" + tag + " style='" + display + "font:16px Arial;padding:3px 9px;border:2px solid;margin-right:7px'>"
+            + "<span style='font-size:48px;white-space:nowrap'>WIDE</span></" + tag + "><span>After</span></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(p => EnumerateRenderVisuals(p.Scene)).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText label = Assert.Single(text, t => t.Text == "WIDE");
+        HtmlRenderText after = Assert.Single(text, t => t.Text == "After");
+        Assert.Equal(48D, label.Font.Size, 3);
+        Assert.True(after.X >= label.X + label.TextAdvanceWidth!.Value + 18D - 0.01D);
+    }
+
+    [Theory]
+    [InlineData("", "height")]
+    [InlineData("display:inline-block;", "height")]
+    [InlineData("", "min-height")]
+    [InlineData("display:inline-block;", "min-height")]
+    public void HtmlRendering_ButtonChildrenRetainBlockAxisCentering(string display, string heightProperty) {
+        string dimensions = "width:120px;" + heightProperty + ":80px";
+        string html = "<p><button style='" + dimensions + "'>Save</button><button style='"
+            + display + dimensions + "'><span>Save</span></button></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderText[] labels = rendered.Pages.SelectMany(p => EnumerateRenderVisuals(p.Scene))
+            .OfType<HtmlRenderText>().Where(t => t.Text == "Save").ToArray();
+        Assert.Equal(2, labels.Length);
+        Assert.Equal(labels[0].Y, labels[1].Y, 3);
+    }
+
+    [Theory]
+    [InlineData("inline-flex", "flex-start")]
+    [InlineData("inline-grid", "start")]
+    public void HtmlRendering_ButtonChildrenRetainAuthoredContainerAlignment(string display, string alignment) {
+        string html = "<button id='rich' style='display:" + display + ";align-items:" + alignment
+            + ";width:120px;height:80px'><span>Save</span></button>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderText label = Assert.Single(rendered.Pages.SelectMany(p => EnumerateRenderVisuals(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Save");
+        Assert.Equal(5D, label.Y, 3);
+    }
 }
