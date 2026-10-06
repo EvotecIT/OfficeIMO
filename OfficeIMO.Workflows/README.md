@@ -355,6 +355,32 @@ the inspected OPF to 4 MiB and ONIX XML to 1 MiB. EPUB writer limits and signatu
 policy can be supplied separately through `epubOptions`. Project instances, input
 credit/commercial lists and schema sets must not be mutated concurrently with export.
 
+### Multi-product ONIX messages
+
+Compose exported records into one message with `BookOnixMessage.Create`:
+
+```csharp
+// Both options use the same SenderName and SentAt, and select distinct edition ISBNs.
+var first = firstBook.ExportOnix(firstOptions, schemas);
+var second = secondBook.ExportOnix(secondOptions, schemas);
+var message = BookOnixMessage.Create([first, second], schemas);
+File.WriteAllBytes("catalog.onix", message.Bytes);
+```
+
+The composer preserves product order and complete product XML, then validates the
+combined message against the supplied schema. All serialized headers must match;
+it does not choose a sender or timestamp on the publisher's behalf. Repeated record
+references or ISBNs are rejected. Each result's ONIX and EPUB bytes must still match
+its hashes captured at export time.
+
+`message.Products` retains the original export results, including each EPUB,
+writer report, import diagnostics and loss acknowledgment. The collection is
+snapshotted; its results' byte arrays remain mutable. Do not modify inputs during
+composition, and keep exported bytes unchanged when using their recorded hashes.
+Composition accepts 1–1000 records, at most 16 MiB of source ONIX XML, and at most
+16 MiB of combined XML. Individual exports retain their 1 MiB limit. It performs no
+retailer submission, block update, deletion notification or recipient acknowledgment.
+
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.

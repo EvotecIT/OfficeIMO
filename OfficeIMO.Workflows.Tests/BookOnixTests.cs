@@ -45,6 +45,9 @@ public sealed class BookOnixTests {
         var result = project.ExportOnix(Options(), TestSchema());
         Assert.True(result.ImportLossAcknowledged);
         Assert.Contains(result.ImportDiagnostics, item => item.LossKind == OfficeConversionLossKind.Omission);
+        var message = BookOnixMessage.Create([result], TestSchema());
+        Assert.True(message.Products[0].ImportLossAcknowledged);
+        Assert.Equal(result.ImportDiagnostics, message.Products[0].ImportDiagnostics);
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => project.ExportOnix(Options(), TestSchema(), cancellationToken: cancellation.Token));
     }

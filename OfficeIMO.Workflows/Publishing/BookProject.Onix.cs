@@ -1,9 +1,7 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Epub;
-using OfficeIMO.Provenance;
 using System.Globalization;
 using System.IO.Compression;
-using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
@@ -26,8 +24,7 @@ public sealed partial class BookProject {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(schemas);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!schemas.IsCompiled || schemas.GlobalElements[new XmlQualifiedName("ONIXMessage", OnixNamespace)] == null)
-            throw new ArgumentException("Supply a compiled schema set declaring ONIX 3.1 reference ONIXMessage.", nameof(schemas));
+        BookOnixMessage.RequireSchema(schemas);
         string notification = options.Notification switch {
             BookOnixNotification.Early => "01", BookOnixNotification.Advance => "02", BookOnixNotification.Confirmed => "03",
             _ => throw new ArgumentOutOfRangeException(nameof(options.Notification))
@@ -109,16 +106,8 @@ public sealed partial class BookProject {
                 new XElement(onix + "NotificationType", notification),
                 new XElement(onix + "ProductIdentifier", new XElement(onix + "ProductIDType", "15"), new XElement(onix + "IDValue", isbn)),
                 descriptive, publishing, commercial.Supplies)));
-        message.Validate(schemas, (_, args) => {
-            cancellationToken.ThrowIfCancellationRequested();
-            throw new InvalidDataException("ONIX schema validation failed: " + args.Message, args.Exception);
-        });
-        cancellationToken.ThrowIfCancellationRequested();
-        using var output = new OfficeProvenanceBoundedMemoryStream(1024L * 1024);
-        using (var writer = XmlWriter.Create(output, new XmlWriterSettings { Encoding = new UTF8Encoding(false, true), CloseOutput = false }))
-            message.Save(writer);
-        cancellationToken.ThrowIfCancellationRequested();
-        return new BookOnixExportResult(output.ToArray(), publication, ImportDiagnostics, ImportLossAcknowledged);
+        byte[] onixBytes = BookOnixMessage.ValidateAndSerialize(message, schemas, 1024L * 1024, cancellationToken);
+        return new BookOnixExportResult(onixBytes, publication, ImportDiagnostics, ImportLossAcknowledged);
     }
 
     private static void RequireOnixText(string value, string name) {

@@ -17,6 +17,7 @@ schemas.Compile();
 if (Directory.Exists(outputDirectory) || File.Exists(outputDirectory)) throw new IOException("Output already exists; use a new directory.");
 Directory.CreateDirectory(outputDirectory);
 var evidence = new List<object>();
+var messageProducts = new List<BookOnixExportResult>();
 var timestamp = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero);
 foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Notification: BookOnixNotification.Early),
     (Name: "advance", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Advance),
@@ -43,6 +44,19 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     };
     var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".onix"), result.Bytes);
+    if (profile.Name is "early" or "priced") {
+        // Existing single-record fixtures deliberately share an ISBN. Create a distinct second edition
+        // for the catalog rather than silently treating repeated product identities as separate books.
+        var catalogResult = result;
+        if (profile.Name == "priced") {
+            var catalogProject = BookProject.Create("Catalog second edition", profile.Language);
+            catalogProject.Publication.Identifier = "urn:officeimo:fixture:onix:catalog-priced";
+            catalogProject.Publication.AddIdentifier("catalog-isbn", new EpubIdentifierMetadata { Value = "9781861972712", Kind = EpubIdentifierKind.Isbn13 });
+            catalogResult = catalogProject.ExportOnix(options with { IdentifierId = "catalog-isbn" }, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+            File.WriteAllBytes(Path.Combine(outputDirectory, "catalog-priced.epub"), catalogResult.Publication.Bytes);
+        }
+        messageProducts.Add(catalogResult);
+    }
     File.WriteAllBytes(Path.Combine(outputDirectory, profile.Name + ".epub"), result.Publication.Bytes);
     bool invalidCodeRejected = false;
     try { project.ExportOnix(options with { LanguageCode = "zzz" }, schemas); }
@@ -68,9 +82,14 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         epubSha256 = result.PublicationSha256, schemaValidation = "passed", invalidLanguageCode = "rejected",
         invalidCountryRejected, invalidCurrencyRejected, accessibilityAssertionsSynthetic = options.Accessibility != null });
 }
+var catalog = BookOnixMessage.Create(messageProducts, schemas);
+File.WriteAllBytes(Path.Combine(outputDirectory, "catalog.onix"), catalog.Bytes);
 File.WriteAllText(Path.Combine(outputDirectory, "evidence.json"), JsonSerializer.Serialize(new {
     schemaFiles = schemaFiles.Select(path => new { name = Path.GetFileName(path), sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) }),
-    records = evidence, independentValidation = "not-performed", retailerAcceptance = "not-performed"
+    records = evidence,
+    catalog = new { onixSha256 = Convert.ToHexString(SHA256.HashData(catalog.Bytes)),
+        products = catalog.Products.Select(product => new { product.OnixSha256, product.PublicationSha256 }), schemaValidation = "passed" },
+    independentValidation = "not-performed", retailerAcceptance = "not-performed"
 }, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"Generated and schema-validated {evidence.Count} ONIX/EPUB pairs in {outputDirectory}.");
 

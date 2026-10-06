@@ -111,7 +111,9 @@ and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
 declarations, including distinct certifier, credentialling organization, independent
 report, intermediary and compatibility-report roles. Those assertions are synthetic
 serialization inputs, not certifications of the accompanying EPUBs. The schema must also reject unknown country and currency codes.
-It is outside normal builds and shipped packages.
+The runner also writes `catalog.onix`, combining two distinct edition ISBNs under
+one header, and `catalog-priced.epub` for the second product. The message evidence
+retains each source ONIX and EPUB hash. It is outside normal builds and shipped packages.
 
 Obtain the ONIX 3.1 reference XSD from [EDItEUR](https://www.editeur.org/93/Release-3.0-and-3.1-Downloads/)
 and retain its unchanged adjacent code-list and XHTML schemas and their license
@@ -127,7 +129,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/advance.onix \
   /path/to/new-onix-evidence/confirmed.onix \
   /path/to/new-onix-evidence/priced.onix \
-  /path/to/new-onix-evidence/withdrawn.onix
+  /path/to/new-onix-evidence/withdrawn.onix \
+  /path/to/new-onix-evidence/catalog.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

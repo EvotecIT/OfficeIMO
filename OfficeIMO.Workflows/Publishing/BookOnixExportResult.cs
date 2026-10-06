@@ -8,11 +8,14 @@ public sealed class BookOnixExportResult {
     internal BookOnixExportResult(byte[] bytes, EpubWriteResult publication,
         IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics, bool acknowledged) {
         Bytes = bytes; Publication = publication;
+        OnixSha256 = Convert.ToHexString(SHA256.HashData(bytes));
         PublicationSha256 = Convert.ToHexString(SHA256.HashData(publication.Bytes));
         ImportDiagnostics = Array.AsReadOnly(diagnostics.ToArray()); ImportLossAcknowledged = acknowledged;
     }
     /// <summary>UTF-8 ONIX 3.1 reference-tag XML, at most 1 MiB.</summary>
     public byte[] Bytes { get; }
+    /// <summary>Uppercase SHA-256 of Bytes at export time; used to reject altered records during message composition.</summary>
+    public string OnixSha256 { get; }
     /// <summary>Exact EPUB bytes and canonical writer preservation/loss report.</summary>
     public EpubWriteResult Publication { get; }
     /// <summary>Uppercase SHA-256 of Publication.Bytes at export time; not a signature or retailer receipt.</summary>
