@@ -135,4 +135,52 @@ public sealed class ExcelPictureHyperlinkTests {
         Assert.Equal("https://example.org/photos#second", images[1].HyperlinkUri!.OriginalString);
     }
 
+    [Fact]
+    public void TemplateSheetsRetainSharedPictureLinksHoverAndMediaWithoutIdCollisions() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet template = document.AddWorksheet("Template");
+        template.CellValue(1, 1, "Region {{Name}}");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
+        var target = new Uri("https://example.org/template#photo");
+        ExcelImage first = template.AddImage(3, 1, png, "image/png", 32, 16);
+        ExcelImage second = template.AddImage(5, 1, png, "image/png", 32, 16);
+        first.HyperlinkUri = target;
+        second.HyperlinkUri = target;
+        DrawingsPart drawing = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
+        string originalId = drawing.HyperlinkRelationships.Single().Id;
+        drawing.AddHyperlinkRelationship(target, true, "rId1");
+        foreach (var properties in drawing.WorksheetDrawing!.Descendants<Xdr.NonVisualDrawingProperties>()) {
+            properties.GetFirstChild<A.HyperlinkOnClick>()!.Id = "rId1";
+        }
+        drawing.WorksheetDrawing.Descendants<Xdr.NonVisualDrawingProperties>().First()
+            .AddChild(new A.HyperlinkOnHover { Id = "rId1" }, true);
+        drawing.DeleteReferenceRelationship(drawing.HyperlinkRelationships.Single(item => item.Id == originalId));
+        template.CellValue(8, 1, "Metric"); template.CellValue(8, 2, "Value");
+        template.CellValue(9, 1, "Sales"); template.CellValue(9, 2, 10);
+        template.AddChartFromRange("A8:B9", 10, 3, 320, 180, ExcelChartType.ColumnClustered, true);
+        document.ApplyTemplateSheets("Template", new IDictionary<string, object?>[] {
+            new Dictionary<string, object?> { ["Name"] = "North" },
+            new Dictionary<string, object?> { ["Name"] = "South" }
+        }, (values, index) => (string)values["Name"]!);
+        using var artifact = document.ToStream();
+        using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
+        foreach (ExcelSheet sheet in reopened.Sheets) {
+            Assert.Equal(2, sheet.Images.Count());
+            Assert.All(sheet.Images, image => {
+                Assert.Equal(target.OriginalString, image.HyperlinkUri!.OriginalString);
+                Assert.Equal(png, image.ToBytes());
+                Assert.Equal(32, image.WidthPixels); Assert.Equal(16, image.HeightPixels);
+            });
+        }
+        using var native = SpreadsheetDocument.Open(new MemoryStream(artifact.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(native));
+        foreach (WorksheetPart sheet in native.WorkbookPart!.WorksheetParts) {
+            DrawingsPart part = sheet.DrawingsPart!;
+            Assert.Equal("rId1", Assert.Single(part.HyperlinkRelationships).Id);
+            Assert.Single(part.WorksheetDrawing!.Descendants<A.HyperlinkOnHover>());
+            Assert.DoesNotContain(part.Parts, item => item.RelationshipId == "rId1");
+            Assert.Single(part.ChartParts);
+        }
+    }
+
 }
