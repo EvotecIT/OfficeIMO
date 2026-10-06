@@ -90,14 +90,29 @@ public sealed partial class OfficeRasterCanvas {
             if (Math.Abs(scaleX - 1D) > .0001D) ScaleContoursX(contours, textX, scaleX);
             if ((simulated & OfficeFontStyle.Italic) != 0) SlantContours(contours, textTop, size);
             double boldOffset = (simulated & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D;
-            foreach (List<OfficePoint> contour in contours) {
+            if (inkOnly) {
+                IncludeFilledContours(contours, 0D);
+                if (boldOffset > 0D) IncludeFilledContours(contours, boldOffset);
+            } else foreach (List<OfficePoint> contour in contours) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 IncludeContour(contour);
                 if (boldOffset > 0D) IncludeContour(contour, boldOffset);
             }
         }
 
-        void IncludeContour(List<OfficePoint> contour, double offsetX = 0D) {
+        void IncludeFilledContours(List<List<OfficePoint>> contours, double offsetX) {
+            var prepared = new List<List<OfficePoint>>(contours.Count);
+            foreach (var contour in contours) prepared.Add(PrepareContour(contour, offsetX));
+            var bounds = MeasureFilledContourBounds(prepared, OfficeFillRule.NonZero);
+            isMeasured &= bounds.IsMeasured;
+            if (!bounds.HasInk) return;
+            hasInk = true;
+            left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
+            right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
+        }
+
+        List<OfficePoint> PrepareContour(List<OfficePoint> contour, double offsetX) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (inkOnly && (inkTransform.HasValue || inkClips != null)) {
                 var transformed = new List<OfficePoint>(contour.Count);
                 foreach (OfficePoint point in contour) {
@@ -108,6 +123,16 @@ public sealed partial class OfficeRasterCanvas {
             }
             if (inkOnly && inkClips != null) foreach (OfficeTextInkClip clip in inkClips)
                 contour = clip.Apply(contour, ref isClipped, ref remainingClipWork, _cancellationToken);
+            if (offsetX != 0D) {
+                var shifted = new List<OfficePoint>(contour.Count);
+                foreach (OfficePoint point in contour) shifted.Add(new OfficePoint(point.X + offsetX, point.Y));
+                contour = shifted;
+            }
+            return contour;
+        }
+
+        void IncludeContour(List<OfficePoint> contour, double offsetX = 0D) {
+            if (inkOnly) { contour = PrepareContour(contour, offsetX); offsetX = 0D; }
             hasInk |= contour.Count > 0;
             foreach (OfficePoint point in contour) {
                 left = Math.Min(left, point.X + offsetX); top = Math.Min(top, point.Y);

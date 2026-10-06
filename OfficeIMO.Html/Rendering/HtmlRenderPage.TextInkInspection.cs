@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderPage {
                         Math.Max(.1D, sourceSize * original.BaselineScale), text.Font, advance, text.Alignment, text.FeatureSettings, text.FontPalette,
                         sourceSize, text.UnderlineStyle, text.StrikethroughStyle, inkOnly: true,
                         inkTransform: transform, color: text.Color, decorationColor: text.DecorationColor, inkClips: clips);
-                    if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(text, "A text outline was unavailable; fallback box estimates cannot establish glyph ink."); continue; }
+                    if (!ink.IsMeasured || (ink.HasInk && (!Finite(ink.Left) || !Finite(ink.Top) || !Finite(ink.Right) || !Finite(ink.Bottom)))) { NotInspected(text, "Text outlines were unavailable or exceeded bounded filled-geometry analysis; fallback box estimates cannot establish glyph ink."); continue; }
                     if (ink.IsClipped) diagnostics.Add(new HtmlDiagnostic("OfficeIMO.Html", HtmlRenderDiagnosticCodes.ClippedTextInkBounds,
                         "Positioned text outline or conservative decoration bounds are cropped by an authored rectangular or convex path clip. The crop may be intentional; pixel visibility is not established.",
                         HtmlDiagnosticSeverity.Info, text.Source));

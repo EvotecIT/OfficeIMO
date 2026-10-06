@@ -109,6 +109,9 @@ page canvas, using the shared drawing engine's font fallback, shaping, color-gly
 layers, synthetic styles and affine transforms. Decorations use conservative stroke
 bounds. The measurement uses nominal CSS-pixel geometry at scale 1; it is not a
 pixel scan. Empty space in a text frame is excluded. Transparent text is ignored.
+Glyph contours use non-zero winding after supported clipping, so holes and
+cancelled overlaps do not count as filled ink. Complex outlines that exceed the
+bounded filled-geometry analysis produce an unmeasured warning.
 Rectangular and single-convex-contour clips intersect the individual measured contours before their bounds
 are compared with the page or region. Nested, transformed and single-axis clips
 are supported. Rounded rectangles, ellipses and convex polygons use the shared
@@ -122,7 +125,8 @@ Supported paths are limited to 512 commands and 512 flattened vertices.
 Inspection rejects more than 4096 text runs, 64 nested clips, or
 excessive contour-clipping work instead of returning a partial report.
 
-This is managed layout evidence. It does not resolve winding cancellation between overlapping glyph contours, shadows/filters,
+This is managed layout evidence. Filled geometry uses a 1e-9 CSS-pixel tolerance for coincident crossings and
+degenerate vertical intervals; it does not establish pixel coverage, shadows/filters,
 or pixel visibility within clipped contours or element rectangles. SVG spine inspection, native-reader presentation and accessible reading
 order require separate qualification. A clean report does not certify a publication.
 
