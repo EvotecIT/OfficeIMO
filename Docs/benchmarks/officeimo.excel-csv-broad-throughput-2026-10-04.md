@@ -1,5 +1,7 @@
 # Excel and CSV read, copy and save allocation — 2026-10-04
 
+Large raw packets are retained in the [measurement archive](excel-csv-broad-throughput-2026-10-04/raw-packets.zip), with original filenames and exact bytes recorded in its [SHA-256 manifest](excel-csv-broad-throughput-2026-10-04/raw-packets-manifest.json). Links to those packets download the archive. [Extraction instructions](excel-csv-broad-throughput-2026-10-04/raw-packets.README.md) explain how to inspect the individual captures; smaller summaries and reproduction sources remain beside it.
+
 Commit `8b84a1676` reduces managed allocation in CSV incremental reads, quoted
 row materialization, XLSX rich shared strings, prefixed worksheets, and package
 copies. The baseline is `0d0d5a0b6`, after the
@@ -130,8 +132,8 @@ it generally. The expanded delimiter benchmarks and completed-row cancellation
 and error contracts remain; the final suite against restored production code
 passes all 634 .NET 10 tests.
 
-The complete [native measurements](excel-csv-broad-throughput-2026-10-04/rejected-csv-batching-native.json),
-[rotated samples](excel-csv-broad-throughput-2026-10-04/rejected-csv-batching-rotated.json),
+The complete [native measurements](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotated samples](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
 and [provenance with the rejected patch](excel-csv-broad-throughput-2026-10-04/rejected-csv-batching-provenance.json)
 record favorable and unfavorable cases. To reproduce the experiment, build the
 recorded coverage commit as the baseline, then apply the embedded production
@@ -147,7 +149,7 @@ cases measure slower. Control timings also vary substantially, so the screen
 does not establish stable speed ratios. It gives no basis for adopting the
 change. All 638 .NET 10 CSV tests pass before and after removal; the additional
 always-quoted cancellation and formatting-failure contracts remain. The
-[screen packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-always-quoted-batching.json)
+[screen packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 includes complete observations, rejected source, binary hashes and case settings.
 No rotated, other-runtime, or independent-review qualification is claimed for
 this rejected experiment.
@@ -183,15 +185,15 @@ text, prior successful calls and completed rows when a later row fails, and rema
 usable afterward. Restored production code passes all 639 Windows .NET 10 tests
 and 449 .NET Framework tests.
 
-The [native screen and full matrix](excel-csv-broad-throughput-2026-10-04/rejected-csv-direct-buffer-native.json),
-[rotated observations](excel-csv-broad-throughput-2026-10-04/rejected-csv-direct-buffer-rotated.json),
-and [source, binary, runtime and reproduction packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-direct-buffer-provenance.json)
+The [native screen and full matrix](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotated observations](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+and [source, binary, runtime and reproduction packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain the rejected patch and every measured case. Timing remains specific to
 this busy workstation; managed allocation does not measure retained or peak memory.
 
 ## Peer refresh and remaining gaps
 
-The [post-change peer packet](excel-csv-broad-throughput-2026-10-04/peer-refresh-native.json)
+The [post-change peer packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retains 109 CSV and 26 Excel native cases, including each observation, allocation
 result and job setting. It covers async read contracts, mapping, typed scans,
 text/file/DataReader writing and the 65K corpus. The CSV production source is
@@ -217,7 +219,7 @@ an open target.
 
 ## macOS conformance
 
-The [macOS evidence packet](excel-csv-broad-throughput-2026-10-04/macos-conformance.json)
+The [macOS evidence packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 records the integrated source at `a97198615` on Apple M4, macOS 27.0.1 and
 .NET SDK 10.0.112. The clean detached worktree passes all 638 CSV tests and
 5,376 Excel tests, with five existing Excel skips. Both comparison projects
@@ -302,10 +304,10 @@ read-only review reports no actionable findings. Timing is Windows .NET 10
 evidence; other platforms and targets provide correctness proof. Warmed managed
 allocation does not establish retained or peak memory.
 
-The packet retains [native measurements](excel-csv-broad-throughput-2026-10-04/async-document-formatting-native.json),
-[full rotations](excel-csv-broad-throughput-2026-10-04/async-document-formatting-rotated.json),
-[screening and follow-up controls](excel-csv-broad-throughput-2026-10-04/async-document-formatting-diagnostics.json),
-and [source, binary, runtime, review and reproduction details](excel-csv-broad-throughput-2026-10-04/async-document-formatting-provenance.json).
+The packet retains [native measurements](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[full rotations](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[screening and follow-up controls](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+and [source, binary, runtime, review and reproduction details](excel-csv-broad-throughput-2026-10-04/raw-packets.zip).
 These measurements do not establish a cross-library ranking or close the
 remaining spreadsheet throughput and portable-memory targets.
 
@@ -340,9 +342,9 @@ across 39 fixture combinations for each actual runtime and snapshot build,
 checking complete decoded CSV and every field. The broader 240-workload timing
 matrix is not run after these candidates fail screening qualification.
 
-The [native results](excel-csv-broad-throughput-2026-10-04/writer-buffer-native.json),
-[rotations and controls](excel-csv-broad-throughput-2026-10-04/writer-buffer-rotated.json),
-and [patches, binary manifests, dispositions and reproduction details](excel-csv-broad-throughput-2026-10-04/writer-buffer-provenance.json)
+The [native results](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotations and controls](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+and [patches, binary manifests, dispositions and reproduction details](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 preserve favorable, unfavorable and conflicting observations. These are
 Windows workstation experiments. Managed allocated bytes do not establish
 retained or peak memory; file timings include operating-system caching and
@@ -399,9 +401,9 @@ CSV binary, and passes with the fix. The targeted review confirmation reports no
 additional findings. Serialization failures after large prior rows preserve the
 destination's bytes and position with UTF-8, UTF-16 and compression.
 
-The [native observations](excel-csv-broad-throughput-2026-10-04/stream-save-native.json),
-[rotations and controls](excel-csv-broad-throughput-2026-10-04/stream-save-rotated.json),
-and [source, binary, validation and reproduction packet](excel-csv-broad-throughput-2026-10-04/stream-save-provenance.json)
+The [native observations](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotations and controls](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+and [source, binary, validation and reproduction packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain all outcomes. Staging, destination capacity and writer buffers remain;
 managed allocation does not measure retained or peak memory. General throughput,
 small-workload timing and portable memory qualification remain open.
@@ -414,9 +416,9 @@ small-workload timing and portable memory qualification remain open.
 - Both benchmark projects build on .NET 8 and .NET 10; both product projects build for `netstandard2.0` without warnings or errors.
 - Two independent read-only reviews cover the separate CSV/SST/copy and prefixed-reader changes. Neither reports actionable defects. The reviewed patches match the committed source.
 
-The packet retains [native measurements](excel-csv-broad-throughput-2026-10-04/native.json),
-[rotated measurements and controls](excel-csv-broad-throughput-2026-10-04/rotated.json),
-[sampled memory](excel-csv-broad-throughput-2026-10-04/memory.json),
+The packet retains [native measurements](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotated measurements and controls](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[sampled memory](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
 [provenance](excel-csv-broad-throughput-2026-10-04/provenance.json), and
 [validation](excel-csv-broad-throughput-2026-10-04/validation.json).
 The [reproduction guide](excel-csv-broad-throughput-2026-10-04/reproduction/README.md)
@@ -485,14 +487,14 @@ formatter failures. The .NET Standard 2.0 build passes. Independent read-only
 review reports no actionable defects; its additional formatter-proof gaps are
 covered by the final tests.
 
-The [native measurements](excel-csv-broad-throughput-2026-10-04/csv-text-native.json),
-[rotated samples](excel-csv-broad-throughput-2026-10-04/csv-text-rotated.json),
+The [native measurements](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotated samples](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
 [portable output contracts](excel-csv-broad-throughput-2026-10-04/csv-text-output-contracts.json),
-[corrected one-row packet](excel-csv-broad-throughput-2026-10-04/csv-text-one-row.json),
-and [source, binary and execution provenance](excel-csv-broad-throughput-2026-10-04/csv-text-provenance.json)
+[corrected one-row packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+and [source, binary and execution provenance](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain the full matrix. The provenance records the excluded run whose source
 fingerprint changed during another benchmark edit; it contributes no samples.
-The [writer and DataTable diagnostic profiles](excel-csv-broad-throughput-2026-10-04/writer-datatable-profiles.json)
+The [writer and DataTable diagnostic profiles](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain sampled allocation and CPU attribution. Those traces include setup and
 validation; they are not exact per-operation allocation or peak-memory evidence.
 
@@ -530,7 +532,7 @@ These are cost observations on this host with fixed execution order, not
 portable latency budgets. A performance candidate must be compared with this
 corrected baseline; the former early exits cannot serve as a valid target.
 
-The [qualification and complete native-cost packet](excel-csv-broad-throughput-2026-10-04/xlsx-reader-termination-qualified.json)
+The [qualification and complete native-cost packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retains the source and binary fingerprints, output proof, test counters, review
 boundary, measurements and unfavorable ratios. Wide unsorted typed-stream
 retained/peak memory and first-row latency remain open measurements.
@@ -592,10 +594,10 @@ validation. First-row methods have different eager-validation contracts and
 are excluded from this peer ranking. The allocation improvements do not close
 the large-scan throughput target.
 
-The [Windows native, memory and peer packet](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-stream-windows.json),
-[macOS packet](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-stream-macos.json),
-[rotated before/after observations](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-stream-rotated.json)
-and [second Windows processor placement](excel-csv-broad-throughput-2026-10-04/xlsx-public-reader-peers-second-placement.json)
+The [Windows native, memory and peer packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[rotated before/after observations](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [second Windows processor placement](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain raw samples, source and binary fingerprints, runtime provenance and
 decoded input proof. Native method order differs from the rotated runs; the
 packets preserve both results.
@@ -653,8 +655,8 @@ approximately 2% improvement. Allocation is essentially unchanged. Variation
 in unchanged long-note controls is retained and is not attributed to the source
 change.
 
-The original source is restored on both hosts. The [Windows rejection packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-short-quoted-windows.json)
-and [macOS rejection packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-short-quoted-macos.json)
+The original source is restored on both hosts. The [Windows rejection packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS rejection packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain complete reports, raw measurements and source, harness and dependency
 fingerprints. The following peer qualification uses the restored baseline and
 the same warmed policy.
@@ -692,8 +694,8 @@ earlier short-JSON timing signal for this exact warmed text-writer contract;
 they do not identify the cause of the historical difference or qualify cold
 startup, file output, mixed typed fields, reading, or other platforms.
 
-The [Windows peer packet](excel-csv-broad-throughput-2026-10-04/csv-quoted-text-current-windows.json)
-and [macOS peer packet](excel-csv-broad-throughput-2026-10-04/csv-quoted-text-current-macos.json)
+The [Windows peer packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS peer packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain complete reports, raw measurements, actual runtimes, source provenance
 and binary fingerprints. All 91 measured CSV source files also match the
 integrated CSV source. Rejected candidate snapshots are removed after their
@@ -765,12 +767,12 @@ and [.NET 10 inflater](https://github.com/dotnet/runtime/blob/v10.0.0/src/librar
 output to the declared length. This negative reproduction does not justify a
 new stream wrapper.
 
-The [Windows rotated packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-rotated-windows.json),
-[macOS rotated packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-rotated-macos.json),
-[Windows native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-native-windows.json),
-[macOS native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-native-macos.json),
-[Windows fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-cold-windows.json)
-and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-eligibility-cold-macos.json)
+The [Windows rotated packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS rotated packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows fresh-worker packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain source and binary fingerprints, input qualification and raw observations.
 The first Windows rotated run failed its source-provenance guard and is excluded;
 the qualified replacement runs use the frozen candidate checkout.
@@ -836,12 +838,12 @@ Focused correctness passes 927 tests on each modern runtime on both hosts,
 922 on Windows .NET Framework, and the owning library's .NET Standard build.
 The [qualification and source packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-qualification.json)
 and [source delta](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement.patch)
-identify the frozen candidate. The [Windows native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-native-windows.json),
-[macOS native packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-native-macos.json),
-[Windows rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-rotated-windows.json),
-[macOS rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-rotated-macos.json),
-[Windows fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-cold-windows.json)
-and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/xlsx-native-index-refinement-cold-macos.json)
+identify the frozen candidate. The [Windows native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows fresh-worker packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS fresh-worker packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain raw observations and fingerprints. The completed comparison does not
 qualify this refinement as a portable default throughput improvement. Its
 memory benefit remains a measured boundary result, and integration is held.
@@ -890,10 +892,10 @@ for the shortcut. Native allocation differences are small and inconsistent,
 with no structural allocation saving. The unconditional normalization loop is
 restored; the earlier buffer-reuse implementation remains.
 
-The [Windows native packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-native-windows.json),
-[macOS native packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-native-macos.json),
-[Windows rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-rotated-windows.json)
-and [macOS rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/xlsx-datatable-normalization-rotated-macos.json)
+The [Windows native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS rotated and identical-build packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain the complete reports, raw measurements, common-source inventories,
 binary fingerprints and output qualification. Unfavorable observations remain
 in these packets. The removed shortcut is not counted as an accepted speed win.
@@ -937,8 +939,8 @@ The wide cases improve on all four host/runtime combinations, but narrow-case
 regressions and variation in unchanged UTF-8 controls prevent a portable speed
 conclusion. macOS .NET 8 also reports higher allocation for several changed
 cases. The [complete native summary](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-native-summary.json)
-and [Windows](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-native-windows.json)
-and [macOS](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-native-macos.json)
+and [Windows](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 packets retain every case, including unfavorable observations and raw samples.
 
 A separate .NET 10 first-call probe uses 96 fresh worker processes: three
@@ -963,8 +965,8 @@ type initialization and reflection invocation. Calling-thread allocation
 excludes the sampler, sampled peaks are lower bounds, and the producer warms
 operating-system file caches. These figures do not describe warmed throughput.
 
-The [Windows memory packet](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-windows.json)
-and [macOS memory packet](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-memory-macos.json)
+The [Windows memory packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS memory packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain all 96 observations, fixture qualification, source/binary inventories and
 runner fingerprints. The [source patch](excel-csv-broad-throughput-2026-10-04/typed-xml-staging.patch)
 and [disposition](excel-csv-broad-throughput-2026-10-04/typed-xml-staging-disposition.json)
@@ -999,9 +1001,9 @@ removal. Every setup validates values, types, schema, row count and the complete
 returned observation. Both sides use identical harness and dependency bytes;
 five Excel C# paths differ, including one new encoding helper.
 
-The [Windows native packet](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-native-windows.json),
-[macOS native packet](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-native-macos.json)
-and [complete native summary](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-native-summary.json)
+The [Windows native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS native packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [complete native summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain every favorable and unfavorable observation. Timing varies materially:
 the wide ordered UTF-16 Automatic case has After/Before medians of 1.115 on
 Windows .NET 10, 1.850 on Windows .NET 8, 0.879 on macOS .NET 10 and 0.959 on
@@ -1014,9 +1016,9 @@ and four complete reads per sample. Both hosts use the same fingerprinted
 PowerForge controller payload. The identical-build median ratios span
 0.888–1.089 on Windows mask 65535, 0.885–1.056 on mask 4294901760 and
 0.983–1.147 on macOS. Candidate ratios span 0.860–1.107, 0.817–1.079 and
-0.752–1.171 respectively. The [Windows](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-controls-windows.json),
-[macOS](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-controls-macos.json)
-and [comparison summary](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-controls-summary.json)
+0.752–1.171 respectively. The [Windows](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [comparison summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain the complete reports and controller fingerprints.
 
 Six cases with unresolved timing evidence receive a three-engine diagnostic:
@@ -1029,8 +1031,8 @@ public-reader slowdown does not repeat in this diagnostic. The 1,000-row
 candidate remains slower than Before by 5.95% and 4.16%, while the second
 baseline differs by -5.00% and -8.27%. Small-reader timing remains mixed; these
 controls neither erase the negative measurements nor prove a general speed
-gain. The [Windows diagnostic](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-three-way-windows.json)
-and [macOS diagnostic](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-three-way-macos.json)
+gain. The [Windows diagnostic](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS diagnostic](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retain all 1,728 samples.
 
 The separate first-call memory lane covers 20 cases, each source version, both
@@ -1058,12 +1060,12 @@ separately.
 | macOS .NET 8 | 6.658 | 2.454 |
 
 MB here means 1,000,000 bytes; values are means of three fresh workers per side.
-The [memory summary](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-summary.json)
+The [memory summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 retains every case, range, caller/all-thread allocation, sampled peak and
-after-return figure. Raw packets are retained for [Windows .NET 10](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-windows-net10.json),
-[Windows .NET 8](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-windows-net8.json),
-[macOS .NET 10](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-macos-net10.json)
-and [macOS .NET 8](excel-csv-broad-throughput-2026-10-04/worksheet-encoding-memory-macos-net8.json).
+after-return figure. Raw packets are retained for [Windows .NET 10](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows .NET 8](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS .NET 10](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS .NET 8](excel-csv-broad-throughput-2026-10-04/raw-packets.zip).
 The fully mapped numeric controls retain their existing approximately 3.6 MB
 caller allocation on .NET 10. The discarded XML-staging experiment's 5.2 MB
 numeric first-call penalty is absent. Not every control improves: macOS
@@ -1115,9 +1117,9 @@ allocation or first-row comparison claim.
 The large-reader throughput gap remains material on both hosts. Smaller scans
 also remain slower in this lane. The [complete summary](excel-csv-broad-throughput-2026-10-04/public-reader-current-summary.json)
 retains every size and placement; raw observations are available for
-[Windows mask 65535](excel-csv-broad-throughput-2026-10-04/public-reader-current-windows-65535.json),
-[Windows mask 4294901760](excel-csv-broad-throughput-2026-10-04/public-reader-current-windows-4294901760.json)
-and [macOS](excel-csv-broad-throughput-2026-10-04/public-reader-current-macos.json).
+[Windows mask 65535](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows mask 4294901760](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS](excel-csv-broad-throughput-2026-10-04/raw-packets.zip).
 The [runner](excel-csv-broad-throughput-2026-10-04/public-reader-current-runner.ps1),
 [case definitions](excel-csv-broad-throughput-2026-10-04/public-reader-current-cases.json)
 and [package license fingerprints](excel-csv-broad-throughput-2026-10-04/public-reader-current-licenses.json)
@@ -1125,8 +1127,8 @@ record the comparison boundary.
 
 Profiles of five complete million-row reads show worksheet validation and value
 access on the decompression path. Their source predates the encoding change;
-the measured input is UTF-8. The [Windows profile summary](excel-csv-broad-throughput-2026-10-04/public-reader-profile-windows.json)
-contains sampled allocation events, while the [macOS summary](excel-csv-broad-throughput-2026-10-04/public-reader-profile-macos.json)
+the measured input is UTF-8. The [Windows profile summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+contains sampled allocation events, while the [macOS summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 contains thread-time samples without allocation events. These are profiler
 observations, rather than exact allocation totals or a proven contention cost.
 
@@ -1136,8 +1138,8 @@ The million-row After/Before median ratios are 1.003 on Windows and 1.028 on
 macOS, while the 1,000-row control adds 65,736 allocated bytes per operation on
 both hosts. It does not improve the principal target and adds a portable
 allocation cost. The [disposition](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen-disposition.json),
-[Windows observations](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen-windows.json),
-[macOS observations](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen-macos.json)
+[Windows observations](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[macOS observations](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 and [rejected patch](excel-csv-broad-throughput-2026-10-04/xml-stream-buffering-screen.patch)
 are retained. The change is removed from both experiment branches and is absent
 from the integration branch.
@@ -1175,12 +1177,12 @@ allocations in all 28 file-write comparisons. The .NET 8 quoted mixed-data
 sequential write has a 1.877 median ratio, while the .NET 10 parallel counterpart
 has a 1.522 ratio. These negative cases remain in the matrix.
 
-The [complete three-environment summary](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-linux-summary.json)
+The [complete three-environment summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
 contains each timing/allocation pair and source fingerprints. Raw native
-observations are retained for [Windows](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-windows.json)
-and [macOS](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-macos.json),
-with the additional [Linux WSL2 packet](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-linux.json)
-and the original [Windows/macOS summary](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summary.json).
+observations are retained for [Windows](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+with the additional [Linux WSL2 packet](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and the original [Windows/macOS summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip).
 The evidence includes the [runner](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-runner.ps1)
 and [summary generator](excel-csv-broad-throughput-2026-10-04/csv-mixed-file-current-summarize.ps1).
 Further changes require comparable before/after proof across these workloads,
@@ -1202,16 +1204,16 @@ target ratios are 0.846 and 0.884, with controls at 0.820 and 0.985. This eviden
 does not establish a portable gain. The production change is backed out on both
 experiment branches and absent from the integration branch. The
 [disposition and qualification](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-disposition.json),
-[native summary](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-summary.json),
+[native summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
 [rotated control summary](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-control-summary.json)
 and [rejected patch](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching.patch)
 retain the candidate boundary and slower cases. Correctness and independent
 review qualify the implementation, but do not establish a performance benefit.
-Raw packets are retained for [Windows mask 65535](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-windows-65535.json),
-[Windows mask 4294901760](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-windows-4294901760.json)
-and [macOS](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-native-macos.json),
-with rotated controls for [Windows](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-control-windows.json)
-and [macOS](excel-csv-broad-throughput-2026-10-04/csv-text-delimiter-batching-control-macos.json).
+Raw packets are retained for [Windows mask 65535](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+[Windows mask 4294901760](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
+with rotated controls for [Windows](excel-csv-broad-throughput-2026-10-04/raw-packets.zip)
+and [macOS](excel-csv-broad-throughput-2026-10-04/raw-packets.zip).
 The additional cancellation, partial-record and writer-reuse cases remain in
 the correctness suite: all 28 writer regression cases pass against the frozen
 qualified CSV baseline after the experiment is backed out.
@@ -1340,7 +1342,7 @@ Identical-copy ratios also vary. The role reversal does not reproduce a stable
 Unicode slowdown; all slower observations remain in the evidence. It does not
 prove that every unchanged workload has zero regression.
 
-The [native summary](excel-csv-broad-throughput-2026-10-04/csv-delimiter-search-native-summary.json),
+The [native summary](excel-csv-broad-throughput-2026-10-04/raw-packets.zip),
 [rotated summary](excel-csv-broad-throughput-2026-10-04/csv-delimiter-search-control-summary.json)
 and [reversed-role summary](excel-csv-broad-throughput-2026-10-04/csv-delimiter-search-reversed-summary.json)
 retain all cases. Their raw packets preserve full source, assembly and measurement

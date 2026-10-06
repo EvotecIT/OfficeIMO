@@ -1,5 +1,7 @@
 # Excel and CSV throughput and allocation — 2026-10-04
 
+Large raw packets are retained in the [measurement archive](excel-csv-throughput-2026-10-04/raw-packets.zip), with their original filenames and exact bytes recorded in its [SHA-256 manifest](excel-csv-throughput-2026-10-04/raw-packets-manifest.json). Links to those packets download the archive. [Extraction instructions](excel-csv-throughput-2026-10-04/raw-packets.README.md) explain how to inspect individual captures; smaller summaries and reproduction sources remain beside it.
+
 The changes in `fe9daeb03` reduce warm managed allocation for short JSON CSV
 exports by 44.5% and for small XLSX shared-string tables with a Unicode or XML
 entity tail by about 11.6%. The comparison baseline is `dfb5753794`.
@@ -134,8 +136,8 @@ native Linux/macOS evidence. This run does not establish portable budgets.
 - Both product projects build for `netstandard2.0` with zero warnings or errors.
 - One independent read-only review and one targeted confirmation of restored typed batching found no actionable P0–P3 defects. They covered row failure/cancellation, destination exceptions, pooled ownership, legacy fallback, escaping, XML limits, and benchmark equivalence. The final escape file is restored to baseline. The review notes that `GetFieldType` throwing on the modern default path is not directly covered by the changed regression helper; legacy and formatted-reader tests exercise the shared value-buffering path.
 
-The evidence packet contains [native samples](excel-csv-throughput-2026-10-04/native.json),
-[rotated samples and controls](excel-csv-throughput-2026-10-04/rotated.json),
+The evidence packet contains [native samples](excel-csv-throughput-2026-10-04/raw-packets.zip),
+[rotated samples and controls](excel-csv-throughput-2026-10-04/raw-packets.zip),
 [source and assembly provenance](excel-csv-throughput-2026-10-04/provenance.json),
 and [validation results](excel-csv-throughput-2026-10-04/validation.json).
 The [reproduction instructions](excel-csv-throughput-2026-10-04/reproduction/README.md)

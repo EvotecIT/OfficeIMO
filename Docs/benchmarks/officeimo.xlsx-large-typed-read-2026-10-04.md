@@ -1,5 +1,7 @@
 # Large XLSX typed reads — 2026-10-04
 
+Large raw packets are retained in the [measurement archive](excel-large-typed-read-2026-10-04/raw-packets.zip), with original filenames and exact bytes recorded in its [SHA-256 manifest](excel-large-typed-read-2026-10-04/raw-packets-manifest.json). Links to those packets download the archive. [Extraction instructions](excel-large-typed-read-2026-10-04/raw-packets.README.md) explain how to inspect the individual captures; smaller summaries and reproduction sources remain beside it.
+
 Commit `cc694e167` avoids allocating a worksheet buffer when the package index
 already declares that the worksheet exceeds the indexed reader's 64 MiB limit.
 The reader uses its existing streaming fallback, preserving validation before
@@ -88,8 +90,8 @@ on these smaller cases; they do not establish the cause of the variation.
 
 All six follow-up cases pass. Timing remains inconsistent: the candidate's
 25,000-row first-row mean is slower in the follow-up despite lower allocation.
-Both the [initial observations](excel-large-typed-read-2026-10-04/range-scan-native.json)
-and [longer-warmup observations](excel-large-typed-read-2026-10-04/pool-check-native.json)
+Both the [initial observations](excel-large-typed-read-2026-10-04/raw-packets.zip)
+and [longer-warmup observations](excel-large-typed-read-2026-10-04/raw-packets.zip)
 remain available. No throughput improvement is claimed from these contended runs.
 
 ## Buffered numeric XML decoding
@@ -140,10 +142,10 @@ stages, the million-row complete scan allocates about 38% less than the original
 943.11 MiB observation. This does not establish a reduction in peak or retained
 memory.
 
-All [30 native cases](excel-large-typed-read-2026-10-04/numeric-native.json)
+All [30 native cases](excel-large-typed-read-2026-10-04/raw-packets.zip)
 complete. Timing remains mixed. A follow-up rotates all six numeric cases and
 the 65K control across both verified processor groups, retaining
-[672 measured samples](excel-large-typed-read-2026-10-04/numeric-rotated.json).
+[672 measured samples](excel-large-typed-read-2026-10-04/raw-packets.zip).
 For example, decimal range reads have candidate/baseline mean ratios of 1.12
 and 0.95 on the two groups. These observations do not establish a portable
 speedup or a consistent throughput regression; unfavorable observations remain
@@ -173,7 +175,7 @@ pins both product assemblies and the identical benchmark harness.
 | Open and read first row | 250,000 | 58.35 MiB | 11.92 MiB |
 | Open and read first row | 1,000,000 | 235.73 MiB | 46.87 MiB |
 
-All [38 native cases](excel-large-typed-read-2026-10-04/coordinate-initial-native.json)
+All [38 native cases](excel-large-typed-read-2026-10-04/raw-packets.zip)
 complete. Ordinary and prefixed shared-string controls have effectively unchanged
 allocation. The 65K corpus again varies with pool state: the baseline reports
 2.57 MiB in this run versus about 90 KiB in earlier longer-warmup observations.
@@ -181,9 +183,9 @@ That difference is not credited to coordinate buffering.
 
 The allocation improvement does **not** qualify the initial helper as a
 throughput improvement. The
-[15-scenario rotated comparison](excel-large-typed-read-2026-10-04/coordinate-initial-rotated.json)
+[15-scenario rotated comparison](excel-large-typed-read-2026-10-04/raw-packets.zip)
 retains 1,440 samples, including slower materialized and numeric reads. A separate
-[large-sheet rotation](excel-large-typed-read-2026-10-04/coordinate-initial-large-rotated.json)
+[large-sheet rotation](excel-large-typed-read-2026-10-04/raw-packets.zip)
 retains 192 samples. On the two processor groups, candidate/baseline mean ratios
 are 1.08/1.08 for million-row first-row opening and 1.07/1.09 for 250K first-row
 opening. Complete scans have ratios of 1.04/1.07 at one million rows and
@@ -232,15 +234,15 @@ scan allocates 84.0% less. Shared-string controls remain effectively unchanged.
 The 65K corpus allocates about 90 KiB in both snapshots. These measurements do
 not establish lower retained or peak memory.
 
-All [46 native cases](excel-large-typed-read-2026-10-04/typed-values-native.json)
+All [46 native cases](excel-large-typed-read-2026-10-04/raw-packets.zip)
 and 2,016 output-validated rotated samples complete. The smaller workloads use
 24 native warmups, twelve iterations, and four operations per iteration; the
 large workloads use five warmups, five iterations, and one operation. PowerForge
 rotates both versions on each processor group with the settings recorded in the
 [provenance](excel-large-typed-read-2026-10-04/typed-values-provenance.json).
 Every sample and outlier remains available in the
-[small](excel-large-typed-read-2026-10-04/typed-values-small-rotated.json) and
-[large](excel-large-typed-read-2026-10-04/typed-values-large-rotated.json) packets.
+[small](excel-large-typed-read-2026-10-04/raw-packets.zip) and
+[large](excel-large-typed-read-2026-10-04/raw-packets.zip) packets.
 
 Timing does not qualify this candidate as a general speedup. Candidate/baseline
 mean ratios from the two processor groups are:
@@ -263,11 +265,11 @@ and opening paths remain required throughput work; they are not erased by the
 allocation savings or by faster native observations.
 
 The preceding helper-inlining experiment was rejected. Its
-[measurements](excel-large-typed-read-2026-10-04/coordinate-rejected-inline.json)
+[measurements](excel-large-typed-read-2026-10-04/raw-packets.zip)
 and [patch](excel-large-typed-read-2026-10-04/coordinate-rejected-inline.patch)
 remain for reproduction. Separate
-[validation traversal](excel-large-typed-read-2026-10-04/coordinate-validation-screen.json)
-and [schema-name](excel-large-typed-read-2026-10-04/coordinate-schema-screen.json)
+[validation traversal](excel-large-typed-read-2026-10-04/raw-packets.zip)
+and [schema-name](excel-large-typed-read-2026-10-04/raw-packets.zip)
 screens also retain slower observations; neither is represented as an
 independently qualified speed improvement.
 
@@ -321,9 +323,9 @@ retaining only departures from sequential numbering. The six-workload
 [case file](excel-large-typed-read-2026-10-04/implicit-coordinate-cases.json)
 compares explicit coordinates, omitted row indices, and omitted row and cell
 indices at 25,000 rows. Both versions validate every numeric value. The
-[native packet](excel-large-typed-read-2026-10-04/implicit-coordinates-native.json)
+[native packet](excel-large-typed-read-2026-10-04/raw-packets.zip)
 contains twelve cases, and the
-[rotated packet](excel-large-typed-read-2026-10-04/implicit-coordinates-rotated.json)
+[rotated packet](excel-large-typed-read-2026-10-04/raw-packets.zip)
 contains 576 successful samples across both processor groups.
 
 | Coordinate layout and API | Mean ratio, `0xFFFF` | Mean ratio, `0xFFFF0000` |
@@ -353,7 +355,7 @@ investigation alongside reuse of existing coordinate scans.
 
 ## Large-file peer refresh after coordinate correction
 
-The [18-case refresh](excel-large-typed-read-2026-10-04/large-peers-coordinate-checkpoint.json)
+The [18-case refresh](excel-large-typed-read-2026-10-04/raw-packets.zip)
 uses source `15b5f2848`, Sylvan.Data.Excel 0.5.8, and ExcelReader.NET 5.1.1.
 Every engine consumes the same four typed fields, with all rows and headers
 validated before measurement. Five warmups and five measured invocations run
@@ -443,8 +445,8 @@ Reproduce the large cases with 5/5/1 warmup/iteration/invocation counts and the
 [small-case matrix](excel-large-typed-read-2026-10-04/metadata-small-cases.json)
 with 24/12/4 counts. Rotated large runs use 3/12/1; small runs use 12/24/4. All
 runs retain outliers and use Normal priority with the two previously recorded
-processor masks. The packet contains [native results](excel-large-typed-read-2026-10-04/metadata-attributes-native.json),
-[rotated observations](excel-large-typed-read-2026-10-04/metadata-attributes-rotated.json),
+processor masks. The packet contains [native results](excel-large-typed-read-2026-10-04/raw-packets.zip),
+[rotated observations](excel-large-typed-read-2026-10-04/raw-packets.zip),
 and [source, binary, review, and test provenance](excel-large-typed-read-2026-10-04/metadata-attributes-provenance.json).
 The [refreshed profile](excel-large-typed-read-2026-10-04/metadata-attributes-profile.json)
 records 99 weighted allocation samples across five complete million-row scans,
@@ -453,7 +455,7 @@ targets; sampled thread stacks do not establish precise CPU-time attribution.
 
 An earlier 128 KiB worksheet-stream buffering experiment was removed. Its eight
 native cases show inconsistent timing changes and additional allocation. The
-[rejected results and original patch text](excel-large-typed-read-2026-10-04/rejected-stream-buffer.json)
+[rejected results and original patch text](excel-large-typed-read-2026-10-04/raw-packets.zip)
 remain reproducible evidence, not part of the product implementation.
 
 ## Reusing inferred coordinates from complete scans
@@ -490,7 +492,7 @@ do not establish a universal speedup on this busy workstation.
 
 The first eager-cache design increased 25,000-row sparse discovery allocation
 from 225,832 to 2,185,824 bytes. It was rejected. Its
-[native and valid rotated observations](excel-large-typed-read-2026-10-04/rejected-eager-coordinate-cache.json)
+[native and valid rotated observations](excel-large-typed-read-2026-10-04/raw-packets.zip)
 remain separate from the final candidate. A preliminary rotation invalidated
 by a source-provenance change contributes no accepted timing samples.
 
@@ -498,8 +500,8 @@ The final candidate passes 5,376 Windows .NET 10 tests with five existing skips,
 760 focused .NET 8 tests, 755 .NET Framework 4.7.2 tests, and 760 Linux/WSL .NET 10
 tests. The product builds for `netstandard2.0`; benchmarks build for .NET 8 and
 .NET 10. Independent review and one targeted confirmation report no actionable
-findings. The packet retains [native observations](excel-large-typed-read-2026-10-04/coordinate-cache-native.json),
-[rotated samples](excel-large-typed-read-2026-10-04/coordinate-cache-rotated.json),
+findings. The packet retains [native observations](excel-large-typed-read-2026-10-04/raw-packets.zip),
+[rotated samples](excel-large-typed-read-2026-10-04/raw-packets.zip),
 [case definitions](excel-large-typed-read-2026-10-04/coordinate-cache-cases.json),
 and [source, binary, review and validation provenance](excel-large-typed-read-2026-10-04/coordinate-cache-provenance.json).
 Warmed allocation does not measure retained or peak memory, and correctness
@@ -517,7 +519,7 @@ in this screen but allocate another 165 KiB. The 65K control remains 91,771 byte
 
 The candidate passes 760 focused .NET 10 reader tests and complete output
 preflight for all eight workloads. These results do not qualify a general gain;
-the [screen packet](excel-large-typed-read-2026-10-04/rejected-xml-async-buffer.json)
+the [screen packet](excel-large-typed-read-2026-10-04/raw-packets.zip)
 retains every observation, source patch, binary hash and job setting. The
 integrated baseline at `a97198615` passes 5,376 Excel tests with five skips and
 638 CSV tests on Windows .NET 10. No rotated or other-runtime qualification is
@@ -558,10 +560,10 @@ Correctness passes 5,376 Windows .NET 10 tests with five existing skips, 760
 focused .NET 8 tests, 755 .NET Framework 4.7.2 tests, 760 Linux/WSL .NET 10 tests,
 and 760 macOS ARM64 .NET 10 tests. Product `netstandard2.0` and benchmark
 .NET 8/.NET 10 builds succeed. Independent read-only review reports no actionable
-findings. The [native cases](excel-large-typed-read-2026-10-04/xml-short-attributes-native.json),
-[full rotations](excel-large-typed-read-2026-10-04/xml-short-attributes-rotated.json),
-[focused follow-up and controls](excel-large-typed-read-2026-10-04/xml-short-attributes-followup.json),
-and [source, binary, runtime and reproduction details](excel-large-typed-read-2026-10-04/xml-short-attributes-provenance.json)
+findings. The [native cases](excel-large-typed-read-2026-10-04/raw-packets.zip),
+[full rotations](excel-large-typed-read-2026-10-04/raw-packets.zip),
+[focused follow-up and controls](excel-large-typed-read-2026-10-04/raw-packets.zip),
+and [source, binary, runtime and reproduction details](excel-large-typed-read-2026-10-04/raw-packets.zip)
 retain the complete evidence. These runs measure warmed managed allocation;
 they do not measure retained or peak memory.
 
@@ -636,7 +638,7 @@ on each processor group. Resolve snapshot, case-file, and fixture paths to
 absolute paths before invoking BenchmarkDotNet: its worker directory differs
 from the caller's directory.
 
-The packet retains [all native observations](excel-large-typed-read-2026-10-04/native.json),
+The packet retains [all native observations](excel-large-typed-read-2026-10-04/raw-packets.zip),
 [source and binary provenance](excel-large-typed-read-2026-10-04/provenance.json),
 [fixture layout](excel-large-typed-read-2026-10-04/fixture-layout.json), and the
 [allocation/thread-stack profile](excel-large-typed-read-2026-10-04/large-read-profile-summary.json).
