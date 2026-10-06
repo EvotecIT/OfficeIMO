@@ -351,6 +351,8 @@ public sealed class OfficeMarkupImageBlock : OfficeMarkupBlock {
     public string? Alt { get; }
     /// <summary>Gets an optional image title.</summary>
     public string? Title { get; }
+    /// <summary>Gets or sets the visible caption associated with an image.</summary>
+    public string? Caption { get; set; }
     /// <summary>Gets an optional numeric width supplied by the parser or caller.</summary>
     public double? Width { get; }
     /// <summary>Gets an optional numeric height supplied by the parser or caller.</summary>

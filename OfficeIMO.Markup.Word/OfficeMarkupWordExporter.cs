@@ -175,15 +175,33 @@ internal sealed class OfficeMarkupWordExporter {
     }
 
     private static void AddImage(WordExportContext context, OfficeMarkupImageBlock image) {
-        if (!TryResolveImagePath(context.Options, image.Source, out var path) || !File.Exists(path)) {
-            if (context.Options.IncludeUnsupportedBlocksAsText) {
-                context.AddParagraph($"Image: {image.Source}");
+        if (context.Options.AllowDataUriImages
+            && OfficeImageReader.TryReadBase64DataUri(image.Source, context.Options.MaximumDataUriImageBytes, out var bytes, out var info)) {
+            using var stream = new MemoryStream(bytes, writable: false);
+            double? width = image.Width, height = image.Height;
+            if (!width.HasValue && !height.HasValue) {
+                var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
+                double pageWidth = (double?)section?.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips;
+                double leftMargin = (double?)section?.Margins.Left ?? 1440;
+                double rightMargin = (double?)section?.Margins.Right ?? 1440;
+                double scale = Math.Min(1, Math.Max(1, (pageWidth - leftMargin - rightMargin) / 15) / info.Width);
+                width = info.Width * scale;
+                height = info.Height * scale;
             }
-
+            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format),
+                width, height, description: image.Alt ?? image.Title ?? string.Empty);
+        } else if (TryResolveImagePath(context.Options, image.Source, out var path) && File.Exists(path)) {
+            context.AddParagraph().AddImage(path, image.Width, image.Height, description: image.Alt ?? image.Title ?? string.Empty);
+        } else {
+            if (context.Options.IncludeUnsupportedBlocksAsText) {
+                context.AddParagraph("Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                    ? image.Alt ?? image.Title ?? "Unsupported embedded image" : image.Source));
+            }
             return;
         }
-
-        context.AddParagraph().AddImage(path, image.Width, image.Height, description: image.Alt ?? image.Title ?? string.Empty);
+        if (!string.IsNullOrWhiteSpace(image.Caption)) {
+            ApplyTextStyle(context.AddParagraph(image.Caption!), context.Styles.Resolve("caption"));
+        }
     }
 
     private static void AddTable(WordExportContext context, OfficeMarkupTableBlock table) {
@@ -362,7 +380,7 @@ internal sealed class OfficeMarkupWordExporter {
 
     private static bool TryResolveImagePath(MarkupToWordOptions options, string source, out string path) {
         path = string.Empty;
-        if (string.IsNullOrWhiteSpace(source)) {
+        if (string.IsNullOrWhiteSpace(source) || source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 

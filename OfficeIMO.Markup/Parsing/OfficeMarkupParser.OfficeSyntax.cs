@@ -52,17 +52,18 @@ public static partial class OfficeMarkupParser {
         string markup,
         OfficeMarkupDocument document,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         if (!ContainsOfficeSyntax(markup)) {
             return false;
         }
 
         if (profile == OfficeMarkupProfile.Presentation && (ContainsAtDirective(markup, "slide") || HasSlideSeparators(markup))) {
-            MapPresentationSyntax(markup, document.Blocks, profile, diagnostics);
+            MapPresentationSyntax(markup, document.Blocks, profile, diagnostics, markdownOptions);
             return true;
         }
 
-        MapOfficeAwareText(markup, document.Blocks, profile, diagnostics, null);
+        MapOfficeAwareText(markup, document.Blocks, profile, diagnostics, null, markdownOptions);
         return true;
     }
 
@@ -150,7 +151,8 @@ public static partial class OfficeMarkupParser {
         string markup,
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         foreach (var segment in SplitSlideSegments(markup)) {
             if (string.IsNullOrWhiteSpace(segment)) {
                 continue;
@@ -162,7 +164,7 @@ public static partial class OfficeMarkupParser {
 
             var slide = new OfficeMarkupSlideBlock(GetAttribute(attributes, "title"));
             ApplySlideAttributes(slide, attributes);
-            MapOfficeAwareText(slideSource, slide.Blocks, profile, diagnostics, slide);
+            MapOfficeAwareText(slideSource, slide.Blocks, profile, diagnostics, slide, markdownOptions);
             PromoteLeadingHeadingToSlideTitle(slide);
             CopyAttributes(attributes, slide.Attributes);
             target.Add(slide);
@@ -232,7 +234,8 @@ public static partial class OfficeMarkupParser {
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        OfficeMarkupSlideBlock? slideContext) {
+        OfficeMarkupSlideBlock? slideContext,
+        MarkdownReaderOptions markdownOptions) {
         var lines = markup.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var markdownLines = new List<string>();
         var inFence = false;
@@ -246,8 +249,8 @@ public static partial class OfficeMarkupParser {
                 return;
             }
 
-            var nested = MarkdownReader.ParseSemanticProjection(markdown, CreateNestedMarkdownOptions());
-            MapMarkdownBlocks(nested.Blocks, target, profile, diagnostics);
+            var nested = MarkdownReader.ParseSemanticProjection(markdown, markdownOptions);
+            MapMarkdownBlocks(nested.Blocks, target, profile, diagnostics, markdownOptions);
         }
 
         for (int i = 0; i < lines.Length; i++) {

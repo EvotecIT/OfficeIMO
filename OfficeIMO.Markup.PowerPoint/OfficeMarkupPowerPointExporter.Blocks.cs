@@ -185,9 +185,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         if (options.IncludeUnsupportedBlocksAsText) {
-            var text = IsMermaid(diagram.Language)
-                ? "Mermaid diagram\nInstall or configure the Mermaid renderer to export this block as an image."
-                : $"{diagram.Language} diagram";
+            var text = $"{diagram.Language} diagram\n{diagram.Content}";
             var textBox = slide.AddTextBoxInches(text.Trim(), box.Left, box.Top, box.Width, box.Height);
             ApplyTextStyle(textBox, styleResolver.Resolve("caption"));
             if (!HasExplicitPlacement(diagram.Placement, diagram.Attributes)) {

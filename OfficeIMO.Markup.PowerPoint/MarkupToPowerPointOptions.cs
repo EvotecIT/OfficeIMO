@@ -14,6 +14,10 @@ public sealed class MarkupToPowerPointOptions {
     public bool IncludeUnsupportedBlocksAsText { get; set; } = true;
     /// <summary>Whether image paths outside <see cref="BaseDirectory"/> may be read.</summary>
     public bool AllowExternalImagePaths { get; set; }
+    /// <summary>Whether base64 PNG and JPEG data URI images may be embedded.</summary>
+    public bool AllowDataUriImages { get; set; } = true;
+    /// <summary>Maximum decoded data URI image size in bytes. Defaults to 16 MiB.</summary>
+    public long MaximumDataUriImageBytes { get; set; } = 16L * 1024 * 1024;
     /// <summary>Whether Mermaid diagram blocks should be rendered.</summary>
     public bool RenderMermaidDiagrams { get; set; } = true;
     /// <summary>Optional Mermaid renderer executable path.</summary>
