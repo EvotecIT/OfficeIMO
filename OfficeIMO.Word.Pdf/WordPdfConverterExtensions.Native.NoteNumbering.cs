@@ -68,7 +68,11 @@ public static partial class WordPdfConverterExtensions {
                     "Page-based note numbering restart requires note pagination; numbering continues through the section.");
                 pageRestartReported = true;
             }
-            string label = OfficeNumberFormatter.Format(number, style);
+            // Word permits a zero DOCX note start. Decimal displays 0; Roman and
+            // letter formats leave that marker blank before continuing at 1.
+            // Keep the shared formatter's positive page-number contract intact.
+            string label = number == 0 ? (style == OfficeNumberStyle.Decimal ? "0" : string.Empty) :
+                OfficeNumberFormatter.Format(number, style);
             int token = tokensById.Count + 1;
             tokensById.Add(key, token);
             labelsByToken.Add(token, label);

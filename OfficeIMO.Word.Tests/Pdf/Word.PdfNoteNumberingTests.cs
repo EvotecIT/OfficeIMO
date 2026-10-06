@@ -3,10 +3,51 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfNoteNumberingTests {
+    [Theory]
+    [InlineData(WordNumberFormat.Decimal, false, "0", "1")]
+    [InlineData(WordNumberFormat.UpperLetter, false, "", "A")]
+    [InlineData(WordNumberFormat.LowerLetter, false, "", "a")]
+    [InlineData(WordNumberFormat.UpperRoman, false, "", "I")]
+    [InlineData(WordNumberFormat.LowerRoman, false, "", "i")]
+    [InlineData(WordNumberFormat.Decimal, true, "0", "1")]
+    [InlineData(WordNumberFormat.UpperLetter, true, "", "A")]
+    [InlineData(WordNumberFormat.LowerLetter, true, "", "a")]
+    [InlineData(WordNumberFormat.UpperRoman, true, "", "I")]
+    [InlineData(WordNumberFormat.LowerRoman, true, "", "i")]
+    public void ZeroStartPreservesBothNoteKindsAndContinuesTheirNumbering(
+        WordNumberFormat format, bool documentWide, string firstLabel, string secondLabel) {
+        using WordDocument source = WordDocument.Create();
+        source.Sections[0].AddFootnoteProperties(format, WordFootnotePosition.PageBottom,
+            WordNoteNumberRestart.Continuous, startNumber: 0);
+        source.Sections[0].AddEndnoteProperties(format, WordEndnotePosition.DocumentEnd,
+            WordNoteNumberRestart.Continuous, startNumber: 0);
+        if (documentWide) {
+            var section = source.Sections[0]._sectionProperties;
+            var foot = section.GetFirstChild<W.FootnoteProperties>()!;
+            var end = section.GetFirstChild<W.EndnoteProperties>()!;
+            var settings = source._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
+            settings.AddChild(new W.FootnoteDocumentWideProperties(foot.ChildElements.Select(x => x.CloneNode(true))), true);
+            settings.AddChild(new W.EndnoteDocumentWideProperties(end.ChildElements.Select(x => x.CloneNode(true))), true);
+            foot.Remove();
+            end.Remove();
+        }
+        source.AddParagraph("FIRSTREF").AddFootNote("FIRSTBODY");
+        source.AddParagraph("SECONDREF").AddFootNote("SECONDBODY");
+        source.AddParagraph("ENDREF").AddEndNote("ENDBODY");
+        source.AddParagraph("NEXTENDREF").AddEndNote("NEXTENDBODY");
+
+        string text = ReadPdfText(source, false);
+        Assert.Contains("FIRSTREF" + firstLabel + "SECONDREF" + secondLabel, text);
+        Assert.Contains("ENDREF" + firstLabel + "NEXTENDREF" + secondLabel, text);
+        Assert.Contains(firstLabel + "FIRSTBODY" + secondLabel + "SECONDBODY", text);
+        Assert.Contains(firstLabel + "ENDBODY" + secondLabel + "NEXTENDBODY", text);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
