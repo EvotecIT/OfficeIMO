@@ -123,7 +123,10 @@ plain-text statements and explicit absence of edition information. The generator
 also validates each supported edition type against the schema. The `collection`
 fixture covers all supported collection, identifier and sequence types; the
 `no-collection` fixture distinguishes explicit absence from omitted membership.
-Collection identities are synthetic assignments, not evidence of allocation or ownership. Accessibility fixtures exercise unknown status, publisher contact
+Collection identities are synthetic assignments, not evidence of allocation or ownership.
+The audience fixtures cover every supported category, a main-audience marker, multilingual
+descriptions, exact/open/closed age ranges and the 36–42 month boundary. Their combined
+assertions exercise serialization and do not establish readership or suitability. Accessibility fixtures exercise unknown status, publisher contact
 and information pages, feature codes, and explicit EPUB Accessibility 1.1/WCAG
 declarations, including distinct certifier, credentialling organization, independent
 report, intermediary and compatibility-report roles. Those assertions are synthetic
@@ -155,7 +158,10 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/edition.onix \
   /path/to/new-onix-evidence/no-edition.onix \
   /path/to/new-onix-evidence/collection.onix \
-  /path/to/new-onix-evidence/no-collection.onix
+  /path/to/new-onix-evidence/no-collection.onix \
+  /path/to/new-onix-evidence/audience.onix \
+  /path/to/new-onix-evidence/audience-months.onix \
+  /path/to/new-onix-evidence/audience-open.onix
 ```
 
 Retain the independent validator version, exit code and log alongside `evidence.json`.

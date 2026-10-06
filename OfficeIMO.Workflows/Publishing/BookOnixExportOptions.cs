@@ -68,6 +68,8 @@ public sealed record BookOnixExportOptions {
     public BookOnixEdition? Edition { get; init; }
     /// <summary>At most 64 explicit subject declarations; free-form EPUB subject authorities are not mapped automatically.</summary>
     public IReadOnlyList<BookOnixSubject> Subjects { get; init; } = [];
+    /// <summary>Optional explicit audience categories, age ranges and multilingual descriptions.</summary>
+    public BookOnixAudienceMetadata? Audience { get; init; }
     /// <summary>Optional explicit publishing status, territorial rights, supplier availability and pricing.</summary>
     public BookOnixCommercialMetadata? Commercial { get; init; }
     /// <summary>Optional explicit accessibility assertions; never inferred from EPUB metadata or automated checks.</summary>

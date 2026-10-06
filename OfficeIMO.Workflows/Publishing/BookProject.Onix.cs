@@ -62,6 +62,7 @@ public sealed partial class BookProject {
         IReadOnlyList<XElement> subjects = BuildOnixSubjects(options.Subjects, cancellationToken);
         IReadOnlyList<XElement> edition = BuildOnixEdition(options.Edition, cancellationToken);
         IReadOnlyList<XElement> collections = BuildOnixCollections(options, cancellationToken);
+        IReadOnlyList<XElement> audience = BuildOnixAudience(options.Audience, cancellationToken);
         EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;
@@ -99,6 +100,7 @@ public sealed partial class BookProject {
         descriptive.Add(new XElement(onix + "Language", new XElement(onix + "LanguageRole", "01"),
             new XElement(onix + "LanguageCode", options.LanguageCode)));
         descriptive.Add(subjects);
+        descriptive.Add(audience);
         var publishing = new XElement(onix + "PublishingDetail", new XElement(onix + "Publisher",
             new XElement(onix + "PublishingRole", "01"), new XElement(onix + "PublisherName", options.PublisherName)));
         if (commercial.Status != null) publishing.Add(commercial.Status);

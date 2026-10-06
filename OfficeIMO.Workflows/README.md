@@ -485,6 +485,44 @@ validation checks ONIX structure and list values, not membership of individual
 subject codes, supplied scheme versions, classification suitability or discoverability
 in a recipient's catalog.
 
+### Audience categories and age ranges
+
+Use `Audience` for explicit readership assertions:
+
+```csharp
+var options = existingOptions with {
+    Audience = new() {
+        Categories = [new(BookOnixAudienceType.Children, IsMain: true),
+                      new(BookOnixAudienceType.Teenage)],
+        AgeRanges = [new(BookOnixAgeRangeType.InterestYears, Minimum: 10, Maximum: 14),
+                     new(BookOnixAgeRangeType.ReadingYears, Minimum: 9, Maximum: 12)],
+        Descriptions = [new("Readers of adventure and exploration", "eng")]
+    }
+};
+```
+
+All 13 [ONIX list 28](https://ns.editeur.org/onix/en/28) categories are supported.
+Categories must be distinct, with at most one main audience. Descriptions are plain
+text, not HTML, with optional ONIX list 74 language codes. Up to 16 descriptions
+are allowed, with distinct languages including unspecified; text fields retain the
+4096-character bound. Omit `Audience` when making no assertion.
+
+Age ranges distinguish interest in years or months from reading age in years.
+At least one nonnegative integer bound is required. Equal bounds mean an exact age;
+a lone minimum means “from”, a lone maximum means “to”, and different minimum/maximum
+bounds form a closed range. Each range type may appear once. Interest months and
+interest years cannot coexist. Following [ONIX list 30](https://ns.editeur.org/onix/en/30),
+month-based interest ages allow a first value up to 36 and a second value up to 42.
+Thus 36–42 months is valid, while an exact age of 42 months or a lone upper bound of
+42 months is not.
+
+Audience categories and age ranges are independent assertions. Supply an appropriate
+range for children's, teenage and school material when known; export does not guess
+one from a category or inspect the book to assess suitability. This profile does not
+represent proprietary/national audience schemes, school-grade ranges, adult-content
+ratings or reading-complexity schemes. Schema validity does not establish educational
+suitability or recipient acceptance, and audience export does not change EPUB metadata.
+
 ### Collection membership
 
 Declare collection identity and ordering explicitly. These fields do not change or
