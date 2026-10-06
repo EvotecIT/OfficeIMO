@@ -6,12 +6,12 @@ public sealed partial class BookProject {
     private static XElement BuildOnixCollectionTitle(BookOnixCollection collection, CancellationToken cancellationToken,
         out IReadOnlyCollection<BookOnixCollectionLevel> levels) {
         ArgumentNullException.ThrowIfNull(collection.TitleElements);
-        if (collection.TitleElements.Count > 3)
-            throw new ArgumentException("At most three collection title elements are supported.", nameof(collection.TitleElements));
-        bool hierarchical = collection.TitleElements.Count != 0;
-        if (hierarchical && (collection.Title != null || collection.Subtitle != null || collection.LanguageCode != null || collection.TitleSorting != null))
+        if (collection.TitleElements.Count > 5)
+            throw new ArgumentException("At most five collection title elements are supported.", nameof(collection.TitleElements));
+        bool structured = collection.TitleElements.Count != 0;
+        if (structured && (collection.Title != null || collection.Subtitle != null || collection.LanguageCode != null || collection.TitleSorting != null))
             throw new ArgumentException("TitleElements cannot accompany the simple Title, Subtitle, LanguageCode or TitleSorting fields.", nameof(collection));
-        IReadOnlyList<BookOnixCollectionTitleElement> titles = hierarchical ? collection.TitleElements : [new() {
+        IReadOnlyList<BookOnixCollectionTitleElement> titles = structured ? collection.TitleElements : [new() {
             Level = BookOnixCollectionLevel.Collection, Title = collection.Title,
             Subtitle = collection.Subtitle, LanguageCode = collection.LanguageCode, TitleSorting = collection.TitleSorting
         }];
@@ -25,13 +25,15 @@ public sealed partial class BookProject {
             string level = OnixCollectionLevelCode(title.Level);
             if (!foundLevels.Add(title.Level))
                 throw new ArgumentException("Collection title levels must be distinct.", nameof(collection.TitleElements));
+            if (title.Level is BookOnixCollectionLevel.MasterBrand or BookOnixCollectionLevel.Universe)
+                RequireOnixText(title.Title!, nameof(title.Title));
             if (title.Title == null && title.PartNumber == null)
                 throw new ArgumentException("Each collection title element requires a title or part designation.", nameof(collection.TitleElements));
             if (title.PartNumber != null) RequireOnixText(title.PartNumber, nameof(title.PartNumber));
             if (title.Subtitle != null) RequireOnixText(title.Subtitle, nameof(title.Subtitle));
             if (title.LanguageCode != null) RequireOnixLanguageCode(title.LanguageCode, nameof(title.LanguageCode));
             var element = new XElement(ns + "TitleElement",
-                hierarchical ? new XElement(ns + "SequenceNumber", ++sequence) : null,
+                structured ? new XElement(ns + "SequenceNumber", ++sequence) : null,
                 new XElement(ns + "TitleElementLevel", level));
             AddText("PartNumber", title.PartNumber);
             element.Add(BuildOnixTitleText(title.Title, title.TitleSorting, title.LanguageCode));
@@ -43,7 +45,7 @@ public sealed partial class BookProject {
                     title.LanguageCode != null ? new XAttribute("language", title.LanguageCode) : null, value));
             }
         }
-        if (!foundLevels.Contains(BookOnixCollectionLevel.Collection) ||
+        if ((foundLevels.Contains(BookOnixCollectionLevel.Subcollection) && !foundLevels.Contains(BookOnixCollectionLevel.Collection)) ||
             (foundLevels.Contains(BookOnixCollectionLevel.SubSubcollection) && !foundLevels.Contains(BookOnixCollectionLevel.Subcollection)))
             throw new ArgumentException("Collection title hierarchies must include their parent levels.", nameof(collection.TitleElements));
         levels = foundLevels;
@@ -52,7 +54,8 @@ public sealed partial class BookProject {
 
     private static string OnixCollectionLevelCode(BookOnixCollectionLevel level) => level switch {
         BookOnixCollectionLevel.Collection => "02", BookOnixCollectionLevel.Subcollection => "03",
-        BookOnixCollectionLevel.SubSubcollection => "06", _ => throw new ArgumentOutOfRangeException(nameof(level))
+        BookOnixCollectionLevel.SubSubcollection => "06", BookOnixCollectionLevel.MasterBrand => "05",
+        BookOnixCollectionLevel.Universe => "07", _ => throw new ArgumentOutOfRangeException(nameof(level))
     };
 
     private static string OnixCollectionFrequencyCode(BookOnixCollectionFrequency frequency) => frequency switch {

@@ -1,20 +1,24 @@
 namespace OfficeIMO.Workflows;
 
-/// <summary>Bibliographic collection hierarchy levels from ONIX list 149.</summary>
+/// <summary>Collection title element levels from ONIX list 149.</summary>
 public enum BookOnixCollectionLevel {
     /// <summary>Top-level collection (02).</summary>
     Collection,
     /// <summary>Subcollection (03).</summary>
     Subcollection,
     /// <summary>Subdivision of a subcollection (06).</summary>
-    SubSubcollection
+    SubSubcollection,
+    /// <summary>Explicit multimedia franchise, licensed property or master brand (05); not a series parent.</summary>
+    MasterBrand,
+    /// <summary>Explicit shared fictional setting (07); independent of brand or series hierarchy.</summary>
+    Universe
 }
 
-/// <summary>One collection title element. Supply Title, PartNumber, or both; list order determines display order.</summary>
+/// <summary>One collection title element. Series levels need Title or PartNumber; brands and universes require Title. List order determines display order.</summary>
 public sealed record BookOnixCollectionTitleElement {
-    /// <summary>Hierarchy level, independent of display order.</summary>
+    /// <summary>Title element level, independent of display order.</summary>
     public required BookOnixCollectionLevel Level { get; init; }
-    /// <summary>Full title text, without a subtitle. Required when PartNumber is omitted.</summary>
+    /// <summary>Full title text, without a subtitle. Required for brands and universes, or when PartNumber is omitted.</summary>
     public string? Title { get; init; }
     /// <summary>Optional explicit sorting prefix or no-prefix assertion; omission retains unsplit TitleText.</summary>
     public BookOnixTitleSorting? TitleSorting { get; init; }

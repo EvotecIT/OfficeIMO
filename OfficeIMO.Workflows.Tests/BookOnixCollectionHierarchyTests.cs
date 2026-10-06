@@ -90,7 +90,7 @@ public sealed class BookOnixCollectionHierarchyTests {
             "title-conflict" => Hierarchy() with { Title = "Ambiguous" },
             "subtitle-conflict" => Hierarchy() with { Subtitle = "Ambiguous" },
             "language-conflict" => Hierarchy() with { LanguageCode = "eng" },
-            "too-many-elements" => Hierarchy() with { TitleElements = [root, child, root, child] },
+            "too-many-elements" => Hierarchy() with { TitleElements = [root, child, root, child, root, child] },
             "duplicate-level" => Hierarchy() with { TitleElements = [root, root] },
             "missing-root" => Hierarchy() with { TitleElements = [child] },
             "missing-parent" => Hierarchy() with { TitleElements = [root, Title(BookOnixCollectionLevel.SubSubcollection)] },

@@ -733,7 +733,7 @@ between the product, collections and EPUB metadata; place them according to the
 recipient's requirements. An empty list makes no assertion. `NoContributors = true`
 explicitly asserts no collection contributors and cannot accompany credits.
 
-For a hierarchy, use `TitleElements` instead of the simple `Title`, `Subtitle`,
+For structured collection titles, use `TitleElements` instead of the simple `Title`, `Subtitle`,
 `LanguageCode` and `TitleSorting` fields:
 
 ```csharp
@@ -754,13 +754,34 @@ var collection = new BookOnixCollection {
 };
 ```
 
-The list holds one element per represented level, up to three, and must include
-parent levels. List order determines display order and writes consecutive
-`SequenceNumber` values; it can differ from hierarchy order. Every element needs
+The list holds one element per represented level, up to five. Subcollections and
+sub-subcollections must include their series parent levels. List order determines display order and writes consecutive
+`SequenceNumber` values; it can differ from hierarchy order. Each series level needs
 a title, a part designation (including its caption), or both. Its optional language
 applies to its title, subtitle and part designation; languages are not inherited
-between levels. The product title remains separate. Alternative title types,
-master brands and universes are not represented by this profile.
+between levels. The product title remains separate. Collection-level alternative
+title types are outside this profile.
+
+`MasterBrand` and `Universe` add explicit ONIX levels `05` and `07` to `TitleElements`.
+They require a nonblank `Title` and can appear alone or alongside series levels.
+Neither is treated as a parent of the series or of the other identity. For example:
+
+```csharp
+var branded = new BookOnixCollection {
+    Type = BookOnixCollectionType.Publisher,
+    TitleElements = [
+        new() { Level = BookOnixCollectionLevel.MasterBrand, Title = "Voyager Tales" },
+        new() { Level = BookOnixCollectionLevel.Universe, Title = "Orbital Commons" },
+        new() { Level = BookOnixCollectionLevel.Collection, Title = "Early readers" }
+    ]
+};
+```
+
+This profile writes these identities in `Collection` composites, keeping the product
+title separate. Use separate `Collections` entries for independent brands or universes
+at the same level. Identifiers can select either level when it appears in that entry's title;
+existing scheme and scope checks apply. These are publisher-supplied identities,
+not inferred licensing, ownership, or associations from EPUB text.
 
 `Frequency` declares the schedule of successive products in the collection. It
 supports the [ONIX list 259 values](https://ns.editeur.org/onix/en/259), including

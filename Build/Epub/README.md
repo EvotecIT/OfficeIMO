@@ -161,6 +161,10 @@ The `alternative-titles` fixture covers all supported book title classifications
 multilingual text and subtitles, independent sorting declarations and retained order
 through message composition. Negative controls require rejection of an unknown title
 type and an unknown language code on an alternative title.
+The `collection-brand-universe` fixture covers standalone master brands and fictional
+universes, their combination with all three series levels, scoped identifiers and
+message composition. Its negative control requires rejection of an unknown identifier
+level. Names and associations are synthetic and do not assert ownership or licensing.
 The `edition` and `no-edition` fixtures cover numbered minor revisions, multilingual
 plain-text statements and explicit absence of edition information. The generator
 also validates each supported edition type against the schema. The `collection`

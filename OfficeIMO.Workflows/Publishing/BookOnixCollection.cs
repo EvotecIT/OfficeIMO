@@ -2,7 +2,7 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Collection provenance from ONIX list 148.</summary>
 public enum BookOnixCollectionType {
-    /// <summary>Publisher-defined bibliographic series or set (10).</summary>
+    /// <summary>Publisher-defined collection (10).</summary>
     Publisher,
     /// <summary>Publisher marketing collection, or collection éditoriale (11).</summary>
     Editorial,
@@ -22,7 +22,7 @@ public enum BookOnixCollectionIdentifierType {
 
 /// <summary>An explicit collection identifier; SchemeName is required only for proprietary identifiers.</summary>
 public sealed record BookOnixCollectionIdentifier(BookOnixCollectionIdentifierType Type, string Value, string? SchemeName = null) {
-    /// <summary>Optional hierarchy level identified by this value; must occur in the collection title.</summary>
+    /// <summary>Optional title element level identified by this value; must occur in the collection title.</summary>
     public BookOnixCollectionLevel? Level { get; init; }
 }
 
@@ -50,7 +50,7 @@ public enum BookOnixCollectionSequenceType {
 /// <param name="Name">Required only for proprietary sequences.</param>
 public sealed record BookOnixCollectionSequence(BookOnixCollectionSequenceType Type, string Number, string? Name = null);
 
-/// <summary>Explicit membership in one collection. Does not infer ONIX semantics from EPUB series metadata.</summary>
+/// <summary>Explicit membership in one collection or named grouping. Does not infer ONIX semantics from EPUB series metadata.</summary>
 public sealed record BookOnixCollection {
     /// <summary>Who defines the collection.</summary>
     public required BookOnixCollectionType Type { get; init; }
@@ -62,7 +62,7 @@ public sealed record BookOnixCollection {
     public string? Subtitle { get; init; }
     /// <summary>Optional ONIX list 74 language for the collection title and subtitle.</summary>
     public string? LanguageCode { get; init; }
-    /// <summary>One to three title elements in display order, with one per level. Mutually exclusive with Title, Subtitle, LanguageCode and TitleSorting.</summary>
+    /// <summary>One to five title elements in display order, with one per level. Mutually exclusive with Title, Subtitle, LanguageCode and TitleSorting.</summary>
     public IReadOnlyList<BookOnixCollectionTitleElement> TitleElements { get; init; } = [];
     /// <summary>Optional explicit frequency of publication of successive products in the collection.</summary>
     public BookOnixCollectionFrequency? Frequency { get; init; }
