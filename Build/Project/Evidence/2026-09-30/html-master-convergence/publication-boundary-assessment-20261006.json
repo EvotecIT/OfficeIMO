@@ -65,22 +65,6 @@
   },
   "publishedProgramPrs": [
     {
-      "number": 2845,
-      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2845",
-      "head": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
-      "base": "master",
-      "checkedUtc": "2026-10-06T12:45:24.501345+00:00",
-      "threadPages": 1,
-      "unresolvedThreads": 0,
-      "checks": {
-        "SUCCESS": 90,
-        "QUEUED": 1,
-        "SKIPPED": 5
-      },
-      "remaining": "Exact-head CI and delayed current-head feedback before authorized merge; no manual hosted-review request.",
-      "mergeable": "MERGEABLE"
-    },
-    {
       "number": 2852,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2852",
       "head": "8e5a8fd834b045322d5697106800190f19bf0828",
@@ -161,7 +145,7 @@
     "ordinaryWorktreeAndLocalBranchRemoved": true
   },
   "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
-  "nextDeliverable": "Settle and merge the five focused PRs in real dependency order, preserve proof and remove their owned worktrees. Then reconcile the accepted masters and other-task overlaps before qualifying a selected static renderer/job PR. Larger H10/runtime/performance goals remain incomplete.",
+  "nextDeliverable": "Complete current-head CI and delayed feedback for four focused PRs, merge ready layers in dependency order and preserve/clean their owned worktrees. Apply the prepared selector bridge during deliberate static owner convergence; qualify the extracted renderer/job graph before long-lived adoption. Larger H10/runtime/performance goals remain incomplete.",
   "wrapUpUtc": "2026-10-06T11:40:40.405648+00:00",
   "wrapUpSource": "f6aa381c4ce7425f483b33a4c37e04711c17f993",
   "focusedMerges": [
@@ -181,6 +165,28 @@
       "number": 2851,
       "mergeCommit": "50428f9e111533fe219c3fb579e222938ff7cbf1",
       "evidence": "Ignore/MasterConvergenceQualification/merged-excel-picture-hyperlinks-7083460c0",
+      "worktreeAndLocalBranchRemoved": true
+    },
+    {
+      "number": 2845,
+      "mergeCommit": "218c5ef03d69c6c78ae0cdf9f1c7793617ce8a32",
+      "mergedAt": "2026-10-06T14:50:02Z",
+      "head": "bc73b7b8fd91a3389736aff88f121b0f1e96a52b",
+      "checks": {
+        "SUCCESS": 91,
+        "SKIPPED": 5
+      },
+      "feedback": {
+        "checkedUtc": "2026-10-06T14:48:38.693875+00:00",
+        "threadPages": 1,
+        "unresolvedThreads": 0,
+        "reviews": 0,
+        "reviewComments": 0,
+        "issueComments": 0
+      },
+      "evidence": "Ignore/MasterConvergenceQualification/merged-xlsb-neutral-views-bc73b7b8f",
+      "preservedFiles": 21,
+      "preservedBytes": 1230145,
       "worktreeAndLocalBranchRemoved": true
     }
   ],
@@ -239,15 +245,15 @@
     "checkpointArchivesBytes": 795840287
   },
   "currentFollowThrough": {
-    "recordedUtc": "2026-10-06T13:18:39.349404+00:00",
-    "mainEvidenceParent": "a6528f24a9b5258cd3600d1ae1b2d8df84ad9a6f",
+    "recordedUtc": "2026-10-06T15:06:28.605464+00:00",
+    "mainEvidenceParent": "9f04e0301a80e8ee454adf57d7f674ed8016e513",
     "productSourceUnchanged": "1231730d936a117b6d0c56660197f99beff7604a",
     "checklist": {
-      "completeFeedbackAtWake": true,
-      "rasterConflictResolvedValidatedPushed": true,
-      "readyMerges": false,
-      "staticPrerequisiteMigrationInventory": true,
-      "completedOutputCleanup": true
+      "xlsbCurrentHeadFeedbackMergeCleanup": true,
+      "remainingFourCompleteFeedback": false,
+      "preparedStaticAdapterCompileAndIndependentSelectorProof": true,
+      "completedOutputCleanup": true,
+      "qualifiedStaticExtraction": false
     },
     "raster": {
       "head": "8e5a8fd834b045322d5697106800190f19bf0828",
@@ -270,12 +276,36 @@
         "pdfOpacity": 1,
         "coreFontMath": 11
       },
-      "requirement": "Reconcile the accepted foundation sibling identity/collection contract in the static selector adapter and preserve cascade-trace source absent from the incremental foundation; no whole-directory replacement. Source inventory is not compiled/packed graph qualification."
+      "requirement": "Reconcile the accepted foundation sibling identity/collection contract in the static selector adapter and preserve cascade-trace source absent from the incremental foundation; no whole-directory replacement. Source inventory is not compiled/packed graph qualification.",
+      "preparedAdapter": {
+        "recordedUtc": "2026-10-06T15:05:27.980790+00:00",
+        "foundationCandidate": "f8cc0c22463fd641c474244005bfb7e20a50cf13",
+        "sourceOwner": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.SelectorElements.cs",
+        "sourceParent": "9f04e0301a80e8ee454adf57d7f674ed8016e513",
+        "patchSha256": "5491e103666956089eb0966ac5a28a6694a6b08d7e15c5d3497300fb71958aeb",
+        "patch": "--- a/OfficeIMO.Html/Styles/HtmlComputedStyleEngine.SelectorElements.cs\n+++ b/OfficeIMO.Html/Styles/HtmlComputedStyleEngine.SelectorElements.cs\n@@ -27,11 +27,13 @@\n         public string Id => _element.Id ?? string.Empty;\n         public OfficeIMO.Html.Css.IHtmlCssSelectorElement? ParentElement =>\n             _element.ParentElement == null ? null : _cache.Get(_element.ParentElement);\n-        public IReadOnlyList<OfficeIMO.Html.Css.IHtmlCssSelectorElement> GetElementChildren(\n+        public object? SiblingParentIdentity => _element.Parent;\n+        public IReadOnlyList<OfficeIMO.Html.Css.IHtmlCssSelectorElement> GetSiblingElements(\n             Action? recordEvaluation,\n             CancellationToken cancellationToken) {\n             var children = new List<OfficeIMO.Html.Css.IHtmlCssSelectorElement>();\n-            foreach (INode child in _element.ChildNodes) {\n+            if (_element.Parent == null) return children;\n+            foreach (INode child in _element.Parent.ChildNodes) {\n                 cancellationToken.ThrowIfCancellationRequested();\n                 recordEvaluation?.Invoke();\n                 if (child is IElement element) children.Add(_cache.Get(element));\n",
+        "preparedSourceSha256": "07843543becb028783b4bec520bdbbba0e1409f48412cbd8100c88a0da16c605",
+        "before": "Exact source adapter fails against foundation on two CS0535 members: sibling parent identity and sibling enumeration.",
+        "after": "Compile 0 warnings/errors on net8/net10; 20 explicit selector outcomes per framework, evaluation and canceled traversal pass. All 20 agree independently with Chromium153.0.8010.12 through isolated test-only HtmlTinkerX3.0.3.",
+        "comparatorLimit": "Retained AngleSharp1.8.3 matcher disagrees on nine root/fragment structural outcomes; original failed observer and full differences retained. Chromium confirms the predeclared outcomes. No provider patch, upstream claim or general selector/browser parity.",
+        "scope": "Linked-source adapter compatibility preparation only. No tracked product edit, shipped browser tool, full computed-style/renderer/cascade qualification, package or platform claim. Apply the retained patch as part of the selected static integration extraction; preserve HtmlCssCascadeTrace.",
+        "evidence": "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/static-selector-migration",
+        "frameworks": {
+          "net8.0": {
+            "cases": 20,
+            "loadedCoreSha256": "e3304e4d22c0f33c5e94a9983bd06e5a077251490be8cbe994a29522949a9cb4"
+          },
+          "net10.0": {
+            "cases": 20,
+            "loadedCoreSha256": "4941e798ae4e7512f812031e15f7cc60d521cf08c37fb4a1c194724913f3b6a8"
+          }
+        }
+      }
     },
     "heldSteps": {
-      "mergeFocusedPrs": "Required CI pending; raster also needs delayed post-push feedback. No current failures or unresolved findings at recorded snapshots.",
-      "combinedStaticQualification": "Accepted prerequisite settlement, deliberate corrective-owner/other-task overlap convergence and selected extracted graph validation. Separate other-task branches remain read-only.",
-      "longLivedAdoption": "Selected package/profile/platform acceptance; broader H10/native/manual accessibility and historical timing failures stay open."
+      "mergeFocusedPrs": "Four remaining PRs require complete latest-head feedback and current CI verification; this wake complete API reads failed on TCP timeouts. Raster checks remain pending; PDF/math CLI checks pass but delayed complete feedback could not be verified. DOM/CSS current CLI check timed out.",
+      "combinedStaticQualification": "Apply the independently checked sibling migration while deliberately converging the precise corrective owners and read-only other-task overlaps; separate extraction tests and a linked-source probe do not qualify the full renderer/job.",
+      "longLivedAdoption": "Selected package/profile/platform acceptance; wider H10/native/manual accessibility and historical timing failures stay open."
     },
     "cleanup": {
       "targets": 102,
@@ -287,6 +317,41 @@
         "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/raster-merge-generated-cleanup-results.json"
       ],
       "retained": "Input fixtures with SHA receipts, both framework TRX and original failures, eight native workbooks, independent observations and source/normal DLL receipts. Earlier feeds and final proof remain; no shared-cache deletion."
+    },
+    "xlsbMerge": {
+      "number": 2845,
+      "mergeCommit": "218c5ef03d69c6c78ae0cdf9f1c7793617ce8a32",
+      "evidence": "Ignore/MasterConvergenceQualification/merged-xlsb-neutral-views-bc73b7b8f"
+    },
+    "apiTransport": {
+      "state": "Intermittent api.github.com TCP connection timeouts; bounded read attempts incomplete. GitHub accepted and confirmed XLSB merge; other merges held.",
+      "failedReads": [
+        "snapshot-bounded-2852-1445.json",
+        "snapshot-bounded-2864-1445.json",
+        "snapshot-bounded-2866-1445.json",
+        "snapshot-bounded-2867-1445.json",
+        "snapshot-recovered-2852-1457.json",
+        "snapshot-recovered-2864-1457.json",
+        "snapshot-recovered-2866-1457.json",
+        "snapshot-recovered-2867-1457.json"
+      ],
+      "observedPrChecksAt1448": {
+        "2852": "pending, exit8",
+        "2864": "transport timeout; no current receipt",
+        "2866": "exit0 all reported checks settled",
+        "2867": "exit0 all reported checks settled"
+      },
+      "scope": "These CLI receipts do not replace failed complete current-head metadata/review/comment/reaction snapshots; no additional merges authorized from partial reads."
+    },
+    "cleanupAt1445": {
+      "targets": 8,
+      "bytesRemoved": 727879891,
+      "allAbsent": true,
+      "results": [
+        "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/post-merge-preparation-cleanup-results.json",
+        "Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/selector-browser-cleanup-results.json"
+      ],
+      "retained": "Private cache origin metadata, identical local-feed packages and loaded DLL receipts preserved; final controls/source/fixtures/failures retained. No shared cache or unrelated checkout removal."
     }
   }
 }
