@@ -9,6 +9,8 @@ import signal
 import subprocess
 import sys
 
+from audio_evidence import inspect_audio
+
 
 def digest(path):
     value = hashlib.sha256()
@@ -129,10 +131,16 @@ def main():
     parser.add_argument("--output", required=True, type=Path, help="New task-owned evidence directory")
     parser.add_argument("--java", default="java")
     parser.add_argument("--ace", type=Path, help="Explicit installed Ace CLI executable (optional)")
+    parser.add_argument("--ffprobe", type=Path, help="Explicit installed ffprobe for encoded-audio clip bounds (optional)")
+    parser.add_argument("--ffmpeg", type=Path, help="Optional full audio decode; requires --ffprobe")
     parser.add_argument("--timeout", type=int, default=120, help="Seconds per validator invocation")
     args = parser.parse_args()
     jar = args.epubcheck_jar.resolve(strict=True)
     ace = args.ace.resolve(strict=True) if args.ace else None
+    ffprobe = args.ffprobe.resolve(strict=True) if args.ffprobe else None
+    ffmpeg = args.ffmpeg.resolve(strict=True) if args.ffmpeg else None
+    if ffmpeg and not ffprobe:
+        parser.error("--ffmpeg requires --ffprobe")
     inputs = [path.resolve(strict=True) for path in args.epubs]
     if args.timeout < 1 or len(inputs) > 256:
         parser.error("Use a positive timeout and at most 256 publications per run")
@@ -152,6 +160,13 @@ def main():
             version = subprocess.run([str(ace), "--version"], capture_output=True, text=True,
                                      timeout=args.timeout, check=True)
             summary["aceVersion"] = (version.stdout + version.stderr).strip()
+        for name, tool in (("ffprobe", ffprobe), ("ffmpeg", ffmpeg)):
+            if tool:
+                version = subprocess.run([str(tool), "-version"], capture_output=True, text=True, timeout=args.timeout, check=True)
+                if not version.stdout.strip():
+                    raise ValueError(name + " did not report a version")
+                summary[name + "Version"] = version.stdout.splitlines()[0]
+                summary[name + "Sha256"] = digest(tool)
         for index, source in enumerate(inputs):
             folder = output / f"publication-{index + 1:04d}"
             folder.mkdir()
@@ -186,6 +201,10 @@ def main():
                 if record["errors"] == 0 and record["fatalErrors"] == 0:
                     record["status"] = "passed"
             failed |= record["status"] != "passed"
+            record["encodedAudio"] = {"status": "not-checked", "nativePlayback": "not-checked"}
+            if ffprobe:
+                record["encodedAudio"] = inspect_audio(snapshot, folder, ffprobe, ffmpeg, args.timeout)
+                failed |= record["encodedAudio"]["status"] not in ("passed", "not-applicable")
             record["automatedAccessibility"] = {"status": "not-checked"}
             if ace:
                 automated = record["automatedAccessibility"] = {"status": "failed"}

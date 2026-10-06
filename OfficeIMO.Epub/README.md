@@ -356,7 +356,9 @@ publication.AddMediaOverlay("story", "story-narration", "EPUB/story.smil", new E
 The operation creates the SMIL resource, manifest association, overlay duration
 and publication duration atomically. Clip durations are summed without floating-point
 rounding. Each clip must satisfy `0 <= begin < end <= audio duration`. Audio durations
-are caller declarations; OfficeIMO does not decode the media to verify them.
+are caller declarations; OfficeIMO does not decode the media to verify them. The opt-in
+[encoded-audio evidence runner](../Build/Epub/README.md) can independently probe clip
+bounds and decode captured publications; it adds no library runtime dependency.
 
 This profile accepts 1–10,000 narration nodes and local, nonempty, unencrypted `audio/mpeg`
 or `audio/mp4` resources. Targets use existing unqualified XHTML body or supported SVG element ids,

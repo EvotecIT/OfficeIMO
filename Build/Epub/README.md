@@ -36,6 +36,41 @@ browser groups on POSIX. Cleanup has a bounded grace period beyond the requested
 timeout. Run the POSIX timeout contract with
 `python3 -m unittest discover -s Build/Epub`; it exercises ordinary and detached children.
 
+To check explicit SMIL clip bounds against encoded audio, supply an installed
+[ffprobe](https://ffmpeg.org/ffprobe.html). Add `--ffmpeg` to require a successful
+full decode of every referenced audio resource:
+
+```sh
+python3 Build/Epub/validate_epub.py revised-narration.epub \
+  --epubcheck-jar /path/to/epubcheck/epubcheck.jar \
+  --ffprobe /path/to/ffprobe --ffmpeg /path/to/ffmpeg \
+  --output /path/to/task-evidence/narration
+```
+
+The `encodedAudio` result records clip offsets, resource hashes, probed durations,
+probe reports and decode outcomes for the captured publication. The audio stream's
+duration takes precedence over the container duration. A clip beyond that duration
+fails without a rounding allowance. Without `--ffprobe`, this scope remains
+`not-checked`; without `--ffmpeg`, decoding remains `not-checked`. An explicitly
+requested but unsupported check returns `not-checked` and a nonzero runner exit.
+The runner records executable versions and hashes and does not install either tool.
+
+This lane supports one package rendition, one audio stream per resource, explicit
+clip ends, and local MP3, MP4, WAV, Ogg and FLAC resources. Missing clip ends, XML
+base addressing, external/query/fragment references, encrypted or obfuscated
+publications, and unsupported media types require separate qualification. Limits
+are 10,000 ZIP entries and clips, 256 overlays and audio resources, 2 MiB per XML
+member, 128 MiB per audio resource, and 256 MiB of expanded audio per publication.
+Only referenced resources are materialized under temporary generated filenames;
+fixed demuxers and a local protocol allowlist prevent playlist/network probing.
+Temporary audio copies are removed after each check. Logs and compact probe reports
+remain with the evidence.
+
+Probed duration and successful decoding do not establish speech alignment, audible
+endpoints, synchronized highlighting, seeking or native reader behavior. Those
+scopes remain unchecked. In particular, codec delay and padding can differ from
+the audible duration; the result reports encoded timing, not perceptual alignment.
+
 A passing result establishes only the checks performed by the recorded tool versions.
 Review warnings and retain the versions with the evidence. The summary explicitly
 leaves comprehensive accessibility assessment and reader presentation unchecked even
@@ -90,7 +125,7 @@ are retained failures, not an accessibility pass. Native preflight also reports 
 source's missing modern accessibility metadata. Keep those results separate from
 preservation and EPUBCheck. Independent encoded-audio
 qualification of the retained MP4 found all 40 clips within its 1436.43-second duration
-and a successful full decode; the runner itself does not decode audio. These results
+and a successful full decode. Repeat this check on captured editions with the optional audio lane above. These results
 do not establish synchronized highlighting, seeking, pause/resume or assistive-technology
 acceptance in a reading system.
 
