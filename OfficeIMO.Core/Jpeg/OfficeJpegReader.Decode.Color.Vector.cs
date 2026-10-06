@@ -7,8 +7,8 @@ namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegReader {
     // Full-width luma and half-width chroma share each chroma value between two pixels.
-    // Preserve the independently rounded scalar color contributions, including both
-    // green terms, before clamping. The caller handles any remaining pixels.
+    // Match scalar channel rounding: add both scaled green terms before rounding
+    // the channel once and clamping. The caller handles any remaining pixels.
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static int ComposeYccToRgbaHalfChromaVector(
         byte[] luma, int lumaOffset, byte[] cb, int cbOffset, byte[] cr, int crOffset,
@@ -30,11 +30,11 @@ internal static partial class OfficeJpegReader {
             var cbDelta = Avx2.Subtract(Avx2.ConvertToVector256Int32(Ssse3.Shuffle(cbBytes, duplicateChroma)), center);
             var crDelta = Avx2.Subtract(Avx2.ConvertToVector256Int32(Ssse3.Shuffle(crBytes, duplicateChroma)), center);
             var redContribution = Avx2.ShiftRightArithmetic(Avx2.Add(Avx2.MultiplyLow(crDelta, Vector256.Create(91881)), rounding), 16);
-            var greenCbContribution = Avx2.ShiftRightArithmetic(Avx2.Add(Avx2.MultiplyLow(cbDelta, Vector256.Create(22554)), rounding), 16);
-            var greenCrContribution = Avx2.ShiftRightArithmetic(Avx2.Add(Avx2.MultiplyLow(crDelta, Vector256.Create(46802)), rounding), 16);
+            var greenScaled = Avx2.Add(Avx2.MultiplyLow(cbDelta, Vector256.Create(-22554)), Avx2.MultiplyLow(crDelta, Vector256.Create(-46802)));
+            var greenContribution = Avx2.ShiftRightArithmetic(Avx2.Add(greenScaled, rounding), 16);
             var blueContribution = Avx2.ShiftRightArithmetic(Avx2.Add(Avx2.MultiplyLow(cbDelta, Vector256.Create(116130)), rounding), 16);
             var red = Avx2.Min(Avx2.Max(Avx2.Add(y, redContribution), Vector256<int>.Zero), maximum);
-            var green = Avx2.Min(Avx2.Max(Avx2.Subtract(Avx2.Subtract(y, greenCbContribution), greenCrContribution), Vector256<int>.Zero), maximum);
+            var green = Avx2.Min(Avx2.Max(Avx2.Add(y, greenContribution), Vector256<int>.Zero), maximum);
             var blue = Avx2.Min(Avx2.Max(Avx2.Add(y, blueContribution), Vector256<int>.Zero), maximum);
             var rgba = red | Avx2.ShiftLeftLogical(green, 8) | Avx2.ShiftLeftLogical(blue, 16) | alpha;
             rgba.AsByte().StoreUnsafe(ref output[outputOffset + x * 4]);

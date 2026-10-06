@@ -14,8 +14,10 @@ internal static partial class OfficeJpegReader {
         for (var i = 0; i < 256; i++) {
             var d = i - 128;
             CrToR[i] = (91881 * d + 32768) >> 16;
-            CrToG[i] = (46802 * d + 32768) >> 16;
-            CbToG[i] = (22554 * d + 32768) >> 16;
+            // Keep both green contributions scaled until they are added, then
+            // round the complete channel once. Cb carries the shared half-unit.
+            CrToG[i] = -46802 * d;
+            CbToG[i] = -22554 * d + 32768;
             CbToB[i] = (116130 * d + 32768) >> 16;
         }
     }
