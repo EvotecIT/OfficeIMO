@@ -17,6 +17,17 @@ internal static class AccessibilityFixtures {
             PublisherInformationUrl = "https://example.org/accessibility?edition=1&format=epub",
             PublisherContactEmail = "accessibility@example.org"
         },
+        "accessibility-provenance" => new() {
+            Summary = "Synthetic certification provenance for schema validation; no organization or assessment is real.",
+            Certification = new("Example Testing & Certification", "https://certifier.example.org/") {
+                CredentiallingOrganizationName = "Example Credentials",
+                CredentiallingOrganizationUrl = "https://credentials.example.org/"
+            },
+            IndependentReportUrl = "https://certifier.example.org/reports/edition-1",
+            IntermediaryInformationUrl = "https://intermediary.example.org/edition-1",
+            CompatibilityReportUrl = "https://example.org/compatibility/edition-1",
+            IntermediaryContactEmail = "accessibility@intermediary.example.org"
+        },
         _ => null
     };
 }

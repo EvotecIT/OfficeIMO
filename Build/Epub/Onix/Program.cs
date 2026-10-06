@@ -24,6 +24,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
     (Name: "priced", Language: "pl", Onix: "pol", Notification: BookOnixNotification.Confirmed),
     (Name: "withdrawn", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "accessibility-unknown", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
+    (Name: "accessibility-provenance", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed),
     (Name: "accessibility-claims", Language: "en", Onix: "eng", Notification: BookOnixNotification.Confirmed) }) {
     var project = BookProject.Create("Publishing & metadata — " + profile.Name, profile.Language);
     project.Publication.Identifier = "urn:officeimo:fixture:onix:" + profile.Name;

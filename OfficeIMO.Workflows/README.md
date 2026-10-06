@@ -260,9 +260,32 @@ After an appropriate assessment, callers can explicitly supply
 `Conformance = new(BookOnixWcagVersion.V2_2, BookOnixWcagLevel.AA)` to declare EPUB
 Accessibility 1.1 plus that WCAG version and level. This is a publisher assertion,
 not certification by OfficeIMO. Unknown accessibility cannot also assert conformance.
-Certifier identities, independent assessment-report links and legal exemption claims
-are outside this export profile. The publisher information URL uses code 96; it is
-not presented as an independent certification report.
+Legal exemption claims are outside this export profile.
+
+Record certification provenance separately from conformance:
+
+```csharp
+var assessed = new BookOnixAccessibilityMetadata {
+    Certification = new("Edition certifier", "https://certifier.example.org/scheme") {
+        CredentiallingOrganizationName = "Credentialling organization",
+        CredentiallingOrganizationUrl = "https://credentials.example.org/"
+    },
+    IndependentReportUrl = "https://certifier.example.org/reports/edition-1",
+    IntermediaryInformationUrl = "https://intermediary.example.org/edition-1",
+    CompatibilityReportUrl = "https://publisher.example.org/compatibility/edition-1",
+    IntermediaryContactEmail = "accessibility@intermediary.example.org"
+};
+record = project.ExportOnix(options with { Accessibility = assessed }, schemas);
+```
+
+`Certification` requires a certifier name and organization or scheme URL (90/93);
+its optional credentialling organization uses 88/89. Product-specific independent
+reports use 94, trusted intermediary information uses 95, publisher information uses
+96, compatibility testing reports use 97, and intermediary contacts use 98. A report
+can describe an assessment without certification, so report URLs do not require a
+certifier. Neither certification provenance nor reports add a conformance declaration.
+The example uses fictional organizations; supply only claims supported by the actual
+edition's assessment.
 
 Omit `Accessibility` when no assertions are supplied; an empty declaration is rejected.
 Feature lists must be distinct and contain at most 32 supported values. Text fields

@@ -73,6 +73,16 @@ public sealed record BookOnixAccessibilityMetadata {
     public IReadOnlyList<BookOnixAccessibilityFeature> Features { get; init; } = [];
     /// <summary>Optional explicit EPUB Accessibility 1.1 and WCAG conformance assertion (04 plus version and level).</summary>
     public BookOnixEpubAccessibility11Conformance? Conformance { get; init; }
+    /// <summary>Optional caller-supplied certifier identity and credentialling organization. Does not itself assert conformance.</summary>
+    public BookOnixAccessibilityCertification? Certification { get; init; }
+    /// <summary>HTTP(S) product-specific report maintained by an independent compliance or testing organization (94).</summary>
+    public string? IndependentReportUrl { get; init; }
+    /// <summary>HTTP(S) product-specific accessibility information maintained by a publisher-nominated trusted intermediary (95).</summary>
+    public string? IntermediaryInformationUrl { get; init; }
+    /// <summary>HTTP(S) description of compatibility testing, including assistive technology (97).</summary>
+    public string? CompatibilityReportUrl { get; init; }
+    /// <summary>Plain trusted intermediary contact email for accessibility questions (98).</summary>
+    public string? IntermediaryContactEmail { get; init; }
     /// <summary>Date of the latest actual assessment (91); not the export date.</summary>
     public DateOnly? AssessmentDate { get; init; }
     /// <summary>Absolute HTTP(S) publisher-maintained accessibility information page (96). Never fetched by export.</summary>

@@ -44,19 +44,35 @@ public sealed partial class BookProject {
             });
         }
         if (metadata.AssessmentDate is { } date) Add("91", date.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
-        if (metadata.PublisherInformationUrl is { } url) {
-            RequireOnixText(url, nameof(metadata.PublisherInformationUrl));
+        void AddUrl(string code, string? url) {
+            if (url == null) return;
+            RequireOnixText(url, nameof(metadata));
             if (url.Any(char.IsWhiteSpace) || !Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
                 (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp) || parsed.UserInfo.Length != 0)
                 throw new ArgumentException("Accessibility information requires an absolute HTTP(S) URL without credentials.", nameof(metadata));
-            Add("96", url);
+            Add(code, url);
         }
-        if (metadata.PublisherContactEmail is { } email) {
-            RequireOnixText(email, nameof(metadata.PublisherContactEmail));
+        void AddEmail(string code, string? email) {
+            if (email == null) return;
+            RequireOnixText(email, nameof(metadata));
             if (!MailAddress.TryCreate(email, out var parsed) || parsed.Address != email || parsed.DisplayName.Length != 0)
                 throw new ArgumentException("Supply a plain accessibility contact email address.", nameof(metadata));
-            Add("99", email);
+            Add(code, email);
         }
+        if (metadata.Certification is { } certification) {
+            RequireOnixText(certification.Name, nameof(certification.Name));
+            RequireOnixText(certification.Url, nameof(certification.Url));
+            if (certification.CredentiallingOrganizationName != null) Add("88", certification.CredentiallingOrganizationName);
+            AddUrl("89", certification.CredentiallingOrganizationUrl);
+            Add("90", certification.Name);
+            AddUrl("93", certification.Url);
+        }
+        AddUrl("94", metadata.IndependentReportUrl);
+        AddUrl("95", metadata.IntermediaryInformationUrl);
+        AddUrl("96", metadata.PublisherInformationUrl);
+        AddUrl("97", metadata.CompatibilityReportUrl);
+        AddEmail("98", metadata.IntermediaryContactEmail);
+        AddEmail("99", metadata.PublisherContactEmail);
         if (result.Count == 0) throw new ArgumentException("Supply at least one accessibility assertion, or omit Accessibility.", nameof(metadata));
         return result;
     }
