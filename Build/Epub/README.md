@@ -267,6 +267,12 @@ diagnostic copy with only the empty selector comments removed passes EPUBCheck;
 retain the original rejection separately rather than treating the control as
 qualification of the original bytes.
 
+`merge-selectors.epub` merges two chapters with colliding heading IDs and shared
+stylesheets. The second heading receives a new ID and green styling; the first and
+unmerged third headings remain blue. Verify all three borders and the links between
+chapters. The merged chapter uses private copies of the second chapter's stylesheet
+and import; the third chapter retains the original stylesheet paths.
+
 ```sh
 dotnet run --project Build/Epub/Fixtures/EpubFixtureGenerator.csproj -- \
   /path/to/task-evidence/typography

@@ -19,6 +19,8 @@ public sealed partial class EpubPublication {
         EpubChapterMergeStylePolicy stylePolicy = options.StylePolicy;
         if (stylePolicy != EpubChapterMergeStylePolicy.RequireEquivalent && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
             throw new ArgumentOutOfRangeException(nameof(options.StylePolicy));
+        if (options.RewriteSecondChapterIdSelectors && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
+            throw new ArgumentException("Selector reconciliation requires AppendSecondStyles.", nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
         RequireText(boundaryId, nameof(boundaryId)); XmlConvert.VerifyNCName(boundaryId);
         EpubManifestItem firstItem = RequireManifestItem(firstManifestId), secondItem = RequireManifestItem(secondManifestId);
@@ -50,6 +52,8 @@ public sealed partial class EpubPublication {
             (reference.ContainerPath!, reference.Fragment);
         RewriteMovedXml(first, firstPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
         RewriteMovedXml(second, secondPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
+        MergeSelectorStyles selectorStyles = options.RewriteSecondChapterIdSelectors ?
+            PrepareMergeSelectors(second, firstPath, idMap, Map, cancellationToken) : new MergeSelectorStyles();
         if (!SameMergeAttributes(first.Root, second.Root) || !SameMergeAttributes(firstBody, secondBody))
             throw new NotSupportedException("Root/body attributes resolve differently after reference repair; resolve their styling and semantics before merging.");
         XElement firstHead = first.Root.Element(Html + "head")!, secondHead = second.Root.Element(Html + "head")!;
@@ -74,6 +78,7 @@ public sealed partial class EpubPublication {
         }
         package.Root.Element(Opf + "manifest")!.Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == secondManifestId).Remove();
         package.Root.Element(Opf + "spine")!.Elements(Opf + "itemref").Single(item => (string?)item.Attribute("idref") == secondManifestId).Remove();
+        foreach (XElement declaration in selectorStyles.Declarations) package.Root.Element(Opf + "manifest")!.Add(new XElement(declaration));
         var entries = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
         foreach (var group in Manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container).GroupBy(RequireLocalPath, StringComparer.Ordinal)) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -88,6 +93,7 @@ public sealed partial class EpubPublication {
             entries[path] = edited;
         }
         entries.Remove(secondPath);
+        foreach (var entry in selectorStyles.Entries) entries.Add(entry.Key, entry.Value);
         long delta = entries.Values.Sum(value => value.LongLength) - _retainedBytes;
         EnsurePackageBudget(package, delta);
         ValidatePublication(package, entries, new List<OfficeConversionFidelityDiagnostic>(), cancellationToken, changed: true);
@@ -96,6 +102,7 @@ public sealed partial class EpubPublication {
         foreach (var edit in packageEdits) edit.Attribute.Value = edit.Value;
         RequireSection("manifest").Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == secondManifestId).Remove();
         secondPosition.Remove();
+        foreach (XElement declaration in selectorStyles.Declarations) RequireSection("manifest").Add(declaration);
         _entries.Clear(); foreach (var entry in entries) _entries.Add(entry.Key, entry.Value);
         RetainMergedOrigins(firstPath, secondPath);
         _retainedBytes += delta; MarkChanged();

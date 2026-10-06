@@ -725,11 +725,22 @@ unique XML-compatible names of at most 1024 characters. The map accepts at most
 10,000 entries and cannot rename head IDs or shared merge-container IDs. Unknown
 source IDs and unresolved destination collisions reject the entire merge.
 
-CSS selectors are preserved, not rewritten. Prepare ID-dependent rules for the
-chosen replacements before merging, for example `#heading, #second-heading { ... }`
-when both sections should share that rule. Attribute selectors that depend on
-rewritten IDs or URLs also need caller reconciliation. Inspect the final cascade
-and layout; repairing identifier relationships does not prove visual equivalence.
+CSS selectors remain unchanged by default. Set `RewriteSecondChapterIdSelectors = true`
+with `StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles` to rewrite the
+second chapter's `#id` and exact `[id=value]` selectors using the map. Escaped names,
+selector-list pseudo-classes, media/supports/layer/container groups and scope selectors
+are supported. Comments and declarations retain their source text. Linked stylesheets
+and their imports receive private copies in their existing directories, leaving the
+original stylesheets available to other chapters. These copies count against the
+publication's retained-entry and byte limits.
+
+The automatic profile rejects nested style declarations, unknown at-rules,
+namespaced attribute selectors, partial or case-insensitive ID matches, selectors
+on ID relationships such as `href` or `aria-labelledby`, stylesheet processing
+instructions, integrity digests and stylesheet package refinements. Reconcile these
+explicitly before merging, or leave automatic rewriting disabled and prepare all
+ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;
+selector repair does not isolate generic rules or prove visual equivalence.
 A fragment-only URL in any retained stylesheet, such as `url(#paint)`, that names
 a changed ID rejects the merge: a shared rule cannot choose between the original
 and replacement definitions. Reconcile that rule first or use a document-qualified

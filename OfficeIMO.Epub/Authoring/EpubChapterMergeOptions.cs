@@ -13,11 +13,15 @@ public enum EpubChapterMergeStylePolicy {
 public sealed class EpubChapterMergeOptions {
     /// <summary>
     /// Explicit replacements for second-chapter body identifiers, excluding shared merge containers.
-    /// Fragment URLs and document-local relationships are repaired. CSS selectors are not rewritten;
-    /// prepare ID-dependent styles for the selected names before merging. Fragment-only URLs in retained
+    /// Fragment URLs and document-local relationships are repaired. CSS selectors remain unchanged unless
+    /// RewriteSecondChapterIdSelectors is enabled. Fragment-only URLs in retained
     /// stylesheets naming changed IDs are rejected as ambiguous. At most 10,000 replacements.
     /// </summary>
     public IReadOnlyDictionary<string, string> SecondChapterIdMap { get; set; } = new Dictionary<string, string>();
+    /// <summary>Rewrite second-chapter ID selectors using the identifier map, retaining private copies of linked
+    /// stylesheets and their imports. Requires AppendSecondStyles. Supports hash and exact id attribute selectors
+    /// in ordinary rules and media/supports/layer/container/scope groups; unsupported syntax fails atomically.</summary>
+    public bool RewriteSecondChapterIdSelectors { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }
 }
