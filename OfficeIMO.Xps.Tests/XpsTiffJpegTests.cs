@@ -10,6 +10,8 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsTiffJpegTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "TiffJpegArithmeticLosslessChroma", 35, 19)]
+    [InlineData(XpsFormat.OpenXps, "TiffJpegArithmeticLosslessChroma", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegArithmeticLosslessColor", 35, 19)]
     [InlineData(XpsFormat.OpenXps, "TiffJpegArithmeticLosslessColor", 35, 19)]
     [InlineData(XpsFormat.Xps, "TiffJpegArithmetic12", 35, 19)]
@@ -44,7 +46,7 @@ public sealed class XpsTiffJpegTests {
     [InlineData(XpsFormat.OpenXps, "TiffJpegCosited", 0, 0)]
     public void JpegTiffResourcesRetainRasterSvgAndPdfPaint(XpsFormat format, string folder, int width, int height) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", folder);
-        bool hasAlphaCorpus = folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticAlpha" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12");
+        bool hasAlphaCorpus = folder == "TiffJpegArithmeticLosslessChroma" || folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticAlpha" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12");
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string[] fields = row.Split(',');
             if (folder == "TiffJpegChroma16") { width = int.Parse(fields[1]); height = int.Parse(fields[2]); fields[0] += ".tif"; }
@@ -76,7 +78,7 @@ public sealed class XpsTiffJpegTests {
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
-            foreach (var background in (folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12")) ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
+            foreach (var background in (folder == "TiffJpegArithmeticLosslessChroma" || folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12")) ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
                 var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: background);
                 var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: background);
                 var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),

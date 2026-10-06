@@ -147,4 +147,5 @@
   <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLowAlpha/*.tif;TestAssets/TiffJpegArithmeticLowAlpha/*.rgba;TestAssets/TiffJpegArithmeticLowAlpha/*.icc-rgba;TestAssets/TiffJpegArithmeticLowAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegArithmetic12/*.tif;TestAssets/TiffJpegArithmetic12/*.rgba;TestAssets/TiffJpegArithmetic12/*.icc-rgba;TestAssets/TiffJpegArithmetic12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLosslessColor/*.tif;TestAssets/TiffJpegArithmeticLosslessColor/*.rgba;TestAssets/TiffJpegArithmeticLosslessColor/*.icc-rgba;TestAssets/TiffJpegArithmeticLosslessColor/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLosslessChroma/*.tif;TestAssets/TiffJpegArithmeticLosslessChroma/*.rgba;TestAssets/TiffJpegArithmeticLosslessChroma/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

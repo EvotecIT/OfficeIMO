@@ -38,6 +38,7 @@ public sealed class TiffJpegAlphaTests {
     [InlineData("TiffJpegArithmeticLowAlpha")]
     [InlineData("TiffJpegArithmetic12")]
     [InlineData("TiffJpegArithmeticLosslessColor")]
+    [InlineData("TiffJpegArithmeticLosslessChroma")]
     public void IndependentLowAlphaSamplesRetainAlphaAndVisibleCompositing(string folder) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {

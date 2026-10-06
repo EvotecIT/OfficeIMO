@@ -1,8 +1,9 @@
 """T.81-authored streams, libjpeg-turbo word references, Pillow interpolation."""
 from pathlib import Path
-from PIL import Image
 import csv,hashlib,struct,subprocess,sys
 root=Path(__file__).resolve().parent
+sys.path.insert(0,str(root.parent))
+from tiff_chroma_reference import interpolate
 
 def value(c,x,y):
  return (10000+x*1777+y*3331+(x*y)*71) % 65536 if c==0 else (24500+x*4441-y*2333+(x*y)*137+c*5101)%65536
@@ -42,12 +43,6 @@ def decode(encoded,stem):
  result=list(struct.unpack('<'+'H'*(raw.stat().st_size//2),raw.read_bytes()))
  path.unlink();raw.unlink();return result
 
-def interpolate(plane,w,height,h,v,position):
- # Pad one sample on each edge so Pillow's affine interpolator clamps the grid.
- ph=len(plane);pw=len(plane[0]);image=Image.new('F',(pw+2,ph+2))
- image.putdata([plane[min(ph-1,max(0,y-1))][min(pw-1,max(0,x-1))] for y in range(ph+2) for x in range(pw+2)])
- ox=1 if position==1 else 1.5-.5/h;oy=1 if position==1 else 1.5-.5/v
- return [round(x) for x in image.transform((w,height),Image.Transform.AFFINE,(1/h,0,ox,0,1/v,oy),Image.Resampling.BILINEAR).getdata()]
 
 def tiff(width,height,h,v,layout,payloads):
  tile=layout in (2,3,6,7);planar=2 if layout>=4 else 1;position=2 if layout in (1,3,5,6) else 1;endian='>' if layout%2 else '<';sw=16 if tile else width;sh=16 if tile else 8

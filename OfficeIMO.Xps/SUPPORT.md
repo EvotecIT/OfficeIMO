@@ -330,6 +330,20 @@ to 255/255 and crashes on 16 twelve-bit CMYK strip exports. Subsampled YCbCr,
 shared tables, unspecified extras, chunky CMYK alpha and wider native acceptance
 remain outside this corpus; standalone JPEG color interpretation is separate.
 
+The [subsampled lossless arithmetic TIFF corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessChroma/README.md)
+adds 192 eight/twelve/sixteen-bit YCbCr files with 2×1/2×2/4×2 sampling, centered
+and cosited positioning, partial strips/tiles and opaque/associated/straight
+alpha. Four-component 4×2 cases use separate planes. Native Huffman companions
+decoded by libjpeg-turbo provide sample references because the producer's own
+decoder corrupts odd-height edge rows; Pillow independently checks interpolation.
+Managed alpha matches exactly and visible compositing agrees within 3/255.
+LibTIFF fails on 174 files and cannot display the other 18 despite returning zero;
+no full-file native acceptance is claimed. The 768 XPS/OpenXPS exports cover
+510,720 probes per route: MuPDF PDF/SVG errors reach 4/255 and 2/255 without
+warnings. GhostXPS opens all packages but can render blank images (255/255).
+Shared tables, unspecified extras, multi-scan chunky 4×2 alpha and wider native
+acceptance remain outside this qualification.
+
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before
 projection to the public eight-bit raster buffer. YCbCr conversion uses the

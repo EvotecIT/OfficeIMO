@@ -7,6 +7,9 @@ int main(int argc, char **argv) {
     if (argc < 10) return 1;
     int photo=atoi(argv[2]), bits=atoi(argv[3]), channels=atoi(argv[4]);
     int planar=atoi(argv[5]), tiled=atoi(argv[6]), extra=atoi(argv[7]);
+    int horizontal=getenv("TIFF_SAMPLE_H")?atoi(getenv("TIFF_SAMPLE_H")):1;
+    int vertical=getenv("TIFF_SAMPLE_V")?atoi(getenv("TIFF_SAMPLE_V")):1;
+    int position=getenv("TIFF_SAMPLE_POSITION")?atoi(getenv("TIFF_SAMPLE_POSITION")):1;
     TIFF *t=TIFFOpen(argv[1],argv[8]);
     if (!t) return 2;
     TIFFSetField(t,TIFFTAG_IMAGEWIDTH,35); TIFFSetField(t,TIFFTAG_IMAGELENGTH,19);
@@ -20,11 +23,12 @@ int main(int argc, char **argv) {
     if (photo==6) {
         float maximum=(float)((1U<<bits)-1), middle=(float)(1U<<(bits-1));
         float reference[6]={0,maximum,middle,maximum,middle,maximum};
-        TIFFSetField(t,TIFFTAG_YCBCRSUBSAMPLING,1,1);
+        TIFFSetField(t,TIFFTAG_YCBCRSUBSAMPLING,horizontal,vertical);
+        if (horizontal>1 || vertical>1) TIFFSetField(t,TIFFTAG_YCBCRPOSITIONING,position);
         TIFFSetField(t,TIFFTAG_REFERENCEBLACKWHITE,reference);
     }
     if (tiled) { TIFFSetField(t,TIFFTAG_TILEWIDTH,16); TIFFSetField(t,TIFFTAG_TILELENGTH,16); }
-    else TIFFSetField(t,TIFFTAG_ROWSPERSTRIP,7);
+    else TIFFSetField(t,TIFFTAG_ROWSPERSTRIP,vertical>1?8:7);
     for (int i=9;i<argc;i++) {
         FILE *f=fopen(argv[i],"rb"); if(!f)return 3;
         fseek(f,0,SEEK_END); long size=ftell(f); rewind(f);
