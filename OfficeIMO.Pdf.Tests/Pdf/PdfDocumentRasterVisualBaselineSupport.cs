@@ -67,7 +67,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 "RMSE: " + comparison.RootMeanSquareError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "/" +
                     comparison.MaximumRootMeanSquareError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "; " +
                 "luminance MAE: " + comparison.MeanLuminanceError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "/" +
-                    comparison.MaximumMeanLuminanceError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ". " +
+                    comparison.MaximumMeanLuminanceError.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                "visible dark pixels (actual/expected): " + comparison.ActualDarkPixels + "/" + comparison.ExpectedDarkPixels + "; " +
+                "dark-pixel retention: " + comparison.DarkPixelRetentionRatio.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    " (minimum " + comparison.MinimumDarkPixelRetentionRatio.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "). " +
                 "Artifacts: " + artifactDirectory + ".");
         }
     }
@@ -105,7 +108,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             allowedDifferentPixels,
             maximumMeanAbsoluteError,
             maximumRootMeanSquareError,
-            maximumMeanLuminanceError);
+            maximumMeanLuminanceError,
+            // Whole-page averages can accept a mostly empty page. Require substantial
+            // dark ink to survive, including when page-size rounding relaxes pixel counts.
+            minimumDarkPixelRetentionRatio: 0.5D);
     }
 
     private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>

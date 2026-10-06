@@ -22,6 +22,12 @@ internal static partial class PdfStamper {
             if (request.PageNumber < 1 || request.PageNumber > document.Pages.Count) {
                 throw new ArgumentOutOfRangeException(nameof(requests), request.PageNumber, "Text stamp page number exceeds the PDF page count.");
             }
+            if (request.SourceFont is { } sourceFont) {
+                PdfSourceTextFont? currentFont = document.Pages[request.PageNumber - 1].GetSourceTextFont(sourceFont.ResourceName, sourceFont.BaseFont);
+                if (currentFont is null || currentFont.Encode(request.Text) != sourceFont.Encode(request.Text)) {
+                    throw new NotSupportedException("The source font resource is no longer available with its original encoding.");
+                }
+            }
             if (request.Text.Length == 0) throw new ArgumentException("Text stamp requests cannot contain empty text.", nameof(requests));
             if (request.FontSize <= 0D || !IsFinite(request.FontSize) || !IsFinite(request.X) || !IsFinite(request.Y) || !IsFinite(request.RotationDegrees)) {
                 throw new ArgumentOutOfRangeException(nameof(requests), "Text stamp geometry must contain finite coordinates and a positive font size.");
@@ -29,7 +35,7 @@ internal static partial class PdfStamper {
         }
 
         int[] pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
-        PdfStandardFont[] fonts = requests.Select(static request => request.Font).Distinct().ToArray();
+        PdfStandardFont[] fonts = requests.Where(static request => request.SourceFont is null).Select(static request => request.Font).Distinct().ToArray();
         string[] resourceNames = GetAvailableBatchFontResourceNames(objects, pageObjectNumbers, fonts.Length);
         return PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (rewrittenObjects, security) => {
             int nextObjectNumber = rewrittenObjects.Count == 0 ? 1 : rewrittenObjects.Keys.Max() + 1;
@@ -76,7 +82,11 @@ internal static partial class PdfStamper {
         var builder = new StringBuilder();
         var encodedText = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (TextStampRequest request in requests) {
-            BatchFontResource font = fontResources[request.Font];
+            BatchFontResource font = ResolveBatchFont(request, fontResources);
+            if (request.SourceFont is not null) {
+                AppendBatchTextStampRequest(builder, request, font, request.SourceFont.Encode(request.Text));
+                continue;
+            }
             if (!encodedText.TryGetValue(request.Text, out string? hexText)) {
                 hexText = EncodeWinAnsiHex(request.Text);
                 encodedText.Add(request.Text, hexText);
@@ -90,17 +100,13 @@ internal static partial class PdfStamper {
         TextStampRequest[] requests,
         IReadOnlyDictionary<PdfStandardFont, BatchFontResource> fontResources,
         int maximumDecodedStreamBytes) {
-        var encodedLengths = new Dictionary<string, int>(StringComparer.Ordinal);
         long totalBytes = 0L;
         for (int index = 0; index < requests.Length; index++) {
             TextStampRequest request = requests[index];
-            if (!encodedLengths.TryGetValue(request.Text, out int encodedByteLength)) {
-                encodedByteLength = PdfWinAnsiEncoding.Encode(request.Text).Length;
-                encodedLengths.Add(request.Text, encodedByteLength);
-            }
+            int encodedByteLength = request.SourceFont?.Encode(request.Text).Length / 2 ?? PdfWinAnsiEncoding.Encode(request.Text).Length;
 
             var fixedContent = new StringBuilder();
-            AppendBatchTextStampRequest(fixedContent, request, fontResources[request.Font], string.Empty);
+            AppendBatchTextStampRequest(fixedContent, request, ResolveBatchFont(request, fontResources), string.Empty);
             totalBytes += fixedContent.Length + (encodedByteLength * 2L);
             if (totalBytes > maximumDecodedStreamBytes) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximumDecodedStreamBytes, totalBytes);
@@ -188,7 +194,7 @@ internal static partial class PdfStamper {
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal readonly struct TextStampRequest {
-        internal TextStampRequest(int pageNumber, string text, double x, double y, PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, double paintOrder = double.MaxValue, int textRenderingMode = 0) {
+        internal TextStampRequest(int pageNumber, string text, double x, double y, PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, double paintOrder = double.MaxValue, int textRenderingMode = 0, PdfSourceTextFont? sourceFont = null) {
             PageNumber = pageNumber;
             Text = text;
             X = x;
@@ -199,6 +205,7 @@ internal static partial class PdfStamper {
             RotationDegrees = rotationDegrees;
             PaintOrder = paintOrder;
             TextRenderingMode = textRenderingMode;
+            SourceFont = sourceFont;
         }
 
         internal int PageNumber { get; }
@@ -211,7 +218,12 @@ internal static partial class PdfStamper {
         internal double RotationDegrees { get; }
         internal double PaintOrder { get; }
         internal int TextRenderingMode { get; }
+        internal PdfSourceTextFont? SourceFont { get; }
     }
+
+    private static BatchFontResource ResolveBatchFont(TextStampRequest request,
+        IReadOnlyDictionary<PdfStandardFont, BatchFontResource> resources) => request.SourceFont is { } source
+            ? new BatchFontResource(source.ResourceName, 0) : resources[request.Font];
 
     private readonly struct BatchFontResource {
         internal BatchFontResource(string name, int pseudoObjectNumber) {

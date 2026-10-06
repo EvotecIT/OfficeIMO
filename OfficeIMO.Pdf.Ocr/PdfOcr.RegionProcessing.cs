@@ -43,7 +43,7 @@ internal static partial class PdfOcr {
             image = corrected.Image;
             prepared.Diagnostics.Add("ocr-perspective: Corrected the explicitly selected page corners for recognition; original page samples remain unchanged.");
         }
-        request.Payload = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options: null, maximumEncodedBytes: options.MaxRenderedBytesPerPage, cancellationToken: token);
+        SetPreparedPngPayload(request, OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options: null, maximumEncodedBytes: options.MaxRenderedBytesPerPage, cancellationToken: token));
         request.PixelWidth = image.Width; request.PixelHeight = image.Height;
         request.Region = new OcrRegion { Width = image.Width * pointPerPixelX, Height = image.Height * pointPerPixelY };
     }

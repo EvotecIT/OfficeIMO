@@ -93,7 +93,7 @@ internal static class PdfSecurityEditor {
         PdfDocumentSecurityInfo sourceSecurity = plan.Preflight.Probe.Security;
         ValidateSourceSecurity(kind, sourceSecurity);
         byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceDocument, sourceReadOptions, outputEncryption,
-            maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+            maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken, preserveSourceEncryption: false);
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             PdfLoadOptions.WithAesCryptographyProvider(

@@ -2,6 +2,7 @@ namespace OfficeIMO.Email;
 
 /// <summary>Operation-scoped attachment resource resolved by CID, content location, or filename.</summary>
 public sealed class EmailBodyResource {
+    internal EmailAttachment SourceAttachment { get; }
     private readonly byte[]? _content;
     private readonly IEmailContentSource? _contentSource;
     private readonly string _contentType;
@@ -18,6 +19,7 @@ public sealed class EmailBodyResource {
         long maximumBytes,
         EmailBodyResourceBudget budget) {
         if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        SourceAttachment = attachment;
         _content = attachment.Content;
         _contentSource = attachment.ContentSource;
         _contentType = attachment.ContentType ?? "application/octet-stream";

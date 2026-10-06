@@ -62,7 +62,11 @@ public sealed class PdfTextEditOptions {
     private PdfTextRegionWidthPolicy _regionWidthPolicy;
     private double? _rotationDegrees;
 
-    /// <summary>Standard PDF font. Null preserves the detected family/style or uses Helvetica for new text.</summary>
+    /// <summary>
+    /// Explicit Standard 14 substitute. Null reuses a supported embedded source font when its
+    /// existing Unicode map covers the text, otherwise uses the detected standard substitute;
+    /// new text defaults to Helvetica. Missing glyphs in a reusable subset require an explicit font.
+    /// </summary>
     public PdfStandardFont? Font {
         get => _font;
         set {

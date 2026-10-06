@@ -291,7 +291,7 @@ public class PdfPermissionPolicyTests {
             PdfDocument.Load(second, secondOptions));
 
         Assert.Equal(2, result.Report.OutputPageCount);
-        Assert.False(result.Report.OutputHasEncryption);
+        Assert.True(result.Report.OutputHasEncryption);
         Assert.False(result.Report.OutputHasSignatures);
         Assert.Equal(PdfPasswordAuthenticationRole.Owner, result.Report.Sources[0].PasswordAuthenticationRole);
         Assert.False(result.Report.Sources[0].PermissionRestrictionsIgnored);
@@ -299,7 +299,7 @@ public class PdfPermissionPolicyTests {
         Assert.True(result.Report.Sources[1].PermissionRestrictionsIgnored);
         Assert.Equal(PdfStandardPermissions.None, result.Report.Sources[1].Security.AllowedStandardPermissions);
         PdfMergeDecision security = Assert.Single(result.Report.Decisions, decision => decision.Structure == "Security");
-        Assert.Contains("unencrypted", security.Action, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Retained", security.Action, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("explicitly ignored", security.Action, StringComparison.OrdinalIgnoreCase);
         string mergedText = result.ToDocument().Reader.Text();
         Assert.Contains("First encrypted page", mergedText, StringComparison.Ordinal);
@@ -329,7 +329,7 @@ public class PdfPermissionPolicyTests {
         Assert.True(inventory.PermissionRestrictionsIgnored);
         Assert.Equal(PdfStandardPermissions.None, inventory.Security.AllowedStandardPermissions);
         PdfMergeDecision security = Assert.Single(result.Report.Decisions, decision => decision.Structure == "Security");
-        Assert.Contains("unencrypted", security.Action, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Retained", security.Action, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("explicitly ignored", security.Action, StringComparison.OrdinalIgnoreCase);
     }
 

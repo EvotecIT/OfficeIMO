@@ -1,5 +1,28 @@
 # OfficeIMO.Email
 
+## Read local messages without retaining source handles
+
+`EmailMessageReader` provides a body and attachment metadata view over local email files and offline archives:
+
+```csharp
+using OfficeIMO.Email;
+
+EmailMessageReadResult result = EmailMessageReader.Read("Archive.pst",
+    new EmailMessageQuery { SubjectContains = "invoice", First = 25 });
+foreach (OfficeIMO.Email.EmailMessage message in result.Messages) {
+    Console.WriteLine(message.TextBody);
+    EmailAttachmentExtractionResult files = message.SaveAttachments("attachments/" + message.ExportName,
+        message.Attachments.Where(a => a.FileName?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true)
+            .Select(a => a.Index));
+    message.Save("copies/" + message.ExportName + ".eml",
+        options: new EmailWriterOptions(EmailConversionLossPolicy.Warn));
+}
+```
+
+The reader closes before returning. Payload operations reopen the unchanged source for their duration and remain cancellable through serialization or extraction. Keep the source file available and unchanged; views are local locators, not persisted checkpoints. Raw HTML bodies remain untrusted; the optional HTML bridge supplies sanitized local copies. `ContentAvailability` reports offline store cache limitations.
+
+`Folder` accepts an exact path or unique folder name, `Recurse` includes descendants, and date bounds use received date with sent-date fallback. `First` defaults to 1,000 matches in source order; `StoppedAtScanLimit` explicitly reports a bounded search. Use `EmailMessageStore.Open(path)` in a `using` scope to reuse one reader for several queries; returned views remain usable after that scope closes. Directory-backed stores remain available through the lower-level data APIs.
+
 ## Attachment extraction and draft composition
 
 Extract decoded attachments into a directory controlled by the application:
