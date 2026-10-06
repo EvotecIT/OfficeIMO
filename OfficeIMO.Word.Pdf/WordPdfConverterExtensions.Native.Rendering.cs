@@ -263,10 +263,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap,
             bool renderSpacingOnlyLineBox) {
             if (!ShouldRenderNativeEmptyParagraphLineBox(paragraph, renderSpacingOnlyLineBox)) {
-                if (renderSpacingOnlyLineBox && paragraph.LineSpacingAfterPoints is { } spacingAfter && spacingAfter > 0D) {
-                    pdf.Spacer(spacingAfter);
-                }
-
+                // A hidden mark contributes neither a line nor its paragraph spacing.
                 return;
             }
 

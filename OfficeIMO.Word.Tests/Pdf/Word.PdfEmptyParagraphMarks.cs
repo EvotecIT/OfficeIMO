@@ -22,7 +22,19 @@ public partial class Word {
         }
     }
 
-    private static double EmptyMarkGap(bool nativeDoc, bool table, string kind) {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_HiddenEmptyMarkAfterTableDoesNotRetainItsAfterSpacing(bool nativeDoc) {
+        double baseline = EmptyMarkGap(nativeDoc, false, "none", followingTable: true);
+        double hidden = EmptyMarkGap(nativeDoc, false, "hidden-mark", followingTable: true, spacingAfter: 20);
+        Assert.Equal(baseline, hidden, 3);
+        double visible = EmptyMarkGap(nativeDoc, false, "visible-mark-style", followingTable: true);
+        double visibleSpaced = EmptyMarkGap(nativeDoc, false, "visible-mark-style", followingTable: true, spacingAfter: 20);
+        Assert.Equal(20D, visibleSpaced - visible, 3);
+    }
+
+    private static double EmptyMarkGap(bool nativeDoc, bool table, string kind, bool followingTable = false, double spacingAfter = 0D) {
         using WordDocument source = WordDocument.Create();
         W.Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         W.Style normal = styles.Elements<W.Style>().Single(s => s.StyleId?.Value == "Normal");
@@ -38,7 +50,8 @@ public partial class Word {
             StyleRunProperties = new W.StyleRunProperties(new W.Vanish())
         });
         WordTableCell? cell = table ? source.AddTable(1, 1).Rows[0].Cells[0] : null;
-        if (cell == null) source.AddParagraph("A"); else cell.AddParagraph("A", removeExistingParagraphs: true);
+        if (followingTable) source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("A", removeExistingParagraphs: true);
+        else if (cell == null) source.AddParagraph("A"); else cell.AddParagraph("A", removeExistingParagraphs: true);
         if (kind != "none") {
             WordParagraph blank = cell == null ? source.AddParagraph() : cell.AddParagraph();
             blank._paragraph.RemoveAllChildren<W.Run>();
@@ -54,6 +67,7 @@ public partial class Word {
                 blank._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
                     new W.Vanish { Val = kind == "hidden-mark" });
             }
+            if (spacingAfter > 0D) blank.LineSpacingAfterPoints = spacingAfter;
         }
         if (cell == null) source.AddParagraph("B"); else cell.AddParagraph("B");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
