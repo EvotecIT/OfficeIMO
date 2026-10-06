@@ -42,7 +42,7 @@
       "feature/html-static-conversion",
       "fix/html-image-normalization-relayout"
     ],
-    "duplicateH10": "Clean ancestor source, 45374 evidence files/6620104170 bytes SHA-verified in central archive, three provider all-ref/HEAD bundles verified, deinitialized checkout and local branch removed. Remote removal separately verified.",
+    "duplicateH10": "Clean ancestor source and 45374 evidence files/6620104170 bytes SHA-verified; provider all-ref/HEAD bundles verified. Worktree, registration, local and exact-head remote branch removed.",
     "adoptionGate": "Settle selected extraction and prerequisite exact-head CI/delayed feedback, inspect current platform packages, then deliberately fast-forward the long-lived branch. Optional worker qualification remains an explicit separate milestone.",
     "recoveryRoot": "OfficeIMO-html-provider-forks/Ignore/HtmlProgramEvidence/wrap-up-20261006",
     "broaderGoalsComplete": false
@@ -289,5 +289,37 @@
       "remaining": "Deliberately align retained AngleSharp core/Js and Jint source/released APIs and supported compiler, then qualify packaged worker/lifecycle/capture. Static extraction has no worker dependency."
     },
     "scope": "Compilation is not runtime/application/package qualification. Historical hosted timing failures remain open."
+  },
+  "evidenceRecovery": {
+    "centralRoot": "OfficeIMO-html-provider-forks/Ignore/HtmlProgramEvidence/wrap-up-20261006",
+    "baseArchive": {
+      "name": "evidence-recovery.zip",
+      "sha256": "d595534cc1d4bf17fc9cd8170f34b9ba4f2e7fdb1684422e0199f459a0bd9e8c"
+    },
+    "currentStaticAndChangedEvidence": {
+      "name": "static-publication-20261007/evidence-recovery.zip",
+      "sha256": "274cc01eac669e57410b30cf47e394b2c764f138d138a6c7e08f40b692787a4d",
+      "changedOrNewFiles": 2285,
+      "allPayloadHashesVerified": true,
+      "restoreControl": "Current public interleaved-link PDF restored with exact SHA."
+    },
+    "sourceBundle": {
+      "name": "reconciled-static-source-007dadac1.bundle",
+      "head": "007dadac1d6f44467dce14c3a478c2983d610763",
+      "bytes": 3934171,
+      "verified": true,
+      "scope": "Incremental source/history bundle, existing repository prerequisites retained."
+    },
+    "redundantLocalCopiesRemoved": {
+      "directories": 166,
+      "bytes": 5206885031,
+      "allAbsent": true
+    },
+    "regeneratedRuntimeBuildOutputsRemoved": {
+      "targets": 25,
+      "bytes": 130587317,
+      "allAbsent": true
+    },
+    "preserved": "Historical measurement failures, original/final artifacts, source/fixtures, feeds, origins/hash receipts and provider history; linked private tooling left intact."
   }
 }
