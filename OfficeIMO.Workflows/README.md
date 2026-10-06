@@ -651,8 +651,9 @@ var options = existingOptions with {
 
 All 13 [ONIX list 28](https://ns.editeur.org/onix/en/28) categories are supported.
 Categories must be distinct, with at most one main audience. Descriptions are plain
-text, not HTML, with optional ONIX list 74 language codes. Up to 16 descriptions
-are allowed, with distinct languages including unspecified; text fields retain the
+text, not HTML, with ONIX list 74 language codes. A single description may omit its
+language; repeated descriptions require a distinct explicit language on every entry.
+Up to 16 descriptions are allowed; text fields retain the
 4096-character bound. Omit `Audience` when making no assertion.
 
 Use `Codes` to add national, educational or proprietary readership codes alongside
@@ -674,11 +675,12 @@ var audience = new BookOnixAudienceMetadata {
 The supported [list 29](https://ns.editeur.org/onix/en/29) schemes are `Proprietary`,
 `Btlf`, `Electre`, `Anele`, `Avi`, `Aws`, `FinnishSchoolLevel`, `CbgAgeGuidance`,
 `BookData`, `AviRevised`, `JapaneseChildren`, `Cefr`, `IntendedLanguage`,
-`SwedishCurriculum` and `Isced2011`. Up to 64 codes are allowed. A proprietary code
+`SwedishCurriculum` and `Isced2011`. Up to 64 additional audience declarations are allowed. A proprietary code
 requires a distinctive `SchemeName` agreed with recipients; other schemes do not
 accept that field. Code values are preserved without interpretation or trimming,
 with surrounding whitespace rejected. Duplicate scheme/name/value assertions are
-rejected. At most one code per list 29 type may be main, including across differently
+rejected. Heading-only declarations are compared by scheme, name and language/text
+pairs, regardless of translation order. At most one code per list 29 type may be main, including across differently
 named proprietary schemes; a general ONIX category can also be main independently.
 
 CEFR values are A1, A2, B1, B2, C1 and C2. Japanese children's codes require two
@@ -686,6 +688,31 @@ ASCII digits, and intended-language values require three lowercase ASCII letters
 Other external values receive text/XML validation only. These checks do not verify
 current membership in externally maintained vocabularies, code allocation, or
 recipient acceptance. Obtain those values from the scheme owner or recipient.
+
+Both `BookOnixAudience` and `BookOnixAudienceCode` accept up to 16 `Headings`:
+plain-text labels or translations of the audience designation. A single heading may
+omit `LanguageCode`; repeated headings require distinct explicit ONIX list 74
+languages. Headings preserve caller order and whitespace, use XML escaping, and
+retain the 4096-character text bound. No automatic translation or code-to-label
+mapping is performed.
+
+Additional schemes may omit `Value` when headings carry the assertion:
+
+```csharp
+var familyAudience = new BookOnixAudienceCode(BookOnixAudienceScheme.Proprietary) {
+    SchemeName = "Publisher readership scheme",
+    Headings = [new("Families", "eng"), new("Rodziny", "pol")]
+};
+var children = new BookOnixAudience(BookOnixAudienceType.Children) {
+    Headings = [new("Children", "eng"), new("Dzieci", "pol")]
+};
+```
+
+A heading-only declaration emits no `AudienceCodeValue`. Supplying neither a code
+nor a heading is rejected, as is an explicitly empty code. Generic categories keep
+their typed list 28 code; headings add labels without changing that code. A heading
+is scoped to its containing audience, while `Descriptions` describe the readership
+of the product as a whole. Single-record message composition preserves both forms.
 
 Age ranges distinguish interest in years or months from reading age in years.
 At least one nonnegative integer bound is required. Equal bounds mean an exact age;

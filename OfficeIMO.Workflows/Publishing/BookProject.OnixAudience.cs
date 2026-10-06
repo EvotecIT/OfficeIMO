@@ -34,7 +34,8 @@ public sealed partial class BookProject {
                 BookOnixAudienceType.UpperSecondaryEducation => "14", _ => throw new ArgumentOutOfRangeException(nameof(category.Type))
             };
             result.Add(new XElement(ns + "Audience", category.IsMain ? new XElement(ns + "MainAudience") : null,
-                new XElement(ns + "AudienceCodeType", "01"), new XElement(ns + "AudienceCodeValue", code)));
+                new XElement(ns + "AudienceCodeType", "01"), new XElement(ns + "AudienceCodeValue", code),
+                BuildOnixAudienceHeadings(category.Headings, cancellationToken)));
         }
         result.AddRange(BuildOnixAudienceCodes(audience.Codes, cancellationToken));
         var rangeTypes = new HashSet<BookOnixAgeRangeType>();
@@ -58,6 +59,8 @@ public sealed partial class BookProject {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(description);
             RequireOnixText(description.Text, nameof(description.Text));
+            if (audience.Descriptions.Count > 1 && description.LanguageCode == null)
+                throw new ArgumentException("Repeated audience descriptions require a language on every translation.", nameof(audience));
             if (description.LanguageCode != null) RequireOnixLanguageCode(description.LanguageCode, nameof(description.LanguageCode));
             if (!languages.Add(description.LanguageCode ?? ""))
                 throw new ArgumentException("Audience description languages must be distinct.", nameof(audience));

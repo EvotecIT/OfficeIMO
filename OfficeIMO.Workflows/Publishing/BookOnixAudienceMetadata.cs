@@ -31,7 +31,10 @@ public enum BookOnixAudienceType {
 }
 
 /// <summary>One explicit list 28 audience category. At most one can be main.</summary>
-public sealed record BookOnixAudience(BookOnixAudienceType Type, bool IsMain = false);
+public sealed record BookOnixAudience(BookOnixAudienceType Type, bool IsMain = false) {
+    /// <summary>Up to 16 plain-text equivalents of this category; repeated headings require distinct explicit languages.</summary>
+    public IReadOnlyList<BookOnixAudienceHeading> Headings { get; init; } = [];
+}
 
 /// <summary>Supported age semantics from ONIX list 30.</summary>
 public enum BookOnixAgeRangeType {
@@ -53,12 +56,12 @@ public sealed record BookOnixAudienceDescription(string Text, string? LanguageCo
 public sealed record BookOnixAudienceMetadata {
     /// <summary>Up to 13 distinct ONIX audience categories, with at most one marked main.</summary>
     public IReadOnlyList<BookOnixAudience> Categories { get; init; } = [];
-    /// <summary>Up to 64 distinct additional coded assertions; at most one main per audience code type.</summary>
+    /// <summary>Up to 64 distinct additional code or heading assertions; at most one main per audience code type.</summary>
     public IReadOnlyList<BookOnixAudienceCode> Codes { get; init; } = [];
     /// <summary>At most one range per age type. Interest months and years are mutually exclusive.</summary>
     public IReadOnlyList<BookOnixAgeRange> AgeRanges { get; init; } = [];
     /// <summary>At most one ordered school/college grade range per supported grading system.</summary>
     public IReadOnlyList<BookOnixGradeRange> GradeRanges { get; init; } = [];
-    /// <summary>At most 16 plain-text descriptions, with distinct languages including unspecified.</summary>
+    /// <summary>At most 16 plain-text descriptions. Repeated descriptions require distinct explicit languages.</summary>
     public IReadOnlyList<BookOnixAudienceDescription> Descriptions { get; init; } = [];
 }

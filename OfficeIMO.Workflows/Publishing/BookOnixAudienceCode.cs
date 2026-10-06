@@ -35,10 +35,12 @@ public enum BookOnixAudienceScheme {
 }
 
 /// <summary>
-/// An explicit code from an additional audience scheme. External code membership and reader suitability
+/// An explicit code, heading, or both from an additional audience scheme. External code membership and reader suitability
 /// are publisher assertions, not independently verified classifications.
 /// </summary>
-public sealed record BookOnixAudienceCode(BookOnixAudienceScheme Scheme, string Value) {
+public sealed record BookOnixAudienceCode(BookOnixAudienceScheme Scheme, string? Value = null) {
+    /// <summary>Up to 16 plain-text headings. At least one is required when Value is null; repeated headings require distinct explicit languages.</summary>
+    public IReadOnlyList<BookOnixAudienceHeading> Headings { get; init; } = [];
     /// <summary>Required for proprietary schemes and unavailable for other schemes. Identifies the agreed code vocabulary.</summary>
     public string? SchemeName { get; init; }
     /// <summary>Marks the main audience. At most one declaration per list 29 code type may be main, including proprietary schemes.</summary>

@@ -2,6 +2,18 @@ using OfficeIMO.Workflows;
 
 internal static class AudienceFixtures {
     internal static BookOnixAudienceMetadata? Create(string profile) => profile switch {
+        "audience-headings" => new() {
+            Categories = [new(BookOnixAudienceType.Children, true) {
+                Headings = [new("Children & families", "eng"), new("Dzieci i rodziny", "pol")] }],
+            Codes = [
+                new(BookOnixAudienceScheme.Proprietary, "family") { SchemeName = "Synthetic house scheme", IsMain = true,
+                    Headings = [new(" Families ", "eng"), new("Rodziny", "pol")] },
+                new(BookOnixAudienceScheme.Proprietary) { SchemeName = "Synthetic house scheme",
+                    Headings = [new("School libraries", "eng"), new("Biblioteki szkolne", "pol")] },
+                new(BookOnixAudienceScheme.Proprietary) { SchemeName = "Synthetic recipient scheme", Headings = [new("Teachers")] },
+                new(BookOnixAudienceScheme.Cefr, "B2") { IsMain = true, Headings = [new("Upper intermediate", "eng")] }
+            ],
+            Descriptions = [new("Publisher-supplied audience translations", "eng"), new("Tłumaczenia wydawcy", "pol")] },
         "audience-codes" => new() {
             Categories = [new(BookOnixAudienceType.Children, true)],
             Codes = Enum.GetValues<BookOnixAudienceScheme>().Select(scheme => new BookOnixAudienceCode(scheme,
