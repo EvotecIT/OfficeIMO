@@ -594,7 +594,7 @@ carry its permitted-use dates; reversed intervals are rejected. These dates,
 restricted-recipient labels and territory declarations are metadata assertions,
 not access controls: export includes the text and does not enforce embargoes or
 filter a recipient's copy. The publisher remains responsible for accurate attribution,
-permission to use the text and recipient acceptance. Media resources and usage-constraint quantities are outside this collateral-text profile. No text or
+permission to use the text and recipient acceptance. Media resources are outside this collateral-text profile. No text or
 attribution is inferred from EPUB content, and export does not change the book.
 
 #### Review ratings
@@ -625,6 +625,70 @@ unit may omit its language. Units share the collateral text budget. Ratings may
 accompany plain text or XHTML review variants, but not descriptions or endorsements.
 The publisher supplies and verifies the score, source and permission to quote it;
 OfficeIMO does not fetch reviews, calculate aggregates or validate a reviewer's judgment.
+
+#### Collateral usage constraints
+
+`UsageConstraints` describes permitted, limited or prohibited uses of a collateral
+item. For example, a publisher can supply a copying allowance and a separate
+text-and-data-mining prohibition:
+
+```csharp
+var excerpt = new BookOnixCollateralText {
+    Type = BookOnixTextType.Excerpt,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Texts = [new("An excerpt supplied by the publisher.")],
+    UsageConstraints = [
+        new(BookOnixUsageType.CopyPaste, BookOnixUsageStatus.Limited) {
+            Limits = [BookOnixUsageLimit.Number(BookOnixUsageUnit.Words, 250)]
+        },
+        new(BookOnixUsageType.TextAndDataMining, BookOnixUsageStatus.Prohibited)
+    ]
+};
+```
+
+The profile supports the current [list 145 usage types](https://ns.editeur.org/onix/en/145),
+[list 146 statuses](https://ns.editeur.org/onix/en/146) and
+[list 147 units](https://ns.editeur.org/onix/en/147). Each item accepts up to 32
+constraints, each with up to 32 distinct units. Repeated usage types can describe
+separate dated periods; export does not resolve overlapping assertions or select
+an applicable period.
+
+Use `BookOnixUsageLimit.Number(unit, quantity)` for nonnegative numeric limits.
+Counts must be whole numbers, percentages cannot exceed 100, and page positions
+start at one. Fractional percentages, periods and resolutions use invariant decimal
+notation. Explicit zero quantities are preserved, including ONIX's unlimited-user
+and perpetual-license conventions; they are not changed into another status.
+
+Use `Time(unit, timeSpan)` for `MediaDuration`, `StartTime` or `EndTime`.
+Durations require whole seconds; positions support centiseconds. Values must be
+nonnegative and below 1000 hours. Output uses ONIX's `HHHMMSS` or `HHHMMSScc`
+notation, preserving required leading zeros and rejecting excess precision rather
+than rounding. Use `Date(unit, dateOnly)` for `ValidFrom` or `ValidUntil`; output
+uses `YYYYMMDD`.
+
+Page and media start positions require an explicit end, extent or percentage.
+End positions require a start. Percentage-per-period limits require a days, weeks
+or months limit. Reversed page, time and date bounds are rejected. Publishers must
+supply appropriate fixed-page positions and media bounds; OfficeIMO does not
+infer them from the EPUB or verify them against the collateral's source.
+
+`Limited` requires a quantitative limit or expiry. `Unlimited` and `Prohibited`
+can carry date boundaries but no quantitative limits. `NoConstraints` is an
+explicit standalone unlimited assertion without limits. Text-and-data-mining
+assertions use unlimited or prohibited status. Limited time licenses require a
+period or expiry; limited multi-user licenses require a concurrent-user quantity.
+
+`PrivatePurchaseAi` and `PrivateReadingAi` use codes introduced in codelist issue
+73. The retained issue 72 schema rejects these codes; export continues to enforce
+the caller-supplied schema. Their mapping is checked against the current vocabulary,
+but acceptance with a current schema and by a recipient remains unqualified.
+These specialized permissions describe exceptions to a broader mining prohibition;
+the publisher supplies the complete applicable assertions.
+
+Usage constraints belong to the collateral text, independently of product sales
+rights. They serialize publisher assertions without enforcing access, granting
+permissions, interpreting a license or assessing legal effect. With multiple
+collateral licenses, ONIX associates the constraints with the current license.
 
 #### Collateral licenses
 

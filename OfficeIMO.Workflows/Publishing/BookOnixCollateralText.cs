@@ -104,6 +104,8 @@ public sealed record BookOnixCollateralText {
     public IReadOnlyList<BookOnixCollateralTextValue> SourceTitles { get; init; } = [];
     /// <summary>At most 16 distinct absolute HTTP(S) source links without credentials. Export does not fetch them.</summary>
     public IReadOnlyList<string> SourceLinks { get; init; } = [];
+    /// <summary>Up to 32 explicit usage constraints. No permissions are inferred or enforced.</summary>
+    public IReadOnlyList<BookOnixUsageConstraint> UsageConstraints { get; init; } = [];
     /// <summary>Up to 16 explicit collateral licenses. Names and expression links share the aggregate text budget.</summary>
     public IReadOnlyList<BookOnixLicense> Licenses { get; init; } = [];
     /// <summary>Publication date of the collateral, independent of the book's publication date.</summary>

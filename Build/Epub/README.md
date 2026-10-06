@@ -209,6 +209,14 @@ The `audience-grades` fixture covers US preschool-to-kindergarten, Canadian grad
 supported grade code in all three systems against the supplied schema. Grading
 systems remain explicit; these synthetic assertions do not establish age equivalence
 or educational suitability.
+The `collateral-usage` and `collateral-usage-quantities` fixtures exercise the
+retained vocabulary, all supported quantity units, media timecodes, calendar dates
+and composition with license metadata. The quantities fixture is a synthetic schema
+corpus, not a coherent licensing policy. `usage-recent-codes.json` separately records
+whether the supplied schema accepts the two issue 73 AI-use codes. The retained
+issue 72 codelists reject them; rejection is recorded, not counted as qualification.
+If a supplied schema accepts them, the probe writes corresponding ONIX files for
+independent validation. No usage permission is enforced or inferred.
 The `collateral-licenses` and `collateral-license-transition` fixtures cover translated
 license names, all supported expression formats, escaped links, inclusive day dates
 and an open-ended transition. `dated-license-probe.json` separately reports whether
@@ -263,6 +271,8 @@ xmllint --nonet --noout --schema /path/to/onix-schema/ONIX_BookProduct_3.1_refer
   /path/to/new-onix-evidence/audience.onix \
   /path/to/new-onix-evidence/audience-months.onix \
   /path/to/new-onix-evidence/audience-open.onix \
+  /path/to/new-onix-evidence/collateral-usage.onix \
+  /path/to/new-onix-evidence/collateral-usage-quantities.onix \
   /path/to/new-onix-evidence/collateral-licenses.onix \
   /path/to/new-onix-evidence/collateral-license-transition.onix \
   /path/to/new-onix-evidence/review-ratings.onix \
