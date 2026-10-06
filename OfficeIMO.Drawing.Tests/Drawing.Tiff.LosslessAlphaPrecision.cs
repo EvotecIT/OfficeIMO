@@ -11,6 +11,8 @@ public sealed class TiffLosslessAlphaPrecisionTests {
     [InlineData(true, "TiffJpegChromaAlpha")]
     [InlineData(false, "TiffJpegArithmeticAlphaPrecision")]
     [InlineData(true, "TiffJpegArithmeticAlphaPrecision")]
+    [InlineData(false, "TiffJpegArithmetic4x4")]
+    [InlineData(true, "TiffJpegArithmetic4x4")]
     public void NativeAlphaSurvivesUnassociationAndProfileConversion(bool profiled, string corpusName = "TiffJpegLosslessAlphaPrecision") {
         string corpus = Path.Combine(AppContext.BaseDirectory, "TestAssets", corpusName);
         Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "icc-dci-p3-matrix.icc")), out var profile));
@@ -41,8 +43,13 @@ public sealed class TiffLosslessAlphaPrecisionTests {
             }
             cases++;
         }
-        Assert.Equal(corpusName == "TiffJpegArithmeticAlphaPrecision" ? (profiled ? 720 : 912) :
-            corpusName == "TiffJpegChromaAlpha" ? 1680 : profiled ? 96 : 192, cases);
+        int expectedCases = corpusName switch {
+            "TiffJpegArithmetic4x4" => 720,
+            "TiffJpegArithmeticAlphaPrecision" => profiled ? 720 : 912,
+            "TiffJpegChromaAlpha" => 1680,
+            _ => profiled ? 96 : 192
+        };
+        Assert.Equal(expectedCases, cases);
         Assert.True(testedColorBelowEightBitAlpha);
     }
 }

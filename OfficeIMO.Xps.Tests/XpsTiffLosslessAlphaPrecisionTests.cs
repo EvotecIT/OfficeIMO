@@ -23,6 +23,10 @@ public sealed class XpsTiffLosslessAlphaPrecisionTests {
     [InlineData(XpsFormat.OpenXps, false, "TiffJpegArithmeticAlphaPrecision")]
     [InlineData(XpsFormat.Xps, true, "TiffJpegArithmeticAlphaPrecision")]
     [InlineData(XpsFormat.OpenXps, true, "TiffJpegArithmeticAlphaPrecision")]
+    [InlineData(XpsFormat.Xps, false, "TiffJpegArithmetic4x4")]
+    [InlineData(XpsFormat.OpenXps, false, "TiffJpegArithmetic4x4")]
+    [InlineData(XpsFormat.Xps, true, "TiffJpegArithmetic4x4")]
+    [InlineData(XpsFormat.OpenXps, true, "TiffJpegArithmetic4x4")]
     public void NativePrecisionAlphaRetainsVisiblePaint(XpsFormat format, bool profiled, string corpusName = "TiffJpegLosslessAlphaPrecision") {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", corpusName);
         foreach (string line in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {

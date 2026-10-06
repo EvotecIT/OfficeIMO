@@ -66,7 +66,7 @@ table pointers. JPEGProc 1 supports eight/twelve-bit sequential DCT; JPEGProc 14
 eight/twelve/sixteen-bit Huffman lossless scans. Partial interchange headers require the
 TIFF table tags. Raw chunky lossless components require matching predictors and
 point transforms. Legacy integer ReferenceBlackWhite values are accepted alongside
-rationals. Compression 7 also accepts eight/twelve-bit sequential arithmetic JPEG with local conditioning tables and restart intervals; compression 6 retains its Huffman process contract. Compression 7 accepts eight/twelve/sixteen-bit arithmetic lossless JPEG. Eight/twelve/sixteen-bit Huffman or arithmetic lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+rationals. Compression 7 also accepts eight/twelve-bit sequential arithmetic JPEG with local conditioning tables and restart intervals; compression 6 retains its Huffman process contract. Compression 7 accepts two-through-sixteen-bit Huffman and arithmetic lossless JPEG. Both lossless processes accept all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -135,8 +135,8 @@ corrections and calibration are documented in the adjacent standalone corpus.
 LibTIFF writes the containers but cannot decode these payloads in the tested build;
 full-file native TIFF acceptance remains unqualified. The 336 XPS/OpenXPS exports
 cover 70,224 probes per route, with MuPDF PDF/SVG differences at most 2/255 and no
-warnings. GhostXPS opens all packages but can render blank images. Arithmetic TIFF
-CMYK/YCbCr/alpha, planar/tiled and native Windows qualification remain open.
+warnings. GhostXPS opens all packages but can render blank images. Color/alpha and
+planar/tiled extensions are qualified below; native Windows acceptance remains open.
 
 Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
 with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
@@ -477,7 +477,20 @@ CMYK-profile pixels within 2/255, with exact alpha. Both XPS dialects exercise
 black/white compositing; CMYK requires an explicit profile. Across 312 external
 exports from 48 selected inputs, MuPDF PDF/SVG differs by at most 5/255 and 2/255
 over 207,480 probes per route, without warnings. Native Windows, independent
-whole-file acceptance, wider profiles and 4×4 arithmetic sampling remain open.
+whole-file acceptance and wider profiles remain open.
+
+The [4×4 arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic4x4/README.md)
+adds 720 TIFFs at every 2–16-bit precision, including opaque, associated-alpha and
+unassociated-alpha samples, centered/cosited positioning, both byte orders,
+strips/partial tiles and planar or multi-scan storage. All 1,980 component streams
+are independently re-encoded and decoded exactly; the 2,520 stored streams retain
+that entropy. Multi-scan assembly is constructed and covers both component orders.
+The native producer cannot independently generate complete 4×4 lossless color
+frames through its available scan setup. Device and DCI-P3 references retain the
+source Pillow/LittleCMS values. Both XPS dialects cover raster, SVG and PDF output;
+288 selected external exports differ by at most 4/255 in MuPDF PDF and 2/255 in
+SVG over 53,856 probes per route, without warnings. This closes the generated
+4×4 decoding checks, not independent whole-file or native Windows acceptance.
 
 Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
 The reconstructed cases retain independently encoded entropy for baseline and

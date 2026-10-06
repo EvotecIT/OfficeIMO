@@ -49,5 +49,5 @@ the earlier 8/12/16-bit corpora. LibTIFF writes unchanged native JPEG segments;
 YCbCr uses RGB bookkeeping before restoring the photometric declaration.
 These are native-produced segments in constructed TIFF color/layout declarations,
 not independent full-file TIFF decoder or native Windows acceptance. Wider
-profiles, 4×4 arithmetic sampling and other producer/consumer combinations remain
+profiles, native multi-scan producer evidence and other producer/consumer combinations remain
 separate qualification gaps. No generation tool is a runtime dependency.
