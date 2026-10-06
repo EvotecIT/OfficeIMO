@@ -429,6 +429,13 @@ borders, wrapping at narrow widths, reciprocal body-ID links and both TOC entrie
 The managed rendering check does not establish native reader or screen-reader
 behavior, and moving body styles to containers can change viewport box layout.
 
+`merge-metadata-source.epub` and `merge-metadata.epub` exercise explicit package
+refinement retargeting. Inspect manifest and spine targets, the transferred spine
+ID, retained metadata IDs, nested refinements, linked descriptions and both TOC entries.
+Both descriptions intentionally apply to the merged chapter. Validators can check
+the package contract; they cannot decide whether those assertions are appropriate
+for a publisher's combined chapter.
+
 `merge-matter-source.epub` and `merge-matter.epub` exercise front/body-matter
 partition preservation through chapter merging. Compare the body declarations in
 the source with the two enclosing sections in the merged chapter, reciprocal links,

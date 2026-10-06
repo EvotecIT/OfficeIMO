@@ -27,7 +27,14 @@ public sealed partial class EpubPublication {
         XElement firstPosition = RequireRestructurablePosition(firstItem), secondPosition = RequireRestructurablePosition(secondItem);
         if (firstPosition.ElementsAfterSelf(Opf + "itemref").FirstOrDefault() != secondPosition)
             throw new InvalidOperationException("Merge chapters in consecutive reading order, first followed by second.");
-        VerifyMergeDeclarations(firstItem, secondItem, firstPosition, secondPosition);
+        if (options.RetargetPackageRefinements && PackageVersion != "3.0")
+            throw new NotSupportedException("Package refinement retargeting requires EPUB 3.");
+        VerifyMergeDeclarations(firstItem, secondItem, firstPosition, secondPosition, options.RetargetPackageRefinements);
+        string? retainedPositionId = options.RetargetPackageRefinements
+            ? (string?)firstPosition.Attribute("id") ?? (string?)secondPosition.Attribute("id") : null;
+        var refinementTargets = options.RetargetPackageRefinements
+            ? MergePackageRefinementTargets(firstItem.Id, secondItem.Id, secondPosition, retainedPositionId)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
         string firstPath = RequireLocalPath(firstItem), secondPath = RequireLocalPath(secondItem);
         EnsureResourceMutationAllowed(firstPath); EnsureResourceMutationAllowed(secondPath, removing: true);
         XDocument first = EditableXhtml(firstManifestId), second = EditableXhtml(secondManifestId);
@@ -103,9 +110,12 @@ public sealed partial class EpubPublication {
         var references = new HashSet<XAttribute>(PackageResourceReferences(package.Root));
         for (int index = 0; index < proposed.Length; index++) {
             if (!references.Contains(proposed[index])) continue;
-            string value = RewriteMovedReference(PackagePath, null, PackagePath, null, proposed[index].Value, string.Empty, string.Empty, Map);
+            string value = RetargetMergePackageRefinement(proposed[index], refinementTargets)
+                ?? RewriteMovedReference(PackagePath, null, PackagePath, null, proposed[index].Value, string.Empty, string.Empty, Map);
             if (value != proposed[index].Value) { proposed[index].Value = value; packageEdits.Add((originals[index], value)); }
         }
+        if (retainedPositionId != null)
+            package.Root.Element(Opf + "spine")!.Elements(Opf + "itemref").Single(item => (string?)item.Attribute("idref") == firstManifestId).SetAttributeValue("id", retainedPositionId);
         package.Root.Element(Opf + "manifest")!.Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == secondManifestId).Remove();
         package.Root.Element(Opf + "spine")!.Elements(Opf + "itemref").Single(item => (string?)item.Attribute("idref") == secondManifestId).Remove();
         foreach (XElement declaration in selectorStyles.Declarations) package.Root.Element(Opf + "manifest")!.Add(new XElement(declaration));
@@ -131,6 +141,7 @@ public sealed partial class EpubPublication {
         cancellationToken.ThrowIfCancellationRequested();
         foreach (var edit in packageEdits) edit.Attribute.Value = edit.Value;
         RequireSection("manifest").Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == secondManifestId).Remove();
+        if (retainedPositionId != null) firstPosition.SetAttributeValue("id", retainedPositionId);
         secondPosition.Remove();
         foreach (XElement declaration in selectorStyles.Declarations) RequireSection("manifest").Add(declaration);
         _entries.Clear(); foreach (var entry in entries) _entries.Add(entry.Key, entry.Value);

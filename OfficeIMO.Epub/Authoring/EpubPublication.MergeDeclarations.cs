@@ -1,7 +1,7 @@
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private void VerifyMergeDeclarations(EpubManifestItem first, EpubManifestItem second, XElement firstPosition, XElement secondPosition) {
+    private void VerifyMergeDeclarations(EpubManifestItem first, EpubManifestItem second, XElement firstPosition, XElement secondPosition, bool retargetRefinements) {
         XElement declaration = RequireSection("manifest").Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == second.Id);
         if (declaration.Elements().Any() || declaration.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
             attribute.Name != "id" && attribute.Name != "href" && attribute.Name != "media-type" && attribute.Name != "properties"))
@@ -11,7 +11,8 @@ public sealed partial class EpubPublication {
         secondCopy.Attribute("id")?.Remove(); secondCopy.Attribute("idref")?.Remove();
         if (!XNode.DeepEquals(firstCopy, secondCopy)) throw new NotSupportedException("Chapter reading-position attributes conflict.");
         var removedIds = new[] { second.Id, (string?)secondPosition.Attribute("id") }.Where(id => id != null).ToArray();
-        if (Root.Descendants().Attributes("refines").Any(attribute => removedIds.Any(id => ReferencesPackageId(attribute.Value, id!))) ||
+        if (Root.Descendants().Attributes("refines").Any(attribute => removedIds.Any(id => ReferencesPackageId(attribute.Value, id!)) &&
+                (!retargetRefinements || !IsMergeMetadataRefinement(attribute))) ||
             Manifest.Any(item => item.FallbackStyleId == second.Id || item.MediaOverlayId == second.Id) ||
             RequireSection("metadata").Elements(Opf + "meta").Any(meta => (string?)meta.Attribute("name") == "cover" && (string?)meta.Attribute("content") == second.Id) ||
             Root.Element(Opf + "bindings")?.Elements(Opf + "mediaType").Any(item => (string?)item.Attribute("handler") == second.Id) == true)

@@ -44,6 +44,12 @@ public sealed class EpubChapterMergeOptions {
     /// language/direction requires PreserveSecondChapterLanguageAndDirection. Body-specific selectors, box layout
     /// and inherited styles can change; this option does not isolate CSS or establish equivalent reader layout.</summary>
     public bool PreserveBodyScopes { get; set; }
+    /// <summary>Retarget EPUB 3 metadata meta/link refinements from the removed manifest item and spine position
+    /// to the retained entries. Metadata nodes, IDs, values and refinements of those nodes remain intact.
+    /// If the retained spine position has no ID, it takes the removed position's ID. The caller explicitly
+    /// applies both chapters' assertions to the merged resource/position; values are not deduplicated or
+    /// semantically reconciled. Structural references and extension refinement attributes remain errors.</summary>
+    public bool RetargetPackageRefinements { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }
 }

@@ -86,6 +86,8 @@ WriteFixture("merge-nested-selectors", MergeSelectorsFixture.Create(nested: true
 WriteFixture("merge-relationships", MergeRelationshipsFixture.Create());
 WriteFixture("merge-resource-selectors", MergeResourceSelectorsFixture.Create());
 WriteFixture("merge-language", MergeLanguageFixture.Create());
+WriteFixture("merge-metadata-source", MergeMetadataFixture.Create(false));
+WriteFixture("merge-metadata", MergeMetadataFixture.Create(true));
 WriteFixture("merge-body-scopes-source", MergeBodyScopeFixture.Create(false));
 WriteFixture("merge-body-scopes", MergeBodyScopeFixture.Create(true));
 WriteFixture("merge-matter-source", MergeMatterFixture.Create(false));

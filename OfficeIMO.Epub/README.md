@@ -755,6 +755,19 @@ viewport backgrounds and box layout can change when attributes move to a `div`.
 Use this explicit choice only after assessing the resulting layout; it does not
 isolate the stylesheet cascade or prove reader equivalence.
 
+For EPUB 3 package metadata, set `RetargetPackageRefinements = true` to move
+`meta` and `link` refinements from the removed manifest item and spine position
+to their retained counterparts. Metadata nodes, IDs, values, and refinements of
+those metadata nodes stay intact. If the retained spine position has no ID, it
+takes the removed position's ID.
+
+This explicitly applies both chapters' assertions to the merged resource or reading
+position. Values are neither deduplicated nor semantically reconciled; assess
+conflicting descriptions, rights, or other assertions before choosing this policy.
+Structural references and extension refinement attributes remain unsupported.
+The default rejects refinements that would lose their target, and failed merges
+leave the publication unchanged.
+
 Supply an explicit second-chapter map when body IDs collide:
 
 ```csharp
