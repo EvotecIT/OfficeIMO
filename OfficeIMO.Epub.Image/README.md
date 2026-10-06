@@ -122,21 +122,24 @@ review whether the crop is intentional. Automatic page output clipping is exclud
 Unsupported open paths, non-finite or over-budget geometry and unavailable text outlines produce
 `HtmlRenderTextInkNotInspected` warnings rather than an apparently clean result.
 Supported paths are limited to 512 commands and 512 flattened vertices.
-Embedded vector inspection follows positioned text, baseline text, horizontal wrapped text and rich
-text through affine effect groups and supported filled drawing clips, with each
+Embedded vector inspection follows positioned, baseline, wrapped, rich and shaped
+vertical text through affine effect groups and supported filled drawing clips, with each
 drawing surface's fonts and viewport. Baseline, wrapped and rich text reuse the
 renderer's layout and glyph placement, including mixed sizes, synthetic styles,
 rotation, alignment and font fallback. Ink inspection measures the retained render
 output, including ellipsis; it does not establish that every source character
-remains visible after layout.
+remains visible after layout. Vertical text uses the selected shaping provider's
+vertical advances, the painter's text-box clip and frame transform, color layers
+and conservative decoration bounds. Missing or unusable vertical shaping remains
+unmeasured; inspection does not infer geometry from the fallback layout.
 Shape-only drawings do not produce text warnings, including masked groups,
 singular transforms and repeated vector patterns. A bounded content check retains
 unmeasured warnings when those containers contain text, text-bearing masks,
 outline metadata or embedded images; it does not infer pixel visibility.
-Vertical text, text represented by outline metadata, masks, vector patterns and embedded image
+Text represented by outline metadata, masks, vector patterns and embedded image
 resources remain explicitly unmeasured; the inspection does not recover text from
 arbitrary paths or raster pixels. Each vector traversal is limited to 4096 elements
-and line runs and 64 nested groups/clips. Baseline, wrapped and rich text input is
+and line runs and 64 nested groups/clips. Baseline, wrapped, rich and vertical text input is
 additionally limited to 65,536 UTF-16 code units across the traversal. Repeated
 ellipsis measurements have a separate one-million character-work limit per text
 block and share the traversal work limit.

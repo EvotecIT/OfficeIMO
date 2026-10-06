@@ -10,8 +10,8 @@ public static partial class EpubImageExportExtensions {
     /// <summary>Renders one retained fixed-layout XHTML chapter using its declared numeric viewport and
     /// checks rendered element rectangles against that canvas. Uses the shared HTML/Drawing engines and
     /// package resource resolver. No image is encoded. Rectangular scene clipping is reported separately.
-    /// Positioned XHTML text ink is reported separately. SVG spine inspection, precise path-clipping geometry, individual region overflow
-    /// and native-reader equivalence are not established by this check.</summary>
+    /// XHTML and embedded vector text ink use separate bounded contour and supported-clip checks.
+    /// SVG spine inspection, individual region overflow and native-reader equivalence are not established by this check.</summary>
     /// <param name="source">Publication loaded with raw HTML and resource payloads retained.</param>
     /// <param name="chapterIndex">Zero-based chapter index.</param>
     /// <param name="options">Font, resource and safety settings. Mode, viewport and margins are set from the page;

@@ -94,13 +94,18 @@ public sealed partial class OfficeRasterCanvas {
 
         void InspectText(OfficeDrawingText text, OfficeRasterCanvas canvas, OfficeTransform placement) {
             if (text.RasterText.Length == 0 || (text.Color ?? OfficeColor.Black).A == 0) return;
+            if (text.TextDirection == OfficeTextDirection.TopToBottom) {
+                ChargeLayout(text.RasterText.Length);
+                canvas.InspectVerticalTextInk(text, placement, clips, Charge, report);
+                return;
+            }
             bool positioned = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding
-                && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && text.TextDirection != OfficeTextDirection.TopToBottom;
+                && text.VerticalAlignment == OfficeTextVerticalAlignment.Top;
             bool usesPositionedPaint = text.TextAdvanceWidth.HasValue || text.OverflowBehavior == OfficeTextOverflowBehavior.Clip
                 || text.BaselineScale != 1D || text.BaselineOffset != 0D || !text.FeatureSettings.IsDefault
                 || !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase);
             bool usesLayoutPaint = !positioned || !usesPositionedPaint || (text.HasFrameTransform && !text.TextAdvanceWidth.HasValue);
-            if (usesLayoutPaint && text.TextDirection != OfficeTextDirection.TopToBottom) {
+            if (usesLayoutPaint) {
                 ChargeLayout(text.RasterText.Length);
                 bool saved = canvas.PreservePaintedGlyphOrder;
                 canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
@@ -109,9 +114,6 @@ public sealed partial class OfficeRasterCanvas {
                         placement, clips, Charge, report);
                 } finally { canvas.PreservePaintedGlyphOrder = saved; }
                 return;
-            }
-            if (!positioned || !usesPositionedPaint || (text.HasFrameTransform && !text.TextAdvanceWidth.HasValue)) {
-                Unmeasured("This drawing text layout does not use the supported positioned-paint path."); return;
             }
             OfficeTransform inkTransform = text.HasFrameTransform
                 ? text.CreateFrameTransform().CreateDestinationTransform().Then(placement) : placement;
