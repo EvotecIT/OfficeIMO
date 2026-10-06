@@ -17,11 +17,6 @@ public sealed partial class OfficeRasterCanvas {
     private Dictionary<ShapedTextKey, OfficeManagedTextFallback>? _managedTextCache;
     private OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
 
-    // Import-time bounds measurement belongs to the same document operation as
-    // painted CFF outlines, even when each run uses a separate small canvas.
-    internal void ShareCffOperationBudget(OfficeCffOperationBudget budget) =>
-        _cffOperationBudget = budget?.CreateExecutionScope() ?? throw new ArgumentNullException(nameof(budget));
-
     private bool TryGetShapedTextRun(
         string text,
         IOfficeFontProgram font,

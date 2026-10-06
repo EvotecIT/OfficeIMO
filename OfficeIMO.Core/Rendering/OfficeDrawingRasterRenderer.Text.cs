@@ -7,6 +7,7 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderTransformedPositionedText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         canvas.CancellationToken.ThrowIfCancellationRequested();
+        using var cffScope = canvas.PushCffExecutionScope();
         double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
         double sourceSize = Math.Max(1D, text.Font.Size * scale);
         string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
@@ -43,6 +44,7 @@ public static partial class OfficeDrawingRasterRenderer {
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
         using var faceScope = local.PushTextFace(text.Font.Face);
+        local.ShareCffOperationBudget(canvas);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
         local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
@@ -96,6 +98,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
             cancellationToken: canvas.CancellationToken);
         using var faceScope = local.PushTextFace(text.Font.Face);
+        local.ShareCffOperationBudget(canvas);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
         local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         using (local.PushClipRectangle(0D, 0D, contentWidth, contentHeight)) {
