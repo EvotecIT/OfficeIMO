@@ -62,6 +62,41 @@ public sealed class EpubMergeSelectorContracts {
         Assert.Equal(before, book.Write().Bytes);
     }
 
+    [Theory]
+    [InlineData("[itemref='heading'] {color:red}")]
+    [InlineData("[itemref~=heading] {color:red}")]
+    [InlineData("[item\\72 ef='heading'] {color:red}")]
+    public void ItemReferencesCannotSilentlyLoseTheirSelectorDuringReconciliation(string css) {
+        var book = Book();
+        var content = book.GetContentXml("two");
+        content.Root!.Element(Html + "body")!.Add(new XElement(Html + "section",
+            new XAttribute("itemscope", ""), new XAttribute("itemref", "heading"), "Referenced content"));
+        book.SetContentXml("two", content);
+        AddStyle(book, "two", css);
+        byte[] before = book.Write().Bytes;
+        Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));
+        Assert.Equal(before, book.Write().Bytes);
+    }
+
+    [Theory]
+    [InlineData("[cite='two.xhtml#heading'] {color:red}", false)]
+    [InlineData("[cite$='#heading'] {color:red}", true)]
+    public void UrlAttributeSelectorsRejectBeforeChangingDocumentsOrSharedStylesheets(string css, bool linked) {
+        var book = Book();
+        var content = book.GetContentXml("two");
+        content.Root!.Element(Html + "body")!.Add(new XElement(Html + "blockquote",
+            new XAttribute("cite", "two.xhtml#heading"), "Quoted content"));
+        if (linked) {
+            book.AddStylesheet("shared", "EPUB/shared.css", css);
+            content.Root.Element(Html + "head")!.Add(new XElement(Html + "link",
+                new XAttribute("rel", "stylesheet"), new XAttribute("href", "shared.css")));
+        } else content.Root.Element(Html + "head")!.Add(new XElement(Html + "style", css));
+        book.SetContentXml("two", content);
+        byte[] before = book.Write().Bytes;
+        Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));
+        Assert.Equal(before, book.Write().Bytes);
+    }
+
     [Fact]
     public void RewritingRequiresExplicitSharedCascadeAndIsOptIn() {
         var book = Book(); AddStyle(book, "two", "#heading {color:green}");

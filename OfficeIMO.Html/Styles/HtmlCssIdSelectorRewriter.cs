@@ -5,8 +5,12 @@ namespace OfficeIMO.Html;
 /// <summary>Source-preserving identifier edits for the bounded publication stylesheet profile.</summary>
 internal static class HtmlCssIdSelectorRewriter {
     private static readonly HashSet<string> RelationshipAttributes = new HashSet<string>(new[] {
-        "href", "name", "usemap", "for", "form", "list", "headers", "aria-labelledby", "aria-describedby",
-        "aria-controls", "aria-owns", "aria-flowto", "aria-activedescendant", "aria-details", "aria-errormessage"
+        "href", "name", "usemap", "for", "form", "list", "headers", "itemref", "aria-labelledby", "aria-describedby",
+        "aria-controls", "aria-owns", "aria-flowto", "aria-activedescendant", "aria-details", "aria-errormessage",
+        // These values may be rebased or have fragment targets repaired by publication resource rewriting.
+        "src", "poster", "cite", "longdesc", "data", "definitionURL", "srcset", "imagesrcset", "style",
+        "fill", "stroke", "filter", "clip-path", "mask", "marker", "marker-start", "marker-mid", "marker-end",
+        "cursor", "ping", "archive"
     }, StringComparer.OrdinalIgnoreCase);
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token) {
         var edits = new List<(int Start, int Length, string Value)>();
@@ -114,7 +118,7 @@ internal static class HtmlCssIdSelectorRewriter {
             if (i < end && css[i] == '|' && (i + 1 == end || css[i + 1] != '='))
                 throw new NotSupportedException("Namespaced attribute selectors require explicit reconciliation.");
             if (RelationshipAttributes.Contains(name))
-                throw new NotSupportedException("Selectors on identifier relationships require explicit reconciliation.");
+                throw new NotSupportedException("Selectors on identifier relationships or rewritten resource attributes require explicit reconciliation.");
             if (!name.Equals("id", StringComparison.OrdinalIgnoreCase)) return;
             if (i == end) return; // Presence remains true after replacement.
             if (css[i++] != '=') throw new NotSupportedException("Only exact id attribute selectors can be reconciled.");

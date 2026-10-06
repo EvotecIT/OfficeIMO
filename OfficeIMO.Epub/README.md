@@ -738,7 +738,8 @@ publication's retained-entry and byte limits.
 
 The automatic profile rejects unknown at-rules,
 namespaced attribute selectors, partial or case-insensitive ID matches, selectors
-on ID relationships such as `href` or `aria-labelledby`, stylesheet processing
+on ID relationships such as `itemref` or `aria-labelledby`, or resource-bearing
+attributes such as `href`, `cite`, `src`, `style` and SVG `fill`, stylesheet processing
 instructions, integrity digests and stylesheet package refinements. Reconcile these
 explicitly before merging, or leave automatic rewriting disabled and prepare all
 ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;
