@@ -113,6 +113,7 @@ internal static partial class PdfPageExtractor {
     }
     
     internal sealed class CatalogRewriteState {
+        internal PdfSourceEncryptionContext? SourceEncryption { get; set; }
         private const int MinimumIndexedDestinationCount = 128;
         public static readonly CatalogRewriteState Empty = new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 

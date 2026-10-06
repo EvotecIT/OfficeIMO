@@ -120,7 +120,8 @@ internal static partial class PdfMerger {
         byte[] insertedPdf,
         int insertBeforePageNumber,
         PdfLoadOptions? primaryReadOptions,
-        PdfReadDocument? openedPrimaryDocument = null) {
+        PdfReadDocument? openedPrimaryDocument = null,
+        PdfLoadOptions? insertedReadOptions = null) {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
@@ -129,7 +130,8 @@ internal static partial class PdfMerger {
             throw new NotSupportedException("Page insertion does not preserve XFA form packets. Flatten or remove XFA before inserting pages.");
         }
 
-        PdfReadDocument insertedDocument = PdfReadDocument.Open(insertedPdf);
+        insertedReadOptions = PdfLoadOptions.WithMinimumInputBytes(insertedReadOptions, insertedPdf.LongLength);
+        PdfReadDocument insertedDocument = PdfReadDocument.Open(insertedPdf, insertedReadOptions);
         if (insertedDocument.AcroFormXfa is not null) {
             throw new NotSupportedException("Page insertion does not preserve XFA form packets. Flatten or remove XFA before inserting pages.");
         }
@@ -150,7 +152,8 @@ internal static partial class PdfMerger {
         (_, insertedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             insertedPdf,
             PdfMutationOperation.ExtractPages,
-            insertedDocument);
+            insertedDocument,
+            insertedReadOptions);
         if (insertedDocument.Pages.Count == 0) {
             throw new ArgumentException("Inserted PDF does not contain any pages.", nameof(insertedPdf));
         }
@@ -175,9 +178,12 @@ internal static partial class PdfMerger {
 
         var importedSources = new[] {
             ImportSource(primaryPdf, 0, primaryPageObjectNumbers, 0, primaryPageIndexMap, primaryReadOptions, primaryDocument),
-            ImportSource(insertedPdf, 1, insertedPageObjectNumbers, insertBeforePageNumber - 1, null, plannedDocument: insertedDocument)
+            ImportSource(insertedPdf, 1, insertedPageObjectNumbers, insertBeforePageNumber - 1, null, insertedReadOptions, insertedDocument)
         };
-        return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder, out _);
+        byte[] output = WriteMerged(importedSources, primarySourceIndex: 0, outputOrder, out int outputObjectCount);
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(primaryDocument.ReadOptions,
+            new[] { primaryDocument.ReadOptions, insertedDocument.ReadOptions }, output.LongLength, outputObjectCount);
+        return PdfSourceEncryptionContext.Create(primaryDocument)?.Protect(output, generatedReadOptions: outputReadOptions) ?? output;
     }
 
     private static PdfMergeResult MergeCore(

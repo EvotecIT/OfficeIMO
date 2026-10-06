@@ -47,7 +47,7 @@ public class PdfCanvasStampTests {
         Assert.True(plan.PermissionRestrictionsIgnored);
         Assert.Contains("Input.PermissionRestrictionsIgnored", plan.Warnings);
         PdfDocument output = result.RequireValue();
-        Assert.False(PdfInspector.Probe(output.ToBytes()).HasEncryption);
+        Assert.True(PdfInspector.Probe(output.ToBytes()).HasEncryption);
         Assert.Contains("Encrypted existing body", output.Reader.Text(), StringComparison.Ordinal);
         Assert.Contains("Authorized canvas stamp", output.Reader.Text(), StringComparison.Ordinal);
     }

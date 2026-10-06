@@ -315,7 +315,7 @@ internal static class PdfMutationPlanner {
             permissions,
             proofs,
             blockers);
-        IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, operation, mode, security);
+        IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, mode, security);
         IReadOnlyList<string> diagnostics = GetDiagnostics(preflight, appendOnly, operation, mode, blockers, fullRewriteCapability, appendOnlyAvailable, security);
 
         return new PdfMutationPlan(
@@ -693,9 +693,6 @@ internal static class PdfMutationPlanner {
                 Add(blockers, "AppendOnly.CertificationRequiresFirstSignature");
             }
 
-            if (operation == PdfMutationOperation.PrepareExternalSignature && security.HasEncryption) {
-                Add(blockers, "AppendOnly.EncryptedRawSignatureObject");
-            }
 
             if (operation == PdfMutationOperation.EnrichLongTermValidation && !security.HasSignatures) {
                 Add(blockers, "AppendOnly.Unsigned");
@@ -726,7 +723,6 @@ internal static class PdfMutationPlanner {
     private static IReadOnlyList<string> GetWarnings(
         PdfDocumentPreflight preflight,
         PdfAppendOnlyMutationReport appendOnly,
-        PdfMutationOperation operation,
         PdfMutationExecutionMode mode,
         PdfDocumentSecurityInfo security) {
         var warnings = new List<string>();
@@ -746,12 +742,6 @@ internal static class PdfMutationPlanner {
 
         if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {
             Add(warnings, "Input.RevisionHistoryWillBeNormalized");
-        }
-
-        if (mode == PdfMutationExecutionMode.FullRewrite &&
-            security.HasEncryption &&
-            operation != PdfMutationOperation.ChangeEncryption) {
-            Add(warnings, "Output.EncryptionWillBeRemoved");
         }
 
         if (mode != PdfMutationExecutionMode.Blocked && preflight.PermissionRestrictionsIgnored) {
@@ -910,6 +900,8 @@ internal static class PdfMutationPlanner {
         if (!preflight.CanRead) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Signatures && HasOnlyUnsignedSignatureFields(preflight.Probe.Security)) continue;
+            if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Encryption &&
+                CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.ModifyAcroForm)) continue;
             if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.ActiveContent && HasOnlyFormWidgetActiveContent(preflight.UncheckedDocumentInfo)) continue;
             if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAcroForm)) return false;
         }
@@ -932,9 +924,11 @@ internal static class PdfMutationPlanner {
     private static bool CanRedact(PdfDocumentPreflight preflight) {
         if (!preflight.CanRead) return false;
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
-        if (security.HasEncryption || security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
+        if (security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
+        if (security.HasEncryption && !CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Redact)) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind kind = preflight.RewriteBlockers[i].Kind;
+            if (kind == PdfRewriteBlockerKind.Encryption) continue;
             if (kind == PdfRewriteBlockerKind.Forms || kind == PdfRewriteBlockerKind.TaggedContent || kind == PdfRewriteBlockerKind.XmpMetadata || kind == PdfRewriteBlockerKind.OptionalContent || kind == PdfRewriteBlockerKind.EmbeddedFiles) continue;
             return false;
         }
@@ -978,7 +972,9 @@ internal static class PdfMutationPlanner {
             operation != PdfMutationOperation.Sanitize &&
             operation != PdfMutationOperation.FillFormFields &&
             operation != PdfMutationOperation.FlattenFormFields &&
-            operation != PdfMutationOperation.FillAndFlattenFormFields) {
+            operation != PdfMutationOperation.FillAndFlattenFormFields &&
+            operation != PdfMutationOperation.ModifyAcroForm &&
+            operation != PdfMutationOperation.Redact) {
             return false;
         }
 

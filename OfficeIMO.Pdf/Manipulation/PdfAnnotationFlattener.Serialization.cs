@@ -2,7 +2,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationFlattener {
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata,
-        out IReadOnlyDictionary<int, int> objectNumberMap) {
+        out IReadOnlyDictionary<int, int> objectNumberMap, PdfSourceEncryptionContext? sourceEncryption,
+        PdfFileVersion fileVersion) {
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -19,6 +20,7 @@ internal static partial class PdfAnnotationFlattener {
         rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
 
         objectNumberMap = numberMap;
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId);
+        byte[] result = PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
+        return sourceEncryption?.Protect(result) ?? result;
     }
 }

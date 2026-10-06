@@ -202,6 +202,7 @@ internal static partial class PdfPageExtractor {
         byte[] result = maximumOutputBytes.HasValue
             ? AssembleBounded(objects, catalogId, infoId, fileVersion, maximumOutputBytes.Value, cancellationToken)
             : Assemble(objects, catalogId, infoId, fileVersion, cancellationToken);
+        result = catalogState.SourceEncryption?.Protect(result, maximumOutputBytes, cancellationToken: cancellationToken) ?? result;
         cancellationToken.ThrowIfCancellationRequested();
         captureObjectNumbers?.Invoke(numberMap);
         return result;

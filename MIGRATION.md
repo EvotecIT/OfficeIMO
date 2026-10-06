@@ -9,6 +9,21 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PDF editing protection and source fonts
+
+Authenticated page, text, form, metadata and redaction rewrites preserve the
+source's password protection. Extraction and splitting also retain encryption;
+reopen their output with the source password. Merge output follows the primary
+source's protection settings. If an application depended on these operations
+producing plaintext, call `Security.Decrypt(ownerPassword)` explicitly before or
+after the operation. Permission restrictions and signed-rewrite blocking still
+apply.
+
+Text replacement and movement reuse supported embedded TrueType and Identity-H
+CID fonts when `PdfTextEditOptions.Font` is null. Text outside the existing subset's
+Unicode map now throws instead of substituting silently. Set `Font` to a Standard
+14 font when substitution is intended and inspect `PdfTextEditResult.Warnings`.
+
 ## Long-document AI request budgets
 
 Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.

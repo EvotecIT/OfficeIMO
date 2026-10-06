@@ -29,11 +29,14 @@ internal static partial class PdfMerger {
             source.SourceSecurity,
             source.SourcePermissionPolicy)).ToArray();
         var decisions = new List<PdfMergeDecision>();
+        PdfSourceEncryptionContext? primaryEncryption = PdfSourceEncryptionContext.Create(sources[primarySourceIndex].Document, cancellationToken);
         int encryptedSourceCount = inventories.Count(static source => source.HasEncryption);
         int ignoredRestrictionCount = inventories.Count(static source => source.PermissionRestrictionsIgnored);
         if (encryptedSourceCount > 0) {
-            string action = "Decrypted " + encryptedSourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                " authenticated source(s) and produced an unencrypted merged output.";
+            string action = "Imported " + encryptedSourceCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " authenticated encrypted source(s). " + (primaryEncryption is null
+                    ? "The primary source is unencrypted, so the merged output is unencrypted."
+                    : "Retained the primary source's passwords, permissions, and encryption settings on the merged output.");
             if (ignoredRestrictionCount > 0) {
                 action += " Permission restrictions were explicitly ignored for " + ignoredRestrictionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " source(s).";
             }
@@ -70,6 +73,13 @@ internal static partial class PdfMerger {
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
 
+        merged = primaryEncryption?.Protect(merged, cancellationToken: cancellationToken, generatedReadOptions: currentReadOptions) ?? merged;
+        if (primaryEncryption is not null) {
+            PdfLoadOptions primaryOptions = sources[primarySourceIndex].Document.ReadOptions;
+            currentReadOptions = PdfLoadOptions.WithAesCryptographyProvider(
+                PdfLoadOptions.WithPassword(currentReadOptions, primaryOptions.Password), primaryOptions.AesCryptographyProvider);
+        }
+        currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         PdfReadDocument readback = PdfReadDocument.Open(merged, currentReadOptions, cancellationToken);
         int expectedPageCount = sources.Sum(static source => source.PageObjectNumbers.Length);
         if (readback.Pages.Count != expectedPageCount) {

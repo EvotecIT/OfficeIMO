@@ -3,7 +3,9 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, CancellationToken cancellationToken = default) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfReadDocument source, byte[] sourcePdf,
+        CancellationToken cancellationToken = default) {
+        PdfSourceEncryptionContext? sourceEncryption = PdfSourceEncryptionContext.Create(source, cancellationToken);
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -24,7 +26,7 @@ internal static partial class PdfFormFiller {
         }
 
         int infoId = rewritten.Count + 1;
-        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
+        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(source.UncheckedMetadata))));
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         if (ContainsOpenTypeFontFileStream(objects)) {
@@ -32,7 +34,8 @@ internal static partial class PdfFormFiller {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
+        byte[] result = PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
+        return sourceEncryption?.Protect(result, cancellationToken: cancellationToken) ?? result;
     }
 
     private static bool ContainsOpenTypeFontFileStream(Dictionary<int, PdfIndirectObject> objects) {
