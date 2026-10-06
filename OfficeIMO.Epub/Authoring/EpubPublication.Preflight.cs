@@ -6,8 +6,8 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubPublication {
     /// <summary>
     /// Checks the current publication using the selected save policy and inspects all retained XHTML/SVG
-    /// identifiers, root and descendant language declarations and image alternatives. Schema conformance, comprehensive accessibility and reader
-    /// presentation remain explicitly unchecked. No file is written and no external process is invoked.
+    /// identifiers, root and descendant language declarations, image alternatives and EPUB 3 metadata-link relationships.
+    /// Schema conformance, comprehensive accessibility and reader presentation remain explicitly unchecked. No file is written and no external process is invoked.
     /// </summary>
     public EpubPreflightReport Preflight(EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -22,6 +22,7 @@ public sealed partial class EpubPublication {
         }
         checks.Add(Result("native-save", package));
         checks.Add(CheckAccessibilityDiscovery());
+        if (PackageVersion == "3.0") checks.Add(CheckMetadataLinks(cancellationToken));
 
         var contentFindings = new List<EpubDiagnostic>();
         var imageFindings = new List<EpubDiagnostic>();

@@ -1133,7 +1133,15 @@ syntax, not registry membership or whether they describe the actual text. Descen
 XHTML/SVG `lang` and all descendant `xml:lang` declarations are also checked for
 malformed tags and conflicts. Empty descendant values are accepted as an explicit
 unknown-language reset. Findings identify the resource and element where possible.
-Whether language changes correctly describe the text still requires accessibility review. The `media-overlays` check
+Whether language changes correctly describe the text still requires accessibility review.
+
+The EPUB 3 `metadata-links` check inspects package and collection metadata: `record`
+and `alternate` links cannot refine individual entries; `voicing` links require a
+refinement target; `record` and `voicing` require a media type even for external
+resources; and `alternate` cannot be combined with another relationship keyword.
+These targeted checks preserve imported bytes and do not establish full schema conformance.
+
+The `media-overlays` check
 verifies retained SMIL text/sequence targets, manifest associations, audio declarations,
 explicit clip intervals and duration sums. It also inspects unchanged imported content, even when saving preserves that
 content byte-for-byte.
