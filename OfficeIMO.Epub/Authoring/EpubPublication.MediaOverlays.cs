@@ -8,7 +8,7 @@ public sealed partial class EpubPublication {
     private static readonly XNamespace Smil = "http://www.w3.org/ns/SMIL";
 
     /// <summary>
-    /// Atomically adds sequential SMIL narration for one XHTML document, its manifest association,
+    /// Atomically adds ordered SMIL narration for one XHTML document, its manifest association,
     /// and exact clip-sum duration metadata. Existing overlays are never replaced. Audio durations
     /// are caller declarations; encoded audio and reading-system playback require independent validation.
     /// </summary>
@@ -55,8 +55,6 @@ public sealed partial class EpubPublication {
         XDocument content = EditableXhtml(contentItem.Id);
         XElement body = content.Root!.Element(Html + "body") ?? throw new InvalidDataException("Content has no XHTML body.");
         EpubContentIdentifiers.Collect(content.Root, contentPath, rejectDuplicates: true, cancellationToken);
-        if (overlay.Cues == null || overlay.Cues.Count < 1 || overlay.Cues.Count > 10000)
-            throw new ArgumentException("An overlay requires one to 10,000 cues.", nameof(overlay));
         if (overlay.AudioDurations == null || overlay.AudioDurations.Count > 10000)
             throw new ArgumentException("Audio duration declarations are required and limited to 10,000 resources.", nameof(overlay));
         var targets = body.DescendantsAndSelf().Select((element, index) => new { Element = element, Index = index })
@@ -64,11 +62,14 @@ public sealed partial class EpubPublication {
             .ToDictionary(item => (string)item.Element.Attribute("id")!, item => (item.Element, item.Index), StringComparer.Ordinal);
         var audioPaths = new Dictionary<string, string>(StringComparer.Ordinal);
         var sequence = new XElement(Smil + "seq", new XAttribute(Ops + "textref", RelativeHref(containerPath, contentPath)));
+        var nodes = PrepareOverlayNodes(overlay, body, targets.ToDictionary(item => item.Key, item => item.Value.Element, StringComparer.Ordinal),
+            sequence, containerPath, contentPath, cancellationToken);
         int previousIndex = -1;
         int cueIndex = 0;
         XElement? previousTarget = null;
         long ticks = 0;
-        foreach (EpubMediaOverlayCue cue in overlay.Cues) {
+        foreach (var node in nodes) {
+            EpubMediaOverlayCue cue = node.Cue;
             cancellationToken.ThrowIfCancellationRequested();
             if (cue == null || cue.ElementId.Length == 0 || cue.ElementId.Length > 1024 ||
                 !targets.TryGetValue(cue.ElementId, out var target) || target.Element.Name.Namespace != Html ||
@@ -91,10 +92,11 @@ public sealed partial class EpubPublication {
             }
             try { ticks = checked(ticks + (cue.ClipEnd.Ticks - cue.ClipBegin.Ticks)); }
             catch (OverflowException) { throw new ArgumentException("Overlay duration exceeds TimeSpan.", nameof(overlay)); }
-            sequence.Add(new XElement(Smil + "par", new XAttribute("id", "cue" + (cueIndex++).ToString(CultureInfo.InvariantCulture)),
+            node.Parallel.SetAttributeValue("id", "cue" + (cueIndex++).ToString(CultureInfo.InvariantCulture));
+            node.Parallel.Add(
                 new XElement(Smil + "text", new XAttribute("src", RelativeHref(containerPath, contentPath) + "#" + Uri.EscapeDataString(cue.ElementId))),
                 new XElement(Smil + "audio", new XAttribute("src", RelativeHref(containerPath, audioPath)),
-                    new XAttribute("clipBegin", EpubSmilClock.Format(cue.ClipBegin)), new XAttribute("clipEnd", EpubSmilClock.Format(cue.ClipEnd)))));
+                    new XAttribute("clipBegin", EpubSmilClock.Format(cue.ClipBegin)), new XAttribute("clipEnd", EpubSmilClock.Format(cue.ClipEnd))));
             previousIndex = target.Index; previousTarget = target.Element;
         }
         var document = new XDocument(new XElement(Smil + "smil", new XAttribute("version", "3.0"),

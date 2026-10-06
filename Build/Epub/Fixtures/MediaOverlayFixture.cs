@@ -1,6 +1,32 @@
 using OfficeIMO.Epub;
+using System.Xml.Linq;
 
 internal static class MediaOverlayFixture {
+    internal static EpubPublication Nested(bool revised = false) {
+        var book = Create();
+        XNamespace html = "http://www.w3.org/1999/xhtml";
+        var content = book.GetContentXml("chapter");
+        var paragraphs = content.Descendants(html + "p").ToArray();
+        var list = new XElement(html + "ol", new XAttribute("id", "steps"));
+        foreach (var paragraph in paragraphs) list.Add(new XElement(html + "li", paragraph.Attributes(), paragraph.Nodes()));
+        paragraphs[0].AddBeforeSelf(new XElement(html + "section", new XAttribute("id", "narrated"), list));
+        foreach (var paragraph in paragraphs) paragraph.Remove();
+        book.SetContentXml("chapter", content);
+        EpubMediaOverlay Overlay(double boundary) => new() {
+            AudioDurations = new Dictionary<string, TimeSpan> { ["audio"] = TimeSpan.FromTicks(71179590) },
+            Nodes = new[] { new EpubMediaOverlaySequence("narrated", new[] {
+                new EpubMediaOverlaySequence("steps", new[] {
+                    new EpubMediaOverlayCue("first", "audio", TimeSpan.Zero, TimeSpan.FromSeconds(boundary)) { Semantic = EpubMediaOverlaySemantic.ListItem },
+                    new EpubMediaOverlayCue("second", "audio", TimeSpan.FromSeconds(boundary), TimeSpan.FromTicks(71179590)) { Semantic = EpubMediaOverlaySemantic.ListItem }
+                }) { Semantic = EpubMediaOverlaySemantic.List }
+            }) }
+        };
+        book.ReplaceMediaOverlay("narration", Overlay(2.8));
+        if (revised) book.ReplaceMediaOverlay("narration", Overlay(2.85));
+        book.SetMetadataProperty("schema:accessibilitySummary", "All content is available as text. Two list items have recorded narration in nested SMIL sequences. The heading is not narrated. Reader playback, escaping and hazard review are not yet qualified.");
+        return book;
+    }
+
     internal static EpubPublication Revised() {
         var book = Create();
         // Move the cue boundary within the independently measured inter-sentence silence.

@@ -5,9 +5,9 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     /// <summary>
-    /// Atomically replaces a single chapter's sequential narration and recalculates duration metadata.
-    /// Preserves cue ids for surviving text targets, manifest identity and metadata attributes. Rejects
-    /// shared or encrypted overlays, richer SMIL structures, and referenced cues that would be removed.
+    /// Atomically replaces a single chapter's ordered narration and recalculates duration metadata.
+    /// Preserves cue and sequence ids for surviving text targets, manifest identity and metadata attributes. Rejects
+    /// shared or encrypted overlays, unsupported SMIL structures, and referenced cues that would be removed.
     /// Audio resources remain unchanged; their durations are caller declarations.
     /// </summary>
     public void ReplaceMediaOverlay(string overlayManifestId, EpubMediaOverlay overlay, CancellationToken cancellationToken = default) {
@@ -32,11 +32,12 @@ public sealed partial class EpubPublication {
         var reservedIds = new HashSet<string>(priorCueIds.Values.Where(id => id != null).Select(id => id!), StringComparer.Ordinal);
         var retainedIds = new HashSet<string>(StringComparer.Ordinal);
         int nextId = 0;
-        foreach (XElement cue in prepared.Document.Descendants(Smil + "par")) {
+        foreach (XElement cue in prepared.Document.Descendants().Where(element => element.Name == Smil + "par" ||
+            element.Name == Smil + "seq" && EpubReference.Resolve(path, (string)element.Attribute(Ops + "textref")!).Fragment != null)) {
             cancellationToken.ThrowIfCancellationRequested();
-            string target = EpubReference.Resolve(path, (string)cue.Element(Smil + "text")!.Attribute("src")!).Fragment!;
+            string target = OverlayNodeKey(cue, path);
             if (!priorCueIds.TryGetValue(target, out string? id) || id == null) {
-                do { id = "cue" + (nextId++).ToString(CultureInfo.InvariantCulture); } while (reservedIds.Contains(id));
+                do { id = (cue.Name == Smil + "par" ? "cue" : "seq") + (nextId++).ToString(CultureInfo.InvariantCulture); } while (reservedIds.Contains(id));
                 reservedIds.Add(id);
             }
             cue.SetAttributeValue("id", id); retainedIds.Add(id);
@@ -78,22 +79,38 @@ public sealed partial class EpubPublication {
         if (sequenceTarget.Kind != EpubReferenceKind.Container || sequenceTarget.ContainerPath != contentPath || sequenceTarget.Fragment != null)
             throw new NotSupportedException("The overlay sequence must target its associated whole XHTML document.");
         var result = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (XElement cue in sequence.Elements()) {
-            token.ThrowIfCancellationRequested();
-            if (result.Count >= 10000) throw new NotSupportedException("Overlay replacement supports at most 10,000 cues.");
-            RequireOverlayShape(cue, Smil + "par", new[] { XName.Get("id") }, 2);
-            XElement[] children = cue.Elements().ToArray();
-            XElement text = children.SingleOrDefault(element => element.Name == Smil + "text") ?? throw new NotSupportedException("Cue requires one text target.");
-            XElement audio = children.SingleOrDefault(element => element.Name == Smil + "audio") ?? throw new NotSupportedException("Cue requires one audio clip.");
-            RequireOverlayShape(text, Smil + "text", new[] { XName.Get("src") }, 0);
-            RequireOverlayShape(audio, Smil + "audio", new[] { XName.Get("src"), XName.Get("clipBegin"), XName.Get("clipEnd") }, 0);
-            EpubReference target = EpubReference.Resolve(path, (string?)text.Attribute("src") ?? string.Empty);
-            if (target.Kind != EpubReferenceKind.Container || target.ContainerPath != contentPath || string.IsNullOrEmpty(target.Fragment) || result.ContainsKey(target.Fragment!))
-                throw new NotSupportedException("Replacement requires distinct text fragments in the associated chapter.");
-            string? id = (string?)cue.Attribute("id");
-            if (id != null) XmlConvert.VerifyNCName(id);
-            result.Add(target.Fragment!, id);
+        int nodeCount = 0;
+        void ReadNodes(XElement parent, int depth) {
+            foreach (XElement cue in parent.Elements()) {
+                token.ThrowIfCancellationRequested();
+                if (++nodeCount > 10000) throw new NotSupportedException("Overlay replacement supports at most 10,000 nodes.");
+                RequireOverlaySemantic(cue);
+                EpubReference target;
+                if (cue.Name == Smil + "seq") {
+                    if (depth >= 32) throw new NotSupportedException("Overlay replacement supports at most 32 nested sequences.");
+                    RequireOverlayShape(cue, Smil + "seq", new[] { XName.Get("id"), Ops + "type", Ops + "textref" }, null);
+                    if (!cue.Elements().Any()) throw new NotSupportedException("A narration sequence cannot be empty.");
+                    target = EpubReference.Resolve(path, (string?)cue.Attribute(Ops + "textref") ?? string.Empty);
+                    ReadNodes(cue, depth + 1);
+                } else {
+                    RequireOverlayShape(cue, Smil + "par", new[] { XName.Get("id"), Ops + "type" }, 2);
+                    XElement[] children = cue.Elements().ToArray();
+                    XElement text = children.SingleOrDefault(element => element.Name == Smil + "text") ?? throw new NotSupportedException("Cue requires one text target.");
+                    XElement audio = children.SingleOrDefault(element => element.Name == Smil + "audio") ?? throw new NotSupportedException("Cue requires one audio clip.");
+                    RequireOverlayShape(text, Smil + "text", new[] { XName.Get("src") }, 0);
+                    RequireOverlayShape(audio, Smil + "audio", new[] { XName.Get("src"), XName.Get("clipBegin"), XName.Get("clipEnd") }, 0);
+                    target = EpubReference.Resolve(path, (string?)text.Attribute("src") ?? string.Empty);
+                }
+                if (target.Kind != EpubReferenceKind.Container || target.ContainerPath != contentPath || string.IsNullOrEmpty(target.Fragment))
+                    throw new NotSupportedException("Replacement requires text fragments in the associated chapter.");
+                string key = OverlayNodeKey(cue, path);
+                if (result.ContainsKey(key)) throw new NotSupportedException("Replacement requires distinct targets for each node kind.");
+                string? id = (string?)cue.Attribute("id");
+                if (id != null) XmlConvert.VerifyNCName(id);
+                result.Add(key, id);
+            }
         }
+        ReadNodes(sequence, 0);
         if (result.Count == 0) throw new NotSupportedException("The overlay has no replaceable cues.");
         return result;
     }
@@ -102,7 +119,7 @@ public sealed partial class EpubPublication {
         if (element.Name != name || element.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration && !attributes.Contains(attribute.Name)) ||
             children.HasValue && element.Elements().Count() != children.Value ||
             element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
-            throw new NotSupportedException("Replacement supports the single-sequence text/audio profile without additional SMIL structures or attributes.");
+            throw new NotSupportedException("Replacement supports the bounded nested text/audio profile without additional SMIL structures or attributes.");
     }
 
     private void EnsureOverlayCueRemovalSafe(string path, HashSet<string> removedIds, CancellationToken token) {

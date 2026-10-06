@@ -192,6 +192,10 @@ synchronization, highlighting, seeking and pause/resume in a media-overlay reade
 successful decoding and EPUBCheck/Ace results do not establish those behaviors.
 `read-aloud-revised.epub` exercises typed overlay replacement by moving the cue
 boundary within the recorded inter-sentence silence while retaining both cue IDs.
+`read-aloud-nested.epub` groups the same recorded sentences as list-item cues under
+a list sequence and a containing section sequence. `read-aloud-nested-revised.epub`
+updates its timing through nested replacement, preserving sequence and cue IDs.
+Reader skipping and escaping remain separate native acceptance checks.
 
 `merged-chapters.epub` merges those split reading positions back into one resource,
 retaining both TOC entries and repairing the incoming reference. Check its chapter

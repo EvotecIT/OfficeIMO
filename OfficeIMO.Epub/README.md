@@ -358,7 +358,7 @@ and publication duration atomically. Clip durations are summed without floating-
 rounding. Each clip must satisfy `0 <= begin < end <= audio duration`. Audio durations
 are caller declarations; OfficeIMO does not decode the media to verify them.
 
-This profile accepts 1–10,000 cues and local, nonempty, unencrypted `audio/mpeg`
+This profile accepts 1–10,000 narration nodes and local, nonempty, unencrypted `audio/mpeg`
 or `audio/mp4` resources. Targets use existing unqualified XHTML body element ids,
 are distinct and non-nested, and follow document order. Clips can select different
 files or reuse portions of a file; their list order determines playback. Narration
@@ -366,21 +366,37 @@ may cover only part of a chapter. An existing overlay is never overwritten.
 Other retained SMIL resources need one unambiguous, nonnegative duration each,
 expressible exactly as a `TimeSpan`, before the publication total can be recalculated.
 
+For structured narration, supply `Nodes` instead of `Cues`. An
+`EpubMediaOverlaySequence(elementId, children)` groups cues and child sequences under
+an existing XHTML container. Children must target descendants of that container;
+leaf cues still follow document order. The whole tree is limited to 10,000 nodes
+and 32 nested sequences. Empty sequences, duplicate targets, and simultaneous
+`Cues` and `Nodes` are rejected.
+
+Set a cue or sequence's `Semantic` to an `EpubMediaOverlaySemantic` value to emit
+its SMIL `epub:type`: footnote, endnote, pagebreak, table, table-row, table-cell,
+list, list-item, figure or aside. These declarations let supporting readers offer
+skipping and escaping. Match them to the content's meaning; the API does not infer
+semantics or guarantee reader controls. Avoid nested escapable structures where
+reader support is unknown. The [narration fixture](../Build/Epub/Fixtures/MediaOverlayFixture.cs)
+shows a containing sequence with a narrated list and list-item cues.
+
 `ReplaceMediaOverlay("story-narration", revisedOverlay)` replaces the same bounded
-single-sequence profile. It preserves cue IDs for retained text targets and reserves
-removed IDs during the edit, so new cues cannot accidentally inherit their links.
-Removal fails when another inspectable resource still references a removed cue.
+flat or nested profile. It preserves cue and sequence IDs for retained targets of
+the same node kind and reserves removed IDs during the edit, so new nodes cannot
+accidentally inherit their links. Removal fails when another inspectable resource
+still references a removed node.
 The operation preserves manifest identity and duration metadata attributes,
 recalculates the publication total, and leaves audio resources unchanged. Shared
-or encrypted overlays, extra SMIL structures/attributes, and processing instructions
+or encrypted overlays, unsupported SMIL structures/attributes or semantics, and processing instructions
 are rejected. Validation, cancellation and size-limit failures leave the publication
 unchanged. Other retained renditions must not depend on the replaced resource.
 
 Use `SetMetadataProperty("media:active-class", "narration-active")` with a matching
 CSS class in every narrated document for active-text styling. Validate the final
 EPUB with EPUBCheck and check synchronization, highlighting, seeking and pause/resume
-in target reading systems. General SMIL editing, nested skippable/escapable sequences,
-SVG narration, synthesized speech and playback are outside this authoring profile.
+in target reading systems. General SMIL editing, SVG narration, synthesized speech
+and playback are outside this authoring profile.
 
 ### Fixed-layout XHTML pages
 
@@ -1112,7 +1128,7 @@ save policy first, including signature and output-limit checks.
 
 - This package owns EPUB parsing, native authoring, package-preserving editing, and bounded HTML manuscript import.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. XHTML fixed-page canvases and sequential SMIL narration have the bounded authoring profiles above. Browser layout, scripting, DRM, general encrypted-resource editing and audio playback are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
+- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. XHTML fixed-page canvases and structured SMIL narration have the bounded authoring profiles above. Browser layout, scripting, DRM, general encrypted-resource editing and audio playback are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
 
 ## Targets and license
 
