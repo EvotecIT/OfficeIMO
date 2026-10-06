@@ -94,7 +94,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            WordParagraph? currentRun = runs.FirstOrDefault(run => ReferenceEquals(run._run, paragraph._run));
+            WordParagraph? currentChartRun = runs.FirstOrDefault(run =>
+                ReferenceEquals(run._run, paragraph._run) && run.Chart != null);
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
             IReadOnlyList<W.SdtRun> checkboxControls = GetNativeCheckBoxControls(paragraph);
             IReadOnlyList<W.SdtRun> formFieldControls = GetNativeFormFieldControls(paragraph);
@@ -135,13 +136,14 @@ namespace OfficeIMO.Word.Pdf {
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
-            WordShape? currentShape = currentRun?.Shape;
+            WordShape? currentShape = runs.Where(run => ReferenceEquals(run._run, paragraph._run))
+                .Select(run => run.Shape).FirstOrDefault(shape => shape != null);
             bool chartOnly = !needsAnchorLine && !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&
                 marker == null && paragraphFootnoteNumbers.Count == 0 && currentShape == null &&
                 checkboxControls.Count == 0 && formFieldControls.Count == 0 && repeatingSectionControls.Count == 0 &&
                 !runs.Any(run => run.IsImage);
-            OfficeDrawing? directChartDrawing = PrepareNativeChart(currentRun?.Chart, options, "body paragraph chart");
-            List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, paragraph._run);
+            OfficeDrawing? directChartDrawing = PrepareNativeChart(currentChartRun?.Chart, options, "body paragraph chart");
+            List<OfficeDrawing> runChartDrawings = PrepareNativeRunCharts(runs, options, currentChartRun);
             bool renderedChart = directChartDrawing != null || runChartDrawings.Count > 0;
             if (directChartDrawing != null) {
                 pdf.Drawing(directChartDrawing, objectAlign,
@@ -721,10 +723,12 @@ namespace OfficeIMO.Word.Pdf {
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);
         }
 
-        private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, W.Run? currentRun) {
+        private static List<OfficeDrawing> PrepareNativeRunCharts(IReadOnlyList<WordParagraph> runs, WordToPdfOptions? options, WordParagraph? currentChartRun) {
             var drawings = new List<OfficeDrawing>();
             foreach (WordParagraph run in runs) {
-                if (currentRun != null && ReferenceEquals(run._run, currentRun)) {
+                // Only the selected view has already been dispatched. Other views
+                // can share its source run while owning different drawings.
+                if (ReferenceEquals(run, currentChartRun)) {
                     continue;
                 }
 
