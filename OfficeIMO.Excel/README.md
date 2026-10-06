@@ -341,6 +341,10 @@ rows can still be faster sequentially.
 
 ### Append to an existing table
 
+Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.
+
+If saving reloads the package, obtain a current worksheet from `document.Sheets` before inspecting it. A stale or removed worksheet handle raises `InvalidOperationException` rather than returning an empty table snapshot.
+
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");
 var rows = new DataTable();
@@ -1215,6 +1219,32 @@ image/PDF projection emits stable diagnostics when extension semantics are
 approximated or omitted; native XLS export rejects extension-only rules rather
 than silently discarding them.
 
+### Set several column widths
+
+Use `SetColumnWidths` to apply positive widths in one worksheet update:
+
+```csharp
+sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 24, [2] = 14, [3] = 18 });
+```
+
+Indexes are 1-based. The method preserves column styles, visibility and outline
+metadata. It validates the complete map before changing widths and clamps widths
+above Excel's 255-character limit. Use `SetColumnWidth` to clear an individual
+custom width with a non-positive value.
+Manually assigned widths do not mark a column as already auto-fitted. A later
+`AutoFitColumns` or `AutoFitColumnsFor` can resize them, including after reopening
+the workbook.
+
+For sparse cells, `CellWrapTextFor` applies wrapping together and saves the
+stylesheet once while preserving each cell's other formatting:
+
+```csharp
+sheet.CellWrapTextFor(new[] { (Row: 1, Column: 1), (Row: 3, Column: 2) });
+```
+
+Coordinates are 1-based and the complete selection is validated before editing.
+Pass `wrapText: false` to clear wrapping for the selected cells.
+
 ### Tune larger exports
 
 ```csharp
@@ -1327,6 +1357,20 @@ document.Compose("Members", composer => {
 });
 document.Save();
 ```
+
+## Worksheet print areas
+
+Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+
+```csharp
+document.SetPrintArea(sheet, "B2:D20,F2:H20");
+IReadOnlyList<string> areas = sheet.GetPrintAreas();
+string? definedNameText = sheet.GetPrintArea();
+```
+
+`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+
+Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Auto-fit no longer inflates stored heights by 1.5; existing stored workbook heights remain unchanged when loaded.
 
 ## Managed image export
 

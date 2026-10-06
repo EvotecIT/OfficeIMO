@@ -196,7 +196,9 @@ public sealed class StudioProviderOutputFolderTests {
         internal bool FailSecondCreation;
         internal Action? BeforeCreate;
 
-        internal OutputFolder() {
+        private readonly bool _hierarchical;
+        internal OutputFolder(bool hierarchical = false) {
+            _hierarchical = hierarchical;
             Item = DispatchProxy.Create<IStorageFolder, TestStorageFile.StorageProxy>();
             ((TestStorageFile.StorageProxy)(object)Item).Call = (method, args) => method switch {
                 "get_Name" => "Selected output folder", "get_Path" => new Uri("content://folder/selected"), "get_CanBookmark" => false,
@@ -209,7 +211,7 @@ public sealed class StudioProviderOutputFolderTests {
         private Task<IStorageFile?> Create(string name) {
             BeforeCreate?.Invoke();
             Creations++;
-            var file = new TestStorageFile("content://provider/assigned/" + Creations, [], name);
+            var file = new TestStorageFile(_hierarchical ? "content://folder/selected/" + Uri.EscapeDataString(name) : "content://provider/assigned/" + Creations, [], name);
             Files[name] = file;
             if (FailSecondCreation && Creations == 2) throw new IOException("Provider creation failed after creating the file.");
             return Task.FromResult<IStorageFile?>(file.Item);

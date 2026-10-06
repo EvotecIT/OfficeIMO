@@ -5,9 +5,21 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void ProcessBlocks(System.Collections.Generic.IEnumerable<IPdfBlock> sequence) {
+        private void ProcessBlocks(System.Collections.Generic.IEnumerable<IPdfBlock> sequence, IPdfBlock? owner = null) {
             var blockList = sequence as System.Collections.Generic.IList<IPdfBlock> ?? sequence.ToList();
+            var sequenceScope = new BlockSequenceScope(blockList, owner);
+            activeBlockSequences.Add(sequenceScope);
+            try {
+                ProcessBlockSequence(sequenceScope);
+            } finally {
+                activeBlockSequences.RemoveAt(activeBlockSequences.Count - 1);
+            }
+        }
+
+        private void ProcessBlockSequence(BlockSequenceScope sequenceScope) {
+            IList<IPdfBlock> blockList = sequenceScope.Blocks;
             for (int blockIndex = 0; blockIndex < blockList.Count; blockIndex++) {
+                sequenceScope.Index = blockIndex;
                 cancellationToken.ThrowIfCancellationRequested();
                 if (stopDocumentFlow) {
                     break;
@@ -18,7 +30,7 @@ internal static partial class PdfWriter {
                 if (block is PageBlock pageBlock) {
                     pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());
-                    PadSectionStart(pageBlock.Options.PageStartParity);
+                    PadSectionStart(pageBlock.Options);
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
                     currentOpts = pageBlock.Options;
@@ -31,6 +43,7 @@ internal static partial class PdfWriter {
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
                     currentOpts = optionsStack.Peek();
+                    currentPageBaseOptions = currentOpts;
                     currentPage = null;
                     continue;
                 }
@@ -55,8 +68,18 @@ internal static partial class PdfWriter {
                 if (block is LayerBlock layer) { RenderLayerBlock(layer); continue; }
                 if (block is MultiColumnBlock columns) { RenderMultiColumnBlock(columns); continue; }
                 if (block is ContainerBlock container) { RenderContainerBlock(container, nextBlock, blockList, blockIndex); continue; }
-                if (block is ColumnBreakBlock) { throw new InvalidOperationException("ColumnBreak can only be used inside a Columns block."); }
-                if (block is PageBreakBlock) { pendingFloatingBookmarks.Clear(); NewPage(); continue; }
+                if (block is ColumnBreakBlock) {
+                    if (activeColumnFlow == null) throw new InvalidOperationException("ColumnBreak can only be used inside a Columns block.");
+                    pendingFloatingBookmarks.Clear();
+                    AdvanceColumnFrame(forcePhysicalPage: false, preserveEmptyPage: true);
+                    continue;
+                }
+                if (block is PageBreakBlock pageBreak) {
+                    pendingFloatingBookmarks.Clear();
+                    if (activeColumnFlow != null) AdvanceColumnFrame(forcePhysicalPage: true, pageBreak.PreserveEmptyPage);
+                    else NewPage(pageBreak.PreserveEmptyPage);
+                    continue;
+                }
                 if (block is BookmarkBlock bookmark) {
                     if (HasFloatingTables) QueueFloatingBookmark(bookmark.Name);
                     else AddNamedDestination(bookmark, y);

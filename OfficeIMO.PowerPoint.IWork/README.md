@@ -19,9 +19,11 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.pptx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPointPresentation` returns the converted presentation directly; `ToPowerPointPresentationResult` also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint*` provides equivalent path and stream convenience entry points.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPointPresentation` returns a complete editable presentation and rejects partial reconstruction or preview output; `ToPowerPointPresentationResult` also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint*` provides equivalent path and stream convenience entry points.
 
 Qualified opaque slide background colors and explicit no-fill overrides survive PPTX save/reopen, including selected style inheritance. Unsupported backgrounds require visual fallback or explicit partial conversion and retain source diagnostics. See the [background contract and native evidence](../Docs/officeimo.iwork-support-matrix.md#keynote-slide-backgrounds) for the supported color subset and remaining master/export limits.
+
+Selected text frames preserve recovered placeholder geometry, inherited margins, vertical alignment and shrink-to-fit. Qualified character lists preserve marker placement and relative size with a uniform known text font size. Interacting paragraph indents, mixed font sizes and marker scales outside whole percentages from 25% to 400% remain unsupported. The [strict everyday subset](../Docs/officeimo.iwork-support-matrix.md#qualified-everyday-subset) records native source/export and rendered evidence for a two-slide deck, including presenter notes and a wrapped fixed-frame probe.
 
 Table-region defaults and selected text styles preserve supported fonts, emphasis, colors and paragraph alignment in PPTX, including empty cells. Explicit rich-text formatting takes precedence. Table paragraph pagination flags require the partial policy and produce `IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED`; strict conversion uses visual fallback.
 
@@ -45,9 +47,9 @@ var options = new IWorkConversionOptions {
 };
 ```
 
-This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. Both settings default to `false`. Inspect `Report.IsPartialEditableReconstruction` before accepting the output; `Report.RequireCompleteEditableReconstruction()` rejects explicitly partial reconstruction. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
+This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. Value-only APIs reject partial and preview output even when these options permit it. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
 
-Under the partial policy, recovered slides remain editable when source paragraph pagination flags cannot be represented. The report retains the pagination diagnostic and the partial-reconstruction finding.
+Keep-lines is inactive in qualified unlinked, horizontal, single-column fixed frames. Keep-with-next, page breaks, unknown frame layouts, linked flows, presenter notes and table-cell pagination retain the strict checks. Under the partial policy, recovered slides remain editable when those paragraph flags cannot be represented; the report retains the pagination diagnostic and partial-reconstruction finding.
 
 The path and stream convenience APIs accept cancellation after the options:
 
@@ -58,7 +60,7 @@ using KeynoteToPowerPointResult cancellable = PowerPointIWorkConverter.ConvertKe
     cancellationToken: cancellation.Token);
 ```
 
-This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; reopen the source with a new token after cancellation. Saving is a separate destination-owner operation.
+This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; use `cancellable.Source.WithCancellation(newToken)` to reuse the loaded package with a new operation token. This replaces the previous token while sharing source bytes and parsed messages. Saving is a separate destination-owner operation.
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.PowerPoint`. It does not add iWork support to the default PowerPoint package graph.
 

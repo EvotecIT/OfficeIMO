@@ -115,26 +115,24 @@ namespace OfficeIMO.Excel.Pdf {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
 
-        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns) {
+        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
             IReadOnlyList<TableAxisChunk> rowChunks = CreateTableAxisChunks(
                 plan.ExportedRows,
-                options.UseWorksheetPageBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
+                options.UseWorksheetPageBreaks && honorRowBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
             IReadOnlyList<TableAxisChunk> columnChunks = CreateTableAxisChunks(
                 exportedColumns,
-                options.UseWorksheetPageBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
-            int headerRowCount = Math.Min(plan.ExportData.HeaderRowCount, plan.ExportedRows);
-
+                options.UseWorksheetPageBreaks && honorColumnBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
             var chunks = new List<TableChunk>(rowChunks.Count * columnChunks.Count);
             if (plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (TableAxisChunk rowChunk in rowChunks) {
-                    AddChunksForRow(rowChunk, columnChunks, headerRowCount, chunks);
+                    AddChunksForRow(plan, rowChunk, columnChunks, chunks);
                 }
             } else {
                 foreach (TableAxisChunk columnChunk in columnChunks) {
                     foreach (TableAxisChunk rowChunk in rowChunks) {
-                        IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
-                        int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
-                        chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+                        IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(plan, rowChunk);
+                        int chunkHeaderRows = GetChunkHeaderRowCount(plan, rowIndexes);
+                        chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count, CreateChunkColumnIndexes(plan, columnChunk.Start, columnChunk.Count)));
                     }
                 }
             }
@@ -142,32 +140,12 @@ namespace OfficeIMO.Excel.Pdf {
             return chunks;
         }
 
-        private static void AddChunksForRow(TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, int headerRowCount, List<TableChunk> chunks) {
-            IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
-            int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
+        private static void AddChunksForRow(WorksheetPdfExportPlan plan, TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, List<TableChunk> chunks) {
+            IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(plan, rowChunk);
+            int chunkHeaderRows = GetChunkHeaderRowCount(plan, rowIndexes);
             foreach (TableAxisChunk columnChunk in columnChunks) {
-                chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+                chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count, CreateChunkColumnIndexes(plan, columnChunk.Start, columnChunk.Count)));
             }
-        }
-
-        private static IReadOnlyList<int> CreateChunkRowIndexes(TableAxisChunk rowChunk, int headerRowCount) {
-            var indexes = new List<int>(rowChunk.Count + headerRowCount);
-            if (rowChunk.Start > 0 && headerRowCount > 0) {
-                for (int row = 0; row < headerRowCount; row++) {
-                    indexes.Add(row);
-                }
-            }
-
-            int end = rowChunk.Start + rowChunk.Count;
-            for (int row = rowChunk.Start; row < end; row++) {
-                if (row < headerRowCount && indexes.Contains(row)) {
-                    continue;
-                }
-
-                indexes.Add(row);
-            }
-
-            return indexes;
         }
 
         private static IReadOnlyList<TableAxisChunk> CreateTableAxisChunks(int itemCount, IReadOnlyList<int> breakOffsets) {
@@ -209,9 +187,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int row = 0; row < rows; row++) {
                     int originalRow = GetOriginalRowNumber(references, row);
                     if (originalRow > breakRow) {
-                        if (!IsMergedCellContinuationRow(plan.ExportData.MergedCells, row, references.GetLength(1))) {
-                            offsets.Add(row);
-                        }
+                        offsets.Add(row);
 
                         break;
                     }
@@ -234,9 +210,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int column = 0; column < columns; column++) {
                     int originalColumn = GetOriginalColumnNumber(references, column, rows);
                     if (originalColumn > breakColumn) {
-                        if (!IsMergedCellContinuationColumn(plan.ExportData.MergedCells, column, rows)) {
-                            offsets.Add(column);
-                        }
+                        offsets.Add(column);
 
                         break;
                     }
@@ -279,34 +253,6 @@ namespace OfficeIMO.Excel.Pdf {
             return 0;
         }
 
-        private static bool IsMergedCellContinuationRow(MergeLayoutData? mergedCells, int row, int columns) {
-            if (mergedCells == null) {
-                return false;
-            }
-
-            for (int column = 0; column < columns; column++) {
-                if (mergedCells.IsContinuation(row, column)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsMergedCellContinuationColumn(MergeLayoutData? mergedCells, int column, int rows) {
-            if (mergedCells == null) {
-                return false;
-            }
-
-            for (int row = 0; row < rows; row++) {
-                if (mergedCells.IsContinuation(row, column)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
             int endColumn = Math.Min(values.GetLength(1), startColumn + columnCount);
             for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
@@ -325,11 +271,11 @@ namespace OfficeIMO.Excel.Pdf {
                     StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
                     ExcelHyperlinkSnapshot? hyperlink = GetHyperlink(hyperlinks, row, column);
                     string text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
-                    MergeSpan? span = ClipMergeSpanToChunk(mergedCells?.GetSpan(row, column), row, rowIndexes, localRow, column, endColumn);
+                    MergeSpan? span = mergedCells?.GetSpan(row, column);
                     string? cellDestinationName = TryGetCellDestinationName(cellReferences, row, column, sheetName, cellDestinations, out string? destinationName)
                         ? destinationName
                         : null;
-                    IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column);
+                    IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column, span?.ImageAnchorReference);
                     string? formatColor = style != null && values[row, column] is { } value && TryGetDouble(value, out double number)
                         ? ExcelNumberFormatDisplay.GetNumericFormatColor(number, style.NumberFormatId, style.NumberFormatCode)
                         : null;
@@ -340,35 +286,12 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static MergeSpan? ClipMergeSpanToChunk(MergeSpan? span, int row, IReadOnlyList<int> rowIndexes, int localRow, int column, int endColumn) {
-            if (span == null) {
-                return span;
-            }
-
-            int clippedColumnSpan = Math.Min(span.ColumnSpan, Math.Max(1, endColumn - column));
-            int contiguousRows = 1;
-            for (int offset = 1; offset < span.RowSpan && localRow + offset < rowIndexes.Count; offset++) {
-                if (rowIndexes[localRow + offset] != row + offset) {
-                    break;
-                }
-
-                contiguousRows++;
-            }
-
-            int clippedRowSpan = Math.Min(span.RowSpan, contiguousRows);
-            if (clippedRowSpan == span.RowSpan && clippedColumnSpan == span.ColumnSpan) {
-                return span;
-            }
-
-            return new MergeSpan(clippedRowSpan, clippedColumnSpan);
-        }
-
-        private static IReadOnlyList<WorksheetImageExportData>? GetCellImages(IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, string?[,]? cellReferences, int row, int column) {
+        private static IReadOnlyList<WorksheetImageExportData>? GetCellImages(IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, string?[,]? cellReferences, int row, int column, string? imageAnchorReference = null) {
             if (imagesByCellReference == null || imagesByCellReference.Count == 0 || cellReferences == null || row >= cellReferences.GetLength(0) || column >= cellReferences.GetLength(1)) {
                 return null;
             }
 
-            string? cellReference = cellReferences[row, column];
+            string? cellReference = imageAnchorReference ?? cellReferences[row, column];
             if (string.IsNullOrWhiteSpace(cellReference)) {
                 return null;
             }
@@ -419,6 +342,7 @@ namespace OfficeIMO.Excel.Pdf {
                 images: pdfImages,
                 linkDestinationName: linkDestinationName,
                 namedDestinationName: cellDestinationName);
+            if (span?.Viewport != null) cell = cell.WithViewport(span.Viewport);
             return preserveWorksheetNoWrap ? cell.WithNoWrap(style?.WrapText != true) : cell;
         }
 

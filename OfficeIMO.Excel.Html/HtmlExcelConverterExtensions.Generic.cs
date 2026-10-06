@@ -58,7 +58,7 @@ public static partial class HtmlExcelConverterExtensions {
                     importedFormulaCells: null,
                     useSemanticValues: false,
                     semanticTable: table.Table);
-                FormatSimpleGenericTableSheet(sheet, table.Table!);
+                FormatGenericTableSheet(sheet, table.Table!);
                 if (preserveCaption) {
                     PreserveGenericTableCaption(sheet, table.Table!, result, budget);
                 }

@@ -39,6 +39,7 @@ internal static partial class PdfWriter {
         !string.IsNullOrEmpty(linkUri) || !string.IsNullOrEmpty(linkDestinationName);
 
     private static double GetParagraphLeading(PdfParagraphStyle? style, double fontSize) {
+        if (style?.LineSpacing != null) return style.LineSpacing.GetAdvance(fontSize);
         double multiplier = style?.LineHeight ?? 1.4;
         if (multiplier <= 0 || double.IsNaN(multiplier) || double.IsInfinity(multiplier)) {
             throw new ArgumentException("Paragraph line height must be a positive finite value.");
@@ -102,8 +103,8 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
-        System.Array.AsReadOnly(new[] {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
+        heading.Runs ?? System.Array.AsReadOnly(new[] {
             new PdfTextRun(
                 heading.Text,
                 bold: GetHeadingBold(style),

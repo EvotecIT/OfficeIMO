@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCDxaSpace = 0x8840;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
+        private const ushort SprmCHpsKern = 0x484B;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgLid0 = 0x486D;
         private const ushort SprmCRgLid1 = 0x486E;
@@ -153,6 +154,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex = null;
             string? fontFamily = null;
             int? characterSpacingTwips = null;
+            int? kerningMinimumFontSizeHalfPoints = null;
             string? language = null;
             string? eastAsiaLanguage = null;
             int? pictureDataOffset = null;
@@ -163,6 +165,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             DateTime? insertedDate = null;
             DateTime? deletedDate = null;
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None;
+            LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None;
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -219,45 +223,55 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         break;
                     }
 
-                    bool enabled = bytes[offset + 2] != 0;
-                    if (sprm == SprmCFBold) {
-                        bold = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Bold;
-                    } else if (sprm == SprmCFItalic) {
-                        italic = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Italic;
-                    } else if (sprm == SprmCFStrike) {
-                        strike = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Strike;
-                    } else if (sprm == SprmCFOutline) {
-                        outline = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Outline;
-                    } else if (sprm == SprmCFShadow) {
-                        shadow = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Shadow;
-                    } else if (sprm == SprmCFEmboss) {
-                        emboss = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Emboss;
-                    } else if (sprm == SprmCFImprint) {
-                        imprint = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Imprint;
-                    } else if (sprm == SprmCFVanish) {
-                        hidden = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Hidden;
-                    } else if (sprm == SprmCFNoProof) {
-                        noProof = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.NoProof;
-                    } else if (sprm == SprmCFSmallCaps) {
-                        smallCaps = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.SmallCaps;
-                    } else if (sprm == SprmCFDStrike) {
-                        doubleStrike = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.DoubleStrike;
-                    } else {
-                        caps = enabled;
-                        specified |= LegacyDocCharacterFormatProperties.Caps;
+                    byte operand = bytes[offset + 2];
+                    if (operand != 0 && operand != 1 && operand != 0x80 && operand != 0x81) {
+                        offset += 3;
+                        continue;
                     }
 
+                    bool enabled = operand == 1 || operand == 0x81;
+                    LegacyDocCharacterFormatProperties property;
+                    if (sprm == SprmCFBold) {
+                        bold = enabled;
+                        property = LegacyDocCharacterFormatProperties.Bold;
+                    } else if (sprm == SprmCFItalic) {
+                        italic = enabled;
+                        property = LegacyDocCharacterFormatProperties.Italic;
+                    } else if (sprm == SprmCFStrike) {
+                        strike = enabled;
+                        property = LegacyDocCharacterFormatProperties.Strike;
+                    } else if (sprm == SprmCFOutline) {
+                        outline = enabled;
+                        property = LegacyDocCharacterFormatProperties.Outline;
+                    } else if (sprm == SprmCFShadow) {
+                        shadow = enabled;
+                        property = LegacyDocCharacterFormatProperties.Shadow;
+                    } else if (sprm == SprmCFEmboss) {
+                        emboss = enabled;
+                        property = LegacyDocCharacterFormatProperties.Emboss;
+                    } else if (sprm == SprmCFImprint) {
+                        imprint = enabled;
+                        property = LegacyDocCharacterFormatProperties.Imprint;
+                    } else if (sprm == SprmCFVanish) {
+                        hidden = enabled;
+                        property = LegacyDocCharacterFormatProperties.Hidden;
+                    } else if (sprm == SprmCFNoProof) {
+                        noProof = enabled;
+                        property = LegacyDocCharacterFormatProperties.NoProof;
+                    } else if (sprm == SprmCFSmallCaps) {
+                        smallCaps = enabled;
+                        property = LegacyDocCharacterFormatProperties.SmallCaps;
+                    } else if (sprm == SprmCFDStrike) {
+                        doubleStrike = enabled;
+                        property = LegacyDocCharacterFormatProperties.DoubleStrike;
+                    } else {
+                        caps = enabled;
+                        property = LegacyDocCharacterFormatProperties.Caps;
+                    }
+
+                    specified |= property;
+                    styleRelative = operand >= 0x80 ? styleRelative | property : styleRelative & ~property;
+                    styleInverted = operand == 0x81 ? styleInverted | property : styleInverted & ~property;
                     offset += 3;
                     continue;
                 }
@@ -313,6 +327,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     characterSpacingTwips = unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset + 2));
                     specified |= LegacyDocCharacterFormatProperties.CharacterSpacing;
+                    offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmCHpsKern) {
+                    if (offset + 4 > end) break;
+                    int threshold = unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    if (threshold >= 0 && threshold <= 3276) {
+                        kerningMinimumFontSizeHalfPoints = threshold;
+                        specified |= LegacyDocCharacterFormatProperties.Kerning;
+                    }
                     offset += 4;
                     continue;
                 }
@@ -423,7 +448,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 eastAsiaLanguage,
                 specified,
                 pictureDataOffset,
-                revision);
+                revision,
+                kerningMinimumFontSizeHalfPoints,
+                styleRelative,
+                styleInverted);
         }
 
         private static string ResolveRevisionAuthor(IReadOnlyList<string>? revisionAuthors, int authorIndex) {

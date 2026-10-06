@@ -2851,17 +2851,18 @@ namespace OfficeIMO.Tests {
                     new SimpleField(new Run(new Text("1"))) { Instruction = " NUMPAGES " }));
             secondSection.AddParagraph("Second section body");
 
-            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            // A next-page section restarting on odd number 3 inserts an intervening blank page.
+            var options = new WordImageExportOptions { PageIndex = 2, BackgroundColor = OfficeColor.White };
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page iii of 2");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page iii of 3");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page 1 of 1");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Section page", svgText, StringComparison.Ordinal);
             Assert.Contains("iii", svgText, StringComparison.Ordinal);
-            Assert.Contains("2", svgText, StringComparison.Ordinal);
+            Assert.Contains("3", svgText, StringComparison.Ordinal);
         }
 
         [Fact]

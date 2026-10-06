@@ -41,9 +41,10 @@ public sealed class StudioProtectionPreviewTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CapturedSettingsExportEditsAndRejectStaleReview(bool stale) {
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task CapturedSettingsExportEditsAndRejectStaleReview(bool stale, bool folderNavigation) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -51,7 +52,7 @@ public sealed class StudioProtectionPreviewTests {
             string source = Path.Combine(services.Paths.Root, "source.pdf"), output = Path.Combine(services.Paths.Root, "protected.pdf");
             CreatePdf().Save(source); byte[] original = File.ReadAllBytes(source);
             MainWindowViewModel? model = null; PdfProtectionPreviewViewModel? completed = null;
-            using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
+            using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services, supportsFolderNavigation: folderNavigation,
                 pickSavePdf: _ => {
                     model!.ProtectUserPassword = "later-reader"; model.ProtectConfirmPassword = "later-reader";
                     model.ProtectOwnerPassword = "later-owner"; model.ProtectAllowCopy = true;
@@ -72,7 +73,7 @@ public sealed class StudioProtectionPreviewTests {
                 if (stale) {
                     Assert.NotNull(model.ErrorMessage); Assert.Null(completed); Assert.Empty(services.Jobs.Entries); Assert.False(File.Exists(output));
                 } else {
-                    Assert.Null(model.ErrorMessage); Assert.NotNull(completed); Assert.True(completed.CanOpenOutput); Assert.NotNull(completed.Verification);
+                    Assert.Null(model.ErrorMessage); Assert.NotNull(completed); Assert.True(completed.CanOpenOutput); Assert.Equal(folderNavigation, completed.CanRevealOutput); Assert.NotNull(completed.Verification);
                     var document = PdfDocument.Load(File.ReadAllBytes(output), new PdfLoadOptions { Password = "captured-owner" });
                     Assert.Equal(3, document.Inspect().Pages.Count); Assert.True(document.Inspect().Security.HasEncryption);
                     Assert.Throws<PdfInvalidPasswordException>(() => PdfDocument.Load(File.ReadAllBytes(output), new PdfLoadOptions { Password = "later-reader" }).Inspect());

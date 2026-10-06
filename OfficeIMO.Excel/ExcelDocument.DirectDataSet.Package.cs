@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                 worksheetPart.DeletePart(tablePart);
             }
 
-            worksheetPart.Worksheet = new Worksheet(new SheetData());
+            worksheetPart.Worksheet = new Worksheet(ExcelSheet.CreateDefaultSheetViews(), new SheetData());
         }
 
         private bool TryWriteDirectDataSetPackage(

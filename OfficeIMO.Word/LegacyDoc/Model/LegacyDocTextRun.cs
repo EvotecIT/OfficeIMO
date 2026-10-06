@@ -27,7 +27,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? language = null,
             string? eastAsiaLanguage = null,
             LegacyDocPicture? picture = null,
-            LegacyDocRevision revision = default)
+            LegacyDocRevision revision = default,
+            int? kerningMinimumFontSizeHalfPoints = null,
+            LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None)
             : this(
                 text,
                 bold,
@@ -57,7 +60,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 language: language,
                 eastAsiaLanguage: eastAsiaLanguage,
                 picture: picture,
-                revision: revision) {
+                revision: revision,
+                kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints,
+                styleRelative: styleRelative,
+                styleInverted: styleInverted) {
         }
 
         internal LegacyDocTextRun(
@@ -89,7 +95,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? language = null,
             string? eastAsiaLanguage = null,
             LegacyDocPicture? picture = null,
-            LegacyDocRevision revision = default) {
+            LegacyDocRevision revision = default,
+            int? kerningMinimumFontSizeHalfPoints = null,
+            LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -111,6 +120,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            KerningMinimumFontSizeHalfPoints = kerningMinimumFontSizeHalfPoints;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
             Picture = picture;
@@ -122,6 +132,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
             Specified = specified;
+            StyleRelative = styleRelative;
+            StyleInverted = styleInverted;
             Revision = revision;
         }
 
@@ -163,6 +175,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? CharacterSpacingTwips { get; }
 
+        internal int? KerningMinimumFontSizeHalfPoints { get; }
+
         internal string? Language { get; }
 
         internal string? EastAsiaLanguage { get; }
@@ -180,6 +194,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FieldInstruction { get; }
 
         internal LegacyDocCharacterFormatProperties Specified { get; }
+
+        // DOC ToggleOperand 0x80 matches the current style; 0x81 inverts it.
+        internal LegacyDocCharacterFormatProperties StyleRelative { get; }
+
+        internal LegacyDocCharacterFormatProperties StyleInverted { get; }
 
         internal LegacyDocRevision Revision { get; }
 

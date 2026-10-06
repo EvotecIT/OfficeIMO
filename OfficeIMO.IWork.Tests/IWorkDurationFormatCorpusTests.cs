@@ -42,6 +42,6 @@ public sealed class IWorkDurationFormatCorpusTests {
         Assert.Equal(Assert.Single(native.Sheets[0].Range("C6").CreateVisualSnapshot().Cells).Text,
             Assert.Single(reopened.Sheets[0].Range("C5").CreateVisualSnapshot().Cells).Text);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
-        Assert.True(result.Report.IsPartialEditableReconstruction);
+        result.Report.RequireCompleteEditableReconstruction();
     }
 }

@@ -1,0 +1,33 @@
+{
+  "schema": "officeimo.provenance.interop.corpus.v1",
+  "repository": "https://github.com/c2pa-org/public-testfiles",
+  "revision": "22beccc075707475b038d8789d0136c009e43143",
+  "sourceDirectory": "legacy/1.4/image/jpeg",
+  "license": "CC-BY-SA-4.0",
+  "cases": [
+    {
+      "file": "adobe-20220124-A.jpg",
+      "sha256": "f999fd78bfe8a83c96e468a078830ba94485bc1bc6fd086fb94a43bd29dd0f23",
+      "hasManifest": false,
+      "verification": "NotPresent"
+    },
+    {
+      "file": "adobe-20220124-C.jpg",
+      "sha256": "75a8da33f6eaf1e16bf3b42cd78913b22b2e6a671fda217a508b1ba4230ce864",
+      "hasManifest": true,
+      "verification": "Untrusted"
+    },
+    {
+      "file": "adobe-20220124-E-sig-CA.jpg",
+      "sha256": "0d4c2774f1b7e94b9613bb952b0a76b6a178d22ac6d206d257d2af1376cbbff2",
+      "hasManifest": true,
+      "verification": "Invalid"
+    },
+    {
+      "file": "adobe-20220124-E-dat-CA.jpg",
+      "sha256": "dae9d121060cec4b6f27ee8acda85ad461cf75f2261d90b463319b787342d7f9",
+      "hasManifest": true,
+      "verification": "Invalid"
+    }
+  ]
+}

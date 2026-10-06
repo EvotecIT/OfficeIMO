@@ -89,30 +89,34 @@ internal static class IWorkDrawingReader {
             complete = false;
             return null;
         }
-        if (record.MessageType is ImageArchive or 6000) {
-            IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedDrawable);
-            complete = !malformedDrawable
-                && !message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                && (!message.HasField(1) || drawable != null);
-            return drawable;
+        int depth = record.MessageType switch { ImageArchive or 6000 => 1, 2011 => 2, 7 => 3, _ => 0 };
+        return depth == 0 ? null : Unwrap(message, depth, out complete);
+    }
+
+    internal static IWorkWireMessage? ShapeMessage(IWorkObjectIndex index, IWorkArchiveRecord record,
+        out bool complete) {
+        complete = true;
+        if (record.MessageType is not 2011 and not 7) return null;
+        try {
+            return Unwrap(index.Message(record), record.MessageType == 7 ? 2 : 1, out complete);
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+            complete = false;
+            return null;
         }
-        if (record.MessageType == 2011) {
-            IWorkWireMessage? shape = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedShape);
-            if (malformedShape || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                || message.HasField(1) && shape == null) {
+    }
+
+    private static IWorkWireMessage? Unwrap(IWorkWireMessage message, int depth, out bool complete) {
+        complete = true;
+        IWorkWireMessage? current = message;
+        for (int level = 0; level < depth && current != null; level++) {
+            IWorkWireMessage? nested = IWorkObjectIndex.TryGetMessage(current, 1, out bool malformed);
+            if (malformed || current.HasField(1) && nested == null) {
                 complete = false;
                 return null;
             }
-            bool malformedDrawable = false;
-            IWorkWireMessage? drawable = shape == null
-                ? null
-                : IWorkObjectIndex.TryGetMessage(shape, 1, out malformedDrawable);
-            complete = shape == null || !malformedDrawable
-                && !shape.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                && (!shape.HasField(1) || drawable != null);
-            return drawable;
+            current = nested;
         }
-        return null;
+        return current;
     }
 
     internal static IWorkImageAsset? ReadImage(IWorkSourceDocument source,

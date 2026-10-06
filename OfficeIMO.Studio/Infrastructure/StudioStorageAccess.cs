@@ -117,8 +117,8 @@ internal sealed partial class StudioStorageAccess : IDisposable {
 
     internal bool UsesProviderPublication(string location) {
         string key = OfficeStorageIdentity.Normalize(location);
-        lock (_sync) return OfficeStorageIdentity.GetLocalPath(location) is null ||
-            (OperatingSystem.IsMacOS() && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
+        lock (_sync) return _pendingDestinations.ContainsKey(key) || OfficeStorageIdentity.GetLocalPath(location) is null ||
+            ((OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
                 _outputFolderReferences.ContainsKey(key) ||
                 (_references.TryGetValue(key, out var reference) && reference.Bookmark is not null)));
     }
@@ -194,13 +194,14 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         lock (_sync) {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_files.TryGetValue(key, out existing)) return existing;
+            if (_pendingDestinations.ContainsKey(key)) throw new FileNotFoundException("The selected new output has not been created yet.");
             _references.TryGetValue(key, out reference);
             _outputFolderReferences.TryGetValue(key, out folderOutput);
         }
         if (folderOutput.Folder is null && reference?.Bookmark is null && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
         IStorageProvider? provider = folderOutput.Folder is not null ? null : _provider?.Invoke()
             ?? throw new IOException("This document needs its storage provider. Select it again to grant access.");
-        IStorageFile? file = folderOutput.Folder is not null ? await folderOutput.Folder.GetFileAsync(folderOutput.Name).ConfigureAwait(false)
+        IStorageFile? file = folderOutput.Folder is not null ? await FindFolderFileAsync(folderOutput.Folder, folderOutput.Name, token).ConfigureAwait(false)
             : reference?.Bookmark is { } native && OfficeMacFilePermission.IsNativeBookmark(native)
             ? await provider!.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false)
             : reference?.Bookmark is { } bookmark
@@ -243,6 +244,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
             _references.Clear();
             _folders.Clear();
             _outputFolderReferences.Clear();
+            _pendingDestinations.Clear();
             _retiredFolders.Clear();
         }
         List<Exception>? errors = null;

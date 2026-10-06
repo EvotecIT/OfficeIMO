@@ -16,6 +16,11 @@ internal static partial class PdfWriter {
                         RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
                             OfficeTransform.Translate(0D, currentOpts.PageHeight - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
                         break;
+                    case PdfCanvasMarginAnchorItem marginAnchor:
+                        RenderCanvasEffect(new PdfCanvasEffectItem(marginAnchor.Items,
+                            OfficeTransform.Translate(currentPage!.Options.MarginLeft - marginAnchor.AuthoredLeftMargin, 0D),
+                            1D, OfficeBlendMode.Normal));
+                        break;
                     case PdfCanvasArtifactItem artifact:
                         RenderCanvasArtifact(artifact);
                         break;
@@ -241,18 +246,16 @@ internal static partial class PdfWriter {
             }
             // One anchor per Unicode scalar keeps reader spacing heuristics proportional
             // to characters instead of presenting the entire word as one stretched space.
-            int anchorCount = 0;
-            for (int index = 0; index < item.Text.Length; index++, anchorCount++) {
-                if (char.IsHighSurrogate(item.Text[index]) && index + 1 < item.Text.Length &&
-                    char.IsLowSurrogate(item.Text[index + 1])) index++;
-            }
-            double horizontalScaling = textWidth / (SpaceWidthEmFor(font) * textHeight * anchorCount) * 100D;
+            int anchorCount = CountLogicalAnchorScalars(item.Text);
+            PdfTextShowCommand anchor = EncodeBoundedLogicalTextAnchor(font, currentOpts, anchorCount);
+            double horizontalScaling = ResolveLogicalAnchorScaling(anchor, textWidth, textHeight);
             int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
 
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, textHeight)
+                .Font(fontResource, textHeight, preserveLogicalPrecision: item.UsesBounds)
+                .WordSpacing(0D).TextRise(0D)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)
                 .TextMatrix(a, b, c, d, baselineX, baselineY);
@@ -263,7 +266,7 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(EncodeActualTextAnchor(font, currentOpts, anchorCount), textHeight);
+            content.ShowText(anchor, textHeight);
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 
@@ -278,9 +281,9 @@ internal static partial class PdfWriter {
             }
             EnsurePage();
             double actualTextX = item.HasPosition ? item.X : 0D;
-            double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y : 0D;
+            double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D) : 0D;
             RenderLogicalText(item.Text, actualTextX, actualTextY,
-                () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+                () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)), item.Width, item.Height);
         }
 
         private void RenderCanvasStructure(PdfCanvasStructureItem item) {
@@ -431,7 +434,8 @@ internal static partial class PdfWriter {
                 width,
                 structureType: structureType,
                 markedContentId: markedContentId,
-                structurePage: currentPage, suppressActualText: _suppressCanvasActualTextChildren);
+                structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
+                suppressActualText: _suppressCanvasActualTextChildren);
             MarkRichFonts(item.Runs);
             DrawDebugCanvasItemBox(item.X, bottomY, width, item.Height);
             pageDirty = true;
@@ -524,7 +528,9 @@ internal static partial class PdfWriter {
                     textWidth,
                     structureType: _suppressCanvasAccessibilityWrappers ? null : "P",
                     markedContentId: markedContentId,
-                    structurePage: currentPage, suppressActualText: _suppressCanvasActualTextChildren);
+                    structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
+                    suppressActualText: _suppressCanvasActualTextChildren,
+                    baselineFont: baseFont);
                 MarkRichFonts(item.Runs);
                 if (rotated && annotations.Count > 0) {
                     RotateCanvasLinkAnnotations(annotations, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
@@ -665,9 +671,7 @@ internal static partial class PdfWriter {
                 sb.Append(pageImage.InlineDrawToken);
             }
 
-            int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);
-            RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, block.Width, block.Height, item.RotationAngle);
             DrawDebugCanvasItemBox(item.X, bottomY, block.Width, block.Height);
             pageDirty = true;
         }

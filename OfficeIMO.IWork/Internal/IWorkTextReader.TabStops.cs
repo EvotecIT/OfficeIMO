@@ -5,8 +5,13 @@ internal static partial class IWorkTextReader {
         out IReadOnlyList<IWorkTabStop>? tabs) {
         tabs = null;
         int count = message.FieldCount(1);
-        if (count == 0 || count != message.TotalFieldCount
+        if (count != message.TotalFieldCount
             || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) return false;
+        if (count == 0) {
+            // The native empty custom-tab declaration clears inherited custom stops.
+            tabs = Array.Empty<IWorkTabStop>();
+            return true;
+        }
         budget.AddTextItems(count);
         var result = new List<IWorkTabStop>(count);
         var positions = new HashSet<double>();

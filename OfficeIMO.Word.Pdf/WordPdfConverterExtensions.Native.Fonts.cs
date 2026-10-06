@@ -21,6 +21,8 @@ namespace OfficeIMO.Word.Pdf {
 
             public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
 
+            public double? DefaultFontSize => _resolvedOptions?.DefaultFontSize;
+
             public void PreferPdfDefaultForDocumentDefaultFont() =>
                 UsePdfDefaultForDocumentDefaultFont = true;
 
@@ -188,6 +190,10 @@ namespace OfficeIMO.Word.Pdf {
                     sourceFontEmbeddingAllowed: sourceFontEmbeddingAllowed));
             }
         }
+
+        private static W.RunFonts? GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
+            runs.Any(run => !run.IsImage && !IsNativeHiddenTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text))
+                ? null : paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.RunFonts>();
 
         private static void RegisterNativeThemeStyleFonts(
             WordDocument document,

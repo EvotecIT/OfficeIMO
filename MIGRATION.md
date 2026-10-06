@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Long-document AI request budgets
+
+Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
+
+## OCR review and AI evidence
+
+A single adaptive OCR attempt that passes confidence checks now has `OcrReviewStatus.Unassessed`, emits `adaptive-ocr-unassessed`, and sets `ReviewRecommended` to true. Use `Quality.MeetsThresholds` when you specifically need the old confidence-only signal. Use `new OcrReviewPolicy(OcrRetryMode.CompareAll)` to run every configured variant within the shared deadline. `ChecksPassed` reports agreement and passing checks, not correctness or approval.
+
+Reader OCR blocks carry `Recognition` provenance through JSON and nested projection. AI includes it in evidence snapshot hashes, requests, citations and reports. Recreate cached snapshots/results together; do not combine results with newly captured evidence merely because the original source hash matches. Extraction consumers can inspect `TextValueMatched` and `RecognitionReviewRequired` alongside field status.
+
 ## ZIP, drawing links, and MCP filesystem access
 
 `OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
@@ -151,6 +161,12 @@ Reader retains attachment order and emits image-anchor blocks even when alternat
 Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.
 
 The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
+
+## Excel HTML named-table reports
+
+Excel HTML export reports classify omitted native named-table definitions as loss, even when all worksheet cells are preserved. Callers requiring lossless conversion must account for table names, filters, styles and totals metadata that HTML does not restore.
+
+Worksheet exports and `ExcelSheet.GetTables()` require a handle belonging to the current workbook package. When a save reloads that package, reacquire the worksheet from `document.Sheets` before inspecting or exporting it; stale or removed handles raise `InvalidOperationException`. Workbook exports and `document.GetTables()` use the current package directly.
 
 ## Excel and iWork TEXTJOIN formulas
 
@@ -632,6 +648,14 @@ these methods.
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
 
 ## OfficeIMO 3.4: one document and conversion grammar
+
+### iWork conversion acceptance and source reuse
+
+`RequireCompleteVisualCoverage` defaults to `true`. Incomplete raster previews and embedded PDFs with unknown source coverage are rejected. Applications intentionally accepting a preview must use `ToWordDocumentResult`, `ToExcelDocumentResult` or `ToPowerPointPresentationResult` (or the static result equivalent), set `RequireCompleteVisualCoverage = false`, and inspect the retained report before saving.
+
+Value-only conversion APIs require complete editable reconstruction even when `AllowPartialEditableReconstruction` or preview acceptance is enabled. Use a result API to handle reported partial output. `result.RequireCompleteEditableReconstruction()` checks assessed completeness, returns the destination on success and disposes rejected output. Record-level fidelity and identical appearance remain separate checks.
+
+Use `source.WithCancellation(newToken)` for another independently cancellable operation on an already loaded source. It replaces the old token while sharing source bytes and parsed messages. Empty shared line-spacing/tab-stop declarations now resolve to single spacing and no custom tabs; sources previously incomplete solely for these defaults can convert strictly. Numbers Natural alignment maps to General rather than forcing numeric cells left. Apple epoch timestamps use tick arithmetic consistently across runtimes, retaining submillisecond root-comment times on legacy consumers.
 
 ### iWork cell decoding evidence
 

@@ -46,7 +46,6 @@ namespace OfficeIMO.Excel {
                             "PDF-unsupported hyperlinks",
                             "PDF-unrendered drawing shapes",
                             "PDF-unsupported print areas",
-                            "PDF-unsupported print titles",
                             "PDF-unsupported header/footer formatting",
                             "PDF-unrendered pivot tables",
                             "PDF-unrendered sparklines",
@@ -124,16 +123,8 @@ namespace OfficeIMO.Excel {
                     hints.Add(new ExcelPreflightRepairHint(
                         capability,
                         finding.Name,
-                        "Use a single contiguous print area or export sheets/ranges separately.",
+                        "Use valid local A1 cells, ranges, whole rows or whole columns for each print area.",
                         "SetPrintArea(...)",
-                        null));
-                    break;
-                case "PDF-unsupported print titles":
-                    hints.Add(new ExcelPreflightRepairHint(
-                        capability,
-                        finding.Name,
-                        "Use repeat-title rows only or pre-render repeated columns into the export range.",
-                        "SetPrintTitles(...)",
                         null));
                     break;
                 case "PDF-unsupported header/footer formatting":

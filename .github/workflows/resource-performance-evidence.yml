@@ -34,6 +34,9 @@ jobs:
           - name: excel
             project: OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
             property: ExcelPerformanceEvidence
+          - name: powerpoint
+            project: OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
+            property: PowerPointPerformanceEvidence
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:

@@ -79,7 +79,6 @@ namespace OfficeIMO.Excel {
             FindFeatureCount("PDF-unsupported hyperlinks") == 0 &&
             FindFeatureCount("PDF-unrendered drawing shapes") == 0 &&
             FindFeatureCount("PDF-unsupported print areas") == 0 &&
-            FindFeatureCount("PDF-unsupported print titles") == 0 &&
             FindFeatureCount("PDF-unsupported header/footer formatting") == 0 &&
             FindFeatureCount("PDF-unrendered pivot tables") == 0 &&
             FindFeatureCount("PDF-unrendered sparklines") == 0 &&
@@ -171,7 +170,6 @@ namespace OfficeIMO.Excel {
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported hyperlinks"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered drawing shapes"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported print areas"));
-                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported print titles"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported header/footer formatting"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered pivot tables"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered sparklines"));

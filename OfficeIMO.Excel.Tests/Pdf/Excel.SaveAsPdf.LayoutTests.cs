@@ -100,7 +100,7 @@ public partial class Excel {
         double afterY = FindWordStartY(page, "AfterTall");
         double defaultGap = topY - tallY;
         double customGap = tallY - afterY;
-        Assert.True(customGap > defaultGap * 2D, $"Expected worksheet row height to create a visibly taller second PDF table row. Default gap: {defaultGap:0.##}, custom gap: {customGap:0.##}.");
+        Assert.True(defaultGap > customGap * 2D, $"Expected default bottom alignment to position the second row's text at the bottom of its taller row. First gap: {defaultGap:0.##}, following gap: {customGap:0.##}.");
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public partial class Excel {
         double authoredRowTwoY = FindWordStartY(authoredPage, "A2");
         double authoredRowThreeY = FindWordStartY(authoredPage, "A3");
         Assert.True(authoredColumnThreeX - authoredColumnTwoX > (authoredColumnTwoX - authoredColumnOneX) * 2D);
-        Assert.True(authoredRowTwoY - authoredRowThreeY > (authoredRowOneY - authoredRowTwoY) * 2D);
+        Assert.True(authoredRowOneY - authoredRowTwoY > (authoredRowTwoY - authoredRowThreeY) * 2D);
 
         using PdfPigDocument uniformPdf = PdfPigDocument.Open(new MemoryStream(uniformBytes));
         var uniformPage = uniformPdf.GetPage(1);

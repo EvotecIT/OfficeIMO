@@ -25,17 +25,22 @@ public sealed partial class IWorkRuntimeWorkload {
         InputSha256 = Convert.ToHexString(SHA256.HashData(_input));
     }
     /// <summary>Gets the packaged ZIP input size.</summary>
-    public long InputBytes => _input.LongLength;
+    public long InputBytes => _operation == "CancelDuringNativeCopy" ? NativeCopyInputBytes : _input.LongLength;
     /// <summary>Gets the deterministic source hash.</summary>
     public string InputSha256 { get; }
     /// <summary>Gets the last saved Office package size; zero for projection-only work.</summary>
     public long OutputBytes => _output?.LongLength ?? 0;
-    /// <summary>Gets the verified number of paragraphs, cells or slides.</summary>
+    /// <summary>Gets verified paragraphs, cells or slides, or one observed cancellation boundary.</summary>
     public int VerifiedUnits { get; private set; }
 
     /// <summary>Loads/projects or converts/saves once; excludes input generation and readback validation.</summary>
     public void Execute(string operation) {
         _operation = operation; ReleaseResults(); VerifiedUnits = 0;
+        CancellationObserved = false; CancellationProcessedBytes = 0; CancellationTotalIoBytes = 0; CancellationLatencyMs = 0;
+        if (operation.StartsWith("CancelDuring", StringComparison.Ordinal)) {
+            ExecuteCancellation(operation);
+            return;
+        }
         using var input = new MemoryStream(_input, writable: false);
         IWorkSourceDocument source = IWorkSourceDocument.Open(input, _kind);
         if (operation == "LoadProject") {
@@ -49,7 +54,7 @@ public sealed partial class IWorkRuntimeWorkload {
         }
         if (operation != "ConvertSave") throw new ArgumentException("Unknown iWork workload operation.", nameof(operation));
         using var saved = new MemoryStream();
-        var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = _native };
+        var policy = new IWorkConversionOptions();
         if (_kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
@@ -66,7 +71,7 @@ public sealed partial class IWorkRuntimeWorkload {
     private void ValidateConversionPolicy(IWorkConversionReport report) {
         if (report.ProjectionKind != IWorkProjectionKind.EditableReconstruction)
             throw new InvalidDataException("Runtime workload requires editable output.");
-        if (!_native) report.RequireCompleteEditableReconstruction();
+        report.RequireCompleteEditableReconstruction();
     }
 
     /// <summary>Releases materialized results after validation; retains input and verified-unit metadata.</summary>
@@ -77,6 +82,12 @@ public sealed partial class IWorkRuntimeWorkload {
 
     /// <summary>Checks every source or saved destination unit outside timing; failures fail the lane.</summary>
     public void Validate() {
+        if (_operation?.StartsWith("CancelDuring", StringComparison.Ordinal) == true) {
+            if (!CancellationObserved || CancellationProcessedBytes <= 0)
+                throw new InvalidDataException("Cancellation did not follow actual operation I/O.");
+            VerifiedUnits = 1; // One observed cancellation boundary, not a complete content projection.
+            return;
+        }
         if (_native) { ValidateNative(); return; }
         if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {

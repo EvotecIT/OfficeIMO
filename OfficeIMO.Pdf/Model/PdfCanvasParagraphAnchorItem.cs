@@ -9,6 +9,17 @@ internal sealed class PdfCanvasParagraphAnchorItem : PdfCanvasItem {
     internal IReadOnlyList<PdfCanvasItem> Items { get; }
 }
 
+/// <summary>Defers a margin-relative canvas's horizontal origin until its anchor page is laid out.</summary>
+internal sealed class PdfCanvasMarginAnchorItem : PdfCanvasItem {
+    internal PdfCanvasMarginAnchorItem(IReadOnlyList<PdfCanvasItem> items, double authoredLeftMargin) : base(0D, 0D) {
+        Items = items;
+        AuthoredLeftMargin = authoredLeftMargin;
+    }
+
+    internal IReadOnlyList<PdfCanvasItem> Items { get; }
+    internal double AuthoredLeftMargin { get; }
+}
+
 /// <summary>Paints anchored drawing content below all body text on its final page.</summary>
 internal sealed class PdfCanvasBehindTextItem : PdfCanvasItem {
     internal PdfCanvasBehindTextItem(IReadOnlyList<PdfCanvasItem> items, long zOrder) : base(0D, 0D) {

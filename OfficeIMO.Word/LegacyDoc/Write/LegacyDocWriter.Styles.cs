@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
             paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
+            MaterializeDocumentDefaultSpacing(paragraphStyles, styles);
 
             var orderedStyleIds = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -901,11 +901,17 @@ public static partial class OfficeSvgDrawingReader {
             scale = lower;
         }
         if (scale <= 0D) return false;
-        image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
-            Scale = scale,
-            Background = OfficeColor.Transparent,
-            MaximumRasterPixels = maximumPixels
-        });
+        try {
+            image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                Scale = scale,
+                Background = OfficeColor.Transparent,
+                MaximumRasterPixels = maximumPixels
+            });
+        } catch (OfficeImageExportLimitException) {
+            // Structural inspection remains available when decoded, transformed or
+            // sampling buffers cannot fit the apportioned visual-comparison budget.
+            return false;
+        }
         return true;
     }
 

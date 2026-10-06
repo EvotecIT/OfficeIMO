@@ -752,7 +752,7 @@ namespace OfficeIMO.Excel {
 
             internal bool IsEmpty
                 => SheetPropertiesXml == null
-                   && SheetViewsXml == null
+                   && (SheetViewsXml == null || ExcelSheet.IsNeutralSheetViews(new SheetViews(SheetViewsXml)))
                    && SheetFormatPropertiesXml == null
                    && SheetProtectionXml == null
                 && AutoFilterXml == null

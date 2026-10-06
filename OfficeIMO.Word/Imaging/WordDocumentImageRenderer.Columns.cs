@@ -75,21 +75,10 @@ namespace OfficeIMO.Word {
         }
 
         private static List<int>? GetExplicitSectionColumnWidths(WordSection section, int columnCount) {
-            Columns? columns = section._sectionProperties.GetFirstChild<Columns>();
-            if (columns == null) {
-                return null;
-            }
-
-            var widths = new List<int>(columnCount);
-            foreach (Column column in columns.Elements<Column>().Take(columnCount)) {
-                if (!TryParseTwips(column.Width?.Value, out int width) || width <= 0) {
-                    return null;
-                }
-
-                widths.Add(width);
-            }
-
-            return widths.Count == columnCount ? widths : null;
+            IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
+            return definitions.Count == columnCount
+                ? definitions.Select(column => column.WidthTwips).ToList()
+                : null;
         }
 
         private static double GetSectionColumnGap(WordSection section) {

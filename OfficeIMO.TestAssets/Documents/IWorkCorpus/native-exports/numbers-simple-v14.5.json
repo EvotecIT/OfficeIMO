@@ -1,0 +1,36 @@
+{
+  "source": "nim-iwork/simple.numbers",
+  "sourceSha256": "d0b00d9cae5985cccaa3b2fb251fae92eb0e38360fb4b5df8b4350eb658f752b",
+  "producer": "Apple Numbers",
+  "producerVersion": "14.5",
+  "export": "native-exports/numbers-simple-v14.5.xlsx",
+  "exportSha256": "75612c904bf2cb855f3a42eb63fadb63686ea5d761ecf3862242b0683ca64c8e",
+  "renderExport": "native-exports/numbers-simple-v14.5.pdf",
+  "renderExportSha256": "7e9242ed8e85f31fe541d1255bdc1e5a3a8e8f61251ff431a26f884d19b0478f",
+  "capturedUtc": "2026-10-03",
+  "sourceModified": false,
+  "exportOptions": {
+    "excel": "One worksheet per table; summary, password and additional features disabled; native table title adds one destination row.",
+    "pdf": "Fit each sheet on one page; best image quality; no password."
+  },
+  "observedCell": "A2",
+  "nativeFormatting": {
+    "font": "Helvetica Neue Regular",
+    "fontSizePoints": 10,
+    "lineSpacingMultiplier": 1,
+    "customTabStops": [],
+    "defaultTabIntervalPoints": 36,
+    "horizontalAlignment": "Natural",
+    "verticalAlignment": "Top",
+    "wrapText": true
+  },
+  "qualifiedSourceFields": {
+    "bodyParagraphStyle": 903835,
+    "headerParagraphStyle": 903834,
+    "lineSpacingFieldPath": "12/13",
+    "lineSpacingPayload": "empty",
+    "customTabsFieldPath": "12/25",
+    "customTabsPayload": "empty"
+  },
+  "qualification": "Unmodified licensed fixture opened and exported through Apple Numbers 14.5. Values, types, bold, size and natural alignment are compared with Apple XLSX. Empty shared TSWP paragraph spacing and tab declarations are matched to observed native controls. This does not qualify full typography, border appearance, Pages or Keynote rendering."
+}

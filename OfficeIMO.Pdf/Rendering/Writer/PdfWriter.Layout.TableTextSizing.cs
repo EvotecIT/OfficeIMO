@@ -75,7 +75,7 @@ internal static partial class PdfWriter {
             }
 
             double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-            double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+            double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
             double textWidth;
             if (GetMaxExplicitTableRunFontSize(cell) > 0D) {
                 explicitMeasurements ??= new TableCellTextWidthMeasurement?[cells.Count];
@@ -103,7 +103,7 @@ internal static partial class PdfWriter {
             TableCellTextWidthMeasurement measurement = explicitMeasurements?[cellIndex]
                 ?? PrepareTableCellTextWidthMeasurement(cell, rowFont, effectiveOptions);
             double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-            double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+            double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
             double textWidth = MeasurePreparedTableCellTextWidth(measurement, resolvedFontSize, scale, minimumFontSize);
             if (textWidth <= innerWidth + 0.001D || textWidth <= 0.001D) {
                 continue;

@@ -80,6 +80,29 @@ Both workflows:
 
 If the synced repo does not contain the generated help snapshot, the build falls back to the checked-in PowerShell API inputs instead of failing.
 
+## Studio installer downloads
+
+The downloads page links signed Windows Studio MSIs to `downloads.officeimo.com`.
+Evotec Control manages the release lifecycle and download activity through the
+shared Licensing distribution service. The branded hostname serves the immutable
+release objects directly over HTTPS.
+
+[`Website/data/studio_installer_downloads.json`](../Website/data/studio_installer_downloads.json)
+maps verified GitHub release asset URLs to their branded download URLs and records
+the exact sizes and SHA-256 values. The downloads page uses the branded link only
+when the release asset matches an entry. Portable archives, Linux packages and
+other assets keep their GitHub release links. Installer bytes are held by the
+distribution service and are not included in the website build.
+
+When adding a release, publish and verify its signed artifacts through Control,
+promote the exact release to public stable, and add its verified URL mapping.
+Keep objects referenced by Microsoft Store or other catalogs available at their
+original versioned URLs. Never replace bytes at a published release path.
+
+Before using a URL in a Store submission, retrieve it without following redirects
+and confirm HTTP 200, exact length, SHA-256 and Authenticode signature against the
+release. GitHub release URLs remain suitable for WinGet manifests.
+
 ## Editing guidance
 
 - Edit authored content in `Website/content/`, `Website/data/`, `Website/site.json`, `Website/pipeline.json`, and theme files under `Website/themes/officeimo/`.

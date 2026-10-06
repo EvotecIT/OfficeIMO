@@ -52,16 +52,19 @@ public sealed partial class AdaptiveOcrEngine {
     private void AddReviewDiagnostic(AdaptiveOcrResult result) {
         string Value(int number) => number.ToString(CultureInfo.InvariantCulture);
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
-            ["attempts"] = Value(result.Attempts.Count), ["selected-attempt"] = Value(result.SelectedAttempt),
+            ["review-status"] = result.Review.Status.ToString(), ["attempts"] = Value(result.Attempts.Count), ["selected-attempt"] = Value(result.SelectedAttempt),
             ["words"] = Value(result.Quality.WordCount), ["low-confidence-words"] = Value(result.Quality.LowConfidenceWordCount),
             ["unknown-confidence-words"] = Value(result.Quality.UnknownConfidenceWordCount),
             ["thresholds-met"] = result.Quality.MeetsThresholds ? "true" : "false",
             ["disagreement"] = result.HasDisagreement ? "true" : "false", ["retry-incomplete"] = result.RetryIncomplete ? "true" : "false"
         };
         result.Result.Diagnostics = new[] { new OcrDiagnostic {
-            Source = Id, Code = result.ReviewRecommended ? "adaptive-ocr-review-recommended" : "adaptive-ocr-thresholds-met",
+            Source = Id, Code = result.Review.Status == OcrReviewStatus.Unassessed ? "adaptive-ocr-unassessed"
+                : result.ReviewRecommended ? "adaptive-ocr-review-recommended" : "adaptive-ocr-thresholds-met",
             Severity = result.ReviewRecommended ? OcrDiagnosticSeverity.Warning : OcrDiagnosticSeverity.Info,
-            Message = result.ReviewRecommended ? "Adaptive OCR evidence recommends human review." :
+            Message = result.Review.Status == OcrReviewStatus.Unassessed
+                ? "Confidence checks passed without a completed comparison; this does not establish text correctness or approval."
+                : result.ReviewRecommended ? "Adaptive OCR evidence recommends human review." :
                 "OCR evidence meets configured checks; this does not establish text correctness or approval.", Attributes = attributes
         } }.Concat(result.Result.Diagnostics).ToArray();
     }

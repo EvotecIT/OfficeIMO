@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         private void RenderSemanticBlock(SemanticBlock semantic) {
             flowSemanticScopes.Add(new FlowSemanticScope(semantic.Role, semantic.AlternativeText));
             try {
-                ProcessBlocks(semantic.Blocks);
+                ProcessBlocks(semantic.Blocks, semantic);
             } finally {
                 flowSemanticScopes.RemoveAt(flowSemanticScopes.Count - 1);
             }

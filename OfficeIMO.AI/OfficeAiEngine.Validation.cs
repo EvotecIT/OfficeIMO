@@ -130,6 +130,7 @@ public sealed partial class OfficeAiEngine {
                 EvidenceSlice slice = batch.Slices.TryGetValue(id, out var fragment) ? fragment : new(id, 0, observation.Text.Length);
                 citations.Add(new(slice.OriginalId, observation.Page, quote, true) {
                     QuoteStart = slice.Start + observation.Text.IndexOf(quote, StringComparison.Ordinal),
+                    Recognition = observation.Recognition,
                     SourceLocation = observation.SourceLocation
                 });
             } else if (batch.Images.TryGetValue(id, out OfficeAiImage? image)) {

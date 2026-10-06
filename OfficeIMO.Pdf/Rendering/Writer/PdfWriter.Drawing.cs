@@ -24,9 +24,10 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static bool DrawPanelBorder(StringBuilder sb, PdfPanelStyle style, double x, double y, double w, double h, bool artifact = false) {
+    private static bool DrawPanelBorder(StringBuilder sb, PdfPanelStyle style, double x, double y, double w, double h, bool artifact = false,
+        bool drawTop = true, bool drawBottom = true) {
         double radius = style.CornerRadius;
-        if (!style.HasSideBorders) {
+        if (!style.HasSideBorders && drawTop && drawBottom) {
             if (style.BorderColor.HasValue && style.BorderWidth > 0) {
                 DrawRoundedRowRect(sb, style.BorderColor.Value, style.BorderWidth, x, y, w, h, radius, true, true, true, true, artifact);
                 return true;
@@ -35,12 +36,17 @@ internal static partial class PdfWriter {
             return false;
         }
 
+        PdfPanelBorder? top = drawTop ? ResolvePanelSideBorder(style.TopBorderSnapshot, style) : null;
+        PdfPanelBorder? right = ResolvePanelSideBorder(style.RightBorderSnapshot, style);
+        PdfPanelBorder? bottom = drawBottom ? ResolvePanelSideBorder(style.BottomBorderSnapshot, style) : null;
+        PdfPanelBorder? left = ResolvePanelSideBorder(style.LeftBorderSnapshot, style);
+        x -= IsRenderablePanelBorderSide(left) ? left!.Offset : 0D;
+        y -= IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D;
+        w += (IsRenderablePanelBorderSide(left) ? left!.Offset : 0D) + (IsRenderablePanelBorderSide(right) ? right!.Offset : 0D);
+        h += (IsRenderablePanelBorderSide(top) ? top!.Offset : 0D) + (IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D);
+        if (w <= 0D || h <= 0D) throw new ArgumentException("Panel border offsets must leave positive border dimensions.");
         double x2 = x + w;
         double y2 = y + h;
-        PdfPanelBorder? top = ResolvePanelSideBorder(style.TopBorderSnapshot, style);
-        PdfPanelBorder? right = ResolvePanelSideBorder(style.RightBorderSnapshot, style);
-        PdfPanelBorder? bottom = ResolvePanelSideBorder(style.BottomBorderSnapshot, style);
-        PdfPanelBorder? left = ResolvePanelSideBorder(style.LeftBorderSnapshot, style);
 
         // Rounded box: draw each side as a rounded-rectangle stroke clipped to that side and its two
         // corners, so the sides meet at the corner tangents and share the box's rounded corners (the CSS
@@ -49,10 +55,10 @@ internal static partial class PdfWriter {
             // Panel side borders are standalone (no thin border underneath), so each sits centred on the
             // path (outerBorderWidth == its own width -> no inset).
             bool drawnRounded = false;
-            if (IsRenderablePanelBorderSide(top)) { DrawRoundedSideStroke(sb, top!.Color!.Value, top.Width, top.Width, RoundedRectSide.Top, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(right)) { DrawRoundedSideStroke(sb, right!.Color!.Value, right.Width, right.Width, RoundedRectSide.Right, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(bottom)) { DrawRoundedSideStroke(sb, bottom!.Color!.Value, bottom.Width, bottom.Width, RoundedRectSide.Bottom, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(left)) { DrawRoundedSideStroke(sb, left!.Color!.Value, left.Width, left.Width, RoundedRectSide.Left, x, y, w, h, radius, true, true, true, true, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(top)) { DrawRoundedSideStroke(sb, top!.Color!.Value, top.Width, top.Width, RoundedRectSide.Top, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(right)) { DrawRoundedSideStroke(sb, right!.Color!.Value, right.Width, right.Width, RoundedRectSide.Right, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(bottom)) { DrawRoundedSideStroke(sb, bottom!.Color!.Value, bottom.Width, bottom.Width, RoundedRectSide.Bottom, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(left)) { DrawRoundedSideStroke(sb, left!.Color!.Value, left.Width, left.Width, RoundedRectSide.Left, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
             return drawnRounded;
         }
 
@@ -819,7 +825,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null) {
+    private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null, TableCellContentFrame? diagonalFrame = null) {
         if (!border.Color.HasValue &&
             border.TopBorderSnapshot == null &&
             border.RightBorderSnapshot == null &&
@@ -853,12 +859,15 @@ internal static partial class PdfWriter {
 
         double x2 = x + w;
         double y2 = y + h;
-        if (border.Top) DrawCellHBorderSegments(sb, ResolveCellBorderSide(border.TopBorderSnapshot, border), x, x2, y2, -1D, border.HiddenTopColumnSegments, columnSegmentWidths, artifact);
-        if (border.Right) DrawCellVBorderSegments(sb, ResolveCellBorderSide(border.RightBorderSnapshot, border), x2, y2, y, -1D, border.HiddenRightRowSegments, rowSegmentHeights, artifact);
-        if (border.Bottom) DrawCellHBorderSegments(sb, ResolveCellBorderSide(border.BottomBorderSnapshot, border), x, x2, y, 1D, border.HiddenBottomColumnSegments, columnSegmentWidths, artifact);
-        if (border.Left) DrawCellVBorderSegments(sb, ResolveCellBorderSide(border.LeftBorderSnapshot, border), x, y2, y, 1D, border.HiddenLeftRowSegments, rowSegmentHeights, artifact);
-        if (border.DiagonalUp) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalUpBorderSnapshot, border), x, y, x2, y2, diagonalUp: true, artifact);
-        if (border.DiagonalDown) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalDownBorderSnapshot, border), x, y, x2, y2, diagonalUp: false, artifact);
+        PdfCellBorderSide? top = border.Top ? ResolveCellBorderSide(border.TopBorderSnapshot, border) : null;
+        PdfCellBorderSide? right = border.Right ? ResolveCellBorderSide(border.RightBorderSnapshot, border) : null;
+        PdfCellBorderSide? bottom = border.Bottom ? ResolveCellBorderSide(border.BottomBorderSnapshot, border) : null;
+        PdfCellBorderSide? left = border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null;
+        if (border.Top) DrawCellHBorderSegments(sb, top, x, x2, y2, -1D, border.HiddenTopColumnSegments, columnSegmentWidths, artifact, left, right);
+        if (border.Right) DrawCellVBorderSegments(sb, right, x2, y2, y, -1D, border.HiddenRightRowSegments, rowSegmentHeights, artifact, top, bottom);
+        if (border.Bottom) DrawCellHBorderSegments(sb, bottom, x, x2, y, 1D, border.HiddenBottomColumnSegments, columnSegmentWidths, artifact, left, right);
+        if (border.Left) DrawCellVBorderSegments(sb, left, x, y2, y, 1D, border.HiddenLeftRowSegments, rowSegmentHeights, artifact, top, bottom);
+        DrawTableCellDiagonals(sb, border, x, y, w, h, diagonalFrame, artifact);
     }
 
     private static bool HasRenderableCellBorder(PdfCellBorder? border) =>
@@ -886,9 +895,9 @@ internal static partial class PdfWriter {
         return segments;
     }
 
-    private static void DrawCellHBorderSegments(StringBuilder sb, PdfCellBorderSide? side, double x1, double x2, double y, double doubleLineDirection, System.Collections.Generic.HashSet<int>? hidden, double[]? widths, bool artifact) {
+    private static void DrawCellHBorderSegments(StringBuilder sb, PdfCellBorderSide? side, double x1, double x2, double y, double doubleLineDirection, System.Collections.Generic.HashSet<int>? hidden, double[]? widths, bool artifact, PdfCellBorderSide? leftSide, PdfCellBorderSide? rightSide) {
         if (hidden == null || hidden.Count == 0 || widths == null) {
-            DrawCellHBorder(sb, side, x1, x2, y, doubleLineDirection, artifact);
+            DrawCellHBorder(sb, side, x1, x2, y, doubleLineDirection, artifact, leftSide, rightSide);
             return;
         }
 
@@ -897,15 +906,16 @@ internal static partial class PdfWriter {
             if (left >= x2) break;
             double right = Math.Min(x2, index == widths.Length - 1 ? x2 : left + widths[index]);
             if (!hidden.Contains(index) && right > left) {
-                DrawCellHBorder(sb, side, left, right, y, doubleLineDirection, artifact);
+                DrawCellHBorder(sb, side, left, right, y, doubleLineDirection, artifact,
+                    left == x1 ? leftSide : null, right == x2 ? rightSide : null);
             }
             left = right;
         }
     }
 
-    private static void DrawCellVBorderSegments(StringBuilder sb, PdfCellBorderSide? side, double x, double yTop, double yBottom, double doubleLineDirection, System.Collections.Generic.HashSet<int>? hidden, double[]? heights, bool artifact) {
+    private static void DrawCellVBorderSegments(StringBuilder sb, PdfCellBorderSide? side, double x, double yTop, double yBottom, double doubleLineDirection, System.Collections.Generic.HashSet<int>? hidden, double[]? heights, bool artifact, PdfCellBorderSide? topSide, PdfCellBorderSide? bottomSide) {
         if (hidden == null || hidden.Count == 0 || heights == null) {
-            DrawCellVBorder(sb, side, x, yTop, yBottom, doubleLineDirection, artifact);
+            DrawCellVBorder(sb, side, x, yTop, yBottom, doubleLineDirection, artifact, topSide, bottomSide);
             return;
         }
 
@@ -914,7 +924,8 @@ internal static partial class PdfWriter {
             if (top <= yBottom) break;
             double bottom = Math.Max(yBottom, index == heights.Length - 1 ? yBottom : top - heights[index]);
             if (!hidden.Contains(index) && top > bottom) {
-                DrawCellVBorder(sb, side, x, top, bottom, doubleLineDirection, artifact);
+                DrawCellVBorder(sb, side, x, top, bottom, doubleLineDirection, artifact,
+                    top == yTop ? topSide : null, bottom == yBottom ? bottomSide : null);
             }
             top = bottom;
         }
@@ -937,25 +948,33 @@ internal static partial class PdfWriter {
         };
     }
 
-    private static void DrawCellHBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double x2, double y, double doubleLineDirection, bool artifact = false) {
+    private static void DrawCellHBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double x2, double y, double doubleLineDirection, bool artifact = false, PdfCellBorderSide? leftSide = null, PdfCellBorderSide? rightSide = null) {
         if (border?.Color == null || border.Width <= 0) {
             return;
         }
 
-        DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle, x1, x2, y, artifact);
+        DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle,
+            x1 - GetCellBorderPairOutset(leftSide), x2 + GetCellBorderPairOutset(rightSide),
+            y - doubleLineDirection * GetCellBorderPairOutset(border), artifact);
         if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
-            DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle, x1, x2, y + doubleLineDirection * GetDoubleBorderGap(border.Width), artifact);
+            DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle,
+                x1 + GetCellBorderPairInset(leftSide), x2 - GetCellBorderPairInset(rightSide),
+                y + doubleLineDirection * GetCellBorderPairInset(border), artifact);
         }
     }
 
-    private static void DrawCellVBorder(StringBuilder sb, PdfCellBorderSide? border, double x, double yTop, double yBottom, double doubleLineDirection, bool artifact = false) {
+    private static void DrawCellVBorder(StringBuilder sb, PdfCellBorderSide? border, double x, double yTop, double yBottom, double doubleLineDirection, bool artifact = false, PdfCellBorderSide? topSide = null, PdfCellBorderSide? bottomSide = null) {
         if (border?.Color == null || border.Width <= 0) {
             return;
         }
 
-        DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle, x, yTop, yBottom, artifact);
+        DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle,
+            x - doubleLineDirection * GetCellBorderPairOutset(border),
+            yTop + GetCellBorderPairOutset(topSide), yBottom - GetCellBorderPairOutset(bottomSide), artifact);
         if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
-            DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle, x + doubleLineDirection * GetDoubleBorderGap(border.Width), yTop, yBottom, artifact);
+            DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle,
+                x + doubleLineDirection * GetCellBorderPairInset(border),
+                yTop - GetCellBorderPairInset(topSide), yBottom + GetCellBorderPairInset(bottomSide), artifact);
         }
     }
 

@@ -48,10 +48,15 @@ namespace OfficeIMO.Word {
                     return (int)columns.ColumnCount!.Value!;
                 }
 
-                return null;
+                return columns.EqualWidth?.Value == false && columns.Elements<Column>().Any()
+                    ? columns.Elements<Column>().Count() : null;
             }
             set {
                 Columns? columns = _sectionProperties.GetFirstChild<Columns>();
+                if (value.HasValue && columns?.EqualWidth?.Value == false &&
+                    columns.Elements<Column>().Any() && columns.Elements<Column>().Count() != value.Value) {
+                    throw new InvalidOperationException("Replace or clear ColumnDefinitions before changing the explicit section column count.");
+                }
                 if (columns == null) {
                     columns = new Columns();
                     _sectionProperties.Append(columns);

@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
             includeFormulaRecord: false);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
@@ -74,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_rich_nonformula_cell_still_requires_visual_fallback() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: false);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
@@ -105,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly });
+            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         Assert.True(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Automatic_visual_fallback_does_not_report_unexported_rich_text_loss() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: false);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>

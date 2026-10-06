@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
+using OfficeIMO.Provenance.C2pa;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
@@ -30,7 +31,12 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         _pickInput = pickInput; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner(); _publicationGuard = publicationGuard;
         _jobs = jobHistory;
     }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
+    /// <summary>Whether the host imports private copies and shares results instead of exposing local paths.</summary>
+    public bool UsesWorkingCopies { get; internal set; }
+    public string InputName => Path.GetFileName(InputPath);
+    public string OutputName => Path.GetFileName(OutputPath);
+    public string ReportName => Path.GetFileName(ReportPath);
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InputName)), NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
     private string _inputPath = "";
     [ObservableProperty] private string _outputFolder = "";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy)), NotifyPropertyChangedFor(nameof(CanExportReport))]
@@ -40,8 +46,8 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCreateCopy))] private bool _removeDeclarations;
     [ObservableProperty] private string _status = "Choose a local file and assess its supported provenance evidence.";
     [ObservableProperty] private string _checks = "Structural: NotRequested · Text integrity: NotRequested · Verification: NotConfigured · Providers: NotConfigured";
-    [ObservableProperty] private string _outputPath = "";
-    [ObservableProperty] private string _reportPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OutputName))] private string _outputPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ReportName))] private string _reportPath = "";
     [ObservableProperty] private string _inputHash = "";
     [ObservableProperty] private string _outputHash = "";
     [ObservableProperty] private string _coverage = "";
@@ -63,8 +69,17 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [RelayCommand] private async Task ChooseInputAsync() {
         if (IsBusy || _disposed) return;
         int revision = _revision;
-        string? path = await _pickInput(CancellationToken.None);
-        if (!_disposed && revision == _revision && path != null) InputPath = path;
+        using var cancellation = new CancellationTokenSource();
+        _cancellation = cancellation;
+        IsBusy = true;
+        try {
+            string? path = await _pickInput(cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (!_disposed && revision == _revision && path != null) InputPath = path;
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            if (!_disposed) Status = "Import cancelled.";
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status = error.Message; }
+        finally { _cancellation = null; IsBusy = false; }
     }
     [RelayCommand] private async Task ChooseFolderAsync() {
         if (IsBusy || _disposed) return;
@@ -98,7 +113,13 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
             using IDisposable? permit = _jobs is null ? null : await _jobs.EnterAsync(cancellation.Token);
             job?.Report(new("provenance", "execute", Status, 0, 0));
             ownerStarted = true;
-            OfficeProvenanceWorkflowResult result = await _runner.RunProvenanceAsync(request, cancellationToken: cancellation.Token);
+            IOfficeProvenanceWorkflowRunner runner = _runner;
+            if (!remove && CanConfigureProvider && !string.IsNullOrWhiteSpace(C2paToolPath)) {
+                runner = new OfficeWorkflowRunner(new C2paToolProvenanceVerifier(C2paToolPath.Trim()));
+                request.Assessment.Verification.TrustAnchorsPath = string.IsNullOrWhiteSpace(TrustAnchorsPath) ? null : TrustAnchorsPath.Trim();
+                request.Assessment.Verification.AllowedListPath = string.IsNullOrWhiteSpace(AllowedListPath) ? null : AllowedListPath.Trim();
+            }
+            OfficeProvenanceWorkflowResult result = await runner.RunProvenanceAsync(request, cancellationToken: cancellation.Token);
             job?.Complete(result.Status, result.OutputPath, result.Summary);
             if (_disposed || revision != _revision) return;
             _lastResult = result;
@@ -114,7 +135,17 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
             foreach (OfficeProvenanceEvidence evidence in report?.Evidence ?? Array.Empty<OfficeProvenanceEvidence>())
                 Findings.Add($"{evidence.Carrier} · {evidence.Location} · {(evidence.IsStructurallyValid ? "Structurally recognized" : "Malformed or ambiguous")}");
             foreach (OfficeTextIntegrityFinding finding in result.Assessment?.TextIntegrity?.Findings ?? Array.Empty<OfficeTextIntegrityFinding>())
-                Findings.Add($"{finding.UnicodeNotation} · {finding.Kind} · {finding.Risk} · UTF-16 offset {finding.TextOffset}");
+                Findings.Add($"{finding.UnicodeNotation} · {finding.Kind} · {finding.Risk} · {finding.Location} · UTF-16 offset {finding.TextOffset}");
+            if (result.Assessment?.Verification is { } verification) {
+                Findings.Add($"{verification.ProviderName} · Verification: {verification.Status}");
+                foreach (string finding in verification.Findings) Findings.Add(finding);
+            }
+            foreach (var signal in result.Assessment?.ProviderSignals ?? Array.Empty<OfficeProvenanceSignalResult>()) {
+                Findings.Add($"{signal.ProviderName} · {signal.SignalKind} · {signal.Status}");
+                if (signal.Measurement is { } measurement)
+                    Findings.Add(FormattableString.Invariant($"{measurement.Algorithm} · detector {measurement.DetectorVersion} · {measurement.ScoreName}: {measurement.Score} · threshold: {measurement.Threshold} · tokens: {measurement.TokenCount}"));
+                foreach (string finding in signal.Findings) Findings.Add(finding);
+            }
             foreach (OfficeProvenanceChange change in result.Changes) Changes.Add($"{change.Carrier} · {change.Location} · {change.RemovedBytes} bytes removed");
             foreach (OfficeWorkflowDiagnostic diagnostic in result.Diagnostics) Diagnostics.Add($"{diagnostic.Severity}: {diagnostic.Message}");
             foreach (string diagnostic in report?.Diagnostics ?? Array.Empty<string>()) Diagnostics.Add(diagnostic);

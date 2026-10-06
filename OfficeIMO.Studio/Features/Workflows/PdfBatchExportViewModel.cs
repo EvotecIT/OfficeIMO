@@ -22,7 +22,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
         _pickFolder = pickFolder; _guard = guard; _otherWorkBusy = otherWorkBusy;
         _localizer = localizer;
         _runner = runner; _jobs = jobs;
-        Status = _localizer.GetOrDefault("Conversion.BatchExport.Ready", "Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.");
+        Status = UnavailableReason ?? _localizer.GetOrDefault("Conversion.BatchExport.Ready", "Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.");
     }
     [ObservableProperty] private string _inputDirectory = string.Empty;
     [ObservableProperty] private string _outputDirectory = string.Empty;
@@ -33,7 +33,11 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     [ObservableProperty] private decimal _tabSize = 8;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _status = string.Empty;
-    public bool CanEdit => !_disposed && !IsBusy && !_otherWorkBusy();
+    public string? UnavailableReason => OperatingSystem.IsIOS()
+        ? "Folder PDF export needs persistent filesystem access and is not available on iPad or iPhone. Use Add files and Run pending to convert multiple documents from Files."
+        : null;
+    public bool IsAvailable => UnavailableReason is null;
+    public bool CanEdit => IsAvailable && !_disposed && !IsBusy && !_otherWorkBusy();
     internal void RefreshHostState() {
         OnPropertyChanged(nameof(CanEdit)); ChooseFolderCommand.NotifyCanExecuteChanged(); RunCommand.NotifyCanExecuteChanged();
     }

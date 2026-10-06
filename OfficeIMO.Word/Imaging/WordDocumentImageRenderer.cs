@@ -230,8 +230,7 @@ namespace OfficeIMO.Word {
             var starts = new List<int>(document.Sections.Count);
             int nextImplicitStart = 1;
             for (int i = 0; i < document.Sections.Count; i++) {
-                PageNumberType? pageNumberType = document.Sections[i]._sectionProperties.GetFirstChild<PageNumberType>();
-                int start = pageNumberType?.Start?.Value ?? nextImplicitStart;
+                int start = document.Sections[i].GetEffectivePageNumberStart() ?? nextImplicitStart;
                 start = Math.Max(1, start);
                 starts.Add(start);
 
@@ -445,6 +444,7 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             context.ThrowIfCancellationRequested();
+            if (WordParagraph.IsSectionMarkOnly(paragraph)) return true;
             bool added = false;
             var colorScheme = GetDocumentColorScheme(document);
             WordImageListMarker? listMarker = CreateListMarker(document, paragraph, listMarkers);
@@ -478,6 +478,8 @@ namespace OfficeIMO.Word {
                 context.ThrowIfCancellationRequested();
                 if (run.IsPageBreak) {
                     added |= FlushTextRuns();
+                    // Word caches this marker after an explicit break or at a new section's first line.
+                    if (run._run?.Annotation<LastRenderedPageBreak>() != null && context.IsAtPageFrameStart) continue;
                     context.AdvancePage();
                     if (context.PastTargetPage) {
                         return added;
@@ -888,7 +890,9 @@ namespace OfficeIMO.Word {
             }
 
             if (value != SectionMarkValues.OddPage && value != SectionMarkValues.EvenPage) {
-                return StartsNewPage(sectionProperties) ? 1 : 0;
+                if (!StartsNewPage(sectionProperties)) return 0;
+                if (sectionProperties?.GetFirstChild<PageNumberType>()?.Start?.Value is not int restart || restart <= 0) return 1;
+                value = restart % 2 == 0 ? SectionMarkValues.EvenPage : SectionMarkValues.OddPage;
             }
 
             int nextPageIndex = currentPageIndex + 1;

@@ -1,0 +1,119 @@
+{
+  "source": {
+    "path": "native-exports/keynote-colors-v15.4.key",
+    "sha256": "d9c7c5d0b1bb2bff80e44ea683239601dcc5c2e632205ad8611bb0110f3502f1"
+  },
+  "producer": "Apple Keynote",
+  "producerVersion": "15.4",
+  "renderer": "Apple Keynote 15.4 on macOS 27.0.1 (26A434)",
+  "capturedUtc": "2026-10-04T12:56:39.566446+00:00",
+  "provenance": {
+    "derivedFrom": "nim-iwork/simple.key",
+    "baseSha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb",
+    "sourceModified": true,
+    "nativeActions": "Title on slide 2 edited to wrap in the native fixed frame; slide 1 background preset blue 69, slide 2 red 67, saved by Keynote 15.4.",
+    "license": "Existing nim-iwork MIT notice applies; no standalone fonts distributed."
+  },
+  "exports": {
+    "sourcePdf": {
+      "path": "native-exports/keynote-colors-v15.4.pdf",
+      "sha256": "c666e21aafe0f17af70af758c2ec6e223d236ee263d58ed343fbe037e111e7e5"
+    },
+    "applePptx": {
+      "path": "native-exports/keynote-colors-v15.4.pptx",
+      "sha256": "d6bf0e6ff5b62227d055d179ebc9f362b1356ea619ff5ef3925f7db10f28d3fb"
+    },
+    "applePptxRoundtripPdf": {
+      "path": "native-exports/keynote-colors-apple-roundtrip-v15.4.pdf",
+      "sha256": "289054533e8989e54f196fba29289bce505315fb733e6494db10c71bb0db3d8d"
+    },
+    "officeimoPptxPdf": {
+      "path": "native-exports/keynote-colors-officeimo-v15.4.pdf",
+      "sha256": "f2b22bc1f0f1e7496577558f3f563b0bdb078f1766d2f4138b543c1e45cd381e"
+    }
+  },
+  "exportOptions": "PDF best image quality, all slides, optional notes/build stages/skipped slides/comments/password off; PPTX no password.",
+  "fieldEvidence": "keynote-backgrounds.json",
+  "colorProfile": {
+    "model": 1,
+    "rgbSpace": 1,
+    "alpha": 1,
+    "additionalField": 13,
+    "additionalWireType": "fixed32",
+    "additionalFloatValue": 1,
+    "fieldMeaning": "Unspecified. Only the observed value in explicit opaque RGB/sRGB is qualified.",
+    "backgroundRgb": [
+      "56C1FF",
+      "FF968D"
+    ],
+    "inheritsWhite": true
+  },
+  "destination": {
+    "strictEditableConversion": true,
+    "openXmlValidationErrors": 0,
+    "nativeRepairPrompt": false,
+    "visuallyInspectedSlides": [
+      1,
+      2
+    ],
+    "unusedThemeFontWarning": "Aptos absent; actual text uses installed Times-Roman and HelveticaNeue-Bold.",
+    "convertedPptxSha256": "9b24b7374c54a48129ef483378f63686af0307767e5f501876b685c535c9cb0e",
+    "baseCommit": "1a721c9897f4aaab582299372929a6425e3a646c",
+    "modifiedSourceFiles": [
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkCellFillReader.cs",
+        "sha256": "89959bd7d1801d0e286ecff104508b004891bec2033f7d702d88b245b54ecfd9"
+      }
+    ]
+  },
+  "renderComparison": {
+    "rasterizer": "pdftoppm 26.09.0",
+    "options": "-r 72 -png",
+    "slideSizePoints": [
+      1024,
+      768
+    ],
+    "sourceBackgroundRgb": [
+      [
+        86,
+        193,
+        255
+      ],
+      [
+        255,
+        150,
+        141
+      ]
+    ],
+    "destinationBackgroundRgb": [
+      [
+        86,
+        193,
+        255
+      ],
+      [
+        255,
+        150,
+        141
+      ]
+    ],
+    "appleRoundtripMatch": [
+      true,
+      true
+    ],
+    "nativeRasterSha256": [
+      "e622bd420f1fce017aa6fd18bf99856305d52833235263cb538034f2d5e6a199",
+      "1dac2073db4835fed6265a53032298f1d4be09da96b6c3550dc5eb9391a373bf"
+    ],
+    "appleRoundtripRasterSha256": [
+      "ee42e2f55e7de3b898c2d6b9076368b4c3f5e3aefe5fdb6ae1d824fb8c97ea91",
+      "fde62827491064849cb68937aec8f21234998b946e30db24ec5795ba12c94407"
+    ],
+    "officeimoRasterSha256": [
+      "ee42e2f55e7de3b898c2d6b9076368b4c3f5e3aefe5fdb6ae1d824fb8c97ea91",
+      "fde62827491064849cb68937aec8f21234998b946e30db24ec5795ba12c94407"
+    ],
+    "originalKeyDifference": "Both slides retain line positions. fi ligatures and word advances differ from original .key; the same differences occur in Apple PPTX round trip."
+  },
+  "limits": "Controlled two-slide fixture and inherited white only. Field 13 meaning, other values or models, Display P3, other fonts, theme/master preservation and full Keynote 15.4 producer coverage remain unqualified."
+}

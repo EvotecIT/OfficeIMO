@@ -157,11 +157,12 @@ namespace OfficeIMO.Word.Pdf {
             return string.Join(" ", parts);
         }
 
-        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById) {
+        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById, HashSet<long>? seenKeys = null) {
             var numbers = new List<int>();
+            seenKeys ??= new HashSet<long>();
             for (int i = index + 1; i < elements.Count && (elements[i] is WordFootNote || elements[i] is WordEndNote); i++) {
                 long? key = GetNativeNoteKey(elements[i]);
-                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number)) {
+                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number) && seenKeys.Add(key.Value)) {
                     numbers.Add(number);
                 }
             }
@@ -170,25 +171,33 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, Dictionary<long, int> footnoteNumbersById) {
-            var numbers = new List<int>(followingFootnoteNumbers);
-            AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById);
+            var numbers = new List<int>();
+            var seenKeys = new HashSet<long>();
+            AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById, seenKeys);
             foreach (WordParagraph run in runs) {
-                AddNativeParagraphFootnoteNumber(run, numbers, footnoteNumbersById);
+                AddNativeParagraphFootnoteNumber(run, numbers, footnoteNumbersById, seenKeys);
             }
 
-            return numbers.Distinct().ToList();
+            // Paragraph and traversal wrappers can expose the same reference twice.
+            // Different footnote/endnote identities may nevertheless share a display number.
+            var unmatched = numbers.GroupBy(number => number).ToDictionary(group => group.Key, group => group.Count());
+            foreach (int number in followingFootnoteNumbers) {
+                if (unmatched.TryGetValue(number, out int count) && count > 0) unmatched[number] = count - 1;
+                else numbers.Add(number);
+            }
+            return numbers;
         }
 
-        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, Dictionary<long, int> footnoteNumbersById) {
+        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, Dictionary<long, int> footnoteNumbersById, HashSet<long> seenKeys) {
             WordFootNote? footNote = paragraph.FootNote;
             long? footnoteKey = footNote?.ReferenceId.HasValue == true && footNote.ReferenceId.Value != 0 ? GetNativeFootnoteKey(footNote.ReferenceId.Value) : null;
-            if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number)) {
+            if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number) && seenKeys.Add(footnoteKey.Value)) {
                 numbers.Add(number);
             }
 
             WordEndNote? endNote = paragraph.EndNote;
             long? endnoteKey = endNote?.ReferenceId.HasValue == true && endNote.ReferenceId.Value != 0 ? GetNativeEndnoteKey(endNote.ReferenceId.Value) : null;
-            if (endnoteKey.HasValue && footnoteNumbersById.TryGetValue(endnoteKey.Value, out number)) {
+            if (endnoteKey.HasValue && footnoteNumbersById.TryGetValue(endnoteKey.Value, out number) && seenKeys.Add(endnoteKey.Value)) {
                 numbers.Add(number);
             }
         }

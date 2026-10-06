@@ -151,7 +151,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package, new IWorkReadOptions {
             MaximumTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
         });
-        using var result = source.ToWordDocumentResult();
+        using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkTable table = Assert.Single(result.Projection.Tables);
         Assert.Equal(42d, table.GetCell(1, 1)!.Value);
@@ -245,18 +245,18 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) {
                 Assert.Equal(2, result.Value.Tables[0].Rows[0].Cells[0].ColumnSpan);
                 Assert.Equal("42", result.Value.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             }
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal("A1:B1", Assert.Single(result.Value.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal((1, 2), Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).Merge);
         }

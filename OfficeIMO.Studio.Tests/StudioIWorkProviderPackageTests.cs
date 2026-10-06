@@ -66,7 +66,7 @@ public sealed class StudioIWorkProviderPackageTests {
                 }
             } finally { window.Close(); }
             var job = Assert.Single(queue.Jobs);
-            job.AllowPartialEditableReconstruction = true;
+            Assert.False(job.AllowPartialEditableReconstruction);
             await queue.RunQueueCommand.ExecuteAsync(null);
             Assert.Equal(replace ? ConversionJobState.Failed : ConversionJobState.Completed, job.State);
             Assert.Equal(!replace, job.HasOutput);

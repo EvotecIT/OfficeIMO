@@ -34,7 +34,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             RestartNumberValues? endnoteRestart = null,
             int? endnoteStart = null,
             NumberFormatValues? endnoteNumberFormat = null,
-            LegacyDocParagraphBorders? pageBorders = null) {
+            LegacyDocParagraphBorders? pageBorders = null,
+            IReadOnlyList<WordSectionColumn>? columnDefinitions = null) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -49,6 +50,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             DifferentFirstPage = differentFirstPage;
             ColumnCount = columnCount;
             ColumnSpacingTwips = columnSpacingTwips;
+            ColumnDefinitions = columnDefinitions == null ? null : Array.AsReadOnly(columnDefinitions.ToArray());
             HasColumnSeparator = hasColumnSeparator;
             PageNumberStart = pageNumberStart;
             PageNumberFormat = pageNumberFormat;
@@ -96,6 +98,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int? ColumnCount { get; }
 
         internal int? ColumnSpacingTwips { get; }
+
+        internal IReadOnlyList<WordSectionColumn>? ColumnDefinitions { get; }
 
         internal bool HasColumnSeparator { get; }
 
@@ -147,6 +151,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || DifferentFirstPage
             || ColumnCount != null
             || ColumnSpacingTwips != null
+            || ColumnDefinitions?.Count > 0
             || HasColumnSeparator
             || PageNumberStart != null
             || PageNumberFormat != null
@@ -168,42 +173,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
-        }
-
-        internal LegacyDocSectionFormat WithSectionBreakType(SectionMarkValues? sectionBreakType) {
-            return new LegacyDocSectionFormat(
-                sectionBreakType,
-                PageWidthTwips,
-                PageHeightTwips,
-                Orientation,
-                MarginTopTwips,
-                MarginRightTwips,
-                MarginBottomTwips,
-                MarginLeftTwips,
-                HeaderDistanceTwips,
-                FooterDistanceTwips,
-                GutterTwips,
-                DifferentFirstPage,
-                ColumnCount,
-                ColumnSpacingTwips,
-                HasColumnSeparator,
-                PageNumberStart,
-                PageNumberFormat,
-                RtlGutter,
-                VerticalAlignment,
-                LineNumberCountBy,
-                LineNumberDistanceTwips,
-                LineNumberStart,
-                LineNumberRestart,
-                FootnotePosition,
-                FootnoteRestart,
-                FootnoteStart,
-                FootnoteNumberFormat,
-                EndnotePosition,
-                EndnoteRestart,
-                EndnoteStart,
-                EndnoteNumberFormat,
-                PageBorders);
         }
 
         internal LegacyDocSectionFormat WithEndnotePosition(EndnotePositionValues? endnotePosition) {
@@ -239,7 +208,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 EndnoteRestart,
                 EndnoteStart,
                 EndnoteNumberFormat,
-                PageBorders);
+                PageBorders,
+                ColumnDefinitions);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);

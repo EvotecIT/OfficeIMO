@@ -118,7 +118,8 @@ internal static partial class PdfWriter {
                     baseFont,
                     size,
                     leading,
-                    currentOpts);
+                    currentOpts,
+                    style?.LineSpacing);
                 double firstLineWidth = textLayout.Lines.Count > 0
                     ? MeasureRichLineWidth(textLayout.Lines[0], currentOpts)
                     : 0D;

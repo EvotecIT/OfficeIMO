@@ -1,0 +1,61 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="using:OfficeIMO.Studio.Features.Shell">
+  <!-- The workspace is hosted separately so switching tabs does not recreate its views. -->
+  <Style Selector="TabControl#DocumentTabs">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+          <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+        </ScrollViewer>
+      </ControlTemplate>
+    </Setter>
+    <Setter Property="ItemContainerTheme">
+      <ControlTheme TargetType="TabItem" x:DataType="shell:StudioDocumentTabViewModel">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0,0,2,0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Header}"
+                              ContentTemplate="{TemplateBinding HeaderTemplate}" />
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+    </Setter>
+  </Style>
+  <Style Selector="Border.documentTab">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="CornerRadius" Value="6,6,0,0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="TabItem:pointerover Border.documentTab"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
+  <Style Selector="TabItem:selected Border.documentTab"><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /></Style>
+  <Style Selector="TabItem:focus-visible Border.documentTab"><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
+  <Style Selector="Border.documentTab TextBlock.tabTitle"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+  <Style Selector="TabItem:selected TextBlock.tabTitle"><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+  <Style Selector="Grid.tabCloseHost"><Setter Property="Grid.Column" Value="2" /></Style>
+  <Style Selector="Button.tabClose">
+    <Setter Property="Width" Value="24" /><Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Opacity" Value="0.65" />
+  </Style>
+  <Style Selector="Button.tabClose:pointerover, Button.tabClose:focus-visible"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.tabClose.dirty"><Setter Property="Opacity" Value="0" /></Style>
+  <Style Selector="TabItem:pointerover Button.tabClose.dirty, TabItem:focus-within Button.tabClose.dirty"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="TabItem:pointerover Ellipse.dirtyDot, TabItem:focus-within Ellipse.dirtyDot"><Setter Property="Opacity" Value="0" /></Style>
+  <Style Selector="Button.tabClose:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
+  <Style Selector="TabControl#DocumentTabs.reordering"><Setter Property="Cursor" Value="SizeWestEast" /></Style>
+  <Style Selector="TabItem.dropBefore Border.documentTab">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+  </Style>
+  <Style Selector="TabItem.dropAfter Border.documentTab">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,3,0" />
+  </Style>
+</Styles>

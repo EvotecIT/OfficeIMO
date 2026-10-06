@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, LegacyDocWritablePictures pictures, out string paragraphText) {
             var builder = new StringBuilder();
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "footnote", FootnoteParagraphStyleIndexes);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph, id, "footnote", FootnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
                 paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
             }
@@ -227,12 +227,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocWritableParagraphFormatting ReadSupportedNoteParagraphFormatting(
-            ParagraphProperties? paragraphProperties,
+            Paragraph paragraph,
             long id,
             string noteKind,
             IReadOnlyDictionary<string, ushort> noteStyleIndexes) {
             try {
-                return ReadSupportedParagraphFormatting(paragraphProperties, noteStyleIndexes);
+                return ReadSupportedParagraphFormatting(MaterializeNoteLineSpacing(paragraph, noteKind), noteStyleIndexes);
             } catch (NotSupportedException exception) {
                 throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' only with supported paragraph formatting. {exception.Message}", exception);
             }
