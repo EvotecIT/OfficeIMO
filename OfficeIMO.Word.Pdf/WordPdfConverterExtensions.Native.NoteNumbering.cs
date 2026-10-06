@@ -20,11 +20,12 @@ public static partial class WordPdfConverterExtensions {
         private bool footnotePageRestart;
         private bool endnotePageRestart;
         private bool pageRestartReported;
-        internal bool EndnotesAtDocumentEnd { get; private set; }
+        internal bool EndnotesAtDocumentEnd { get; }
 
         internal NativeNoteNumbering(WordDocument document, WordToPdfOptions? options) {
             settings = document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings;
             this.options = options;
+            EndnotesAtDocumentEnd = document.EndnoteSettings.Position == WordEndnotePosition.DocumentEnd;
         }
 
         internal void BeginSection(WordSection section) {
@@ -32,10 +33,6 @@ public static partial class WordPdfConverterExtensions {
             W.EndnoteProperties? end = section._sectionProperties.GetFirstChild<W.EndnoteProperties>();
             W.FootnoteDocumentWideProperties? documentFoot = settings?.GetFirstChild<W.FootnoteDocumentWideProperties>();
             W.EndnoteDocumentWideProperties? documentEnd = settings?.GetFirstChild<W.EndnoteDocumentWideProperties>();
-            // Unlike numbering, endnote placement is document-wide. Word ignores
-            // a section-level w:pos, including stale values retained when it saves.
-            W.EndnotePositionValues endnotePosition = documentEnd?.GetFirstChild<W.EndnotePosition>()?.Val?.Value ?? W.EndnotePositionValues.DocumentEnd;
-            EndnotesAtDocumentEnd = endnotePosition == W.EndnotePositionValues.DocumentEnd;
             footnoteFormat = foot?.NumberingFormat?.Val?.Value ?? documentFoot?.NumberingFormat?.Val?.Value ?? W.NumberFormatValues.Decimal;
             endnoteFormat = end?.NumberingFormat?.Val?.Value ?? documentEnd?.NumberingFormat?.Val?.Value ?? W.NumberFormatValues.LowerRoman;
             W.RestartNumberValues? footRestart = foot?.NumberingRestart?.Val?.Value ?? documentFoot?.NumberingRestart?.Val?.Value;
