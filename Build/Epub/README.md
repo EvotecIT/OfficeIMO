@@ -188,3 +188,9 @@ colors. Run the EPUB files through `validate_epub.py`, and use the same captured
 bytes for native reader checks. Browser previews do not reproduce EPUB pagination,
 reader preferences, font handling, or assistive-technology behavior. Retain their
 results separately from native reading-system acceptance.
+
+The `merged-styles` fixture exercises opt-in chapter stylesheet concatenation. The
+second chapter's paragraph color and border style apply to both chapters, while the
+first chapter's border radius remains. Validate the EPUB, inspect wide and compact
+rendering, and exercise both repaired chapter links. Browser rendering of extracted
+XHTML proves this cascade example; it does not qualify native reader presentation.

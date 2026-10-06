@@ -8,7 +8,17 @@ public sealed partial class EpubPublication {
     /// navigation entries, targets the second chapter's start with boundaryId, and repairs references
     /// atomically. Conflicting scaffolding, styles, identifiers and package refinements are rejected.
     /// </summary>
-    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) {
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
+        MergeChapters(firstManifestId, secondManifestId, boundaryId, new EpubChapterMergeOptions(), cancellationToken);
+
+    /// <summary>Merges consecutive reflowable chapters with explicit style reconciliation. The selected
+    /// cascade applies to both chapters; scaffold, identifier and package-refinement conflicts still fail atomically.</summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
+        CancellationToken cancellationToken = default) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        EpubChapterMergeStylePolicy stylePolicy = options.StylePolicy;
+        if (stylePolicy != EpubChapterMergeStylePolicy.RequireEquivalent && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
+            throw new ArgumentOutOfRangeException(nameof(options.StylePolicy));
         cancellationToken.ThrowIfCancellationRequested();
         RequireText(boundaryId, nameof(boundaryId)); XmlConvert.VerifyNCName(boundaryId);
         EpubManifestItem firstItem = RequireManifestItem(firstManifestId), secondItem = RequireManifestItem(secondManifestId);
@@ -39,8 +49,8 @@ public sealed partial class EpubPublication {
         if (!SameMergeAttributes(first.Root, second.Root) || !SameMergeAttributes(firstBody, secondBody))
             throw new NotSupportedException("Root/body attributes resolve differently after reference repair; resolve their styling and semantics before merging.");
         XElement firstHead = first.Root.Element(Html + "head")!, secondHead = second.Root.Element(Html + "head")!;
-        if (!XNode.DeepEquals(ComparableMergeHead(firstHead), ComparableMergeHead(secondHead)) ||
-            !first.Nodes().Where(node => node != first.Root).Select(node => node.ToString()).SequenceEqual(second.Nodes().Where(node => node != second.Root).Select(node => node.ToString()), StringComparer.Ordinal))
+        ReconcileMergeHeadStyles(firstHead, secondHead, stylePolicy, cancellationToken);
+        if (!first.Nodes().Where(node => node != first.Root).Select(node => node.ToString()).SequenceEqual(second.Nodes().Where(node => node != second.Root).Select(node => node.ToString()), StringComparer.Ordinal))
             throw new NotSupportedException("Resolve conflicting chapter heads or document instructions before merging. Styles and metadata are not silently combined or discarded.");
         var boundary = new XElement(Html + "span", new XAttribute("id", boundaryId), new XAttribute("title", secondHead.Element(Html + "title")!.Value));
         JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);

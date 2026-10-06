@@ -14,7 +14,7 @@ public sealed class EpubChapterMergeContracts {
     [InlineData(EpubVersion.Epub3)]
     public void MergePreservesBothTocEntriesAndRepairsLinksAcrossDirectories(EpubVersion version) {
         var book = Book(version);
-        book.MergeChapters("one", "two", "second-start");
+        book.MergeChapters("one", "two", "second-start", default);
         var reopened = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
         Assert.Equal(new[] { "one", "other" }, reopened.Spine.Select(item => item.ManifestId));
         Assert.DoesNotContain("EPUB/parts/two.xhtml", reopened.EntryPaths);

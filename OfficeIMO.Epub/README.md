@@ -658,8 +658,21 @@ rebasing, apart from title text. It rejects conflicting styles, metadata, proces
 instructions, remaining duplicate IDs or image-map names, different reading-position
 attributes, and package refinements that would lose their target. Document-local
 relationships cannot be redirected to an empty boundary marker. Resolve these conflicts
-explicitly before merging; there is no automatic CSS isolation or identifier-renaming
-policy. The same reflowable, resource-inspection, retention and atomicity limits as
+explicitly before merging. To intentionally share both chapters' styles in one cascade:
+
+```csharp
+publication.MergeChapters("chapter-1", "chapter-2", "second-chapter-start",
+    new EpubChapterMergeOptions { StylePolicy = EpubChapterMergeStylePolicy.AppendSecondStyles });
+```
+
+This policy retains the first head and appends every second-head `style` and stylesheet
+`link` in source order after URL rebasing. It preserves duplicates because repeating a
+stylesheet can affect the cascade. Media, title and other stylesheet attributes remain;
+all other head content and attributes must still match apart from title text. Duplicate
+content IDs, scaffold differences and package-refinement conflicts still fail atomically.
+Later rules can restyle **both** chapters. This is an explicit cascade choice, not CSS
+isolation or a promise to preserve each chapter's original appearance. Assess the merged
+result in the intended readers. There is no automatic identifier-renaming policy. The same reflowable, resource-inspection, retention and atomicity limits as
 splitting apply. Reader layout and accessibility assessment remain separate checks.
 
 `EpubWriteReport` identifies preserved, regenerated, and removed entries. Its
