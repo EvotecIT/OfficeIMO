@@ -53,6 +53,54 @@ public sealed class DrawingVectorTextInkTests {
         Assert.Equal(1, count);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void UnsupportedEffectsOnlyWarnWhenTheyCanContainText(bool text, bool singular) {
+        var child = text ? Create(0) : new OfficeDrawing(100, 100);
+        if (!text) child.AddShape(OfficeShape.Rectangle(30, 30), 0, 0);
+        var parent = new OfficeDrawing(100, 100);
+        if (singular) parent.AddEffectDrawing(child, OfficeTransform.Scale(0, 1));
+        else parent.AddEffectDrawing(child, OfficeTransform.Identity, OfficeBlendMode.Normal,
+            new OfficeDrawingSoftMask(new OfficeDrawing(100, 100)));
+        var results = Inspect(parent, OfficeTransform.Identity);
+        if (!text) Assert.Empty(results);
+        else Assert.False(Assert.Single(results).Measured);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PatternWarningsRetainPotentialText(bool text) {
+        var tile = text ? Create(0) : new OfficeDrawing(100, 100);
+        if (!text) tile.AddShape(OfficeShape.Rectangle(10, 10), 0, 0);
+        var drawing = new OfficeDrawing(200, 200);
+        drawing.AddTilingPattern(tile, new OfficeImagePlacement(0, 0, 200, 200), 100, 100);
+        var results = Inspect(drawing, OfficeTransform.Identity);
+        if (text) Assert.False(Assert.Single(results).Measured);
+        else Assert.Empty(results);
+    }
+
+    [Fact]
+    public void TextInAMaskRemainsExplicitlyUnmeasured() {
+        var shape = new OfficeDrawing(100, 100);
+        shape.AddShape(OfficeShape.Rectangle(100, 100), 0, 0);
+        var parent = new OfficeDrawing(100, 100);
+        parent.AddEffectDrawing(shape, OfficeTransform.Identity, OfficeBlendMode.Normal, new OfficeDrawingSoftMask(Create(0)));
+        Assert.False(Assert.Single(Inspect(parent, OfficeTransform.Identity)).Measured);
+    }
+
+    [Fact]
+    public void ShapePresenceTraversalRetainsTheWorkLimit() {
+        var child = new OfficeDrawing(100, 100);
+        for (int i = 0; i < 4096; i++) child.AddShape(OfficeShape.Rectangle(1, 1), 0, 0);
+        var parent = new OfficeDrawing(100, 100);
+        parent.AddEffectDrawing(child, OfficeTransform.Identity, OfficeBlendMode.Normal, new OfficeDrawingSoftMask(new OfficeDrawing(100, 100)));
+        Assert.Throws<NotSupportedException>(() => Inspect(parent, OfficeTransform.Identity));
+    }
+
     private static OfficeDrawing Create(double x) {
         var drawing = new OfficeDrawing(100, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'));
         drawing.AddPositionedTextWithNaturalAdvance("A", x, 20, 10, 40, new OfficeFontInfo("Ink", 30), OfficeColor.Black, 40);

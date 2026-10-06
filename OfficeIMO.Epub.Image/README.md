@@ -124,7 +124,11 @@ Unsupported open paths, non-finite or over-budget geometry and unavailable text 
 Supported paths are limited to 512 commands and 512 flattened vertices.
 Embedded vector inspection follows positioned text through affine effect groups and
 supported filled drawing clips, with each drawing surface's fonts and viewport.
-Shape-only drawings do not produce text warnings. Rich/wrapped/vertical text,
+Shape-only drawings do not produce text warnings, including masked groups,
+singular transforms and repeated vector patterns. A bounded content check retains
+unmeasured warnings when those containers contain text, text-bearing masks,
+outline metadata or embedded images; it does not infer pixel visibility.
+Rich/wrapped/vertical text,
 text represented by outline metadata, masks, vector patterns and embedded image
 resources remain explicitly unmeasured; the inspection does not recover text from
 arbitrary paths or raster pixels. Each vector traversal is limited to 4096 elements

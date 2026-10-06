@@ -20,7 +20,7 @@ public sealed partial class OfficeRasterCanvas {
         }
         void VisitSurface(OfficeDrawing surface, OfficeRasterCanvas parent, OfficeTransform placement, int depth) {
             if (!placement.TryInvert(out OfficeTransform inverse)) {
-                Unmeasured("A singular drawing transform cannot establish text ink geometry."); return;
+                if (MayContainText(surface, depth)) Unmeasured("A singular drawing transform cannot establish text ink geometry."); return;
             }
             var canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), font: null, fonts: surface.Fonts,
                 textShapingProvider: surface.TextShapingProvider ?? parent.TextShapingProvider,
@@ -36,7 +36,11 @@ public sealed partial class OfficeRasterCanvas {
                 if (element is OfficeDrawingText text) InspectText(text, canvas, placement);
                 else if (element is OfficeDrawingEffectGroup effect) {
                     if (effect.Opacity <= 0D) continue;
-                    if (effect.SoftMask != null) { Unmeasured("Masked drawing text visibility is not inspected."); continue; }
+                    if (effect.SoftMask != null) {
+                        if (MayContainText(effect.InnerDrawing, depth + 1) || MayContainText(effect.SoftMask.InnerDrawing, depth + 1))
+                            Unmeasured("Masked drawing text visibility is not inspected.");
+                        continue;
+                    }
                     VisitSurface(effect.InnerDrawing, canvas, effect.Transform.Then(placement), depth + 1);
                 } else if (element is OfficeDrawingGroup group) {
                     if (group.ClipPath.Kind == OfficeClipPathKind.Empty) continue;
@@ -44,7 +48,7 @@ public sealed partial class OfficeRasterCanvas {
                     OfficeTransform frame = group.FrameTransform?.CreateDestinationTransform() ?? OfficeTransform.Identity;
                     OfficeTransform clipPlacement = OfficeTransform.Translate(group.X, group.Y).Then(frame).Then(placement);
                     if (!OfficeTextInkClip.TryCreatePath(group.ClipPath, clipPlacement, _cancellationToken, out OfficeTextInkClip clip)) {
-                        Unmeasured("Unsupported, non-finite or over-budget drawing text clips are not inspected."); continue;
+                        if (MayContainText(group.InnerDrawing, depth + 1)) Unmeasured("Unsupported, non-finite or over-budget drawing text clips are not inspected."); continue;
                     }
                     clips.Add(clip);
                     try {
@@ -52,12 +56,32 @@ public sealed partial class OfficeRasterCanvas {
                             OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY).Then(frame).Then(placement), depth + 1);
                     } finally { clips.RemoveAt(clips.Count - 1); }
                 } else if (element is OfficeDrawingRichText) Unmeasured("Rich drawing text layout is not inspected as positioned text.");
-                else if (element is OfficeDrawingTilingPattern pattern && pattern.Opacity > 0D)
+                else if (element is OfficeDrawingTilingPattern pattern && pattern.Opacity > 0D && MayContainText(pattern.InnerTile, depth + 1))
                     Unmeasured("Repeated vector-pattern text is not inspected.");
                 else if (element is OfficeDrawingImage || element is OfficeDrawingImagePattern)
                     Unmeasured("Text inside embedded image resources is not inspected.");
             }
         }
+        // This is a conservative content check, not a visibility test. Opaque images
+        // and outline metadata may represent text; unsupported text keeps its warning.
+        bool MayContainText(OfficeDrawing current, int depth) {
+            if (depth > 64) throw new NotSupportedException("Drawing text ink inspection exceeds its 64 nested groups/clips limit.");
+            foreach (var element in current.Elements) {
+                Charge();
+                if (element is OfficeDrawingText text) {
+                    if (text.RasterText.Length != 0) return true;
+                } else if (element is OfficeDrawingRichText || element is OfficeDrawingImage || element is OfficeDrawingImagePattern) return true;
+                else if (element is OfficeDrawingEffectGroup effect) {
+                    if (effect.Opacity > 0D && (MayContainText(effect.InnerDrawing, depth + 1) ||
+                        (effect.SoftMask != null && MayContainText(effect.SoftMask.InnerDrawing, depth + 1)))) return true;
+                } else if (element is OfficeDrawingGroup group) {
+                    if (group.ClipPath.Kind != OfficeClipPathKind.Empty &&
+                        (group.ActualText != null || MayContainText(group.InnerDrawing, depth + 1))) return true;
+                } else if (element is OfficeDrawingTilingPattern pattern && pattern.Opacity > 0D && MayContainText(pattern.InnerTile, depth + 1)) return true;
+            }
+            return false;
+        }
+
         void InspectText(OfficeDrawingText text, OfficeRasterCanvas canvas, OfficeTransform placement) {
             if (text.RasterText.Length == 0 || (text.Color ?? OfficeColor.Black).A == 0) return;
             bool positioned = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasPadding

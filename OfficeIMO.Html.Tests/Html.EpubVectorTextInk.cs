@@ -9,6 +9,8 @@ namespace OfficeIMO.Tests;
 
 public sealed class EpubVectorTextInkTests {
     [Theory]
+    [InlineData("<defs><mask id='mask'><rect width='100' height='100' fill='white'/></mask></defs><g mask='url(#mask)'><rect width='30' height='30' fill='red'/></g>", false)]
+    [InlineData("<defs><pattern id='pattern' width='10' height='10' patternUnits='userSpaceOnUse'><rect width='5' height='5' fill='red'/></pattern></defs><rect width='30' height='30' fill='url(#pattern)'/>", false)]
     [InlineData("<rect width='30' height='30' fill='red'/>", false)]
     [InlineData("<text x='10' y='40' font-size='20' font-family='Ink'>A</text>", false)]
     [InlineData("<g transform='translate(20,10)'><text x='10' y='40' font-size='20' font-family='Ink'>A</text></g>", false)]
