@@ -2574,5 +2574,288 @@
       ],
       "scope": "No unrelated worktree/source edit/sharedcache/UI state changed."
     }
+  },
+  "excelNativeOwnershipAndLossQualification20261006": {
+    "recordedUtc": "2026-10-06T02:04:31.912661+00:00",
+    "combinedSource": "b3ae1f35ba3b3da27082585f1891bfae8102473d",
+    "standaloneQualifiedBehavior": "493c7f37f09366d1b993ff4af4262b4efca9aad3",
+    "standalonePublishedHead": "21aab6d1f07d952beb5ec2000138c3c8301a2efe",
+    "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2849",
+    "scope": "Truthful native named-table omission reports, selected/deferred table ownership and package-scoped worksheet inspection; no named-table reconstruction.",
+    "observedBefore": {
+      "nativeDefinitionsBefore": 1,
+      "nativeDefinitionsAfter": 0,
+      "cellValuesPreserved": true,
+      "exportHasLoss": false,
+      "reportDefect": "Named-table metadata was omitted without loss classification.",
+      "publicLifetime": "Saving reloaded the package; old worksheet.GetTables returned an empty snapshot while document.GetTables retained OrdersTable."
+    },
+    "implemented": "Existing snapshot owner materializes deferred definitions; exported worksheet scope drives diagnostics; stale/removed worksheet scope is rejected explicitly. Reacquire the current worksheet after a package-reloading save.",
+    "validation": {
+      "standaloneBroadExcelBeforeLateGuard": {
+        "net8Passed": 5287,
+        "net10Passed": 5287,
+        "skippedEach": 5,
+        "source": "c309e3c359eea79661571dca94a0486f12e022ed"
+      },
+      "finalStandaloneLifetimeAndAdapters": {
+        "source": "493c7f37f09366d1b993ff4af4262b4efca9aad3",
+        "runs": [
+          {
+            "run": "lifetime-final-excel-net10",
+            "counters": {
+              "total": "63",
+              "executed": "63",
+              "passed": "63",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          {
+            "run": "lifetime-final-html-net10",
+            "counters": {
+              "total": "131",
+              "executed": "131",
+              "passed": "131",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          {
+            "run": "lifetime-final-excel-net8",
+            "counters": {
+              "total": "63",
+              "executed": "63",
+              "passed": "63",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          {
+            "run": "lifetime-final-html-net8",
+            "counters": {
+              "total": "131",
+              "executed": "131",
+              "passed": "131",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          }
+        ]
+      },
+      "normalStandalonePackages": {
+        "owners": 6,
+        "targets": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "packedPublicControlsEachFramework": 13,
+        "exactLocalFeedOriginsPackageHashesAndLoadedDllHashes": true,
+        "coreExternalRuntimeDependencies": 0,
+        "nativeWindowsExecutionStillCIRequired": true
+      },
+      "combinedFocusedRuns": [
+        {
+          "run": "main-current-excel-net8.0",
+          "counters": {
+            "total": "63",
+            "executed": "63",
+            "passed": "63",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        {
+          "run": "main-current-html-net8.0",
+          "counters": {
+            "total": "166",
+            "executed": "166",
+            "passed": "166",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        {
+          "run": "main-current-excel-net10.0",
+          "counters": {
+            "total": "63",
+            "executed": "63",
+            "passed": "63",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        {
+          "run": "main-current-html-net10.0",
+          "counters": {
+            "total": "166",
+            "executed": "166",
+            "passed": "166",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        }
+      ],
+      "combinedNormalStandardBuild": "0warnings/0errors",
+      "combinedProjectReferenceConsumersEachFramework": 13,
+      "combinedLoadedDLLsMatchCurrentOwnerOutputs": true,
+      "combinedFreshPackageOrHostedQualification": false
+    },
+    "independentArtifacts": {
+      "pngPayloadSha256": "a25b5ef4e1e66694bf0f48656df4a87d0722231b01dfc1b17185069c317479fe",
+      "bothFrameworksExactPngAndSourceOrderNativeCellValues": true,
+      "imageHyperlinkOmissionCorrectlyReported": true,
+      "nativeNamedTableDefinitionStillNotReconstructed": true,
+      "genericHtmlTableIdDoesNotPromiseNamedExcelTable": true,
+      "nativeApplicationAppearanceClaim": false
+    },
+    "reviews": {
+      "initialFullAndTargeted": "TwoP2 reproduced/fixed: deferred definitions and visual worksheet selection. Confirmation clean.",
+      "newNonoverlappingLifetimeFull": "Fresh closure for actual packed consumer stale-handle gap; no findings, targeted confirmation unused.",
+      "newSHAAloneReviewNotRepeated": true
+    },
+    "publication": {
+      "normalReadyPR": true,
+      "currentExactHeadInitialFeedbackUnresolved": 0,
+      "delayedHeadCIAndFeedbackStillRequired": true,
+      "manualHostedReviewRequested": false
+    },
+    "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+    "artifactHashes": {
+      "main-current-framework-validation.json": "97e56382668d9f196da37f298a7d7d5df596f3aa4a2e289b4e09326196a4fa60",
+      "main-current-b3ae1f35b/independent-native-observation.json": "8ef6ce0a256bff496b6d385600f39d405d4dd367cbe3527ba0f4f4a791dca881",
+      "baseline-package-origin-receipt.json": "74530f380ff190771690f6077b21b3be2da209a619d04474279e5663ee4a11b9",
+      "independent-native-observation.json": "873bc23dc3068721c39d10e5a6829c8cd6304d413119b731b90dcf32c543cb82",
+      "late-lifetime-adoption.json": "0526e5fab4569fafe85ef23cf2cac40e92fde47d22a144d87d10ed421d34efb0",
+      "main-owner-version-observer-assumption.json": "c555abb866813bff56b658dfeca4e9c25079625c7d17e3a8ab8d2679fa71166a"
+    },
+    "standaloneEvidenceRoot": "../OfficeIMO-excel-html-named-table-loss/Ignore/ExcelNamedTableLossQualification",
+    "standaloneArtifactHashes": {
+      "lifetime-final-framework-validation.json": "ddc75a21abd0cb4f29137715e7d0140ccda291d9d9043585f0552d930d351eaf",
+      "final-framework-validation.json": "8487b127f6ff13131be24f6b36003f9634f8750434d4a8c340f4c8a9cc19e69e",
+      "packed-consumer-origin-receipt.json": "d1c36ab8e1ecfc54c804d6d9c47ce260f0e3bd2f9304c1b9a8dd19b58d20ff83",
+      "packages-final/package-hash-receipts.json": "cf303affe29d3ac7caa1681354c94ce384619363ef2625a6de998e351340087e",
+      "packed-consumer/independent-native-observation.json": "0779a09a5af7706a761a969812de9df5eabf8f878abe6534a7c69d40f2ae0b04",
+      "final-published-source-identity.json": "9ff9a6359b104dc5257e4a233c49c7d864b0d28d44991463fdb5183a2483bf53",
+      "review-boundary.json": "a0541ac4e45a9a3cb4d61ee7d2b10866c4a11e4b1d48eb41fa74ab13fb6539c8",
+      "lifetime-closure-boundary.json": "57ccc7ef95f65d55722ec67512b85ffbfe355b1c79994e454ae3d0445d91a06e",
+      "final-build-cleanup-results.json": "25379f7e9143bd79086671e2f55346f7720ad93a1b2cd6c2f2e50dd5f963aa25"
+    },
+    "remaining": [
+      "Explicit named-table reconstruction and wider native image/link appearance",
+      "Other named H10 native/resource/profile/corpus acceptance",
+      "Supported-platform unchanged timing and qualified long-lived synchronization"
+    ],
+    "cleanup": {
+      "main": {
+        "targets": 85,
+        "bytes": 1990265794,
+        "allAbsent": true,
+        "receipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/final-native-contract-cleanup-results.json",
+        "sha256": "207a1e4dcc7a31343dae82f79107475ddf2eed7ac7e3838d09e769d0f3986c86"
+      },
+      "standaloneFinal": {
+        "targets": 85,
+        "bytes": 2470959594,
+        "allAbsent": true
+      },
+      "standaloneBeforeFinalPack": {
+        "targets": 68,
+        "bytes": 1400464586,
+        "allAbsent": true
+      },
+      "totalBytesThisSlice": 5861689974,
+      "boundary": "Exact generated targets only; final feeds, source archives, native XLSX/HTML/PNG, framework tests, failed probes and origin/hash receipts retained. Shared caches and unrelated worktrees untouched."
+    }
   }
 }
