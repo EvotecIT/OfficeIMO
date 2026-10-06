@@ -45,7 +45,7 @@ try {
         New-BenchmarkSuite 'CSV text-delimiter batching comparison' {
             Add-BenchmarkMetadata AffinityMask $(if ($IsWindows -or $IsLinux) { $Mask } else { 'OS scheduled' })
             Add-BenchmarkMetadata SourceContract 'Qualified current CSV baseline; two private writer paths differ; complete byte/field validation and partial-record/cancellation contracts retained'
-            Add-BenchmarkMetadata Normalization 'Complete UTF8 file writes per sample; OperationsPerSample records batch size' 
+            Add-BenchmarkMetadata Normalization 'Complete UTF8 file writes per sample; OperationsPerSample records batch size'
             Add-BenchmarkMetadata OperationsPerSample $Operations
             Add-BenchmarkMetadata Diagnostic 'Before and Control use identical baseline source and bytes; After uses candidate; all three engines rotate within every retained iteration'
             Add-BenchmarkMetadata ControlModuleVersion ($controlModule.Version.ToString())
