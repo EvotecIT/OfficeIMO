@@ -202,11 +202,10 @@ class ExportBudget {
         this.reservedCells += cells;
         this.reservedText += characters;
     }
+    release(cells, characters) { this.reservedCells -= cells; this.reservedText -= characters; }
     cell(value, reservedCharacters) {
-        if (reservedCharacters !== undefined) {
-            this.reservedCells--;
-            this.reservedText -= reservedCharacters;
-        }
+        if (reservedCharacters !== undefined)
+            this.release(1, reservedCharacters);
         this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
         this.check("maxTextCharacters", this.text + this.reservedText + length);

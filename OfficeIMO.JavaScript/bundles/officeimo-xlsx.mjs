@@ -202,11 +202,10 @@ class ExportBudget {
         this.reservedCells += cells;
         this.reservedText += characters;
     }
+    release(cells, characters) { this.reservedCells -= cells; this.reservedText -= characters; }
     cell(value, reservedCharacters) {
-        if (reservedCharacters !== undefined) {
-            this.reservedCells--;
-            this.reservedText -= reservedCharacters;
-        }
+        if (reservedCharacters !== undefined)
+            this.release(1, reservedCharacters);
         this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
         this.check("maxTextCharacters", this.text + this.reservedText + length);
@@ -1733,10 +1732,16 @@ class Worksheet {
                 ...(presentation.numberFormat === undefined ? {} : { numberFormat: presentation.numberFormat })
             });
         const originalCharacters = typeof value === "string" ? value.length : 0;
+        let reservedCharacters = this.preserved || header || footer ? originalCharacters : undefined;
         if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
             const cell = col.letter + row;
             if (this.links.some(link => link.cell === cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+            // Replace a generated cell's original reservation with its preview and overflow records.
+            if (reservedCharacters !== undefined) {
+                this.book.budget.release(1, reservedCharacters);
+                reservedCharacters = undefined;
+            }
             const preserved = this.book.preserveText(this.name, cell, value);
             this.book.retainLink();
             this.internalLinks.push({ cell, location: preserved.location });
@@ -1747,7 +1752,7 @@ class Worksheet {
         if (!header && !footer)
             this.layout.accept(i, value);
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-        this.book.budget.cell(value, this.preserved || header || footer ? originalCharacters : undefined);
+        this.book.budget.cell(value, reservedCharacters);
         if (total)
             return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
         if (value == null || (type === "number" && !Number.isFinite(value)))
@@ -2006,7 +2011,7 @@ class Worksheet {
     /** @internal */
     takePrepared() { const prepared = this.prepared; this.prepared = undefined; return prepared; }
     /** @internal */
-    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; await this.entry?.discard(error); this.output.discard(); }
+    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
@@ -2219,7 +2224,13 @@ class Workbook {
     }
     /** @internal */
     assertOpen() {
-        checkAbort(this.settings.signal);
+        try {
+            checkAbort(this.settings.signal);
+        }
+        catch (error) {
+            void this.discard(error).catch(() => { });
+            throw error;
+        }
         if (this.state === "failed")
             throw this.failure;
         if (this.state !== "open")
@@ -2312,7 +2323,12 @@ class Workbook {
     }
     /** Complete the archive and return counts. Does not close or dispose a caller-owned sink. */
     finish() {
-        checkAbort(this.settings.signal);
+        try {
+            checkAbort(this.settings.signal);
+        }
+        catch (error) {
+            return this.discard(error).then(() => { throw error; });
+        }
         if (this.completion)
             return this.completion;
         if (this.state === "failed")
@@ -2380,7 +2396,12 @@ class Workbook {
         return this.completion;
     }
     toBlob() {
-        checkAbort(this.settings.signal);
+        try {
+            checkAbort(this.settings.signal);
+        }
+        catch (error) {
+            return this.discard(error).then(() => { throw error; });
+        }
         if (this.settings.sink)
             throw new OfficeIMOError("INVALID_STATE", "This workbook uses a caller-owned sink; use finish().");
         if (!this.result) {

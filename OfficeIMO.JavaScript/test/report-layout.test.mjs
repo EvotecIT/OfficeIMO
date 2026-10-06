@@ -109,6 +109,11 @@ test("preservation, footer and Blob output limits reject while accepting source 
   await assert.rejects(bounded.addSheet("Bounded", { columns: [{ header: "A" }] }).addRows(rows()), { code: "RESOURCE_LIMIT" });
   assert.ok(produced < 1000); assert.equal(returned, true);
   await assert.rejects(writeCsv([[null]], { columns: [{ header: "A" }], nullValue: "Unavailable", limits: { maxTextCharacters: 3 } }), { code: "RESOURCE_LIMIT" });
+  const preservedFooter = createWorkbook({ oversizedText: "preserve", limits: { maxTextCharacters: 140000 } });
+  await preservedFooter.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["x".repeat(100000)] } }).addRows([[1]]);
+  const footerZip = await readZip(await preservedFooter.toBlob());
+  assert.match(footerZip.get("xl/worksheets/sheet1.xml").content, /<hyperlink ref="A3" location=/);
+  assert.match(footerZip.get("xl/worksheets/sheet2.xml").content, /<c r="E5"[^>]*><v>4<\/v>/);
 });
 
 test("footer caches aggregate emitted date serials and numeric counts use General format", async () => {
@@ -145,4 +150,14 @@ test("hyperlinks may address explicit footer values but not rows after the foote
   if (process.env.OFFICEIMO_REPORT_FIXTURES) await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/footer-link.xlsx", new Uint8Array(await blob.arrayBuffer()));
   const invalid = createWorkbook(), other = invalid.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["End"] } });
   await other.addRows([[1]]); other.addHyperlink({ cell: "A4", target: "https://evotec.xyz" }); await assert.rejects(invalid.toBlob(), RangeError);
+});
+
+test("cancellation between appends and finalization preserves the original reason", async () => {
+  for (const closed of [false, true]) for (const operation of ["finish", "toBlob"]) {
+    const controller = new AbortController(), reason = new Error("between operations");
+    const book = createWorkbook({ signal: controller.signal }), sheet = book.addSheet("Cancel", { columns: [{ header: "A" }] });
+    await sheet.addRows([["accepted"]]); if (closed) await sheet.close(); controller.abort(reason);
+    await assert.rejects(book[operation](), error => error === reason);
+    await assert.rejects(sheet.addRows([["later"]]), error => error === reason);
+  }
 });

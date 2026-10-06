@@ -141,16 +141,19 @@ export class Worksheet {
       ...(presentation.numberFormat === undefined ? {} : { numberFormat: presentation.numberFormat })
     });
     const originalCharacters = typeof value === "string" ? value.length : 0;
+    let reservedCharacters = this.preserved || header || footer ? originalCharacters : undefined;
     if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
       const cell = col.letter + row;
       if (this.links.some(link => link.cell === cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+      // Replace a generated cell's original reservation with its preview and overflow records.
+      if (reservedCharacters !== undefined) { this.book.budget.release(1, reservedCharacters); reservedCharacters = undefined; }
       const preserved = this.book.preserveText(this.name, cell, value as string);
       this.book.retainLink(); this.internalLinks.push({ cell, location: preserved.location }); value = preserved.preview;
     }
     if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
     if (!header && !footer) this.layout.accept(i, value as CellValue);
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-    this.book.budget.cell(value, this.preserved || header || footer ? originalCharacters : undefined);
+    this.book.budget.cell(value, reservedCharacters);
     if (total) return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
     if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
     if (value == null) return prefix + '/>';
@@ -325,5 +328,5 @@ export class Worksheet {
   /** @internal */
   takePrepared(): PreparedEntry | undefined { const prepared = this.prepared; this.prepared = undefined; return prepared; }
   /** @internal */
-  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; await this.entry?.discard(error); this.output.discard(); }
+  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }

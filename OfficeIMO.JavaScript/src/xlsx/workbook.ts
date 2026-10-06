@@ -75,7 +75,8 @@ export class Workbook {
   }
   /** @internal */
   assertOpen(): void {
-    checkAbort(this.settings.signal);
+    try { checkAbort(this.settings.signal); }
+    catch (error) { void this.discard(error).catch(() => {}); throw error; }
     if (this.state === "failed") throw this.failure;
     if (this.state !== "open") throw new OfficeIMOError("INVALID_STATE", "Workbook is already finalized.");
   }
@@ -153,7 +154,8 @@ export class Workbook {
   }
   /** Complete the archive and return counts. Does not close or dispose a caller-owned sink. */
   finish(): Promise<XlsxExportResult> {
-    checkAbort(this.settings.signal);
+    try { checkAbort(this.settings.signal); }
+    catch (error) { return this.discard(error).then(() => { throw error; }); }
     if (this.completion) return this.completion;
     if (this.state === "failed") return Promise.reject(this.failure);
     this.assertOpen();
@@ -208,7 +210,8 @@ export class Workbook {
     return this.completion;
   }
   toBlob(): Promise<Blob> {
-    checkAbort(this.settings.signal);
+    try { checkAbort(this.settings.signal); }
+    catch (error) { return this.discard(error).then(() => { throw error; }); }
     if (this.settings.sink) throw new OfficeIMOError("INVALID_STATE", "This workbook uses a caller-owned sink; use finish().");
     if (!this.result) { const completion = this.finish(); this.result = completion.then(() => this.package.toBlob(xlsxMime)); }
     return this.result;

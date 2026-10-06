@@ -31,8 +31,9 @@ export class ExportBudget {
     this.check("maxTextCharacters", this.text + this.reservedText + characters);
     this.reservedCells += cells; this.reservedText += characters;
   }
+  release(cells: number, characters: number): void { this.reservedCells -= cells; this.reservedText -= characters; }
   cell(value: unknown, reservedCharacters?: number): void {
-    if (reservedCharacters !== undefined) { this.reservedCells--; this.reservedText -= reservedCharacters; }
+    if (reservedCharacters !== undefined) this.release(1, reservedCharacters);
     this.check("maxCells", this.cells + this.reservedCells + 1);
     const length = typeof value === "string" ? value.length : 0;
     this.check("maxTextCharacters", this.text + this.reservedText + length);

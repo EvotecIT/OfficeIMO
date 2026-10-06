@@ -22,6 +22,7 @@ if (args.Contains("--qualify")) { await ExportQualification.RunAsync(repository,
 string vectorJson = File.ReadAllText(Path.Combine(repository, "OfficeIMO.TestAssets", "CSV", "browser-exports.json"));
 string scenarios = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "scenarios.js"));
 string layers = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "layers.js"));
+string reportContracts = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "reports.js"));
 string fixtureJson = File.ReadAllText(Path.Combine(repository, "OfficeIMO.TestAssets", "JavaScript", "xlsx-writer.json"));
 string? moduleUrl = args.FirstOrDefault(a => a.StartsWith("--module-url=", StringComparison.Ordinal))?.Substring("--module-url=".Length);
 string host = Path.Combine(evidence, "fixture-host.html");
@@ -57,7 +58,10 @@ foreach (HtmlBrowserEngine engine in engines) {
         new { vectorJson, workerScript = BrowserAssets.Script.Content, limits = args.Contains("--limits") });
     await session.Page.AddScriptTagAsync(new() { Content = layers });
     JsonElement layerResult = await session.Page.EvaluateAsync<JsonElement>("args => runLayerScenarios(args)", new { fixtureJson, moduleBase = moduleUrl });
+    await session.Page.AddScriptTagAsync(new() { Content = reportContracts });
+    JsonElement reportResult = await session.Page.EvaluateAsync<JsonElement>("() => runReportContracts()");
     foreach (string name in produced.Where(name => name.EndsWith(".xlsx", StringComparison.Ordinal))) WorkbookVerifier.Verify(Path.Combine(output, name));
+    foreach (string name in produced.Where(name => name.StartsWith("report-", StringComparison.Ordinal))) ReportVerifier.Verify(Path.Combine(output, name));
     using (JsonDocument corpus = JsonDocument.Parse(fixtureJson)) {
         foreach (JsonElement spec in corpus.RootElement.GetProperty("cases").EnumerateArray())
             foreach (string kind in moduleUrl is null ? new[] { "classic" } : new[] { "classic", "esm" })
@@ -73,7 +77,7 @@ foreach (HtmlBrowserEngine engine in engines) {
     }
     if (errors.Count != 0) throw new InvalidDataException("Browser errors: " + string.Join("; ", errors));
     var report = new { engine = engine.ToString(), browserVersion = session.Browser?.Version, result,
-        layerResult, workbooks = produced.Count(name => name.EndsWith(".xlsx", StringComparison.Ordinal)), csvVectors = vectors.RootElement.GetProperty("cases").GetArrayLength(), errors };
+        layerResult, reportResult, workbooks = produced.Count(name => name.EndsWith(".xlsx", StringComparison.Ordinal)), csvVectors = vectors.RootElement.GetProperty("cases").GetArrayLength(), errors };
     reports.Add(report);
     File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
     Console.WriteLine($"Passed {engine}: {report.workbooks} workbooks, {report.csvVectors} byte-identical CSV vectors.");
