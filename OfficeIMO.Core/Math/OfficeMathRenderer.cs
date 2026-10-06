@@ -98,6 +98,7 @@ public static partial class OfficeMathRenderer {
                     OfficeTextAlignment.Center, command.Height, Math.Max(0.01D, command.Advance),
                     OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
                     0, 1D, command.Baseline - command.FontSize);
+                ((OfficeDrawingText)drawing.Elements[drawing.Elements.Count - 1]).FontMetricScale = options.Dpi / 72D;
                 if (command.LogicalText != null)
                     ((OfficeDrawingText)drawing.Elements[drawing.Elements.Count - 1])
                         .SetPaintedText(command.LogicalText, command.Text!);
@@ -112,6 +113,7 @@ public static partial class OfficeMathRenderer {
                 drawing.AddPositionedText(command.Text!, x + command.X, y + command.Y,
                     command.Width, command.Height, options.Font.WithSize(command.FontSize), OfficeColor.Transparent,
                     OfficeTextAlignment.Left, command.Height, command.Width);
+                ((OfficeDrawingText)drawing.Elements[drawing.Elements.Count - 1]).FontMetricScale = options.Dpi / 72D;
             } else if (command.Kind == LayoutCommandKind.Line) {
                 OfficeShape line = OfficeShape.Line(x + command.X, y + command.Y, x + command.X2, y + command.Y2);
                 line.StrokeColor = options.Color;
@@ -148,9 +150,9 @@ public static partial class OfficeMathRenderer {
             _cramped = cramped;
             _cancellationToken = cancellationToken;
             _measurer = OfficeTextMeasurer.Create(options.Font);
-            _measureScopedText = measureScopedText ?? OfficeRasterCanvas.CreateScopedPositionedTextMeasurement(options.Fonts, cancellationToken);
+            _measureScopedText = measureScopedText ?? OfficeRasterCanvas.CreateScopedPositionedTextMeasurement(options.Fonts, cancellationToken, options.Dpi / 72D);
             if (options.UseFontMathMetrics && options.Fonts.TryResolveFaceForText("x", options.Font.FamilyName,
-                    options.Font.Face, FontSize(1D), out OfficeFontFace? face))
+                    options.Font.Face, AuthoredFontSize(1D), out OfficeFontFace? face))
                 _mathConstants = (face!.Program as IOfficeMathFontProgram)?.MathConstants;
         }
 
@@ -165,6 +167,8 @@ public static partial class OfficeMathRenderer {
             }
             return engine.Layout(expression, scale);
         }
+
+        private double AuthoredFontSize(double scale) => FontSize(scale) / (_options.Dpi / 72D);
 
         private double FontSize(double scale) => Math.Max(0.1D, _options.Font.Size * _options.Dpi / 72D * scale);
 

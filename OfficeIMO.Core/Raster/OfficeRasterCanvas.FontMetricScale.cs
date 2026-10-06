@@ -1,9 +1,32 @@
+using System;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
-    internal double FontMetricScale { get; set; } = 1D;
+    private double _fontMetricScale = 1D;
+    internal double FontMetricScale {
+        get => _fontMetricScale;
+        set {
+            if (value == _fontMetricScale) return;
+            if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(value));
+            _fontMetricScale = value;
+            _scaledMetricFonts?.Clear();
+        }
+    }
+
+    internal IDisposable PushFontMetricScale(double scale) {
+        var scope = new FontMetricScaleScope(this, FontMetricScale);
+        FontMetricScale = scale;
+        return scope;
+    }
+
+    private sealed class FontMetricScaleScope : IDisposable {
+        private OfficeRasterCanvas? _canvas;
+        private readonly double _previous;
+        internal FontMetricScaleScope(OfficeRasterCanvas canvas, double previous) { _canvas = canvas; _previous = previous; }
+        public void Dispose() { if (_canvas != null) { _canvas.FontMetricScale = _previous; _canvas = null; } }
+    }
     private Dictionary<OfficeTrueTypeFont, OfficeTrueTypeFont>? _scaledMetricFonts;
 
     private IOfficeFontProgram? ResolveMetricScale(IOfficeFontProgram? font) {

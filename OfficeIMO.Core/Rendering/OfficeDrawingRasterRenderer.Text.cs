@@ -133,6 +133,7 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
+        using var metricScope = canvas.PushFontMetricScale(canvas.FontMetricScale * text.FontMetricScale);
         using var faceScope = canvas.PushTextFace(text.Font.Face);
         OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
         double contentX = (text.X * scale) + scaledPadding.Left;

@@ -15,8 +15,8 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>Pairs scoped shaping advances and paint bounds, sharing cancellation and
     /// outline budgets across all runs in the returned operation. Installed fonts are not resolved.</summary>
     internal static Func<string, OfficeFontInfo, (double Advance, double Left, double Top, double Right, double Bottom, bool HasInk)>
-        CreateScopedPositionedTextMeasurement(OfficeFontFaceCollection fonts, CancellationToken cancellationToken) {
-        var canvas = new OfficeRasterCanvas(fonts, cancellationToken);
+        CreateScopedPositionedTextMeasurement(OfficeFontFaceCollection fonts, CancellationToken cancellationToken, double fontMetricScale = 1D) {
+        var canvas = new OfficeRasterCanvas(fonts, cancellationToken) { FontMetricScale = fontMetricScale };
         return (text, font) => {
             // Mathematical script levels can be below one unit. The general public text
             // measurement floor is unsuitable here; use positioned paint's 0.1-unit floor.

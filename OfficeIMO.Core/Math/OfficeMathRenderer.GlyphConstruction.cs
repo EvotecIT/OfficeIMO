@@ -70,8 +70,9 @@ public static partial class OfficeMathRenderer {
             if (text.Length == 0 || text.Length > 2 || text.Length == 2 && !char.IsSurrogatePair(text, 0)
                 || text.Length == 1 && char.IsSurrogate(text[0])) return false;
             if (!_options.Fonts.TryResolveFaceForText(text, _options.Font.FamilyName,
-                    _options.Font.Face, FontSize(scale), out var face)) return false;
-            font = face!.Program;
+                    _options.Font.Face, AuthoredFontSize(scale), out var face)) return false;
+            font = face!.Program is OfficeTrueTypeFont trueType
+                ? trueType.ForOutputScale(_options.Dpi / 72D) : face.Program;
             data = (font as IOfficeMathGlyphProgram)?.MathGlyphData;
             return data != null && font.TryGetGlyphMetrics(char.ConvertToUtf32(text, 0), out glyph, out _);
         }
