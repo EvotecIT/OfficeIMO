@@ -200,6 +200,75 @@ public class PdfEncryptedMutationTests {
         Assert.Equal(2, output.ToDocument().Reader.Pages().Count);
     }
 
+    [Theory]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
+    public void EncryptedRedactionEvidenceUsesGeneratedCiphertextBudget(PdfStandardEncryptionAlgorithm algorithm) {
+        byte[] source = CreateCompactEncryptedSource(algorithm, includeNeighbor: false);
+        var options = new PdfLoadOptions { Password = "owner", Limits = new PdfReadLimits { MaxRawStreamBytes = LargestStoredStream(source) } };
+        PdfDocument document = PdfDocument.Load(source, options);
+        PdfRedactionPlan plan = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("ORIGINAL"));
+        PdfRedactionApplyResult output = document.Redactions.ApplyWithEvidence(plan,
+            verificationOptions: new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true }.RequireRemovedText("ORIGINAL"));
+        Assert.True(output.IsVerified, output.Evidence.Summary);
+        AssertProtected(source, output.ToDocument().ToBytes());
+        Assert.DoesNotContain("ORIGINAL", output.ToDocument().Reader.Text());
+    }
+
+    [Theory]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
+    public void EncryptedStampUsesGeneratedPlaintextAndCiphertextStreamBudgets(PdfStandardEncryptionAlgorithm algorithm) {
+        byte[] source = CreateCompactEncryptedSource(algorithm);
+        var options = new PdfLoadOptions { Password = "owner", Limits = new PdfReadLimits { MaxRawStreamBytes = LargestStoredStream(source) } };
+        PdfDocument output = PdfDocument.Load(source, options).Stamp.Text("A longer generated stamp with additional text");
+        AssertProtected(source, output.ToBytes());
+        Assert.Contains("A longer generated stamp", output.Reader.Text());
+        Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(output.ToBytes(), options));
+    }
+
+    [Theory]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
+    public void EncryptedMiddleInsertionUsesGeneratedCiphertextStreamBudget(PdfStandardEncryptionAlgorithm algorithm) {
+        byte[] source = CreateCompactEncryptedSource(algorithm, twoPages: true);
+        byte[] incoming = PdfDocument.Create().Paragraph(p => p.Text(string.Join(" ", Enumerable.Range(0, 150).Select(index => "item" + index.ToString("X4"))))).ToBytes();
+        int incomingLength = LargestStoredStream(incoming, encrypted: false);
+        var options = new PdfLoadOptions { Password = "owner", Limits = new PdfReadLimits { MaxRawStreamBytes = incomingLength } };
+        PdfDocument output = PdfDocument.Load(source, options).Pages.Insert(2, incoming);
+        AssertProtected(source, output.ToBytes());
+        Assert.Equal(3, output.Reader.Pages().Count);
+        Assert.Contains("item0000", output.Reader.Text());
+        Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(output.ToBytes(), options));
+    }
+
+    private static int LargestStoredStream(byte[] pdf, bool encrypted = true) =>
+        PdfReadDocument.Open(pdf, new PdfLoadOptions { Password = encrypted ? "owner" : null }).Objects.Values
+            .Where(item => item.Value is PdfStream).Max(item => (int)((PdfStream)item.Value).Dictionary.Get<PdfNumber>("Length")!.Value);
+
+    private static byte[] CreateCompactEncryptedSource(PdfStandardEncryptionAlgorithm algorithm, bool twoPages = false, bool includeNeighbor = true) {
+        PdfDocument plain = PdfDocument.Create().Paragraph(p => p.Text("ORIGINAL neighbor"));
+        if (twoPages) plain.PageBreak().Paragraph(p => p.Text("Second page"));
+        byte[] source = plain.ToBytes();
+        PdfReadDocument read = PdfReadDocument.Open(source);
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            foreach (PdfIndirectObject item in objects.Values) {
+                if (item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Subtype")?.Name == "Type1") dictionary.Items.Remove("ToUnicode");
+            }
+            foreach (PdfReadPage page in read.Pages) {
+                string fontName = new PdfFontResourceCache().GetOrCreate(page.GetFontInspectionResources(), read.Objects).Fonts.Keys.First();
+                int number = objects.Keys.Max() + 1;
+                objects[number] = new PdfIndirectObject(number, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(
+                    "BT /" + fontName + " 12 Tf 50 700 Td (ORIGINAL) Tj" + (includeNeighbor ? " 0 -30 Td (neighbor) Tj" : string.Empty) + " ET\n")));
+                ((PdfDictionary)objects[page.ObjectNumber].Value).Items["Contents"] = new PdfReference(number, 0);
+            }
+            return security.InfoObjectNumber;
+        });
+        return PdfDocument.Load(source).Security.Encrypt(new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner", Algorithm = algorithm
+        }).ToDocument().ToBytes();
+    }
+
     private static byte[] CreateEncryptedSource(PdfStandardEncryptionAlgorithm algorithm) =>
         PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("ORIGINAL neighbor"))),
             new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
