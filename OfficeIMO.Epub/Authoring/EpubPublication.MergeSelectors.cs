@@ -13,10 +13,9 @@ public sealed partial class EpubPublication {
     private MergeSelectorStyles PrepareMergeSelectors(XDocument second, string owner, IReadOnlyDictionary<string, string> ids,
         ContentReferenceMap map, List<(XAttribute Attribute, string Original)> relationships, CancellationToken token) {
         var result = new MergeSelectorStyles();
-        if (!ids.Any(pair => pair.Key != pair.Value)) return result;
         if (second.DescendantNodes().OfType<XProcessingInstruction>().Any())
             throw new NotSupportedException("Selector reconciliation requires stylesheet elements instead of processing instructions.");
-        var relationshipSelectors = new MergeRelationshipSelectors(relationships, token);
+        var inlineStyles = new List<XElement>();
         var clones = new Dictionary<string, string>(StringComparer.Ordinal);
         var usedIds = new HashSet<string>(Root.DescendantsAndSelf().Attributes("id").Select(attribute => attribute.Value), StringComparer.Ordinal);
         var usedPaths = new HashSet<string>(_entries.Keys.Concat(new[] { PackagePath })
@@ -29,6 +28,7 @@ public sealed partial class EpubPublication {
                 if (element.Attribute("type") is XAttribute type && !HasMediaType(type.Value, "text/css"))
                     throw new NotSupportedException("Selector reconciliation requires CSS style elements.");
                 element.Value = Rewrite(element.Value, owner, 0);
+                inlineStyles.Add(element);
             } else if (element.Name == Html + "link" && Tokens((string?)element.Attribute("rel"))
                 .Any(value => value.Equals("stylesheet", StringComparison.OrdinalIgnoreCase))) {
                 XAttribute href = element.Attribute("href") ?? throw new InvalidDataException("Stylesheet link has no href.");
@@ -37,11 +37,32 @@ public sealed partial class EpubPublication {
                 if (element.Attribute("integrity") != null) throw new NotSupportedException("Reconcile stylesheet integrity metadata before cloning styles.");
             }
         }
+        // Link hrefs now point to their private clones. Attribute selectors must see these final
+        // lexical values, rather than the intermediate URLs produced by chapter relocation.
+        var relationshipSelectors = new MergeRelationshipSelectors(relationships, token);
+        foreach (XElement style in inlineStyles) {
+            token.ThrowIfCancellationRequested();
+            style.Value = HtmlCssIdSelectorRewriter.Rewrite(style.Value, ids, token, relationshipSelectors.Rewrite);
+        }
+        clonedBytes = 0;
+        foreach (string path in result.Entries.Keys.ToArray()) {
+            token.ThrowIfCancellationRequested();
+            string css = Encoding.UTF8.GetString(result.Entries[path]);
+            string rewritten = HtmlCssIdSelectorRewriter.Rewrite(css, ids, token, relationshipSelectors.Rewrite);
+            byte[] bytes = new UTF8Encoding(false, true).GetBytes(rewritten);
+            CheckClonedBytes(bytes);
+            result.Entries[path] = bytes;
+        }
         return result;
 
+        void CheckClonedBytes(byte[] bytes) {
+            if (bytes.LongLength > _maximumEntryBytes) throw new InvalidDataException("Cloned stylesheet exceeds the entry-byte limit.");
+            clonedBytes += bytes.LongLength;
+            if (clonedBytes > _maximumRetainedBytes) throw new InvalidDataException("Cloned stylesheets exceed the retained-byte limit.");
+        }
+
         string Rewrite(string css, string path, int depth) {
-            string selectors = HtmlCssIdSelectorRewriter.Rewrite(css, ids, token, relationshipSelectors.Rewrite);
-            return HtmlResourcePipeline.RewriteCssResourceUrls(selectors, (value, kind) => {
+            return HtmlResourcePipeline.RewriteCssResourceUrls(css, (value, kind) => {
                 token.ThrowIfCancellationRequested();
                 return kind == HtmlResourceKind.Stylesheet ? Import(value, path, depth) :
                     RewriteMovedReference(path, null, path, null, value, string.Empty, string.Empty, map);
@@ -83,11 +104,8 @@ public sealed partial class EpubPublication {
                     if (end >= 0) rewritten = "@charset \"UTF-8\";" + rewritten.Substring(end + 1);
                 }
                 byte[] bytes = new UTF8Encoding(false, true).GetBytes(rewritten);
-                if (bytes.LongLength > _maximumEntryBytes) throw new InvalidDataException("Cloned stylesheet exceeds the entry-byte limit.");
+                CheckClonedBytes(bytes);
                 result.Entries.Add(destination, bytes);
-                clonedBytes += bytes.LongLength;
-                if (clonedBytes > _maximumRetainedBytes)
-                    throw new InvalidDataException("Cloned stylesheets exceed the retained-byte limit.");
             }
             return RelativeHref(path, destination) + (reference.Query == null ? string.Empty : "?" + reference.Query) +
                 (reference.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(reference.Fragment));

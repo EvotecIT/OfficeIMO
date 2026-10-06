@@ -747,11 +747,18 @@ or a replacement would introduce additional attribute matches, merge rejects the
 conflict. This conservative check applies across the second chapter; it does not
 use other parts of a selector to narrow an ambiguous attribute match.
 
+Exact and presence selectors on resource-bearing attributes, including `href`,
+`cite`, `src`, `srcset`, `style` and SVG `fill`, follow their final lexical values.
+Stylesheet-link selectors use the private clone paths. This repair also runs when
+`SecondChapterIdMap` is empty: moving a chapter can change its links without
+renaming an identifier. Selectors referring to removed `<base>` attributes reject
+the merge. The option repairs second-chapter styles; first-chapter styles still
+need inspection when reference repair changes values that they select.
+
 The automatic profile rejects unknown at-rules,
 namespaced attribute selectors, partial or case-insensitive ID/relationship matches,
-case-variant relationship names, and resource-bearing attribute selectors such as
-`href`, `cite`, `src`, `style` and SVG `fill`, stylesheet processing
-instructions, integrity digests and stylesheet package refinements. Reconcile these
+case-variant relationship names, token or partial resource-attribute matches,
+stylesheet processing instructions, integrity digests and stylesheet package refinements. Reconcile these
 explicitly before merging, or leave automatic rewriting disabled and prepare all
 ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;
 selector repair does not isolate generic rules or prove visual equivalence. Nested

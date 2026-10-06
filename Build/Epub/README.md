@@ -322,3 +322,11 @@ top borders. Follow the third-chapter link and return to the renamed second head
 The linked stylesheet import is privately cloned, while the third chapter keeps
 the original rules. Independent validator and reader results are separate from
 native preflight and source-preservation checks.
+
+`merge-resource-selectors.epub` moves the second chapter out of a subdirectory
+and repairs exact selectors for local links, citation URLs and an image source.
+The first and third local links are blue; the second local link and quotation are
+green. Local links retain three-pixel bottom borders, and the image retains its
+four-pixel green border. Follow the third-chapter link and return to the renamed
+second heading. Shared CSS imports are privately cloned. These are expected reader
+checks; passing native preflight or an independent validator does not prove rendering.

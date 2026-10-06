@@ -54,7 +54,6 @@ public sealed class EpubMergeSelectorContracts {
     [InlineData("[id|=heading] {color:red}")]
     [InlineData("[id='heading' i] {color:red}")]
     [InlineData("@unknown { #heading {color:red} }")]
-    [InlineData("a[href='#heading'] {color:red}")]
     public void UnsupportedSelectorsLeaveAllPackageBytesUnchanged(string css) {
         var book = Book(); AddStyle(book, "two", css);
         byte[] before = book.Write().Bytes;
@@ -81,7 +80,7 @@ public sealed class EpubMergeSelectorContracts {
     }
 
     [Theory]
-    [InlineData("[cite='two.xhtml#heading'] {color:red}", false)]
+    [InlineData("[cite~='two.xhtml#heading'] {color:red}", false)]
     [InlineData("[cite$='#heading'] {color:red}", true)]
     public void UrlAttributeSelectorsRejectBeforeChangingDocumentsOrSharedStylesheets(string css, bool linked) {
         var book = Book();
