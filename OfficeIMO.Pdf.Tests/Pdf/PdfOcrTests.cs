@@ -178,22 +178,19 @@ public class PdfOcrTests {
             firstCallStarted.TrySetResult(null);
             return completion.Task;
         });
-        var options = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromMilliseconds(200) };
+        // The first operation must enter the provider before testing its occupied gate.
+        // This is a provider deadline, not an elapsed-performance assertion.
+        var options = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromSeconds(5) };
 
         try {
             Task<PdfOcrMergeResult> firstCall = PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options);
+            Task started = await Task.WhenAny(firstCallStarted.Task, firstCall);
+            Assert.Same(firstCallStarted.Task, started);
             OcrEngineTimeoutException first = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
                 () => firstCall);
-            if (!first.ProviderCallStarted) {
-                // The deadline may suppress provider entry before its dedicated thread runs.
-                Assert.False(firstCallStarted.Task.IsCompleted);
-                Assert.Equal(0, Volatile.Read(ref callCount));
-                return;
-            }
-            Task started = await Task.WhenAny(firstCallStarted.Task, Task.Delay(TimeSpan.FromSeconds(10)));
-            Assert.Same(firstCallStarted.Task, started);
+            var occupiedGateOptions = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromMilliseconds(200) };
             OcrEngineTimeoutException second = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
-                () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options));
+                () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, occupiedGateOptions));
 
             Assert.True(first.ProviderCallStarted);
             Assert.False(second.ProviderCallStarted);
