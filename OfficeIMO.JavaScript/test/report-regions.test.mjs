@@ -68,3 +68,21 @@ test("titles without leaf headers and empty reports retain exact layout budgets"
   const text = createWorkbook({ limits: { maxTextCharacters: 4 } });
   await assert.rejects(text.addSheet("Title", { columns: [{ header: "A" }], title: { text: "Title" }, includeHeader: false }).addRows([]), { code: "RESOURCE_LIMIT" });
 });
+
+test("covered empty strings are blank cells in declared typed columns", async () => {
+  for (const type of ["number", "date", "boolean"]) for (const empty of ["", new Cell(""), new ExportCell("")]) {
+    const book = createWorkbook(), sheet = book.addSheet("Blank", { columns: [{ header: "A" }, { header: "B", type }], includeHeader: false, mergedCells: ["A1:B1"] });
+    await sheet.addRows([["anchor", empty]]);
+    const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
+    assert.match(xml, /<c r="B1" s="\d+"\/>/);
+  }
+  let calls = 0;
+  const book = createWorkbook({ cellValueWriters: { milliseconds: value => { calls++; return Number(value) / 1000; } } });
+  const sheet = book.addSheet("Custom", { columns: [{ header: "A" }, { header: "B", type: "milliseconds" }, { header: "C", type: "milliseconds" }], includeHeader: false, mergedCells: ["A1:B8"], autoSize: {} });
+  const empties = ["", null, undefined, new Cell(""), new Cell(null), new ExportCell(""), new ExportCell(null), new ExportCell(undefined)];
+  await sheet.addRows(empties.map((empty, i) => [i ? null : "anchor", empty, 1000]));
+  const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
+  assert.equal(calls, 8); assert.equal([...xml.matchAll(/r="C\d+"[^>]*><v>1<\/v>/g)].length, 8);
+  const reject = createWorkbook({ cellValueWriters: { domain: () => 0 } });
+  await assert.rejects(reject.addSheet("Hidden", { columns: [{ header: "A" }, { header: "B", type: "domain" }], includeHeader: false, mergedCells: ["A1:B1"] }).addRows([["anchor", "nonempty"]]), /would hide/);
+});

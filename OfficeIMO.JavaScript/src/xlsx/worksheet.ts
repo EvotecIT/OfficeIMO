@@ -115,7 +115,9 @@ export class Worksheet {
     let presentation = value instanceof ExportCell ? value.presentation : undefined;
     if (value instanceof ExportCell) value = value.value;
     const suppliedStyle = value instanceof Cell ? value.style : undefined;
-    if (!header && !footer && col.column.type) {
+    const covered = this.layout.regions.covered(i + 1, row);
+    const input = value instanceof Cell ? value.value : value, emptyCovered = covered && (input == null || input === "");
+    if (!header && !footer && col.column.type && !emptyCovered) {
       const writer = this.book.writerFor(col.column.type);
       if (writer) value = writer(value instanceof Cell ? value.value : value as CellValue,
         { column: col.column, row, columnIndex: i + 1, sheetName: this.name });
@@ -124,7 +126,10 @@ export class Worksheet {
     const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
     if (value instanceof Cell) value = value.value;
     assertScalar(value);
-    if (this.layout.regions.covered(i + 1, row) && (total || (value != null && value !== ""))) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
+    if (covered) {
+      if (total || (value != null && value !== "")) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
+      value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
+    }
     const type = value instanceof Date ? "date" : typeof value;
     if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
       throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");

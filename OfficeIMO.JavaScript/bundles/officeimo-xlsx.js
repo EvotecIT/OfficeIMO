@@ -1697,7 +1697,7 @@ _modules.set("dd93cba11d47d58012850f3a30d1846e045587830560eba52839082c05f7f744",
 return _exports;
 })();
 
-const _m15 = _modules.get("f32d5b4afe83b6a41bcfd97a959f7927f736000c7e51d36b1fd7ff2b810e12c5") ?? (() => {
+const _m15 = _modules.get("17f4468756b2b1f477cf0d0fd71593be4b690a34bf50b506f62a7d77e1c4f1ad") ?? (() => {
 const { checkAbort, inputRows } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
@@ -1853,7 +1853,9 @@ class Worksheet {
         if (value instanceof ExportCell)
             value = value.value;
         const suppliedStyle = value instanceof Cell ? value.style : undefined;
-        if (!header && !footer && col.column.type) {
+        const covered = this.layout.regions.covered(i + 1, row);
+        const input = value instanceof Cell ? value.value : value, emptyCovered = covered && (input == null || input === "");
+        if (!header && !footer && col.column.type && !emptyCovered) {
             const writer = this.book.writerFor(col.column.type);
             if (writer)
                 value = writer(value instanceof Cell ? value.value : value, { column: col.column, row, columnIndex: i + 1, sheetName: this.name });
@@ -1866,8 +1868,11 @@ class Worksheet {
         if (value instanceof Cell)
             value = value.value;
         assertScalar(value);
-        if (this.layout.regions.covered(i + 1, row) && (total || (value != null && value !== "")))
-            throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
+        if (covered) {
+            if (total || (value != null && value !== ""))
+                throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
+            value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
+        }
         const type = value instanceof Date ? "date" : typeof value;
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
@@ -2197,7 +2202,7 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("f32d5b4afe83b6a41bcfd97a959f7927f736000c7e51d36b1fd7ff2b810e12c5", _exports);
+_modules.set("17f4468756b2b1f477cf0d0fd71593be4b690a34bf50b506f62a7d77e1c4f1ad", _exports);
 return _exports;
 })();
 
@@ -2316,7 +2321,7 @@ _modules.set("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b",
 return _exports;
 })();
 
-const _m1 = _modules.get("8b91073a4812de708a9fc152509186271e86f78a28993ef32e1450a8de33d331") ?? (() => {
+const _m1 = _modules.get("6948c071f99307eaf808a32405140ce8908d45b0db4cbdb3eb90764f3339ed56") ?? (() => {
 const { checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -2604,7 +2609,7 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("8b91073a4812de708a9fc152509186271e86f78a28993ef32e1450a8de33d331", _exports);
+_modules.set("6948c071f99307eaf808a32405140ce8908d45b0db4cbdb3eb90764f3339ed56", _exports);
 return _exports;
 })();
 
@@ -2655,10 +2660,10 @@ _modules.set("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198",
 return _exports;
 })();
 
-const _m0 = _modules.get("86a7f72aca310e961082a360219244b7219e9c344fd59d0294cd76ce3bae7080") ?? (() => {
+const _m0 = _modules.get("2967a01292f1fd5db7d2b442e80989ce61bb25c02922f81e6c7c79e17b3ed043") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m15.Worksheet, Cell: _m13.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m22.saveBlob, ExportCell: _m14.ExportCell });
-_modules.set("86a7f72aca310e961082a360219244b7219e9c344fd59d0294cd76ce3bae7080", _exports);
+_modules.set("2967a01292f1fd5db7d2b442e80989ce61bb25c02922f81e6c7c79e17b3ed043", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m22, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });

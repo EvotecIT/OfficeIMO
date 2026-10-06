@@ -3,11 +3,11 @@ async function runReportContracts() {
   const operations = ["sum", "count", "average", "min", "max"];
   for (const compression of ["auto", "store"]) {
     for (const streamed of [false, true]) {
-      const chunks = [], reports = OfficeIMO.createWorkbook({ compression, ...(streamed ? { sink: { write(bytes) { chunks.push(bytes.slice()); } } } : {}) });
+      const chunks = [], reports = OfficeIMO.createWorkbook({ compression, cellValueWriters: { milliseconds: value => Number(value) / 1000 }, ...(streamed ? { sink: { write(bytes) { chunks.push(bytes.slice()); } } } : {}) });
       const titled = reports.addSheet("Report", { title: { text: "Łódź 🧪 report", height: 32 }, columns: [{ header: "Name", groups: ["Metrics"] }, { header: "Amount", key: "amount", groups: ["Metrics"], type: "number" }], table: { name: "Report" }, freezeHeader: true, autoSize: {}, footer: { values: ["Total"], totals: { amount: "sum" } }, print: { repeatHeaders: true } });
       await titled.addRows([["one", 12], ["two", 8]]); await titled.close();
-      const regions = reports.addSheet("Regions", { columns: [{ header: "A" }, { header: "B" }], includeHeader: false, mergedCells: ["A1:B2", "A3:B3"], autoSize: { sampleRows: 3 } });
-      await regions.addRows([["top", null], [null, null], ["bottom", null]]); await regions.close();
+      const regions = reports.addSheet("Regions", { columns: [{ header: "A" }, { header: "B", type: "milliseconds" }], includeHeader: false, mergedCells: ["A1:B2", "A3:B3"], autoSize: { sampleRows: 3 } });
+      await regions.addRows([["top", ""], [null, new OfficeIMO.ExportCell(null)], ["bottom", new OfficeIMO.Cell("")]]); await regions.close();
       const third = reports.addSheet("Other report", { title: { text: "Other report" }, columns: [{ header: "Metric" }, { header: "Value", type: "number" }], table: { name: "OtherReport" } });
       await third.addRows([["Count", 2]]);
       let blob; if (streamed) { await reports.finish(); blob = new Blob(chunks); } else blob = await reports.toBlob();
