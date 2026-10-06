@@ -200,7 +200,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             public bool Equals(LegacyDocWritableFormatting other) {
-                return Bold == other.Bold
+                // Explicit off values must not coalesce with absent formatting:
+                // the native run records differ even when their values are equal.
+                return Specified == other.Specified
+                    && Bold == other.Bold
                     && Italic == other.Italic
                     && Strike == other.Strike
                     && DoubleStrike == other.DoubleStrike
@@ -231,6 +234,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             public override int GetHashCode() {
                 int hash = 17;
+                hash = (hash * 31) + Specified.GetHashCode();
                 hash = (hash * 31) + Bold.GetHashCode();
                 hash = (hash * 31) + Italic.GetHashCode();
                 hash = (hash * 31) + Strike.GetHashCode();
