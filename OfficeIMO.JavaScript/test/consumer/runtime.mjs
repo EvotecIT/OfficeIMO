@@ -24,5 +24,4 @@ assert.ok((await packageFile.toBlob()).size > 0);
 const manifest = JSON.parse(await readFile("node_modules/@evotecit/officeimo/package.json", "utf8"));
 assert.equal(manifest.dependencies, undefined);
 assert.deepEqual(Object.keys(manifest.devDependencies), ["typescript"]);
-assert.equal(manifest.sideEffects, false);
 console.log("All packed subpaths imported and executed without runtime dependencies or a DOM.");

@@ -14,12 +14,20 @@ const rows: Rows = [{ name: "Łódź", seen: new Date() }];
 const book: Workbook = createWorkbook({ signal: new AbortController().signal, onProgress: p => console.log(p.rows) });
 const style = book.styles.add({ font: { bold: true }, fill: { color: "ABCDEF" }, border: { bottom: { style: "thin" } }, numberFormat: NumberFormats.Date });
 const sheet: Worksheet = book.addWorksheet("Data", { columns });
+const report = book.addWorksheet("Report", { columns, table: { name: "SeenReport", style: "TableStyleMedium9" },
+  headerStyle: style, freezeColumns: 1, rowHeight: 24,
+  alternatingRowStyle: { fill: { color: "EAF1F8" } },
+  rowStyle: context => context.values[0] === "Łódź" ? { font: { bold: true } } : undefined,
+  cellStyle: context => context.columnIndex === 1 ? { verticalAlignment: "center" } : undefined });
+await report.addRows(records);
+report.addHyperlink({ cell: "A2", target: "https://example.com/report", tooltip: "Open report" });
 await sheet.addRows(records); await sheet.addRows(rows); await sheet.addRows([[new Cell("name", style), new Date()]]);
 async function* asyncRows() { yield ["row", new Date()] as const; }
 await sheet.addRows(asyncRows());
 const blob: Blob = await book.toBlob();
 const csvBlob: Blob = await writeCsv(records, { columns, delimiter: ";", bom: true });
 const sink = new BlobByteSink(); await writeCsvTo(records, sink, { columns });
+await writeCsv(records, { columns: [{ header: "Name", key: "name", valueFormatter: (value, context) => context.row + ": " + value }], quote: "strings", nullValue: "missing" });
 const text = new ChunkedTextSink(new BlobByteSink()); await text.write("🧪"); await text.close();
 const archive = new ZipWriter(); await archive.add("data.csv", new TextEncoder().encode(await csvBlob.text()));
 const writer = new XmlWriter(new BlobByteSink()); await writer.startElement("root"); await writer.text("<&"); await writer.endElement(); await writer.close();

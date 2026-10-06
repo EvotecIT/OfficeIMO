@@ -8,11 +8,13 @@ function checkAbort(signal) {
 function withAbort(promise, signal) {
     if (!signal)
         return Promise.resolve(promise);
-    checkAbort(signal);
     return new Promise((resolve, reject) => {
-        const abort = () => reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError"));
+        const cleanup = () => signal.removeEventListener("abort", abort);
+        const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError")); };
         signal.addEventListener("abort", abort, { once: true });
-        Promise.resolve(promise).then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+        Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
+        if (signal.aborted)
+            abort();
     });
 }
 /** Consume once; return the iterator on failure or cancellation. Pass the signal to I/O producers too. */
@@ -21,7 +23,7 @@ async function* inputRows(input, signal) {
     const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
     if (!iterator)
         throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
-    let done = false;
+    let done = false, failed = false;
     try {
         while (true) {
             checkAbort(signal);
@@ -34,13 +36,23 @@ async function* inputRows(input, signal) {
             yield item.value;
         }
     }
+    catch (error) {
+        failed = true;
+        throw error;
+    }
     finally {
         if (!done && iterator.return) {
-            const returned = iterator.return();
-            if (signal?.aborted)
-                Promise.resolve(returned).catch(() => { });
-            else
-                await returned;
+            try {
+                const returned = iterator.return();
+                if (signal?.aborted || failed)
+                    Promise.resolve(returned).catch(() => { });
+                else
+                    await withAbort(Promise.resolve(returned), signal);
+            }
+            catch (error) {
+                if (!signal?.aborted && !failed)
+                    throw error;
+            }
         }
     }
 }
@@ -351,6 +363,8 @@ class EntryWriter {
     failed = false;
     failure;
     closed = false;
+    cleaned = false;
+    lifetime = new AbortController();
     abort = () => { this.fail(this.signal?.reason ?? new DOMException("Export cancelled.", "AbortError")); };
     constructor(compression, sink, signal) {
         this.sink = sink;
@@ -377,12 +391,12 @@ class EntryWriter {
     async consume(reader) {
         try {
             while (true) {
-                const { value, done } = await withAbort(reader.read(), this.signal);
+                const { value, done } = await withAbort(reader.read(), this.lifetime.signal);
                 if (done)
                     return;
                 checkAbort(this.signal);
                 this.compressedSize = zipSize(this.compressedSize + value.length);
-                await withAbort(Promise.resolve(this.sink.write(value)), this.signal);
+                await withAbort(Promise.resolve(this.sink.write(value)), this.lifetime.signal);
             }
         }
         catch (error) {
@@ -390,12 +404,15 @@ class EntryWriter {
         }
     }
     fail(error) {
-        if (!this.failed) {
-            this.failed = true;
-            this.failure = error;
+        if (this.failed)
+            return;
+        this.failed = true;
+        this.failure = error;
+        this.lifetime.abort(error);
+        if (!this.cleaned) {
+            this.writer?.abort(error).catch(() => { });
+            this.reader?.cancel(error).catch(() => { });
         }
-        this.writer?.abort(error).catch(() => { });
-        this.reader?.cancel(error).catch(() => { });
     }
     async write(bytes) {
         checkAbort(this.signal);
@@ -408,9 +425,9 @@ class EntryWriter {
         this.size = zipSize(this.size + bytes.length);
         this.crc.update(bytes);
         if (this.writer)
-            await withAbort(this.writer.write(new Uint8Array(bytes)), this.signal);
+            await withAbort(this.writer.write(new Uint8Array(bytes)), this.lifetime.signal);
         else {
-            await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
+            await withAbort(Promise.resolve(this.sink.write(bytes)), this.lifetime.signal);
             this.compressedSize = this.size;
         }
     }
@@ -423,7 +440,7 @@ class EntryWriter {
                 throw new OfficeIMOError("INVALID_STATE", "ZIP entry is closed.");
             this.closed = true;
             if (this.writer)
-                await withAbort(this.writer.close(), this.signal);
+                await withAbort(this.writer.close(), this.lifetime.signal);
             await this.drain;
             if (this.failed)
                 throw this.failure;
@@ -436,6 +453,9 @@ class EntryWriter {
     }
     async discard(error) { this.fail(error); await this.drain; this.closed = true; this.cleanup(); }
     cleanup() {
+        if (this.cleaned)
+            return;
+        this.cleaned = true;
         this.signal?.removeEventListener("abort", this.abort);
         this.writer?.releaseLock();
         this.reader?.releaseLock();
@@ -461,6 +481,16 @@ function validateEntryName(name) {
     if (typeof name !== "string" || !name || /[\u0000-\u001f\\]/.test(name) || name.startsWith("/") ||
         /^[A-Za-z]:/.test(name) || name.split("/").some(s => !s || s === "." || s === ".."))
         throw new TypeError("ZIP entry names must be relative paths without empty, dot or parent segments.");
+    for (let i = 0; i < name.length; i++) {
+        const unit = name.charCodeAt(i);
+        if (unit >= 0xd800 && unit <= 0xdbff) {
+            const next = name.charCodeAt(++i);
+            if (!(next >= 0xdc00 && next <= 0xdfff))
+                throw new TypeError("ZIP entry names must contain well-formed Unicode.");
+        }
+        else if (unit >= 0xdc00 && unit <= 0xdfff)
+            throw new TypeError("ZIP entry names must contain well-formed Unicode.");
+    }
     if (encoder.encode(name).length > 65535)
         throw new RangeError("ZIP entry name exceeds 65,535 UTF-8 bytes.");
     return name;
@@ -833,7 +863,7 @@ function deduplicate(items, item) {
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 class StyleRegistry {
     policy;
-    fonts = [{ name: "Calibri", size: 11, bold: false, italic: false, color: "" }];
+    fonts = [{ name: "Calibri", size: 11, bold: false, italic: false, underline: false, strike: false, color: "" }];
     fills = [{ pattern: "none", color: "" }, { pattern: "gray125", color: "" }];
     borders = [{}];
     formats = new Map();
@@ -852,7 +882,7 @@ class StyleRegistry {
             throw new TypeError("Font name must contain 1 through 31 characters.");
         if (!Number.isFinite(size) || size <= 0 || size > 409)
             throw new RangeError("Font size must be positive and at most 409.");
-        return deduplicate(this.fonts, { name, size, bold: !!font.bold, italic: !!font.italic, color: font.color ? colorArgb(font.color) : "" });
+        return deduplicate(this.fonts, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" });
     }
     addFill(fill) {
         const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
@@ -903,7 +933,9 @@ class StyleRegistry {
         }
         if (style.alignment !== undefined && !["left", "center", "right", "fill", "justify", "distributed"].includes(style.alignment))
             throw new TypeError("Invalid horizontal alignment.");
-        const registered = { font, fill, border, numberFormat, wrapText: !!style.wrapText, alignment: style.alignment ?? "" };
+        if (style.verticalAlignment !== undefined && !["top", "center", "bottom", "justify", "distributed"].includes(style.verticalAlignment))
+            throw new TypeError("Invalid vertical alignment.");
+        const registered = { font, fill, border, numberFormat, wrapText: !!style.wrapText, alignment: style.alignment ?? "", verticalAlignment: style.verticalAlignment ?? "" };
         const key = JSON.stringify(registered), found = this.indexes.get(key);
         if (found !== undefined)
             return found;
@@ -915,6 +947,25 @@ class StyleRegistry {
         return id;
     }
     validateStyle(id) { return index(id, this.styles.length, "cell style"); }
+    /** Overlay presentation while retaining the base number format, font fields and border edges. Numeric component indexes replace a component. */
+    compose(base, overlay) {
+        if (!overlay || typeof overlay !== "object" || Array.isArray(overlay))
+            throw new TypeError("A style patch must be a CellStyle object.");
+        if (typeof overlay.then === "function") {
+            void Promise.resolve(overlay).catch(() => { });
+            throw new TypeError("Style patches must be synchronous CellStyle objects.");
+        }
+        const source = this.styles[this.validateStyle(base)];
+        return this.add({
+            font: source.font, fill: source.fill, border: source.border, numberFormat: source.numberFormat,
+            wrapText: source.wrapText,
+            ...(source.alignment ? { alignment: source.alignment } : {}),
+            ...(source.verticalAlignment ? { verticalAlignment: source.verticalAlignment } : {}),
+            ...overlay,
+            ...(typeof overlay.font === "object" ? { font: { ...this.fonts[source.font], ...overlay.font } } : {}),
+            ...(typeof overlay.border === "object" ? { border: { ...this.borders[source.border], ...overlay.border } } : {})
+        });
+    }
     /** @internal Column shorthand and header style composition. */
     forColumn(column, header = false, fill, date = false) {
         const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
@@ -924,11 +975,12 @@ class StyleRegistry {
             numberFormat: format,
             wrapText: column.wrapText ?? base?.wrapText ?? false,
             ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment } : {}),
+            ...(base?.verticalAlignment ? { verticalAlignment: base.verticalAlignment } : {}),
             ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
         });
     }
     toXml() {
-        const fontXml = (f) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + '<sz val="' + f.size + '"/>' +
+        const fontXml = (f) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + (f.underline ? '<u/>' : "") + (f.strike ? '<strike/>' : "") + '<sz val="' + f.size + '"/>' +
             (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeOoxmlAttribute(f.name, this.policy) + '"/></font>';
         const borderXml = (b) => '<border>' + ["left", "right", "top", "bottom"].map(side => {
             const edge = b[side];
@@ -942,7 +994,7 @@ class StyleRegistry {
             '<borders count="' + this.borders.length + '">' + this.borders.map(borderXml).join("") + '</borders>' +
             '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
             '<cellXfs count="' + this.styles.length + '">' + this.styles.map(s => {
-            const alignment = s.wrapText || s.alignment ? '<alignment' + (s.wrapText ? ' wrapText="1"' : "") + (s.alignment ? ' horizontal="' + s.alignment + '"' : "") + '/>' : "";
+            const alignment = s.wrapText || s.alignment || s.verticalAlignment ? '<alignment' + (s.wrapText ? ' wrapText="1"' : "") + (s.alignment ? ' horizontal="' + s.alignment + '"' : "") + (s.verticalAlignment ? ' vertical="' + s.verticalAlignment + '"' : "") + '/>' : "";
             return '<xf numFmtId="' + s.numberFormat + '" fontId="' + s.font + '" fillId="' + s.fill + '" borderId="' + s.border + '" xfId="0"' +
                 (s.numberFormat ? ' applyNumberFormat="1"' : "") + (s.font ? ' applyFont="1"' : "") + (s.fill ? ' applyFill="1"' : "") +
                 (s.border ? ' applyBorder="1"' : "") + (alignment ? ' applyAlignment="1"' : "") + '>' + alignment + '</xf>';
@@ -1051,6 +1103,68 @@ const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns 
 return _exports;
 })();
 
+const _m15 = (() => {
+const { cleanXml, escapeXml, xmlDeclaration } = _m8;
+
+const { officeRelationshipsNamespace } = _m5;
+
+function cellPosition(reference) {
+    const match = typeof reference === "string" && /^([A-Z]{1,3})([1-9][0-9]{0,6})$/.exec(reference);
+    if (!match)
+        throw new TypeError("Use a single uppercase A1 cell reference.");
+    const row = Number(match[2]);
+    let column = 0;
+    for (const letter of match[1])
+        column = column * 26 + letter.charCodeAt(0) - 64;
+    if (column > 16384 || row > 1048576)
+        throw new RangeError("Cell reference exceeds Excel's worksheet bounds.");
+    return { row, column };
+}
+function copyHyperlink(link, policy) {
+    cellPosition(link.cell);
+    if (typeof link.target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(link.target);
+    if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
+        throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
+    return Object.freeze({ cell: link.cell, target: url.href,
+        ...(link.tooltip === undefined ? {} : { tooltip: cleanXml(link.tooltip, policy) }) });
+}
+function copyImage(image, policy) {
+    if (!(image.data instanceof Uint8Array) || image.data.length < 33 ||
+        ![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82].every((byte, i) => image.data[i] === byte))
+        throw new TypeError("Images require PNG bytes with a valid signature and IHDR header.");
+    const header = new DataView(image.data.buffer, image.data.byteOffset, image.data.byteLength);
+    if (!header.getUint32(16) || !header.getUint32(20))
+        throw new RangeError("PNG dimensions must be positive.");
+    if (!Number.isInteger(image.row) || image.row < 1 || image.row > 1048576 || !Number.isInteger(image.column) || image.column < 1 || image.column > 16384)
+        throw new RangeError("Image anchors must be one-based worksheet rows and columns.");
+    for (const size of [image.width, image.height])
+        if (!Number.isFinite(size) || size <= 0 || size > 100000)
+            throw new RangeError("Image display dimensions must be positive and at most 100,000 pixels.");
+    return Object.freeze({ ...image, data: new Uint8Array(image.data),
+        ...(image.description === undefined ? {} : { description: cleanXml(image.description, policy) }) });
+}
+function hyperlinksXml(links, policy) {
+    return '<hyperlinks>' + links.map((link, i) => '<hyperlink ref="' + link.cell + '" r:id="link' + (i + 1) + '"' +
+        (link.tooltip === undefined ? "" : ' tooltip="' + escapeXml(link.tooltip, policy) + '"') + '/>').join("") + '</hyperlinks>';
+}
+function drawingXml(images, policy) {
+    const ns = "http://schemas.openxmlformats.org/drawingml/2006/";
+    return xmlDeclaration + '<xdr:wsDr xmlns:xdr="' + ns + 'spreadsheetDrawing" xmlns:a="' + ns + 'main" xmlns:r="' + officeRelationshipsNamespace + '">' +
+        images.map((image, i) => {
+            const size = ' cx="' + Math.round(image.width * 9525) + '" cy="' + Math.round(image.height * 9525) + '"';
+            return '<xdr:oneCellAnchor><xdr:from><xdr:col>' + (image.column - 1) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + (image.row - 1) + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
+                '<xdr:ext' + size + '/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + (i + 1) + '" name="Image ' + (i + 1) + '" descr="' + escapeXml(image.description ?? "", policy) + '"/><xdr:cNvPicPr/></xdr:nvPicPr>' +
+                '<xdr:blipFill><a:blip r:embed="image' + (i + 1) + '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
+                '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext' + size + '/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
+        }).join("") + '</xdr:wsDr>';
+}
+const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
+const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
+return _exports;
+})();
+
 const _m13 = (() => {
 const { checkAbort, inputRows } = _m2;
 
@@ -1064,14 +1178,19 @@ const { EntryWriter } = _m10;
 
 const { xmlDeclaration } = _m8;
 
+const { officeRelationshipsNamespace } = _m5;
+
 const { Cell, cellText, columnName, inlineText, excelDate } = _m12;
 
 const { spreadsheetNamespace, colorArgb } = _m11;
+
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m15;
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
     book;
     name;
+    table;
     columns;
     declared;
     options;
@@ -1084,32 +1203,69 @@ class Worksheet {
     error;
     count = 0;
     headerRows;
-    constructor(book, name, options) {
+    links = [];
+    pictures = [];
+    constructor(book, name, options, table) {
         this.book = book;
         this.name = name;
+        this.table = table;
         this.columns = copyColumns(options.columns ?? []);
-        this.options = { ...options };
+        const alternate = options.alternatingRowStyle;
+        this.options = { ...options, ...(alternate ? { alternatingRowStyle: { ...alternate,
+                    ...(typeof alternate.font === "object" ? { font: { ...alternate.font } } : {}),
+                    ...(typeof alternate.fill === "object" ? { fill: { ...alternate.fill } } : {}),
+                    ...(typeof alternate.border === "object" ? { border: Object.fromEntries(Object.entries(alternate.border).map(([side, edge]) => [side, { ...edge }])) } : {})
+                } } : {}) };
         this.headerRows = this.columns.length && options.includeHeader !== false ? 1 : 0;
+        for (const link of options.hyperlinks ?? [])
+            this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
         this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
             style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
-            headerStyle: book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
+            headerStyle: options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
                 ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill)
         }));
     }
     /** @internal */
-    static create(book, name, options) { return new Worksheet(book, name, options); }
+    static create(book, name, options, table) { return new Worksheet(book, name, options, table); }
     /** @internal Validate before allocating native compressor resources or registering the sheet name. */
     static validate(book, options) {
-        for (const feature of ["mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"])
+        for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"])
             if (options[feature] !== undefined)
                 throw new NotSupportedError(feature);
         const columns = copyColumns(options.columns ?? []);
+        if (options.hyperlinks !== undefined) {
+            if (!Array.isArray(options.hyperlinks))
+                throw new TypeError("Hyperlinks must be an array.");
+            const seen = new Set();
+            for (const requested of options.hyperlinks) {
+                const link = copyHyperlink(requested, book.settings.invalidCharacterPolicy);
+                if (seen.has(link.cell))
+                    throw new TypeError("Duplicate hyperlink cell: " + link.cell);
+                seen.add(link.cell);
+            }
+        }
         if (columns.length > 16384)
             throw new RangeError("Excel supports at most 16,384 columns.");
         if (options.includeHeader === false && (options.freezeHeader || options.autoFilter))
             throw new TypeError("A frozen header or autofilter requires a header row.");
         if (options.headerFill !== undefined)
             colorArgb(options.headerFill);
+        if (options.headerStyle !== undefined)
+            book.styles.validateStyle(options.headerStyle);
+        if (options.alternatingRowStyle !== undefined)
+            book.styles.compose(0, options.alternatingRowStyle);
+        for (const callback of [options.rowStyle, options.cellStyle])
+            if (callback !== undefined && typeof callback !== "function")
+                throw new TypeError("Style callbacks must be functions.");
+        for (const height of [options.rowHeight, options.headerHeight])
+            if (height !== undefined && (!Number.isFinite(height) || height <= 0 || height > 409))
+                throw new RangeError("Row height must be positive and at most 409 points.");
+        if (options.freezeColumns !== undefined && (!Number.isInteger(options.freezeColumns) || options.freezeColumns < 0 || options.freezeColumns > columns.length || options.freezeColumns >= 16384))
+            throw new RangeError("Frozen columns must be within the declared columns and leave a valid scrollable column.");
+        if (options.table && options.includeHeader === false)
+            throw new TypeError("Excel tables require a header row.");
+        if (options.defaultColumnWidth !== undefined && (!Number.isFinite(options.defaultColumnWidth) || options.defaultColumnWidth < 0 || options.defaultColumnWidth > 255))
+            throw new RangeError("Default column width must be from 0 through 255 characters.");
         for (const c of columns) {
             if (c.width !== undefined && (!Number.isFinite(c.width) || c.width < 0 || c.width > 255))
                 throw new RangeError("Column width must be from 0 through 255 characters.");
@@ -1124,7 +1280,7 @@ class Worksheet {
                 throw new TypeError("Column format must be a string of at most 255 characters.");
         }
     }
-    cell(value, i, row, header = false) {
+    cell(value, i, row, header = false, rowStyle, context) {
         const col = this.declared[i];
         const suppliedStyle = value instanceof Cell ? value.style : undefined;
         if (!header && col.column.type) {
@@ -1138,7 +1294,18 @@ class Worksheet {
         const type = value instanceof Date ? "date" : typeof value;
         if (!header && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
-        const style = explicitStyle === undefined ? header ? col.headerStyle : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+        let style = explicitStyle === undefined ? header ? col.headerStyle : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+        if (!header) {
+            if (explicitStyle === undefined) {
+                if ((row - this.headerRows) % 2 === 0 && this.options.alternatingRowStyle)
+                    style = this.book.styles.compose(style, this.options.alternatingRowStyle);
+                if (rowStyle)
+                    style = this.book.styles.compose(style, rowStyle);
+            }
+            const patch = context && this.options.cellStyle?.({ ...context, value: value, column: Object.freeze({ ...col.column }), columnIndex: i + 1 });
+            if (patch)
+                style = this.book.styles.compose(style, patch);
+        }
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
         if (value == null || (type === "number" && !Number.isFinite(value)))
             return prefix + '/>';
@@ -1156,9 +1323,13 @@ class Worksheet {
     }
     async writeRow(values, number, header) {
         const buffer = this.buffer;
-        await buffer.write('<row r="' + number + '">');
+        const height = header ? this.options.headerHeight : this.options.rowHeight;
+        const context = !header ? Object.freeze({ row: number, sheetName: this.name,
+            values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell ? values[i].value : values[i])) }) : undefined;
+        const rowStyle = context && this.options.rowStyle?.(context);
+        await buffer.write('<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>');
         for (let i = 0; i < this.columns.length; i++)
-            await buffer.write(this.cell(values[i], i, number, header));
+            await buffer.write(this.cell(values[i], i, number, header, rowStyle, context));
         await buffer.write('</row>');
     }
     async start() {
@@ -1167,14 +1338,18 @@ class Worksheet {
         this.started = true;
         this.entry = new EntryWriter(this.book.settings.compression, this.output, this.book.settings.signal);
         const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
-        await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '"><sheetViews><sheetView workbookViewId="0">' +
-            (opts.freezeHeader && this.headerRows ? '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/>' : "") + '</sheetView></sheetViews>');
-        if (this.columns.some(c => c.width !== undefined)) {
+        const x = opts.freezeColumns ?? 0, y = opts.freezeHeader && this.headerRows ? 1 : 0;
+        const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
+        await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><sheetViews><sheetView workbookViewId="0">' +
+            (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>');
+        const defaultWidth = opts.defaultColumnWidth ?? (this.table ? 20 : undefined);
+        if (this.columns.some(c => c.width !== undefined || defaultWidth !== undefined)) {
             await buffer.write('<cols>');
             for (let i = 0; i < this.columns.length; i++) {
                 const column = this.columns[i];
-                if (column.width !== undefined)
-                    await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + column.width + '" customWidth="1"/>');
+                const width = column.width ?? defaultWidth;
+                if (width !== undefined)
+                    await buffer.write('<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + width + '" customWidth="1"/>');
             }
             await buffer.write('</cols>');
         }
@@ -1220,6 +1395,29 @@ class Worksheet {
     }
     progress() { this.book.settings.onProgress?.({ phase: "rows", rows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
+    /** Register a PNG such as a chart; bytes are copied so the caller can reuse its buffer. */
+    addImage(image) {
+        this.book.assertOpen();
+        if (this.failed)
+            throw this.error;
+        this.pictures.push(copyImage(image, this.book.settings.invalidCharacterPolicy));
+    }
+    /** Attach an external report link to a cell without changing its literal value. */
+    addHyperlink(link) {
+        this.book.assertOpen();
+        if (this.failed)
+            throw this.error;
+        const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
+        if (this.links.some(existing => existing.cell === copied.cell))
+            throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+        this.links.push(copied);
+    }
+    /** @internal */
+    get hyperlinks() { return this.links; }
+    /** @internal */
+    get images() { return this.pictures; }
+    /** @internal An empty export has no data table; it still emits the declared headers. */
+    get tableDefinition() { return this.count ? this.table : undefined; }
     /** @internal */
     get isBusy() { return this.busy; }
     /** @internal */
@@ -1227,10 +1425,21 @@ class Worksheet {
         if (this.failed)
             throw this.error;
         try {
+            for (const link of this.links) {
+                const position = cellPosition(link.cell);
+                if (position.column > this.columns.length || position.row > this.count + this.headerRows)
+                    throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
+            }
             await this.start();
             await this.buffer.write('</sheetData>');
-            if (this.options.autoFilter && this.headerRows)
+            if (this.options.autoFilter && this.headerRows && !this.tableDefinition)
                 await this.buffer.write('<autoFilter ref="A1:' + columnName(this.columns.length) + (this.count + 1) + '"/>');
+            if (this.links.length)
+                await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy));
+            if (this.pictures.length)
+                await this.buffer.write('<drawing r:id="drawing"/>');
+            if (this.tableDefinition)
+                await this.buffer.write('<tableParts count="1"><tablePart r:id="table"/></tableParts>');
             await this.buffer.write('</worksheet>');
             await this.buffer.close();
             return { ...await this.entry.close(), chunks: this.output.takeChunks() };
@@ -1244,6 +1453,40 @@ class Worksheet {
     async discard(error) { await this.entry?.discard(error); this.output.discard(); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
+return _exports;
+})();
+
+const _m16 = (() => {
+const { escapeOoxmlAttribute, xmlDeclaration } = _m8;
+
+const { cellText, columnName } = _m12;
+
+const { spreadsheetNamespace } = _m11;
+
+function defineTable(id, options, columns, policy) {
+    const name = options.name ?? "Table" + id;
+    if (typeof name !== "string" || name.length > 255 || !/^[A-Za-z_][A-Za-z0-9_.]*$/.test(name) ||
+        /^(?:[A-Za-z]{1,3}[1-9][0-9]*|R[1-9][0-9]*C[1-9][0-9]*|R|C)$/i.test(name))
+        throw new TypeError("Table names must be ASCII identifiers, at most 255 characters, and cannot be cell references.");
+    const style = options.style ?? "TableStyleMedium2", match = /^TableStyle(Light|Medium|Dark)([1-9][0-9]?)$/.exec(style);
+    if (!match || Number(match[2]) > ({ Light: 21, Medium: 28, Dark: 11 }[match[1]] ?? 0))
+        throw new TypeError("Unknown built-in Excel table style.");
+    const headers = columns.map(column => cellText(column.header, policy));
+    if (!headers.length || headers.some(header => !header.trim() || header.length > 255) || new Set(headers.map(header => header.toLowerCase())).size !== headers.length)
+        throw new TypeError("Excel tables require nonblank, unique headers of at most 255 characters.");
+    return Object.freeze({ id, name, headers: Object.freeze(headers), options: Object.freeze({ ...options, style }) });
+}
+function tableXml(table, rowCount, policy) {
+    const ref = "A1:" + columnName(table.headers.length) + (rowCount + 1), options = table.options;
+    const name = escapeOoxmlAttribute(table.name, policy);
+    return xmlDeclaration + '<table xmlns="' + spreadsheetNamespace + '" id="' + table.id + '" name="' + name + '" displayName="' + name + '" ref="' + ref + '" totalsRowShown="0">' +
+        '<autoFilter ref="' + ref + '"/><tableColumns count="' + table.headers.length + '">' +
+        table.headers.map((header, i) => '<tableColumn id="' + (i + 1) + '" name="' + escapeOoxmlAttribute(header, policy) + '"/>').join("") +
+        '</tableColumns><tableStyleInfo name="' + options.style + '" showFirstColumn="' + (options.firstColumn ? 1 : 0) +
+        '" showLastColumn="' + (options.lastColumn ? 1 : 0) + '" showRowStripes="' + (options.bandedRows !== false ? 1 : 0) +
+        '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
+}
+const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
 return _exports;
 })();
 
@@ -1264,6 +1507,10 @@ const { sheetName } = _m12;
 
 const { Worksheet } = _m13;
 
+const { defineTable, tableXml } = _m16;
+
+const { drawingXml, drawingContentType } = _m15;
+
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
@@ -1271,6 +1518,8 @@ class Workbook {
     styles;
     names = new Set();
     sheets = [];
+    tableNames = new Set();
+    tableCount = 0;
     writers;
     package;
     state = "open";
@@ -1323,7 +1572,21 @@ class Workbook {
         if (this.sheets.length >= 65526)
             throw new RangeError("Workbook has too many sheets.");
         Worksheet.validate(this, options);
-        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options);
+        let tableOptions = options.table;
+        if (tableOptions && tableOptions.name === undefined) {
+            let suffix = this.tableCount + 1;
+            while (this.tableNames.has(("Table" + suffix).toLowerCase()))
+                suffix++;
+            tableOptions = { ...tableOptions, name: "Table" + suffix };
+        }
+        const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
+        if (table && this.tableNames.has(table.name.toLowerCase()))
+            throw new TypeError("Duplicate Excel table name: " + table.name);
+        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options, table);
+        if (table) {
+            this.tableNames.add(table.name.toLowerCase());
+            this.tableCount++;
+        }
         this.sheets.push(sheet);
         return sheet;
     }
@@ -1350,8 +1613,30 @@ class Workbook {
         this.state = "finalizing";
         this.result = (async () => {
             try {
-                for (let i = 0; i < this.sheets.length; i++)
-                    this.package.addPrepared("/xl/worksheets/sheet" + (i + 1) + ".xml", formatType("worksheet"), await this.sheets[i].finish());
+                for (let i = 0; i < this.sheets.length; i++) {
+                    const sheet = this.sheets[i], uri = "/xl/worksheets/sheet" + (i + 1) + ".xml";
+                    this.package.addPrepared(uri, formatType("worksheet"), await sheet.finish());
+                    const table = sheet.tableDefinition;
+                    if (table) {
+                        const tableUri = "/xl/tables/table" + table.id + ".xml";
+                        this.addXmlPart(tableUri, formatType("table"), () => tableXml(table, sheet.rowCount, this.settings.invalidCharacterPolicy));
+                        this.package.addRelationship(uri, { id: "table", type: officeRelationshipsNamespace + "/table", target: tableUri });
+                    }
+                    for (let j = 0; j < sheet.hyperlinks.length; j++)
+                        this.package.addRelationship(uri, {
+                            id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true
+                        });
+                    if (sheet.images.length) {
+                        const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
+                        this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
+                        this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
+                        for (let j = 0; j < sheet.images.length; j++) {
+                            const imageUri = "/xl/media/sheet" + (i + 1) + "-image" + (j + 1) + ".png";
+                            this.package.addPart({ uri: imageUri, contentType: "image/png", data: sheet.images[j].data });
+                            this.package.addRelationship(drawingUri, { id: "image" + (j + 1), type: officeRelationshipsNamespace + "/image", target: imageUri });
+                        }
+                    }
+                }
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
                 for (let i = 0; i < this.sheets.length; i++)
                     this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });
@@ -1377,7 +1662,7 @@ const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkb
 return _exports;
 })();
 
-const _m15 = (() => {
+const _m17 = (() => {
 
 
 
@@ -1423,7 +1708,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m13.Worksheet, Cell: _m12.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, saveBlob: _m15.saveBlob });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m13.Worksheet, Cell: _m12.Cell, StyleRegistry: _m11.StyleRegistry, NumberFormats: _m11.NumberFormats, saveBlob: _m17.saveBlob });
 return _exports;
 })();
 const { Workbook, createWorkbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } = _m0;

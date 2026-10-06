@@ -4,7 +4,7 @@
   "description": "Dependency-free OfficeIMO document libraries for browsers, workers and Node.",
   "type": "module",
   "license": "MIT",
-  "sideEffects": false,
+  "sideEffects": ["./bundles/*.js"],
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
     "./core": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },

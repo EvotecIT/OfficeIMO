@@ -5,11 +5,12 @@ export function checkAbort(signal?: AbortSignal): void {
 /** Race a pending producer or sink operation without leaving abort listeners behind. */
 export function withAbort<T>(promise: PromiseLike<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) return Promise.resolve(promise);
-  checkAbort(signal);
   return new Promise<T>((resolve, reject) => {
-    const abort = () => reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError"));
+    const cleanup = () => signal.removeEventListener("abort", abort);
+    const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError")); };
     signal.addEventListener("abort", abort, { once: true });
-    Promise.resolve(promise).then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+    Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
+    if (signal.aborted) abort();
   });
 }
 
@@ -18,7 +19,7 @@ export async function* inputRows<T>(input: Iterable<T> | AsyncIterable<T>, signa
   checkAbort(signal);
   const iterator = (input as AsyncIterable<T>)?.[Symbol.asyncIterator]?.() ?? (input as Iterable<T>)?.[Symbol.iterator]?.();
   if (!iterator) throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
-  let done = false;
+  let done = false, failed = false;
   try {
     while (true) {
       checkAbort(signal);
@@ -27,11 +28,14 @@ export async function* inputRows<T>(input: Iterable<T> | AsyncIterable<T>, signa
       if (item.done) { done = true; return; }
       yield item.value;
     }
-  } finally {
+  } catch (error) { failed = true; throw error; }
+  finally {
     if (!done && iterator.return) {
-      const returned = iterator.return();
-      if (signal?.aborted) Promise.resolve(returned).catch(() => {});
-      else await returned;
+      try {
+        const returned = iterator.return();
+        if (signal?.aborted || failed) Promise.resolve(returned).catch(() => {});
+        else await withAbort(Promise.resolve(returned), signal);
+      } catch (error) { if (!signal?.aborted && !failed) throw error; }
     }
   }
 }

@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 257,
-    "productionComponentCount": 132,
-    "testProjectCount": 50,
+    "projectCount": 261,
+    "productionComponentCount": 133,
+    "testProjectCount": 51,
     "benchmarkProjectCount": 35,
-    "validationProjectCount": 41,
+    "validationProjectCount": 43,
     "apiReferenceCount": 122,
     "conceptualPageCount": 97,
-    "conceptualWordCount": 44853
+    "conceptualWordCount": 44888
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 29,
       "componentIndexes": [
-        82,
         83,
         84,
         85,
@@ -44,21 +43,21 @@
         107,
         108,
         109,
-        110
+        110,
+        111
       ]
     },
     {
       "name": "Formats and interoperability",
       "componentCount": 17,
       "componentIndexes": [
-        11,
-        17,
+        12,
         18,
         19,
         20,
         21,
-        44,
-        63,
+        22,
+        45,
         64,
         65,
         66,
@@ -66,8 +65,9 @@
         68,
         69,
         70,
-        119,
-        120
+        71,
+        120,
+        121
       ]
     },
     {
@@ -75,56 +75,56 @@
       "componentCount": 14,
       "componentIndexes": [
         0,
-        9,
-        15,
+        10,
         16,
-        54,
+        17,
         55,
         56,
         57,
-        60,
+        58,
         61,
         62,
-        81,
-        114,
-        131
+        63,
+        82,
+        115,
+        132
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        29,
         30,
         31,
-        32
+        32,
+        33
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
-        22,
         23,
         24,
         25,
         26,
         27,
         28,
-        74,
+        29,
         75,
         76,
         77,
         78,
         79,
-        121,
+        80,
         122,
         123,
         124,
         125,
         126,
         127,
-        128
+        128,
+        129
       ]
     },
     {
@@ -134,7 +134,6 @@
         4,
         5,
         6,
-        33,
         34,
         35,
         36,
@@ -145,51 +144,53 @@
         41,
         42,
         43,
-        45,
+        44,
         46,
         47,
         48,
         49,
         50,
-        72,
+        51,
         73,
-        111,
+        74,
         112,
-        113
+        113,
+        114
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        51,
         52,
-        53
+        53,
+        54
       ]
     },
     {
       "name": "Specialized components",
-      "componentCount": 19,
+      "componentCount": 20,
       "componentIndexes": [
         1,
         2,
         3,
         7,
         8,
-        10,
-        12,
+        9,
+        11,
         13,
         14,
-        58,
+        15,
         59,
-        71,
-        80,
-        115,
+        60,
+        72,
+        81,
         116,
         117,
         118,
-        129,
-        130
+        119,
+        130,
+        131
       ]
     }
   ],
@@ -299,6 +300,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography"
     },
     {
+      "name": "OfficeIMO.Browser",
+      "packageId": "OfficeIMO.Browser",
+      "category": "Specialized components",
+      "description": "Embedded classic scripts and standalone modules built from the OfficeIMO TypeScript document libraries.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Browser/OfficeIMO.Browser.csproj",
+      "sourceFileCount": 2,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Browser"
+    },
+    {
       "name": "OfficeIMO.ChartForgeX",
       "packageId": "OfficeIMO.ChartForgeX",
       "category": "Specialized components",
@@ -345,7 +359,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
       "sourceFileCount": 87,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
@@ -487,8 +501,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1073,
-      "referencingTestProjectCount": 10,
+      "sourceFileCount": 1074,
+      "referencingTestProjectCount": 11,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
@@ -630,7 +644,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 310,
+      "sourceFileCount": 311,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -643,7 +657,7 @@
       "description": "AngleSharp-backed HTML parsing and syntax services for the owned OfficeIMO HTML document model.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
-      "sourceFileCount": 6,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-angle-sharp/",
@@ -653,10 +667,10 @@
       "name": "OfficeIMO.Html.Core",
       "packageId": "OfficeIMO.Html.Core",
       "category": "Publishing and conversion",
-      "description": "Owned HTML document, node, editing and parser provider contracts for OfficeIMO.",
+      "description": "Owned HTML document, editing, parser provider and lossless CSS syntax contracts for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
-      "sourceFileCount": 9,
+      "sourceFileCount": 30,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-core/",
@@ -1137,7 +1151,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1290,
+      "sourceFileCount": 1293,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1163,7 +1177,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 471,
+      "sourceFileCount": 473,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -1359,7 +1373,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
       "sourceFileCount": 6,
-      "referencingTestProjectCount": 3,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel"
@@ -1709,7 +1723,7 @@
       "description": "UI-independent document sessions, editing, storage and recovery for OfficeIMO Studio hosts.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj",
-      "sourceFileCount": 57,
+      "sourceFileCount": 58,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1774,7 +1788,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 733,
+      "sourceFileCount": 734,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1852,7 +1866,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 56,
+      "sourceFileCount": 60,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",

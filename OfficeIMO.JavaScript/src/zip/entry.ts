@@ -38,6 +38,8 @@ export class EntryWriter implements ByteSink {
   private failed = false;
   private failure: unknown;
   private closed = false;
+  private cleaned = false;
+  private readonly lifetime = new AbortController();
   private readonly abort = () => { this.fail(this.signal?.reason ?? new DOMException("Export cancelled.", "AbortError")); };
 
   constructor(compression: Compression, private readonly sink: ByteSink, private readonly signal?: AbortSignal) {
@@ -55,18 +57,21 @@ export class EntryWriter implements ByteSink {
   private async consume(reader: ReadableStreamDefaultReader<Uint8Array>): Promise<void> {
     try {
       while (true) {
-        const { value, done } = await withAbort(reader.read(), this.signal);
+        const { value, done } = await withAbort(reader.read(), this.lifetime.signal);
         if (done) return;
         checkAbort(this.signal);
         this.compressedSize = zipSize(this.compressedSize + value.length);
-        await withAbort(Promise.resolve(this.sink.write(value)), this.signal);
+        await withAbort(Promise.resolve(this.sink.write(value)), this.lifetime.signal);
       }
     } catch (error) { this.fail(error); }
   }
   private fail(error: unknown): void {
-    if (!this.failed) { this.failed = true; this.failure = error; }
-    this.writer?.abort(error).catch(() => {});
-    this.reader?.cancel(error).catch(() => {});
+    if (this.failed) return;
+    this.failed = true; this.failure = error; this.lifetime.abort(error);
+    if (!this.cleaned) {
+      this.writer?.abort(error).catch(() => {});
+      this.reader?.cancel(error).catch(() => {});
+    }
   }
   async write(bytes: Uint8Array): Promise<void> {
     checkAbort(this.signal);
@@ -74,8 +79,8 @@ export class EntryWriter implements ByteSink {
     if (this.closed) throw new OfficeIMOError("INVALID_STATE", "ZIP entry is closed.");
     if (!(bytes instanceof Uint8Array)) throw new TypeError("ZIP chunks must be Uint8Array.");
     this.size = zipSize(this.size + bytes.length); this.crc.update(bytes);
-    if (this.writer) await withAbort(this.writer.write(new Uint8Array(bytes)), this.signal);
-    else { await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal); this.compressedSize = this.size; }
+    if (this.writer) await withAbort(this.writer.write(new Uint8Array(bytes)), this.lifetime.signal);
+    else { await withAbort(Promise.resolve(this.sink.write(bytes)), this.lifetime.signal); this.compressedSize = this.size; }
   }
   async close(): Promise<EntryInfo> {
     try {
@@ -83,7 +88,7 @@ export class EntryWriter implements ByteSink {
       if (this.failed) throw this.failure;
       if (this.closed) throw new OfficeIMOError("INVALID_STATE", "ZIP entry is closed.");
       this.closed = true;
-      if (this.writer) await withAbort(this.writer.close(), this.signal);
+      if (this.writer) await withAbort(this.writer.close(), this.lifetime.signal);
       await this.drain;
       if (this.failed) throw this.failure;
       checkAbort(this.signal);
@@ -92,6 +97,8 @@ export class EntryWriter implements ByteSink {
   }
   async discard(error: unknown): Promise<void> { this.fail(error); await this.drain; this.closed = true; this.cleanup(); }
   private cleanup(): void {
+    if (this.cleaned) return;
+    this.cleaned = true;
     this.signal?.removeEventListener("abort", this.abort);
     this.writer?.releaseLock(); this.reader?.releaseLock();
   }

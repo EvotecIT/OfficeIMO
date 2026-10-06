@@ -3,7 +3,7 @@ import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { Alignment, Column } from "../core/index.js";
 export const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
-export interface Font { readonly name?: string; readonly size?: number; readonly bold?: boolean; readonly italic?: boolean; readonly color?: string; }
+export interface Font { readonly name?: string; readonly size?: number; readonly bold?: boolean; readonly italic?: boolean; readonly underline?: boolean; readonly strike?: boolean; readonly color?: string; }
 export interface Fill { readonly pattern?: "none" | "gray125" | "solid"; readonly color?: string; }
 export type BorderLineStyle = "thin" | "medium" | "dashed" | "dotted" | "thick" | "double" | "hair" | "dashDot" | "dashDotDot" | "slantDashDot" | "mediumDashed" | "mediumDashDot" | "mediumDashDotDot";
 export interface BorderEdge { readonly style: BorderLineStyle; readonly color?: string; }
@@ -15,6 +15,7 @@ export interface CellStyle {
   readonly numberFormat?: string | number;
   readonly wrapText?: boolean;
   readonly alignment?: Alignment;
+  readonly verticalAlignment?: "top" | "center" | "bottom" | "justify" | "distributed";
 }
 export const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" } as const;
 
@@ -31,11 +32,11 @@ function deduplicate<T>(items: T[], item: T): number {
   if (found >= 0) return found;
   items.push(item); return items.length - 1;
 }
-interface RegisteredStyle { font: number; fill: number; border: number; numberFormat: number; wrapText: boolean; alignment: string; }
+interface RegisteredStyle { font: number; fill: number; border: number; numberFormat: number; wrapText: boolean; alignment: string; verticalAlignment: string; }
 
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 export class StyleRegistry {
-  private readonly fonts: Font[] = [{ name: "Calibri", size: 11, bold: false, italic: false, color: "" }];
+  private readonly fonts: Font[] = [{ name: "Calibri", size: 11, bold: false, italic: false, underline: false, strike: false, color: "" }];
   private readonly fills: Fill[] = [{ pattern: "none", color: "" }, { pattern: "gray125", color: "" }];
   private readonly borders: Border[] = [{}];
   private readonly formats = new Map<string, number>();
@@ -47,7 +48,7 @@ export class StyleRegistry {
     const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
     if (typeof name !== "string" || !name || name.length > 31) throw new TypeError("Font name must contain 1 through 31 characters.");
     if (!Number.isFinite(size) || size <= 0 || size > 409) throw new RangeError("Font size must be positive and at most 409.");
-    return deduplicate(this.fonts, { name, size, bold: !!font.bold, italic: !!font.italic, color: font.color ? colorArgb(font.color) : "" });
+    return deduplicate(this.fonts, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" });
   }
   addFill(fill: Fill): number {
     const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
@@ -91,13 +92,32 @@ export class StyleRegistry {
         throw new RangeError("Unknown number format index.");
     }
     if (style.alignment !== undefined && !["left", "center", "right", "fill", "justify", "distributed"].includes(style.alignment)) throw new TypeError("Invalid horizontal alignment.");
-    const registered = { font, fill, border, numberFormat, wrapText: !!style.wrapText, alignment: style.alignment ?? "" };
+    if (style.verticalAlignment !== undefined && !["top", "center", "bottom", "justify", "distributed"].includes(style.verticalAlignment)) throw new TypeError("Invalid vertical alignment.");
+    const registered = { font, fill, border, numberFormat, wrapText: !!style.wrapText, alignment: style.alignment ?? "", verticalAlignment: style.verticalAlignment ?? "" };
     const key = JSON.stringify(registered), found = this.indexes.get(key);
     if (found !== undefined) return found;
     if (this.styles.length >= 64000) throw new RangeError("Workbook exceeds Excel's cell style limit.");
     const id = this.styles.length; this.styles.push(registered); this.indexes.set(key, id); return id;
   }
   validateStyle(id: number): number { return index(id, this.styles.length, "cell style"); }
+  /** Overlay presentation while retaining the base number format, font fields and border edges. Numeric component indexes replace a component. */
+  compose(base: number, overlay: CellStyle): number {
+    if (!overlay || typeof overlay !== "object" || Array.isArray(overlay)) throw new TypeError("A style patch must be a CellStyle object.");
+    if (typeof (overlay as { then?: unknown }).then === "function") {
+      void Promise.resolve(overlay).catch(() => {});
+      throw new TypeError("Style patches must be synchronous CellStyle objects.");
+    }
+    const source = this.styles[this.validateStyle(base)]!;
+    return this.add({
+      font: source.font, fill: source.fill, border: source.border, numberFormat: source.numberFormat,
+      wrapText: source.wrapText,
+      ...(source.alignment ? { alignment: source.alignment as Alignment } : {}),
+      ...(source.verticalAlignment ? { verticalAlignment: source.verticalAlignment as CellStyle["verticalAlignment"] & string } : {}),
+      ...overlay,
+      ...(typeof overlay.font === "object" ? { font: { ...this.fonts[source.font], ...overlay.font } } : {}),
+      ...(typeof overlay.border === "object" ? { border: { ...this.borders[source.border], ...overlay.border } } : {})
+    });
+  }
   /** @internal Column shorthand and header style composition. */
   forColumn(column: Column, header = false, fill?: string, date = false): number {
     const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
@@ -107,11 +127,12 @@ export class StyleRegistry {
       numberFormat: format,
       wrapText: column.wrapText ?? base?.wrapText ?? false,
       ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment as Alignment } : {}),
+      ...(base?.verticalAlignment ? { verticalAlignment: base.verticalAlignment as CellStyle["verticalAlignment"] & string } : {}),
       ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
     });
   }
   toXml(): string {
-    const fontXml = (f: Font) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + '<sz val="' + f.size + '"/>' +
+    const fontXml = (f: Font) => '<font>' + (f.bold ? '<b/>' : "") + (f.italic ? '<i/>' : "") + (f.underline ? '<u/>' : "") + (f.strike ? '<strike/>' : "") + '<sz val="' + f.size + '"/>' +
       (f.color ? '<color rgb="' + f.color + '"/>' : "") + '<name val="' + escapeOoxmlAttribute(f.name, this.policy) + '"/></font>';
     const borderXml = (b: Border) => '<border>' + (["left", "right", "top", "bottom"] as const).map(side => {
       const edge = b[side]; return edge ? '<' + side + ' style="' + edge.style + '">' + (edge.color ? '<color rgb="' + edge.color + '"/>' : "") + '</' + side + '>' : '<' + side + '/>';
@@ -124,7 +145,7 @@ export class StyleRegistry {
       '<borders count="' + this.borders.length + '">' + this.borders.map(borderXml).join("") + '</borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
       '<cellXfs count="' + this.styles.length + '">' + this.styles.map(s => {
-        const alignment = s.wrapText || s.alignment ? '<alignment' + (s.wrapText ? ' wrapText="1"' : "") + (s.alignment ? ' horizontal="' + s.alignment + '"' : "") + '/>' : "";
+        const alignment = s.wrapText || s.alignment || s.verticalAlignment ? '<alignment' + (s.wrapText ? ' wrapText="1"' : "") + (s.alignment ? ' horizontal="' + s.alignment + '"' : "") + (s.verticalAlignment ? ' vertical="' + s.verticalAlignment + '"' : "") + '/>' : "";
         return '<xf numFmtId="' + s.numberFormat + '" fontId="' + s.font + '" fillId="' + s.fill + '" borderId="' + s.border + '" xfId="0"' +
           (s.numberFormat ? ' applyNumberFormat="1"' : "") + (s.font ? ' applyFont="1"' : "") + (s.fill ? ' applyFill="1"' : "") +
           (s.border ? ' applyBorder="1"' : "") + (alignment ? ' applyAlignment="1"' : "") + '>' + alignment + '</xf>';

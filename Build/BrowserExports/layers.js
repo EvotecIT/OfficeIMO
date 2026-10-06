@@ -23,6 +23,8 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
     packageFile.addRelationship("/", { id: "test", type: opc.relationshipTypes.officeDocument, target: "/test.xml" });
     require((await packageFile.toBlob()).size > 0, "OPC layer failed");
     require(await (await csv.writeCsv([["=cmd"]], { columns: [{ header: "V" }] })).text() === "V\r\n'=cmd\r\n", "CSV layer failed");
+    require(await (await csv.writeCsv([["Łódź", false]], { columns: [{ header: "Name", valueFormatter: value => "=" + value },
+      { header: "Healthy", valueFormatter: value => value ? "Yes" : "No" }], quote: "all" })).text() === '"Name","Healthy"\r\n"\'=Łódź","No"\r\n', "Formatted CSV protection/quoting differs");
     for (const spec of fixtures.cases) for (const compression of ["auto", "store"]) {
       const book = new xlsx.Workbook({ dateMode: "utc", compression, created: new Date("2026-10-05T00:00:00Z"),
         cellValueWriters: { milliseconds: value => Number(value) / 1000 }, ...spec.options });
@@ -30,13 +32,18 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
       const value = v => v?.kind === "date" ? new Date(v.value) : v?.kind === "cell" ? new xlsx.Cell(value(v.value), styles[v.style]) : v;
       for (const sheet of spec.sheets) {
         const columns = sheet.columns.map(c => c.style === undefined ? c : { ...c, style: styles[c.style] });
-        await book.addWorksheet(sheet.name, { ...sheet, columns }).addRows(sheet.rows.map(row => Array.isArray(row) ? row.map(value) :
+        const worksheet = book.addWorksheet(sheet.name, { ...sheet, columns,
+          ...(sheet.headerStyle === undefined ? {} : { headerStyle: styles[sheet.headerStyle] }),
+          ...(sheet.statusHighlight ? { rowStyle: ({ values }) => values[3] === false ? { fill: { color: "FCE4D6" }, font: { bold: true } } : undefined,
+            cellStyle: ({ value, columnIndex }) => columnIndex === 2 && value > 100 ? { font: { color: "C00000" } } : undefined } : {}) });
+        await worksheet.addRows(sheet.rows.map(row => Array.isArray(row) ? row.map(value) :
           Object.fromEntries(Object.entries(row).map(([key, cell]) => [key, value(cell)]))));
+        for (const image of sheet.images ?? []) worksheet.addImage({ ...image, data: Uint8Array.from(atob(image.pngBase64), ch => ch.charCodeAt(0)) });
       }
       for (const part of spec.parts ?? []) book.addPart(part);
       await emitFixture("corpus-" + kind + "-" + spec.name + "-" + compression + ".xlsx", await book.toBlob());
     }
-    for (const feature of ["mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"]) {
+    for (const feature of ["mergedCells", "conditionalFormats", "dataValidation"]) {
       try { new xlsx.Workbook().addWorksheet("Data", { [feature]: [] }); throw new Error("Ignored reserved option"); }
       catch (error) { require(error.code === "NOT_SUPPORTED" && error.feature === feature, "Reserved option did not throw clearly"); }
     }

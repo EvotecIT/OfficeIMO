@@ -15,6 +15,13 @@ export function validateEntryName(name: string): string {
   if (typeof name !== "string" || !name || /[\u0000-\u001f\\]/.test(name) || name.startsWith("/") ||
       /^[A-Za-z]:/.test(name) || name.split("/").some(s => !s || s === "." || s === ".."))
     throw new TypeError("ZIP entry names must be relative paths without empty, dot or parent segments.");
+  for (let i = 0; i < name.length; i++) {
+    const unit = name.charCodeAt(i);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = name.charCodeAt(++i);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) throw new TypeError("ZIP entry names must contain well-formed Unicode.");
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) throw new TypeError("ZIP entry names must contain well-formed Unicode.");
+  }
   if (encoder.encode(name).length > 65535) throw new RangeError("ZIP entry name exceeds 65,535 UTF-8 bytes.");
   return name;
 }

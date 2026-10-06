@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Browser'
+        classification = 'managed-cross-platform'
+        evidence = 'Embedded JavaScript assets and content hashes are qualified by managed tests and packed .NET 8 and 10 consumers; no NativeAOT host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Workflows.IWork'
         classification = 'managed-cross-platform'
         evidence = 'Opt-in iWork workflow routes are qualified through managed .NET 8 and 10 tests; destination converter NativeAOT evidence does not qualify the complete workflow surface.'

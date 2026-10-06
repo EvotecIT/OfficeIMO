@@ -57,6 +57,7 @@ internal static class JavaScriptWorkbookContract {
             Require(styles.Fonts!.Elements<Font>().Any(f => XmlConvert.DecodeName(f.FontName?.Val?.Value ?? "") == "Font_x0041_"), "Literal font name differs.");
             Require(styles.NumberingFormats!.Elements<NumberingFormat>().Any(f => XmlConvert.DecodeName(f.FormatCode?.Value ?? "") == "\"_x003A_\"0"), "Literal number-format code differs.");
         }
+        if (fixture.GetProperty("name").GetString() == "report-table") VerifyReport(sdk.WorkbookPart!);
         if (fixture.TryGetProperty("parts", out JsonElement parts)) {
             using Package package = Package.Open(path, FileMode.Open, FileAccess.Read);
             foreach (JsonElement part in parts.EnumerateArray()) {
@@ -90,6 +91,34 @@ internal static class JavaScriptWorkbookContract {
                 "Column number-format override was not applied.");
             Require(workbook.CustomXmlParts.Count() == 1, "Custom XML part relationship differs.");
         }
+    }
+    private static void VerifyReport(WorkbookPart workbook) {
+        WorksheetPart sheet = workbook.WorksheetParts.Single();
+        Worksheet worksheet = sheet.Worksheet ?? throw new InvalidDataException("Report worksheet is absent.");
+        Table table = sheet.TableDefinitionParts.Single().Table!;
+        Require(table.Name?.Value == "ControllerReport" && table.Reference?.Value == "A1:D3", "Report table name or range differs.");
+        Require(table.TableStyleInfo?.Name?.Value == "TableStyleMedium9" && table.TableStyleInfo?.ShowRowStripes?.Value == true, "Report table banding differs.");
+        Pane pane = worksheet.Descendants<Pane>().Single();
+        Require(pane.HorizontalSplit?.Value == 1 && pane.VerticalSplit?.Value == 1 && pane.TopLeftCell?.Value == "B2", "Report frozen panes differ.");
+        Stylesheet styles = workbook.WorkbookStylesPart!.Stylesheet!;
+        CellFormat Applied(string address) {
+            Cell cell = worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == address);
+            return styles.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+        }
+        CellFormat number = Applied("B3"), date = Applied("C3");
+        Require(number.NumberFormatId?.Value == Applied("B2").NumberFormatId?.Value && date.NumberFormatId?.Value == Applied("C2").NumberFormatId?.Value && date.NumberFormatId?.Value > 0,
+            "Highlighting lost number or date formatting.");
+        Font font = styles.Fonts!.Elements<Font>().ElementAt((int)number.FontId!.Value);
+        Fill fill = styles.Fills!.Elements<Fill>().ElementAt((int)number.FillId!.Value);
+        Require(font.Bold is not null && font.Color?.Rgb?.Value == "FFC00000" && fill.Descendants<ForegroundColor>().Any(f => f.Rgb?.Value == "FFFCE4D6"), "Report highlighting differs.");
+        var link = sheet.HyperlinkRelationships.Single();
+        Require(link.IsExternal && link.Uri.ToString() == "https://example.com/report?site=lodz&view=health", "Report hyperlink differs.");
+        var anchor = sheet.DrawingsPart!.WorksheetDrawing!.Elements<DocumentFormat.OpenXml.Drawing.Spreadsheet.OneCellAnchor>().Single();
+        Require(anchor.FromMarker?.RowId?.Text == "5" && anchor.FromMarker.ColumnId?.Text == "0" && anchor.Extent?.Cx?.Value == 1714500 && anchor.Extent.Cy?.Value == 762000,
+            "Report image anchor or size differs.");
+        using var bytes = new MemoryStream();
+        using (Stream image = sheet.DrawingsPart.ImageParts.Single().GetStream(FileMode.Open, FileAccess.Read)) image.CopyTo(bytes);
+        Require(bytes.ToArray().SequenceEqual(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfKsAAAAASUVORK5CYII=")), "Report image bytes differ.");
     }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidDataException(message); }
 }

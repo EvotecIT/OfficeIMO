@@ -40,6 +40,7 @@ export async function readZip(blob) {
       assert.equal(bytes.readUInt32LE(descriptor + 8), compressed);
       assert.equal(bytes.readUInt32LE(descriptor + 12), content.length);
     } else assert.equal(bytes.readUInt32LE(local + 14), bytes.readUInt32LE(offset + 16));
+    assert.ok(!entries.has(name), "ZIP directory contains duplicate decoded names");
     entries.set(name, { method, content: content.toString("utf8"), bytes: content });
     offset += 46 + length + bytes.readUInt16LE(offset + 30) + bytes.readUInt16LE(offset + 32);
   }

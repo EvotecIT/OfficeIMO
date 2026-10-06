@@ -44,6 +44,19 @@
       { "uri": "/xl/custom:part.xml", "contentType": "application/xml", "data": "<data xmlns=\"urn:officeimo:test\">same directory target</data>",
         "relationship": { "id": "sameDirectoryCustom", "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" } }
       ], "sheets": [{ "name": "Relationships", "columns": [{ "header": "V" }], "rows": [["internal targets"]], "expected": { "A2": "internal targets" } }] },
+    { "name": "report-table", "styles": [{ "font": { "bold": true, "color": "FFFFFF" }, "fill": { "color": "203864" }, "verticalAlignment": "center" }],
+      "sheets": [{ "name": "Controllers", "columns": [
+        { "header": "Name", "width": 28 }, { "header": "Latency", "type": "number", "format": "0.000" },
+        { "header": "Seen", "type": "date", "format": "yyyy-mm-dd" }, { "header": "Healthy", "type": "boolean" }
+      ], "table": { "name": "ControllerReport", "style": "TableStyleMedium9" }, "headerStyle": 0,
+        "statusHighlight": true, "freezeHeader": true, "freezeColumns": 1, "headerHeight": 30, "rowHeight": 22,
+        "hyperlinks": [{ "cell": "A2", "target": "https://example.com/report?site=lodz&view=health", "tooltip": "Open Łódź report" }],
+        "images": [{ "row": 6, "column": 1, "width": 180, "height": 80, "description": "Report chart 🧪",
+          "pngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfKsAAAAASUVORK5CYII=" }],
+        "alternatingRowStyle": { "fill": { "color": "EAF1F8" } },
+        "rows": [["Łódź 🧪", 12.5, { "kind": "date", "value": "2026-10-06T00:00:00Z" }, true],
+                 ["Warsaw", 125.75, { "kind": "date", "value": "2026-10-06T00:00:00Z" }, false]],
+        "expected": { "A2": "Łódź 🧪", "B3": 125.75, "C3": { "kind": "date", "value": "2026-10-06T00:00:00Z" }, "D3": false } }] },
     { "name": "xml-reject-valid", "options": { "invalidCharacterPolicy": "reject" },
       "sheets": [{ "name": "Data", "columns": [{ "header": "Unicode" }], "rows": [["Zażółć gęślą jaźń 🧪\r\n"]], "expected": { "A2": "Zażółć gęślą jaźń 🧪\r\n" } }] }
   ]

@@ -8,11 +8,13 @@ function checkAbort(signal) {
 function withAbort(promise, signal) {
     if (!signal)
         return Promise.resolve(promise);
-    checkAbort(signal);
     return new Promise((resolve, reject) => {
-        const abort = () => reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError"));
+        const cleanup = () => signal.removeEventListener("abort", abort);
+        const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Export cancelled.", "AbortError")); };
         signal.addEventListener("abort", abort, { once: true });
-        Promise.resolve(promise).then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+        Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
+        if (signal.aborted)
+            abort();
     });
 }
 /** Consume once; return the iterator on failure or cancellation. Pass the signal to I/O producers too. */
@@ -21,7 +23,7 @@ async function* inputRows(input, signal) {
     const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
     if (!iterator)
         throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
-    let done = false;
+    let done = false, failed = false;
     try {
         while (true) {
             checkAbort(signal);
@@ -34,13 +36,23 @@ async function* inputRows(input, signal) {
             yield item.value;
         }
     }
+    catch (error) {
+        failed = true;
+        throw error;
+    }
     finally {
         if (!done && iterator.return) {
-            const returned = iterator.return();
-            if (signal?.aborted)
-                Promise.resolve(returned).catch(() => { });
-            else
-                await returned;
+            try {
+                const returned = iterator.return();
+                if (signal?.aborted || failed)
+                    Promise.resolve(returned).catch(() => { });
+                else
+                    await withAbort(Promise.resolve(returned), signal);
+            }
+            catch (error) {
+                if (!signal?.aborted && !failed)
+                    throw error;
+            }
         }
     }
 }
@@ -242,7 +254,9 @@ const { copyColumns, rowValues } = _m4;
 
 
 
-function csvField(value, delimiter, protect) {
+function csvField(value, delimiter, protect, quote, nullValue) {
+    if (value == null && nullValue !== undefined)
+        value = nullValue;
     let text;
     if (value == null)
         text = "";
@@ -254,33 +268,48 @@ function csvField(value, delimiter, protect) {
         text = Number.isFinite(value) ? String(value) : "";
     else if (typeof value === "string")
         text = value;
-    else
-        throw new TypeError("CSV cells must be strings, numbers, booleans, Dates or null.");
+    else {
+        if (typeof value.then === "function")
+            void Promise.resolve(value).catch(() => { });
+        throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
+    }
     if (protect && typeof value === "string" && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
-    return text.includes(delimiter) || /["\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+    return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
+        ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 async function writeCsvTo(rows, sink, options) {
-    const columns = copyColumns(options.columns), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n";
+    const columns = copyColumns(options.columns), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
     if (!["\r\n", "\n", "\r"].includes(lineEnding))
         throw new RangeError("Invalid line ending.");
+    if (!["minimal", "all", "strings"].includes(quote))
+        throw new RangeError("Quoting must be minimal, all or strings.");
+    if (options.nullValue !== undefined && typeof options.nullValue !== "string")
+        throw new TypeError("nullValue must be a string.");
+    for (const column of columns)
+        if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
+            throw new TypeError("CSV value formatters must be functions.");
     const signal = options.signal, protect = options.formulaInjectionProtection !== false, buffer = new ChunkedTextSink(sink, signal);
     checkAbort(signal);
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
-    async function record(values) {
-        for (let i = 0; i < columns.length; i++)
-            await buffer.write((i ? delimiter : "") + csvField(values[i], delimiter, protect));
+    async function record(values, header = false) {
+        const snapshot = Object.freeze(columns.map((_, i) => values[i]));
+        for (let i = 0; i < columns.length; i++) {
+            const column = columns[i];
+            const value = !header && column.valueFormatter ? column.valueFormatter(values[i], { row: count + 1, columnIndex: i + 1, column: Object.freeze({ ...column }), values: snapshot }) : values[i];
+            await buffer.write((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue));
+        }
         if (buffer.append(lineEnding)) {
             await buffer.flush();
             options.onProgress?.({ phase: "rows", rows: count });
         }
     }
     if (options.includeHeader !== false && columns.length)
-        await record(columns.map(c => c.header));
+        await record(columns.map(c => c.header), true);
     for await (const row of inputRows(rows, signal)) {
         await record(rowValues(row, columns));
         count++;

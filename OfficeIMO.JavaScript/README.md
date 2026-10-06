@@ -60,6 +60,53 @@ Excel limits are enforced: 1,048,576 rows including the header, 16,384 columns, 
 
 `invalidCharacterPolicy` defaults to `"strip"`. XML 1.0-invalid controls, lone surrogates, U+FFFE and U+FFFF are removed. `"reject"` throws an `OfficeIMOError` with `code: "INVALID_XML"` for names, cell/header text, property text, font names and number formats. CR, LF, tabs, emoji, Polish and right-to-left text are preserved.
 
+## Report tables, highlighting and images
+
+Use worksheet presentation options to carry a report's highlights into Excel while retaining typed values and column number formats:
+
+```ts
+import { Workbook, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
+
+const book = new Workbook({ creator: "Health report", dateMode: "utc" });
+const headerStyle = book.styles.add({
+  font: { bold: true, color: "FFFFFF" }, fill: { color: "203864" },
+  verticalAlignment: "center", wrapText: true
+});
+const sheet = book.addWorksheet("Controllers", {
+  columns: [
+    { header: "Name", key: "name", width: 28 },
+    { header: "Latency", key: "latency", type: "number", format: "0.000" },
+    { header: "Seen", key: "seen", type: "date", format: NumberFormats.DateTime },
+    { header: "Healthy", key: "healthy", type: "boolean" }
+  ],
+  table: { name: "Controllers", style: "TableStyleMedium9" },
+  headerStyle, headerHeight: 30, rowHeight: 24,
+  freezeHeader: true, freezeColumns: 1,
+  alternatingRowStyle: { fill: { color: "EAF1F8" } },
+  rowStyle: ({ values }) => values[3] === false
+    ? { fill: { color: "FCE4D6" }, font: { bold: true } } : undefined,
+  cellStyle: ({ value, columnIndex }) => columnIndex === 2 && typeof value === "number" && value > 100
+    ? { font: { color: "C00000" } } : undefined
+});
+await sheet.addRows([
+  { name: "Łódź", latency: 125.75, seen: new Date("2026-10-06T12:00:00Z"), healthy: false }
+]);
+sheet.addHyperlink({ cell: "A2", target: "https://example.com/report", tooltip: "Open report" });
+saveBlob(await book.toBlob(), "health-report.xlsx");
+```
+
+`table` writes a native Excel table with filtering and a built-in `TableStyleLight1..21`, `TableStyleMedium1..28` or `TableStyleDark1..11` style. Row banding defaults to true; `bandedColumns`, `firstColumn` and `lastColumn` control other table accents. Names are workbook-unique ASCII identifiers, at most 255 characters, and cannot be cell references. Omitted names are generated. Table headers must be nonblank, unique ignoring case and at most 255 characters. An empty export writes the headers without creating a table or an artificial data row.
+
+Styles apply in this order: column style/format, alternating-row patch, row patch, then cell patch. A `Cell` with an explicit style replaces the column/alternating/row presentation; the cell callback can still overlay it. `StyleRegistry.compose(base, patch)` exposes the same composition. Font fields and border edges merge; numeric font/fill/border indexes replace their component. Unspecified number formats, wrapping and alignment remain intact. Fonts support bold, italic, underline and strike; `verticalAlignment` complements horizontal `alignment`.
+
+Style callbacks are synchronous. Their `row` is the one-based worksheet row, including its header; `columnIndex` is one-based. Row `values` follow the declared export order and unwrap `Cell` values. A cell callback sees the value after a custom column writer. Headers use `headerStyle` separately. Alternating patches start on the second data row and remain consistent across appends. Heights are points, positive and at most 409; `freezeColumns` freezes leading columns alongside an optional header.
+
+Native tables default unspecified column widths to 20 characters so date/time and numeric columns have useful space. Set `defaultColumnWidth` for another fallback or a column's `width` for an individual override. Worksheets without a table retain Excel's default width unless a width is supplied. These are fixed widths, not font-measured autofit.
+
+Hyperlinks can also be supplied through `SheetOptions.hyperlinks`. Each link addresses one exported cell and uses an absolute HTTP, HTTPS or mailto URL. HTTP credentials, unsafe schemes and duplicate link cells are rejected. Links preserve the existing cell value and style; use a style patch for blue/underlined link text when desired.
+
+`sheet.addImage({ data: pngBytes, row: 6, column: 1, width: 640, height: 320, description: "Latency chart" })` places a PNG, such as a rendered chart, without changing table data. Supply a `Uint8Array` containing the complete PNG; the library checks its signature/IHDR and copies the bytes. Anchors are one-based; display dimensions are CSS pixels at 96 DPI. The writer embeds the image and a one-cell drawing anchor. It does not render charts or convert SVG. Multiple worksheets can each contain a table, links and images.
+
 ## CSV
 
 ```ts
@@ -76,6 +123,20 @@ await writeCsvTo(rows, { write: bytes => uploadChunk(bytes) }, { columns });
 `uploadChunk` above stands for an application's asynchronous byte destination; its promise supplies backpressure. The library performs no network access itself. Both CSV entry points use RFC 4180 quoting, comma/semicolon/tab delimiters, CRLF by default, optional UTF-8 BOM and a final line ending. Alternative endings are LF and CR. Booleans are `True`/`False`; valid dates are UTC ISO 8601 with milliseconds. Numbers use JavaScript's invariant string representation.
 
 Formula protection defaults to true and follows `OfficeIMO.CSV`: after leading ASCII spaces, a string beginning with `=`, `+`, `-`, `@`, tab, CR or LF gains an apostrophe. Typed negative numbers remain numeric. Set `formulaInjectionProtection: false` for trusted non-spreadsheet consumers. Widths and XLSX style/type options do not change CSV formatting.
+
+CSV carries values rather than colors or fonts. Use a column's synchronous `valueFormatter` to export status labels, chosen date formats or other scalar representations. Formatting runs before formula protection and quoting, so return plain values rather than escaped CSV:
+
+```ts
+const blob = await writeCsv([{ name: "Łódź", healthy: false }], {
+  columns: [
+    { header: "Name", key: "name" },
+    { header: "Status", key: "healthy", valueFormatter: value => value ? "Healthy" : "Needs attention" }
+  ],
+  bom: true, quote: "strings", nullValue: "missing"
+});
+```
+
+`quote` defaults to `"minimal"`; `"all"` quotes every field and `"strings"` always quotes string values. Required delimiter, quote and newline escaping applies in every mode. `nullValue` replaces null/undefined values and receives the same protection and quoting as other strings. Formatters run on data only; their context contains the one-based data `row`, one-based `columnIndex`, column definition and original projected `values`. Both Blob and caller-owned sink APIs share these options. CSV retains long text that exceeds Excel's per-cell text limit.
 
 The [shared vectors](../OfficeIMO.TestAssets/CSV/browser-exports.json) qualify byte-identical output with C#. The C# date lane uses `UseUtc = true` and `DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'"`. JavaScript and .NET use their own floating-point formatting conventions; equality is qualified for the shared numeric vectors, not every possible double.
 
@@ -163,7 +224,7 @@ const blob = await workbook.toBlob();
 
 Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive column, row, column index and sheet-name context. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
 
-`mergedCells`, `hyperlinks`, `conditionalFormats` and `dataValidation` are reserved worksheet options. Supplying any of them, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader, formula engine, image placement or report-grid adapter in this package's current writer contract. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the consumer-driven work.
+`mergedCells`, `conditionalFormats` and `dataValidation` are reserved worksheet options. Supplying any of them, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader, formula engine or report-grid adapter in this package's current writer contract. Row/cell highlighting is resolved during export; it does not create rules that recalculate in Excel. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
 
 ## Portable classic scripts and the .NET asset package
 

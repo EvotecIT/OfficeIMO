@@ -10,8 +10,12 @@ export async function createFixture(spec, compression) {
   const value = v => v?.kind === "date" ? new Date(v.value) : v?.kind === "cell" ? new Cell(value(v.value), styles[v.style]) : v;
   for (const sheet of spec.sheets) {
     const columns = sheet.columns.map(c => c.style === undefined ? c : { ...c, style: styles[c.style] });
-    const worksheet = book.addWorksheet(sheet.name, { ...sheet, columns });
+    const worksheet = book.addWorksheet(sheet.name, { ...sheet, columns,
+      ...(sheet.headerStyle === undefined ? {} : { headerStyle: styles[sheet.headerStyle] }),
+      ...(sheet.statusHighlight ? { rowStyle: ({ values }) => values[3] === false ? { fill: { color: "FCE4D6" }, font: { bold: true } } : undefined,
+        cellStyle: ({ value, columnIndex }) => columnIndex === 2 && value > 100 ? { font: { color: "C00000" } } : undefined } : {}) });
     await worksheet.addRows(sheet.rows.map(row => Array.isArray(row) ? row.map(value) : Object.fromEntries(Object.entries(row).map(([k, v]) => [k, value(v)]))));
+    for (const image of sheet.images ?? []) worksheet.addImage({ ...image, data: Uint8Array.from(atob(image.pngBase64), ch => ch.charCodeAt(0)) });
   }
   for (const part of spec.parts ?? []) book.addPart(part);
   return book.toBlob();

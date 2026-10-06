@@ -35,7 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!indexes.length) throw new Error("Show at least one column.");
       const columns = indexes.map(index => {
         const name = header.cells[index].textContent.trim();
-        return { header: name, type: name === "Latency (ms)" ? "number" : "string", width: 20 };
+        return { header: name, type: name === "Latency (ms)" ? "number" : "string", width: 20,
+          ...(name === "Latency (ms)" ? { format: "0.00" } : {}) };
       });
       function* rows() {
         for (const row of dataRows()) if (!row.hidden) yield indexes.map((index, column) => {
@@ -46,7 +47,11 @@ document.addEventListener("DOMContentLoaded", () => {
       let blob;
       if (format === "xlsx") {
         const book = OfficeIMO.createWorkbook({ creator: "HtmlForgeX example" });
-        await book.addSheet("Current view", { columns, freezeHeader: true, autoFilter: true }).addRows(rows());
+        const headerStyle = book.styles.add({ font: { bold: true, color: "FFFFFF" }, fill: { color: "203864" }, verticalAlignment: "center" });
+        await book.addSheet("Current view", { columns, freezeHeader: true, freezeColumns: 1,
+          table: { name: "CurrentView", style: "TableStyleMedium9" }, headerStyle, headerHeight: 28, rowHeight: 22,
+          cellStyle: ({ column, value }) => column.header === "Latency (ms)" && value > 20
+            ? { fill: { color: "FCE4D6" }, font: { color: "9C0006", bold: true } } : undefined }).addRows(rows());
         blob = await book.toBlob();
       } else blob = await OfficeIMO.writeCsv(rows(), { columns, bom: true });
       OfficeIMO.saveBlob(blob, "current-view." + format);
