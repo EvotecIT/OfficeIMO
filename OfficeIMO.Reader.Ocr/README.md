@@ -96,3 +96,9 @@ Candidate selection, materialized input bytes, newly accepted text, spans and sp
 - License: MIT.
 
 See the [Reader Core README](../OfficeIMO.Reader.Core/README.md) for reader construction and result contracts.
+
+## Recognition evidence
+
+OCR-enriched `OfficeDocumentBlock.Recognition` carries an immutable `OfficeDocumentRecognitionEvidence` with the provider, model, language and available confidence/review measurements. JSON round trips and nested OCR projection preserve it. Direct `ApplyOcrResults` callers may supply detailed `Recognition`; omitted assessments remain unknown. Engine execution records word-confidence checks and preserves adaptive comparison outcomes. Truncation or normalization loss requires review.
+
+Consumers must not treat confidence or matching OCR variants as approval. OfficeIMO.AI carries this evidence into its snapshot identity, citations and review reports.

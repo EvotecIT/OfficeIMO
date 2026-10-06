@@ -1215,6 +1215,32 @@ image/PDF projection emits stable diagnostics when extension semantics are
 approximated or omitted; native XLS export rejects extension-only rules rather
 than silently discarding them.
 
+### Set several column widths
+
+Use `SetColumnWidths` to apply positive widths in one worksheet update:
+
+```csharp
+sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 24, [2] = 14, [3] = 18 });
+```
+
+Indexes are 1-based. The method preserves column styles, visibility and outline
+metadata. It validates the complete map before changing widths and clamps widths
+above Excel's 255-character limit. Use `SetColumnWidth` to clear an individual
+custom width with a non-positive value.
+Manually assigned widths do not mark a column as already auto-fitted. A later
+`AutoFitColumns` or `AutoFitColumnsFor` can resize them, including after reopening
+the workbook.
+
+For sparse cells, `CellWrapTextFor` applies wrapping together and saves the
+stylesheet once while preserving each cell's other formatting:
+
+```csharp
+sheet.CellWrapTextFor(new[] { (Row: 1, Column: 1), (Row: 3, Column: 2) });
+```
+
+Coordinates are 1-based and the complete selection is validated before editing.
+Pass `wrapText: false` to clear wrapping for the selected cells.
+
 ### Tune larger exports
 
 ```csharp

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using OfficeIMO.Provenance.C2pa;
 using OfficeIMO;
 using OfficeIMO.Provenance;
 using OfficeIMO.Workflows;
@@ -9,10 +11,13 @@ internal static class ProvenanceCommand {
 OfficeIMO.Tool - provenance workflows
 
 Usage:
+  officeimo provenance doctor --c2patool <trusted-executable> [--format json|text]
   officeimo provenance capabilities [--format json|text]
   officeimo provenance inspect <input> [--no-embedded] [--max-input-bytes <bytes>] [--format json|text]
   officeimo provenance assess <input> [--no-embedded] [--no-text-integrity]
              [--max-input-bytes <bytes>] [--format json|text]
+             [--c2patool <trusted-executable>] [--trust-anchors <pem>] [--allowed-list <pem>]
+             [--verification-timeout-seconds <1-300>]
   officeimo provenance remove <input> [--output <path>] [--force]
              [--keep-c2pa] [--keep-external-c2pa] [--keep-ai-source]
              [--remove-invalidated-signatures] [--no-embedded]
@@ -24,6 +29,8 @@ Usage:
   officeimo provenance batch remove <input>... --output-directory <path>
              [--max-items <1-10000>] [options]
 
+Provider options apply to assess and batch assess. Verification stays offline; c2patool is host-supplied.
+doctor executes --version only; availability does not establish signer trust.
 audit and check never modify files. Directory discovery skips symbolic links, .git, bin, obj and node_modules.
 check defaults to dangerous Unicode findings; exit 1 means the selected evidence policy found findings.
 Missing inputs, incomplete discovery and failed assessments return their existing nonzero error codes.
@@ -49,7 +56,16 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
                 return (int)OfficeImoToolExitCode.Success;
             }
 
-            IOfficeProvenanceWorkflowRunner activeRunner = runner ?? new OfficeWorkflowRunner();
+            if (parsed.Command == ProvenanceCommandKind.Doctor) {
+                C2paToolAvailability readiness = new C2paToolProvenanceVerifier(parsed.C2paToolPath!).CheckAvailability(
+                    TimeSpan.FromSeconds(parsed.VerificationTimeoutSeconds), cancellationToken);
+                await standardOutput.WriteLineAsync(parsed.Format == ProvenanceOutputFormat.Json
+                    ? JsonSerializer.Serialize(new ProvenanceDoctorDto("officeimo.provenance.doctor.v1", readiness.Available, readiness.ExecutablePath, readiness.Version, readiness.Diagnostic), ProvenanceJsonContext.Default.ProvenanceDoctorDto)
+                    : $"{(readiness.Available ? "Available" : "Unavailable")}: {readiness.Version ?? "unknown version"}. {readiness.Diagnostic}").ConfigureAwait(false);
+                return readiness.Available ? (int)OfficeImoToolExitCode.Success : (int)OfficeImoToolExitCode.OperationFailed;
+            }
+            IOfficeProvenanceWorkflowRunner activeRunner = runner ?? new OfficeWorkflowRunner(
+                provenanceVerifier: parsed.C2paToolPath == null ? null : new C2paToolProvenanceVerifier(parsed.C2paToolPath));
             if (parsed.Command is ProvenanceCommandKind.Audit or ProvenanceCommandKind.Check) {
                 var audit = new OfficeProvenanceAuditRequest { Inputs = parsed.Inputs, Recursive = parsed.Recursive,
                     Include = parsed.Include, Exclude = parsed.Exclude, MaximumItems = parsed.MaximumItems,
@@ -63,8 +79,6 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
                 } else await ProvenanceOutput.WriteBatchAsync(standardOutput, reports, parsed.Format).ConfigureAwait(false);
                 int execution = MapBatch(reports);
                 if (execution != 0) return execution;
-                if (reports.Any(report => report.Assessment?.VerificationStatus == OfficeProvenanceCheckStatus.Failed ||
-                    report.Assessment?.ProviderSignalsStatus == OfficeProvenanceCheckStatus.Failed)) return (int)OfficeImoToolExitCode.OperationFailed;
                 return parsed.Command == ProvenanceCommandKind.Check && reports.Any(report =>
                     OfficeProvenanceAudit.HasFindings(report, parsed.FailOnCarriers, parsed.FailOnDangerousText))
                     ? (int)OfficeImoToolExitCode.ValidationFailed : (int)OfficeImoToolExitCode.Success;
@@ -90,7 +104,7 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
                 CreateRequest(parsed, parsed.Inputs[0], parsed.OutputPath),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             await ProvenanceOutput.WriteResultAsync(standardOutput, result, parsed.Format).ConfigureAwait(false);
-            return MapStatus(result.Status, result.FailureKind);
+            return MapBatch(new[] { result });
         } catch (ProvenanceUsageException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
@@ -154,6 +168,9 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
         request.Assessment.Structural.ProcessEmbeddedAssets = parsed.ProcessEmbeddedAssets;
         request.Assessment.TextIntegrity.MaxEncodedBytes = parserInputBytes;
         request.Assessment.InspectTextIntegrity = parsed.InspectTextIntegrity;
+        request.Assessment.Verification.Timeout = TimeSpan.FromSeconds(parsed.VerificationTimeoutSeconds);
+        request.Assessment.Verification.TrustAnchorsPath = parsed.TrustAnchorsPath;
+        request.Assessment.Verification.AllowedListPath = parsed.AllowedListPath;
         request.Removal.Limits.MaxAssetBytes = parserInputBytes;
         request.Removal.MaxOutputBytes = parserOutputBytes;
         request.Removal.RemoveC2paManifests = parsed.RemoveC2paManifests;
@@ -170,6 +187,9 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
         if (results.Any(result => result.Status == OfficeWorkflowStatus.Cancelled)) {
             return (int)OfficeImoToolExitCode.Cancelled;
         }
+        if (results.Any(result => result.Assessment?.VerificationStatus == OfficeProvenanceCheckStatus.Failed ||
+            result.Assessment?.ProviderSignalsStatus == OfficeProvenanceCheckStatus.Failed))
+            return (int)OfficeImoToolExitCode.OperationFailed;
         OfficeProvenanceWorkflowResult? failed = results.FirstOrDefault(result => !result.Succeeded);
         return failed is null
             ? (int)OfficeImoToolExitCode.Success

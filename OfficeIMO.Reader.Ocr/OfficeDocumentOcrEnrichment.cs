@@ -9,6 +9,9 @@ namespace OfficeIMO.Reader;
 /// Recognized text returned by an external OCR provider for a candidate emitted by an OfficeIMO read result.
 /// </summary>
 public sealed class OfficeDocumentOcrTextResult {
+    /// <summary>Optional detailed recognition checks. Provider identity fields below remain authoritative.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; set; }
+
     /// <summary>
     /// Identifier of the <see cref="OfficeDocumentOcrCandidate"/> this OCR result enriches.
     /// </summary>
@@ -214,6 +217,7 @@ public static partial class OfficeDocumentOcrEnrichmentExtensions {
             Kind = string.IsNullOrWhiteSpace(options.BlockKind) ? "ocr-text" : options.BlockKind.Trim(),
             Text = applied.Result.Text.Trim(),
             Location = BuildOcrLocation(source, applied, "ocr-text"),
+            Recognition = BuildRecognitionEvidence(applied.Result),
             Region = CloneRegion(applied.Candidate.Region)
         };
     }

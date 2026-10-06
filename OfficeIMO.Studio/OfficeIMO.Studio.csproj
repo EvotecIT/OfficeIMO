@@ -53,6 +53,7 @@
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Provenance.C2pa\OfficeIMO.Provenance.C2pa.csproj" />
     <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" />
   </ItemGroup>

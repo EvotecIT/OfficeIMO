@@ -721,10 +721,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (border.Style == LegacyDocTableCellBorderStyle.ExplicitNone) {
-                bytes.Add(0);
-                bytes.Add(0);
-                bytes.Add(0);
-                bytes.Add(0);
+                bytes.Add(0xFF);
+                bytes.Add(0xFF);
+                bytes.Add(0xFF);
+                bytes.Add(0xFF);
                 return;
             }
 

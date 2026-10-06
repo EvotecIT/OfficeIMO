@@ -492,6 +492,8 @@ namespace OfficeIMO.Word {
             }
 
             WordTable table = section.AddTable(rowCount, columnCount, WordTableStyle.TableNormal);
+            ApplyLegacyDocTableBorderDefaults(table, tableBlock.Rows.Select(row =>
+                row.TableBorders.WithDefaults(styleSheet.ResolveTableBorders(row.TableStyleIndex))));
             LegacyDocTableAlignment? tableAlignment = tableBlock.Rows
                 .Select(row => row.TableAlignment)
                 .FirstOrDefault(alignment => alignment.HasValue);
@@ -702,55 +704,50 @@ namespace OfficeIMO.Word {
                 borders.Top,
                 style => cell.Borders.TopStyle = style.ToOfficeEnum(),
                 color => cell.Borders.TopColorHex = color,
-                size => cell.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => cell.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => cell.Borders.TopSize = size,
+                space => cell.Borders.TopSpace = space);
             ApplyLegacyDocTableCellBorder(
                 borders.Left,
                 style => cell.Borders.LeftStyle = style.ToOfficeEnum(),
                 color => cell.Borders.LeftColorHex = color,
-                size => cell.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => cell.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => cell.Borders.LeftSize = size,
+                space => cell.Borders.LeftSpace = space);
             ApplyLegacyDocTableCellBorder(
                 borders.Bottom,
                 style => cell.Borders.BottomStyle = style.ToOfficeEnum(),
                 color => cell.Borders.BottomColorHex = color,
-                size => cell.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => cell.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => cell.Borders.BottomSize = size,
+                space => cell.Borders.BottomSpace = space);
             ApplyLegacyDocTableCellBorder(
                 borders.Right,
                 style => cell.Borders.RightStyle = style.ToOfficeEnum(),
                 color => cell.Borders.RightColorHex = color,
-                size => cell.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => cell.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => cell.Borders.RightSize = size,
+                space => cell.Borders.RightSpace = space);
         }
 
         private static void ApplyLegacyDocTableCellBorder(
             LegacyDocTableCellBorder border,
             Action<BorderValues> setStyle,
-            Action<string> setColor,
-            Action<int> setSize,
-            Action<int> setSpace) {
+            Action<string?> setColor,
+            Action<uint?> setSize,
+            Action<uint?> setSpace) {
             BorderValues? style = MapLegacyDocTableCellBorderStyle(border.Style);
             if (style == null) {
                 return;
             }
 
             setStyle(style.Value);
-            if (!string.IsNullOrEmpty(border.ColorHex)) {
-                setColor(border.ColorHex!);
-            }
-
-            if (border.SizeEighthPoints > 0) {
-                setSize(border.SizeEighthPoints);
-            }
-
-            if (border.SpacePoints > 0) {
-                setSpace(border.SpacePoints);
-            }
+            // A specified edge replaces the earlier row default as a complete value.
+            setColor(border.ColorHex);
+            setSize(border.SizeEighthPoints > 0 ? (uint?)border.SizeEighthPoints : null);
+            setSpace(border.SpacePoints > 0 ? (uint?)border.SpacePoints : null);
         }
 
         private static BorderValues? MapLegacyDocTableCellBorderStyle(LegacyDocTableCellBorderStyle style) {
             switch (style) {
+                case LegacyDocTableCellBorderStyle.ExplicitNone:
+                    return BorderValues.Nil;
                 case LegacyDocTableCellBorderStyle.Single:
                     return BorderValues.Single;
                 case LegacyDocTableCellBorderStyle.Double:
