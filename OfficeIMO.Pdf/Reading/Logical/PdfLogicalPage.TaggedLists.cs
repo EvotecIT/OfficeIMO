@@ -29,7 +29,7 @@ public sealed partial class PdfLogicalPage {
                     fragment = new TaggedListLine(block);
                     fragments.Add(owner.Item, fragment);
                 }
-                (owner.Label ? fragment.Label : fragment.Body).Append(block.Text, start, end);
+                (owner.Label ? fragment.Label : fragment.Body).Append(block.Text, start, end, span);
             }
             foreach (var pair in fragments) {
                 Consume();
@@ -55,12 +55,21 @@ public sealed partial class PdfLogicalPage {
                 }
             }
             PdfLogicalTextBlock[] lines = group.Lines.Select(static line => line.Block).ToArray();
+            var runs = new List<PdfLogicalTextRun>();
+            for (int index = 0; index < body.Length; index++) {
+                Consume();
+                if (body[index].Length == 0) continue;
+                if (runs.Count > 0) runs.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
+                // Marker parsing removes a prefix of the owned text, never a substring
+                // rediscovered in a physical line that can also contain another item.
+                runs.AddRange(group.Lines[index].Body.GetRuns(group.Lines[index].Body.Text.Length - body[index].Length));
+            }
             result.Add(new PdfLogicalListItem(pageNumber, pair.Key.Level, marker,
                 string.Join(" ", body.Where(static text => text.Length > 0)), lines, body, 0.98D,
                 lines.Where(semantics.ContainsKey).SelectMany(line => semantics[line].Evidence).Distinct().Concat(
                 new[] { new PdfInferenceEvidence("semantic.tagged-list-owner",
                     "The nearest tagged LI structure " + pair.Key.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                    " associates its label and body source runs on this page.", 0.99D) })) {
+                    " associates its label and body source runs on this page.", 0.99D) }), runs) {
                 CanProjectAsList = group.CanProject
             });
             foreach (PdfLogicalTextBlock line in lines) represented.Add(line);
@@ -86,16 +95,35 @@ public sealed partial class PdfLogicalPage {
 
     private sealed class TaggedListText {
         private readonly System.Text.StringBuilder _text = new();
+        private readonly List<PdfLogicalTextRun> _runs = new();
         private int _lastEnd = -1;
         internal string Text => _text.ToString().Trim();
 
-        internal void Append(string line, int start, int end) {
+        internal void Append(string line, int start, int end, PdfTextSpan source) {
             if (_lastEnd >= 0 && start > _lastEnd) {
                 string gap = line.Substring(_lastEnd, start - _lastEnd);
-                _text.Append(string.IsNullOrWhiteSpace(gap) ? gap : " ");
+                gap = string.IsNullOrWhiteSpace(gap) ? gap : " ";
+                _text.Append(gap);
+                _runs.Add(new PdfLogicalTextRun(gap, sourceSpan: null));
             }
             _text.Append(line, start, end - start);
+            _runs.Add(new PdfLogicalTextRun(line.Substring(start, end - start), source));
             _lastEnd = end;
+        }
+
+        /// <summary>Preserves each owned source fragment while trimming whitespace and an inferred marker prefix.</summary>
+        internal IEnumerable<PdfLogicalTextRun> GetRuns(int prefixLength) {
+            string raw = _text.ToString();
+            int start = raw.Length - raw.TrimStart().Length + prefixLength;
+            int end = raw.TrimEnd().Length;
+            int cursor = 0;
+            foreach (PdfLogicalTextRun run in _runs) {
+                int runStart = cursor;
+                cursor += run.Text.Length;
+                int from = Math.Max(start, runStart);
+                int to = Math.Min(end, cursor);
+                if (from < to) yield return new PdfLogicalTextRun(run.Text.Substring(from - runStart, to - from), run.SourceSpan);
+            }
         }
     }
 }

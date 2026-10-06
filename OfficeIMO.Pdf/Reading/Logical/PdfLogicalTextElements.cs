@@ -186,8 +186,6 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         }
 
         return string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
-            left.MarkedContentId == right.MarkedContentId &&
-            left.ContentStreamObjectNumber == right.ContentStreamObjectNumber &&
             left.FontWeight == right.FontWeight &&
             left.FontDescriptorFlags == right.FontDescriptorFlags &&
             Math.Abs(left.FontSize - right.FontSize) <= 0.001D &&
@@ -310,7 +308,8 @@ public sealed class PdfLogicalListItem {
         IReadOnlyList<PdfLogicalTextBlock> lines,
         IReadOnlyList<string> lineTexts,
         double? confidence = null,
-        IEnumerable<PdfInferenceEvidence>? evidence = null) {
+        IEnumerable<PdfInferenceEvidence>? evidence = null,
+        IReadOnlyList<PdfLogicalTextRun>? sourceRuns = null) {
         if (lines.Count == 0) throw new ArgumentException("A logical list item requires at least one source line.", nameof(lines));
         if (lineTexts.Count != lines.Count) throw new ArgumentException("Each logical list source line requires corresponding item text.", nameof(lineTexts));
         PageNumber = pageNumber;
@@ -319,7 +318,7 @@ public sealed class PdfLogicalListItem {
         Text = text;
         Lines = Array.AsReadOnly(lines.ToArray());
         Line = Lines[0];
-        Runs = BuildRuns(Lines, lineTexts);
+        Runs = sourceRuns is null ? BuildRuns(Lines, lineTexts) : Array.AsReadOnly(sourceRuns.ToArray());
         Confidence = PdfInference.Clamp(confidence ?? (string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D));
         Evidence = evidence is null
             ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }

@@ -1,4 +1,9 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Word.Pdf;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -111,6 +116,9 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(PdfLogicalReadingOrderAnalysis.Analyze(page), static candidate => candidate.Kind == PdfLogicalReadingOrderKind.Table);
         Assert.Equal(1, CountText(result.ToMarkdown(), "Quality"));
         Assert.Equal(1, CountText(result.ToMarkdown(), "Incident table"));
+        AssertConsumerTextOccursOnce(result, "Incident table", "Quality");
+        Assert.DoesNotContain(PdfReaderAdapter.ReadDocument(result).Blocks,
+            static block => block.Kind == "list-item" && block.Text.Contains("Quality", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -131,6 +139,113 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(new[] { "1.", "2." }, result.ListItems.Select(static item => item.Marker));
         Assert.Equal(1, CountText(result.ToMarkdown(), "Left incident"));
         Assert.Equal(1, CountText(result.ToMarkdown(), "Right incident"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TaggedListConsumers_ProjectParagraphBodiesOnceWithEitherOrderingMode(bool sharedOrder) {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf()).Read();
+        AssertConsumerTextOccursOnce(result, sharedOrder, "Linked incident title", "Incident detail", "Neighboring incident");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TaggedListConsumers_RetainHeadingRoleWithoutDuplicatingItsListAssociation(bool sharedOrder) {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf(heading: true)).Read();
+        AssertConsumerTextOccursOnce(result, sharedOrder, "Linked incident title", "Incident detail", "Neighboring incident");
+        Assert.Contains(PdfReaderAdapter.ReadDocument(result).Blocks,
+            static block => block.Kind == "heading" && block.Text == "Linked incident title");
+    }
+
+    [Fact]
+    public void WordImportWithoutLists_RetainsTaggedParagraphBodies() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf()).Read();
+        using OfficeIMO.Word.WordDocument word = result.ToWordDocument(new PdfToWordOptions { ImportLists = false });
+        string text = ReadWordBody(word);
+        Assert.Equal(1, CountText(text, "Linked incident title"));
+        Assert.Equal(1, CountText(text, "Incident detail"));
+        Assert.Equal(1, CountText(text, "Neighboring incident"));
+    }
+
+    [Fact]
+    public void TaggedListRuns_RetainTheExactOwnerOfIdenticalBodiesSharingOneLine() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateSharedLineTaggedListPdf()).Read();
+        PdfLogicalListItem[] items = result.ListItems.ToArray();
+        Assert.Equal(2, items.Length);
+        Assert.Same(items[0].Line, items[1].Line);
+        Assert.Equal(new[] { "Same", "Same" }, items.Select(static item => item.Text));
+        for (int index = 0; index < items.Length; index++) {
+            PdfLogicalTextRun run = Assert.Single(items[index].Runs);
+            Assert.Same(items[index].Line.Spans.Single(span => span.MarkedContentId == 1 + 2 * index), run.SourceSpan);
+        }
+        AssertConsumerTextOccursTwice(result, "Same");
+    }
+
+    [Fact]
+    public void TaggedListRuns_RetainDiscontiguousBodySourcesAroundUnownedText() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Structure(PdfCanvasStructureRole.List, list => list
+                    .Structure(PdfCanvasStructureRole.ListItem, item => item
+                        .Structure(PdfCanvasStructureRole.ListBody, body => body
+                            .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
+                                .Text("Left", 50D, 100D, 35D, 16D)
+                                .Text("Tail", 130D, 100D, 35D, 16D)))))
+                .Text("Other", 90D, 100D, 35D, 16D))
+            .ToBytes();
+        PdfDocumentReadResult result = PdfDocument.Load(bytes).Read();
+        PdfLogicalListItem item = Assert.Single(result.ListItems);
+        Assert.Equal("Left Tail", item.Text);
+        Assert.Equal(item.Text, string.Concat(item.Runs.Select(static run => run.Text)));
+        Assert.Same(item.Line.Spans.Single(static span => span.Text == "Left"),
+            Assert.Single(item.Runs, static run => run.Text == "Left").SourceSpan);
+        Assert.Same(item.Line.Spans.Single(static span => span.Text == "Tail"),
+            Assert.Single(item.Runs, static run => run.Text == "Tail").SourceSpan);
+        Assert.DoesNotContain(item.Runs, static run => run.SourceSpan?.Text == "Other");
+        AssertConsumerTextOccursOnce(result, "Left", "Other", "Tail");
+    }
+
+    private static byte[] CreateSharedLineTaggedListPdf() => PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        .TaggedPdfCatalogMarkers().Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
+            .Structure(PdfCanvasStructureRole.ListItem, item => item
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 100D, 20D, 16D))
+                .Structure(PdfCanvasStructureRole.ListBody, body => body
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", 50D, 100D, 40D, 16D))))
+            .Structure(PdfCanvasStructureRole.ListItem, item => item
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", 100D, 100D, 20D, 16D))
+                .Structure(PdfCanvasStructureRole.ListBody, body => body
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", 130D, 100D, 40D, 16D))))))
+        .ToBytes();
+
+    private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, params string[] values) =>
+        AssertConsumerTextOccursOnce(result, true, values);
+
+    private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, bool sharedOrder, params string[] values) {
+        string reader = string.Join(" ", PdfReaderAdapter.ReadDocument(result).Blocks.Select(static block => block.Text));
+        string html = result.ToHtml(new PdfToHtmlOptions { UseSharedPageReadingOrder = sharedOrder });
+        using OfficeIMO.Word.WordDocument word = result.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = sharedOrder });
+        string wordText = ReadWordBody(word);
+        foreach (string value in values) {
+            // Table content is represented in Reader tables, not duplicated in document blocks.
+            if (result.Pages.All(page => page.Tables.Count == 0) || value == "Incident table") Assert.Equal(1, CountText(reader, value));
+            Assert.Equal(1, CountText(html, value));
+            Assert.Equal(1, CountText(wordText, value));
+        }
+    }
+
+    private static void AssertConsumerTextOccursTwice(PdfDocumentReadResult result, string value) {
+        Assert.Equal(2, CountText(string.Join(" ", PdfReaderAdapter.ReadDocument(result).Blocks.Select(static block => block.Text)), value));
+        Assert.Equal(2, CountText(result.ToHtml(), value));
+        using OfficeIMO.Word.WordDocument word = result.ToWordDocument();
+        Assert.Equal(2, CountText(ReadWordBody(word), value));
+    }
+
+    private static string ReadWordBody(OfficeIMO.Word.WordDocument word) {
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+        return string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Paragraph>()
+            .Select(static paragraph => string.Concat(paragraph.Descendants<Text>().Select(static text => text.Text))));
     }
 
     [Theory]

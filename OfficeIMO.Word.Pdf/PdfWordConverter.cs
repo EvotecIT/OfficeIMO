@@ -146,8 +146,19 @@ namespace OfficeIMO.Word.Pdf {
         private static List<ImportItem> BuildImportItems(PdfCore.PdfLogicalPage page, PdfToWordOptions options, ImportNavigationMap navigation) {
             var items = new List<ImportItem>();
             var consumedLinks = new HashSet<PdfCore.PdfLogicalLinkAnnotation>();
+            IReadOnlyList<PdfCore.PdfLogicalReadingOrderItem> projection = PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(
+                page, PdfCore.PdfLogicalReadingOrderScope.PageContent);
+            var projectedLists = new HashSet<int>(projection.Where(static item => item.Kind == PdfCore.PdfLogicalReadingOrderKind.ListItem)
+                .Select(static item => item.SourceIndex));
+            var listOwnedLines = new HashSet<PdfCore.PdfLogicalTextBlock>(options.ImportLists
+                ? projectedLists.SelectMany(index => page.ListItems[index].Lines)
+                : Enumerable.Empty<PdfCore.PdfLogicalTextBlock>());
+            var projectedTextBlocks = new HashSet<int>(projection.Where(static item => item.Kind == PdfCore.PdfLogicalReadingOrderKind.TextBlock)
+                .Select(static item => item.SourceIndex));
+            var projectedParagraphs = new HashSet<int>(projection.Where(static item => item.Kind == PdfCore.PdfLogicalReadingOrderKind.Paragraph)
+                .Select(static item => item.SourceIndex));
             IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
-                BuildReadingOrder(page, options.UseSharedPageReadingOrder);
+                BuildReadingOrder(projection, options.UseSharedPageReadingOrder);
             int sequence = 0;
 
             if (options.ImportHeadings) {
@@ -161,13 +172,16 @@ namespace OfficeIMO.Word.Pdf {
             if (options.ImportParagraphs) {
                 for (int i = 0; i < page.Paragraphs.Count; i++) {
                     PdfCore.PdfLogicalParagraph paragraph = page.Paragraphs[i];
+                    if (paragraph.Lines.Count > 0 && paragraph.Lines.All(listOwnedLines.Contains)) continue;
+                    if (options.ImportTables && !projectedParagraphs.Contains(i) &&
+                        paragraph.Lines.Count > 0 && paragraph.Lines.All(static line => line.IsTableContent)) continue;
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph, options, navigation, consumedLinks);
                     items.Add(ImportItem.ForParagraph(paragraph, paragraph.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i), link, link == null ? null : paragraph.Text));
                 }
 
                 for (int i = 0; i < page.TextBlocks.Count; i++) {
                     PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
-                    if (block.Kind is not (PdfCore.PdfLogicalElementKind.Header or
+                    if (!projectedTextBlocks.Contains(i) && block.Kind is not (PdfCore.PdfLogicalElementKind.Header or
                         PdfCore.PdfLogicalElementKind.Footer or
                         PdfCore.PdfLogicalElementKind.Caption or
                         PdfCore.PdfLogicalElementKind.Footnote)) {
@@ -187,6 +201,7 @@ namespace OfficeIMO.Word.Pdf {
 
             if (options.ImportLists) {
                 for (int i = 0; i < page.ListItems.Count; i++) {
+                    if (!projectedLists.Contains(i)) continue;
                     PdfCore.PdfLogicalListItem listItem = page.ListItems[i];
                     items.Add(ImportItem.ForListItem(listItem, listItem.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)));
                 }
@@ -470,12 +485,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> BuildReadingOrder(
-            PdfCore.PdfLogicalPage page,
+            IReadOnlyList<PdfCore.PdfLogicalReadingOrderItem> projection,
             bool enabled) {
             if (!enabled) return new Dictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int>();
-            return PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(
-                page,
-                PdfCore.PdfLogicalReadingOrderScope.PageContent).ToDictionary(
+            return projection.ToDictionary(
                 static item => (item.Kind, item.SourceIndex, item.PlacementIndex),
                 static item => item.OrderIndex);
         }
