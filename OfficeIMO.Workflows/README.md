@@ -81,7 +81,7 @@ chapter titles and XHTML bodies, resource renaming with reference repair, a proj
 
 `SplitChapter(manifestId, boundaryId, newManifestId, newContainerPath, title)` delegates the atomic chapter split to the EPUB owner. The resulting content, navigation and reading-order changes participate in project undo/redo and persistence. See the EPUB README for supported boundaries and reference-repair limits.
 
-`MergeChapters(firstManifestId, secondManifestId, boundaryId)` combines consecutive compatible chapters through the same owner and undoable transaction. Both navigation entries survive, and the second chapter's links target retained content or its new boundary. Conflicting styles, identifiers and metadata require explicit resolution; see the EPUB README for the merge contract.
+`MergeChapters(firstManifestId, secondManifestId, boundaryId)` combines consecutive compatible chapters through the same owner and undoable transaction. Both navigation entries survive, and the second chapter's links target retained content or its new boundary. Pass `EpubChapterMergeOptions` to the overload to select body scopes, matter and language preservation, identifier repairs or stylesheet reconciliation. The project delegates these choices to the EPUB owner and keeps the merge undoable. Unresolved conflicts fail without changing the project; see the EPUB README for the merge contract.
 `ApplyContentEdits` accepts the EPUB owner's stale-checked element proposals and commits them as one undoable edit. Named revisions can capture the book before or after this transaction. See the EPUB README for element selection and batch validation.
 
 `ApplyEdits` commits a complete editor draft atomically. Invalid or cancelled edits

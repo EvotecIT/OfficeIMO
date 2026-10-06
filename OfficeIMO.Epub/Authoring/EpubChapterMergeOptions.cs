@@ -38,6 +38,12 @@ public sealed class EpubChapterMergeOptions {
     /// The second chapter's boundary is placed inside its partition. Added sections can affect CSS selectors;
     /// this option does not isolate styles or establish equivalent reader layout.</summary>
     public bool PreserveDocumentMatter { get; set; }
+    /// <summary>Keep each body's id/xml:id, class, style, title, lang/xml:lang, dir and unnamespaced data-* attributes
+    /// on a separate div around its content. Identifiers and local references remain independently addressable;
+    /// collisions require SecondChapterIdMap. Other body attributes must still be compatible, and differing root
+    /// language/direction requires PreserveSecondChapterLanguageAndDirection. Body-specific selectors, box layout
+    /// and inherited styles can change; this option does not isolate CSS or establish equivalent reader layout.</summary>
+    public bool PreserveBodyScopes { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }
 }

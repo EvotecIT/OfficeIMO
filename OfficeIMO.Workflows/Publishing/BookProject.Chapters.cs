@@ -14,6 +14,11 @@ public sealed partial class BookProject {
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
         Mutate(publication => publication.MergeChapters(firstManifestId, secondManifestId, boundaryId, cancellationToken), cancellationToken);
 
+    /// <summary>Merges chapters using explicit EPUB reconciliation options in one undoable transaction.</summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
+        CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.MergeChapters(firstManifestId, secondManifestId, boundaryId, options, cancellationToken), cancellationToken);
+
     /// <summary>Splits a chapter before a block identifier, with reference repair and one undoable transaction.</summary>
     public void SplitChapter(string manifestId, string boundaryId, string newManifestId, string newContainerPath,
         string title, CancellationToken cancellationToken = default) =>

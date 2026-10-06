@@ -740,6 +740,21 @@ conflicting matter designations reject the merge. This EPUB 3 option can combine
 the language/direction wrapper. Added sections can change CSS selector matching and
 layout; they do not isolate styles or establish equivalent reader presentation.
 
+Set `PreserveBodyScopes = true` to keep each body's `id`/`xml:id`, `class`, inline
+`style`, `title`, `lang`/`xml:lang`, `dir` and unnamespaced `data-*` attributes on its
+own enclosing `div`. Both containers remain separate, including when their
+attributes are identical. Links and document-local relationships can still target
+the original body IDs; colliding IDs require `SecondChapterIdMap`. The second
+navigation boundary stays inside its container. Other body attributes, including
+`role`, ARIA attributes and remaining `epub:type` tokens, must still match.
+
+This option combines with matter partitions and the language/direction option.
+Differing root attributes remain unsupported unless the language/direction option
+handles them. Body-specific selectors such as `body.chapter`, direct-child selectors,
+viewport backgrounds and box layout can change when attributes move to a `div`.
+Use this explicit choice only after assessing the resulting layout; it does not
+isolate the stylesheet cascade or prove reader equivalence.
+
 Supply an explicit second-chapter map when body IDs collide:
 
 ```csharp

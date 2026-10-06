@@ -11,7 +11,7 @@ public sealed partial class EpubPublication {
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
         MergeChapters(firstManifestId, secondManifestId, boundaryId, new EpubChapterMergeOptions(), cancellationToken);
 
-    /// <summary>Merges consecutive reflowable chapters with explicit style and identifier reconciliation. The selected
+    /// <summary>Merges consecutive reflowable chapters with explicit style, identifier and document-scope reconciliation. The selected
     /// cascade applies to both chapters; unresolved scaffold, identifier and package-refinement conflicts fail atomically.</summary>
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
         CancellationToken cancellationToken = default) {
@@ -33,6 +33,12 @@ public sealed partial class EpubPublication {
         XDocument first = EditableXhtml(firstManifestId), second = EditableXhtml(secondManifestId);
         VerifyMergeDocument(first); VerifyMergeDocument(second);
         XElement firstBody = first.Root!.Element(Html + "body")!, secondBody = second.Root!.Element(Html + "body")!;
+        XElement? languageWrapper = options.PreserveSecondChapterLanguageAndDirection ? CreateMergeLanguageWrapper(first.Root, second.Root) : null;
+        XElement? secondBodyScope = null;
+        if (options.PreserveBodyScopes) {
+            PrepareMergeBodyScope(firstBody);
+            secondBodyScope = PrepareMergeBodyScope(secondBody);
+        }
         XElement? secondMatter = null;
         if (options.PreserveDocumentMatter) {
             if (PackageVersion != "3.0") throw new NotSupportedException("Document partition semantics require EPUB 3.");
@@ -46,8 +52,7 @@ public sealed partial class EpubPublication {
             throw new NotSupportedException("Resolve differing root/body attributes before merging; their language, direction, styling and semantics cannot be discarded.");
         if (!MergeRootNotes(first.Root).SequenceEqual(MergeRootNotes(second.Root), StringComparer.Ordinal))
             throw new NotSupportedException("Chapter root-level annotations conflict.");
-        XElement? languageWrapper = options.PreserveSecondChapterLanguageAndDirection ? CreateMergeLanguageWrapper(first.Root, second.Root) : null;
-        var shared = languageWrapper == null ? FindMergeSeam(firstBody, secondBody, cancellationToken) :
+        var shared = languageWrapper == null && !options.PreserveBodyScopes ? FindMergeSeam(firstBody, secondBody, cancellationToken) :
             new HashSet<string>(secondBody.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
         foreach (XAttribute id in second.Root.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")) shared.Add(id.Value);
         var idMap = PrepareMergeIdentifierMap(second.Root, firstIds, secondIds, shared, boundaryId, options.SecondChapterIdMap, cancellationToken);
@@ -76,13 +81,14 @@ public sealed partial class EpubPublication {
         if (!first.Nodes().Where(node => node != first.Root).Select(node => node.ToString()).SequenceEqual(second.Nodes().Where(node => node != second.Root).Select(node => node.ToString()), StringComparer.Ordinal))
             throw new NotSupportedException("Resolve conflicting chapter heads or document instructions before merging. Styles and metadata are not silently combined or discarded.");
         var boundary = new XElement(Html + "span", new XAttribute("id", boundaryId), new XAttribute("title", secondHead.Element(Html + "title")!.Value));
-        if (secondMatter != null) secondMatter.AddFirst(boundary);
+        XElement? boundaryScope = secondBodyScope ?? secondMatter;
+        if (boundaryScope != null) boundaryScope.AddFirst(boundary);
         if (languageWrapper == null) {
-            if (secondMatter == null) JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
+            if (boundaryScope == null) JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
             else firstBody.Add(secondBody.Nodes());
         }
         else {
-            if (secondMatter == null) languageWrapper.Add(boundary);
+            if (boundaryScope == null) languageWrapper.Add(boundary);
             languageWrapper.Add(secondBody.Nodes());
             firstBody.Add(languageWrapper);
         }
