@@ -397,6 +397,11 @@ public static partial class HtmlComputedStyleEngine {
         if (IsCssWideKeyword(rawNormalized)) {
             return true;
         }
+        if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
+            // Authored border declarations bypass external parser expansion so
+            // invalid later values must be rejected before replacing an earlier one.
+            return IsSupportedSupportsConditionValue(propertyName, value);
+        }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
             case "place-items":

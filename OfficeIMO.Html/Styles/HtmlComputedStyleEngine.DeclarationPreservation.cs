@@ -23,8 +23,9 @@ public static partial class HtmlComputedStyleEngine {
 
     // Keep authored order and values where parser expansion loses font syntax,
     // subgrid tracks, row/column gap order, grid placement shorthands, or
-    // variable-backed border components. A border-color variable must not become
-    // a synthesized colour-only border shorthand that resets width and style.
+    // border components. Preserve the whole family: mixing preserved variables
+    // with parser-collapsed ordinary declarations loses their relative order.
+    // A colour-only override must not reset the authored width and style.
     private static string PreserveManagedDeclarations(string css) {
         var result = new System.Text.StringBuilder(css.Length);
         int copied = 0;
@@ -47,16 +48,12 @@ public static partial class HtmlComputedStyleEngine {
             if (!HtmlCssIdentifierParser.TryRead(css, ref endName, out string name)) continue;
             name = name.ToLowerInvariant();
             string? prefix = name == "font" || FontShorthandLonghands.Contains(name)
-                ? FontDeclarationSentinelPrefix : LayoutDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix : null;
-            bool borderDeclaration = BorderDeclarationNames.Contains(name);
-            if (prefix == null && !borderDeclaration) continue;
+                ? FontDeclarationSentinelPrefix : LayoutDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix
+                : BorderDeclarationNames.Contains(name) ? BorderDeclarationSentinelPrefix : null;
+            if (prefix == null) continue;
             int colon = SkipCssWhitespaceAndCommentsForward(css, endName);
             if (colon >= css.Length || css[colon] != ':') continue;
             int valueEnd = FindDeclarationValueEnd(css, colon + 1);
-            if (prefix == null) {
-                if (!HtmlCssCustomPropertyResolver.ContainsVarFunction(css.Substring(colon + 1, valueEnd - colon - 1))) continue;
-                prefix = BorderDeclarationSentinelPrefix;
-            }
             result.Append(css, copied, index - copied).Append(prefix).Append(declarationId++).Append('-').Append(name);
             copied = endName;
             index = valueEnd - 1;

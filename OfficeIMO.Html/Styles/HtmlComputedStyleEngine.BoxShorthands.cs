@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
-    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
+    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color", "border-top", "border-right", "border-bottom", "border-left" };
     private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
     private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
     private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
@@ -19,13 +19,21 @@ public static partial class HtmlComputedStyleEngine {
         if (normalizedName == "gap") return TryExpandGapShorthand(value, out longhands);
         if (normalizedName is "place-items" or "place-self" or "place-content") return TryExpandAlignmentShorthand(normalizedName, value, out longhands);
         if (normalizedName is "grid-column" or "grid-row" or "grid-area") return TryExpandGridShorthand(normalizedName, value, out longhands);
-        if (normalizedName == "border") {
+        if (normalizedName is "border" or "border-top" or "border-right" or "border-bottom" or "border-left") {
             string width, style, color;
             if (IsCssWideKeyword(value.Trim())) {
                 width = style = color = value;
             } else if (!TryExpandBorderComponents(value, out width, out style, out color)) {
                 longhands = Array.Empty<KeyValuePair<string, string>>();
                 return false;
+            }
+            if (normalizedName != "border") {
+                longhands = new[] {
+                    new KeyValuePair<string, string>(normalizedName + "-width", width),
+                    new KeyValuePair<string, string>(normalizedName + "-style", style),
+                    new KeyValuePair<string, string>(normalizedName + "-color", color)
+                };
+                return true;
             }
             var border = new KeyValuePair<string, string>[12];
             for (int index = 0; index < 4; index++) {
