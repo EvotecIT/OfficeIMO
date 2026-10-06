@@ -3,6 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private readonly HashSet<string> _reportedMarginTextOverflow = new HashSet<string>(StringComparer.Ordinal);
+
     private IReadOnlyList<HtmlRenderPage> ApplyPageMarginContent(IReadOnlyList<HtmlRenderPage> pages) {
         var rendered = new List<HtmlRenderPage>(pages.Count);
         foreach (HtmlRenderPage page in pages) {
@@ -36,28 +38,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ChargeLayoutOperations(box.Content.GetRenderedLength(page.PageNumber, pages.Count, page.RunningStrings),
                     marginBoxSource + " generated content");
                 string text = box.Content.Render(page.PageNumber, pages.Count, page.RunningStrings);
-                double textHeight = Math.Max(1D, box.Font.Size * _options.DefaultLineHeight);
-                if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, textHeight, out double x, out double y, out double width, out double height)) continue;
-                var marginText = new HtmlRenderText(
-                    text,
-                    x,
-                    y,
-                    width,
-                    height,
-                    box.Font,
-                    box.Color,
-                    box.Alignment,
-                    Math.Max(1D, box.Font.Size * _options.DefaultLineHeight),
-                    _paintOrder++,
-                    source: marginBoxSource,
-                    semanticRole: "page-margin");
+                double lineHeight = Math.Max(1D, box.Font.Size * _options.DefaultLineHeight);
+                if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, lineHeight, out _, out _, out double availableWidth, out _)) continue;
+                var textStyle = new HtmlRenderBoxStyle {
+                    Font = box.Font,
+                    FontDescriptor = OfficeFontFaceDescriptor.FromStyle(box.Font.Style),
+                    Color = box.Color,
+                    Alignment = box.Alignment,
+                    LineHeight = lineHeight,
+                    SemanticRole = "page-margin"
+                };
+                // Use the body text formatter so margin text has the same line
+                // breaking, scoped font fallback and measurement/paint widths.
+                HtmlInlineLayout inline = LayoutInlineRuns(
+                    ApplyScopedFontFallbacks(new[] { new HtmlInlineRun(text, textStyle, null, marginBoxSource) }),
+                    availableWidth,
+                    textStyle);
+                if (!TryGetMarginBoxBounds(page, box.Position, inline.Height, out double x, out double y, out double width, out double height)) continue;
+                IReadOnlyList<HtmlRenderVisual> marginVisuals = inline.Visuals
+                    .Select((visual, index) => visual.Translate(x, y, index))
+                    .ToList();
+                if (inline.Height > height + 0.0001D) {
+                    marginVisuals = new HtmlRenderVisual[] {
+                        new HtmlRenderClipGroup(x, y, width, height, false, true, marginVisuals, 0, marginBoxSource)
+                    };
+                    if (_reportedMarginTextOverflow.Add(marginBoxSource)) {
+                        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                            "Generated page-margin text exceeded the reserved margin height and was clipped.",
+                            HtmlDiagnosticSeverity.Warning, marginBoxSource, "margin-height", OfficeConversionLossKind.Omission);
+                    }
+                }
                 visuals.Add(new HtmlRenderSemanticGroup(
                     HtmlRenderSemanticGroupRole.Artifact,
                     x,
                     y,
                     width,
                     height,
-                    new[] { marginText },
+                    marginVisuals,
                     _paintOrder++,
                     marginBoxSource));
             }
