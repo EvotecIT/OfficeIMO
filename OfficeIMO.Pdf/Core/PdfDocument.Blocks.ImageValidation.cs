@@ -230,7 +230,7 @@ public sealed partial class PdfDocument {
             bool hasComponentCount = PdfWriter.TryGetJpegFrameMetadata(data, cancellationToken,
                 out int componentCount, out int samplePrecision, out byte frameMarker);
             bool requiresNormalization = hasComponentCount &&
-                (samplePrecision != 8 || frameMarker is 0xC3 or 0xC7 or 0xCB or 0xCF);
+                (samplePrecision != 8 || frameMarker is not (0xC0 or 0xC1 or 0xC2));
             if (hasEmbeddedIccProfile && !hasComponentCount) {
                 throw new NotSupportedException(
                     SupportedImageMessage + " The tagged JPEG component count cannot be verified; four-component JPEG data cannot be normalized safely.");
@@ -240,7 +240,7 @@ public sealed partial class PdfDocument {
                     throw new NotSupportedException(
                         SupportedImageMessage + (componentCount == 4
                             ? " A four-component JPEG with an embedded ICC profile cannot be normalized safely."
-                            : " A lossless or high-precision JPEG with an embedded ICC profile cannot be normalized safely."));
+                            : " An arithmetic, lossless or high-precision JPEG with an embedded ICC profile cannot be normalized safely."));
                 }
                 if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
                         sourceInfo,

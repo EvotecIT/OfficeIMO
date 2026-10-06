@@ -11,18 +11,23 @@ namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsJpegPrecisionTests {
     [Theory]
+    [InlineData(XpsFormat.Xps, "JpegArithmetic", true)]
+    [InlineData(XpsFormat.OpenXps, "JpegArithmetic", true)]
+    [InlineData(XpsFormat.Xps, "JpegArithmetic")]
+    [InlineData(XpsFormat.OpenXps, "JpegArithmetic")]
     [InlineData(XpsFormat.Xps, "JpegLosslessPrecision")]
     [InlineData(XpsFormat.Xps, "JpegDct12")]
     [InlineData(XpsFormat.OpenXps, "JpegLosslessPrecision")]
     [InlineData(XpsFormat.OpenXps, "JpegDct12")]
-    public void JpegPrecisionsRetainPaintThroughPortableSvgAndPdf(XpsFormat format, string folder) {
+    public void JpegPrecisionsRetainPaintThroughPortableSvgAndPdf(XpsFormat format, string folder, bool tiff = false) {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Fixtures", folder);
         foreach (string row in File.ReadLines(Path.Combine(corpus, "manifest.csv")).Skip(1)) {
             string name = row.Split(',')[0];
-            byte[] jpeg = File.ReadAllBytes(Path.Combine(corpus, name));
-            Assert.True(OfficeJpegCodec.TryDecode(jpeg, out var source));
+            byte[] jpeg = File.ReadAllBytes(Path.Combine(corpus, name + (tiff ? ".tif" : "")));
+            OfficeRasterImage? source;
+            Assert.True(tiff ? OfficeTiffCodec.TryDecode(jpeg, out source) : OfficeJpegCodec.TryDecode(jpeg, out source));
             var document = XpsDocument.Create(format);
-            string uri = document.AddResource("Images/source.jpg", jpeg, "image/jpeg");
+            string uri = document.AddResource(tiff ? "Images/source.tif" : "Images/source.jpg", jpeg, tiff ? "image/tiff" : "image/jpeg");
             int width = source!.Width, height = source.Height;
             document.AddPage(width * 3, height * 3).AddImage(uri, 0, 0, width * 3, height * 3);
             var loaded = XpsDocument.Load(document.Save());

@@ -132,9 +132,9 @@ public sealed class DrawingRasterOptionalCodecTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnsupportedArithmeticJpegRetainsVisiblePlaceholder(bool invalidCodecDimensions) {
-        // libjpeg-turbo 3.2.0 cjpeg -arithmetic; constant 16x12 RGB (30,80,120).
-        byte[] bytes = Convert.FromBase64String("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/yQARCAAMABADASIAAhEBAxEB/8wACgAQEAUBEBEF/9oADAMBAAIRAxEAPwD/AJafF8ZI/9k=");
+    public void UnsupportedProgressiveArithmeticJpegRetainsVisiblePlaceholder(bool invalidCodecDimensions) {
+        // libjpeg-turbo 3.2.0 cjpeg -arithmetic -progressive; constant 16x12 RGB (30,80,120).
+        byte[] bytes = Convert.FromBase64String("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/ygARCAAMABADASIAAhEBAxEB/8wABgAQARD/2gAMAwEAAhADEAAAAf8AKhWW5P/MAAQQBf/aAAgBAQABBQLA/8wABBEF/9oACAEDAQE/AcD/zAAEEQX/2gAIAQIBAT8BwP/MAAQQBf/aAAgBAQAGPwLA/8wABBAF/9oACAEBAAE/IcD/2gAMAwEAAgADAAAAEGD/zAAEEQX/2gAIAQMBAT8QwP/MAAQRBf/aAAgBAgEBPxDA/8wABBAF/9oACAEBAAE/EMD/2Q==");
         Assert.True(OfficeImageReader.TryIdentifyByContent(bytes, null, out var source));
         Assert.Equal(16, source.Width);
         var drawing = new OfficeDrawing(16, 12).AddImage(bytes, "image/jpeg",

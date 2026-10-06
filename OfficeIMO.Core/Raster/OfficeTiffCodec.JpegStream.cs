@@ -48,7 +48,7 @@ public static partial class OfficeTiffCodec {
                     if (count > end - p) return false;
                     p += count;
                 }
-            } else if ((marker == 192 || marker == 193 || marker == 195) && !tablesOnly) {
+            } else if ((marker == 192 || marker == 193 || marker == 195 || marker == 201) && !tablesOnly) {
                 if (frame || length != 8 + samples * 3 || data[start] != precision ||
                     (precision != 8 && precision != 12 && (precision != 16 || marker != 195)) ||
                     (precision == 12 && marker == 192) ||
@@ -63,6 +63,12 @@ public static partial class OfficeTiffCodec {
                 }
                 frameProcess = marker;
                 frame = true;
+            } else if (marker == 204 && !tablesOnly) {
+                if ((length & 1) != 0) return false;
+                for (int p = start; p < end; p += 2) {
+                    int selector = data[p], value = data[p + 1];
+                    if (selector >= 32 || (selector < 16 ? (value & 15) > (value >> 4) : value > 63)) return false;
+                }
             } else if (marker == 218 && !tablesOnly) {
                 if (!frame || length < 6) return false;
                 int count = data[start];

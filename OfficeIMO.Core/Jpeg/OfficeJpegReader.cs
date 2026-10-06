@@ -184,6 +184,9 @@ internal static partial class OfficeJpegReader {
         var hasFrame = false;
         var progressive = false;
         var lossless = false;
+        var arithmetic = false;
+        var endOfImage = false;
+        var conditioning = new ArithmeticConditioning();
         var orientation = 1;
         int? adobeTransform = null;
         var frame = default(JpegFrame);
@@ -202,7 +205,7 @@ internal static partial class OfficeJpegReader {
             if (offset >= data.Length) break;
             var marker = data[offset++];
 
-            if (marker == 0xD9) break;
+            if (marker == 0xD9) { endOfImage = true; break; }
 
             if (marker == 0xDA) {
                 if (!hasFrame) throw new FormatException("Missing JPEG frame segment.");
@@ -214,6 +217,17 @@ internal static partial class OfficeJpegReader {
 
                 var scanEnd = FindScanEnd(data, offset, cancellationToken);
                 var scanData = data.Slice(offset, scanEnd - offset);
+
+                if (arithmetic) {
+                    if (scanEnd == data.Length && !options.AllowTruncated)
+                        throw new FormatException("Arithmetic JPEG scan has no terminating marker.");
+                    baselineState ??= BaselineState.Create(frame, orientation,
+                        checked(data.LongLength + retainedManagedBytes + 8192), preserveRaw16);
+                    DecodeArithmeticSequential(scanData, scan, frame, baselineState, quantTables,
+                        conditioning, restartInterval, cancellationToken);
+                    offset = scanEnd;
+                    continue;
+                }
 
                 if (lossless) {
                     baselineState ??= BaselineState.Create(
@@ -285,6 +299,13 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
+            if (marker == 0xCC) {
+                int dacLength = ReadUInt16BE(data, offset);
+                if (dacLength < 2 || dacLength > data.Length - offset) throw new FormatException("Invalid JPEG DAC segment.");
+                conditioning.Read(data.Slice(offset + 2, dacLength - 2)); offset += dacLength;
+                continue;
+            }
+
             if (marker == 0xC4) {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
@@ -311,18 +332,19 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
-            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3) {
+            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3 || marker == 0xC9) {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
                 frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker);
-                if (preserveRaw16 && ((marker != 0xC3 || frame.Precision != 16) && (marker != 0xC1 && marker != 0xC3 || frame.Precision != 12) ||
+                if (preserveRaw16 && ((marker != 0xC3 || frame.Precision != 16) && (marker != 0xC1 && marker != 0xC3 && marker != 0xC9 || frame.Precision != 12) ||
                     requestedColorTransform != 0 || !returnColorComponents))
                     throw new FormatException("Raw sample words require a supported twelve-bit or sixteen-bit JPEG frame.");
                 hasFrame = true;
                 progressive = marker == 0xC2;
                 lossless = marker == 0xC3;
+                arithmetic = marker == 0xC9;
                 offset += segLen - 2;
                 continue;
             }
@@ -376,6 +398,9 @@ internal static partial class OfficeJpegReader {
             !IsCompatibleAdobeTransform(adobeTransform.Value, frame.ComponentCount)) {
             throw new FormatException("JPEG Adobe APP14 transform is invalid for the component count.");
         }
+
+        if (arithmetic && !endOfImage && !options.AllowTruncated)
+            throw new FormatException("Arithmetic JPEG has no end-of-image marker.");
 
         if (!progressive && hasFrame && baselineState is not null) {
             width = frame.Width;

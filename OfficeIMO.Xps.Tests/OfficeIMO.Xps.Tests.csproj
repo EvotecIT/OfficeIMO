@@ -59,4 +59,5 @@
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/manifest.csv" Link="Fixtures/JpegDct12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/*.srgb" Link="Fixtures/Tiff12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless12/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless12/manifest.csv" Link="Fixtures/TiffJpegLossless12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/manifest.csv" Link="Fixtures/JpegArithmetic/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

@@ -66,7 +66,7 @@ table pointers. JPEGProc 1 supports eight/twelve-bit sequential DCT; JPEGProc 14
 eight/twelve/sixteen-bit Huffman lossless scans. Partial interchange headers require the
 TIFF table tags. Raw chunky lossless components require matching predictors and
 point transforms. Legacy integer ReferenceBlackWhite values are accepted alongside
-rationals. Arithmetic JPEG remains unsupported. Eight/twelve/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+rationals. Compression 7 also accepts eight/twelve-bit sequential arithmetic JPEG with local conditioning tables and restart intervals; compression 6 retains its Huffman process contract. Progressive and lossless arithmetic JPEG remain unsupported. Eight/twelve/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -124,7 +124,7 @@ quantization without overflowing its fixed-point transform. Both XPS dialects
 produce 320 documents with 212,800 pixel-center probes per route; independent
 MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
 still differs by up to 255, including blank planar/tiled output. Native Windows
-acceptance and arithmetic JPEG-in-TIFF remain unqualified.
+acceptance and progressive/lossless arithmetic JPEG-in-TIFF remain unqualified.
 
 Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
 with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
@@ -220,7 +220,21 @@ rendering differs by at most 2/255 without warnings. GhostXPS opens every export
 but differs by up to 255/255, including blank images. SVG/PDF export uses the
 existing high-precision JPEG normalization path. Twelve-bit CMYK/YCCK and
 unusual sampling combinations have no independent corpus qualification here;
-arithmetic JPEG and native Windows acceptance remain outside the qualified contract.
+progressive/lossless arithmetic JPEG and native Windows acceptance remain outside the qualified contract.
+
+Sequential arithmetic JPEG supports eight/twelve-bit SOF9 frames through the shared
+managed decoder. Conditioning defaults and explicit DAC tables, all sixteen table
+destinations, interleaved/separate scans and restart reset use the existing bounded
+sample planes and DCT/color pipeline. The [arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/README.md)
+contains 90 independent libjpeg-turbo streams and their LibTIFF single-strip wrappers.
+Nearest/high-quality standalone and high-quality TIFF output agree with native JPEG
+references within 2/255. This is native JPEG pixel evidence and independent TIFF
+container production, not full-file native TIFF acceptance. The 360 XPS/OpenXPS
+JPEG/TIFF exports cover 239,400 pixel-center probes per route; MuPDF PDF/SVG
+rendering differs by at most 2/255 without warnings. GhostXPS opens all exports but
+differs by up to 255/255, including blank output. PDF and SVG normalize arithmetic
+JPEG to portable pixel images. Progressive/lossless arithmetic, arithmetic CMYK/alpha
+and planar/tiled TIFF qualification, and native Windows acceptance remain open.
 
 Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
 bits. Native sample values survive prediction and chroma interpolation before
