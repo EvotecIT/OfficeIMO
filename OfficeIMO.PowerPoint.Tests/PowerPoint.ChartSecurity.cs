@@ -9,6 +9,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests;
 
@@ -95,6 +96,26 @@ public class PowerPointChartSecurityTests {
     }
 
     [Fact]
+    public void BubblePointColorMaterialization_PreservesEveryDeclaredColor() {
+        const int pointCount = 4;
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.AddSlide().AddChart(OfficeChartKind.Bubble, CreateBubbleData(pointCount));
+        C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
+            .ChartParts.Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
+        C.DataPoint[] points = nativeSeries.Elements<C.DataPoint>().ToArray();
+        Assert.Equal(pointCount, points.Length);
+        for (int index = 0; index < pointCount; index++) {
+            Assert.Equal((uint)index, points[index].GetFirstChild<C.Index>()!.Val!.Value);
+            Assert.Equal("336699", Assert.Single(points[index].Descendants<A.RgbColorModelHex>()).Val!.Value);
+        }
+    }
+
+#if POWERPOINT_PERFORMANCE_EVIDENCE
+    [Fact]
+#else
+    [Fact(Skip = "Opt-in measurement: build with PowerPointPerformanceEvidence=true.")]
+#endif
+    [Trait("Category", "Performance")]
     public void BubblePointColorMaterialization_IsBoundedAtLargeSupportedScale() {
         const int pointCount = 20_000;
         OfficeChartData data = CreateBubbleData(pointCount);

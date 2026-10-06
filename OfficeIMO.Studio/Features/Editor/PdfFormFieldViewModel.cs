@@ -25,6 +25,8 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
         IsMultiline = field.IsMultiline;
         IsPassword = field.IsPassword;
         IsCheckBoxEditor = field.IsCheckBox;
+        IsRadioButtonEditor = field.IsRadioButton;
+        IsListBoxEditor = field.IsChoiceField && !field.IsCombo;
         IsChoiceEditor = field.IsChoiceField || field.IsRadioButton;
         IsMultipleChoiceEditor = field.IsChoiceField && field.AllowsMultipleSelection;
         IsSingleChoiceEditor = IsChoiceEditor && !IsMultipleChoiceEditor;
@@ -56,12 +58,13 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
                     !string.IsNullOrWhiteSpace(field.Value) &&
                     !string.Equals(field.Value, "Off", StringComparison.OrdinalIgnoreCase);
         _savedValues = CreateValue().Values.ToArray();
-        foreach (var choice in Choices) choice.PropertyChanged += (_, _) => NotifyValueChanged();
+        foreach (var choice in Choices) ObserveChoice(choice);
     }
 
     public string Name { get; }
 
     internal PdfFormWidget? SingleWidget => _field.Widgets.Count == 1 ? _field.Widgets[0] : null;
+    internal IReadOnlyList<PdfFormWidget> Widgets => _field.Widgets;
     internal string? SavedDefaultValue => _field.DefaultValue;
 
     internal bool HasSameDefinition(PdfFormFieldViewModel other) => Name == other.Name &&
@@ -86,6 +89,8 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
     public bool IsPassword { get; }
 
     public bool IsCheckBoxEditor { get; }
+    public bool IsRadioButtonEditor { get; }
+    public bool IsListBoxEditor { get; }
 
     public bool IsChoiceEditor { get; }
 
@@ -137,7 +142,7 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
         foreach (var old in previous.Choices.Where(choice => choice.IsSelected)) {
             if (!Choices.Any(choice => choice.ExportValue == old.ExportValue)) {
                 var retained = new PdfFormChoiceViewModel(old.ExportValue, old.DisplayText, false);
-                retained.PropertyChanged += (_, _) => NotifyValueChanged();
+                ObserveChoice(retained);
                 Choices.Add(retained);
             }
         }
@@ -189,6 +194,11 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
 
     partial void OnTextValueChanged(string value) => NotifyValueChanged();
     partial void OnIsCheckedChanged(bool value) => NotifyValueChanged();
+    private void ObserveChoice(PdfFormChoiceViewModel choice) => choice.PropertyChanged += (_, change) => {
+        if (change.PropertyName != nameof(PdfFormChoiceViewModel.IsSelected)) return;
+        if (IsSingleChoiceEditor && choice.IsSelected && !ReferenceEquals(SelectedChoice, choice)) SelectedChoice = choice;
+        else NotifyValueChanged();
+    };
     private void NotifyValueChanged() {
         OnPropertyChanged(nameof(HasDraft));
         OnPropertyChanged(nameof(DraftText));

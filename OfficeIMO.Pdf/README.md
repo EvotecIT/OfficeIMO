@@ -62,6 +62,42 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
+`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `document.TaggedPdfCatalogMarkers()` to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
+
+## Paragraph font size and line spacing
+
+Paragraphs can use a fallback font size independently of the document default:
+
+```csharp
+var document = PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 });
+document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
+    FontSize = 8,
+    LineSpacing = PdfLineSpacing.Exactly(14),
+    SpacingAfter = 0
+});
+document.Save("fixed-spacing.pdf");
+```
+
+`PdfLineSpacing.Multiple(1.25)` scales the advance with each line's font size.
+`Exactly(14)` keeps a fourteen-point advance even with larger runs or inline
+elements; their painted content can extend beyond the line box. `AtLeast(20,
+naturalMultiplier: 1.2)` uses twenty points for small text and expands when the
+natural text or inline-element height exceeds that minimum. The rule and value
+are readable from the immutable spacing object.
+
+`LineSpacing` overrides the existing `LineHeight` multiplier. Heading and list
+styles accept the same spacing object. Font size and spacing are snapshotted with
+their style and apply consistently to paragraph measurement, pagination and
+rendering in flow, columns and nested frames.
+
+Each wrapped line places its baseline using the fonts and sizes it contains.
+Larger text and lowered inline elements reserve their combined ascent and descent,
+including inside columns, table cells and canvas text boxes.
+
+`PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
+on a blank line can expand proportional or minimum spacing; exact spacing keeps
+its fixed advance.
+
 ## Authoring model
 
 `PdfDocumentBuilder` owns document settings and page boundaries.
@@ -184,6 +220,23 @@ leave it no positive width. Automatic sizing measures panel text and padding as
 well as ordinary text and fixed-size primitives.
 Columns can contain the normal flow primitives, including rich text, lists,
 tables, images, drawings, form fields, annotations, and `Panel(...)` groups.
+Balanced automatic columns measure nested panels at their child widths and retain
+unfinished semantic and static flow groups with their following siblings. A
+continuing panel repeats its top padding in each column; bottom padding uses the
+space left in that fragment. Lists and table rows use their existing legal breaks,
+including cell keep and widow rules within the padded content height.
+When columns start partway down a page, kept paragraphs, lists, panels and static
+flow groups can move past the partial columns to a full physical page. Headings
+and kept blocks retain their following siblings for final-page balancing.
+`BalanceKeptParagraphLines` allows a kept paragraph longer than a balanced column
+to span columns on one physical page. A kept paragraph that fits the chosen
+column stays whole. This option defaults to `false`; ordinary sequential frames
+retain their keep-together behavior.
+`HonorKeepWithNextWhenBalancing` defaults to `true` and keeps a breakable
+paragraph or list's final line group with the following block while balancing.
+Set it to `false` for source formats whose older layout modes ignore this rule
+in balanced columns. Partial physical pages and ordinary full-height frames
+retain their normal keep-with-next rules.
 Decorated elements, semantic groups, static components, and static flow with
 position capture or keep-together rules work inside rows. Page boundaries,
 sections, layers, automatic multi-column layouts, contextual or conditional flow,
@@ -528,6 +581,26 @@ See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resou
 for supported substitutions and limits. Use `TextShapingProvider` when a full
 OpenType shaping provider is needed.
 
+`PdfParagraphBuilder.FeatureSettings(...)` applies the same per-run policy to
+subsequent plain, styled, linked and fallback text. Use
+`ResetFeatureSettings()` to restore the default policy. Runs supplied through
+`Runs(...)` retain their own feature settings.
+
+```csharp
+PdfDocument.Create(pdf => pdf.Content(content => content
+    .Paragraph(paragraph => paragraph
+        .FontFamily("Report Serif")
+        .FeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1))
+        .Text("AV")
+        .ResetFeatureSettings()
+        .Text(" Default text."))), options)
+    .Save("text-features.pdf");
+```
+
+Register the named family in `options` before using it. Feature support depends
+on the selected font and shaping provider. Prepared rich header and footer runs
+retain their settings through glyph placement, alignment and decoration widths.
+
 ### Write a generated PDF
 
 ```csharp
@@ -558,6 +631,8 @@ PdfDocument.Create(pdf => pdf.Page(page => page
         subject: "Generated PDF")
     .Save("service-report.pdf");
 ```
+
+Metadata, bookmark titles, link descriptions and logical text use PDFDocEncoding or UTF-16. Standard-font paint uses the font encoding separately. Page extraction and rewriting retain original parsed string bytes, including binary image palettes.
 
 Generated headers and footers can combine literal text, visually styled runs, and styled page tokens. The same builder is available for the default, first-page, and even-page variants:
 
@@ -623,6 +698,30 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 These recipes compose normal flow, table, and panel primitives. `IPdfContextComponent`
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
+
+### Clipped table-cell fragments
+
+Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a larger cell. The viewport describes the full box, the visible fragment and its offset in one coordinate system. Text wraps and aligns in the full box; the renderer clips it to the fragment. Diagonal borders use the full box too, while ordinary edge borders follow the fragment's configured border style.
+
+```csharp
+var lowerHalf = PdfTableCell.TextCell("Bottom aligned")
+    .WithViewport(new PdfTableCellViewport(
+        contentWidth: 100, contentHeight: 48,
+        width: 100, height: 24, offsetY: 24));
+
+var fragmentStyle = TableStyles.Minimal();
+fragmentStyle.HeaderRowCount = 0;
+fragmentStyle.ColumnWidthPoints = new List<double?> { 100 };
+fragmentStyle.FixedRowHeights = new List<double?> { 24 };
+fragmentStyle.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom };
+
+PdfDocument.Create().Compose(document => document.Page(page =>
+    page.Content(content => content.Item(item =>
+        item.Table(new[] { new[] { lowerHalf } }, style: fragmentStyle)))))
+    .Save("cell-fragment.pdf");
+```
+
+The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Images, data bars and icons retain their full-cell geometry too and clip to each visible fragment. Rotated and cropped images remain visible when their drawn content crosses the fragment, and their links stay inside it. It works in normal flow, column flow and canvas tables. A viewport's complete visible row span must fit on one page; split larger cells into explicit fragments before rendering. A cell with check boxes or form fields rejects a viewport; place interactive fields separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
 
 ### Floating tables
 
@@ -728,6 +827,45 @@ PdfSaveResult save = PdfDocument.Create(pdf => pdf.Content(content => content
 Console.WriteLine($"Peak page payload: {save.Serialization?.PeakRetainedPageContentBytes}");
 Console.WriteLine($"Object spill used: {save.Serialization?.ObjectBufferSpilled}");
 ```
+
+Equal-width `Columns` balance their final page by default. Set
+`PdfMultiColumnOptions.BalanceTableRowLines = true` to allow a splittable table row
+to continue across balanced columns at legal cell paragraph boundaries. Fragment
+measurement includes cell padding and repeated headers and preserves fitting
+paragraph keep and widow rules. The default balances whole rows; set
+`BalanceLastPage = false` to fill column frames sequentially.
+
+Use `ColumnDefinitions` to give sequential columns different widths and gutters:
+
+```csharp
+var document = PdfDocument.Create().Columns(content =>
+    content.Paragraph(paragraph => paragraph.Text("Text flows through each column in order.")),
+    new PdfMultiColumnOptions {
+        BalanceLastPage = false,
+        Gap = 18,
+        ColumnDefinitions = new[] {
+            new PdfFlowColumn(PdfColumnWidth.Fixed(96), gapAfter: 24),
+            new PdfFlowColumn(PdfColumnWidth.Percent(25)),
+            new PdfFlowColumn(PdfColumnWidth.Relative(1))
+        }
+    });
+document.Save("columns.pdf");
+```
+
+Fixed widths and gutters use points. Percentages use the content width after
+gutters; relative weights divide the remaining width. `GapAfter` overrides `Gap`
+for the following gutter, and the final column has no following gutter. The
+definitions determine `ColumnCount`; an explicitly assigned count must match.
+Widths must leave positive space for every column. Automatic content-sized widths
+are unsupported. Unequal columns fill sequentially; final-page balancing applies
+to equal widths.
+
+When columns begin partway down a page, table keep rules and minimum or fixed row
+heights can move content to the next full page. Kept tables, unsplittable rows and
+complete cell viewports must fit an available physical page. Set
+`FinalColumnSpacingAfter` to add space below the last occupied column after
+balancing. This space preserves the content's column breaks and stops at the
+physical page's bottom margin.
 
 ### Load once and build one semantic read result
 
@@ -1917,6 +2055,22 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Meta(title: "Draft report", author: "OfficeIMO")
     .Save("draft.pdf");
 ```
+
+For facing-page layouts, set `PdfOptions.MirrorMargins = true` or use
+`page.MirrorMargins()` in a section. The authored left and right margins apply to
+odd visible page numbers and swap on even numbers. `PageNumberStart` restarts
+that parity. Flow content follows the current page frame, including automatic
+continuation through paragraphs, tables, lists, columns, and padded elements.
+Canvas coordinates remain absolute.
+
+Use `page.StartOnPageParity(PdfPageParity.Odd)` or `Even` to pad a later section
+with a blank page when its physical page index has the wrong parity. Pass
+`useContinuingPageNumber: true` to choose parity from the preceding section's
+continuing page number; the new section's `PageNumberStart` applies after padding.
+The equivalent options are `PageStartParity` and
+`UseContinuingPageNumberForStartParity`. The first section starts without padding.
+`content.PageBreak(preserveEmptyPage: true)` preserves an empty page when explicit
+breaks are consecutive. The parameterless overload skips empty pages.
 
 ### Inspect and preflight before rewriting
 

@@ -20,27 +20,36 @@ public sealed partial class PdfDocument {
         }
     }
 
+    /// <summary>Adds a heading with its authored hierarchy level, from 1 through 9.</summary>
+    internal PdfDocument Heading(int level, string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+        AddBlock(new HeadingBlock(level, text, align, color, linkUri, style, linkContents, linkDestinationName));
+        return this;
+    }
+
+    // Adapters retain their run formatting without putting note markers in the outline title.
+    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, PdfColor? color, PdfHeadingStyle? style) {
+        Guard.NotNull(build, nameof(build));
+        var builder = new PdfParagraphBuilder(align, color);
+        build(builder);
+        AddBlock(new HeadingBlock(level, title, align, color, style: style, runs: builder.Build().Runs));
+        return this;
+    }
+
     /// <summary>Adds a level-1 heading.</summary>
     internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
-        Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.OptionalUriAction(linkUri, nameof(linkUri));
-        AddBlock(new HeadingBlock(1, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
+        return Heading(1, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
     /// <summary>Adds a level-2 heading.</summary>
     internal PdfDocument H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
-        Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.OptionalUriAction(linkUri, nameof(linkUri));
-        AddBlock(new HeadingBlock(2, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
+        return Heading(2, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
     /// <summary>Adds a level-3 heading.</summary>
     internal PdfDocument H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
-        Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.OptionalUriAction(linkUri, nameof(linkUri));
-        AddBlock(new HeadingBlock(3, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
+        return Heading(3, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
 
     /// <summary>Inserts a page break.</summary>
-    internal PdfDocument PageBreak() { AddBlock(new PageBreakBlock()); return this; }
+    internal PdfDocument PageBreak(bool preserveEmptyPage = false) { AddBlock(new PageBreakBlock(preserveEmptyPage)); return this; }
 
     /// <summary>Adds invisible vertical space to the current document flow.</summary>
     internal PdfDocument Spacer(double height) {

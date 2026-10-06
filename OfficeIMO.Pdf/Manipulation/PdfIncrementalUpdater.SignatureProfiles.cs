@@ -234,10 +234,7 @@ internal static partial class PdfIncrementalUpdater {
         int? imageObjectNumber) {
         var resources = new PdfDictionary();
         if (options.ShowText) {
-            var font = new PdfDictionary();
-            font.Items["Type"] = new PdfName("Font");
-            font.Items["Subtype"] = new PdfName("Type1");
-            font.Items["BaseFont"] = new PdfName("Helvetica");
+            PdfDictionary font = PdfStandardFontDictionaryBuilder.BuildStandardType1FontDictionary(PdfStandardFont.Helvetica);
             var fonts = new PdfDictionary();
             fonts.Items["F1"] = font;
             resources.Items["Font"] = fonts;
@@ -295,7 +292,7 @@ internal static partial class PdfIncrementalUpdater {
             double textY = Math.Max(2, (options.Height - options.FontSize) / 2);
             content.Append("BT ").Append(FormatColor(options.TextColor)).Append(" rg /F1 ")
                 .Append(Format(options.FontSize)).Append(" Tf 6 ").Append(Format(textY))
-                .Append(" Td ").Append(PdfSyntaxEscaper.LiteralString(text)).Append(" Tj ET\n");
+                .Append(" Td ").Append(PdfSyntaxEscaper.WinAnsiHexString(text)).Append(" Tj ET\n");
         }
         if (options.ShowBorder) {
             content.Append(FormatColor(options.BorderColor)).Append(" RG 1 w 0.5 0.5 ")

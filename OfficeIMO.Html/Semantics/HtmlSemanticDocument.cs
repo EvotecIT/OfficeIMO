@@ -104,11 +104,13 @@ public sealed class HtmlSemanticSection {
         string title,
         HtmlSemanticSectionTitleSource titleSource,
         IReadOnlyList<HtmlSemanticBlock> blocks,
-        HtmlSemanticSourceLocation? sourceLocation) {
+        HtmlSemanticSourceLocation? sourceLocation,
+        HtmlSemanticBlock? titleHeading = null) {
         Title = title;
         TitleSource = titleSource;
         Blocks = Array.AsReadOnly((blocks ?? throw new ArgumentNullException(nameof(blocks))).ToArray());
         SourceLocation = sourceLocation;
+        TitleHeading = titleHeading;
     }
 
     /// <summary>Section title selected by shared heading, label, id, and document-title rules.</summary>
@@ -117,11 +119,22 @@ public sealed class HtmlSemanticSection {
     /// <summary>Source used to select <see cref="Title"/>.</summary>
     public HtmlSemanticSectionTitleSource TitleSource { get; }
 
+    /// <summary>
+    /// Heading promoted to an implicit section title instead of retained in <see cref="Blocks"/>.
+    /// Null when the title comes from another source or its heading already remains in the section body.
+    /// </summary>
+    public HtmlSemanticBlock? TitleHeading { get; }
+
     /// <summary>Ordered blocks contained by this section.</summary>
     public IReadOnlyList<HtmlSemanticBlock> Blocks { get; }
 
     /// <summary>Source provenance for the section container or first retained block.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
+
+    internal IEnumerable<HtmlSemanticBlock> EnumerateContentBlocks() {
+        if (TitleHeading != null) yield return TitleHeading;
+        foreach (HtmlSemanticBlock block in Blocks) yield return block;
+    }
 }
 
 /// <summary>One typed semantic block with optional list, table, resource, form, and rich-run data.</summary>

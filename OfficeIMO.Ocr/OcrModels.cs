@@ -114,6 +114,9 @@ public sealed class OcrRequest {
 
 /// <summary>Recognition output returned by an OCR engine.</summary>
 public sealed class OcrResult {
+    /// <summary>Immutable adaptive review evidence, when recognition compared or assessed configured variants.</summary>
+    public OcrReviewEvidence? Review { get; internal set; }
+
     /// <summary>Optional orientation evidence returned by an orientation-detection operation.</summary>
     public OcrOrientationResult? Orientation { get; set; }
     /// <summary>Recognized plain text in source reading order.</summary>

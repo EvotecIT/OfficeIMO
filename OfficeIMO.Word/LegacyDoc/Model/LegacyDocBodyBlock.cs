@@ -238,12 +238,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphFormat format,
             int startCharacter,
             int endCharacter,
-            IReadOnlyList<LegacyDocBookmark>? bookmarks = null) {
+            IReadOnlyList<LegacyDocBookmark>? bookmarks = null,
+            bool endsWithSectionMark = false) {
             Runs = runs;
             Format = format;
             StartCharacter = startCharacter;
             EndCharacter = endCharacter;
             Bookmarks = bookmarks ?? Array.Empty<LegacyDocBookmark>();
+            EndsWithSectionMark = endsWithSectionMark;
         }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
@@ -255,6 +257,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int EndCharacter { get; }
 
         internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; }
+
+        /// <summary>Gets whether the paragraph terminator also starts the next section.</summary>
+        internal bool EndsWithSectionMark { get; }
     }
 
     internal sealed class LegacyDocSectionBreakBlock : LegacyDocBodyBlock {

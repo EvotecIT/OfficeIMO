@@ -16,6 +16,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
         _data = data.ToArray();
+        LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
         UnitsPerEm = unitsPerEm;
@@ -33,6 +34,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
         _data = source._data;
+        LineMetrics = source.LineMetrics;
         _tables = source._tables;
         FontName = source.FontName;
         UnitsPerEm = source.UnitsPerEm;
@@ -51,6 +53,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
 
     public string FontName { get; }
+    internal OfficeOpenTypeLineMetrics? LineMetrics { get; }
     public int UnitsPerEm { get; }
     public int[] FontBBox { get; }
     public int Ascent { get; }

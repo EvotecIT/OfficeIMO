@@ -58,14 +58,14 @@ namespace OfficeIMO.Word.Pdf {
         private interface INativePdfFlow {
             bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
-            void PageBreak();
+            void PageBreak(bool preserveEmptyPage = false);
             void Spacer(double height);
             void Bookmark(string name);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
             void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
             void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null);
             void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null);
-            void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents);
+            void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style);
             void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style);
             void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style);
             void TextField(string name, double width, double height, string value, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style = null);
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
 
             public PdfCore.PageSize PageSize { get; }
 
-            public void PageBreak() => _pdf.PageBreak();
+            public void PageBreak(bool preserveEmptyPage = false) => _pdf.PageBreak(preserveEmptyPage);
             public void Spacer(double height) => _pdf.Spacer(height);
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
@@ -97,10 +97,8 @@ namespace OfficeIMO.Word.Pdf {
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _pdf.Panel(build, style);
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
                 _pdf.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
-            public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
-                if (level == 1) _pdf.H1(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else if (level == 2) _pdf.H2(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else _pdf.H3(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {
+                _pdf.Heading(level, text, build, align, color, style);
             }
             public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style) => _pdf.RichNumbered(items, align, color, startNumber, style);
             public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style) => _pdf.RichBullets(items, align, color, style);
@@ -127,7 +125,7 @@ namespace OfficeIMO.Word.Pdf {
 
             public PdfCore.PageSize PageSize { get; }
 
-            public void PageBreak() => _column.PageBreak();
+            public void PageBreak(bool preserveEmptyPage = false) => _column.PageBreak(preserveEmptyPage);
             public void Spacer(double height) => _column.Spacer(height);
             public void Bookmark(string name) => _column.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
@@ -135,10 +133,8 @@ namespace OfficeIMO.Word.Pdf {
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _column.Panel(build, style);
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
                 _column.Panel(content => content.Paragraph(build, align, defaultColor, NativePanelAnchorStyle(paragraphStyle)), style);
-            public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
-                if (level == 1) _column.H1(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else if (level == 2) _column.H2(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
-                else _column.H3(text, align, color, linkUri: linkUri, style: style, linkContents: linkContents, linkDestinationName: linkDestinationName);
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {
+                _column.Heading(level, text, build, align, color, style);
             }
             public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style) => _column.RichNumbered(items, align, color, startNumber, style);
             public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style) => _column.RichBullets(items, align, color, style);
@@ -207,6 +203,8 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
+                    page.MirrorMargins(ShouldMirrorNativeMargins(firstSection, options));
+                    page.StartOnPageParity(GetNativeSectionStartParity(firstSection), useContinuingPageNumber: true);
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
@@ -334,7 +332,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
-            if (GetNativeSectionBreakAfter(previous) != W.SectionMarkValues.Continuous) {
+            if (current.BreakType != WordSectionBreakType.Continuous) {
                 return false;
             }
 
@@ -360,8 +358,15 @@ namespace OfficeIMO.Word.Pdf {
                 NativeSectionPageNumberingEquivalent(previous, current);
         }
 
-        private static W.SectionMarkValues? GetNativeSectionBreakAfter(WordSection section) =>
-            section._sectionProperties?.GetFirstChild<W.SectionType>()?.Val?.Value;
+        private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {
+            if (section.BreakType == WordSectionBreakType.OddPage) return PdfCore.PdfPageParity.Odd;
+            if (section.BreakType == WordSectionBreakType.EvenPage) return PdfCore.PdfPageParity.Even;
+            if (section.BreakType == WordSectionBreakType.NextPage &&
+                section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0) {
+                return start % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd;
+            }
+            return null;
+        }
 
         private static bool HasNativeSectionColumns(WordSection section) =>
             (section.ColumnCount ?? 1) > 1 || section.HasColumnSeparator;

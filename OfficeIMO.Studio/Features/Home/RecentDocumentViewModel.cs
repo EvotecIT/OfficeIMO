@@ -55,10 +55,12 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
     }
 
     internal Infrastructure.StudioStorageReference? StorageReference { get; init; }
+    internal Infrastructure.StudioLocalDocumentRoot? LocalDocuments { get; init; }
 
     public string FileName => StorageReference?.Name ?? OfficeIMO.Internal.OfficeStorageIdentity.GetFileName(Path);
 
-    public string DirectoryName => OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(Path) is { } local
+    public string DirectoryName => LocalDocuments?.Resolve(LocalDocuments.GetIdentity(Path)) is not null
+        ? _localizer.Get("Home.OnThisDevice") : OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(Path) is { } local
         ? System.IO.Path.GetDirectoryName(local) ?? string.Empty : new Uri(Path).GetLeftPart(UriPartial.Authority);
 
     public DateTimeOffset OpenedAt { get; }

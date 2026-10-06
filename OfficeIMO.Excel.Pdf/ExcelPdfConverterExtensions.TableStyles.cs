@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel.Pdf {
             Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>? cellIcons = CreateCellIcons(conditionalFills, rowIndexes, columnOffset, exportedColumns);
             if (cellIcons != null) {
                 tableStyle.CellIcons = cellIcons;
-                tableStyle.CellPaddings = CreateIconCellPaddings(cellIcons, tableStyle.CellPaddings);
+                tableStyle.CellPaddings = CreateIconCellPaddings(cellIcons, tableStyle.CellPaddings, tableStyle.CellPaddingLeft ?? tableStyle.CellPaddingX);
             }
 
             Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? cellAlignments = CreateCellAlignments(styles, rowIndexes, columnOffset, exportedColumns);
@@ -115,7 +115,9 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             double scale = Math.Max(0.05D, targetHeight / currentHeight);
-            tableStyle.FixedRowHeights = currentHeights
+            // Flow tables must retain enough height for their laid-out text. A fixed
+            // worksheet height can be smaller than a line box plus table padding.
+            tableStyle.RowMinHeights = currentHeights
                 .Select(height => (double?)Math.Max(1D, height * scale))
                 .ToList();
 
@@ -127,11 +129,6 @@ namespace OfficeIMO.Excel.Pdf {
             tableStyle.HeaderFontSize = ScaleFontSize(tableStyle.HeaderFontSize, bodyFontSize, scale);
             tableStyle.FooterFontSize = ScaleFontSize(tableStyle.FooterFontSize, bodyFontSize, scale);
             tableStyle.MinRowHeight *= scale;
-            if (tableStyle.RowMinHeights != null) {
-                tableStyle.RowMinHeights = tableStyle.RowMinHeights
-                    .Select(height => height.HasValue ? (double?)Math.Max(1D, height.Value * scale) : null)
-                    .ToList();
-            }
         }
 
         private static bool IsFitToHeight(ExcelSheetPageSetup? pageSetup) {
@@ -346,14 +343,15 @@ namespace OfficeIMO.Excel.Pdf {
                 icons[(localRow, conditionalIcon.Key.Column - columnOffset)] = new PdfCore.PdfCellIcon {
                     Kind = conditionalIcon.Value.Kind,
                     Color = conditionalIcon.Value.Color,
-                    Size = 8D
+                    Size = 8D,
+                    HorizontalAlignment = PdfCore.PdfColumnAlign.Left
                 };
             }
 
             return icons;
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfCellPadding> CreateIconCellPaddings(IReadOnlyDictionary<(int Row, int Column), PdfCore.PdfCellIcon> icons, Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>? existingPaddings) {
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCellPadding> CreateIconCellPaddings(IReadOnlyDictionary<(int Row, int Column), PdfCore.PdfCellIcon> icons, Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>? existingPaddings, double defaultLeftPadding) {
             var paddings = existingPaddings == null
                 ? new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>()
                 : new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>(existingPaddings);
@@ -365,8 +363,9 @@ namespace OfficeIMO.Excel.Pdf {
                     padding = padding.Clone();
                 }
 
-                double requiredLeftPadding = icon.Value.Size + 8D;
-                padding.Left = Math.Max(padding.Left ?? 0D, requiredLeftPadding);
+                double iconAndGapWidth = icon.Value.Size + 4D;
+                padding.Left = (padding.Left ?? defaultLeftPadding) + iconAndGapWidth;
+                icon.Value.OffsetX = -iconAndGapWidth;
                 paddings[icon.Key] = padding;
             }
 

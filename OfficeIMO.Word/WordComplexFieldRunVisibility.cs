@@ -35,6 +35,8 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordComplexFieldRunVisibility ForParagraph(Paragraph paragraph) {
+            if (paragraph.Annotation<FragmentPrefix>() is FragmentPrefix fragmentPrefix)
+                return new WordComplexFieldRunVisibility(fragmentPrefix.State);
             OpenXmlElement? textBoxStory = paragraph.Ancestors<TextBoxContent>().FirstOrDefault();
             OpenXmlElement story = textBoxStory ?? paragraph.Ancestors().FirstOrDefault(element =>
                 element is Footnote or Endnote or Header or Footer)
@@ -58,6 +60,23 @@ namespace OfficeIMO.Word {
             return visibility;
         }
 
+        /// <summary>Retains the source story's field state on detached pagination fragments.</summary>
+        internal static void PreserveFragmentContext(Paragraph source, Paragraph before, Paragraph after, OpenXmlElement boundary) {
+            WordComplexFieldRunVisibility visibility = ForParagraph(source);
+            before.AddAnnotation(new FragmentPrefix(visibility.CurrentState));
+            foreach (OpenXmlElement element in source.Descendants()) {
+                if (ReferenceEquals(element, boundary)) break;
+                if (element is FieldChar marker && IsObservedFieldMarker(marker, source))
+                    visibility.Observe(marker);
+            }
+            after.AddAnnotation(new FragmentPrefix(visibility.CurrentState));
+        }
+
+        private sealed class FragmentPrefix {
+            internal FragmentPrefix(FieldState? state) => State = state;
+            internal FieldState? State { get; }
+        }
+
         private static Dictionary<Paragraph, FieldState> BuildStoryPrefixes(OpenXmlElement story, bool isTextBoxStory) {
             var prefixes = new Dictionary<Paragraph, FieldState>();
             var visibility = new WordComplexFieldRunVisibility();
@@ -71,9 +90,18 @@ namespace OfficeIMO.Word {
 
         internal void ObserveParagraphMarkers(Paragraph paragraph) {
             foreach (FieldChar marker in paragraph.Descendants<FieldChar>()
-                .Where(marker => ReferenceEquals(marker.Ancestors<Paragraph>().FirstOrDefault(), paragraph)))
+                .Where(marker => IsObservedFieldMarker(marker, paragraph)))
                 Observe(marker);
         }
+
+        private static bool IsObservedFieldMarker(FieldChar marker, Paragraph paragraph) =>
+            ReferenceEquals(marker.Ancestors<Paragraph>().FirstOrDefault(), paragraph) &&
+            !IsInIgnoredRevisionContainer(marker);
+
+        // Visible-run readers do not traverse revision run containers. Their field
+        // markers must not seed either story prefixes or detached fragment state.
+        private static bool IsInIgnoredRevisionContainer(OpenXmlElement element) =>
+            element.Ancestors().Any(ancestor => ancestor is DeletedRun or MoveFromRun or InsertedRun or MoveToRun);
 
         private sealed class ConversionScope : IDisposable {
             private readonly Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? _previous;
@@ -108,7 +136,7 @@ namespace OfficeIMO.Word {
         }
 
         internal void ObserveDescendantRuns(OpenXmlElement container) {
-            foreach (Run run in container.Descendants<Run>()) GetVisibleRun(run);
+            foreach (Run run in container.Descendants<Run>().Where(run => !IsInIgnoredRevisionContainer(run))) GetVisibleRun(run);
         }
 
         private void Observe(FieldChar marker) {

@@ -15,8 +15,8 @@ namespace OfficeIMO.Word.Pdf {
 
             public PdfCore.PageSize PageSize => _inner.PageSize;
 
-            public void PageBreak() {
-                _inner.PageBreak();
+            public void PageBreak(bool preserveEmptyPage = false) {
+                _inner.PageBreak(preserveEmptyPage);
                 ResetSpacingCollapse();
             }
 
@@ -65,14 +65,14 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = style?.SpacingAfter;
             }
 
-            public void Heading(int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style, string? linkUri, string? linkDestinationName, string? linkContents) {
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {
                 PdfCore.PdfHeadingStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
                     collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
                 }
 
-                _inner.Heading(level, text, align, color, collapsedStyle, linkUri, linkDestinationName, linkContents);
+                _inner.Heading(level, text, build, align, color, collapsedStyle);
                 _pendingSpacingAfter = style?.SpacingAfter;
             }
 

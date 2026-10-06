@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
             builder.Append("\"/>");
             WriteBuilderAndClear(writer, builder);
 
-            WriteOptionalElement(writer, worksheet.GetFirstChild<SheetViews>());
+            WriteOptionalElement(writer, worksheet.GetFirstChild<SheetViews>() ?? ExcelSheet.CreateDefaultSheetViews());
             WriteOptionalElement(writer, worksheet.GetFirstChild<SheetFormatProperties>());
 
             var columns = worksheet.GetFirstChild<Columns>();

@@ -16,6 +16,11 @@ internal static partial class PdfWriter {
                         RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
                             OfficeTransform.Translate(0D, currentOpts.PageHeight - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
                         break;
+                    case PdfCanvasMarginAnchorItem marginAnchor:
+                        RenderCanvasEffect(new PdfCanvasEffectItem(marginAnchor.Items,
+                            OfficeTransform.Translate(currentPage!.Options.MarginLeft - marginAnchor.AuthoredLeftMargin, 0D),
+                            1D, OfficeBlendMode.Normal));
+                        break;
                     case PdfCanvasArtifactItem artifact:
                         RenderCanvasArtifact(artifact);
                         break;
@@ -249,7 +254,7 @@ internal static partial class PdfWriter {
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, textHeight)
+                .Font(fontResource, textHeight, preserveLogicalPrecision: item.UsesBounds)
                 .WordSpacing(0D).TextRise(0D)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)
@@ -429,7 +434,8 @@ internal static partial class PdfWriter {
                 width,
                 structureType: structureType,
                 markedContentId: markedContentId,
-                structurePage: currentPage, suppressActualText: _suppressCanvasActualTextChildren);
+                structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
+                suppressActualText: _suppressCanvasActualTextChildren);
             MarkRichFonts(item.Runs);
             DrawDebugCanvasItemBox(item.X, bottomY, width, item.Height);
             pageDirty = true;
@@ -522,7 +528,9 @@ internal static partial class PdfWriter {
                     textWidth,
                     structureType: _suppressCanvasAccessibilityWrappers ? null : "P",
                     markedContentId: markedContentId,
-                    structurePage: currentPage, suppressActualText: _suppressCanvasActualTextChildren);
+                    structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
+                    suppressActualText: _suppressCanvasActualTextChildren,
+                    baselineFont: baseFont);
                 MarkRichFonts(item.Runs);
                 if (rotated && annotations.Count > 0) {
                     RotateCanvasLinkAnnotations(annotations, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
@@ -663,9 +671,7 @@ internal static partial class PdfWriter {
                 sb.Append(pageImage.InlineDrawToken);
             }
 
-            int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);
-            RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, block.Width, block.Height, item.RotationAngle);
             DrawDebugCanvasItemBox(item.X, bottomY, block.Width, block.Height);
             pageDirty = true;
         }

@@ -46,6 +46,7 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000002">
+          <w:type w:val="nextPage" />
           <w:pgSz w:w="12240" w:h="15840" w:code="1" />
           <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
@@ -60,6 +61,7 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000003">
+          <w:type w:val="nextPage" />
           <w:pgSz w:w="12240" w:h="15840" w:code="1" />
           <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1800" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
@@ -74,6 +76,7 @@
     <w:p>
       <w:pPr>
         <w:sectPr w:rsidR="R00000004">
+          <w:type w:val="nextPage" />
           <w:pgSz w:w="12240" w:h="15840" w:code="1" />
           <w:pgMar w:top="1440" w:right="1080" w:bottom="1440" w:left="1080" w:header="720" w:footer="720" w:gutter="0" />
         </w:sectPr>
@@ -86,6 +89,7 @@
       </w:r>
     </w:p>
     <w:sectPr w:rsidR="R00000005">
+      <w:type w:val="nextPage" />
       <w:pgSz w:w="12240" w:h="15840" w:code="1" />
       <w:pgMar w:top="1440" w:right="2880" w:bottom="1440" w:left="2880" w:header="720" w:footer="720" w:gutter="0" />
     </w:sectPr>

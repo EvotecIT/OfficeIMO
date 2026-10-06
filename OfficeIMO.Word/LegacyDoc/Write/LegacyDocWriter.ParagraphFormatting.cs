@@ -349,12 +349,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (builtInStyleIndex == null || builtInStyleIndex.Value == 0 || builtInStyleIndex.Value > 9) {
                 if (allowDirectOutlineLevel) {
                     int directLevel = outlineLevel.Val?.Value ?? 9;
-                    if (directLevel >= 0 && directLevel <= 8) {
+                    if (directLevel >= 0 && directLevel <= 9) {
                         return checked((byte)directLevel);
-                    }
-
-                    if (directLevel == 9) {
-                        return null;
                     }
                 }
 
@@ -578,12 +574,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return result;
         }
 
-        private static bool? ReadOnOffValue(OnOffType property) {
-            if (property.Val == null || property.Val.Value) {
-                return true;
-            }
-
-            return null;
-        }
+        private static bool? ReadOnOffValue(OnOffType property) => property.Val?.Value ?? true;
     }
 }

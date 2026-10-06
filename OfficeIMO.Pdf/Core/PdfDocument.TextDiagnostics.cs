@@ -69,7 +69,11 @@ public sealed partial class PdfDocument {
                 AddText(diagnostics, paragraph.Text, options, defaultFont, "PdfParagraph", location);
                 break;
             case HeadingBlock heading:
-                AddText(diagnostics, heading.Text, options, GetHeadingFont(heading, options), "PdfHeading", location);
+                if (heading.Runs != null) {
+                    AddRuns(diagnostics, heading.Runs, options, GetHeadingFont(heading, options), "PdfHeading", location);
+                } else {
+                    AddText(diagnostics, heading.Text, options, GetHeadingFont(heading, options), "PdfHeading", location);
+                }
                 break;
             case PdfListBlock list:
                 AnalyzeListItems(list.RichItems, list.Style ?? options.DefaultListStyleSnapshot, options, defaultFont, diagnostics, location, list.IsNumbered, list.StartingNumber);

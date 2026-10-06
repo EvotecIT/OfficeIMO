@@ -9,6 +9,10 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfContentBuilder {
     private readonly PdfDocument _doc;
     internal PdfContentBuilder(PdfDocument doc) { _doc = doc; }
+    internal PdfContentBuilder Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, PdfColor? color, PdfHeadingStyle? style) {
+        _doc.Heading(level, title, build, align, color, style);
+        return this;
+    }
     /// <summary>Returns this content receiver for readable grouping in fluent chains.</summary>
     public PdfContentBuilder Item() => this;
     /// <summary>Adds a logical group of content without introducing layout behavior.</summary>
@@ -61,8 +65,17 @@ public sealed class PdfContentBuilder {
     public PdfContentBuilder Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Starts a new page.</summary>
     public PdfContentBuilder PageBreak() { _doc.PageBreak(); return this; }
+    /// <summary>Starts a new page, optionally preserving an empty current page for consecutive explicit breaks.</summary>
+    public PdfContentBuilder PageBreak(bool preserveEmptyPage) { _doc.PageBreak(preserveEmptyPage); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>
     public PdfContentBuilder Spacer(double height) { _doc.Spacer(height); return this; }
+    /// <summary>Adds a heading at an authored level from 1 through 9.</summary>
+    /// <remarks>Levels 7 through 9 retain their outline depth and use custom tagged roles mapped to H6.</remarks>
+    public PdfContentBuilder Heading(int level, string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+        _doc.Heading(level, text, align, color, linkUri, style, linkContents, linkDestinationName);
+        return this;
+    }
+
     /// <summary>Adds an H1 heading.</summary>
     public PdfContentBuilder H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>

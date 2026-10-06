@@ -292,9 +292,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return writableCells;
             }
 
+            // Conditions with equal precedence can interleave across the style
+            // chain. Resolve each condition's derived/base inheritance before
+            // combining applicable conditions for a cell.
+            var paragraphConditions = conditionalStyles.Styles
+                .Where(style => style.ParagraphFormatting.HasFormatting)
+                .GroupBy(style => style.Type)
+                .Select(group => new {
+                    Type = group.Key,
+                    Formatting = group.Select(style => style.ParagraphFormatting)
+                        .Aggregate((derived, inherited) => derived.WithInheritedParagraphFormatting(inherited))
+                })
+                .ToArray();
             var styledCells = new LegacyDocWritableTableCell[writableCells.Count];
             for (int columnIndex = 0; columnIndex < writableCells.Count; columnIndex++) {
                 LegacyDocWritableTableCell cell = writableCells[columnIndex];
+                LegacyDocWritableParagraphFormatting originalParagraphFormatting = cell.ParagraphFormatting;
+                LegacyDocWritableParagraphFormatting conditionalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
                 foreach (LegacyDocTableConditionalStyle conditionalStyle in conditionalStyles.Styles) {
                     if (!AppliesToCell(conditionalStyle.Type, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count)) {
                         continue;
@@ -341,13 +355,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         cell = cell.WithBorders(MergeSupportedTableCellBorders(cell.Borders, regionBorders));
                     }
 
-                    if (conditionalStyle.ParagraphFormatting.HasFormatting) {
-                        cell = cell.WithParagraphFormatting(conditionalStyle.ParagraphFormatting.WithInheritedParagraphFormatting(cell.ParagraphFormatting));
-                    }
-
                     if (conditionalStyle.RunFormatting.HasFormatting) {
                         cell = cell.WithRunFormatting(conditionalStyle.RunFormatting.WithInheritedFormatting(cell.RunFormatting));
                     }
+                }
+
+                foreach (var condition in paragraphConditions) {
+                    if (AppliesToCell(condition.Type, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count)) {
+                        conditionalParagraphFormatting = condition.Formatting.WithInheritedParagraphFormatting(conditionalParagraphFormatting);
+                    }
+                }
+                if (conditionalParagraphFormatting.HasFormatting) {
+                    cell = cell.WithParagraphFormatting(conditionalParagraphFormatting.WithInheritedParagraphFormatting(originalParagraphFormatting));
                 }
 
                 styledCells[columnIndex] = cell;

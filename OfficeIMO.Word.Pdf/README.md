@@ -100,6 +100,8 @@ Both system-font and document-font embedding must be allowed. This setting retai
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
+Line spacing follows document defaults, table styles, paragraph styles and direct formatting, including built-in headings. Automatic spacing uses the effective paragraph and run fonts after substitution or embedding; exact and minimum spacing retain their point units. Rich body and table paragraphs use their own font size during measurement and pagination. A large run on another line or a large paragraph mark does not impose a minimum font size on every rich line. Authored line breaks retain their run formatting, so larger blank lines can expand minimum spacing. Exact spacing keeps a fixed advance; minimum spacing can expand for larger runs or inline elements. An authored line value without a rule uses automatic spacing. A rule without a numeric line value inherits the complete spacing pair. Font substitution can still change line advances. First-baseline placement, baseline offsets between mixed-size lines, clipping within exact-height lines and exact Word pagination remain limited.
+
 ### Export to bytes or streams
 
 ```csharp
@@ -210,7 +212,7 @@ pdf.SaveAsWord(
 
 ## What it exports
 
-- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents.
+- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents. Built-in Word heading levels 1–9 use the same level mapping as the table of contents in body and column flow. Set `WordToPdfOptions.PdfOptions.TaggedStructureMode` to `PdfTaggedStructureMode.CatalogMarkers` to retain explicit numeric levels during PDF reading and editable Word import, including skipped levels. Tagged PDF uses standard-compatible role mappings for levels 7–9. Untagged output retains the bookmark hierarchy, whose nesting depth cannot identify skipped numeric levels.
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
@@ -220,7 +222,11 @@ pdf.SaveAsWord(
 - Unrotated, uncropped `InFrontOfText` images with explicit page-relative offsets inside the page bounds. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow. Overlapping foreground images follow `WordImage.ZOrder`; images with equal values retain document order.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
+Section gutters reserve space at the left, right, or top of the body frame according to the document settings. Mirrored margins swap the left and right body margins on even visible page numbers, including section numbering restarts. Margin-relative shape groups follow that frame; page-relative groups retain their absolute coordinates. A top gutter uses the same horizontal margins on both page sides, matching Word. An explicit `WordToPdfOptions.Margins` replaces the authored margins, gutter, and mirroring.
+
 For imported groups with unsupported DrawingML geometry, fixed-position export uses the document's VML fallback when available and reports `NativeShapeGroupVmlFallback`. Supported groups with other wrapping or anchor modes are placed in document flow with `NativeShapeGroupFlowed`; groups that cannot be rendered report `NativeShapeGroupUnsupported`. Arbitrary custom geometry, rotation, flips, foreground stacking, and exact text wrapping around groups remain limited.
+
+Next-page section starts create a new page. Odd/even starts use the continuing page number to insert a blank page when needed, then apply the new section's numbering restart. An odd/even start advances a conflicting restart to the next matching number. Next-page starts with an explicit restart also align the section start with that number's parity. Compatible continuous sections share a page. Embedded page breaks preserve text, run formatting, hyperlinks and explicit bookmark targets on both sides of the break, including consecutive blank pages. Fields spanning paragraphs retain their result visibility through page and column splits; hidden field instructions and their breaks do not create pages. A section mark without body content retains its editable formatting and anchors without adding a blank body line or an extra page. Column layout and changes in page geometry remain subject to the native layout engine's supported paths.
 
 ## What it imports
 

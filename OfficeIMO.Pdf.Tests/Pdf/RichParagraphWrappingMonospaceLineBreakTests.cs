@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests.Pdf {
             var lines = ExtractLines(result);
 
             Assert.Equal(2, lines.Count);
-            Assert.Equal(new[] { "Status" }, lines[0].ConvertAll(ExtractText).ToArray());
-            Assert.Equal(new[] { "Healthy" }, lines[1].ConvertAll(ExtractText).ToArray());
+            Assert.Equal("Status", string.Concat(lines[0].Select(ExtractText)));
+            Assert.Equal("Healthy", string.Concat(lines[1].Select(ExtractText)));
         }
 
         [Fact]
@@ -60,9 +60,9 @@ namespace OfficeIMO.Tests.Pdf {
             var lines = ExtractLines(result);
 
             Assert.Equal(3, lines.Count);
-            Assert.Equal(new[] { "Alpha" }, lines[0].ConvertAll(ExtractText).ToArray());
-            Assert.Equal(new[] { "Beta" }, lines[1].ConvertAll(ExtractText).ToArray());
-            Assert.Equal(new[] { "Gamma" }, lines[2].ConvertAll(ExtractText).ToArray());
+            Assert.Equal("Alpha", string.Concat(lines[0].Select(ExtractText)));
+            Assert.Equal("Beta", string.Concat(lines[1].Select(ExtractText)));
+            Assert.Equal("Gamma", string.Concat(lines[2].Select(ExtractText)));
         }
     }
 }

@@ -94,6 +94,16 @@ public sealed class StudioFormSelectionTests {
                 canvas.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.End });
                 Assert.Equal("Next", model.SelectedFormField!.Name);
                 Assert.Equal("Next", canvas.FormAnchorFieldName);
+                var inspector = Assert.Single(window.GetVisualDescendants().OfType<OfficeIMO.Studio.Features.Editor.FormsInspectorView>());
+                var previous = inspector.GetVisualDescendants().OfType<Button>()
+                    .Single(button => ReferenceEquals(button.Command, model.Commands["PreviousFormField"]));
+                previous.BringIntoView(); window.UpdateLayout();
+                Assert.True(previous.IsEffectivelyVisible && previous.IsEffectivelyEnabled);
+                Assert.True(previous.Bounds.Width >= 44 && previous.Bounds.Height >= 44);
+                Point buttonPoint = previous.TranslatePoint(new Point(previous.Bounds.Width / 2, previous.Bounds.Height / 2), window)!.Value;
+                window.MouseDown(buttonPoint, MouseButton.Left); window.MouseUp(buttonPoint, MouseButton.Left);
+                Assert.Equal("Rotated", model.SelectedFormField!.Name);
+                Assert.Equal("Field 2 of 3", model.FormFieldPosition);
                 string? folder = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
                 if (!string.IsNullOrEmpty(folder)) {
                     Directory.CreateDirectory(folder);
@@ -104,6 +114,13 @@ public sealed class StudioFormSelectionTests {
                 }
                 Assert.False(model.IsDirty);
                 Assert.Equal(bytes, File.ReadAllBytes(source));
+                await model.Commands["Home"].ExecuteAsync();
+                await model.Commands["PreviousFormField"].ExecuteAsync();
+                Assert.Equal(StudioWorkspaceMode.PdfWorkspace, model.WorkspaceMode);
+                Assert.Equal(StudioDocumentMode.Forms, model.DocumentMode);
+                Assert.Equal("First", model.SelectedFormField!.Name);
+                Assert.False(model.Commands["PreviousFormField"].IsAvailable);
+                Assert.True(model.Commands["NextFormField"].IsAvailable);
                 model.DocumentMode = StudioDocumentMode.View;
                 Assert.Null(canvas.FormAnchorFieldName);
             } finally { window.Close(); }

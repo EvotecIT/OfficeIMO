@@ -8,6 +8,17 @@ public sealed class PdfCellIcon {
     private double _size = 8D;
     private double _offsetX;
     private double _offsetY;
+    private PdfColumnAlign? _horizontalAlignment;
+
+    /// <summary>Optional icon alignment independent of cell text. Null uses the cell's alignment.</summary>
+    public PdfColumnAlign? HorizontalAlignment {
+        get => _horizontalAlignment;
+        set {
+            if (value.HasValue && (value.Value < PdfColumnAlign.Left || value.Value > PdfColumnAlign.Right))
+                throw new System.ArgumentOutOfRangeException(nameof(value), "Icon alignment must be a supported table column alignment.");
+            _horizontalAlignment = value;
+        }
+    }
 
     /// <summary>Icon shape to draw.</summary>
     public PdfCellIconKind Kind {
@@ -60,7 +71,8 @@ public sealed class PdfCellIcon {
         Color = Color,
         Size = Size,
         OffsetX = OffsetX,
-        OffsetY = OffsetY
+        OffsetY = OffsetY,
+        HorizontalAlignment = HorizontalAlignment
     };
 
     private static void ValidateOffset(double value, string paramName) {

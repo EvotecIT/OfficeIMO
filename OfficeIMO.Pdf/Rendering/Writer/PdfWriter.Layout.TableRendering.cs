@@ -46,7 +46,8 @@ internal static partial class PdfWriter {
         double textX,
         double innerWidth,
         double topY,
-        System.Action<PageImage>? onImageAdded = null) {
+        System.Action<PageImage>? onImageAdded = null,
+        TableCellContentFrame? clipFrame = null) {
         double yCursor = topY;
         int objectCount = 0;
         for (int index = 0; index < cell.Images.Count; index++) {
@@ -69,9 +70,18 @@ internal static partial class PdfWriter {
                 _ => textX
             };
             PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
-            page.Images.Add(pageImage);
-            onImageAdded?.Invoke(pageImage);
-            AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
+            bool visible = true;
+            if (clipFrame.HasValue) {
+                GetImageAnnotationBounds(pageImage, out double imageLeft, out double imageBottom, out double imageRight, out double imageTop);
+                visible = imageRight > imageLeft && imageTop > imageBottom
+                    && imageRight > clipFrame.Value.Left && imageLeft < clipFrame.Value.Left + clipFrame.Value.Width
+                    && imageTop > clipFrame.Value.Top - clipFrame.Value.Height && imageBottom < clipFrame.Value.Top;
+            }
+            if (visible) {
+                page.Images.Add(pageImage);
+                onImageAdded?.Invoke(pageImage);
+                AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height, clipFrame);
+            }
             yCursor -= imageBox.Height;
             objectCount++;
         }
@@ -137,12 +147,19 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
+    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight, TableCellContentFrame? clipFrame = null) {
         if (string.IsNullOrEmpty(image.LinkUri)) {
             return;
         }
 
-        GetImageAnnotationBounds(style, pageImage, targetX, targetBottomY, targetWidth, targetHeight, out double x1, out double y1, out double x2, out double y2);
+        GetImageAnnotationBounds(pageImage, out double x1, out double y1, out double x2, out double y2);
+        if (clipFrame.HasValue) {
+            x1 = System.Math.Max(x1, clipFrame.Value.Left);
+            x2 = System.Math.Min(x2, clipFrame.Value.Left + clipFrame.Value.Width);
+            y1 = System.Math.Max(y1, clipFrame.Value.Top - clipFrame.Value.Height);
+            y2 = System.Math.Min(y2, clipFrame.Value.Top);
+        }
+        if (x2 <= x1 || y2 <= y1) return;
 
         page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
     }
@@ -169,7 +186,9 @@ internal static partial class PdfWriter {
 
         var stripped = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>(lines.Count);
         foreach (System.Collections.Generic.List<RichSeg> line in lines) {
-            var strippedLine = new System.Collections.Generic.List<RichSeg>(line.Count);
+            System.Collections.Generic.List<RichSeg> strippedLine = line is RichLine rich
+                ? new RichLine { BaselineOffset = rich.BaselineOffset }
+                : new System.Collections.Generic.List<RichSeg>(line.Count);
             foreach (RichSeg segment in line) {
                 strippedLine.Add(segment.WithoutLink());
             }
@@ -460,18 +479,25 @@ internal static partial class PdfWriter {
                 double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                 double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                 double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
+                TableCellContentFrame frame = GetTableCellContentFrame(cell, cellX, cellBottom + cellHeight, cellWidth, cellHeight);
                 OfficeDataBarGeometry bar = OfficeDataBarRenderer.Resolve(
-                    cellX + padLeft,
-                    cellBottom + padBottom,
-                    System.Math.Max(0D, cellWidth - padLeft - padRight),
-                    System.Math.Max(0D, cellHeight - padTop - padBottom),
+                    frame.Left + padLeft,
+                    frame.Top - frame.Height + padBottom,
+                    System.Math.Max(0D, frame.Width - padLeft - padRight),
+                    System.Math.Max(0D, frame.Height - padTop - padBottom),
                     dataBar.StartRatio,
                     dataBar.Ratio,
                     verticalInset: 0D,
                     minimumHeight: 0D);
                 if (bar.Width > 0.001D && bar.Height > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, bar.X, bar.Y, bar.Width, bar.Height, artifact);
-                    drawn = true;
+                    double left = cell.Viewport == null ? bar.X : Math.Max(cellX, bar.X);
+                    double bottom = cell.Viewport == null ? bar.Y : Math.Max(cellBottom, bar.Y);
+                    double right = cell.Viewport == null ? bar.X + bar.Width : Math.Min(cellX + cellWidth, bar.X + bar.Width);
+                    double top = cell.Viewport == null ? bar.Y + bar.Height : Math.Min(cellBottom + cellHeight, bar.Y + bar.Height);
+                    if (right > left && top > bottom) {
+                        DrawRowFill(sb, dataBar.Color, left, bottom, right - left, top - bottom, artifact);
+                        drawn = true;
+                    }
                 }
             }
 
@@ -501,19 +527,20 @@ internal static partial class PdfWriter {
                     cellBottom = yTop - cellHeight;
                 }
 
-                double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(cellWidth, cellHeight) - 2D));
+                TableCellContentFrame frame = GetTableCellContentFrame(cell, cellX, cellBottom + cellHeight, cellWidth, cellHeight);
+                double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(frame.Width, frame.Height) - 2D));
                 if (iconSize > 0.001D) {
                     double padLeft = GetTableCellPaddingLeft(style, rowIndex, column);
                     double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                     double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                     double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
-                    double contentLeft = cellX + padLeft;
-                    double contentRight = cellX + cellWidth - padRight;
-                    double contentBottom = cellBottom + padBottom;
-                    double contentTop = cellBottom + cellHeight - padTop;
+                    double contentLeft = frame.Left + padLeft;
+                    double contentRight = frame.Left + frame.Width - padRight;
+                    double contentBottom = frame.Top - frame.Height + padBottom;
+                    double contentTop = frame.Top - padTop;
                     double contentWidth = Math.Max(0D, contentRight - contentLeft);
                     double contentHeight = Math.Max(0D, contentTop - contentBottom);
-                    PdfColumnAlign horizontalAlign = GetTableCellAlignment(style, rowIndex, column, cell.Text);
+                    PdfColumnAlign horizontalAlign = icon.HorizontalAlignment ?? GetTableCellAlignment(style, rowIndex, column, cell.Text);
                     PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, column);
                     double iconX = horizontalAlign switch {
                         PdfColumnAlign.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
@@ -528,8 +555,12 @@ internal static partial class PdfWriter {
 
                     iconX += icon.OffsetX;
                     iconY += icon.OffsetY;
-                    DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
-                    drawn = true;
+                    if (cell.Viewport == null || iconX + iconSize > cellX && iconX < cellX + cellWidth && iconY + iconSize > cellBottom && iconY < cellBottom + cellHeight) {
+                        if (cell.Viewport != null) new ContentStreamBuilder(sb).SaveState().Rectangle(cellX, cellBottom, cellWidth, cellHeight).ClipPath().EndPath();
+                        DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
+                        if (cell.Viewport != null) new ContentStreamBuilder(sb).RestoreState();
+                        drawn = true;
+                    }
                 }
             }
 

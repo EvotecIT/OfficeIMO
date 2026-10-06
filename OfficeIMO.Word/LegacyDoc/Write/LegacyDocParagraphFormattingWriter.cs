@@ -112,64 +112,64 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmPJc, formatting.Alignment.Value);
             }
 
-            if (formatting.KeepLinesTogether == true) {
-                AddSingleByteSprm(grpprl, SprmPFKeep, 1);
+            if (formatting.KeepLinesTogether.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFKeep, (byte)(formatting.KeepLinesTogether.Value ? 1 : 0));
             }
 
-            if (formatting.KeepWithNext == true) {
-                AddSingleByteSprm(grpprl, SprmPFKeepFollow, 1);
+            if (formatting.KeepWithNext.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFKeepFollow, (byte)(formatting.KeepWithNext.Value ? 1 : 0));
             }
 
-            if (formatting.PageBreakBefore == true) {
-                AddSingleByteSprm(grpprl, SprmPFPageBreakBefore, 1);
+            if (formatting.PageBreakBefore.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFPageBreakBefore, (byte)(formatting.PageBreakBefore.Value ? 1 : 0));
             }
 
-            if (formatting.AvoidWidowAndOrphan == true) {
-                AddSingleByteSprm(grpprl, SprmPFWidowControl, 1);
+            if (formatting.AvoidWidowAndOrphan.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFWidowControl, (byte)(formatting.AvoidWidowAndOrphan.Value ? 1 : 0));
             }
 
-            if (formatting.SuppressLineNumbers == true) {
-                AddSingleByteSprm(grpprl, SprmPFNoLineNumb, 1);
+            if (formatting.SuppressLineNumbers.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFNoLineNumb, (byte)(formatting.SuppressLineNumbers.Value ? 1 : 0));
             }
 
-            if (formatting.SuppressAutoHyphens == true) {
-                AddSingleByteSprm(grpprl, SprmPFNoAutoHyph, 1);
+            if (formatting.SuppressAutoHyphens.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFNoAutoHyph, (byte)(formatting.SuppressAutoHyphens.Value ? 1 : 0));
             }
 
-            if (formatting.Kinsoku == true) {
-                AddSingleByteSprm(grpprl, SprmPFKinsoku, 1);
+            if (formatting.Kinsoku.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFKinsoku, (byte)(formatting.Kinsoku.Value ? 1 : 0));
             }
 
-            if (formatting.WordWrap == true) {
-                AddSingleByteSprm(grpprl, SprmPFWordWrap, 1);
+            if (formatting.WordWrap.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFWordWrap, (byte)(formatting.WordWrap.Value ? 1 : 0));
             }
 
-            if (formatting.OverflowPunctuation == true) {
-                AddSingleByteSprm(grpprl, SprmPFOverflowPunct, 1);
+            if (formatting.OverflowPunctuation.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFOverflowPunct, (byte)(formatting.OverflowPunctuation.Value ? 1 : 0));
             }
 
-            if (formatting.TopLinePunctuation == true) {
-                AddSingleByteSprm(grpprl, SprmPFTopLinePunct, 1);
+            if (formatting.TopLinePunctuation.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFTopLinePunct, (byte)(formatting.TopLinePunctuation.Value ? 1 : 0));
             }
 
-            if (formatting.AutoSpaceDE == true) {
-                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDE, 1);
+            if (formatting.AutoSpaceDE.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDE, (byte)(formatting.AutoSpaceDE.Value ? 1 : 0));
             }
 
-            if (formatting.AutoSpaceDN == true) {
-                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDN, 1);
+            if (formatting.AutoSpaceDN.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDN, (byte)(formatting.AutoSpaceDN.Value ? 1 : 0));
             }
 
-            if (formatting.ContextualSpacing == true) {
-                AddSingleByteSprm(grpprl, SprmPFContextualSpacing, 1);
+            if (formatting.ContextualSpacing.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFContextualSpacing, (byte)(formatting.ContextualSpacing.Value ? 1 : 0));
             }
 
-            if (formatting.MirrorIndents == true) {
-                AddSingleByteSprm(grpprl, SprmPFMirrorIndents, 1);
+            if (formatting.MirrorIndents.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFMirrorIndents, (byte)(formatting.MirrorIndents.Value ? 1 : 0));
             }
 
-            if (formatting.Bidirectional == true) {
-                AddSingleByteSprm(grpprl, SprmPFBiDi, 1);
+            if (formatting.Bidirectional.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFBiDi, (byte)(formatting.Bidirectional.Value ? 1 : 0));
             }
 
             if (formatting.NumberingLevel != null) {
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             VerticalCharacterAlignment = verticalCharacterAlignment.HasValue && verticalCharacterAlignment.Value <= 4
                 ? verticalCharacterAlignment
                 : null;
-            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 8
+            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 9
                 ? outlineLevel
                 : null;
             IsInTable = isInTable;

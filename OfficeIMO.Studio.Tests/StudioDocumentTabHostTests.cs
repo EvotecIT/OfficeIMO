@@ -97,9 +97,20 @@ public sealed class StudioDocumentTabHostTests {
             Assert.True(firstTab.Document.IsDirty);
             Assert.Equal(2, firstTab.Document.Pages.Count);
 
+            host.MoveTab(firstTab, 1);
+            Assert.Same(firstTab, host.SelectedTab);
+            Assert.Same(firstTab.Document, activated);
+            Assert.True(firstTab.Document.IsDirty);
+            Assert.Equal(2, firstTab.Document.Pages.Count);
+
             await host.OpenDocumentAsync(secondPath);
             Assert.Equal(2, host.Tabs.Count);
             Assert.Same(secondTab, host.SelectedTab);
+            host.MoveTab(firstTab, 0);
+            Assert.Same(secondTab, host.SelectedTab);
+            Assert.True(firstTab.Document.IsDirty);
+            await firstTab.Document.UndoCommand.ExecuteAsync(null);
+            Assert.Single(firstTab.Document.Pages);
         } finally {
             Directory.Delete(root, recursive: true);
         }

@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class SheetExportData {
-            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null) {
+            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null, IReadOnlyList<int>? printTitleColumnIndexes = null, IReadOnlyList<int>? printTitleRowIndexes = null) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -48,6 +48,9 @@ namespace OfficeIMO.Excel.Pdf {
                 FirstBodyRowNumber = firstBodyRowNumber;
                 StructuredTables = structuredTables;
                 ConditionalFills = conditionalFills;
+                PrintTitleColumnIndexes = printTitleColumnIndexes ?? Array.Empty<int>();
+                RepeatingRowIndexes = Enumerable.Range(0, Math.Min(Math.Max(0, headerRowCount), values.GetLength(0)))
+                    .Concat(printTitleRowIndexes ?? Array.Empty<int>()).Distinct().OrderBy(row => row).ToArray();
             }
 
             public object?[,] Values { get; }
@@ -61,6 +64,8 @@ namespace OfficeIMO.Excel.Pdf {
             public int FirstBodyRowNumber { get; }
             public IReadOnlyList<StructuredTableVisualData> StructuredTables { get; }
             public ConditionalFillData? ConditionalFills { get; }
+            public IReadOnlyList<int> PrintTitleColumnIndexes { get; }
+            public IReadOnlyList<int> RepeatingRowIndexes { get; }
         }
 
         private sealed class ConditionalFillData {
@@ -237,81 +242,86 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class TableChunk {
-            public TableChunk(IReadOnlyList<int> rowIndexes, int headerRowCount, int startColumn, int columnCount) {
+            public TableChunk(IReadOnlyList<int> rowIndexes, int headerRowCount, int startColumn, int columnCount, IReadOnlyList<int>? columnIndexes = null) {
                 RowIndexes = rowIndexes;
                 HeaderRowCount = headerRowCount;
                 StartColumn = startColumn;
                 ColumnCount = columnCount;
+                ColumnIndexes = columnIndexes ?? Enumerable.Range(startColumn, columnCount).ToArray();
             }
 
             public IReadOnlyList<int> RowIndexes { get; }
             public int HeaderRowCount { get; }
             public int StartColumn { get; }
             public int ColumnCount { get; }
+            public IReadOnlyList<int> ColumnIndexes { get; }
         }
 
         private sealed class MergeLayoutData {
-            private readonly MergeSpan?[,] _spans;
-            private readonly bool[,] _continuations;
+            private readonly int[,] _mergeIndexes;
+            private readonly List<MergeRegion> _regions = new();
 
             public MergeLayoutData(int rowCount, int columnCount) {
-                _spans = new MergeSpan?[rowCount, columnCount];
-                _continuations = new bool[rowCount, columnCount];
+                _mergeIndexes = new int[rowCount, columnCount];
             }
 
             public bool HasAny { get; private set; }
 
-            public void SetSpan(int row, int column, int rowSpan, int columnSpan) {
-                if (row < 0 || column < 0 || row >= _spans.GetLength(0) || column >= _spans.GetLength(1)) {
+            public void SetSpan(int row, int column, int rowSpan, int columnSpan, PdfCore.PdfTableCellViewport? textViewport = null, string? imageAnchorReference = null) {
+                if (row < 0 || column < 0 || row >= _mergeIndexes.GetLength(0) || column >= _mergeIndexes.GetLength(1)) {
                     return;
                 }
 
-                rowSpan = Math.Min(rowSpan, _spans.GetLength(0) - row);
-                columnSpan = Math.Min(columnSpan, _spans.GetLength(1) - column);
-                if (rowSpan <= 1 && columnSpan <= 1) {
+                rowSpan = Math.Min(rowSpan, _mergeIndexes.GetLength(0) - row);
+                columnSpan = Math.Min(columnSpan, _mergeIndexes.GetLength(1) - column);
+                if (rowSpan <= 0 || columnSpan <= 0 || rowSpan == 1 && columnSpan == 1 && textViewport == null) {
                     return;
                 }
 
-                _spans[row, column] = new MergeSpan(rowSpan, columnSpan);
+                _regions.Add(new MergeRegion(row, column, new MergeSpan(rowSpan, columnSpan, textViewport, imageAnchorReference)));
                 for (int r = row; r < row + rowSpan; r++) {
                     for (int c = column; c < column + columnSpan; c++) {
-                        if (r != row || c != column) {
-                            _continuations[r, c] = true;
-                        }
+                        _mergeIndexes[r, c] = _regions.Count;
                     }
                 }
 
                 HasAny = true;
             }
 
-            public MergeSpan? GetSpan(int row, int column) =>
-                row >= 0 && column >= 0 && row < _spans.GetLength(0) && column < _spans.GetLength(1)
-                    ? _spans[row, column]
-                    : null;
+            public MergeRegion? GetRegion(int row, int column) {
+                if (row < 0 || column < 0 || row >= _mergeIndexes.GetLength(0) || column >= _mergeIndexes.GetLength(1)) return null;
+                int index = _mergeIndexes[row, column];
+                return index == 0 ? null : _regions[index - 1];
+            }
 
-            public bool IsContinuation(int row, int column) =>
-                row >= 0 && column >= 0 && row < _continuations.GetLength(0) && column < _continuations.GetLength(1) && _continuations[row, column];
+            public MergeSpan? GetSpan(int row, int column) => GetRegion(row, column) is { } region && region.Row == row && region.Column == column ? region.Span : null;
+            public bool IsContinuation(int row, int column) => GetRegion(row, column) is { } region && (region.Row != row || region.Column != column);
 
-            public void CopyTo(MergeLayoutData target, int rowOffset) {
-                for (int row = 0; row < _spans.GetLength(0); row++) {
-                    for (int column = 0; column < _spans.GetLength(1); column++) {
-                        MergeSpan? span = _spans[row, column];
-                        if (span != null) {
-                            target.SetSpan(row + rowOffset, column, span.RowSpan, span.ColumnSpan);
-                        }
-                    }
-                }
+            public void CopyTo(MergeLayoutData target, int rowOffset, int columnOffset = 0) {
+                foreach (MergeRegion region in _regions)
+                    target.SetSpan(region.Row + rowOffset, region.Column + columnOffset, region.Span.RowSpan, region.Span.ColumnSpan, region.Span.Viewport, region.Span.ImageAnchorReference);
             }
         }
 
+        private sealed class MergeRegion {
+            public MergeRegion(int row, int column, MergeSpan span) { Row = row; Column = column; Span = span; }
+            public int Row { get; }
+            public int Column { get; }
+            public MergeSpan Span { get; }
+        }
+
         private sealed class MergeSpan {
-            public MergeSpan(int rowSpan, int columnSpan) {
+            public MergeSpan(int rowSpan, int columnSpan, PdfCore.PdfTableCellViewport? textViewport = null, string? imageAnchorReference = null) {
                 RowSpan = rowSpan;
                 ColumnSpan = columnSpan;
+                Viewport = textViewport;
+                ImageAnchorReference = imageAnchorReference;
             }
 
             public int RowSpan { get; }
             public int ColumnSpan { get; }
+            public PdfCore.PdfTableCellViewport? Viewport { get; }
+            public string? ImageAnchorReference { get; }
         }
     }
 }

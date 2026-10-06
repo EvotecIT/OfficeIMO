@@ -23,12 +23,11 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             var style = new PdfCore.PdfParagraphStyle();
             double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
-            double lineHeight = ResolveNativeParagraphLineHeight(
-                paragraph,
-                fontSize,
-                nativeDefaults,
-                styleDefaults,
-                nativeFontMap);
+            double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, styleDefaults, nativeFontMap: nativeFontMap);
+            NativeLineSpacing lineSpacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults);
+            double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
+            style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
+            style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
@@ -166,7 +165,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (WordParagraph run in runs) {
-                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text) || IsNativeHiddenTextRun(run, paragraph)) {
                     continue;
                 }
 
@@ -190,23 +189,8 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap: nativeFontMap);
-            if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == WordLineSpacingRule.Auto) {
-                return Math.Max(0.01D, naturalLineHeight * (paragraph.LineSpacing.Value / 240D));
-            }
-
-            if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, naturalLineHeight);
-            }
-
-            if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, naturalLineHeight);
-            }
-
-            if (styleDefaults.LineHeight.HasValue) {
-                return styleDefaults.LineHeight.Value;
-            }
-
-            return nativeDefaults.ParagraphLineHeight;
+            return ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults)
+                .Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
         }
 
         private static double ResolveNativeParagraphSingleLineHeight(
@@ -215,24 +199,17 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphStyleDefaults styleDefaults,
             NativeTableRunStyleDefaults tableRunStyleDefaults = default,
             NativeFontMap? nativeFontMap = null) {
-            double lineHeight = ResolveNativeWordSingleLineHeight(
-                nativeFontMap,
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
-                paragraph.FontFamilyEastAsia,
-                paragraph.FontFamilyComplexScript,
-                styleDefaults.FontFamily,
-                tableRunStyleDefaults.FontFamily,
-                nativeDefaults.FontFamily);
-            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
-                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            double? lineHeight = null;
+            foreach (WordParagraph run in runs) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text) || IsNativeHiddenTextRun(run, paragraph)) {
                     continue;
                 }
 
                 NativeCharacterStyleDefaults characterStyle =
                     GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run));
                 lineHeight = Math.Max(
-                    lineHeight,
+                    lineHeight ?? 0D,
                     ResolveNativeWordSingleLineHeight(
                         nativeFontMap,
                         run.FontFamily,
@@ -245,7 +222,18 @@ namespace OfficeIMO.Word.Pdf {
                         nativeDefaults.FontFamily));
             }
 
-            return lineHeight;
+            if (lineHeight.HasValue) return lineHeight.Value;
+            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
+            return ResolveNativeWordSingleLineHeight(
+                nativeFontMap,
+                ResolveNativeRunFontsFamily(paragraph._document, markFonts),
+                paragraph.FontFamily,
+                paragraph.FontFamilyHighAnsi,
+                paragraph.FontFamilyEastAsia,
+                paragraph.FontFamilyComplexScript,
+                styleDefaults.FontFamily,
+                tableRunStyleDefaults.FontFamily,
+                nativeDefaults.FontFamily);
         }
 
         private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {
@@ -256,9 +244,6 @@ namespace OfficeIMO.Word.Pdf {
 
             return requestedLineHeight;
         }
-
-        private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, WordLineSpacingRule? lineSpacingRule, double fontSize, double naturalLineHeight) =>
-            ResolveNativeLineSpacingHeight(lineSpacingPoints, lineSpacingRule.ToOpenXml(), fontSize, naturalLineHeight);
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
             if (leader == W.TabStopLeaderCharValues.Dot || leader == W.TabStopLeaderCharValues.MiddleDot || leader == W.TabStopLeaderCharValues.Heavy) {
@@ -592,19 +577,7 @@ namespace OfficeIMO.Word.Pdf {
             MapNativeNullableCellVerticalAlign(alignment.ToOpenXml());
 
         private static int GetHeadingLevel(WordParagraph paragraph) {
-            if (!paragraph.Style.HasValue) {
-                return 0;
-            }
-
-            return paragraph.Style.Value switch {
-                WordParagraphStyles.Heading1 => 1,
-                WordParagraphStyles.Heading2 => 2,
-                WordParagraphStyles.Heading3 => 3,
-                WordParagraphStyles.Heading4 => 3,
-                WordParagraphStyles.Heading5 => 3,
-                WordParagraphStyles.Heading6 => 3,
-                _ => 0
-            };
+            return GetNativeTableOfContentsHeadingLevel(paragraph);
         }
 
         private static PdfCore.PdfColor? GetNativeHeadingColor(int headingLevel, PdfCore.PdfColor? explicitColor) {
@@ -615,68 +588,6 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfColor.FromRgb(47, 84, 150);
         }
 
-        private static PdfCore.PageSize GetNativePageSize(WordSection section, WordToPdfOptions? options) {
-            PdfCore.PageSize size;
-            if (options?.PageSize != null) {
-                size = options.PageSize.Value;
-                if (options.Orientation == null) {
-                    return size;
-                }
-            } else if (section.PageSettings.Width > 0 && section.PageSettings.Height > 0) {
-                size = new PdfCore.PageSize(
-                    section.PageSettings.Width.GetValueOrDefault() / 20D,
-                    section.PageSettings.Height.GetValueOrDefault() / 20D);
-            } else if (section.PageSettings.PageSize.HasValue) {
-                size = MapNativePageSize(section.PageSettings.PageSize.Value);
-            } else if (options?.DefaultPageSize.HasValue == true) {
-                size = MapNativePageSize(options.DefaultPageSize.Value);
-            } else {
-                size = PdfCore.PageSizes.A4;
-            }
-
-            OfficePageOrientation orientation;
-            if (options?.Orientation != null) {
-                orientation = options.Orientation.Value;
-            } else if (section.PageSettings.Orientation == OfficePageOrientation.Landscape) {
-                orientation = OfficePageOrientation.Landscape;
-            } else if (options?.DefaultOrientation != null) {
-                orientation = options.DefaultOrientation == OfficePageOrientation.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-            } else {
-                orientation = OfficePageOrientation.Portrait;
-            }
-
-            return orientation == OfficePageOrientation.Landscape ? size.Landscape() : size.Portrait();
-        }
-
-        private static PdfCore.PageSize MapNativePageSize(WordPageSize pageSize) =>
-            pageSize switch {
-                WordPageSize.Letter => PdfCore.PageSizes.Letter,
-                WordPageSize.Legal => PdfCore.PageSizes.Legal,
-                WordPageSize.A3 => new PdfCore.PageSize(842, 1191),
-                WordPageSize.A4 => PdfCore.PageSizes.A4,
-                WordPageSize.A5 => PdfCore.PageSizes.A5,
-                WordPageSize.A6 => new PdfCore.PageSize(298, 420),
-                WordPageSize.B5 => new PdfCore.PageSize(499, 709),
-                WordPageSize.Executive => new PdfCore.PageSize(522, 756),
-                WordPageSize.Statement => new PdfCore.PageSize(396, 612),
-                _ => PdfCore.PageSizes.A4
-            };
-
-        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options) {
-            return GetNativeMargins(section, options, GetNativeHeaderFooterMarginExpansion(section, options));
-        }
-
-        private static PdfCore.PageMargins GetNativeMargins(WordSection section, WordToPdfOptions? options, (double Header, double Footer) headerFooterMarginExpansion) {
-            if (options?.Margins != null) {
-                return options.Margins.Value;
-            }
-
-            return new PdfCore.PageMargins(
-                section.Margins.Left / 20D,
-                (section.Margins.Top ?? 0) / 20D + headerFooterMarginExpansion.Header,
-                section.Margins.Right / 20D,
-                (section.Margins.Bottom ?? 0) / 20D + headerFooterMarginExpansion.Footer);
-        }
 
         private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(WordSection section, WordToPdfOptions? options) {
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers =
@@ -704,6 +615,7 @@ namespace OfficeIMO.Word.Pdf {
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
 
             double baseTop = (section.Margins.Top ?? 0) / 20D;
+            if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;
             double baseBottom = (section.Margins.Bottom ?? 0) / 20D;
             double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height - baseTop - baseBottom);
             double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);

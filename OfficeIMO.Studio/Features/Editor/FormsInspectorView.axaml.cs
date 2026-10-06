@@ -22,6 +22,13 @@ public sealed partial class FormsInspectorView : UserControl {
         if (_model is not null) _model.PropertyChanged += OnModelChanged;
     }
 
+    private void OnChoiceSelectionChanged(object? sender, SelectionChangedEventArgs args) {
+        // ItemsSource changes when navigating fields. Its transient empty selection must not clear a draft.
+        if (DataContext is MainWindowViewModel { SelectedFormField: { IsSingleChoiceEditor: true } field } &&
+            sender is ComboBox { SelectedItem: PdfFormChoiceViewModel choice } && field.Choices.Contains(choice))
+            field.SelectedChoice = choice;
+    }
+
     private void OnModelChanged(object? sender, PropertyChangedEventArgs args) {
         if (args.PropertyName != nameof(MainWindowViewModel.HasFormPreview) || _model?.HasFormPreview != true) return;
         this.Dispatcher.Post(() => {

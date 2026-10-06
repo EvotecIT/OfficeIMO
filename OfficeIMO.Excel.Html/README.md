@@ -6,10 +6,12 @@ First-party HTML adapter for OfficeIMO.Excel. It exports semantic worksheet tabl
 
 ```csharp
 using OfficeIMO.Excel;
+using OfficeIMO;
 using OfficeIMO.Html;
 using OfficeIMO.Excel.Html;
 
-using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", readOnly: true);
+using ExcelDocument workbook = ExcelDocument.Load("report.xlsx",
+    new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
@@ -36,6 +38,8 @@ HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
 ```
 
 `Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlToExcelOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
+
+Generic table worksheets fit their columns to imported text within bounded widths, wrap longer values, and fit row heights. Two-column term/definition tables retain their printable layout. HTML spans remain native merged ranges; ordinary grids do not become named Excel table objects. This default presentation does not reproduce CSS table geometry.
 
 On the ordinary HTML path, bounded positioned, floating, flex, and grid regions become editable merged-cell regions plus absolute DrawingML picture anchors. Solid backgrounds become cell fills, and foreground pictures retain supported native opacity. CSS background-image layers are omitted so they cannot cover editable cell text and produce a stable diagnostic. Excel has no editable cell-shadow equivalent, so shadows and unsupported effects are diagnosed while content and geometry remain editable. Set `ImportEditableLayoutRegions = false` to retain semantic flow only.
 

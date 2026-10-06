@@ -117,7 +117,8 @@ public sealed partial class OfficeAiEngine {
             diagnostics.Add(synthesisIncomplete);
         } else if (combinesClaims && claimBatches > 1) {
             ReportProgress(progress, new("Synthesizing", requestCount, request.Limits.MaxRequests));
-            Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount, token).ConfigureAwait(false);
+            Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount,
+                new(omitted.Count, plan.EmptyPages, document.HasSourceDiagnostics), token).ConfigureAwait(false);
             claims = synthesis.Claims.ToList(); requestCount += synthesis.RequestCount;
             inputTokens = SumUsage(inputTokens, synthesis.InputTokens); outputTokens = SumUsage(outputTokens, synthesis.OutputTokens);
             synthesisStatus = synthesis.Completed ? OfficeAiSynthesisStatus.Completed : OfficeAiSynthesisStatus.Incomplete;
@@ -129,6 +130,7 @@ public sealed partial class OfficeAiEngine {
             || synthesisStatus == OfficeAiSynthesisStatus.Incomplete;
         if (incomplete) mergedFields = Array.AsReadOnly(mergedFields.Select(field => field.Status == OfficeAiFieldStatus.Missing
             ? field with { Status = OfficeAiFieldStatus.NotEvaluated } : field).ToArray());
+        if (mergedFields.Any(field => field.RecognitionReviewRequired)) diagnostics.Add("field-recognition-review-required");
         bool normalizationFailed = fields.Any(field => field.Status == OfficeAiFieldStatus.Invalid);
         if (normalizationFailed) diagnostics.Add("field-normalization-failed");
         bool useful = claims.Count > 0 || blocks.Count > 0 || tables.Count > 0 || mergedFields.Any(field => field.Status is not (OfficeAiFieldStatus.Missing or OfficeAiFieldStatus.NotEvaluated));
