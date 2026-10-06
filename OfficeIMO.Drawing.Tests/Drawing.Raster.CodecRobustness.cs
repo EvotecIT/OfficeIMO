@@ -112,7 +112,7 @@ public sealed class DrawingRasterCodecRobustnessTests {
     [InlineData("png-decode")]
     [InlineData("tiff-decode")]
     [InlineData("bmp-decode")]
-    public void PublicRasterRoutesRejectCanceledOperations(string route) {
+    public void RasterCodecRoutesRejectCanceledOperations(string route) {
         var source = new OfficeRasterImage(2, 2, OfficeColor.SteelBlue);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

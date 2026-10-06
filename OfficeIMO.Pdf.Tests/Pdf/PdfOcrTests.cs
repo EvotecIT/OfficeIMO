@@ -190,7 +190,8 @@ public class PdfOcrTests {
                 Assert.Equal(0, Volatile.Read(ref callCount));
                 return;
             }
-            Assert.True(firstCallStarted.Task.IsCompleted);
+            Task started = await Task.WhenAny(firstCallStarted.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.Same(firstCallStarted.Task, started);
             OcrEngineTimeoutException second = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
                 () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options));
 
