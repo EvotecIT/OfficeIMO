@@ -286,6 +286,7 @@ _Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this 
 #### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
 
 - [x] Any `IOcrEngine` over bounded rendered PDF pages without a Reader or provider dependency
+- [x] Standalone raster image recognition at source resolution, with reusable text/table reconstruction and review snapshots for editable format adapters
 - [x] Pixel, point, and normalized geometry projection into cropped and rotated visual PDF coordinates
 - [x] Confidence and native-text overlap filtering followed by the canonical language-neutral PDF understanding pipeline
 - [x] Searchable invisible-text output with per-page provider, model, language, word, rejection, and diagnostic evidence

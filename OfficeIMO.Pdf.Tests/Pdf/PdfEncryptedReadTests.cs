@@ -70,7 +70,7 @@ public class PdfEncryptedReadTests {
         IReadOnlyList<PdfDocument> splitPages = PdfDocument.Load(pdf).Pages.Split();
         PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Load(pdf).Pages.SplitResult();
 
-        Assert.False(PdfInspector.Probe(extracted).HasEncryption);
+        Assert.True(PdfInspector.Probe(extracted).HasEncryption);
         Assert.Contains("Empty user password text", PdfTextExtractor.ExtractAllText(extracted), StringComparison.Ordinal);
         PdfDocument splitPage = Assert.Single(splitPages);
         Assert.Contains("Empty user password text", splitPage.Reader.Text(), StringComparison.Ordinal);
@@ -79,7 +79,7 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
-    public void StandardPasswordEncryptedPdf_SplitsWithPasswordAsUnencryptedOutputs() {
+    public void StandardPasswordEncryptedPdf_SplitsWithPasswordAndRetainsEncryption() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
         var options = new PdfLoadOptions { Password = "open" };
 
@@ -88,8 +88,8 @@ public class PdfEncryptedReadTests {
             .ToArray();
 
         Assert.Single(pages);
-        Assert.False(PdfInspector.Probe(pages[0]).HasEncryption);
-        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(pages[0]), StringComparison.Ordinal);
+        Assert.True(PdfInspector.Probe(pages[0]).HasEncryption);
+        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(pages[0], (PdfTextLayoutOptions?)null, options), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -130,8 +130,8 @@ public class PdfEncryptedReadTests {
 
         byte[] page = PdfPageExtractor.ExtractPages(pdf, options, 1);
 
-        Assert.False(PdfInspector.Probe(page).HasEncryption);
-        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(page), StringComparison.Ordinal);
+        Assert.True(PdfInspector.Probe(page).HasEncryption);
+        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(page, (PdfTextLayoutOptions?)null, options), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class PdfEncryptedReadTests {
         Assert.False(userPreflight.CanFillSimpleFormFields);
         Assert.False(userPreflight.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.NotEmpty(userPreflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.False(PdfInspector.Probe(ownerFilled.ToBytes()).HasEncryption);
+        Assert.True(PdfInspector.Probe(ownerFilled.ToBytes()).HasEncryption);
         Assert.Equal("Grace", Assert.Single(ownerFilled.Inspect().FormFields).Value);
         Assert.Equal("Ada", Assert.Single(explicitlyAuthorized.Inspect().FormFields).Value);
     }

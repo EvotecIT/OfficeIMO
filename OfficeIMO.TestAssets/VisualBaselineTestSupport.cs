@@ -10,7 +10,8 @@ namespace OfficeIMO.Tests {
             int allowedDifferentPixels,
             double maximumMeanAbsoluteError = double.PositiveInfinity,
             double maximumRootMeanSquareError = double.PositiveInfinity,
-            double maximumMeanLuminanceError = double.PositiveInfinity) {
+            double maximumMeanLuminanceError = double.PositiveInfinity,
+            double minimumDarkPixelRetentionRatio = 0D) {
             OfficeRasterImage expected = DecodePng(expectedPng, "Expected visual baseline is not a supported PNG file.");
             OfficeRasterImage actual = DecodePng(actualPng, "Actual visual output is not a supported PNG file.");
             return CompareRasterImages(
@@ -20,7 +21,8 @@ namespace OfficeIMO.Tests {
                 allowedDifferentPixels,
                 maximumMeanAbsoluteError,
                 maximumRootMeanSquareError,
-                maximumMeanLuminanceError);
+                maximumMeanLuminanceError,
+                minimumDarkPixelRetentionRatio);
         }
 
         internal static VisualRasterComparison CompareRasterImages(
@@ -30,7 +32,13 @@ namespace OfficeIMO.Tests {
             int allowedDifferentPixels,
             double maximumMeanAbsoluteError = double.PositiveInfinity,
             double maximumRootMeanSquareError = double.PositiveInfinity,
-            double maximumMeanLuminanceError = double.PositiveInfinity) {
+            double maximumMeanLuminanceError = double.PositiveInfinity,
+            double minimumDarkPixelRetentionRatio = 0D) {
+            if (double.IsNaN(minimumDarkPixelRetentionRatio) ||
+                minimumDarkPixelRetentionRatio < 0D || minimumDarkPixelRetentionRatio > 1D) {
+                throw new ArgumentOutOfRangeException(nameof(minimumDarkPixelRetentionRatio));
+            }
+
             if (expected.Width != actual.Width || expected.Height != actual.Height) {
                 OfficeRasterImage sizeDiff = new OfficeRasterImage(Math.Max(expected.Width, actual.Width), Math.Max(expected.Height, actual.Height), OfficeColor.White);
                 OfficeRasterCanvas canvas = new OfficeRasterCanvas(sizeDiff);
@@ -49,7 +57,10 @@ namespace OfficeIMO.Tests {
                     maximumRootMeanSquareError,
                     double.PositiveInfinity,
                     maximumMeanLuminanceError,
-                    OfficePngWriter.Encode(sizeDiff));
+                    OfficePngWriter.Encode(sizeDiff),
+                    0,
+                    0,
+                    minimumDarkPixelRetentionRatio);
             }
 
             int differentPixels = 0;
@@ -57,11 +68,15 @@ namespace OfficeIMO.Tests {
             long absoluteError = 0;
             long squaredError = 0;
             double luminanceError = 0D;
+            int expectedDarkPixels = 0;
+            int actualDarkPixels = 0;
             OfficeRasterImage diff = new OfficeRasterImage(expected.Width, expected.Height, OfficeColor.White);
             for (int y = 0; y < expected.Height; y++) {
                 for (int x = 0; x < expected.Width; x++) {
                     OfficeColor expectedPixel = expected.GetPixel(x, y);
                     OfficeColor actualPixel = actual.GetPixel(x, y);
+                    if (IsVisibleDarkPixel(expectedPixel)) expectedDarkPixels++;
+                    if (IsVisibleDarkPixel(actualPixel)) actualDarkPixels++;
                     int deltaR = Math.Abs(expectedPixel.R - actualPixel.R);
                     int deltaG = Math.Abs(expectedPixel.G - actualPixel.G);
                     int deltaB = Math.Abs(expectedPixel.B - actualPixel.B);
@@ -103,7 +118,8 @@ namespace OfficeIMO.Tests {
                 differentPixels <= allowedDifferentPixels &&
                 meanAbsoluteError <= maximumMeanAbsoluteError &&
                 rootMeanSquareError <= maximumRootMeanSquareError &&
-                meanLuminanceError <= maximumMeanLuminanceError,
+                meanLuminanceError <= maximumMeanLuminanceError &&
+                actualDarkPixels >= expectedDarkPixels * minimumDarkPixelRetentionRatio,
                 differentPixels,
                 totalPixels,
                 maxChannelDelta,
@@ -115,7 +131,17 @@ namespace OfficeIMO.Tests {
                 maximumRootMeanSquareError,
                 meanLuminanceError,
                 maximumMeanLuminanceError,
-                OfficePngWriter.Encode(diff));
+                OfficePngWriter.Encode(diff),
+                expectedDarkPixels,
+                actualDarkPixels,
+                minimumDarkPixelRetentionRatio);
+        }
+
+        private static bool IsVisibleDarkPixel(OfficeColor pixel) {
+            // Composite on white and require every channel to be dark. Saturated panels,
+            // pale rules and transparent black must not disguise missing normal text.
+            int maximumChannel = Math.Max(pixel.R, Math.Max(pixel.G, pixel.B));
+            return 255D - (255D - maximumChannel) * pixel.A / 255D < 96D;
         }
 
         internal static OfficeRasterImage DecodePng(byte[] bytes, string failureMessage) {
@@ -330,7 +356,10 @@ namespace OfficeIMO.Tests {
             double maximumRootMeanSquareError,
             double meanLuminanceError,
             double maximumMeanLuminanceError,
-            byte[] diffPng) {
+            byte[] diffPng,
+            int expectedDarkPixels,
+            int actualDarkPixels,
+            double minimumDarkPixelRetentionRatio) {
             Passed = passed;
             DifferentPixels = differentPixels;
             TotalPixels = totalPixels;
@@ -344,6 +373,9 @@ namespace OfficeIMO.Tests {
             MeanLuminanceError = meanLuminanceError;
             MaximumMeanLuminanceError = maximumMeanLuminanceError;
             DiffPng = diffPng;
+            ExpectedDarkPixels = expectedDarkPixels;
+            ActualDarkPixels = actualDarkPixels;
+            MinimumDarkPixelRetentionRatio = minimumDarkPixelRetentionRatio;
         }
 
         internal bool Passed { get; }
@@ -371,5 +403,13 @@ namespace OfficeIMO.Tests {
         internal double MaximumMeanLuminanceError { get; }
 
         internal byte[] DiffPng { get; }
+
+        internal int ExpectedDarkPixels { get; }
+
+        internal int ActualDarkPixels { get; }
+
+        internal double DarkPixelRetentionRatio => ExpectedDarkPixels == 0 ? 1D : ActualDarkPixels / (double)ExpectedDarkPixels;
+
+        internal double MinimumDarkPixelRetentionRatio { get; }
     }
 }
