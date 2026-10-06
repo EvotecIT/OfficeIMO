@@ -2036,6 +2036,7 @@ internal static partial class PdfWriter {
                         textMarkedContentOpen = false;
                     }
 
+                    if (structurePage != null) PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     AppendInlineElement(
                         sb,
                         s.InlineElement,
@@ -2059,10 +2060,12 @@ internal static partial class PdfWriter {
                 int? linkStructElementIndex = null;
                 if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
                     linkMarkedContentId = structurePage.NextMarkedContentId++;
+                    PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     linkStructElementIndex = structurePage.StructElements.Count;
                     structurePage.StructElements.Add(new PageStructElement {
                         MarkedContentId = linkMarkedContentId,
-                        StructureType = "Link"
+                        StructureType = "Link",
+                        ParentElementIndex = textStructElementIndex
                     });
                 }
 
@@ -2249,11 +2252,18 @@ internal static partial class PdfWriter {
         content.EndText();
         int markedContentId = structurePage.NextMarkedContentId++;
         PageStructElement element = structurePage.StructElements[textStructElementIndex.Value];
-        if (element.AdditionalMarkedContentIds == null) {
-            element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+        if (!element.MarkedContentId.HasValue) {
+            structurePage.StructElements.Add(new PageStructElement {
+                MarkedContentId = markedContentId,
+                StructureType = "Span",
+                ParentElementIndex = textStructElementIndex
+            });
+        } else {
+            if (element.AdditionalMarkedContentIds == null) {
+                element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+            }
+            element.AdditionalMarkedContentIds.Add(markedContentId);
         }
-
-        element.AdditionalMarkedContentIds.Add(markedContentId);
         AppendMarkedContentBegin(sb, structureType, markedContentId);
         content = new ContentStreamBuilder(sb)
             .BeginText()
@@ -2300,7 +2310,10 @@ internal static partial class PdfWriter {
                 Math.Abs(previous.Y2 - y2) <= 0.5D;
             if (sameTarget && sameLine && gap >= -0.25D && gap <= 18D) {
                 if (structElementIndex.HasValue && previous.StructElementIndex.HasValue && structurePage != null) {
-                    MergeLinkStructureElements(structurePage, previous.StructElementIndex.Value, structElementIndex.Value);
+                    if (!TryMergeLinkStructureElements(structurePage, previous.StructElementIndex.Value, structElementIndex.Value)) {
+                        annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
+                        return;
+                    }
                 } else if (structElementIndex.HasValue || previous.StructElementIndex.HasValue) {
                     annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
                     return;
@@ -2323,15 +2336,21 @@ internal static partial class PdfWriter {
         annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
     }
 
-    private static void MergeLinkStructureElements(LayoutResult.Page structurePage, int targetStructElementIndex, int mergedStructElementIndex) {
+    private static bool TryMergeLinkStructureElements(LayoutResult.Page structurePage, int targetStructElementIndex, int mergedStructElementIndex) {
         if (targetStructElementIndex < 0 || targetStructElementIndex >= structurePage.StructElements.Count ||
             mergedStructElementIndex < 0 || mergedStructElementIndex >= structurePage.StructElements.Count ||
-            targetStructElementIndex == mergedStructElementIndex) {
-            return;
+            mergedStructElementIndex != targetStructElementIndex + 1 ||
+            mergedStructElementIndex != structurePage.StructElements.Count - 1) {
+            return false;
         }
 
         PageStructElement target = structurePage.StructElements[targetStructElementIndex];
         PageStructElement merged = structurePage.StructElements[mergedStructElementIndex];
+        // Geometric proximity does not make links logically adjacent. Moving a later
+        // MCID across a Span or into another paragraph would reorder tagged content.
+        if (target.ParentElementIndex != merged.ParentElementIndex) {
+            return false;
+        }
         if (merged.MarkedContentId.HasValue) {
             if (target.AdditionalMarkedContentIds == null) {
                 target.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
@@ -2340,9 +2359,8 @@ internal static partial class PdfWriter {
             target.AdditionalMarkedContentIds.Add(merged.MarkedContentId.Value);
         }
 
-        if (mergedStructElementIndex == structurePage.StructElements.Count - 1) {
-            structurePage.StructElements.RemoveAt(mergedStructElementIndex);
-        }
+        structurePage.StructElements.RemoveAt(mergedStructElementIndex);
+        return true;
     }
 
     private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null) {
