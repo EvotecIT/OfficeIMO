@@ -82,6 +82,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.ConditionalTextRuleUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalTimePeriodUnsupported:
                 case ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported:
+                case ExcelImageExportDiagnosticCodes.ImageHyperlinkUnsupported:
                 case ExcelImageExportDiagnosticCodes.ImageBytesMissing:
                 case ExcelImageExportDiagnosticCodes.ImageFormatUnknown:
                 case ExcelImageExportDiagnosticCodes.ImageAnchorHidden:

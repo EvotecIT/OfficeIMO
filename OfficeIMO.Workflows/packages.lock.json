@@ -10,8 +10,8 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.7.1",
-        "contentHash": "QBblGpRB3SYD66Mls7fHyl1mWkP93n7ErWDWHc1vd9sPHhdlTkmUoY3CjgfjcWNxGF9m7xjNyztRfErXqoBKOA=="
+        "resolved": "1.8.3",
+        "contentHash": "IiXdbBHzeKRUDayOFT/5nAqkY7Tqbtzr9dqoWrsfseLRs2r1j94qP8MmKnfs9aX+WHucmlmX8xq9QosIUJ/sbA=="
       },
       "AngleSharp.Css": {
         "type": "Transitive",
@@ -99,7 +99,7 @@
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
-          "AngleSharp": "[1.7.1, )",
+          "AngleSharp": "[1.8.3, )",
           "AngleSharp.Css": "[1.0.1, )",
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
@@ -109,7 +109,7 @@
       "officeimo.html.anglesharp": {
         "type": "Project",
         "dependencies": {
-          "AngleSharp": "[1.7.1, )",
+          "AngleSharp": "[1.8.3, )",
           "OfficeIMO.Html.Core": "[3.4.4, )"
         }
       },
@@ -299,8 +299,8 @@
       },
       "AngleSharp": {
         "type": "Transitive",
-        "resolved": "1.7.1",
-        "contentHash": "QBblGpRB3SYD66Mls7fHyl1mWkP93n7ErWDWHc1vd9sPHhdlTkmUoY3CjgfjcWNxGF9m7xjNyztRfErXqoBKOA=="
+        "resolved": "1.8.3",
+        "contentHash": "IiXdbBHzeKRUDayOFT/5nAqkY7Tqbtzr9dqoWrsfseLRs2r1j94qP8MmKnfs9aX+WHucmlmX8xq9QosIUJ/sbA=="
       },
       "AngleSharp.Css": {
         "type": "Transitive",
@@ -394,7 +394,7 @@
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
-          "AngleSharp": "[1.7.1, )",
+          "AngleSharp": "[1.8.3, )",
           "AngleSharp.Css": "[1.0.1, )",
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
@@ -404,7 +404,7 @@
       "officeimo.html.anglesharp": {
         "type": "Project",
         "dependencies": {
-          "AngleSharp": "[1.7.1, )",
+          "AngleSharp": "[1.8.3, )",
           "OfficeIMO.Html.Core": "[3.4.4, )"
         }
       },

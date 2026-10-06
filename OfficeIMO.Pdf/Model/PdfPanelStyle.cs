@@ -18,6 +18,12 @@ public class PdfPanelStyle {
     private PdfPanelBorder? _bottomBorder;
     private PdfPanelBorder? _leftBorder;
 
+    internal double? PaddingTopOverride { get; set; }
+    internal double? ContinuationPaddingTopOverride { get; set; }
+    internal double? PaddingBottomOverride { get; set; }
+    internal double TopPadding => PaddingTopOverride ?? PaddingY;
+    internal double BottomPadding => PaddingBottomOverride ?? PaddingY;
+
     /// <summary>Background fill color. Set to null for no fill.</summary>
     public PdfColor? Background { get; set; }
     /// <summary>Border color. Set to null for no border.</summary>
@@ -95,18 +101,21 @@ public class PdfPanelStyle {
         }
     }
 
-    internal double GetFragmentTopPadding(bool isContinuation) =>
-        RepeatFragmentDecoration || !isContinuation ? PaddingY : 0D;
+    internal double GetFragmentTopPadding(bool isContinuation) => !isContinuation ? TopPadding :
+        RepeatFragmentDecoration ? ContinuationPaddingTopOverride ?? TopPadding : 0D;
 
     internal double GetFragmentBottomPadding(bool continues) =>
-        RepeatFragmentDecoration || !continues ? PaddingY : 0D;
+        RepeatFragmentDecoration || !continues ? BottomPadding : 0D;
 
-    internal double FragmentPaddingReservation => RepeatFragmentDecoration ? Math.Max(0D, PaddingY - FragmentBottomInset) : 0D;
+    internal double FragmentPaddingReservation => RepeatFragmentDecoration ? Math.Max(0D, BottomPadding - FragmentBottomInset) : 0D;
 
-    internal double InitialFragmentImageReservation => PaddingY + Math.Max(PaddingY, FragmentBottomInset);
+    internal double FullFragmentPaddingReservation => FragmentPaddingReservation +
+        Math.Max(0D, GetFragmentTopPadding(isContinuation: true) - FragmentBottomInset);
+
+    internal double InitialFragmentImageReservation => TopPadding + Math.Max(BottomPadding, FragmentBottomInset);
 
     internal double GetActiveFragmentImageReservation(bool isContinuation) =>
-        Math.Max(0D, PaddingY - FragmentBottomInset) + (!RepeatFragmentDecoration && !isContinuation ? PaddingY : 0D);
+        Math.Max(0D, BottomPadding - FragmentBottomInset) + (!RepeatFragmentDecoration && !isContinuation ? TopPadding : 0D);
     /// <summary>Horizontal padding inside the panel (points).</summary>
     public double PaddingX {
         get => _paddingX;
@@ -157,6 +166,9 @@ public class PdfPanelStyle {
         return new PdfPanelStyle {
             Background = Background,
             BorderColor = BorderColor,
+            PaddingTopOverride = PaddingTopOverride,
+            ContinuationPaddingTopOverride = ContinuationPaddingTopOverride,
+            PaddingBottomOverride = PaddingBottomOverride,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,
             TopBorder = _topBorder,

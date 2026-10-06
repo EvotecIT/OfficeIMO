@@ -13,6 +13,7 @@ internal static partial class PdfWriter {
             ValidateTableRowStyleBounds(style, table.Rows.Count);
             int footerStart = table.Rows.Count - style.FooterRowCount;
             ValidateTableRowSpansWithinRoleBoundaries(table, columns, style.HeaderRowCount, footerStart);
+            style = PreparePairedTableBorders(table, style);
             double gap = GetTableCellSpacing(style);
             double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
             TableColumnLayout layout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, fontSize,

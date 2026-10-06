@@ -79,6 +79,15 @@ content referenced by StoryFragments, update both detached trees and call
 `page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
 commit together. Page-only edits that leave dangling native names are rejected.
 
+## Owned HTML parser providers
+
+`IHtmlParserProvider.Parse` is replaced by `ParseDocument`, and providers implement
+`ParseFragment` with an owned context element. Rename direct calls to
+`AngleSharpHtmlParser.Instance.Parse` to `ParseDocument`. The conversion entrypoint
+`HtmlConversionDocument.Parse` retains its API. Custom providers return frozen owned
+snapshots for both operations; contextual fragments have an independent document and
+can be imported into a mutable destination with `ImportNode`.
+
 ## Long-document AI request budgets
 
 Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
@@ -231,6 +240,12 @@ Reader retains attachment order and emits image-anchor blocks even when alternat
 Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.
 
 The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
+
+## Excel HTML named-table reports
+
+Excel HTML export reports classify omitted native named-table definitions as loss, even when all worksheet cells are preserved. Callers requiring lossless conversion must account for table names, filters, styles and totals metadata that HTML does not restore.
+
+Worksheet exports and `ExcelSheet.GetTables()` require a handle belonging to the current workbook package. When a save reloads that package, reacquire the worksheet from `document.Sheets` before inspecting or exporting it; stale or removed handles raise `InvalidOperationException`. Workbook exports and `document.GetTables()` use the current package directly.
 
 ## Excel and iWork TEXTJOIN formulas
 

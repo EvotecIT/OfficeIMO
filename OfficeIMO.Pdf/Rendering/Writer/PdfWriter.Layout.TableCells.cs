@@ -43,19 +43,23 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellPaddingLeft(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Left ?? GetTableCellPaddingLeft(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Left ?? GetTableCellPaddingLeft(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Left));
     }
 
     private static double GetTableCellPaddingRight(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Right ?? GetTableCellPaddingRight(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Right ?? GetTableCellPaddingRight(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Right));
     }
 
     private static double GetTableCellPaddingTop(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Top ?? GetTableCellPaddingTop(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Top ?? GetTableCellPaddingTop(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Top));
     }
 
     private static double GetTableCellPaddingBottom(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Bottom ?? GetTableCellPaddingBottom(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Bottom ?? GetTableCellPaddingBottom(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Bottom));
     }
 
     private static double GetTableRowMaxPaddingTop(TableBlock table, PdfTableStyle style, int rowIndex, int columnCount) {

@@ -6,12 +6,20 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns all Excel tables defined in the workbook.
         /// </summary>
-        public IReadOnlyList<ExcelTableInfo> GetTables() {
-            return Locking.ExecuteRead(EnsureLock(), () => {
+        public IReadOnlyList<ExcelTableInfo> GetTables() => GetTables(null);
+
+        internal IReadOnlyList<ExcelTableInfo> GetTables(WorksheetPart? selectedWorksheet) {
+            return ExecuteReadAfterMaterializing(() => {
                 var result = new List<ExcelTableInfo>();
                 var workbookPart = _spreadSheetDocument?.WorkbookPart;
                 if (workbookPart == null) {
                     return result;
+                }
+
+                if (selectedWorksheet != null
+                    && !workbookPart.WorksheetParts.Any(part => ReferenceEquals(part, selectedWorksheet))) {
+                    throw new InvalidOperationException(
+                        "The worksheet is no longer part of the current workbook package. Obtain a current worksheet from ExcelDocument.Sheets before inspecting or exporting it.");
                 }
 
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
@@ -28,6 +36,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (var worksheetPart in workbookPart.WorksheetParts) {
+                    if (selectedWorksheet != null && !ReferenceEquals(selectedWorksheet, worksheetPart)) {
+                        continue;
+                    }
                     var relId = workbookPart.GetIdOfPart(worksheetPart);
                     if (string.IsNullOrWhiteSpace(relId)) {
                         continue;

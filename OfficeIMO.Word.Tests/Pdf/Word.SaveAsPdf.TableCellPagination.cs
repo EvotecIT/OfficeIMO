@@ -117,6 +117,9 @@ public partial class Word {
         document.Sections[0].ColumnCount = 2;
         document.Sections[0].ColumnsSpace = 400;
         WordTable table = document.AddTable(rowCount, 1);
+        // Keep frame capacity governed by the authored line heights; border
+        // paint and cell margins have separate artifact regression coverage.
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.Drawing.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
         for (int row = 0; row < rowCount; row++) {
