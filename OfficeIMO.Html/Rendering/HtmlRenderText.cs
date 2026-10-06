@@ -22,12 +22,10 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         string? semanticRole = null,
         double? layoutY = null,
         int? semanticNodeId = null,
-        bool bidiVisualOrderResolved = false,
-        IReadOnlyList<OfficeTextLine>? wrappedLines = null)
+        bool bidiVisualOrderResolved = false)
         : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder,
             linkUri, source, semanticRole, layoutY, semanticNodeId, null, bidiVisualOrderResolved, null, null,
-            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
-            wrappedLines: wrappedLines) {
+            OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal) {
     }
 
     internal HtmlRenderText(
@@ -85,8 +83,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         double? textPaintWidth = null,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null,
-        IReadOnlyList<OfficeTextLine>? wrappedLines = null)
+        string? fontPalette = null)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
@@ -96,7 +93,6 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             throw new ArgumentOutOfRangeException(nameof(textPaintWidth));
         }
         Text = text ?? throw new ArgumentNullException(nameof(text));
-        WrappedLines = wrappedLines;
         Font = font;
         Color = color;
         Alignment = alignment;
@@ -192,11 +188,25 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
                 LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth,
                 BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder,
                 UnderlineStyle, StrikethroughStyle, OfficeTextBaseline.Normal, 0, 1D, 0D,
-                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, WrappedLines);
+                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette).WithWrappedLines(WrappedLines);
 
     // Generated margin frames retain their complete text in the scene. Both
     // painting adapters consume the same measured lines instead of rewrapping.
     internal IReadOnlyList<OfficeTextLine>? WrappedLines { get; }
+
+    private HtmlRenderText(HtmlRenderText source, IReadOnlyList<OfficeTextLine> wrappedLines)
+        : this(source.Text, source.X, source.Y, source.Width, source.Height, source.Font,
+            source.Color, source.Alignment, source.LineHeight, source.PaintOrder, source.LinkUri,
+            source.Source, source.SemanticRole, source.LayoutY, source.SemanticNodeId,
+            source.TextAdvanceWidth, source.BidiVisualOrderResolved, source.SemanticFragmentOrder,
+            source.LogicalTextOrder, source.UnderlineStyle, source.StrikethroughStyle, source.Baseline,
+            source.BaselineLevel, source.BaselineScale, source.BaselineOffset, source.TextPaintWidth,
+            source.DecorationColor, source.FeatureSettings, source.FontPalette) {
+        WrappedLines = wrappedLines;
+    }
+
+    internal HtmlRenderText WithWrappedLines(IReadOnlyList<OfficeTextLine>? lines) =>
+        lines == null ? this : new HtmlRenderText(this, lines);
 
     internal IEnumerable<HtmlRenderText> GetWrappedPaintFragments() {
         if (WrappedLines == null) {
@@ -222,9 +232,9 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, WrappedLines);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette).WithWrappedLines(WrappedLines);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, WrappedLines);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette).WithWrappedLines(WrappedLines);
 }
