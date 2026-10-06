@@ -407,7 +407,9 @@ public partial class Word {
 
         double fixedGap = fixedRight.BoundingBox.Left - fixedLeft.BoundingBox.Left;
         double styledGap = styledRight.BoundingBox.Left - styledLeft.BoundingBox.Left;
-        Assert.True(styledGap < fixedGap - 25D,
-            $"Expected table style autofit layout to shrink the first-column gap. Fixed gap: {fixedGap:0.##}; styled gap: {styledGap:0.##}.");
+        // Word preserves this authored 144pt grid even when its automatic
+        // layout comes from a table style and both cells contain short text.
+        Assert.InRange(fixedGap, 143.9D, 144.1D);
+        Assert.InRange(styledGap, 143.9D, 144.1D);
     }
 }

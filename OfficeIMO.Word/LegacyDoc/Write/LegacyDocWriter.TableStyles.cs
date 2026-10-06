@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
             LegacyDocTableCellShading inheritedShading = ReadSupportedTableStyleBaseShading(style, tableStyleDefinitions);
             LegacyDocTableCellShading ownShading = ReadSupportedTableStyleOwnShading(style);
-            return ownShading.HasAny ? ownShading : inheritedShading;
+            return ownShading.IsSpecified ? ownShading : inheritedShading;
         }
 
         private static LegacyDocTableCellMargins? ReadSupportedTableStyleDefaultCellMargins(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
@@ -355,7 +355,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ThrowIfUnsupportedInheritedTableStyleBase(currentStyleId, baseStyleId!, baseStyle, tableStyleDefinitions, visitedStyleIds);
             LegacyDocTableCellShading inheritedShading = ReadSupportedTableStyleBaseShading(baseStyle, tableStyleDefinitions, visitedStyleIds);
             LegacyDocTableCellShading baseShading = ReadSupportedTableStyleOwnShading(baseStyle);
-            return baseShading.HasAny ? baseShading : inheritedShading;
+            return baseShading.IsSpecified ? baseShading : inheritedShading;
         }
 
         private static LegacyDocTableCellMargins? ReadSupportedTableStyleBaseDefaultCellMargins(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {

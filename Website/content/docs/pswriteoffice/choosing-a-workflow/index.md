@@ -4,13 +4,27 @@ description: "Decide between authoring, editing, inspection, conversion, and nor
 layout: docs
 ---
 
-PSWriteOffice exposes several paths that can reach the same file format. Choosing the path by outcome keeps scripts smaller and makes failure handling clearer.
+PSWriteOffice exposes several paths that can reach the same file format. Choosing the path by outcome keeps scripts smaller and makes failure handling clearer. See [pipeline, object, and DSL workflows](/docs/pswriteoffice/object-workflows/) for copyable examples of each style.
+
+## Export rows directly
+
+Use the pipeline for a simple data export. It is the shortest route from PowerShell objects, database results, or API responses to a workbook:
+
+```powershell
+$rows | Export-OfficeExcel -Path '.\Report.xlsx' -WorksheetName 'Data' -TableName 'Data'
+```
+
+Move to the object or DSL surface only when the output needs more structure.
 
 ## Create a new artifact
 
 Use the document DSL when the script owns the output from the beginning. `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint`, `New-OfficePdf`, and `New-OfficeVisio` accept script blocks that describe the document. The outer command owns creation and final save; nested commands add content to the active document context.
 
 This path works well for scheduled reports, build artifacts, exports, invoices, runbooks, and operational dashboards.
+
+## Build incrementally with document objects
+
+Use `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint`, or `New-OfficeMarkdown` with `-NoSave` when normal loops and conditions need a live target. Add content through explicit `-Document`, `-Worksheet`, `-Presentation`, `-Slide`, or pipeline targets, then save once. This is also the natural migration path for scripts that previously held a PSWriteWord or PSWriteExcel document variable.
 
 ## Load and change an existing file
 
@@ -43,5 +57,6 @@ Use focused converters when the destination format is the outcome. HTML review c
 ## Continue
 
 - [Command families](/docs/pswriteoffice/command-families/)
+- [Pipeline, object, and DSL workflows](/docs/pswriteoffice/object-workflows/)
 - [Automation patterns](/docs/pswriteoffice/automation-patterns/)
 - [Troubleshooting and diagnostics](/docs/pswriteoffice/troubleshooting/)

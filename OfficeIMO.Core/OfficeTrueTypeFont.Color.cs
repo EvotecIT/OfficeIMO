@@ -29,11 +29,15 @@ public sealed partial class OfficeTrueTypeFont {
         if (_colorGlyphs == null || string.IsNullOrEmpty(text)) return false;
 
         var glyphs = new List<(ushort Glyph, int Scalar)>();
+        var indexes = new List<int>();
         for (int textIndex = 0; textIndex < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
+            int sourceIndex = textIndex;
             int glyph = ReadMappedGlyph(text, ref textIndex, out int scalar);
-            if (glyph > 0 || glyph == 0 && HasPaintedNotdefMapping(scalar))
+            if (glyph > 0 || glyph == 0 && HasPaintedNotdefMapping(scalar)) {
+                indexes.Add(sourceIndex);
                 glyphs.Add((checked((ushort)glyph), scalar));
+            }
         }
         if (glyphs.Count == 0 || !glyphs.Exists(item => _colorGlyphs.HasColorGlyph(item.Glyph))) return false;
 
@@ -44,6 +48,7 @@ public sealed partial class OfficeTrueTypeFont {
             scalars.Add(scalar);
         }
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+        bool[]? boundaries = TrackingBoundaries(text, indexes);
         var positioned = new PositionedGlyph[glyphs.Count];
         OfficeTrueTypeVariations.WorkBudget? variationBudget = _variations?.CreateWorkBudget();
         for (int index = 0; index < glyphs.Count; index++) {
@@ -53,6 +58,7 @@ public sealed partial class OfficeTrueTypeFont {
                 0,
                 positioning[index].XPlacement,
                 0);
+            positioned[index].TrackingBoundary = boundaries == null || boundaries[index];
         }
         return TryGetPositionedColorContours(positioned, OfficeTextDirection.LeftToRight, x, y, fontSize, palette, foreground, maximumPointCount, cancellationToken, out paintedLayers);
     }
@@ -122,16 +128,21 @@ public sealed partial class OfficeTrueTypeFont {
             return paintedLayers.Count > 0;
         }
         long totalAdvance = 0;
-        foreach (PositionedGlyph glyph in glyphs) totalAdvance = checked(totalAdvance + glyph.AdvanceWidth);
+        int trackingCount = 0;
+        foreach (PositionedGlyph glyph in glyphs) {
+            totalAdvance = checked(totalAdvance + glyph.AdvanceWidth);
+            if (glyph.TrackingBoundary) trackingCount++;
+        }
         bool negativeDirection = totalAdvance < 0;
-        double cursor = negativeDirection ? x - totalAdvance * scale : x;
+        double tracking = (negativeDirection ? -1D : 1D) * HorizontalTracking(fontSize);
+        double cursor = negativeDirection ? x - (totalAdvance * scale + tracking * trackingCount) : x;
         double baseline = y + _ascender * scale;
         int pointCount = 0;
         OfficeTrueTypeVariations.WorkBudget? variationBudget = _variations?.CreateWorkBudget();
         for (int index = 0; index < glyphs.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PositionedGlyph glyph = glyphs[index];
-            if (negativeDirection) cursor += glyph.AdvanceWidth * scale;
+            if (negativeDirection) cursor += glyph.AdvanceWidth * scale + (glyph.TrackingBoundary ? tracking : 0D);
             double glyphX = cursor + glyph.OffsetX * scale;
             double glyphBaseline = baseline - glyph.OffsetY * scale;
             IReadOnlyList<OfficeColorGlyphLayer> layers;
@@ -151,7 +162,7 @@ public sealed partial class OfficeTrueTypeFont {
                     attachmentPoints: null);
                 if (contours.Count > 0 && layer.Color.A > 0) paintedLayers.Add(new OfficeColorGlyphContours(contours, layer.Color));
             }
-            if (!negativeDirection) cursor += glyph.AdvanceWidth * scale;
+            if (!negativeDirection) cursor += glyph.AdvanceWidth * scale + (glyph.TrackingBoundary ? tracking : 0D);
         }
         return paintedLayers.Count > 0;
     }

@@ -23,15 +23,6 @@ public enum StudioWorkspaceMode {
     Publishing
 }
 
-public enum StudioDocumentMode {
-    View,
-    Annotate,
-    Edit,
-    Pages,
-    Forms,
-    Protect
-}
-
 public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsHomeMode))]
