@@ -737,29 +737,29 @@ and their imports receive private copies in their existing directories, leaving 
 original stylesheets available to other chapters. Each source chapter has its own
 copies, allocated within one combined entry and byte budget for the merge.
 
-Exact (`=`), whitespace-token (`~=`) and presence selectors on lowercase,
-unnamespaced document-local relationship attributes are also supported: ARIA
-references, `itemref`, `headers`, `for`, `form`, `list`, `name` and `usemap`.
-For example, `[aria-labelledby~=heading]` follows a renamed heading, and
-`[headers='column']` follows a renamed table header. Repair uses actual attribute
-changes, including ordinary `name` values and foreign-vocabulary attributes that
-remain unchanged. If a value needs different replacements on different elements,
-or a replacement would introduce additional attribute matches, merge rejects the
-conflict. This conservative check applies across each source chapter; it does not
-use other parts of a selector to narrow an ambiguous attribute match.
+Attribute selectors on lowercase, unnamespaced document-local relationships
+(ARIA references, `itemref`, `headers`, `for`, `form`, `list`, `name` and `usemap`)
+and resource attributes (`href`, `cite`, `src`, `srcset`, `style` and SVG `fill`)
+follow actual repaired values. Presence, exact, token, prefix, suffix, substring
+and dash-prefix comparisons are supported. Stylesheet-link selectors follow private
+clone paths, including merges without identifier replacements.
 
-Exact and presence selectors on resource-bearing attributes, including `href`,
-`cite`, `src`, `srcset`, `style` and SVG `fill`, follow their final lexical values.
-Stylesheet-link selectors use the private clone paths. This repair also runs when
-`SecondChapterIdMap` is empty: moving a chapter can change its links without
-renaming an identifier. Selectors referring to removed `<base>` attributes reject
-the merge. First-chapter selectors follow changed links to the removed chapter;
-its own identifier selectors remain unchanged. Both chapters still share the final
-cascade, so inspect styling after merge even when every attribute match is repaired.
+When an operand change cannot preserve the source matches, repair emits exact
+post-merge attribute values. Multiple values use `:is(...)`, retaining the specificity
+of one attribute selector. Expansion is limited to 256 alternatives and 64 KiB per
+selector. Unchanged predicates retain their source text. This describes the static
+publication; later scripts changing attribute values are outside the repair contract.
+Intended readers must support `:is(...)` when expansion produces it.
+
+Merge rejects matching removed scaffolding and repairs that cannot distinguish
+originally matching and nonmatching attributes after their values converge. The
+check covers each source chapter and does not use other selector components to
+resolve ambiguity. Both chapters share the final cascade: selector repair does not
+isolate styles or guarantee the same layout.
 
 The automatic profile rejects unknown at-rules,
-namespaced attribute selectors, partial or case-insensitive ID/relationship matches,
-case-variant relationship names, token or partial resource-attribute matches,
+namespaced attribute selectors, partial ID matches, case-insensitive comparisons,
+case-variant relationship names,
 stylesheet processing instructions, integrity digests and stylesheet package refinements. Reconcile these
 explicitly before merging, or leave automatic rewriting disabled and prepare all
 ID-dependent rules for the chosen replacements. Inspect the final cascade and layout;

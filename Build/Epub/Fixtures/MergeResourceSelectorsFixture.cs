@@ -21,6 +21,7 @@ internal static class MergeResourceSelectorsFixture {
             "<section><h1 id='heading'>First chapter</h1><p><a href='#heading'>First local link</a></p><p><a class='forward' href='parts/two.xhtml#heading'>Continue to second chapter</a></p></section>", ["shared"]);
         book.AddChapter("two", "EPUB/parts/two.xhtml", "Second chapter",
             "<section><h1 id='heading'>Second chapter</h1><p><a href='#heading'>Second local link</a></p>" +
+            "<p id='detail'><a href='two.xhtml#detail'>First detail reference</a> <a href='two.xhtml#detail-two'>Second detail reference</a></p><p id='detail-two'>Further detail</p>" +
             "<blockquote cite='two.xhtml#heading'><p>This quotation retains its green styling.</p></blockquote>" +
             "<img src='../cover.svg' alt='Blue circle on a pale background'/><p><a href='../three.xhtml#heading'>Continue to third chapter</a></p></section>", ["shared"]);
         book.AddChapter("three", "EPUB/three.xhtml", "Third chapter",
@@ -32,8 +33,9 @@ internal static class MergeResourceSelectorsFixture {
         book.SetContentXml("one", first);
         var second = book.GetContentXml("two");
         second.Root!.Element(html + "head")!.Add(new XElement(html + "style", """
-            a[href='#heading'], blockquote[cite='two.xhtml#heading'] { color:#185b3a }
-            img[src='../cover.svg'] { border:4px solid #185b3a }
+            a[href='#heading'], blockquote[cite$='#heading'] { color:#185b3a }
+            img[src$='cover.svg'] { border:4px solid #185b3a }
+            a[href^='two.xhtml'] { text-decoration:underline; text-decoration-style:double }
             """));
         book.SetContentXml("two", second);
         book.MergeChapters("one", "two", "second-start", new EpubChapterMergeOptions {

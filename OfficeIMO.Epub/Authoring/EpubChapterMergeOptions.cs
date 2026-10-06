@@ -22,10 +22,10 @@ public sealed class EpubChapterMergeOptions {
     /// and retaining separate private copies of each chapter's linked stylesheets and imports.
     /// Requires AppendSecondStyles. Supports hash and exact id attribute selectors
     /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
-    /// values are preserved. Exact and whitespace-token selectors on document-local relationships follow actual
-    /// attribute changes. Exact and presence selectors on resource-bearing attributes follow rebased URLs and final
-    /// stylesheet clone paths, including merges without identifier replacements. Ambiguous replacements, partial
-    /// URL matches and unsupported syntax fail atomically. Reader support for nested CSS remains independent.</summary>
+    /// values are preserved. Attribute comparisons on document-local relationships and resource-bearing attributes follow actual
+    /// repaired values, including rebased URLs and private stylesheet paths. Partial or multivalued matches can
+    /// expand into at most 256 exact alternatives and 64 KiB of CSS, using :is when needed. Irreducible
+    /// ambiguities and unsupported syntax fail atomically. Reader support for :is and nested CSS remains independent.</summary>
     public bool RewriteChapterSelectors { get; set; }
     /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
     public EpubChapterMergeStylePolicy StylePolicy { get; set; }

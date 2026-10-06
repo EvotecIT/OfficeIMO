@@ -325,7 +325,9 @@ the original rules. Independent validator and reader results are separate from
 native preflight and source-preservation checks.
 
 `merge-resource-selectors.epub` moves the second chapter out of a subdirectory
-and repairs exact selectors for local links, citation URLs and an image source.
+and repairs exact and partial selectors for local links, citation URLs and an image source.
+The two detail references exercise multi-value `:is(...)` expansion and
+should retain double underlines. This requires reader support for `:is(...)`.
 The first and third local links are blue; the second local link and quotation are
 green. Local links retain three-pixel bottom borders, and the image retains its
 four-pixel green border. The first chapter's forward link remains brown with a

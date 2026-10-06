@@ -65,13 +65,14 @@ public sealed class EpubMergeResourceSelectorContracts {
     [Theory]
     [InlineData("[href='../shared.css']")]
     [InlineData("[href='merge-style-1.css']")]
-    public void ClonePathsCannotIntroduceAmbiguousOrAdditionalMatches(string selector) {
+    public void ClonePathSelectorsRetainTheirOriginalAttributeMatches(string selector) {
         var book = Book("<a href='../shared.css'>Stylesheet</a>");
         book.AddStylesheet("shared", "EPUB/shared.css", "p {color:blue}");
         LinkStylesheet(book); AddStyle(book, selector + " {color:green}");
-        byte[] before = book.Write().Bytes;
-        Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));
-        Assert.Equal(before, book.Write().Bytes);
+        book.MergeChapters("one", "two", "boundary", Options());
+        string css = EpubPublication.Load(new MemoryStream(book.Write().Bytes)).GetContentXml("one").Descendants(Html + "style").Single().Value;
+        Assert.Equal(selector.Contains("../shared") ?
+            ":is([href=\"merge-style-1\\2e css\"],[href=\"shared\\2e css\"]) {color:green}" : "[href~=\"\"] {color:green}", css);
     }
 
     [Theory]

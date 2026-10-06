@@ -1,4 +1,5 @@
 using System.Threading;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Epub;
 
@@ -28,7 +29,7 @@ public sealed partial class EpubPublication {
     // Preserve attribute-selector truth over each source document, including foreign vocabulary and
     // ordinary name/for attributes that the content rewriter intentionally leaves unchanged.
     private sealed class MergeRelationshipSelectors {
-        private static readonly char[] Separators = { ' ', '\t', '\r', '\n', '\f' };
+        internal static readonly char[] Separators = { ' ', '\t', '\r', '\n', '\f' };
         private readonly Dictionary<string, (MergeAttributeValues Exact, MergeAttributeValues Tokens)> _attributes =
             new Dictionary<string, (MergeAttributeValues, MergeAttributeValues)>(StringComparer.Ordinal);
         private readonly HashSet<string> _removedNames = new HashSet<string>(StringComparer.Ordinal);
@@ -55,21 +56,22 @@ public sealed partial class EpubPublication {
             }
         }
 
-        internal string Rewrite(string name, string operation, string value) {
+        internal HtmlCssAttributeSelectorEdit Rewrite(string name, string operation, string value) {
             _token.ThrowIfCancellationRequested();
             bool relationship = MergeRelationshipNames.Contains(name);
             if (!relationship && !MergeResourceAttributeNames.Contains(name))
                 throw new NotSupportedException("Case-variant relationship selectors require explicit reconciliation.");
-            if (operation == "~=" && (!relationship || _changedTokenShapes.Contains(name)))
-                throw new NotSupportedException("Token selectors on resource values require explicit reconciliation.");
             if (operation.Length == 0) {
                 if (_removedNames.Contains(name)) throw new NotSupportedException("An attribute-presence selector refers to removed document scaffolding.");
-                return value;
+                return HtmlCssAttributeSelectorEdit.Operand(value);
             }
-            if (!_attributes.TryGetValue(name, out var values)) return value;
+            if (!_attributes.TryGetValue(name, out var values)) return HtmlCssAttributeSelectorEdit.Operand(value);
             // A whitespace-containing or empty ~= operand cannot match a token before or after repair.
-            if (operation == "~=" && (value.Length == 0 || value.IndexOfAny(Separators) >= 0)) return value;
-            return (operation == "~=" ? values.Tokens : values.Exact).Rewrite(value);
+            if (operation == "~=" && (value.Length == 0 || value.IndexOfAny(Separators) >= 0)) return HtmlCssAttributeSelectorEdit.Operand(value);
+            if (operation == "=" && values.Exact.TryRewrite(value, out string replacement) ||
+                operation == "~=" && relationship && !_changedTokenShapes.Contains(name) && values.Tokens.TryRewrite(value, out replacement))
+                return HtmlCssAttributeSelectorEdit.Operand(replacement);
+            return values.Exact.Expand(operation, value, _token);
         }
     }
 
@@ -84,16 +86,55 @@ public sealed partial class EpubPublication {
             Add(_forward, before, after); Add(_reverse, after, before);
         }
 
-        internal string Rewrite(string value) {
-            if (_removed.Contains(value)) throw new NotSupportedException("An attribute selector refers to removed document scaffolding.");
-            string replacement = value;
+        internal bool TryRewrite(string value, out string replacement) {
+            replacement = value;
+            if (_removed.Contains(value)) return false;
             if (_forward.TryGetValue(value, out var targets)) {
-                if (targets.Count != 1) throw new NotSupportedException("A relationship selector requires different replacements on different elements.");
+                if (targets.Count != 1) return false;
                 replacement = targets.First();
             }
             if (_reverse.TryGetValue(replacement, out var sources) && (sources.Count != 1 || !sources.Contains(value)))
-                throw new NotSupportedException("A repaired relationship selector would match additional attribute values.");
-            return replacement;
+                return false;
+            return true;
+        }
+
+        internal HtmlCssAttributeSelectorEdit Expand(string operation, string value, CancellationToken token) {
+            bool Matches(string candidate) => operation switch {
+                "=" => candidate == value,
+                "~=" => value.Length != 0 && value.IndexOfAny(MergeRelationshipSelectors.Separators) < 0 &&
+                    candidate.Split(MergeRelationshipSelectors.Separators, StringSplitOptions.RemoveEmptyEntries).Contains(value, StringComparer.Ordinal),
+                "|=" => candidate == value || candidate.StartsWith(value + "-", StringComparison.Ordinal),
+                "^=" => value.Length != 0 && candidate.StartsWith(value, StringComparison.Ordinal),
+                "$=" => value.Length != 0 && candidate.EndsWith(value, StringComparison.Ordinal),
+                "*=" => value.Length != 0 && candidate.IndexOf(value, StringComparison.Ordinal) >= 0,
+                _ => throw new NotSupportedException("Unsupported attribute comparison.")
+            };
+            foreach (string removed in _removed) {
+                token.ThrowIfCancellationRequested();
+                if (Matches(removed)) throw new NotSupportedException("An attribute selector refers to removed document scaffolding.");
+            }
+            bool changed = false;
+            var selected = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in _forward) {
+                token.ThrowIfCancellationRequested();
+                bool before = Matches(entry.Key);
+                foreach (string target in entry.Value) {
+                    token.ThrowIfCancellationRequested();
+                    changed |= before != Matches(target);
+                    if (before) selected.Add(target);
+                }
+            }
+            if (!changed) return HtmlCssAttributeSelectorEdit.Operand(value);
+            if (selected.Count > HtmlCssAttributeSelectorEdit.MaximumAlternatives)
+                throw new NotSupportedException("Attribute selector expansion exceeds 256 exact alternatives.");
+            foreach (string target in selected) {
+                token.ThrowIfCancellationRequested();
+                foreach (string source in _reverse[target]) {
+                    token.ThrowIfCancellationRequested();
+                    if (!Matches(source)) throw new NotSupportedException("A repaired selector cannot distinguish matching and nonmatching source attributes.");
+                }
+            }
+            return HtmlCssAttributeSelectorEdit.Exact(selected.OrderBy(item => item, StringComparer.Ordinal).ToArray());
         }
 
         private static void Add(Dictionary<string, HashSet<string>> values, string key, string value) {

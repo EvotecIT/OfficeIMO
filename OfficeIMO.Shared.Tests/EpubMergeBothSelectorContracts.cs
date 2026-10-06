@@ -54,11 +54,11 @@ public sealed class EpubMergeBothSelectorContracts {
     [Theory]
     [InlineData("[href$='#heading'] {color:red}")]
     [InlineData("[href='#second-heading'] {color:red}")]
-    public void FirstChapterConflictsRejectTheWholeMerge(string css) {
+    public void FirstChapterPartialAndPreviouslyUnmatchedSelectorsRetainTheirMatchSets(string css) {
         var book = Book(); AddStyle(book, "one", css);
-        byte[] before = book.Write().Bytes;
-        Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));
-        Assert.Equal(before, book.Write().Bytes);
+        book.MergeChapters("one", "two", "boundary", Options());
+        string repaired = EpubPublication.Load(new MemoryStream(book.Write().Bytes)).GetContentXml("one").Descendants(Html + "style").Single().Value;
+        Assert.Equal(css.Contains("$=") ? "[href=\"\\23 second-heading\"] {color:red}" : "[href~=\"\"] {color:red}", repaired);
     }
 
     private static EpubPublication Book() {

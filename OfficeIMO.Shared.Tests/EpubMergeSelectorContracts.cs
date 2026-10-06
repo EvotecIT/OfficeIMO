@@ -84,7 +84,7 @@ public sealed class EpubMergeSelectorContracts {
     [Theory]
     [InlineData("[cite~='two.xhtml#heading'] {color:red}", false)]
     [InlineData("[cite$='#heading'] {color:red}", true)]
-    public void UrlAttributeSelectorsRejectBeforeChangingDocumentsOrSharedStylesheets(string css, bool linked) {
+    public void ResourceTokenAndSuffixSelectorsFollowRepairedCitations(string css, bool linked) {
         var book = Book();
         var content = book.GetContentXml("two");
         content.Root!.Element(Html + "body")!.Add(new XElement(Html + "blockquote",
@@ -95,9 +95,11 @@ public sealed class EpubMergeSelectorContracts {
                 new XAttribute("rel", "stylesheet"), new XAttribute("href", "shared.css")));
         } else content.Root.Element(Html + "head")!.Add(new XElement(Html + "style", css));
         book.SetContentXml("two", content);
-        byte[] before = book.Write().Bytes;
-        Assert.Throws<NotSupportedException>(() => book.MergeChapters("one", "two", "boundary", Options()));
-        Assert.Equal(before, book.Write().Bytes);
+        book.MergeChapters("one", "two", "boundary", Options());
+        var reopened = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        string repaired = linked ? Encoding.UTF8.GetString(reopened.GetResourceBytes("merge-style-1")) :
+            reopened.GetContentXml("one").Descendants(Html + "style").Single().Value;
+        Assert.Equal("[cite=\"\\23 second\\2e heading\"] {color:red}", repaired);
     }
 
     [Fact]

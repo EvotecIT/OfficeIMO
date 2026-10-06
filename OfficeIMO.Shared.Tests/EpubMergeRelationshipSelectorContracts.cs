@@ -45,10 +45,8 @@ public sealed class EpubMergeRelationshipSelectorContracts {
     }
 
     [Theory]
-    [InlineData("map", "[name=map]")]
     [InlineData("second-map", "[name=map]")]
     [InlineData("second-map", "[name=second-map]")]
-    [InlineData("map", "[name~=map]")]
     public void ConflictingOrdinaryAttributeValuesRejectAtomically(string inputName, string selector) {
         var book = Book("<map id='map' name='map'></map><input name='" + inputName + "'/>");
         AddStyle(book, selector + " {color:green}");
@@ -60,7 +58,6 @@ public sealed class EpubMergeRelationshipSelectorContracts {
     }
 
     [Theory]
-    [InlineData("[aria-labelledby^=head]")]
     [InlineData("[aria-labelledby=heading i]")]
     [InlineData("[ARIA-LABELLEDBY=heading]")]
     public void UnsupportedRelationshipOperatorsAndNameCasingRejectAtomically(string selector) {

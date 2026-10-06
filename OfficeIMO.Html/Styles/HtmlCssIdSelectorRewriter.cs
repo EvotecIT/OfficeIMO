@@ -13,7 +13,7 @@ internal static class HtmlCssIdSelectorRewriter {
         "cursor", "ping", "archive"
     }, StringComparer.OrdinalIgnoreCase);
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token,
-        Func<string, string, string, string>? rewriteRelationship = null) {
+        Func<string, string, string, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null) {
         var edits = new List<(int Start, int Length, string Value)>();
         var blocks = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
         Rules(0, css.Length, 0, false);
@@ -127,8 +127,8 @@ internal static class HtmlCssIdSelectorRewriter {
                 return; // Presence remains true after replacement.
             }
             string operation = "=";
-            if (relationship && css[i] == '~') { operation = "~="; i++; }
-            if (i == end || css[i++] != '=') throw new NotSupportedException("Only exact ID or exact/token relationship selectors can be reconciled.");
+            if (relationship && "~|^$*".IndexOf(css[i]) >= 0) { operation = css[i] + "="; i++; }
+            if (i == end || css[i++] != '=') throw new NotSupportedException("Only exact ID or supported attribute comparisons can be reconciled.");
             Trivia(ref i, end);
             int valueStart = i;
             string id;
@@ -145,9 +145,31 @@ internal static class HtmlCssIdSelectorRewriter {
                 Trivia(ref i, end);
             }
             if (i != end) throw Unsupported();
-            string replacement = relationship ? rewriteRelationship!(name, operation, id) :
-                map.TryGetValue(id, out string? mapped) ? mapped : id;
-            if (replacement != id) edits.Add((valueStart, valueEnd - valueStart, HtmlCssStringEncoder.Quote(replacement)));
+            HtmlCssAttributeSelectorEdit replacement = relationship ? rewriteRelationship!(name, operation, id) :
+                HtmlCssAttributeSelectorEdit.Operand(map.TryGetValue(id, out string? mapped) ? mapped : id);
+            if (replacement.ExactValues != null) {
+                string expanded = ExpandAttribute(name, replacement.ExactValues);
+                edits.Add((start - 1, end - start + 2, expanded));
+            } else if (replacement.Value != id)
+                edits.Add((valueStart, valueEnd - valueStart, HtmlCssStringEncoder.Quote(replacement.Value!)));
+        }
+
+        string ExpandAttribute(string name, IReadOnlyList<string> values) {
+            if (values.Count > HtmlCssAttributeSelectorEdit.MaximumAlternatives) throw Unsupported();
+            string attribute = Identifier(name);
+            // Empty ~= never matches, but still contributes one attribute selector's specificity.
+            if (values.Count == 0) return "[" + attribute + "~=\"\"]";
+            var output = new StringBuilder();
+            if (values.Count > 1) output.Append(":is(");
+            foreach (string value in values) {
+                token.ThrowIfCancellationRequested();
+                if (value.Length > HtmlCssAttributeSelectorEdit.MaximumSelectorLength) throw Unsupported();
+                if (output.Length > 4) output.Append(',');
+                output.Append('[').Append(attribute).Append('=').Append(HtmlCssStringEncoder.Quote(value)).Append(']');
+                if (output.Length > HtmlCssAttributeSelectorEdit.MaximumSelectorLength - 1) throw Unsupported();
+            }
+            if (values.Count > 1) output.Append(')');
+            return output.ToString();
         }
 
         int Delimiter(int start, int end) {
