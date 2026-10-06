@@ -84,7 +84,7 @@ public static partial class OfficeTiffCodec {
             if (!TryAppendLegacyJpegHuffman(header, bytes, dc[source], c)) return false;
             if (!lossless && !TryAppendLegacyJpegHuffman(header, bytes, ac[source], 16 + c)) return false;
         }
-        AppendLegacyJpegMarker(header, lossless ? 195 : 192, 8 + channels * 3);
+        AppendLegacyJpegMarker(header, lossless ? 195 : precision == 12 ? 193 : 192, 8 + channels * 3);
         header.Add((byte)precision);
         AppendLegacyJpegWord(header, height);
         AppendLegacyJpegWord(header, width);

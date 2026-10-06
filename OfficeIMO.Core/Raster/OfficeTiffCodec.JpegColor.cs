@@ -16,8 +16,7 @@ public static partial class OfficeTiffCodec {
     }
 
     private static void ConvertTiffJpegYcc(byte[] pixels, int samples, int sampleBytes,
-        bool littleEndian, double[] c, double[] r, OfficeRasterDecodeOptions options) {
-        int maximum = sampleBytes == 1 ? 255 : 65535;
+        bool littleEndian, int maximum, double[] c, double[] r, OfficeRasterDecodeOptions options) {
         int Clamp(double value) => (int)Math.Round(Math.Max(0, Math.Min(maximum, value)));
         for (int i = 0; i < pixels.Length / sampleBytes; i += samples) {
             if ((i & 4095) == 0) options.CancellationToken.ThrowIfCancellationRequested();

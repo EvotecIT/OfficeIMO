@@ -12,6 +12,7 @@ public static partial class OfficeTiffCodec {
         int height,
         int samples,
         int sampleBytes,
+        int sampleBits,
         int packedBits,
         int photometric,
         int compression,
@@ -26,7 +27,9 @@ public static partial class OfficeTiffCodec {
         out byte[] source) {
         source = Array.Empty<byte>();
         if (compression == 6 || compression == 7) return TryDecodeJpegSegments(encodedBytes, entries, littleEndian, width, height,
-            samples, sampleBytes, photometric, planarConfiguration, options, validationBudget, retainPixels, out source, legacy: compression == 6);
+            samples, sampleBytes, sampleBits, photometric, planarConfiguration, options, validationBudget, retainPixels, out source, legacy: compression == 6);
+        if (sampleBits == 12) return TryDecodePacked12Segments(encodedBytes, entries, littleEndian, width, height,
+            samples, compression, planarConfiguration, options, validationBudget, retainPixels, out source);
         if (packedBits != 0) return TryDecodePackedSegments(encodedBytes, entries, littleEndian,
             width, height, packedBits, photometric, compression, options, validationBudget, retainPixels, out source);
         if (planarConfiguration != 1 && planarConfiguration != 2 ||

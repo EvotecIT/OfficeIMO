@@ -227,7 +227,7 @@ internal static partial class OfficeJpegReader {
                 if (!progressive) {
                     ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
                     baselineState ??= BaselineState.Create(
-                        frame, orientation, checked(data.LongLength + retainedManagedBytes));
+                        frame, orientation, checked(data.LongLength + retainedManagedBytes), preserveRaw16);
                     DecodeBaselineScan(
                         scanData,
                         scan,
@@ -317,9 +317,9 @@ internal static partial class OfficeJpegReader {
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
                 frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker);
-                if (preserveRaw16 && (marker != 0xC3 || frame.Precision != 16 ||
+                if (preserveRaw16 && ((marker != 0xC3 || frame.Precision != 16) && (marker != 0xC1 && marker != 0xC3 || frame.Precision != 12) ||
                     requestedColorTransform != 0 || !returnColorComponents))
-                    throw new FormatException("Raw sixteen-bit samples require a sixteen-bit lossless JPEG frame.");
+                    throw new FormatException("Raw sample words require a supported twelve-bit or sixteen-bit JPEG frame.");
                 hasFrame = true;
                 progressive = marker == 0xC2;
                 lossless = marker == 0xC3;

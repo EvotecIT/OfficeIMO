@@ -115,12 +115,12 @@ public static partial class OfficeTiffCodec {
                     return false;
                 }
 
-                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
+                if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) ||
                     (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
                     (photometric == 6 && compression != 6 && compression != 7) ||
                     ((compression == 6 || compression == 7) && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||
                         photometric == 3)) ||
-                    (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) {
+                    (packedBits != 0 || sampleBits == 12 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) {
                     return false;
                 }
 
@@ -138,7 +138,7 @@ public static partial class OfficeTiffCodec {
                 long maximumDecodeWorkBytes = OfficeRasterGuards.MaximumDecodedBytes - effective.RetainedManagedBytes;
                 if (maximumDecodeWorkBytes < 1L) return false;
                 var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
-                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, packedBits, photometric,
+                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, sampleBits, packedBits, photometric,
                         compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source)) return false;
 
@@ -158,7 +158,7 @@ public static partial class OfficeTiffCodec {
                                 alphaIndex, alphaKind, colorComponents,
                                 out red, out green, out blue, out alpha);
                         } else if (sampleBytes == 2) {
-                            ConvertUnsigned16Pixel(source, sourcePixel, littleEndian, photometric,
+                            ConvertUnsigned16Pixel(source, sourcePixel, littleEndian, photometric, (1 << sampleBits) - 1,
                                 alphaIndex, alphaKind, colorComponents,
                                 out red, out green, out blue, out alpha);
                         } else {

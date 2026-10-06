@@ -243,12 +243,12 @@ public static partial class OfficeTiffCodec {
             (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
              orientation < 1 || orientation > 8)) return false;
 
-        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits) ||
+        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) ||
                     (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
                     (photometric == 6 && compression != 6 && compression != 7) ||
                     ((compression == 6 || compression == 7) && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||
                         photometric == 3)) ||
-                    (packedBits != 0 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) return false;
+                    (packedBits != 0 || sampleBits == 12 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) return false;
 
         if (photometric == 5 &&
             (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) || inkSet != 1)) {
@@ -257,7 +257,7 @@ public static partial class OfficeTiffCodec {
         if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 3 * (1 << (packedBits == 0 ? 8 : packedBits)), out _)) {
             return false;
         }
-        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, packedBits, photometric,
+        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, sampleBits, packedBits, photometric,
             compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, options, validationBudget,
             retainPixels: false, out _);
     }

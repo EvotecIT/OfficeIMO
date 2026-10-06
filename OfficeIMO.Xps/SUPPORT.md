@@ -44,7 +44,7 @@ PNG gamma/chromaticity and JPEG/TIFF non-ICC calibration descriptions do not
 override these defaults. The adapter normalizes these resources so subsequent
 SVG/PDF consumers cannot reinterpret the descriptions. TIFF uses the first IFD,
 ignores the display Orientation tag, and ignores an extra sample declared as
-unspecified. The managed TIFF subset accepts unsigned eight/sixteen-bit and finite
+unspecified. The managed TIFF subset accepts unsigned eight/twelve/sixteen-bit and finite
 floating sixteen/twenty-four/thirty-two/sixty-four-bit gray/RGB/CMYK components,
 packed one/four-bit grayscale samples, and one/four/eight-bit palette indices in either byte order. Chunky/planar strips
 and tiles use uncompressed, LZW, PackBits or Deflate payloads, including word-based
@@ -54,7 +54,7 @@ Packed samples require no predictor. Bilevel CCITT decoding supports Modified
 Huffman, Group 3 one/two-dimensional coding with optional fill bits, and Group 4,
 including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
 above the page height, including 0xFFFFFFFF, describe a single strip. T.4/T.6 uncompressed fax extension mode supports literal
-pixels, five-zero stuffing and exit-color resumption within a row. Baseline and extended sequential eight-bit JPEG (compression 7) accept shared
+pixels, five-zero stuffing and exit-color resumption within a row. Baseline eight-bit and extended sequential eight/twelve-bit JPEG (compression 7) accept shared
 or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
 planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
 component order; JPEG application markers cannot override them. Extra samples support unspecified data and one declared associated or
@@ -62,11 +62,11 @@ unassociated alpha channel at any extra-channel position for gray, RGB, CMYK and
 YCbCr; multiple declared alpha channels are rejected. Subsampled YCbCr keeps alpha at luma resolution. Chunky JPEG frames with more than four components use separate scans;
 raw component decoding retains frame order without inventing a standalone color space. Legacy compression 6 accepts complete interchange JPEGs, self-contained striles,
 and one-to-four-component raw scans reconstructed from TIFF quantization/Huffman
-table pointers. JPEGProc 1 supports eight-bit sequential DCT; JPEGProc 14 supports
-eight/sixteen-bit Huffman lossless scans. Partial interchange headers require the
+table pointers. JPEGProc 1 supports eight/twelve-bit sequential DCT; JPEGProc 14 supports
+eight/twelve/sixteen-bit Huffman lossless scans. Partial interchange headers require the
 TIFF table tags. Raw chunky lossless components require matching predictors and
 point transforms. Legacy integer ReferenceBlackWhite values are accepted alongside
-rationals. Twelve-bit DCT and arithmetic JPEG processes remain unsupported. Eight/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+rationals. Arithmetic JPEG remains unsupported. Eight/twelve/sixteen-bit Huffman lossless JPEG accepts all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
 bit order outside CCITT, sixteen-bit palette indices, signed and undefined
 sample encodings are rejected. Floating samples are normalized device components;
 the decoder preserves their precision for ICC conversion and unassociation, then
@@ -124,7 +124,7 @@ quantization without overflowing its fixed-point transform. Both XPS dialects
 produce 320 documents with 212,800 pixel-center probes per route; independent
 MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
 still differs by up to 255, including blank planar/tiled output. Native Windows
-acceptance and twelve-bit or arithmetic JPEG-in-TIFF remain unqualified.
+acceptance and arithmetic JPEG-in-TIFF remain unqualified.
 
 Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
 with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
@@ -174,6 +174,20 @@ GhostXPS opens every export without a process failure but differs by up to
 255/255, including blank output. These comparisons do not establish native
 Windows acceptance.
 
+Twelve-bit TIFF retains native samples through color conversion and alpha
+unassociation for packed uncompressed/LZW/Deflate/PackBits data and extended
+sequential JPEG. The [188-file independent corpus](../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/README.md)
+covers both byte orders, chunky/planar strips/tiles, white/black grayscale, RGB,
+associated/straight RGBA and centered 2×2 YCbCr JPEG. Packed pixels agree exactly
+with LibTIFF-derived samples; JPEG pixels agree with libjpeg-turbo within 3/255.
+LibTIFF full-file samples agree for 174 cases; 14 odd-width JPEG files expose its
+omitted final-sample packing behavior and use direct JPEG references instead.
+The 376 XPS/OpenXPS exports provide 250,040 pixel-center probes per route. MuPDF
+agrees within 4/255 for PDF and 2/255 for SVG without warnings. GhostXPS opens
+all exports but differs by up to 255/255, including blank output. Twelve-bit
+CMYK/ICC, lossless JPEG, wider legacy layouts and native Windows acceptance
+remain independently unqualified. Packed twelve-bit data requires Predictor 1.
+
 Standalone twelve-bit Huffman DCT JPEG supports extended sequential and progressive
 frames. The shared decoder retains native-width sample planes through IDCT and
 chroma reconstruction before projecting to eight-bit output. Baseline SOF0 remains
@@ -185,8 +199,7 @@ progressive scans, 1×1/2×1/2×2 chroma, restart intervals, partial blocks and 
 XPS/OpenXPS exports cover 79,800 probes per route; independent MuPDF PDF/SVG
 rendering differs by at most 2/255 without warnings. GhostXPS opens every export
 but differs by up to 255/255, including blank images. SVG/PDF export uses the
-existing high-precision JPEG normalization path. This does not
-extend JPEG-in-TIFF to packed twelve-bit samples. Twelve-bit CMYK/YCCK and
+existing high-precision JPEG normalization path. Twelve-bit CMYK/YCCK and
 unusual sampling combinations have no independent corpus qualification here;
 arithmetic JPEG and native Windows acceptance remain outside the qualified contract.
 
@@ -199,7 +212,7 @@ contains 140 independently encoded/decoded gray/RGB files and 15 component-encod
 YCbCr files. All native component samples match the projected public output;
 YCbCr paint also matches the declared conversion equations within one channel
 value. Point transforms restore discarded bits as zero. This standalone JPEG
-contract does not extend TIFF packed sample widths beyond its eight/sixteen-bit
+contract does not extend TIFF sample widths beyond its eight/twelve/sixteen-bit
 JPEG contract. XPS SVG export normalizes lossless/high-precision JPEG to PNG;
 PDF export also normalizes those streams instead of passing them through DCTDecode.
 The corpus checks 60,775 native component samples and produces 310 XPS/OpenXPS

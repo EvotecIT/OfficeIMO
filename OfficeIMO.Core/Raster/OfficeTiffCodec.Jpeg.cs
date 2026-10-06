@@ -5,18 +5,18 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     private static bool TryDecodeJpegSegments(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        bool littleEndian, int width, int height, int samples, int sampleBytes, int photometric, int planar,
+        bool littleEndian, int width, int height, int samples, int sampleBytes, int sampleBits, int photometric, int planar,
         OfficeRasterDecodeOptions options, TiffValidationBudget? budget, bool retainPixels, out byte[] source, bool legacy = false) {
         source = Array.Empty<byte>();
         int interchangeOffset = 0, interchangeLength = 0, legacyProcess = 1;
         if (legacy && (!TryReadScalarOrDefault(bytes, entries, 512, littleEndian, 1, out legacyProcess) ||
-            (legacyProcess != 1 && legacyProcess != 14) || (legacyProcess == 1 && sampleBytes != 1) ||
+            (legacyProcess != 1 && legacyProcess != 14) || (legacyProcess == 1 && sampleBits != 8 && sampleBits != 12) ||
             !TryGetLegacyJpegInterchange(bytes, entries, littleEndian, out interchangeOffset, out interchangeLength))) return false;
         bool fullInterchange = interchangeLength > 0;
         if (fullInterchange) planar = 1; // The interchange stream describes the complete image.
         bool ycc = photometric == 6;
         int horizontal = 1, vertical = 1, positioning = 1;
-        int maximum = sampleBytes == 1 ? 255 : 65535, midpoint = (maximum + 1) / 2;
+        int maximum = (1 << sampleBits) - 1, midpoint = (maximum + 1) / 2;
         double[] coefficients = { .299, .587, .114 }, reference = { 0, maximum, midpoint, maximum, midpoint, maximum };
         if (ycc) {
             if (!TryReadScalarOrDefault(bytes, entries, 531, littleEndian, 1, out positioning) || (positioning != 1 && positioning != 2)) return false;
@@ -61,7 +61,7 @@ public static partial class OfficeTiffCodec {
             if (!HasBytes(bytes, tableOffset, tableEntry.Count)) return false;
             tables = new byte[tableEntry.Count];
             CopyWithCancellation(bytes, tableOffset, tables, 0, tables.Length, options.CancellationToken);
-            if (!TryNormalizeTiffJpeg(tables, true, 0, 0, 0, sampleBytes * 8, 1, 1, 0, options.CancellationToken, out inherited, out _)) return false;
+            if (!TryNormalizeTiffJpeg(tables, true, 0, 0, 0, sampleBits, 1, 1, 0, options.CancellationToken, out inherited, out _)) return false;
             retained += tables.Length;
         }
         if (retainPixels) source = new byte[sourceLength];
@@ -90,14 +90,14 @@ public static partial class OfficeTiffCodec {
             byte[] jpeg;
             if (legacy) {
                 if (!TryReconstructLegacyJpeg(bytes, offsets[segment], lengths[segment], entries, littleEndian,
-                    decodeWidth, decodeRows, samples, channels, planar == 2 ? plane : -1, sampleBytes * 8,
+                    decodeWidth, decodeRows, samples, channels, planar == 2 ? plane : -1, sampleBits,
                     legacyProcess, ycc && planar == 1 ? horizontal : 1, ycc && planar == 1 ? vertical : 1,
                     options, out jpeg)) return false;
             } else {
                 jpeg = new byte[lengths[segment]];
                 CopyWithCancellation(bytes, offsets[segment], jpeg, 0, jpeg.Length, options.CancellationToken);
             }
-            if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, sampleBytes * 8, ycc && planar == 1 ? horizontal : 1,
+            if (!TryNormalizeTiffJpeg(jpeg, false, decodeWidth, decodeRows, channels, sampleBits, ycc && planar == 1 ? horizontal : 1,
                 ycc && planar == 1 ? vertical : 1, inherited, options.CancellationToken, out _, out int segmentProcess)) return false;
             if (legacy && (legacyProcess == 14 ? segmentProcess != 195 : segmentProcess != 192 && segmentProcess != 193)) return false;
             if (frameProcess != 0 && segmentProcess != frameProcess) return false;
@@ -114,7 +114,7 @@ public static partial class OfficeTiffCodec {
             if (!retainPixels) continue;
             if (ycc && planar == 1) {
                 if (reconstructChroma) ReconstructTiffJpegChroma(decoded, decodeWidth, columns, rows, horizontal, vertical, positioning, samples, sampleBytes, littleEndian, options);
-                ConvertTiffJpegYcc(decoded, samples, sampleBytes, littleEndian, coefficients, reference, options);
+                ConvertTiffJpegYcc(decoded, samples, sampleBytes, littleEndian, maximum, coefficients, reference, options);
             }
             if (planar == 2) {
                 if (ycc && (plane == 1 || plane == 2)) CopyTiffJpegChroma(decoded, source, plane, width, left, top, columns, rows,
@@ -125,7 +125,7 @@ public static partial class OfficeTiffCodec {
                 CopyWithCancellation(decoded, row * sw * samples * sampleBytes, source, ((top + row) * width + left) * samples * sampleBytes,
                     columns * samples * sampleBytes, options.CancellationToken);
         }
-        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, samples, sampleBytes, littleEndian, coefficients, reference, options);
+        if (ycc && planar == 2 && retainPixels) ConvertTiffJpegYcc(source, samples, sampleBytes, littleEndian, maximum, coefficients, reference, options);
         return true;
     }
 

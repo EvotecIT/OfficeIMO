@@ -22,8 +22,8 @@ public static partial class OfficeTiffCodec {
     }
 
     private static bool TryGetSampleByteCount(byte[] bytes, IReadOnlyDictionary<int, TiffEntry> entries,
-        bool littleEndian, int samples, int photometric, out int sampleBytes, out bool floating, out int packedBits) {
-        sampleBytes = 0; floating = false; packedBits = 0;
+        bool littleEndian, int samples, int photometric, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) {
+        sampleBytes = 0; floating = false; packedBits = 0; sampleBits = 0;
         if (!TryReadScalarOrDefault(bytes, entries, 266, littleEndian, 1, out int fillOrder) ||
             (fillOrder != 1 && (fillOrder != 2 ||
              !TryReadScalarOrDefault(bytes, entries, 259, littleEndian, 1, out int compression) ||
@@ -34,6 +34,7 @@ public static partial class OfficeTiffCodec {
                 Array.Exists(bits, bit => bit != bits[0])) return false;
         } else bits = new[] { 1 }; // Baseline bilevel default.
 
+        sampleBits = bits[0];
         int format = 1;
         if (entries.ContainsKey(339)) {
             if (!TryReadValues(bytes, entries, 339, littleEndian, samples, out int[] formats) ||
@@ -48,8 +49,8 @@ public static partial class OfficeTiffCodec {
         }
         floating = format == 3;
         if (floating ? (bits[0] != 16 && bits[0] != 24 && bits[0] != 32 && bits[0] != 64) || photometric == 3
-            : format != 1 || (bits[0] != 8 && bits[0] != 16) || (photometric == 3 && bits[0] != 8)) return false;
-        sampleBytes = bits[0] / 8;
+            : format != 1 || (bits[0] != 8 && bits[0] != 12 && bits[0] != 16) || (photometric == 3 && bits[0] != 8)) return false;
+        sampleBytes = (bits[0] + 7) / 8;
         return true;
     }
 

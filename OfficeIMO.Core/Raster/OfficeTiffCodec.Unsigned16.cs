@@ -4,19 +4,19 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
     private static void ConvertUnsigned16Pixel(
-        byte[] source, int offset, bool littleEndian, int photometric,
+        byte[] source, int offset, bool littleEndian, int photometric, int maximum,
         int alphaIndex, int alphaKind, double[]? colorComponents,
         out byte red, out byte green, out byte blue, out byte alpha) {
         int alphaSample = alphaIndex >= 0
             ? ReadUInt16(source, offset + alphaIndex * 2, littleEndian)
-            : ushort.MaxValue;
-        alpha = ColorMapByte(alphaSample);
+            : maximum;
+        alpha = QuantizeUnsigned16Component(alphaSample / (double)maximum);
 
         // Keep sample and associated-alpha precision until the final RGBA projection
         // or ICC transform. Rounding alpha to eight bits first can erase low alpha.
         double Component(int channel) {
             if (alphaKind == 1 && alphaSample == 0) return 0D;
-            double denominator = alphaKind == 1 ? alphaSample : ushort.MaxValue;
+            double denominator = alphaKind == 1 ? alphaSample : maximum;
             return Math.Min(1D, ReadUInt16(source, offset + channel * 2, littleEndian) / denominator);
         }
 
