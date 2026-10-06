@@ -260,6 +260,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxRunningStringCharacters = MaxRunningStringCharacters;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
+        target.ImageNormalizationBudget = ImageNormalizationBudget;
         return target;
     }
 
@@ -270,6 +271,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     // Only the shared projector may opt the renderer into interpreting its private DOM marker.
     internal bool EnableEditableLayoutRegions { get; set; }
+
+    // Native adapters share their operation admission budget with pre-projection image transformations.
+    internal HtmlImportBudget? ImageNormalizationBudget { get; set; }
 
     internal void Validate() {
         ValidateImageExportOptions();
