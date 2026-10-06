@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         // Only the last visual content needs closing space. Intermediate fragments
         // keep their full capacity; an inset may already reserve some or all of it.
         private static double GetUnreservedClosingPadding(PdfPanelStyle? style) =>
-            style is { RepeatFragmentDecoration: false } ? Math.Max(0D, style.PaddingY - style.FragmentBottomInset) : 0D;
+            style is { RepeatFragmentDecoration: false } ? Math.Max(0D, style.BottomPadding - style.FragmentBottomInset) : 0D;
 
         private double GetClosingContainerPadding() {
             if (activeBlockSequences.Count > 0) {

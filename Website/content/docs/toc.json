@@ -475,6 +475,146 @@
         "title": "Troubleshooting",
         "path": "pswriteoffice/troubleshooting/index.md",
         "href": "/docs/pswriteoffice/troubleshooting/"
+      },
+      {
+        "title": "Build Bounded Document Ingestion Pipelines",
+        "path": "pswriteoffice/reader-ingest-pipelines/index.md",
+        "href": "/docs/pswriteoffice/reader-ingest-pipelines/"
+      },
+      {
+        "title": "Convert and Publish Markdown",
+        "path": "pswriteoffice/markdown-convert-publish/index.md",
+        "href": "/docs/pswriteoffice/markdown-convert-publish/"
+      },
+      {
+        "title": "Convert Between Markdown and Word",
+        "path": "pswriteoffice/markdown-word-roundtrip/index.md",
+        "href": "/docs/pswriteoffice/markdown-word-roundtrip/"
+      },
+      {
+        "title": "Create and Process PDF Forms and Annotations",
+        "path": "pswriteoffice/pdf-forms-annotations/index.md",
+        "href": "/docs/pswriteoffice/pdf-forms-annotations/"
+      },
+      {
+        "title": "Export and Review PowerPoint Presentations",
+        "path": "pswriteoffice/powerpoint-export-review/index.md",
+        "href": "/docs/pswriteoffice/powerpoint-export-review/"
+      },
+      {
+        "title": "Extract Document Chunks, Tables, and Assets",
+        "path": "pswriteoffice/reader-chunks-tables/index.md",
+        "href": "/docs/pswriteoffice/reader-chunks-tables/"
+      },
+      {
+        "title": "Import, Export, and Publish Excel Data",
+        "path": "pswriteoffice/excel-export-publish/index.md",
+        "href": "/docs/pswriteoffice/excel-export-publish/"
+      },
+      {
+        "title": "Inspect PDF Signatures and Compliance",
+        "path": "pswriteoffice/pdf-signatures-compliance/index.md",
+        "href": "/docs/pswriteoffice/pdf-signatures-compliance/"
+      },
+      {
+        "title": "Merge and Compare Excel Workbooks",
+        "path": "pswriteoffice/excel-merge-compare/index.md",
+        "href": "/docs/pswriteoffice/excel-merge-compare/"
+      },
+      {
+        "title": "Merge Word Documents and Generate Letters",
+        "path": "pswriteoffice/word-merge-mailmerge/index.md",
+        "href": "/docs/pswriteoffice/word-merge-mailmerge/"
+      },
+      {
+        "title": "Merge, Split, and Reorder PDF Pages",
+        "path": "pswriteoffice/pdf-merge-split-pages/index.md",
+        "href": "/docs/pswriteoffice/pdf-merge-split-pages/"
+      },
+      {
+        "title": "Pipeline, Object, and DSL Workflows",
+        "path": "pswriteoffice/object-workflows/index.md",
+        "href": "/docs/pswriteoffice/object-workflows/"
+      },
+      {
+        "title": "Position Text and Graphics on PDF Pages",
+        "path": "pswriteoffice/pdf-positioned-content/index.md",
+        "href": "/docs/pswriteoffice/pdf-positioned-content/"
+      },
+      {
+        "title": "PSWriteOffice DSL Cookbook",
+        "path": "pswriteoffice/dsl-cookbook/index.md",
+        "href": "/docs/pswriteoffice/dsl-cookbook/"
+      },
+      {
+        "title": "PSWriteOffice Use-Case Index",
+        "path": "pswriteoffice/use-case-index/index.md",
+        "href": "/docs/pswriteoffice/use-case-index/"
+      },
+      {
+        "title": "Read and Import Excel Data",
+        "path": "pswriteoffice/excel-read-import/index.md",
+        "href": "/docs/pswriteoffice/excel-read-import/"
+      },
+      {
+        "title": "Read and Inspect PowerPoint Decks",
+        "path": "pswriteoffice/powerpoint-read-inspect/index.md",
+        "href": "/docs/pswriteoffice/powerpoint-read-inspect/"
+      },
+      {
+        "title": "Read and Inspect Word Documents",
+        "path": "pswriteoffice/word-read-inspect/index.md",
+        "href": "/docs/pswriteoffice/word-read-inspect/"
+      },
+      {
+        "title": "Read and Parse Markdown Content",
+        "path": "pswriteoffice/markdown-read-parse/index.md",
+        "href": "/docs/pswriteoffice/markdown-read-parse/"
+      },
+      {
+        "title": "Read, Extract, and Preflight PDF Files",
+        "path": "pswriteoffice/pdf-read-preflight/index.md",
+        "href": "/docs/pswriteoffice/pdf-read-preflight/"
+      },
+      {
+        "title": "Redact, Sanitize, and Optimize PDF Files",
+        "path": "pswriteoffice/pdf-redact-sanitize/index.md",
+        "href": "/docs/pswriteoffice/pdf-redact-sanitize/"
+      },
+      {
+        "title": "Reuse and Combine PowerPoint Slides",
+        "path": "pswriteoffice/powerpoint-reuse-slides/index.md",
+        "href": "/docs/pswriteoffice/powerpoint-reuse-slides/"
+      },
+      {
+        "title": "Review, Protect, and Deliver Word Documents",
+        "path": "pswriteoffice/word-review-delivery/index.md",
+        "href": "/docs/pswriteoffice/word-review-delivery/"
+      },
+      {
+        "title": "Search Across Office and Document Files",
+        "path": "pswriteoffice/reader-search-corpus/index.md",
+        "href": "/docs/pswriteoffice/reader-search-corpus/"
+      },
+      {
+        "title": "Update Existing Excel Workbooks",
+        "path": "pswriteoffice/excel-update-existing/index.md",
+        "href": "/docs/pswriteoffice/excel-update-existing/"
+      },
+      {
+        "title": "Update Existing PowerPoint Presentations",
+        "path": "pswriteoffice/powerpoint-update-existing/index.md",
+        "href": "/docs/pswriteoffice/powerpoint-update-existing/"
+      },
+      {
+        "title": "Update Existing Word Documents",
+        "path": "pswriteoffice/word-update-existing/index.md",
+        "href": "/docs/pswriteoffice/word-update-existing/"
+      },
+      {
+        "title": "Validate and Repair Excel Workbooks",
+        "path": "pswriteoffice/excel-validation-repair/index.md",
+        "href": "/docs/pswriteoffice/excel-validation-repair/"
       }
     ]
   },

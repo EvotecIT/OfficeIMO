@@ -35,12 +35,6 @@ internal sealed partial class StudioStorageAccess {
         return location;
     }
 
-    internal static void ValidateOutputName(string name) {
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 255 || name is "." or ".." ||
-            name.IndexOfAny(['/', '\\', ':', '\0']) >= 0 || name.Any(char.IsControl))
-            throw new IOException("Choose a filename without slashes, colons or control characters (up to 255 characters).");
-    }
-
     private async Task<IStorageFile> ResolveForWriteAsync(string location, CancellationToken token) {
         string key = OfficeStorageIdentity.Normalize(location);
         (IStorageFolder Folder, string Name) pending;

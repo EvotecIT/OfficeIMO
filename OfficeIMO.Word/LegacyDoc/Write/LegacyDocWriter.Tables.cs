@@ -477,7 +477,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var shadedCells = new LegacyDocWritableTableCell[writableCells.Count];
             for (int columnIndex = 0; columnIndex < writableCells.Count; columnIndex++) {
                 LegacyDocWritableTableCell cell = writableCells[columnIndex];
-                shadedCells[columnIndex] = cell.Shading.HasAny
+                shadedCells[columnIndex] = cell.Shading.IsSpecified
                     ? cell
                     : cell.WithShading(tableShading);
             }

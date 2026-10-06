@@ -135,7 +135,9 @@ namespace OfficeIMO.Excel {
         internal void ValidateDataReaderProjection(CancellationToken ct) {
             if (_canStreamWorksheetPart) {
                 try {
-                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    using var stream = _partBufferReader != null
+                        ? _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct)
+                        : _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (TryPrepareWorksheetStream(stream)) {
                         ValidateDataReaderProjectionXml(stream, ct);
                         return;

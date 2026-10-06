@@ -9,6 +9,8 @@ namespace OfficeIMO.Html.Dom;
 public sealed class HtmlElement : HtmlNode {
     private readonly List<HtmlAttribute> _attributes = new List<HtmlAttribute>();
     private readonly ReadOnlyCollection<HtmlAttribute> _attributesView;
+    private HtmlFormControlState? _formState;
+    internal HtmlSourceMarkupSnapshot? SourceMarkup { get; set; }
 
     internal HtmlElement(HtmlDocument document, int id, string name, string namespaceUri, string? prefix = null) : base(document, id, HtmlNodeKind.Element) {
         LocalName = name;
@@ -35,7 +37,20 @@ public sealed class HtmlElement : HtmlNode {
     /// <summary>Class tokens for inspection.</summary>
     public IReadOnlyList<string> ClassList => ClassName.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
     /// <summary>Template contents, retained separately from normal child nodes.</summary>
-    public HtmlNode? TemplateContent { get; internal set; }
+    public HtmlDocumentFragment? TemplateContent { get; internal set; }
+    /// <summary>Optional immutable live form properties. Attributes and text retain their authored defaults.</summary>
+    /// <remarks>Assignment requires a mutable document and a matching HTML form element.
+    /// Set to null to use attribute-based form semantics again.</remarks>
+    public HtmlFormControlState? FormState {
+        get => _formState;
+        set {
+            Document.EnsureMutable();
+            if (value != null && (NamespaceUri != HtmlNamespace || LocalName != value.ElementName))
+                throw new ArgumentException("The form state must match this HTML element.", nameof(value));
+            _formState = value;
+            Document.Touch();
+        }
+    }
 
     /// <summary>Reads the first attribute with this qualified name, regardless of namespace.</summary>
     public string? GetAttribute(string name) => _attributes.FirstOrDefault(attribute => NamesEqual(attribute.Name, name))?.Value;
@@ -47,9 +62,14 @@ public sealed class HtmlElement : HtmlNode {
     public void SetAttribute(string name, string value, string? namespaceUri = null) {
         Document.EnsureMutable();
         if (NamespaceUri == HtmlNamespace && string.IsNullOrEmpty(namespaceUri)) name = HtmlNames.LowerAscii(name);
-        var replacement = new HtmlAttribute(name, value, namespaceUri);
-        int index = _attributes.FindIndex(attribute => attribute.NamespaceUri == replacement.NamespaceUri &&
-            (replacement.NamespaceUri.Length == 0 ? NamesEqual(attribute.Name, name) : attribute.LocalName == replacement.LocalName));
+        SetAttribute(new HtmlAttribute(name, value, namespaceUri));
+    }
+    /// <summary>Adds or replaces an exact attribute by namespace and local name, preserving its qualified name and case.</summary>
+    /// <remarks>Use this overload when importing structural DOM state, including namespace-aware script mutations.</remarks>
+    public void SetAttribute(HtmlAttribute replacement) {
+        Document.EnsureMutable();
+        if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+        int index = _attributes.FindIndex(attribute => attribute.NamespaceUri == replacement.NamespaceUri && attribute.LocalName == replacement.LocalName);
         if (index >= 0) _attributes[index] = replacement; else _attributes.Add(replacement);
         Document.Touch();
     }

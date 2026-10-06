@@ -12,16 +12,19 @@ internal sealed class OfficeFontVariationModel {
     private readonly Axis[] _axes;
     private readonly double[] _normalizedCoordinates;
     private readonly IReadOnlyDictionary<string, float> _designCoordinates;
+    private readonly bool _explicitOpticalSize;
 
     private OfficeFontVariationModel(
         Axis[] axes,
         double[] normalizedCoordinates,
         IReadOnlyDictionary<string, float> designCoordinates,
-        string identity) {
+        string identity,
+        bool explicitOpticalSize = false) {
         _axes = axes;
         _normalizedCoordinates = normalizedCoordinates;
         _designCoordinates = designCoordinates;
         Identity = identity;
+        _explicitOpticalSize = explicitOpticalSize;
     }
 
     internal static OfficeFontVariationModel None { get; } = new(
@@ -35,6 +38,30 @@ internal sealed class OfficeFontVariationModel {
     internal string Identity { get; }
     internal IReadOnlyList<double> NormalizedCoordinates => _normalizedCoordinates;
     internal IReadOnlyDictionary<string, float> DesignCoordinates => _designCoordinates;
+
+    // Size is supplied in the author's text units, before output scaling. Explicit opsz wins.
+    internal OfficeFontVariationModel ForOpticalSize(OfficeOpenTypeReader reader, double size) {
+        if (!TryGetOpticalSize(size, out float value)) return this;
+        if (_designCoordinates["opsz"] == value) return this;
+        var values = new Dictionary<string, float>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, float> coordinate in _designCoordinates) values.Add(coordinate.Key, coordinate.Value);
+        values["opsz"] = value;
+        OfficeFontVariationModel selected = Create(reader, values);
+        return new OfficeFontVariationModel(selected._axes, selected._normalizedCoordinates,
+            selected._designCoordinates, selected.Identity);
+    }
+
+    internal bool TryGetOpticalSize(double size, out float value) {
+        value = 0F;
+        if (size <= 0D || double.IsNaN(size) || double.IsInfinity(size))
+            throw new ArgumentOutOfRangeException(nameof(size));
+        if (_explicitOpticalSize) return false;
+        int opticalIndex = Array.FindIndex(_axes, axis => axis.Tag == "opsz");
+        if (opticalIndex < 0) return false;
+        Axis optical = _axes[opticalIndex];
+        value = (float)Math.Max(optical.Minimum, Math.Min(optical.Maximum, size));
+        return true;
+    }
 
     internal static OfficeFontVariationModel Create(
         OfficeOpenTypeReader reader,
@@ -120,7 +147,8 @@ internal sealed class OfficeFontVariationModel {
             axes,
             normalized,
             new ReadOnlyDictionary<string, float>(designCoordinates),
-            identity.ToString());
+            identity.ToString(),
+            requestedValues != null && requestedValues.ContainsKey("opsz"));
     }
 
     private static void ApplyAvar(

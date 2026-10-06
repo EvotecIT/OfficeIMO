@@ -10,7 +10,17 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeRasterCanvas textMetrics,
         string idPrefix,
         ref int clipPathId) {
+        using var metricScope = textMetrics.PushFontMetricScale(text.FontMetricScale);
         using var faceScope = textMetrics.PushTextFace(text.Font.Face);
+        if (textMetrics.Fonts is { } fonts && HasSelectedVariableFont(text, fonts)) {
+            var fragment = new StringBuilder();
+            AppendTextContent(fragment, text, textMetrics, idPrefix, ref clipPathId);
+            AppendSelectedVariableFonts(sb, fragment.ToString(), text, fonts, textMetrics.CancellationToken);
+        } else AppendTextContent(sb, text, textMetrics, idPrefix, ref clipPathId);
+    }
+
+    private static void AppendTextContent(StringBuilder sb, OfficeDrawingText text,
+        OfficeRasterCanvas textMetrics, string idPrefix, ref int clipPathId) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical ||
             (text.TextDirection == OfficeTextDirection.TopToBottom && Math.Abs(text.RotationDegrees) > 0.000001D);
         if (useFrameTransform) {

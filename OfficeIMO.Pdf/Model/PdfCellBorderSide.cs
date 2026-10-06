@@ -30,6 +30,11 @@ public sealed class PdfCellBorderSide {
     // Layout metadata belongs to the prepared table snapshot, not authored style.
     internal bool CenteredPair { get; set; }
 
+    internal double PaintThickness => Color.HasValue && Width > 0D
+        ? Width + (LineStyle == PdfCellBorderLineStyle.TwoLine ? DoubleTrackGap(Width) : 0D) : 0D;
+
+    internal static double DoubleTrackGap(double width) => Math.Max(width * 2D, 1D);
+
     /// <summary>Creates a copy of this table cell border side.</summary>
     public PdfCellBorderSide Clone() => new PdfCellBorderSide {
         Color = Color,
