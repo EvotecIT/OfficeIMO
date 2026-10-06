@@ -45,8 +45,12 @@ internal static partial class HtmlPdfRenderedConverter {
             bool simulateItalic = (requestedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic &&
                 (face.Style & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
             resolvedRuns.Add(new OutlinedFontRun(run.Text, face, simulateBold, simulateItalic));
+            // The managed PDF shaper can retain features in static embedded fonts. Keep
+            // synthetic styles and configured providers on their existing outline route.
             requiresOutlines |= !face.CanEmbedAsStaticPdfFont ||
-                !visual.FeatureSettings.IsDefault ||
+                (!visual.FeatureSettings.IsDefault &&
+                    (simulateBold || simulateItalic || webFonts.TextShapingProvider != null ||
+                        !webFonts.Slots.ContainsKey(run.FamilyName))) ||
                 ContainsColorGlyph(face.Program, run.Text);
         }
         if (!requiresOutlines) {
