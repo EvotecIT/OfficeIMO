@@ -57,7 +57,7 @@ export interface DataTablesOptions extends StreamOptions {
   /** Server-side tables require explicit acknowledgement that only loaded rows are available. */
   readonly serverSide?: "reject" | "loaded";
   /** Overrides keyed by DataTables column index, independent of the selected export position. */
-  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups" | "style">>>>;
+  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups" | "style">> & { readonly style?: never }>>;
   /** Resolve portable values/presentation once. Results must be synchronous scalar values or ExportCells. */
   readonly project?: (value: ExportValue, context: DataTablesCellContext) => ExportValue;
 }

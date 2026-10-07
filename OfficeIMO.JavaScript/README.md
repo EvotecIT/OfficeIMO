@@ -161,6 +161,8 @@ XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write
 
 ZIP entries cannot interleave, so preservation retains a bounded text spool until the report worksheets finish. `maxOverflowCharacters` defaults to 4,000,000 UTF-16 units. Width sampling has separate defaults of 100,000 retained cells and 1,000,000 UTF-16 units of encoded row XML, including markup, configurable through `maxBufferedCells` and `maxBufferedCharacters`. Automatic width sampling stops within these budgets; an explicitly requested sample that exceeds them fails visibly. Full cell values are preserved in both cases. CSV retains long text directly and is an alternative when Excel's cell/storage constraints do not suit the data.
 
+The DataTables adapter owns its workbook. Use portable `ExportCell` values and style definitions in report patches. Workbook-local column/header style IDs, numeric font/fill/border/format references and advanced `Cell` values require the `Workbook` API, where the caller can register those definitions. The adapter rejects them instead of interpreting indexes from another workbook.
+
 ## Resolved values, grouped headings, totals and print layout
 
 `ExportCell` captures a typed value, optional display text and portable presentation before an export begins. A report producer can resolve highlighting once and reuse the same cells for XLSX and CSV. XLSX uses the typed value; CSV uses it by default and uses supplied display text with `valueMode: "display"`. Formula protection and quoting still run after display-text selection and CSV formatting.

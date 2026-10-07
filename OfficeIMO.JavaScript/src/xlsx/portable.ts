@@ -29,7 +29,7 @@ function value<T extends ExportValue>(result: T): T {
   return result;
 }
 /** @internal Qualify the portable boundary before source/destination activity. */
-export function portableSheet(options: PortableSheetOptions = {}): SheetOptions {
+export function portableSheet(options: PortableSheetOptions = {}): PortableSheetOptions {
   if ((options as { headerStyle?: unknown }).headerStyle !== undefined)
     throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
   style(options.alternatingRowStyle); style(options.title?.style); style(options.footer?.style);
@@ -40,7 +40,7 @@ export function portableSheet(options: PortableSheetOptions = {}): SheetOptions 
     ...(cellStyle ? { cellStyle: (context: CellStyleContext) => style(cellStyle(context)) } : {}) };
 }
 /** @internal Keep custom writers inside the same portable value contract. */
-export function portableWorkbook(options: PortableWorkbookOptions = {}): WorkbookOptions {
+export function portableWorkbook(options: PortableWorkbookOptions = {}): PortableWorkbookOptions {
   const writers = options.cellValueWriters;
   if (!writers) return options;
   const wrapped: Record<string, (value: import("../core/index.js").CellValue, context: CellWriterContext) => ExportValue> = Object.create(null);
