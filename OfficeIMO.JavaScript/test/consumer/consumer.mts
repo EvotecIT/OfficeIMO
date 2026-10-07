@@ -6,6 +6,7 @@ import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/
 import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
 import type { Column, Rows } from "@evotecit/officeimo/core";
+import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
 
 const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column[];
 interface RecordRow { readonly name: string; readonly seen: Date; }
@@ -13,8 +14,15 @@ const records: readonly RecordRow[] = [{ name: "Łódź", seen: new Date() }];
 const rows: Rows = [{ name: "Łódź", seen: new Date() }];
 const book: Workbook = createWorkbook({ signal: new AbortController().signal, onProgress: p => console.log(p.rows) });
 const style = book.styles.add({ font: { bold: true }, fill: { color: "ABCDEF" }, border: { bottom: { style: "thin" } }, numberFormat: NumberFormats.Date });
+const conditional: readonly ConditionalFormat[] = [
+  { type: "expression", range: { column: "name", through: "seen" }, formula: '$A3="Łódź"', style: { fill: { color: "C6EFCE" } }, stopIfTrue: true },
+  { type: "cellIs", range: { column: "seen" }, operator: "between", values: [45000, 50000], style: { font: { bold: true } } },
+  { type: "colorScale", range: { column: "seen" }, stops: [{ threshold: { type: "min" }, color: "F8696B" }, { threshold: { type: "max" }, color: "63BE7B" }] },
+  { type: "dataBar", range: { column: "seen" }, color: "638EC6", showValue: false }
+];
 const sheet: Worksheet = book.addWorksheet("Data", { columns });
 const report = book.addWorksheet("Report", { columns, table: { name: "SeenReport", style: "TableStyleMedium9" },
+  conditionalFormats: conditional,
   title: { text: "Report", style: { font: { size: 20 }, fill: { color: "D9E1F2" } }, height: 32 },
   headerStyle: style, freezeColumns: 1, rowHeight: 24,
   alternatingRowStyle: { fill: { color: "EAF1F8" } },

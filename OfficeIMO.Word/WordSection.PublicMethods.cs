@@ -391,10 +391,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Configures endnote properties for the section.
+        /// Configures endnote numbering for the section and placement for the whole document.
         /// </summary>
         /// <param name="numberingFormat">Numbering format.</param>
-        /// <param name="position">Endnote position.</param>
+        /// <param name="position">Document-wide endnote position. A position-only update preserves section numbering.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
         /// <returns>The current section.</returns>
@@ -408,10 +408,13 @@ namespace OfficeIMO.Word {
                 _sectionProperties.AddChild(props, true);
             }
 
-            props.RemoveAllChildren<NumberingFormat>();
             props.RemoveAllChildren<EndnotePosition>();
-            props.RemoveAllChildren<NumberingRestart>();
-            props.RemoveAllChildren<NumberingStart>();
+            bool positionOnly = position != null && numberingFormat == null && restartNumbering == null && startNumber == null;
+            if (!positionOnly) {
+                props.RemoveAllChildren<NumberingFormat>();
+                props.RemoveAllChildren<NumberingRestart>();
+                props.RemoveAllChildren<NumberingStart>();
+            }
 
             if (numberingFormat != null) {
                 props.AddChild(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() }, true);
@@ -419,6 +422,7 @@ namespace OfficeIMO.Word {
 
             if (position != null) {
                 props.AddChild(new EndnotePosition() { Val = position.Value.ToOpenXml() }, true);
+                _document.SetDocumentEndnotePosition(position.Value.ToOpenXml());
             }
 
             if (restartNumbering != null) {

@@ -127,13 +127,15 @@ public partial class Word {
     }
 
     [Fact]
-    public void LegacyDoc_RejectsExplicitSectionEndPlacementBesideImplicitDocumentEndPlacement() {
+    public void LegacyDoc_PlacementSetThroughASectionAppliesToTheWholeDocument() {
         using WordDocument source = CreateLegacyMetadataDocument(false);
         WordSection second = source.AddSection();
         second.AddParagraph("SECOND SECTION");
         second.AddEndnoteProperties(position: WordEndnotePosition.SectionEnd);
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
-        Assert.Contains("whole document", error.Message);
+        Assert.All(source.Sections, section => Assert.Equal(WordEndnotePosition.SectionEnd, section.EndnoteSettings.Position));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        Assert.All(restored.Sections, section => Assert.Equal(WordEndnotePosition.SectionEnd, section.EndnoteSettings.Position));
+        Assert.Empty(restored.ValidateDocument());
     }
 
     [Theory]

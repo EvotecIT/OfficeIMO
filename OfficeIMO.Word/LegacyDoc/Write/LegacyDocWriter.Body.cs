@@ -101,8 +101,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     FootnoteText, FootnoteFormattedRuns, CommentText, CommentFormattedRuns, EndnoteText, EndnoteFormattedRuns);
                 ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
-                HasNestedTables = PapxPages.Any(page => page.Any(segment => segment.Formatting.TableDepth > 1));
-                RmdThreading = HasNestedTables ? CreateRevisionThreading(RevisionAuthors.Count) : Array.Empty<byte>();
+                RequiresWord2000Format = PapxPages.Any(page => page.Any(segment =>
+                    segment.Formatting.TableDepth > 1
+                    || segment.Formatting.TableCellFitTexts.Any(enabled => enabled)
+                    || segment.Formatting.TableCellNoWraps.Any(enabled => enabled)
+                    || segment.Formatting.TableCellHideMarks.Any(enabled => enabled)));
+                RmdThreading = RequiresWord2000Format ? CreateRevisionThreading(RevisionAuthors.Count) : Array.Empty<byte>();
             }
 
             internal string Text { get; }
@@ -213,7 +217,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal byte[] SttbfRMark { get; }
 
-            internal bool HasNestedTables { get; }
+            internal bool RequiresWord2000Format { get; }
 
             internal byte[] RmdThreading { get; }
 
@@ -241,7 +245,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
-            internal int DopLength => HasNestedTables ? Dop2000Length : Dop97Length;
+            internal int DopLength => RequiresWord2000Format ? Dop2000Length : Dop97Length;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 
@@ -306,7 +310,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? SttbfRMarkOffsetInTableStream + SttbfRMark.Length
                 : AfterBookmarkDataOffsetInTableStream;
 
-            internal int RmdThreadingOffsetInTableStream => HasNestedTables
+            internal int RmdThreadingOffsetInTableStream => RequiresWord2000Format
                 ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
 
             private int AfterRevisionThreadingOffsetInTableStream => RmdThreadingOffsetInTableStream + RmdThreading.Length;

@@ -4,6 +4,8 @@ OfficeIMO.Browser embeds the portable scripts built by [OfficeIMO JavaScript](..
 
 The TypeScript package owns XLSX/CSV behavior, public core/ZIP/XML/OPC layers, npm exports, generated declarations and browser qualification. This project consumes its committed build output directly; there is no second JavaScript source tree or copied bundle directory.
 
+The XLSX assets support [live conditional formatting](../OfficeIMO.JavaScript/README.md#live-excel-conditional-formatting), including threshold/formula highlights, color scales and gradient data bars. Rules use bounded workbook metadata and preserve existing number/date formats unless an override is supplied.
+
 ## Use embedded assets
 
 ```csharp

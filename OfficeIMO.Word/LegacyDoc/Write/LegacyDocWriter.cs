@@ -270,7 +270,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
                 settings?.GetFirstChild<Compatibility>()?.Elements<NoColumnBalance>().Any(IsOnOffEnabled) == true,
                 checked((ushort)(ReadTwipValue(settings?.GetFirstChild<DefaultTabStop>()?.Val, 720, "default tab interval") ?? 720)),
-                ReadDocumentEndnotePosition(sections),
+                ReadDocumentEndnotePosition(settings),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
         }
@@ -287,9 +287,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && protection.Enforcement.Value;
         }
 
-        private static EndnotePositionValues? ReadDocumentEndnotePosition(IReadOnlyList<LegacyDocWritableSection> sections) {
-            return ReadDocumentNoteValue(sections, section => section.EndnotePosition,
-                EndnotePositionValues.DocumentEnd, "endnote placement");
+        private static EndnotePositionValues ReadDocumentEndnotePosition(Settings? settings) {
+            EndnoteDocumentWideProperties? properties = settings?.GetFirstChild<EndnoteDocumentWideProperties>();
+            return ReadEndnotePosition(properties?.GetFirstChild<EndnotePosition>()?.Val) ?? EndnotePositionValues.DocumentEnd;
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
