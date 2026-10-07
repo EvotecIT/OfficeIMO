@@ -494,7 +494,7 @@ internal static partial class PdfWriter {
                 }
                 // Formatting boundaries do not introduce a word-break opportunity.
                 // Reserve the rest of a word spanning runs when it fits a fresh line.
-                double wrappingWidth = wordWidth <= currentMaxWidth ? wordWidth : tokenW;
+                double wrappingWidth = wordWidth <= Math.Min(currentMaxWidth, maxWidthPts) ? wordWidth : tokenW;
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + wrappingWidth : wrappingWidth)
                     : pendingLeadingAdvance + wrappingWidth;
