@@ -350,5 +350,31 @@
     "priorToolCleanupLogicalBytes": 186133990,
     "sharedCachesRemoved": false
   },
-  "next": "settle font and decoration PRs; remediate shared compliance setup separately; adopt exact accepted owners deliberately and preserve proof before removing temporary worktrees"
+  "next": "settle font and decoration PRs; remediate shared compliance setup separately; adopt exact accepted owners deliberately and preserve proof before removing temporary worktrees",
+  "remainingFooterCriterion": {
+    "retainedObservation": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-provider-forks/Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/next-footer-placement-criterion.json",
+    "capturedLineWrapping": "matching heading and paragraph lines; equivalent families/weights/line-heights",
+    "visualObservation": "final96dpi captured footer and browser PDF renders inspected side by side; vertical placement and LIVE badge paint differences remain",
+    "confirmedAdditionalProductDefect": false,
+    "nextIndependentControl": {
+      "viewport": [
+        816,
+        900
+      ],
+      "sameCapturedFontBytes": true,
+      "pageMargins": 0,
+      "cases": [
+        "heading/paragraph alone",
+        "same blocks after preceding logo with explicit used height",
+        "captured normal-flow margins and heading/paragraph keeps"
+      ],
+      "checks": [
+        "source labels once",
+        "captured wrapping",
+        "independent PDF text/ink placement",
+        "exact links/content across frozen profiles"
+      ]
+    },
+    "measurementBoundary": "Captured font families/numeric weights/line-height are retained. DOM client rectangles and Office scene paint coordinates are different measurement contracts; their Y delta alone does not establish a defect. Compare independent PDF ink/text bounds and a minimal preceding-logo/block-spacing control before any further patch."
+  }
 }
