@@ -69,7 +69,9 @@ internal sealed record CaseBundle(ConsistencyCase Contract, string SourceSha256,
 }
 internal sealed record ImageArtifact(int Page, string Format, string Path, string Sha256, int Width, int Height);
 internal sealed record GateReport(int SchemaVersion, string Commit, string FontSha256,
-    string ExternalRasterizer, string BrowserVersion, bool Passed, List<CaseReport> Cases);
+    string ExternalRasterizer, string BrowserVersion, bool Passed, List<CaseReport> Cases) {
+    public string? SvgFontHinting { get; init; }
+}
 internal sealed record CaseReport(string Id, bool Passed, List<string> Errors, List<PageReport> Pages,
     string PdfRoute, bool FullVisualCoverage, bool SearchablePdfVerified, List<string> Limitations);
 internal sealed record PageReport(int Page, bool Passed, List<string> Errors, List<ComparisonReport> Comparisons);

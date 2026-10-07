@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
 
         OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(result.Document.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
         Assert.Equal(OfficeColor.White, first.GetPixel(370, 100));
-        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(result.Document.Pages[^1].CreateDrawing(), 1D, OfficeColor.White);
+        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(result.Document.Pages[result.Document.Pages.Count - 1].CreateDrawing(), 1D, OfficeColor.White);
         int offset = profile == HtmlRenderIntentProfile.ScreenSnapshotPaged ? 144 : 0;
         Assert.Equal(OfficeColor.Black, last.GetPixel(370, 220 - offset));
         Assert.Equal(OfficeColor.FromRgb(0x22, 0x22, 0x22), last.GetPixel(370, 270 - offset));

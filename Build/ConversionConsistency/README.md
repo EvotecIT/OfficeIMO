@@ -6,6 +6,11 @@ Suites supply a regular font through `fontPath` and may supply `boldFontPath`
 for authored bold text. The report suite supplies both faces. The bundle records
 both font hashes; font substitution remains a failing diagnostic.
 
+SVG verification requests unhinted Chromium font rendering and records that
+setting in the result. This keeps host-specific glyph grid fitting separate from
+the comparison of supplied outlines; content, geometry and pixel tolerances
+remain unchanged.
+
 The source corpus covers HTML, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, OneNote, email and EPUB documents, and Visio diagrams. PowerPoint cases include scaled, nested, rotated, and mirrored text groups. A separate report suite checks a two-page action register with 40 distinct action IDs, typed numeric cells, an inline chart, and subscript/superscript text.
 
 ## Run locally

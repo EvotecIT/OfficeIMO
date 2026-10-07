@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedPages, rendered.Pages.Count);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
             text => text.Text.Contains("Footer", StringComparison.Ordinal) && bottomPadding > 0);
-        Assert.Contains(rendered.Pages[^1].Visuals.OfType<HtmlRenderText>(),
+        Assert.Contains(rendered.Pages[rendered.Pages.Count - 1].Visuals.OfType<HtmlRenderText>(),
             text => text.Text.Contains("Footer", StringComparison.Ordinal));
     }
 
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='#pager'>Skip to navigation</a><div class='lead'></div><nav id='pager'><ul><li><a href='https://example.test/next'>"
             + "<span><span>Next:</span><span>One Header</span></span></a></li></ul></nav>";
 
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.Replace("LEAD", leadHeight.ToString(), StringComparison.Ordinal),
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.Replace("LEAD", leadHeight.ToString()),
             new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
 
         Assert.Equal(2, rendered.Pages.Count);

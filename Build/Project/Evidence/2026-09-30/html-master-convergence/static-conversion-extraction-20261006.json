@@ -410,6 +410,132 @@
     "currentGraphHostedPackagesAndDelayedFeedback": "Required after consolidated push; previous d6 artifacts do not qualify accepted-master graph.",
     "normalStandardApiToolBuilds": "All pass, zero warnings/errors",
     "broaderGoalsComplete": false,
-    "retainedObserverScope": "Exact full PDF byte identity preserves independently observed decoded images and link geometry. Eight repeated pypdf observations passed before redundant ninth decode was stopped; partial log/exit retained."
+    "retainedObserverScope": "Exact full PDF byte identity preserves independently observed decoded images and link geometry. Eight repeated pypdf observations passed before redundant ninth decode was stopped; partial log/exit retained.",
+    "ciRemediation": {
+      "sourceBeforeFix": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+      "scope": "Test-framework compatibility and independent SVG comparison policy; no shipping owner changes.",
+      "ciObserved": {
+        "windowsJob": 112588329501,
+        "testCompilationErrors": 17,
+        "ubuntuBuildCanceled": "Same matrix fail-fast after Windows compilation failure; no independent failure waiver. New source CI required.",
+        "comparisonRun": 37555710295,
+        "comparisonInputCommit": "57c1314f757188d9fe119b0ead16d9fdf74feffd",
+        "comparisonMergeParents": [
+          "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+          "880b245036d23069a8c4c5f5b95bf88dcc2b9092"
+        ],
+        "comparisonFailure": "delivery-register page1 SVG-vs-PNG 26843/887040 (3.02613%) vs unchanged 3%; required text/geometry/color and other routes pass."
+      },
+      "compatibilityFix": "Ordinal two-argument Replace, string-array Split and Count-1 indexing retain the assertions and literal fixture semantics on net472.",
+      "crossCompile": {
+        "framework": "net472",
+        "errors": 0,
+        "warnings": 3,
+        "warningKind": "Existing xUnit2031 analyzer warnings",
+        "nativeWindowsExecution": false
+      },
+      "localAffectedTests": [
+        {
+          "framework": "net8",
+          "passed": 1920,
+          "failed": 0,
+          "skipped": 0,
+          "trxSha256": "bdc5deed2668e6e7287c2514f2f35926ee27a5a3a5d21f24602018dad613450e"
+        },
+        {
+          "framework": "net10",
+          "passed": 1920,
+          "failed": 0,
+          "skipped": 0,
+          "trxSha256": "3bcd9d276402a084d452ab9451af827506ce96f976127ee55bcbdf356686cbbf"
+        }
+      ],
+      "comparisonDiagnosis": {
+        "managedPngSvgPdfBytesEqualToAcceptedLocal": true,
+        "actualRegularAndBoldFontHashesEqual": true,
+        "sameSvgPdfRasterizedByPoppler24And26ByteIdentical": true,
+        "differentPlatformBrowserCaptures": true,
+        "platformHintingCausationNotYetProvedOnLinux": true,
+        "browserConfiguration": "--font-render-hinting=none",
+        "chromiumOwnerDocumentation": "https://chromium.googlesource.com/chromium/src/+/HEAD/headless/public/switches.h",
+        "noToleranceOrSourceFixtureChange": true,
+        "reportMetadataRetainsPolicy": true,
+        "localReportCases": 2,
+        "localReportPages": 3,
+        "localReportPass": true,
+        "archivedNativeInputCases": 13,
+        "archivedNativeInputPages": 29,
+        "nativeVerifierPass": true,
+        "linuxCurrentCandidateAcceptancePending": true
+      },
+      "currentAcceptedMasterPackageProbe": {
+        "run": 37555784425,
+        "head": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+        "platforms": [
+          {
+            "platform": "linux",
+            "sourceHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ],
+            "publicConsumerPassLogLines": [
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:05.1761621Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:06.7036826Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12.",
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:12.4719071Z OfficeIMO HTML packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:15.5887853Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+            ]
+          },
+          {
+            "platform": "macos",
+            "sourceHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ],
+            "publicConsumerPassLogLines": [
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:30.6380710Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.30.",
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:34.0324230Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12.",
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:42.1740230Z OfficeIMO HTML packed API smoke passed on .NET 8.0.30.",
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:45.8714510Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+            ]
+          },
+          {
+            "platform": "windows",
+            "sourceHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+            "packages": 19,
+            "loadedDlls": 63,
+            "consumerFrameworks": [
+              "net10.0",
+              "net472",
+              "net8.0"
+            ],
+            "publicConsumerPassLogLines": [
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:35.9038061Z OfficeIMO HTML document-only packed API smoke passed on .NET Framework 4.8.9345.0.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:39.9050967Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:41.9015917Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:51.1575245Z OfficeIMO HTML packed API smoke passed on .NET Framework 4.8.9345.0.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:55.0749449Z OfficeIMO HTML packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:58.9390687Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+            ]
+          }
+        ],
+        "allArtifactZipSizesSha256CrcAndInstalledOriginsVerified": true,
+        "coreExternalRuntimeDependencies": 0,
+        "windowsNet472ConsumerExecutions": 2,
+        "windowsInstalledFramework": "4.8",
+        "excludesCorrectnessProfilesTimingAndReleases": true
+      },
+      "localReviewDisposition": "No new full review for mechanical test API compatibility and bounded comparison launch setting; shipping owner reviews remain current. Changed comparison must settle in hosted Linux CI.",
+      "remaining": [
+        "Current-head hosted CI and delayed complete feedback after consolidated push.",
+        "Current-source platform package artifacts and proof receipts.",
+        "Authorized merge then qualified engine synchronization and two temporary worktree removals."
+      ]
+    }
   }
 }
