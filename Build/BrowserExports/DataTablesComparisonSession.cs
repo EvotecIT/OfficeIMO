@@ -31,6 +31,8 @@ internal static class DataTablesComparisonSession {
                         int rows = spec.GetProperty("rows").GetInt32(), columns = spec.GetProperty("columns").GetInt32();
                         if (rows < 1 || rows > 1000000 || columns < 1 || columns > 100 || (long)rows * columns > 20000000)
                             throw new ArgumentException("Comparison shape exceeds the bounded 20-million-cell matrix.");
+                        if (spec.GetProperty("format").GetString() == "pdf" && columns > 20)
+                            throw new ArgumentException("The A3 PDF comparison supports at most 20 readable columns.");
                         if (identity != stack + "/" + browser || session is null) {
                             if (session is not null) await session.DisposeAsync(); session = null;
                             var engine = DataTablesInterop.Engines(new[] { "--engine=" + browser }).Single();
