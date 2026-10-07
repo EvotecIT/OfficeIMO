@@ -17,6 +17,9 @@ internal static class PdfExportVerifier {
             string text = value.GetString()!;
             if (!all.Contains(text, StringComparison.Ordinal)) throw new InvalidDataException(Path.GetFileName(path) + " lost required text (length " + text.Length + "): " + text.Substring(0, Math.Min(text.Length, 100)) + "; extracted prefix: " + all.Substring(0, Math.Min(all.Length, 200)));
         }
+        if (contract.TryGetProperty("forbidden", out JsonElement forbidden))
+            foreach (JsonElement value in forbidden.EnumerateArray())
+                if (all.Contains(value.GetString()!, StringComparison.Ordinal)) throw new InvalidDataException("PDF retained explicitly omitted metadata.");
         if (contract.TryGetProperty("repeated", out JsonElement repeated))
             foreach (string page in texts) foreach (JsonElement value in repeated.EnumerateArray())
                 if (!page.Contains(value.GetString()!, StringComparison.Ordinal)) throw new InvalidDataException("A PDF page lost a repeated heading.");

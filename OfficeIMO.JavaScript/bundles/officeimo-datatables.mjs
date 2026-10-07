@@ -5334,7 +5334,11 @@ function registerDataTablesButtons(host, options = {}) {
                             const info = call(table.buttons, "exportInfo", configuration);
                             const pdf = { ...current.pdf };
                             for (const key of ["title", "messageTop", "messageBottom"])
-                                if (member(configuration, key) != null) {
+                                if (member(configuration, key) !== undefined) {
+                                    if (member(configuration, key) === null) {
+                                        delete pdf[key];
+                                        continue;
+                                    }
                                     const text = member(info, key);
                                     if (typeof text !== "string")
                                         throw new TypeError("PDF " + key + " must resolve to text.");

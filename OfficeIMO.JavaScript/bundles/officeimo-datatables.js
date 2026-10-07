@@ -5285,7 +5285,7 @@ _modules.set("5400b1bdf75f5ec206e007f99ee4de5159fe611dc8cf950cc09123d8892fdc40",
 return _exports;
 })();
 
-const _m0 = _modules.get("9d771da1583bb0b40e1196c376894392609304dc94e3585f142ae726178bb288") ?? (() => {
+const _m0 = _modules.get("cff097b06b99dc82159acae6eb44e1146af68fe7ab1ba031327177f4365b17ad") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -5387,7 +5387,11 @@ function registerDataTablesButtons(host, options = {}) {
                             const info = call(table.buttons, "exportInfo", configuration);
                             const pdf = { ...current.pdf };
                             for (const key of ["title", "messageTop", "messageBottom"])
-                                if (member(configuration, key) != null) {
+                                if (member(configuration, key) !== undefined) {
+                                    if (member(configuration, key) === null) {
+                                        delete pdf[key];
+                                        continue;
+                                    }
                                     const text = member(info, key);
                                     if (typeof text !== "string")
                                         throw new TypeError("PDF " + key + " must resolve to text.");
@@ -5428,7 +5432,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m47.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("9d771da1583bb0b40e1196c376894392609304dc94e3585f142ae726178bb288", _exports);
+_modules.set("cff097b06b99dc82159acae6eb44e1146af68fe7ab1ba031327177f4365b17ad", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

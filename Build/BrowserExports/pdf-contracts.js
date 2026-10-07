@@ -102,10 +102,21 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
       await save('datatables',await OfficeIMO.exportDataTable(DataTable,table,'pdf',{pdf:{fonts,title:'Table PDF'},exportOptions:{modifier:{order:'index',search:'none'}}}),
         ['Table PDF','Łódź','Metrics','Totals','7200','Approved','Finance'],{rows:120,repeated:['Name','Amount','State']});
       let delivered;
-      OfficeIMO.registerDataTablesButtons(DataTable,{pdf:{fonts},save:async blob=>{delivered=blob;},onError:error=>{throw error;}});
+      const metadata={title:'Default title',messageTop:'Default above',messageBottom:'Default below'};
+      OfficeIMO.registerDataTablesButtons(DataTable,{pdf:{fonts,...metadata},save:async blob=>{delivered=blob;},onError:error=>{throw error;}});
       await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,{title:'Button report',pageSize:'LETTER',orientation:'landscape',exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
       if(!delivered) throw Error('PDF button failed to deliver its file.');
       await save('datatables-button',delivered,['Button report','Łódź','Metrics','Totals','Approved','Finance'],{rows:120});
+      for(const key of ['omitted','title','messageTop','messageBottom','all']) {
+        delivered=undefined;
+        const overrides=key==='omitted'?{}:key==='all'?{title:null,messageTop:null,messageBottom:null}:{[key]:null};
+        await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,
+          {...overrides,exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
+        if(!delivered)throw Error('PDF metadata button failed to deliver its file.');
+        const required=['Łódź'],forbidden=[];
+        for(const name of Object.keys(metadata))(key===name||key==='all'?forbidden:required).push(metadata[name]);
+        await save('datatables-metadata-'+key,delivered,required,{forbidden,rows:120});
+      }
     } finally {table.destroy(true);}
   }
   if(scale) for(const count of [10000,100000]) for(const width of [4,20]) for(const styled of [false,true]) {
