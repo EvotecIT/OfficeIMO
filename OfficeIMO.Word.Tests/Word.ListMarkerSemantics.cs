@@ -341,7 +341,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(item)!.Value;
         Assert.False(info.Ordered);
         Assert.Equal(WordNumberFormat.Bullet, info.NumberFormat);
-        Assert.Equal(7, info.Start);
+        Assert.Equal(1, info.Start); // A formatting-only override keeps the abstract start.
         Assert.Equal("◆", info.LevelText);
         Assert.Equal("Arial", info.MarkerFontFamily);
         Assert.Equal("FF0000", info.MarkerColorHex);
