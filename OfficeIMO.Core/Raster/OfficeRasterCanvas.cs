@@ -514,11 +514,12 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterImage(image,
             SamplingAxisLength(inverseTransform.M11, inverseTransform.M21) * image.Width * sourceWidth,
             SamplingAxisLength(inverseTransform.M12, inverseTransform.M22) * image.Height * sourceHeight);
 
-        (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -560,6 +561,7 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
