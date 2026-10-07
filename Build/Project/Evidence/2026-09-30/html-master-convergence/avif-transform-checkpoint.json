@@ -1,0 +1,288 @@
+{
+  "sourceCommit": "9b1baa2cc5c09a7ad069203f82bd227ef0289861",
+  "recordDate": "2026-10-01",
+  "previousCheckpoint": "avif-palette-checkpoint.json",
+  "scope": "Internal Main-8 reduced-still transform-size selection and ordered residual geometry. Transform types, coefficients and pixels are not implemented; public AVIF decoding/support unchanged.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TransformReader.Cdfs.cs": "1e0ec3b18b22ef03f9839a7269b2a6e93f1eb1de49790767434a848a971b3392",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TransformReader.Layout.cs": "352c84fe94d364b65fd64e2117d83e4b8447f6d5661ec1bcc2e2de0d072fdaf8",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TransformReader.cs": "53401c609e18c302d086c444c7a81032c99e43f99183d18b33b60ba53fa7603d",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TransformSize.cs": "94660db3ada78dcd8432f9d88788cb8932a8a97e9995f35f9b52913e0ce8fff2",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Transforms.cs": "fec04f46f72209ce9f5b431a4900e633d0754687349024e5ca11ae2276863f54",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "c5a23cb0b021d4395ea03241b7e097a45760a49ca32fe6d9af0ffa77ceaa9def",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePaletteFixtures.c": "4309c85f8b17b58731806fac3ec5f83aace618e9f7feaa1b2fe63ed73692cd37",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateTransformFixtures.c": "049e86b53f98893561d1244dee7e69d9661b2ea3753235036f2414e5a323606f",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateTransformFixtures.py": "6bf18320e2d5b3851567ce00ded46c4779f831bcf8cf9bb0eb7350919c57b467",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/transform-reference.json": "9c193c6a2478bebfa020897e4026a0f958c621111ca748dcc753cff4dfcc23a0"
+  },
+  "syntaxReferences": {
+    "spec": "AV1 sections 5.11.15-17, 5.11.34-38 and tx_depth/txfm_split CDF derivation",
+    "specSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+    "aomTag": "v3.13.1",
+    "nativeOwner": "Pinned AOM entropy/default CDFs; ORIGINAL normative transform grammar and full-grid geometry harness, not a full native image decoder."
+  },
+  "oracle": {
+    "receipt": {
+      "generatorSha256": "6bf18320e2d5b3851567ce00ded46c4779f831bcf8cf9bb0eb7350919c57b467",
+      "harnessSha256": "049e86b53f98893561d1244dee7e69d9661b2ea3753235036f2414e5a323606f",
+      "sharedPaletteHarnessSha256": "4309c85f8b17b58731806fac3ec5f83aace618e9f7feaa1b2fe63ed73692cd37",
+      "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "paletteReceiptSha256": "b335a441d092a10e14b252dfad34f89a7c3259f5fa8cb43a3a76119b62571fea",
+      "fixtureSha256": "9c193c6a2478bebfa020897e4026a0f958c621111ca748dcc753cff4dfcc23a0",
+      "cases": 150,
+      "leaves": 7526,
+      "depthContexts": [
+        106,
+        442,
+        374,
+        132,
+        252,
+        234,
+        72,
+        68,
+        26,
+        72,
+        58,
+        20
+      ],
+      "splitContexts": [
+        94,
+        66,
+        8,
+        146,
+        76,
+        20,
+        104,
+        98,
+        6,
+        106,
+        66,
+        10,
+        338,
+        332,
+        36,
+        490,
+        270,
+        46,
+        534,
+        460,
+        30
+      ],
+      "nativeSelfCheck": true,
+      "prefixes": 3
+    },
+    "freshReplayReceipt": {
+      "generatorSha256": "6bf18320e2d5b3851567ce00ded46c4779f831bcf8cf9bb0eb7350919c57b467",
+      "harnessSha256": "049e86b53f98893561d1244dee7e69d9661b2ea3753235036f2414e5a323606f",
+      "sharedPaletteHarnessSha256": "4309c85f8b17b58731806fac3ec5f83aace618e9f7feaa1b2fe63ed73692cd37",
+      "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "paletteReceiptSha256": "b335a441d092a10e14b252dfad34f89a7c3259f5fa8cb43a3a76119b62571fea",
+      "fixtureSha256": "9c193c6a2478bebfa020897e4026a0f958c621111ca748dcc753cff4dfcc23a0",
+      "cases": 150,
+      "leaves": 7526,
+      "depthContexts": [
+        106,
+        442,
+        374,
+        132,
+        252,
+        234,
+        72,
+        68,
+        26,
+        72,
+        58,
+        20
+      ],
+      "splitContexts": [
+        94,
+        66,
+        8,
+        146,
+        76,
+        20,
+        104,
+        98,
+        6,
+        106,
+        66,
+        10,
+        338,
+        332,
+        36,
+        490,
+        270,
+        46,
+        534,
+        460,
+        30
+      ],
+      "nativeSelfCheck": true,
+      "prefixes": 3
+    },
+    "freshReplayByteIdentical": true,
+    "priorFixtureSha256": {
+      "entropy": "edf6d3d84cc1018c05c7c356f0dfbeb67a3d02d0c030116b9610e199b9df74d5",
+      "partition": "7994ea863792505f7205839988148348d887fb8a32a949444eba8d2f50817901",
+      "prelude": "d572357c5b8d96d944966b01018fa8a7281464b1b192be60844a46a9f07039d3",
+      "mode": "11c27ee8e79434f1680f1557f1a8a7397ef173b54299a59ab9d08678871713fe",
+      "palette": "7d14d2326eb65b46212e8163906f97f1a1ae1abc64cbe7f91cb71f7dcc114a67",
+      "transform": "9c193c6a2478bebfa020897e4026a0f958c621111ca748dcc753cff4dfcc23a0"
+    },
+    "sizes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "blockSizes": 22,
+    "maximumResidualsPerLeaf": 1536,
+    "shiftedIndependentTiles": true,
+    "mixedRecursiveScenario": 110,
+    "frameEdgeExtentMi": 18,
+    "framePrefixes": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "offset": 302,
+        "length": 31,
+        "mode": 1,
+        "pixels": 32,
+        "preludeQ": 18,
+        "last": 3,
+        "grid": "03030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303",
+        "residuals": [
+          [
+            0,
+            0,
+            0,
+            3
+          ],
+          [
+            1,
+            0,
+            0,
+            2
+          ],
+          [
+            2,
+            0,
+            0,
+            2
+          ]
+        ]
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "offset": 447,
+        "length": 43,
+        "mode": 1,
+        "pixels": 32,
+        "preludeQ": 24,
+        "last": 3,
+        "grid": "03030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303",
+        "residuals": [
+          [
+            0,
+            0,
+            0,
+            3
+          ]
+        ]
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "offset": 298,
+        "length": 1189,
+        "mode": 2,
+        "pixels": 16,
+        "preludeQ": 112,
+        "last": 2,
+        "grid": "02020202020202020202020202020202",
+        "residuals": [
+          [
+            0,
+            0,
+            0,
+            2
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            0,
+            1
+          ]
+        ]
+      }
+    ]
+  },
+  "validation": {
+    "host": "Darwin arm64",
+    "sdk": "10.0.303",
+    "focusedTests": [
+      {
+        "framework": "net8",
+        "passed": 70,
+        "failed": 0,
+        "trx": "Ignore/HtmlUnknownPageQualification/static-gap-av1-transform-work-c731f26db/av1-transform-final-net8.trx",
+        "sha256": "cbb75cad7007db29dc478a18f6b7b89f59c448e4591864bd008a2e5c3dd32f04"
+      },
+      {
+        "framework": "net10",
+        "passed": 70,
+        "failed": 0,
+        "trx": "Ignore/HtmlUnknownPageQualification/static-gap-av1-transform-work-c731f26db/av1-transform-final-net10.trx",
+        "sha256": "93a5c132a7bf57a2a204e929e580f5bb8463b6b8b69d1a4afd10d4af098a6454"
+      }
+    ],
+    "filter": "FullyQualifiedName~DrawingAv1|FullyQualifiedName~DrawingAvifTests",
+    "coreBuild": {
+      "target": "netstandard2.0",
+      "configuration": "Release",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "localReview": {
+    "reason": "New parser, neighbor publication, bounds and residual traversal contract",
+    "reviewer": "/root/av1_transform_review",
+    "boundary": "current",
+    "diffFingerprint": "d595b96dae813af6168f3f940debf7a81b09c858",
+    "actionableFindings": 0,
+    "confirmationUsed": false
+  },
+  "limits": [
+    "No public AVIF pixel decoder or support-catalog claim added.",
+    "Synthetic copy-mode streams begin after externally supplied motion; real intra-block-copy motion is unfinished.",
+    "Three real first-leaf prefixes only; completed real leaves, coefficient/type syntax, full-tile termination, prediction, reconstruction, filters and composition remain unqualified.",
+    "Original AVIF HTML/PDF acceptance, completed-decoder H4/NASA/performance proof remain unfinished. Prior runtime evidence is unchanged, not re-qualified by these component tests.",
+    "Windows/net472 execution and Windows/Linux operation ceilings remain unqualified."
+  ],
+  "supportCatalogChanged": false,
+  "goalComplete": false,
+  "nextDeliverable": "Coefficient grammar including all-zero, transform type, end-of-block, levels/signs and evolving coefficient/type neighbor contexts, with bounded scans and native component/prefix proof."
+}

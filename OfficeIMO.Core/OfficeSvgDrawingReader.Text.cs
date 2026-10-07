@@ -33,6 +33,12 @@ public static partial class OfficeSvgDrawingReader {
         AddTextElementRuns(element, style, paintServers, references, drawing.Fonts, transform, preserve, false, viewX, viewY,
             drawing.Width, drawing.Height, runs, textPaths, observer: null, 0D, 0D, null, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
+        // Hidden runs can advance later visible descendants, but a wholly hidden text object has no painted font loss.
+        if (references.FontTextUsageObserver != null && runs.Any(run => run.Style.VisibilityVisible)) {
+            foreach (SvgTextRun run in runs) {
+                references.FontTextUsageObserver(run.Text, run.Style.FontFamily, OfficeFontFaceDescriptor.FromStyle(run.Style.FontStyle));
+            }
+        }
         ApplyTextAnchors(runs);
         ApplyTextPaths(runs, textPaths, references, viewX, viewY, observer: null, ref unsupported);
         foreach (SvgTextRun run in runs) {
@@ -320,8 +326,9 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style,
         OfficeFontFaceCollection fonts,
         out IOfficeFontProgram? program) {
-        program = fonts.ResolveForText(text, style.FontFamily, style.FontFace, out _)
-            ?? OfficeTrueTypeFont.TryLoadFontFamilyForText(style.FontFamily, style.FontFace, text, out _);
+        program = fonts.ResolveForText(text, style.FontFamily, style.FontFace, fontSize, out _)
+            ?? OfficeTrueTypeFont.TryLoadFontFamilyForText(style.FontFamily, style.FontFace, text, out _)
+                ?.ForInstalledOpticalSize(fontSize, style.FontFace.Weight >= 600);
         if (program != null) {
             double measured = program.Measure(text, fontSize);
             if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {

@@ -1,17 +1,20 @@
 using System.Globalization;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Tool.Commands.Html;
 
 internal enum HtmlCommandKind {
     Help,
     Convert,
+    Render,
     Capabilities
 }
 
 internal enum HtmlInputFormat {
     Auto,
     Html,
-    Mhtml
+    Mhtml,
+    SiteBundle
 }
 
 internal sealed class HtmlArguments {
@@ -31,11 +34,21 @@ internal sealed class HtmlArguments {
     internal string? BoldFontPath { get; private set; }
     internal string? ItalicFontPath { get; private set; }
     internal string? BoldItalicFontPath { get; private set; }
+    internal HtmlRenderIntentProfile RenderProfile { get; private set; } = HtmlRenderIntentProfile.ScreenFullPage;
+    internal HtmlRenderEncoder RenderEncoder { get; private set; } = HtmlRenderEncoder.Png;
+    internal HtmlRenderPageSet RenderPageSet { get; private set; } = HtmlRenderPageSet.All();
+    internal double? ViewportWidth { get; private set; }
+    internal double? ViewportHeight { get; private set; }
+    internal double Scale { get; private set; } = 1D;
+    internal long MaximumArchiveBytes { get; private set; } = HtmlRenderArchiveOptions.DefaultMaximumArchiveBytes;
+    internal int MaximumManifestBytes { get; private set; } = HtmlRenderArchiveOptions.DefaultMaximumManifestBytes;
     internal long MaxInputBytes { get; private set; } = DefaultMaxInputBytes;
     internal int MaxPages { get; private set; } = 10_000;
     internal bool Force { get; private set; }
     internal bool JsonCapabilities { get; private set; }
     internal List<string> StylesheetPaths { get; } = new List<string>();
+    internal HtmlSiteBundleOptions BundleOptions { get; } = new();
+    private bool _hasBundleOption;
 
     internal static HtmlArguments Parse(string[] args) {
         if (args == null) throw new ArgumentNullException(nameof(args));
@@ -44,10 +57,12 @@ internal sealed class HtmlArguments {
         var parsed = new HtmlArguments {
             Command = args[0].ToLowerInvariant() switch {
                 "convert" => HtmlCommandKind.Convert,
+                "render" => HtmlCommandKind.Render,
                 "capabilities" => HtmlCommandKind.Capabilities,
                 _ => throw new HtmlUsageException("Unknown command '" + args[0] + "'.")
             }
         };
+        if (parsed.Command == HtmlCommandKind.Convert) parsed.RenderProfile = HtmlRenderIntentProfile.PrintPaged;
 
         for (int index = 1; index < args.Length; index++) {
             string token = args[index];
@@ -55,8 +70,11 @@ internal sealed class HtmlArguments {
             if (parsed.Command == HtmlCommandKind.Capabilities && token != "--format") {
                 throw new HtmlUsageException("The capabilities command accepts only --format text|json.");
             }
-            if (parsed.Command == HtmlCommandKind.Convert && token == "--format") {
-                throw new HtmlUsageException("The convert command does not accept --format.");
+            if (parsed.Command == HtmlCommandKind.Convert && (token == "--format" || IsRenderOnlyOption(token))) {
+                throw new HtmlUsageException("The convert command does not accept " + token + ".");
+            }
+            if (parsed.Command == HtmlCommandKind.Render && (token == "--format" || token == "--pdf-ua-language")) {
+                throw new HtmlUsageException("The render command does not accept " + token + ".");
             }
             switch (token) {
                 case "--output":
@@ -65,6 +83,22 @@ internal sealed class HtmlArguments {
                     break;
                 case "--input-format":
                     parsed.InputFormat = ParseInputFormat(NextValue(args, ref index, token));
+                    break;
+                case "--entry-path":
+                    parsed.BundleOptions.EntryPath = NextValue(args, ref index, token);
+                    parsed._hasBundleOption = true;
+                    break;
+                case "--max-bundle-entry-bytes":
+                    parsed.BundleOptions.MaximumEntryBytes = ParseBoundedInt(NextValue(args, ref index, token), token, 1, int.MaxValue);
+                    parsed._hasBundleOption = true;
+                    break;
+                case "--max-bundle-decoded-bytes":
+                    parsed.BundleOptions.MaximumTotalDecodedBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    parsed._hasBundleOption = true;
+                    break;
+                case "--max-bundle-entries":
+                    parsed.BundleOptions.MaximumEntryCount = ParseBoundedInt(NextValue(args, ref index, token), token, 1, int.MaxValue);
+                    parsed._hasBundleOption = true;
                     break;
                 case "--stylesheet":
                     if (parsed.StylesheetPaths.Count >= MaxStylesheetCount) {
@@ -95,6 +129,30 @@ internal sealed class HtmlArguments {
                     break;
                 case "--max-pages":
                     parsed.MaxPages = ParseBoundedInt(NextValue(args, ref index, token), token, 1, 100_000);
+                    break;
+                case "--profile":
+                    parsed.RenderProfile = ParseRenderProfile(NextValue(args, ref index, token));
+                    break;
+                case "--encoder":
+                    parsed.RenderEncoder = ParseRenderEncoder(NextValue(args, ref index, token));
+                    break;
+                case "--pages":
+                    parsed.RenderPageSet = ParsePageSet(NextValue(args, ref index, token));
+                    break;
+                case "--viewport-width":
+                    parsed.ViewportWidth = ParsePositiveDouble(NextValue(args, ref index, token), token);
+                    break;
+                case "--viewport-height":
+                    parsed.ViewportHeight = ParsePositiveDouble(NextValue(args, ref index, token), token);
+                    break;
+                case "--scale":
+                    parsed.Scale = ParsePositiveDouble(NextValue(args, ref index, token), token);
+                    break;
+                case "--max-archive-bytes":
+                    parsed.MaximumArchiveBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    break;
+                case "--max-manifest-bytes":
+                    parsed.MaximumManifestBytes = ParseBoundedInt(NextValue(args, ref index, token), token, 1, int.MaxValue);
                     break;
                 case "--pdf-ua-language":
                     parsed.PdfUaLanguage = NextValue(args, ref index, token);
@@ -131,19 +189,50 @@ internal sealed class HtmlArguments {
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(InputPath)) throw new HtmlUsageException("The convert command requires <input.html|input.mhtml|->.");
+        if (Command == HtmlCommandKind.Convert
+            && !HtmlRenderProfileContracts.Get(RenderProfile).Encoders.Contains(HtmlRenderEncoder.Pdf)) {
+            throw new HtmlUsageException("The convert command requires a PDF-capable profile: print-paged, screen-media-paged or screen-snapshot-paged.");
+        }
+
+        if (string.IsNullOrWhiteSpace(InputPath)) throw new HtmlUsageException("The " + Command.ToString().ToLowerInvariant() + " command requires <input.html|input.mhtml|input.zip|->.");
         if (InputPath == "-" && InputFormat == HtmlInputFormat.Auto) {
-            throw new HtmlUsageException("Standard input requires --input-format html|mhtml.");
+            throw new HtmlUsageException("Standard input requires --input-format html|mhtml|site-bundle.");
         }
         if (string.IsNullOrWhiteSpace(OutputPath)) {
-            OutputPath = InputPath == "-" ? "-" : Path.ChangeExtension(InputPath, ".pdf");
+            OutputPath = InputPath == "-" ? "-" : Command == HtmlCommandKind.Render
+                ? Path.ChangeExtension(InputPath, ".render.zip")
+                : Path.ChangeExtension(InputPath, ".pdf");
         }
         if (InputPath != "-" && OutputPath != "-" && OfficeImoToolPathSafety.PathsEqual(InputPath!, OutputPath!)) {
             throw new HtmlUsageException("Input and output paths must be different.");
         }
+        if (OutputPath != "-") {
+            var resourceInputs = new List<string>(StylesheetPaths);
+            if (RegularFontPath != null) resourceInputs.Add(RegularFontPath);
+            if (BoldFontPath != null) resourceInputs.Add(BoldFontPath);
+            if (ItalicFontPath != null) resourceInputs.Add(ItalicFontPath);
+            if (BoldItalicFontPath != null) resourceInputs.Add(BoldItalicFontPath);
+            if (resourceInputs.Any(path => OfficeImoToolPathSafety.PathsEqual(path, OutputPath!))) {
+                throw new HtmlUsageException("Output path must be different from every stylesheet and font input path.");
+            }
+        }
         if (BaseUri != null && (!Uri.TryCreate(BaseUri, UriKind.Absolute, out Uri? uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeFile))) {
             throw new HtmlUsageException("--base-uri must be an absolute http, https, or file URI.");
+        }
+        if (ResolveInputFormat() == HtmlInputFormat.SiteBundle) {
+            if (MaxInputBytes > int.MaxValue) throw new HtmlUsageException("ZIP --max-input-bytes cannot exceed " + int.MaxValue + ".");
+            BundleOptions.MaximumArchiveBytes = MaxInputBytes;
+            if (BaseUri != null) {
+                var root = new Uri(BaseUri, UriKind.Absolute);
+                if (root.IsFile || root.UserInfo.Length != 0 || root.Query.Length != 0 || root.Fragment.Length != 0
+                    || !root.AbsolutePath.EndsWith("/", StringComparison.Ordinal)) {
+                    throw new HtmlUsageException("For ZIP input, --base-uri must be an HTTP(S) directory URI without credentials, query or fragment.");
+                }
+                BundleOptions.ArchiveBaseUri = root;
+            }
+        } else if (_hasBundleOption) {
+            throw new HtmlUsageException("Bundle entry and decoded limits require ZIP site-bundle input.");
         }
         if (PdfUaLanguage != null && string.IsNullOrWhiteSpace(PdfUaLanguage)) {
             throw new HtmlUsageException("--pdf-ua-language requires a non-empty language tag.");
@@ -160,14 +249,52 @@ internal sealed class HtmlArguments {
     internal HtmlInputFormat ResolveInputFormat() {
         if (InputFormat != HtmlInputFormat.Auto) return InputFormat;
         string extension = Path.GetExtension(InputPath!).ToLowerInvariant();
-        return extension is ".mhtml" or ".mht" ? HtmlInputFormat.Mhtml : HtmlInputFormat.Html;
+        return extension switch {
+            ".mhtml" or ".mht" => HtmlInputFormat.Mhtml,
+            ".zip" => HtmlInputFormat.SiteBundle,
+            _ => HtmlInputFormat.Html
+        };
     }
 
     private static HtmlInputFormat ParseInputFormat(string value) => value.ToLowerInvariant() switch {
         "html" or "htm" => HtmlInputFormat.Html,
         "mhtml" or "mht" => HtmlInputFormat.Mhtml,
-        _ => throw new HtmlUsageException("--input-format must be 'html' or 'mhtml'.")
+        "site-bundle" or "zip" => HtmlInputFormat.SiteBundle,
+        _ => throw new HtmlUsageException("--input-format must be 'html', 'mhtml' or 'site-bundle'.")
     };
+
+    private static HtmlRenderIntentProfile ParseRenderProfile(string value) => value.ToLowerInvariant() switch {
+        "screen-viewport" => HtmlRenderIntentProfile.ScreenViewport,
+        "screen-full-page" => HtmlRenderIntentProfile.ScreenFullPage,
+        "print-paged" => HtmlRenderIntentProfile.PrintPaged,
+        "screen-media-paged" => HtmlRenderIntentProfile.ScreenMediaPaged,
+        "screen-snapshot-paged" => HtmlRenderIntentProfile.ScreenSnapshotPaged,
+        "continuous-vector" => HtmlRenderIntentProfile.ContinuousVector,
+        _ => throw new HtmlUsageException("--profile must name a built-in HTML render profile.")
+    };
+
+    private static HtmlRenderEncoder ParseRenderEncoder(string value) => value.ToLowerInvariant() switch {
+        "png" => HtmlRenderEncoder.Png,
+        "svg" => HtmlRenderEncoder.Svg,
+        _ => throw new HtmlUsageException("--encoder must be 'png' or 'svg'.")
+    };
+
+    private static HtmlRenderPageSet ParsePageSet(string value) {
+        if (string.Equals(value, "all", StringComparison.OrdinalIgnoreCase)) return HtmlRenderPageSet.All();
+        if (string.Equals(value, "stitched", StringComparison.OrdinalIgnoreCase)) return HtmlRenderPageSet.Stitched();
+        int separator = value.IndexOf('-', StringComparison.Ordinal);
+        if (separator > 0 && separator < value.Length - 1 &&
+            int.TryParse(value.Substring(0, separator), NumberStyles.None, CultureInfo.InvariantCulture, out int first) &&
+            int.TryParse(value.Substring(separator + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int last) &&
+            first > 0 && last >= first) {
+            long count = (long)last - first + 1L;
+            if (count <= int.MaxValue) return HtmlRenderPageSet.Pages(first - 1, (int)count);
+        }
+        if (int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int page) && page > 0) {
+            return HtmlRenderPageSet.Page(page - 1);
+        }
+        throw new HtmlUsageException("--pages must be 'all', 'stitched', a one-based page number, or an inclusive range such as '2-4'.");
+    }
 
     private static string NextValue(string[] args, ref int index, string option) {
         if (++index >= args.Length || string.IsNullOrWhiteSpace(args[index])) {
@@ -191,7 +318,18 @@ internal sealed class HtmlArguments {
         return parsed;
     }
 
+    private static double ParsePositiveDouble(string value, string option) {
+        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+            parsed <= 0D || double.IsNaN(parsed) || double.IsInfinity(parsed)) {
+            throw new HtmlUsageException(option + " must be a finite positive number.");
+        }
+        return parsed;
+    }
+
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
+
+    private static bool IsRenderOnlyOption(string value) => value is
+        "--encoder" or "--max-archive-bytes" or "--max-manifest-bytes";
 }
 
 internal sealed class HtmlUsageException : Exception {

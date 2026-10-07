@@ -6,6 +6,37 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunSpacingTableSizingTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void TableShrinkingPreservesTabsAsLayoutControls(bool separateRun, bool styled) {
+        PdfTextRun Text(string text) {
+            var run = PdfTextRun.Normal(text);
+            return styled ? run.WithHorizontalTextScaling(50D).WithCharacterSpacing(1D) : run;
+        }
+        var runs = separateRun ? new[] { Text("A"), PdfTextRun.Tab(), Text("B") } : new[] { Text("A\tB") };
+        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D };
+        byte[] Render(bool shrink) => PdfDocument.Create(options).Table(new[] {
+            new[] { PdfTableCell.RichTextCell(runs) }
+        }, style: new PdfTableStyle {
+            FontSize = 12D, ShrinkTextToFit = shrink, HeaderRowCount = 0,
+            ColumnWidthPoints = new() { 100D }, CellPaddingX = 0D, CellPaddingY = 0D
+        }).ToBytes();
+        using var natural = PdfPigDocument.Open(Render(false));
+        using var shrunk = PdfPigDocument.Open(Render(true));
+        var before = natural.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        var after = shrunk.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("AB", string.Concat(after.Select(letter => letter.Value)));
+        Assert.Equal(2, before.Length);
+        for (int index = 0; index < after.Length; index++) {
+            Assert.Equal(before[index].StartBaseLine.X, after[index].StartBaseLine.X, 3);
+            Assert.Equal(before[index].StartBaseLine.Y, after[index].StartBaseLine.Y, 3);
+            Assert.Equal(before[index].FontSize, after[index].FontSize, 3);
+        }
+    }
+
+    [Theory]
     [InlineData(200D, 1D, 9.583333D, true)]
     [InlineData(50D, 1D, 30D, true)]
     [InlineData(200D, -1D, 11.25D, true)]

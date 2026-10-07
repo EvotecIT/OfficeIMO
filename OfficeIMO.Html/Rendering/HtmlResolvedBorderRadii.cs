@@ -44,8 +44,7 @@ internal readonly struct HtmlResolvedBorderRadii {
 
     internal double UniformRadius => IsUniformCircular ? TopLeftX : 0D;
 
-    // The circular shortcut tolerates nearly equal axes; Drawing primitives require exact bounds.
-    internal double GetUniformRadius(double width, double height) =>
+    internal double BoundedUniformRadius(double width, double height) =>
         Math.Min(UniformRadius, Math.Min(width, height) / 2D);
 
     private double MaximumRadius => Math.Max(

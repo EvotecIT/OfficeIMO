@@ -94,6 +94,17 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
+    private static bool MatchProviderSelectorFragment(OfficeIMO.Html.Css.IHtmlCssSelectorElement element, string selector) =>
+        element.Identity is IElement providerElement && MatchesSelector(providerElement, selector);
+
+    private static bool MatchesSelector(IElement element, StyleRule rule, HtmlCssProcessingBudget budget) =>
+        rule.OwnedSelector != null
+            ? rule.OwnedSelector.Matches(budget.SelectorElements.Get(element), budget.SelectorMatchContext)
+            : rule.ProviderSelector != null
+                ? rule.ProviderSelector.Match(element, element)
+                : MatchesSelector(element, TryParsePseudoElementSelector(rule.Selector, out string host, out _) ? host : rule.Selector);
+
+
     private static bool MatchesSimpleSelector(IElement element, string selector) {
         if (selector.StartsWith(".", StringComparison.Ordinal)) {
             return element.ClassList.Contains(selector.Substring(1));
@@ -144,6 +155,12 @@ public static partial class HtmlComputedStyleEngine {
         if (TryTrimPseudoElement(value, "::first-line", out hostSelector)
             || TryTrimPseudoElement(value, ":first-line", out hostSelector)) {
             kind = HtmlPseudoElementKind.FirstLine;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::placeholder", out hostSelector)
+            || TryTrimPseudoElement(value, "::-webkit-input-placeholder", out hostSelector)) {
+            kind = HtmlPseudoElementKind.Placeholder;
             return true;
         }
 

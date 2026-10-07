@@ -20,6 +20,7 @@ namespace OfficeIMO.Html.Pdf;
 public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
+    private double? _printLayoutWidthCssPixels;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
     private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions {
         CompressContentStreams = true
@@ -27,6 +28,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
+    internal DrawingCore.OfficePageSize? PrintOutputPageSize { get; set; }
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlToPdfOptions() {
         Mode = HtmlRenderMode.Paged;
@@ -63,6 +65,39 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     /// Disable this to retain the shared renderer's static control paint in the PDF.
     /// </summary>
     public bool InteractiveFormControls { get; set; } = true;
+
+    /// <summary>Optional caller-supplied modification date for generated Formula MathML associated files.</summary>
+    /// <remarks>Ordinary PDF does not invent a date. Archival profiles requiring embedded-file dates
+    /// must receive an explicit value. Formula associated files require PDF 2.0 unless the selected
+    /// PDF/A-3 profile permits them in PDF 1.7.</remarks>
+    public DateTimeOffset? MathMlSourceModificationDate { get; set; }
+
+    /// <summary>
+    /// Fits visible layout overflow, including fixed-width descendants and tables, into a
+    /// uniform CSS print page. Clipped descendants and paint-only shadows do not widen the
+    /// layout. Fitting retains the physical CSS media context and uses bounded reflow.
+    /// Named and page-specific rules require
+    /// an explicit fitting width. Set to false to retain unscaled print layout. An explicit
+    /// <see cref="PrintLayoutWidthCssPixels"/> takes precedence.
+    /// </summary>
+    public bool AutoFitWidePrintContent { get; set; } = true;
+
+    /// <summary>
+    /// Optional wider CSS layout width for print-to-page fitting. The PDF keeps <see cref="HtmlRenderOptions.PageSize"/>
+    /// as its physical size while the paged layout is uniformly reduced to fit its width.
+    /// CSS media queries and responsive resource selection continue to use <see cref="HtmlRenderOptions.ViewportWidth"/>.
+    /// When <see cref="HtmlRenderOptions.HonorCssPageRules"/> is true, the resolved authored page
+    /// size and margins remain the physical PDF geometry while the content is reduced to fit its
+    /// printable width. The requested width must exceed that printable width.
+    /// </summary>
+    public double? PrintLayoutWidthCssPixels {
+        get => _printLayoutWidthCssPixels;
+        set {
+            if (value.HasValue && (value.Value <= 0D || double.IsNaN(value.Value) || double.IsInfinity(value.Value)))
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _printLayoutWidthCssPixels = value;
+        }
+    }
 
     /// <summary>
     /// Maximum UTF-16 characters expanded into vector font outlines for one rendered text run.
@@ -128,6 +163,10 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
         InteractiveFormControls = source.InteractiveFormControls;
+        MathMlSourceModificationDate = source.MathMlSourceModificationDate;
+        PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
+        AutoFitWidePrintContent = source.AutoFitWidePrintContent;
+        PrintOutputPageSize = source.PrintOutputPageSize;
         MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
         MaxOutlinedTextPathCommands = source.MaxOutlinedTextPathCommands;
         PdfOptions = source.PdfOptions.Clone();

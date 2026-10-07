@@ -1,0 +1,734 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "958d8a58fb90fd5bae8361d8646191540ff2418e",
+  "sourceClean": true,
+  "tests": {
+    "net8Passed": 3858,
+    "net10Passed": 3858,
+    "focusedNet10Passed": 35,
+    "netstandard20Warnings": 0,
+    "h4AdvancedHeldOutPassed": 8,
+    "macosStaticBudget": "Passed"
+  },
+  "review": {
+    "fullReadOnlyPass": 1,
+    "targetedConfirmation": 1,
+    "validatedFindingsFixed": 4,
+    "remainingKnownFindings": 0
+  },
+  "browserFixture": {
+    "relativeDirectory": "Ignore/HtmlUnknownPageQualification/h10-margin-browser-probe-2b709ad06",
+    "expectedTargetPage": 2,
+    "expectedLayoutTargetY": 0,
+    "officeimoFinalPdfInspected": true
+  },
+  "pdfVariants": [
+    {
+      "intent": "officeimo-print",
+      "pageCount": 19,
+      "sha256": "26fe61b3e7d8a037e26d7e6883d90dcb9c1438e413d4f83d6f36d9fd4ebc53fc",
+      "baselineByteIdentical": false,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-print-zero-margin",
+      "pageCount": 16,
+      "sha256": "32ae2d14342477bb00493c6d42f1d3d46970a82592ce10a563d5795a08c7260f",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-print-fit-browser-viewport",
+      "pageCount": 16,
+      "sha256": "8226e2ee2bb6e9bc21d50d641ad5bbd9f7dff2b5d73561bca5b57c49370f7f8a",
+      "baselineByteIdentical": false,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-print-fit-1200",
+      "pageCount": 11,
+      "sha256": "6339f49163823157ff0c817e2b95b4b5f8e8b5f42d38a058f0705418b1d6f0ba",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pageCount": 11,
+      "sha256": "6339f49163823157ff0c817e2b95b4b5f8e8b5f42d38a058f0705418b1d6f0ba",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-print-browser-ua",
+      "pageCount": 16,
+      "sha256": "32ae2d14342477bb00493c6d42f1d3d46970a82592ce10a563d5795a08c7260f",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pageCount": 16,
+      "sha256": "32ae2d14342477bb00493c6d42f1d3d46970a82592ce10a563d5795a08c7260f",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 24,
+      "imageCount": 24
+    },
+    {
+      "intent": "officeimo-screen-media",
+      "pageCount": 21,
+      "sha256": "64756ed111d9c5feb92836f693b5d0519bd1bd451dd862b2bd66b4ab1c7c74bf",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 26,
+      "imageCount": 26
+    },
+    {
+      "intent": "officeimo-screen-media-local-fonts",
+      "pageCount": 21,
+      "sha256": "64756ed111d9c5feb92836f693b5d0519bd1bd451dd862b2bd66b4ab1c7c74bf",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 26,
+      "imageCount": 26
+    },
+    {
+      "intent": "officeimo-screen-snapshot",
+      "pageCount": 16,
+      "sha256": "208cfb093d609c4c8bcc468e72164380f89f8579c8583223d0893c29a00e432a",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 34,
+      "imageCount": 34
+    },
+    {
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pageCount": 16,
+      "sha256": "208cfb093d609c4c8bcc468e72164380f89f8579c8583223d0893c29a00e432a",
+      "baselineByteIdentical": true,
+      "textTokenMultisetPreserved": true,
+      "baselineImageCount": 34,
+      "imageCount": 34
+    }
+  ],
+  "changedPagePixelBounds": [
+    {
+      "intent": "officeimo-print",
+      "pageCount": 19,
+      "changedPages": [
+        {
+          "page": 4,
+          "differenceBounds": [
+            36,
+            756,
+            559,
+            795
+          ]
+        },
+        {
+          "page": 5,
+          "differenceBounds": [
+            36,
+            39,
+            559,
+            558
+          ]
+        },
+        {
+          "page": 14,
+          "differenceBounds": [
+            36,
+            714,
+            559,
+            795
+          ]
+        },
+        {
+          "page": 15,
+          "differenceBounds": [
+            36,
+            39,
+            559,
+            799
+          ]
+        },
+        {
+          "page": 16,
+          "differenceBounds": [
+            36,
+            51,
+            559,
+            763
+          ]
+        },
+        {
+          "page": 17,
+          "differenceBounds": [
+            36,
+            35,
+            559,
+            596
+          ]
+        }
+      ]
+    },
+    {
+      "intent": "officeimo-print-fit-browser-viewport",
+      "pageCount": 16,
+      "changedPages": [
+        {
+          "page": 2,
+          "differenceBounds": [
+            18,
+            797,
+            418,
+            828
+          ]
+        },
+        {
+          "page": 3,
+          "differenceBounds": [
+            17,
+            2,
+            575,
+            820
+          ]
+        },
+        {
+          "page": 4,
+          "differenceBounds": [
+            17,
+            2,
+            578,
+            585
+          ]
+        },
+        {
+          "page": 8,
+          "differenceBounds": [
+            18,
+            827,
+            49,
+            839
+          ]
+        },
+        {
+          "page": 9,
+          "differenceBounds": [
+            17,
+            11,
+            578,
+            615
+          ]
+        }
+      ]
+    }
+  ],
+  "firstBudgetRun": {
+    "generatedUtc": "2026-09-30T07:21:35.768167+00:00",
+    "sourceCommit": "958d8a58fb90fd5bae8361d8646191540ff2418e",
+    "sourceClean": true,
+    "runnerVersion": "1.0.0+958d8a58fb90fd5bae8361d8646191540ff2418e",
+    "manifestSha256": "ad84429c1bbccec1e2add012ba578d8a85ed140989c2c1ca01a5f87daf5b3928",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "framework": ".NET 10.0.11",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "failures": [
+      "pdf-print: conversion time exceeded the platform ceiling.",
+      "pdf-print-zero-margin: conversion time exceeded the platform ceiling."
+    ],
+    "operations": [
+      {
+        "name": "pdf-print",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 8323.8699,
+        "managedAllocatedBytes": 2104511768,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 421642240,
+          "sampleCount": 160,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "26fe61b3e7d8a037e26d7e6883d90dcb9c1438e413d4f83d6f36d9fd4ebc53fc",
+        "pageCount": 19
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 8653.6723,
+        "managedAllocatedBytes": 2108928208,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 446857216,
+          "sampleCount": 165,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "32ae2d14342477bb00493c6d42f1d3d46970a82592ce10a563d5795a08c7260f",
+        "pageCount": 16
+      },
+      {
+        "name": "pdf-screen-media",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 6761.3042,
+        "managedAllocatedBytes": 1648406384,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 445333504,
+          "sampleCount": 137,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "64756ed111d9c5feb92836f693b5d0519bd1bd451dd862b2bd66b4ab1c7c74bf",
+        "pageCount": 21
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4171.8508,
+        "managedAllocatedBytes": 1766276496,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 535592960,
+          "sampleCount": 119,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "208cfb093d609c4c8bcc468e72164380f89f8579c8583223d0893c29a00e432a",
+        "pageCount": 16
+      },
+      {
+        "name": "editable-word",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2703.6169,
+        "managedAllocatedBytes": 960838480,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 320389120,
+          "sampleCount": 77,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "60226e1c1cc3100825084e0350f6153162f9291d6f91be148f9d9be5ef6ce3ac",
+        "pageCount": null
+      },
+      {
+        "name": "editable-excel",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2106.0944,
+        "managedAllocatedBytes": 941019000,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 327892992,
+          "sampleCount": 62,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "9602f38d9a3a2018389db6d633fbc42c07c06d5d99a2d4f622725c79d4dd1ab1",
+        "pageCount": null
+      },
+      {
+        "name": "editable-powerpoint",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3665.1129,
+        "managedAllocatedBytes": 1027227352,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 348979200,
+          "sampleCount": 92,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "21c38bb26a4770064d894bee1d6194cc2b96e8590ae2a51be7218cc7fb984c74",
+        "pageCount": null
+      },
+      {
+        "name": "editable-onenote",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2093.8295,
+        "managedAllocatedBytes": 645693888,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 269484032,
+          "sampleCount": 58,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "868b84df26b6c7539e3ec7ae8b4ef58383ad4699cbc113f6375fe9923b9dcfaa",
+        "pageCount": null
+      },
+      {
+        "name": "editable-rtf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2210.8667,
+        "managedAllocatedBytes": 859282168,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 266059776,
+          "sampleCount": 62,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null
+      },
+      {
+        "name": "editable-markdown",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1432.8172,
+        "managedAllocatedBytes": 646490112,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 254099456,
+          "sampleCount": 46,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null
+      }
+    ]
+  },
+  "quietHostBudgetRun": {
+    "generatedUtc": "2026-09-30T07:26:42.777961+00:00",
+    "sourceCommit": "958d8a58fb90fd5bae8361d8646191540ff2418e",
+    "sourceClean": true,
+    "runnerVersion": "1.0.0+958d8a58fb90fd5bae8361d8646191540ff2418e",
+    "manifestSha256": "ad84429c1bbccec1e2add012ba578d8a85ed140989c2c1ca01a5f87daf5b3928",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "framework": ".NET 10.0.11",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "failures": [],
+    "operations": [
+      {
+        "name": "pdf-print",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4856.6281,
+        "managedAllocatedBytes": 2104521128,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 489013248,
+          "sampleCount": 146,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "26fe61b3e7d8a037e26d7e6883d90dcb9c1438e413d4f83d6f36d9fd4ebc53fc",
+        "pageCount": 19
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4842.0352,
+        "managedAllocatedBytes": 2108908864,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 415989760,
+          "sampleCount": 142,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "32ae2d14342477bb00493c6d42f1d3d46970a82592ce10a563d5795a08c7260f",
+        "pageCount": 16
+      },
+      {
+        "name": "pdf-screen-media",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3728.6005,
+        "managedAllocatedBytes": 1648458544,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 440909824,
+          "sampleCount": 117,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "64756ed111d9c5feb92836f693b5d0519bd1bd451dd862b2bd66b4ab1c7c74bf",
+        "pageCount": 21
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4115.3834,
+        "managedAllocatedBytes": 1766201624,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 548110336,
+          "sampleCount": 120,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "208cfb093d609c4c8bcc468e72164380f89f8579c8583223d0893c29a00e432a",
+        "pageCount": 16
+      },
+      {
+        "name": "editable-word",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2955.2692,
+        "managedAllocatedBytes": 960848344,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 321929216,
+          "sampleCount": 84,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "8cd2cc15fd2c43db6f34294d286fa539b91e9c4e8e13d8fa4082468e42c1f570",
+        "pageCount": null
+      },
+      {
+        "name": "editable-excel",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2167.468,
+        "managedAllocatedBytes": 941769536,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 346816512,
+          "sampleCount": 67,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "677234e6bf350169c4d608ee8f2908503e343f2ef0696ae9119ec12ac6a88a72",
+        "pageCount": null
+      },
+      {
+        "name": "editable-powerpoint",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3327.2168,
+        "managedAllocatedBytes": 1026545032,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 322797568,
+          "sampleCount": 92,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "48844507ad3211b5d5f66048877a15aa83c12152c64925b9e01cde10d7da8678",
+        "pageCount": null
+      },
+      {
+        "name": "editable-onenote",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1730.5712,
+        "managedAllocatedBytes": 645359744,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 236191744,
+          "sampleCount": 52,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "bc707f9ed6f7157b25e7698e3e2af72379449de47f0b6015d51cf372ea021337",
+        "pageCount": null
+      },
+      {
+        "name": "editable-rtf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1911.6206,
+        "managedAllocatedBytes": 859559048,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 285556736,
+          "sampleCount": 57,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null
+      },
+      {
+        "name": "editable-markdown",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1590.346,
+        "managedAllocatedBytes": 646966760,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 255426560,
+          "sampleCount": 49,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null
+      }
+    ]
+  },
+  "hostObservation": "After the first timing failure, unrelated Swift/Xcode compiler load was observed; no compiler processes were observed immediately before the passing rerun. Ceilings unchanged.",
+  "remainingLimits": [
+    "Planetary zero-margin table starts page 10 versus frozen Chromium page 9.",
+    "Fit-browser-viewport Rings heading fits at bottom of page 8 while its prose begins page 9; default print similarly separates Phases of Illumination. Heading placement remains unaccepted.",
+    "All ten conversion operations still report loss.",
+    "Windows/Linux H10 operation budgets remain unqualified."
+  ],
+  "comparator": {
+    "version": "0.9.19",
+    "failure": "WidthAndHeightCannotBeNegative in bookmark geometry",
+    "officeimoFailureCount": 0
+  }
+}

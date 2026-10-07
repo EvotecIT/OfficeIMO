@@ -1,0 +1,67 @@
+{
+  "baseCommit": "464211fc89dfba02dc9d1cd131c96faa4a75025c",
+  "recordedAt": "2026-10-01T14:53:44.421585+00:00",
+  "scope": "Native reference tooling and frozen Main10 post-superresolution observations only; no managed runtime changes or decoded support claims.",
+  "nativeReference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "upscaleSourceSha256": {
+      "av1/common/resize.c": "86432c307a87b05ce213fd72bdfa7343e1b28af6360650e4c1585fb8b18639b9",
+      "av1/common/convolve.c": "979df52cfcbe8046d9057aecc350b62128f8801c01a810e16988ca0e31e511dd"
+    },
+    "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+    "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+    "assetsSha256": {
+      "GenerateUpscaleFixtures.py": "ba8691fd0fa00a3f035a9995cbf5459b14cb1bfb94ab1f4333e201dccd6bb262",
+      "GenerateReconstructionFixtures.py": "83849acf40c853ea197b4239c2fa8e0d4da6ae895c28c7f000f51414d0eec668",
+      "TraceUpscale.patch": "d945760e9d24337d1c1b2165fec9437b1cb11aa8c6593e1850e0f5c7a0ddfbf6",
+      "OfficeUpscaleProbe.inc": "5b928e696174d3bf5db469f4134b9754b634002ecc06260235834f86093d51fd",
+      "OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+      "ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+      "ReadUpscaleKernels.c": "74d2946fa274836890245969b438858925cc9df7e406371283965fdd499d42ca",
+      "EncodeUpscaleControls.c": "70d022495b2c503b83bac0ab795438917f12b182c1c73952ec0c3c3daa5b6c33",
+      "cdef-main10-reference.json.gz": "b55eb9ae5380371f95bdb131c74c1cc2a86c990062aa92ff0950c390656c1c23",
+      "restored-reference.json.gz": "fb48f22fe5c7cd57adbf6fe9ca6c30fe1c9de79c302de5013b453dfec4eb3675"
+    },
+    "fixtureSha256": "66438a9cc80b084f55ba5e138729aecf7672bb19a7c9a036c8cdd540c9f2b155",
+    "canonicalJsonSha256": "c07dbc8648445e3dc30e0cc4873ff3822c2395b6e354ebbe484232630f13c9ce",
+    "cases": 26,
+    "activeUpscaleFrames": 10,
+    "kernels": 1280,
+    "lowBitPhases": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "eightBitRowsIdentical": 320,
+    "frameSamples": 814655
+  },
+  "validation": {
+    "fullNativeGeneration": "Passed all generator assertions, preserved sixteen previous CDEF/final native references and all 320 original eight-bit numeric rows.",
+    "managedRuntime": "Unchanged; prior CDEF checkpoint retains its validation boundary.",
+    "review": {
+      "task": "/root/avif_upscale_oracle_review",
+      "stagedDiffFingerprint": "645b4e4f3eed5caa17ebe0216dcb17149204d5c3",
+      "boundary": "current",
+      "result": "No actionable P0-P3",
+      "confirmationUsed": false,
+      "limit": "Read-only review did not rerun compilation/generation; primary completed generation and replay."
+    }
+  },
+  "remainingQualification": [
+    "Implement and compare the managed Main10 upscaler and frame stage against this fixture.",
+    "Main10 restoration, final color/alpha/default decode and packed/rendered acceptance.",
+    "Remaining static conversion cases and platform budgets."
+  ],
+  "cleanup": {
+    "frames": 26,
+    "kernels": 1280,
+    "eightBitRows": 320,
+    "result": "All CDEF/upscaled planes, final API image fields/YUV hashes and numeric outputs identical after cleanup.",
+    "removedBytes": 10399714,
+    "verifiedAbsent": true,
+    "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-upscale-work-464211fc8",
+    "retainedBytes": 3158344
+  }
+}

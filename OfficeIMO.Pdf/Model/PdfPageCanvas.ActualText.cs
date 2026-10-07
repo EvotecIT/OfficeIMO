@@ -32,10 +32,14 @@ public sealed partial class PdfPageCanvas {
         return AddActualText(text, x, y, hasPosition: true, build, width, height);
     }
 
+    /// <summary>Retains fragment paint and interactions without contributing a second logical text value.</summary>
+    internal PdfPageCanvas SuppressTextExtraction(Action<PdfPageCanvas> build) =>
+        AddActualText(string.Empty, 0D, 0D, hasPosition: false, build, allowEmpty: true);
+
     private PdfPageCanvas AddActualText(string text, double x, double y, bool hasPosition, Action<PdfPageCanvas> build,
-        double width = 0D, double height = 0D) {
+        double width = 0D, double height = 0D, bool allowEmpty = false) {
         Guard.NotNull(text, nameof(text));
-        if (text.Length == 0) throw new ArgumentException("Canvas actual text cannot be empty.", nameof(text));
+        if (text.Length == 0 && !allowEmpty) throw new ArgumentException("Canvas actual text cannot be empty.", nameof(text));
         Guard.NotNull(build, nameof(build));
         var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
         build(nestedCanvas);

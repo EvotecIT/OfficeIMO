@@ -1,0 +1,1079 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-01T18:58:02.135113+00:00",
+  "sourceCommit": "674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+  "sourceClean": true,
+  "runtimeChangeCommit": "4eb423fe634dc31401295c3d103c1f5c11966ba0",
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "frozenCase": {
+    "id": "language-hyphenation",
+    "htmlSha256": "56eacf004d583dd7e3f80e5dcfd264284e6c836942df5115ede6bd46d71cb2bd",
+    "archiveSha256": "30594fb5ef3d1d529d23ff85c462da0e21e8d7dfa10425f210bca6ee62207e93"
+  },
+  "contract": "Core embeds versioned US English and reformed German pattern resources. HTML hyphens:auto selects each run language; caller/manual rules retain precedence, empty and unsupported tags invent no automatic breaks, and generated hyphens are excluded from logical PDF text.",
+  "resourceManifest": {
+    "schemaVersion": 1,
+    "upstreamCommit": "5684c0f51c0b81133db2efbe60a408b4155a3ff5",
+    "resources": [
+      {
+        "language": "en-us",
+        "source": "https://raw.githubusercontent.com/hyphenation/tex-hyphen/5684c0f51c0b81133db2efbe60a408b4155a3ff5/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-en-us.tex",
+        "sourceSha256": "f4ffcd96c5cbc886bdad23f95dcae8edc3cd3620eae62f7946eceda97c4e68f8",
+        "resource": "OfficeIMO.Core/Typography/Hyphenation/en-us.patterns",
+        "resourceSha256": "bcc077f249ab81e3e7529a263b0bc23edb853dd9de8d14151dab976066e97332",
+        "patterns": 4938,
+        "exceptions": 14
+      },
+      {
+        "language": "de-1996",
+        "source": "https://raw.githubusercontent.com/hyphenation/tex-hyphen/5684c0f51c0b81133db2efbe60a408b4155a3ff5/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-de-1996.tex",
+        "sourceSha256": "374ad1ce3263f8a2791ec070ef9b516c532dae64456f3fb656e617e8ae53a9d3",
+        "resource": "OfficeIMO.Core/Typography/Hyphenation/de-1996.patterns",
+        "resourceSha256": "80dc5b36ea78f33a07960b60e5272f7234826cc9858ea9841a4448947c00d9a4",
+        "patterns": 36709,
+        "exceptions": 0
+      }
+    ]
+  },
+  "independentOracle": {
+    "pyphenVersion": "0.18.1",
+    "rows": [
+      {
+        "language": "en-US",
+        "word": "representation",
+        "points": [
+          3,
+          5,
+          8,
+          10
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "extraordinary",
+        "points": [
+          2,
+          5,
+          7,
+          9
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "internationalization",
+        "points": [
+          2,
+          5,
+          7,
+          11,
+          13,
+          16
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "typography",
+        "points": [
+          2,
+          5,
+          7
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "associate",
+        "points": [
+          2,
+          4
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "associates",
+        "points": [
+          2,
+          4
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "obligatory",
+        "points": [
+          5,
+          6
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "present",
+        "points": []
+      },
+      {
+        "language": "en-US",
+        "word": "presents",
+        "points": []
+      },
+      {
+        "language": "en-US",
+        "word": "project",
+        "points": []
+      },
+      {
+        "language": "en-US",
+        "word": "projects",
+        "points": []
+      },
+      {
+        "language": "en-US",
+        "word": "recognizance",
+        "points": [
+          2,
+          5,
+          7
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "philanthropic",
+        "points": [
+          4,
+          6
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "reciprocity",
+        "points": [
+          4
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "declination",
+        "points": [
+          3,
+          5,
+          7
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "reformation",
+        "points": [
+          3,
+          5,
+          7
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "retribution",
+        "points": [
+          3,
+          5,
+          7
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "table",
+        "points": [
+          2
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "hyphenation",
+        "points": [
+          2,
+          6
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "deterministic",
+        "points": [
+          2,
+          5,
+          8,
+          10
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "dictionary",
+        "points": [
+          3,
+          6
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "implementation",
+        "points": [
+          2,
+          5,
+          8,
+          10
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "compatibility",
+        "points": [
+          3,
+          6,
+          7,
+          10
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "concurrency",
+        "points": [
+          3,
+          6
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "exception",
+        "points": [
+          2,
+          5
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "university",
+        "points": [
+          3,
+          6
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "syllable",
+        "points": [
+          3,
+          5
+        ]
+      },
+      {
+        "language": "en-US",
+        "word": "mathematical",
+        "points": [
+          4,
+          5,
+          8,
+          9
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Silbentrennung",
+        "points": [
+          3,
+          6,
+          10
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Donaudampfschifffahrt",
+        "points": [
+          2,
+          5,
+          10,
+          16
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "außergewöhnlich",
+        "points": [
+          2,
+          5,
+          7,
+          11
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Bäckerei",
+        "points": [
+          2,
+          5
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Übertragung",
+        "points": [
+          4,
+          7
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Straße",
+        "points": [
+          4
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Rechtschreibung",
+        "points": [
+          5,
+          11
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Trennmuster",
+        "points": [
+          5,
+          8
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Hyphenation",
+        "points": [
+          2,
+          7,
+          9
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Zusammenarbeit",
+        "points": [
+          2,
+          5,
+          8,
+          10
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Veröffentlichung",
+        "points": [
+          3,
+          5,
+          9,
+          11
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Wiederverwendung",
+        "points": [
+          3,
+          6,
+          9,
+          12
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Möglichkeiten",
+        "points": [
+          3,
+          7,
+          10
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Datensicherheit",
+        "points": [
+          2,
+          5,
+          7,
+          11
+        ]
+      },
+      {
+        "language": "de-DE",
+        "word": "Benutzeroberfläche",
+        "points": [
+          2,
+          5,
+          8,
+          12,
+          15
+        ]
+      }
+    ]
+  },
+  "package": {
+    "file": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/feed-clean/OfficeIMO.Core.3.4.4.nupkg",
+    "sha256": "ff8d1b4ef73febb04c7c9d13f16c0acbf32300e8e775869a5a48084f09cfb6bf",
+    "assemblies": [
+      "lib/net10.0/OfficeIMO.Core.dll",
+      "lib/net8.0/OfficeIMO.Core.dll",
+      "lib/netstandard2.0/OfficeIMO.Core.dll"
+    ],
+    "externalRuntimeDependencies": 0,
+    "nativeAssets": [],
+    "noticeFiles": [
+      "Licenses/hyphenation-de-1996-LICENSE.txt",
+      "Licenses/hyphenation-en-us-LICENSE.txt",
+      "Typography/Hyphenation/manifest.json"
+    ],
+    "consumers": {
+      "net8.0": {
+        "cases": 43,
+        "matched": true,
+        "assembly": "OfficeIMO.Core, Version=3.4.4.0, Culture=neutral, PublicKeyToken=null",
+        "informationalVersion": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+        "assemblySha256": "53abdb19b36c74a6b99fb2378d08312280cff28442f1a1625567c67f0bdc97c7",
+        "matchesPackageAssembly": true
+      },
+      "net10.0": {
+        "cases": 43,
+        "matched": true,
+        "assembly": "OfficeIMO.Core, Version=3.4.4.0, Culture=neutral, PublicKeyToken=null",
+        "informationalVersion": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+        "assemblySha256": "9979bc4ce1bda748a9141ec490395529900f46fda7d09292ff1e8dd03678172a",
+        "matchesPackageAssembly": true
+      }
+    }
+  },
+  "validation": {
+    "tests": [
+      {
+        "file": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/test-results/drawing-full-net10.trx",
+        "sha256": "b5b53a546bd8138ae5d6c51b7a8f4cb99f621326c86ef08e42fe12d7e7d784dd",
+        "counters": {
+          "total": "3229",
+          "executed": "3229",
+          "passed": "3229",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/test-results/drawing-full-net8.trx",
+        "sha256": "5594aea8cf15def2b13c5fcf14a26f1b093299bc55dcb5950c9c89aecd8a8809",
+        "counters": {
+          "total": "3229",
+          "executed": "3229",
+          "passed": "3229",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/test-results/html-final-net10.trx",
+        "sha256": "429ae2f620a0df9870f2193c3c2b6c642da2e592be3de4a62132ac5bd9e39fe2",
+        "counters": {
+          "total": "4039",
+          "executed": "4039",
+          "passed": "4039",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/test-results/html-final-net8.trx",
+        "sha256": "183e92a18fd22cfc953f2ea149324ff5388770ca3c3fc7802d692dc53ca9cae1",
+        "counters": {
+          "total": "4039",
+          "executed": "4039",
+          "passed": "4039",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/test-results/first-line-owner-closure.trx",
+        "sha256": "3b0cb94f70cfa8985deb589dd9d02062602640fc41fcb429b0eab4b554f7545a",
+        "counters": {
+          "total": "54",
+          "executed": "54",
+          "passed": "54",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "testSourceBoundary": "Stable runtime candidate before commit; subsequent resource formatting changes normalize notice whitespace only. Corpus/package/budget qualification is rebuilt from the clean recorded commit.",
+    "netstandard2Build": "Core and HTML zero warnings/errors",
+    "localReview": "One independent read-only pass, then one targeted confirmation. Origin-language and selected-break findings reproduced through public render API. Float metadata and selection-policy siblings reproduced/fixed and closed by 54 focused cases plus full net8/net10 HTML suites. No known validated in-scope finding remains.",
+    "firstLineVisual": {
+      "pdf": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/first-line-proof.pdf",
+      "sha256": "fe0d2531d40a3972df9a1fce1aced3004385d016247e6312ceded3d8d523d2db",
+      "image": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/first-line-proof-96.png",
+      "inspected": true
+    },
+    "retainedTestSummary": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-work-d2e3d146c/test-result-summary.json",
+    "rawTrxRetention": "Consumed TRX files removed after counters/hashes were compacted; final test logs remain in the task evidence directory."
+  },
+  "frozenCaseEvidence": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-clean-674f67167/html-mhtml-evidence.json",
+    "reportSha256": "ca17d5dded0c809bc4e216217ed67785abb12887ef300897879806fe603876f9",
+    "sourceVersions": {
+      "Core": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "Email": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "HTML Core": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "HTML AngleSharp": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "HTML": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "HTML PDF": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "MHTML": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "MHTML PDF": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "PDF": "3.4.4+674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "evidence runner": "1.0.0+674f67167b74eafa0f0ec91a34b94f67eafdb82e"
+    },
+    "chromiumVersion": "151.0.7922.34",
+    "peachPdfVersion": "0.9.20",
+    "operations": [
+      {
+        "intent": "chromium-screen",
+        "sha256": "87aff382cf20e211159a994b09d28a0e3c81e39aa24023e93cc8a08c3676da14",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational‐\nization\nSilbentrennung\nDonaudampf‐\nschifffahrt\naußergewöhn‐\nlich\nunsupportedlanguage\nrepresen­ tation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "chromium-print",
+        "sha256": "87aff382cf20e211159a994b09d28a0e3c81e39aa24023e93cc8a08c3676da14",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational‐\nization\nSilbentrennung\nDonaudampf‐\nschifffahrt\naußergewöhn‐\nlich\nunsupportedlanguage\nrepresen­ tation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print",
+        "sha256": "a586783ea07f5697966000fbec9287e1912b504b1bdea00ece0eec05e6a33804",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "sha256": "a586783ea07f5697966000fbec9287e1912b504b1bdea00ece0eec05e6a33804",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "sha256": "351a63728b2e020a9e4482455cb01ed2694c6fc5ac4adbe6a982a978d959e8ca",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "sha256": "ea2666be4ef8eeaee55037d2be88ee848f04afe052de364b1004e9fa3dbbe08b",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "sha256": "ea2666be4ef8eeaee55037d2be88ee848f04afe052de364b1004e9fa3dbbe08b",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "sha256": "a586783ea07f5697966000fbec9287e1912b504b1bdea00ece0eec05e6a33804",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "sha256": "a586783ea07f5697966000fbec9287e1912b504b1bdea00ece0eec05e6a33804",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "sha256": "23971003cb335fed102a0d302375929a2eb9cdb772602ef93ee1d5896df7a3b6",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "sha256": "23971003cb335fed102a0d302375929a2eb9cdb772602ef93ee1d5896df7a3b6",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "sha256": "6dda0914ce5fbe597e0d6cf12c65ad77c769db7068939f7f5eae453dae232bdd",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "sha256": "6dda0914ce5fbe597e0d6cf12c65ad77c769db7068939f7f5eae453dae232bdd",
+        "pages": 1,
+        "sourceLetterStreamPreserved": true,
+        "logicalExtract": "language-hyphenation\nrepresentation\nextraordinary\ninternational\nization\nSilbentrennung\nDonaudampf\nschifffahrt au\nßergewöhnlich\nunsupportedlanguage\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [
+          "unsupported-font-ligature-substitution"
+        ],
+        "sourceLetterMultisetPreserved": true
+      },
+      {
+        "intent": "peachpdf-print",
+        "sha256": "8fd4c07ef69ae824af61dbbe62f72c65447d10f7ee71a704e9f64c826a01195d",
+        "pages": 1,
+        "sourceLetterStreamPreserved": false,
+        "logicalExtract": "representation\nextraordinary\ninternationalization\nSilbentrennung\nDonaudampfschifffahrt\naußergewöhnlich\nunsupportedlanguage\nlanguage-hyphenation\nrepresentation\nrepresentation\nEND-language-hyphenation\f",
+        "warningCodes": [],
+        "sourceLetterMultisetPreserved": true
+      }
+    ],
+    "visualsInspected": [
+      "all eleven OfficeIMO variants at 96 dpi",
+      "Chromium print",
+      "PeachPDF print",
+      "first-line ordinary/float/child-language PDF"
+    ]
+  },
+  "heldOut": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h4-clean-674f67167/html-corpus-evidence.json",
+    "cases": 8,
+    "acceptance": "Passed"
+  },
+  "nasa": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-nasa-clean-674f67167/html-mhtml-evidence.json",
+    "reportSha256": "b7f4ab5e347812136fc2af030ea473f679f1711ca11b00863a0fa2ee335543a2",
+    "acceptedArtifactDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c",
+    "operations": [
+      {
+        "intent": "officeimo-print",
+        "pageCount": 19,
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pageCount": 16,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "pageCount": 16,
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pageCount": 11,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pageCount": 11,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pageCount": 16,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pageCount": 16,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pageCount": 21,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pageCount": 21,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pageCount": 16,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "byteIdenticalToAccepted": true
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pageCount": 16,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "byteIdenticalToAccepted": true
+      }
+    ],
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "failures": []
+  },
+  "staticBudget": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-static-budget-clean-674f67167/html-static-budget.json",
+    "reportSha256": "04e8fbf246aaf0d37d4f9ad823e56357f187ad656110ef4b87b3221c7bbd81d8",
+    "platform": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceilingUnchanged": true,
+    "coldMs": 4709.742,
+    "warmMaximumMs": 2355.2103,
+    "deterministic": true,
+    "failures": []
+  },
+  "h10Budget": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/h10-budget.json",
+    "reportSha256": "0bccab89a92fac42e5dc5f71cff6552befd2e83f7a6ec46222d48ed26c02e04c",
+    "sourceCommit": "674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+    "sourceClean": true,
+    "ceilingUnchanged": true,
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4352.1327,
+        "managedAllocatedBytes": 2110054568,
+        "processMilliseconds": 4732.2392,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 483999744,
+          "sampleCount": 133,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/pdf-print/html-mhtml-evidence.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/pdf-print/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4396.4846,
+        "managedAllocatedBytes": 2114145464,
+        "processMilliseconds": 4756.5157,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 515620864,
+          "sampleCount": 134,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/pdf-print-zero-margin/html-mhtml-evidence.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/pdf-print-zero-margin/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3633.8892,
+        "managedAllocatedBytes": 1652655280,
+        "processMilliseconds": 4013.4244,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 441352192,
+          "sampleCount": 113,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/pdf-screen-media/html-mhtml-evidence.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/pdf-screen-media/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3616.8255,
+        "managedAllocatedBytes": 1772219816,
+        "processMilliseconds": 3997.7961,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 544899072,
+          "sampleCount": 113,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/pdf-screen-snapshot/html-mhtml-evidence.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/pdf-screen-snapshot/html-mhtml-evidence.json"
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2578.6397,
+        "managedAllocatedBytes": 962957152,
+        "processMilliseconds": 2788.4508,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 322830336,
+          "sampleCount": 76,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491243,
+        "outputSha256": "6f75b678b844922f71f9e8d362426baed3acdea6e6c71b3654ab0031c600c7f1",
+        "pageCount": null,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/editable-word/word/report.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/editable-word/word/report.json"
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1985.1951,
+        "managedAllocatedBytes": 896600800,
+        "processMilliseconds": 2162.4097,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 278708224,
+          "sampleCount": 57,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528667,
+        "outputSha256": "5f22eac3ac0ce114b958cb7bcc2eb993fa1b55f50d75d6451f6f9147f5752c25",
+        "pageCount": null,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/editable-excel/excel/report.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/editable-excel/excel/report.json"
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2511.3606,
+        "managedAllocatedBytes": 1026617016,
+        "processMilliseconds": 2700.2227,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 319815680,
+          "sampleCount": 72,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499696,
+        "outputSha256": "be8b7336875761af58ded6e4ecb5ff19c08552b10f8f4cca4da60ee7ea963834",
+        "pageCount": null,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/editable-powerpoint/powerpoint/report.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/editable-powerpoint/powerpoint/report.json"
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1483.1582,
+        "managedAllocatedBytes": 644800944,
+        "processMilliseconds": 1654.8168,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 269287424,
+          "sampleCount": 44,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "d3ee112d0389eaa9e51177fcd013cb40c93375bfb796b8be6f6afd04a9faaaca",
+        "pageCount": null,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/editable-onenote/onenote/report.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/editable-onenote/onenote/report.json"
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1775.3788,
+        "managedAllocatedBytes": 859704168,
+        "processMilliseconds": 1969.1915,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 264421376,
+          "sampleCount": 52,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/editable-rtf/rtf/report.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/editable-rtf/rtf/report.json"
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1420.6061,
+        "managedAllocatedBytes": 647190064,
+        "processMilliseconds": 1603.9835,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 253788160,
+          "sampleCount": 42,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null,
+        "reportPath": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/editable-markdown/markdown/report.json",
+        "retainedCompactReport": "Ignore/HtmlUnknownPageQualification/static-gap-hyphenation-h10-budget-clean-674f67167/compact-operation-reports/editable-markdown/markdown/report.json"
+      }
+    ],
+    "failures": []
+  },
+  "limitations": [
+    "Only documented US English and reformed German aliases are supported; other regions/spelling systems require an explicit caller resource.",
+    "Pattern lookup is bounded to 512 UTF-16 code units; unknown languages and non-word tokens retain unbroken fallback.",
+    "Frozen German wraps differ from Chromium; the pinned pattern oracle governs legal breaks. No browser pixel parity is claimed.",
+    "The existing unsupported-font-ligature-substitution warning remains; per-output reports retain it.",
+    "Windows/net472, Windows/Linux budget proof, and broader page-boundary/other-render-target language qualification remain unfinished.",
+    "Editable operations still report loss; the H10 budget is survival/cost evidence, not editable fidelity."
+  ],
+  "retention": "Keep the small language PDFs, source archive, oracle and receipts. New NASA PDFs duplicate the accepted directory byte-for-byte; compact reports preserve this clean-head check after duplicate output cleanup."
+}

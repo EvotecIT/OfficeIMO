@@ -58,9 +58,9 @@ public sealed class HtmlRenderImage : HtmlRenderVisual {
 
     internal byte[] EncodedBytes => _data.EncodedBytes;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderImage(_data, ContentType, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText, LinkUri, Source, SourceCrop, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderImage(_data, ContentType, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText, LinkUri, Source, SourceCrop, LayoutY);
 }

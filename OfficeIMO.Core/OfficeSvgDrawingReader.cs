@@ -53,6 +53,7 @@ public static partial class OfficeSvgDrawingReader {
         drawing = null;
         unsupportedFeatureCount = 0;
         options?.CancellationToken.ThrowIfCancellationRequested();
+        if (!TryResolveDefaultFontFamily(options, out string defaultFontFamily)) return false;
         if (!TryReadBoundedDocument(
                 bytes,
                 options,
@@ -80,15 +81,15 @@ public static partial class OfficeSvgDrawingReader {
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
-            var paintServers = new SvgPaintServerRegistry(definitions);
-            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer,
+            var paintServers = new SvgPaintServerRegistry(definitions, defaultFontFamily);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer, options?.FontTextUsageObserver,
                 options?.CancellationToken ?? default);
             bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
                 Math.Abs(viewportHeight - viewHeight) < 0.000001D;
             // Fitting a viewBox retains its full scene as an effect surface alongside
             // every child surface, even when the displayed viewport is tiny.
             if (!fitsRootViewport && !references.TryChargeIntermediateSurface(viewWidth, viewHeight)) return false;
-            SvgPaintContext rootDefaults = SvgPaintContext.Default;
+            SvgPaintContext rootDefaults = SvgPaintContext.CreateDefault(defaultFontFamily);
             rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
             var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
@@ -168,6 +169,11 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
+    private static bool TryResolveDefaultFontFamily(OfficeSvgDrawingReaderOptions? options, out string fontFamily) {
+        fontFamily = options?.DefaultFontFamily ?? "Arial";
+        return !string.IsNullOrWhiteSpace(fontFamily) && fontFamily.Length <= 1024;
+    }
+
     /// <summary>
     /// Returns whether an SVG payload is well formed and stays within the supplied parser and viewport safety limits,
     /// regardless of whether every valid SVG shape can be imported into an <see cref="OfficeDrawing"/>.
@@ -222,7 +228,9 @@ public static partial class OfficeSvgDrawingReader {
 
         try {
             var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
+                // Legacy SVG exports commonly declare the SVG 1.1 DTD. Ignore the
+                // declaration without resolving it or expanding custom entities.
+                DtdProcessing = DtdProcessing.Ignore,
                 XmlResolver = null,
                 MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
             };
@@ -237,6 +245,7 @@ public static partial class OfficeSvgDrawingReader {
             root = documentRoot;
             if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
             return TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels, allowUnresolvedViewport,
+                options?.ViewportWidth, options?.ViewportHeight,
                 out viewX, out viewY, out viewWidth, out viewHeight,
                 out viewportWidth, out viewportHeight);
         } catch (XmlException) {
@@ -254,6 +263,8 @@ public static partial class OfficeSvgDrawingReader {
         double maximumViewportDimension,
         double maximumViewportPixels,
         bool allowUnresolvedViewport,
+        double? hostViewportWidth,
+        double? hostViewportHeight,
         out double viewX,
         out double viewY,
         out double viewWidth,
@@ -262,6 +273,10 @@ public static partial class OfficeSvgDrawingReader {
         out double viewportHeight) {
         viewX = viewY = 0D;
         viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
+        if (hostViewportWidth.HasValue != hostViewportHeight.HasValue) return false;
+        bool hasHostViewport = hostViewportWidth.HasValue;
+        if (hasHostViewport && !IsSupportedSvgViewport(hostViewportWidth!.Value, hostViewportHeight!.Value,
+                maximumViewportDimension, maximumViewportPixels)) return false;
         // ChartForgeX selects the first XML attribute by case-insensitive local name for
         // raster output dimensions; inline CSS does not override this allocation sink.
         string? widthText = ReadRasterViewportAttribute(root, "width");
@@ -270,6 +285,8 @@ public static partial class OfficeSvgDrawingReader {
         bool hasDeclaredHeight = OfficeImageReader.TryParseSvgLength(heightText, out double declaredHeight);
         if ((!string.IsNullOrWhiteSpace(widthText) && !hasDeclaredWidth)
             || (!string.IsNullOrWhiteSpace(heightText) && !hasDeclaredHeight)) return false;
+        if ((hasDeclaredWidth && (declaredWidth <= 0D || declaredWidth > maximumViewportDimension))
+            || (hasDeclaredHeight && (declaredHeight <= 0D || declaredHeight > maximumViewportDimension))) return false;
         if (TryParseNumberList(ReadRasterProjectedAttribute(root, "viewBox"), out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
@@ -284,18 +301,25 @@ public static partial class OfficeSvgDrawingReader {
             if (hasDeclaredHeight) viewportHeight = declaredHeight;
             if (hasDeclaredWidth && !hasDeclaredHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
             if (!hasDeclaredWidth && hasDeclaredHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
+            if (!IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels)) return false;
+            if (hasHostViewport) {
+                viewportWidth = hostViewportWidth!.Value;
+                viewportHeight = hostViewportHeight!.Value;
+            }
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
+        }
+
+        if (hasHostViewport) {
+            viewWidth = viewportWidth = hostViewportWidth!.Value;
+            viewHeight = viewportHeight = hostViewportHeight!.Value;
+            return true;
         }
 
         bool hasIntrinsicWidth = hasDeclaredWidth;
         bool hasIntrinsicHeight = hasDeclaredHeight;
         double intrinsicWidth = declaredWidth;
         double intrinsicHeight = declaredHeight;
-        if ((hasIntrinsicWidth && intrinsicWidth > maximumViewportDimension) ||
-            (hasIntrinsicHeight && intrinsicHeight > maximumViewportDimension)) {
-            return false;
-        }
         if (hasIntrinsicWidth && hasIntrinsicHeight) {
             viewWidth = viewportWidth = intrinsicWidth;
             viewHeight = viewportHeight = intrinsicHeight;
@@ -1785,7 +1809,9 @@ public static partial class OfficeSvgDrawingReader {
             StrokePattern = paint.Pattern;
         }
 
-        internal static SvgPaintContext Default => new SvgPaintContext {
+        internal static SvgPaintContext Default => CreateDefault("Arial");
+
+        internal static SvgPaintContext CreateDefault(string fontFamily) => new SvgPaintContext {
             Color = OfficeColor.Black,
             Fill = OfficeColor.Black,
             Stroke = null,
@@ -1799,7 +1825,7 @@ public static partial class OfficeSvgDrawingReader {
             LineJoin = OfficeStrokeLineJoin.Miter,
             MiterLimit = 4D,
             FillRule = OfficeFillRule.NonZero,
-            FontFamily = "Arial",
+            FontFamily = fontFamily,
             FontSize = 16D,
             LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,

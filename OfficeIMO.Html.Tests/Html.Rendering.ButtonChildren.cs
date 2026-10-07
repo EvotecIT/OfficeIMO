@@ -6,6 +6,55 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlRendering_FlexButtonZeroPaddingLonghandsKeepItsAllocatedFrame() {
+        string html = "<div style='display:flex;width:200px'><button id='rich' style='box-sizing:content-box;"
+            + "padding-left:0;padding-right:0;border:1px solid'><span style='display:inline-block;width:48px;height:24px;background:red'></span>"
+            + "</button><span>After</span></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+        var shapes = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>().ToArray();
+        HtmlRenderShape button = Assert.Single(shapes, shape => shape.Source == "button#rich" && shape.Shape.FillColor.HasValue);
+        HtmlRenderShape child = Assert.Single(shapes, shape => shape.Source == "span" && shape.Shape.FillColor.HasValue);
+        Assert.Equal(50D, button.Width, 2);
+        Assert.True(child.X >= button.X && child.X + child.Width <= button.X + button.Width);
+    }
+
+    [Theory]
+    [InlineData("button", "<span>Visible</span>", "padding-left:0;padding-right:0;padding-top:0;padding-bottom:0")]
+    [InlineData("input", "", "padding-left:0;padding-right:0;padding-top:0;padding-bottom:0")]
+    [InlineData("button", "<span>Visible</span>", "padding-inline:0;padding-block:0")]
+    [InlineData("input", "", "padding-inline:0;padding-block:0")]
+    [InlineData("button", "<span>Visible</span>", "padding-inline-start:0;padding-inline-end:0;padding-block-start:0;padding-block-end:0")]
+    [InlineData("input", "", "padding-inline-start:0;padding-inline-end:0;padding-block-start:0;padding-block-end:0")]
+    public void HtmlRendering_ControlPaddingLonghandsOverrideDefaultChrome(string tag, string content, string padding) {
+        string html = "<" + tag + " id='control' value='Visible' style='box-sizing:content-box;width:80px;height:24px;border:1px solid;"
+            + padding + "'>" + content
+            + (tag == "button" ? "</button>" : "");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape shape = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),
+            item => item.Source == tag + "#control" && item.Shape.FillColor.HasValue);
+        Assert.Equal(82D, shape.Width, 2);
+        Assert.Equal(26D, shape.Height, 2);
+    }
+
+    [Theory]
+    [InlineData("block")]
+    [InlineData("flex")]
+    public void HtmlRendering_AutoWidthRichButtonKeepsStyledChildIntrinsicSize(string display) {
+        string html = "<div style='display:flex'><button id='rich' style='display:" + display
+            + ";padding:0 6px;border:1px solid #000'><span style='display:inline-block;width:48px;height:24px;background:red'></span>"
+            + "<span hidden>hidden label</span></button><span>After</span></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#rich" && shape.Shape.FillColor.HasValue);
+        Assert.Equal(62D, button.Width, 2);
+        Assert.DoesNotContain("hidden label", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("inline-block")]

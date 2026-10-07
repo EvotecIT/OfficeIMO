@@ -75,6 +75,9 @@ public sealed partial class HtmlRenderPage {
 
     internal HtmlCssRunningStringPageContext? RunningStrings => _runningStrings;
 
+    internal HtmlRenderPage WithScene(IEnumerable<HtmlRenderVisual> scene) =>
+        new(PageNumber, Width, Height, scene, PageName, _fonts, _runningStrings, Margins, PrintProduction);
+
     /// <summary>Creates a dependency-free drawing snapshot for PNG or SVG rendering.</summary>
     public OfficeDrawing CreateDrawing() => CreateDrawing(CancellationToken.None);
 
@@ -130,7 +133,7 @@ public sealed partial class HtmlRenderPage {
             // retain partial paint through a viewport clip and omit paint that
             // cannot intersect it instead of rejecting a valid HTML snapshot.
             if (text.X >= surfaceWidth || text.X + Math.Max(text.Width, text.TextPaintWidth ?? text.Width) <= 0D
-                || text.Y >= surfaceHeight || text.Y + text.Height <= 0D) return;
+                || text.Y - text.PaintTopOverflow >= surfaceHeight || text.Y + text.Height <= 0D) return;
             if (text.X < 0D || text.Y < 0D || text.X + text.Width > surfaceWidth || text.Y + text.Height > surfaceHeight) {
                 AddClipGroup(drawing, new HtmlRenderClipGroup(0D, 0D, surfaceWidth, surfaceHeight,
                     true, true, new[] { text }, text.PaintOrder, text.Source), surfaceWidth, surfaceHeight, fonts, cancellationToken);
@@ -237,7 +240,7 @@ public sealed partial class HtmlRenderPage {
         double surfaceWidth,
         double surfaceHeight,
         OfficeFontFaceCollection fonts) {
-        OfficeShape shape = visual.Shape.Clone();
+        OfficeShape shape = visual.InnerShape.Clone();
         // A canvas backdrop owns the complete last raster pixel even when content layout
         // produces a fractional page size. Ordinary boxes retain fractional area coverage.
         if ((visual.Source == "render-surface" || visual.Source == "render-root-background") &&
@@ -447,7 +450,7 @@ public sealed partial class HtmlRenderPage {
                     ? Math.Min(visual.Y, MinimumTop(layoutRegion.Visuals))
                 : visual is HtmlRenderLogicalTextGroup logicalTextGroup
                     ? Math.Min(visual.Y, MinimumTop(logicalTextGroup.Visuals))
-                    : visual.Y)
+                    : visual is HtmlRenderText text ? text.Y - text.PaintTopOverflow : visual.Y)
         .DefaultIfEmpty(0D)
         .Min();
 }

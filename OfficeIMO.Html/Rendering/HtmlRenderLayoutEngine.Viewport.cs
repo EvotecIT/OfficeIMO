@@ -41,7 +41,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             clipVertical,
             content,
             visuals.Count,
-            HtmlRenderStyleResolver.DescribeSource(_viewportOverflowElement) + ":viewport-overflow"));
+            HtmlRenderStyleResolver.DescribeSource(_viewportOverflowElement) + ":viewport-overflow",
+            isViewportOverflow: true));
     }
 
     private static bool IsSurfacePaint(HtmlRenderVisual visual) =>

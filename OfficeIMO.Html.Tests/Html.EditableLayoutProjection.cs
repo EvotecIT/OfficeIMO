@@ -444,8 +444,9 @@ public sealed class HtmlEditableLayoutProjectionTests {
         Assert.Equal(HtmlRenderLayoutRegionKind.Floating, region.RegionKind);
         Assert.Equal("right", region.FloatSide);
         Assert.Equal("Producer note", region.SourceText);
-        Assert.Contains("Column one content", projection.RenderedDocument.Text, StringComparison.Ordinal);
-        Assert.Contains("Column two continuation", projection.RenderedDocument.Text, StringComparison.Ordinal);
+        string flowText = System.Text.RegularExpressions.Regex.Replace(projection.RenderedDocument.Text, @"\s+", " ");
+        Assert.Contains("Column one content", flowText, StringComparison.Ordinal);
+        Assert.Contains("Column two continuation", flowText, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -6,6 +6,67 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingSvgReaderViewportTests {
     [Fact]
+    public void SvgReaderUsesBoundedHostViewportWhenMarkupHasNoIntrinsicSize() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg'>"
+            + "<line x1='10' y1='30' x2='300' y2='30' style='stroke:blue;stroke-width:20'/></svg>";
+        byte[] bytes = Encoding.UTF8.GetBytes(svg);
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes, out _));
+
+        var options = new OfficeSvgDrawingReaderOptions { ViewportWidth = 500D, ViewportHeight = 60D };
+        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(500D, drawing!.Width);
+        Assert.Equal(60D, drawing.Height);
+        OfficeDrawingShape line = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Blue, line.Shape.StrokeColor);
+        Assert.Equal(20D, line.Shape.StrokeWidth);
+    }
+
+    [Fact]
+    public void SvgReaderRejectsPartialOrOversizedHostViewports() {
+        byte[] bytes = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg'><rect width='10' height='10'/></svg>");
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes,
+            new OfficeSvgDrawingReaderOptions { ViewportWidth = 100D }, out _));
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes,
+            new OfficeSvgDrawingReaderOptions { ViewportWidth = 9000D, ViewportHeight = 60D }, out _));
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes,
+            new OfficeSvgDrawingReaderOptions { ViewportWidth = 5000D, ViewportHeight = 5000D }, out _));
+    }
+
+    [Fact]
+    public void SvgReaderHostViewportDoesNotHideOversizedAuthoredDimensions() {
+        string[] sources = {
+            "<svg xmlns='http://www.w3.org/2000/svg' width='1000000'><rect width='10' height='10'/></svg>",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='1000000' viewBox='0 0 100 50'><rect width='10' height='10'/></svg>",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='8000' viewBox='0 0 1 100'><rect width='1' height='100'/></svg>"
+        };
+        var options = new OfficeSvgDrawingReaderOptions { ViewportWidth = 500D, ViewportHeight = 60D };
+
+        foreach (string source in sources) {
+            byte[] bytes = Encoding.UTF8.GetBytes(source);
+            Assert.False(OfficeSvgDrawingReader.TryRead(bytes, options, out _));
+            Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes, options));
+        }
+    }
+
+    [Fact]
+    public void SvgReaderHostViewportPreservesViewBoxCoordinates() {
+        byte[] bytes = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 50'><rect x='10' y='5' width='20' height='10'/></svg>");
+        var options = new OfficeSvgDrawingReaderOptions { ViewportWidth = 500D, ViewportHeight = 300D };
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(500D, drawing!.Width);
+        Assert.Equal(300D, drawing.Height);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        Assert.Equal(5D, fitted.Transform.M11, 6);
+        Assert.Equal(5D, fitted.Transform.M22, 6);
+        Assert.Equal(25D, fitted.Transform.OffsetY, 6);
+        Assert.Single(fitted.InnerDrawing.Shapes);
+    }
+
+    [Fact]
     public void SvgReaderPreservesFractionalIntrinsicViewportDimensions() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10.25' height='5.125' viewBox='0 0 100 50'><rect width='100' height='50'/></svg>";
 

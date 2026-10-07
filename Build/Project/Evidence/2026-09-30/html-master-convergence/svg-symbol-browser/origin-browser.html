@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8"><title>SVG symbol origin probe</title><style>canvas { width:240px;height:120px;image-rendering:pixelated;border:1px solid #888; } .case {display:inline-block;margin:8px;} pre {max-height:180px;overflow:auto;}</style><h1>SVG symbol placement</h1><div id="samples"></div><pre id="result">Running</pre>
+<script>
+(async()=>{
+ const results=[];
+ for(const symbolViewBox of [false,true]) for(const nestedViewport of [false,true]) {
+  const attr=symbolViewBox?"viewBox='0 0 4 4'":"";
+  const content=`<defs><symbol id='tile' ${attr}><rect width='4' height='4'/></symbol></defs><use href='#tile' x='12' y='7' width='4' height='4' fill='red'/>`;
+  const svg=nestedViewport?`<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'><svg x='5' y='3' width='20' height='10' viewBox='10 5 20 10'>${content}</svg></svg>`:`<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='10 5 40 20'>${content}</svg>`;
+  const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
+  try {
+   const image=new Image();image.src=url;await image.decode();
+   const canvas=document.createElement('canvas');canvas.width=40;canvas.height=20;
+   const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);
+   const x=nestedViewport?8:3,y=nestedViewport?6:3;
+   const wrongX=nestedViewport?18:13,wrongY=nestedViewport?11:8;
+   results.push({symbolViewBox,nestedViewport,expected:{x,y,rgba:Array.from(ctx.getImageData(x,y,1,1).data)},wrong:{x:wrongX,y:wrongY,rgba:Array.from(ctx.getImageData(wrongX,wrongY,1,1).data)}});
+   const container=document.createElement('div');container.className='case';
+   const label=document.createElement('div');label.textContent=`symbol viewBox: ${symbolViewBox}; nested: ${nestedViewport}`;
+   container.append(label,canvas);document.getElementById('samples').append(container);
+  } finally {URL.revokeObjectURL(url);}
+ }
+ document.getElementById('result').textContent=JSON.stringify({userAgent:navigator.userAgent,results},null,2);
+})().catch(e=>document.getElementById('result').textContent=e.stack);
+</script>

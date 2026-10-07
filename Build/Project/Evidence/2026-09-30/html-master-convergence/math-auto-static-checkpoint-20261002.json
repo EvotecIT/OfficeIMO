@@ -1,0 +1,547 @@
+{
+  "schema": "officeimo.html.math-auto-static-checkpoint",
+  "sourceHead": "bd2c848a383ff9ea5bb2ef0e66ef2f91b78ceb5b",
+  "integrationBase": "8bff8db4f9c1daaa100a4843b164b1a0043ee8cd",
+  "scope": "Math-auto candidate qualified; eighteen-case acceptance remains in progress, not browser or conformance certification.",
+  "implementation": [
+    "Single-character MathML math-auto paint aliases preserve logical source text.",
+    "Effective identifier transform survives implicit, inherit and unset descendants; none/initial remain upright."
+  ],
+  "review": {
+    "independentReadOnlyPass": true,
+    "finding": "P2 effective transform lost through nested token descendants",
+    "closure": "Original and bare-parent inherit/unset variants reproduced and corrected; focused tests and Chromium fixture confirm."
+  },
+  "validation": {
+    "htmlNet8": {
+      "passed": 4180,
+      "failed": 0
+    },
+    "htmlNet10": {
+      "passed": 4180,
+      "failed": 0
+    },
+    "htmlNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "h4": {
+      "passed": 8,
+      "failed": 0
+    },
+    "staticCases": {
+      "completed": 18,
+      "executionFailures": 0,
+      "allOfficeImoPdfPngSvgBytesUnchangedFrom4883f629f": true
+    },
+    "browser": "23 token cases rendered and visually inspected, including nested inherit/unset; glyph selection agrees. Existing mfenced/browser delimiter difference remains, so no full geometry parity claim."
+  },
+  "staticPdfInspection": [
+    {
+      "id": "webp-raw-filters",
+      "pdfSha256": "87bcb845ce85fb1f4a7171a2ed804c298aefad85c07a8c938846e1424d33d12a",
+      "pages": 1,
+      "markerCounts": {
+        "webp-raw-filters": 1,
+        "FILTER-0": 1,
+        "FILTER-1": 1,
+        "FILTER-2": 1,
+        "FILTER-3": 1,
+        "END-webp-raw-filters": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 8,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-0.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-1.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-2.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-3.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        }
+      ]
+    },
+    {
+      "id": "webp-compressed-filters",
+      "pdfSha256": "2f174bf075d5dd2c96c46f414f694fd2fc17396eab7e9f8e15307bf580ef49d6",
+      "pages": 1,
+      "markerCounts": {
+        "webp-compressed-filters": 1,
+        "FILTER-0": 1,
+        "FILTER-1": 1,
+        "FILTER-2": 1,
+        "FILTER-3": 1,
+        "END-webp-compressed-filters": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 8,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-0.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-1.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-2.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-3.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        }
+      ]
+    },
+    {
+      "id": "avif-opaque",
+      "pdfSha256": "e4179493796a7b1ffee04318d6ca5f463ab203e338d1018c084a9a771df5a8ee",
+      "pages": 1,
+      "markerCounts": {
+        "avif-opaque": 1,
+        "END-avif-opaque": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 2,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/avif-opaque.rgba",
+          "maxRgbError": 2,
+          "maxAlphaError": 0
+        }
+      ]
+    },
+    {
+      "id": "avif-alpha",
+      "pdfSha256": "e0b060a133c63439589e81a0f625759b0ebb5564100227a86a1a08d40fea0dc7",
+      "pages": 1,
+      "markerCounts": {
+        "avif-alpha": 1,
+        "END-avif-alpha": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 2,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/avif-alpha.rgba",
+          "maxRgbError": 2,
+          "maxAlphaError": 0
+        }
+      ]
+    },
+    {
+      "id": "page-float-top",
+      "pdfSha256": "a43917cc9f6a4bdc114665dfab8336bcb587147d7c7712704929deee57e01cbc",
+      "pages": 2,
+      "markerCounts": {
+        "page-float-top": 1,
+        "BEFORE-00": 1,
+        "BEFORE-01": 1,
+        "BEFORE-02": 1,
+        "BEFORE-03": 1,
+        "BEFORE-04": 1,
+        "BEFORE-05": 1,
+        "BEFORE-06": 1,
+        "BEFORE-07": 1,
+        "BEFORE-08": 1,
+        "BEFORE-09": 1,
+        "BEFORE-10": 1,
+        "BEFORE-11": 1,
+        "BEFORE-12": 1,
+        "BEFORE-13": 1,
+        "BEFORE-14": 1,
+        "FLOAT-TOP": 1,
+        "AFTER-00": 1,
+        "AFTER-01": 1,
+        "AFTER-02": 1,
+        "AFTER-03": 1,
+        "AFTER-04": 1,
+        "AFTER-05": 1,
+        "AFTER-06": 1,
+        "AFTER-07": 1,
+        "AFTER-08": 1,
+        "AFTER-09": 1,
+        "AFTER-10": 1,
+        "AFTER-11": 1,
+        "AFTER-12": 1,
+        "AFTER-13": 1,
+        "AFTER-14": 1,
+        "AFTER-15": 1,
+        "AFTER-16": 1,
+        "AFTER-17": 1,
+        "AFTER-18": 1,
+        "AFTER-19": 1,
+        "AFTER-20": 1,
+        "AFTER-21": 1,
+        "AFTER-22": 1,
+        "AFTER-23": 1,
+        "AFTER-24": 1,
+        "AFTER-25": 1,
+        "AFTER-26": 1,
+        "AFTER-27": 1,
+        "AFTER-28": 1,
+        "AFTER-29": 1,
+        "AFTER-30": 1,
+        "AFTER-31": 1,
+        "AFTER-32": 1,
+        "AFTER-33": 1,
+        "AFTER-34": 1,
+        "END-page-float-top": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "page-float-bottom",
+      "pdfSha256": "4940aa09bcba5d51ee1948ef64c6e490f065485525669f7b5423b84170ac5c69",
+      "pages": 2,
+      "markerCounts": {
+        "page-float-bottom": 1,
+        "BEFORE-00": 1,
+        "BEFORE-01": 1,
+        "BEFORE-02": 1,
+        "BEFORE-03": 1,
+        "BEFORE-04": 1,
+        "BEFORE-05": 1,
+        "BEFORE-06": 1,
+        "BEFORE-07": 1,
+        "BEFORE-08": 1,
+        "BEFORE-09": 1,
+        "BEFORE-10": 1,
+        "BEFORE-11": 1,
+        "BEFORE-12": 1,
+        "BEFORE-13": 1,
+        "BEFORE-14": 1,
+        "FLOAT-BOTTOM": 1,
+        "AFTER-00": 1,
+        "AFTER-01": 1,
+        "AFTER-02": 1,
+        "AFTER-03": 1,
+        "AFTER-04": 1,
+        "AFTER-05": 1,
+        "AFTER-06": 1,
+        "AFTER-07": 1,
+        "AFTER-08": 1,
+        "AFTER-09": 1,
+        "AFTER-10": 1,
+        "AFTER-11": 1,
+        "AFTER-12": 1,
+        "AFTER-13": 1,
+        "AFTER-14": 1,
+        "AFTER-15": 1,
+        "AFTER-16": 1,
+        "AFTER-17": 1,
+        "AFTER-18": 1,
+        "AFTER-19": 1,
+        "AFTER-20": 1,
+        "AFTER-21": 1,
+        "AFTER-22": 1,
+        "AFTER-23": 1,
+        "AFTER-24": 1,
+        "AFTER-25": 1,
+        "AFTER-26": 1,
+        "AFTER-27": 1,
+        "AFTER-28": 1,
+        "AFTER-29": 1,
+        "AFTER-30": 1,
+        "AFTER-31": 1,
+        "AFTER-32": 1,
+        "AFTER-33": 1,
+        "AFTER-34": 1,
+        "END-page-float-bottom": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "page-float-snap",
+      "pdfSha256": "642b70082319e18834a5516480db5e47651ca2cb87eb38db71ad9c8f93072570",
+      "pages": 2,
+      "markerCounts": {
+        "page-float-snap": 1,
+        "BEFORE-00": 1,
+        "BEFORE-01": 1,
+        "BEFORE-02": 1,
+        "BEFORE-03": 1,
+        "BEFORE-04": 1,
+        "BEFORE-05": 1,
+        "BEFORE-06": 1,
+        "BEFORE-07": 1,
+        "BEFORE-08": 1,
+        "BEFORE-09": 1,
+        "BEFORE-10": 1,
+        "BEFORE-11": 1,
+        "BEFORE-12": 1,
+        "BEFORE-13": 1,
+        "BEFORE-14": 1,
+        "FLOAT-SNAP": 1,
+        "AFTER-00": 1,
+        "AFTER-01": 1,
+        "AFTER-02": 1,
+        "AFTER-03": 1,
+        "AFTER-04": 1,
+        "AFTER-05": 1,
+        "AFTER-06": 1,
+        "AFTER-07": 1,
+        "AFTER-08": 1,
+        "AFTER-09": 1,
+        "AFTER-10": 1,
+        "AFTER-11": 1,
+        "AFTER-12": 1,
+        "AFTER-13": 1,
+        "AFTER-14": 1,
+        "AFTER-15": 1,
+        "AFTER-16": 1,
+        "AFTER-17": 1,
+        "AFTER-18": 1,
+        "AFTER-19": 1,
+        "AFTER-20": 1,
+        "AFTER-21": 1,
+        "AFTER-22": 1,
+        "AFTER-23": 1,
+        "AFTER-24": 1,
+        "AFTER-25": 1,
+        "AFTER-26": 1,
+        "AFTER-27": 1,
+        "AFTER-28": 1,
+        "AFTER-29": 1,
+        "AFTER-30": 1,
+        "AFTER-31": 1,
+        "AFTER-32": 1,
+        "AFTER-33": 1,
+        "AFTER-34": 1,
+        "END-page-float-snap": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "column-float-left",
+      "pdfSha256": "9094f79744136e3385123d54ef355572dbc1c43580239dcd3555a778f469e1b5",
+      "pages": 1,
+      "markerCounts": {
+        "column-float-left": 1,
+        "COLUMN-LEFT": 1,
+        "COLBEFORE-00": 1,
+        "COLAFTER-37": 1,
+        "COLUMN-LINK": 1,
+        "END-column-float-left": 1
+      },
+      "links": [
+        "https://example.test/column-link"
+      ],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "column-float-top",
+      "pdfSha256": "7105b32841ec474ab3330afc7a296f872b3918a60edfb1b50bc3379564393cda",
+      "pages": 2,
+      "markerCounts": {
+        "column-float-top": 1,
+        "COLUMN-TOP": 1,
+        "COLBEFORE-00": 1,
+        "COLAFTER-37": 1,
+        "COLUMN-LINK": 1,
+        "END-column-float-top": 1
+      },
+      "links": [
+        "https://example.test/column-link"
+      ],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "column-float-bottom",
+      "pdfSha256": "183a76d4ba093c87f0251416ece30f1a2e5c707e52c2821e8e9bd92d0a41c7d6",
+      "pages": 2,
+      "markerCounts": {
+        "column-float-bottom": 1,
+        "COLUMN-BOTTOM": 0,
+        "COLBEFORE-00": 1,
+        "COLAFTER-37": 1,
+        "COLUMN-LINK": 1,
+        "END-column-float-bottom": 1
+      },
+      "links": [
+        "https://example.test/column-link"
+      ],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "column-notes",
+      "pdfSha256": "f40f2c3b69285ef3f2ab5debe18e55b4105b194eab3f5e849410c2e862edad35",
+      "pages": 3,
+      "markerCounts": {
+        "column-notes": 1,
+        "CALL-A": 1,
+        "NOTE-A": 1,
+        "CALL-B": 1,
+        "LONG-NOTE-00": 1,
+        "LONG-NOTE-34": 1,
+        "NOTE-TAIL-27": 1,
+        "END-column-notes": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "language-hyphenation",
+      "pdfSha256": "a586783ea07f5697966000fbec9287e1912b504b1bdea00ece0eec05e6a33804",
+      "pages": 1,
+      "markerCounts": {
+        "language-hyphenation": 1,
+        "END-language-hyphenation": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "svg-patterns",
+      "pdfSha256": "bef46c8ce493cfffa5ccfad42e137120525719b0ea79a7997f358e3d2c9dbb57",
+      "pages": 1,
+      "markerCounts": {
+        "svg-patterns": 1,
+        "END-svg-patterns": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "svg-filter-graph",
+      "pdfSha256": "f4e40be74838a91f7a66d2e718ab88a038258dfbc0ba9843626ea2b295aa82f6",
+      "pages": 1,
+      "markerCounts": {
+        "svg-filter-graph": 1,
+        "END-svg-filter-graph": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 2
+    },
+    {
+      "id": "svg-resources",
+      "pdfSha256": "0b718852e088082bd68901c4e995768d52bf2058d46cfee5f5a29183c7ff5934",
+      "pages": 1,
+      "markerCounts": {
+        "svg-resources": 1,
+        "END-svg-resources": 1
+      },
+      "links": [
+        "https://example.test/svg-link"
+      ],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "svg-resource-denied",
+      "pdfSha256": "455a1832503740adf5be62ef7a9779bd42873e2bad9486e882032d7fe1cccdb3",
+      "pages": 1,
+      "markerCounts": {
+        "svg-resource-denied": 1,
+        "DENIED-RESOURCE-SAFE-TEXT": 1,
+        "END-svg-resource-denied": 1
+      },
+      "links": [],
+      "requiredLinksPresent": true,
+      "imageDraws": 0
+    },
+    {
+      "id": "mathml-semantics",
+      "pdfSha256": "6beec7749e18ef8eab0c0444ec7e07e974e6d66997d23c0fb86933f10ef727f1",
+      "pages": 1,
+      "markerCounts": {
+        "mathml-semantics": 1,
+        "FORMULA-PREFIX": 1,
+        "FORMULA-SUFFIX": 1,
+        "MATH-LINK": 1,
+        "END-mathml-semantics": 1
+      },
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "requiredLinksPresent": true,
+      "imageDraws": 0,
+      "formulas": [
+        {
+          "alt": "x squared plus y over two",
+          "actualText": ""
+        }
+      ],
+      "attachments": [
+        "mathml-afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571.mathml"
+      ]
+    },
+    {
+      "id": "pdf-conformance",
+      "pdfSha256": "60c1707db39cd01f081378bc98f67abcc8c16fedcbbd98881c8d776c5034ec16",
+      "pages": 1,
+      "markerCounts": {
+        "pdf-conformance": 1,
+        "FORMULA-PREFIX": 1,
+        "FORMULA-SUFFIX": 1,
+        "MATH-LINK": 1,
+        "END-pdf-conformance": 1
+      },
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "requiredLinksPresent": true,
+      "imageDraws": 0,
+      "formulas": [
+        {
+          "alt": "x squared plus y over two",
+          "actualText": ""
+        }
+      ],
+      "attachments": [
+        "mathml-afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571.mathml"
+      ]
+    }
+  ],
+  "conformance": {
+    "pdfA3b": "Public policy emits bytes with explicit font embedding and MathMlSourceModificationDate; independent validator still required.",
+    "pdfUa1": "Public policy rejects Formula source attachment PDF 2.0 effective version and unnamed fraction-bar drawing; investigate policy and semantic ownership before acceptance."
+  },
+  "remaining": [
+    "Complete per-case full text, geometry and target assessment.",
+    "Independently validate exact archival PDF bytes and resolve or explicitly classify PDF/UA Formula boundary.",
+    "Packed static consumers and claimed platform evidence.",
+    "Broader OpenType MATH geometry stays a separate bounded contract."
+  ],
+  "artifacts": {
+    "h4": "Ignore/MathAutoQualification/h4-bd2c848a3",
+    "static": "Ignore/MathAutoQualification/static-gaps-bd2c848a3",
+    "browser": "Ignore/MathAutoQualification/implicit-inheritance-fixed-browser",
+    "conformance": "Ignore/MathAutoQualification/conformance-explicit-inputs"
+  }
+}

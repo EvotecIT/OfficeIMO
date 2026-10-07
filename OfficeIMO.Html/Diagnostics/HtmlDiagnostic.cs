@@ -108,11 +108,15 @@ public sealed class HtmlDiagnostic {
     internal HtmlDiagnostic WithLossKind(OfficeConversionLossKind lossKind) =>
         lossKind == LossKind ? this : new HtmlDiagnostic(this, lossKind);
 
-    private HtmlDiagnostic(HtmlDiagnostic source, OfficeConversionLossKind lossKind) {
+    /// <summary>Changes attribution after selection while preserving the exact source and target provenance.</summary>
+    internal HtmlDiagnostic WithImpact(HtmlDiagnosticSeverity severity, OfficeConversionLossKind lossKind) =>
+        new HtmlDiagnostic(this, lossKind, severity);
+
+    private HtmlDiagnostic(HtmlDiagnostic source, OfficeConversionLossKind lossKind, HtmlDiagnosticSeverity? severity = null) {
         Component = source.Component;
         Code = source.Code;
         Message = source.Message;
-        Severity = source.Severity;
+        Severity = severity ?? source.Severity;
         Source = source.Source;
         Detail = source.Detail;
         LossKind = source.Severity == HtmlDiagnosticSeverity.Error
