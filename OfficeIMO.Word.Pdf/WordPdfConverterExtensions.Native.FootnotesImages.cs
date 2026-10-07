@@ -10,13 +10,20 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, NativeNoteNumbering footnoteNumbersById) {
+        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, NativeNoteNumbering footnoteNumbersById,
+            List<PdfFootnote> documentEndnotes) {
             var footnotes = new List<PdfFootnote>();
             foreach (WordElement element in elements) {
                 CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0, tableDepth: 0);
             }
 
-            return footnotes;
+            if (!footnoteNumbersById.EndnotesAtDocumentEnd) return footnotes;
+            var sectionNotes = new List<PdfFootnote>(footnotes.Count);
+            foreach (PdfFootnote note in footnotes) {
+                if (note.IsEndnote) documentEndnotes.Add(note);
+                else sectionNotes.Add(note);
+            }
+            return sectionNotes;
         }
 
         private static void CollectNativeFootnotes(
@@ -126,7 +133,8 @@ namespace OfficeIMO.Word.Pdf {
 
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
-                Text = GetNativeEndnoteText(endNote)
+                Text = GetNativeEndnoteText(endNote),
+                IsEndnote = true
             });
         }
 
