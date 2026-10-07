@@ -45,7 +45,7 @@ public static partial class HtmlComputedStyleEngine {
         OfficeIMO.Html.Css.HtmlCssCascadeSourceKind source = OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
         string? selector = null,
         string? layerName = null,
-        bool enforceResolutionLimits = true) {
+        bool enforceResolutionLimits = true, string? deferredLayoutShorthand = null) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -72,6 +72,16 @@ public static partial class HtmlComputedStyleEngine {
                     customPropertyRegistrations: customPropertyRegistrations, deferredFontShorthand: true,
                     source: source, selector: selector, layerName: layerName,
                     enforceResolutionLimits: enforceResolutionLimits);
+            }
+        }
+
+        string[]? layoutLonghands = GetDeferredLayoutShorthandLonghands(name);
+        if (layoutLonghands != null && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            foreach (string longhand in layoutLonghands) {
+                ApplyDeclaration(properties, parentProperties, longhand, value, isImportant, specificity, order, layerOrder,
+                    valueAlreadyValidated: true, declarationOrder: declarationOrder,
+                    customPropertyRegistrations: customPropertyRegistrations, source: source, selector: selector, layerName: layerName,
+                    enforceResolutionLimits: enforceResolutionLimits, deferredLayoutShorthand: name.ToLowerInvariant());
             }
         }
 
@@ -148,12 +158,12 @@ public static partial class HtmlComputedStyleEngine {
         if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder, declarationOrder)) {
             properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder,
                 inheritsComputedValue: resolved.InheritsComputedValue, declarationOrder: declarationOrder,
-                deferredFontShorthand: deferredFontShorthand, authoredValue: value, source: source, selector: selector, layerName: layerName));
+                deferredFontShorthand: deferredFontShorthand, authoredValue: value, source: source, selector: selector, layerName: layerName, deferredLayoutShorthand: deferredLayoutShorthand));
             return;
         }
 
         properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing),
-            resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand, value, source, selector, layerName);
+            resolved.InheritsComputedValue, declarationOrder, deferredFontShorthand, value, source, selector, layerName, deferredLayoutShorthand);
     }
 
     private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {
@@ -190,6 +200,13 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         string trimmed = value.Trim();
+        if (string.Equals(name, "display", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase))) {
+            // Display's CSS initial value is inline, independently of HTML
+            // user-agent defaults. Revert still rolls back to those defaults.
+            return CssKeywordResolution.ForValue("inline");
+        }
         if (string.Equals(trimmed, "inherit", StringComparison.OrdinalIgnoreCase)
             || ((string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) && IsInheritedProperty(name, customPropertyRegistrations))) {

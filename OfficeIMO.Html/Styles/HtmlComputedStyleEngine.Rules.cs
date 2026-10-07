@@ -43,7 +43,7 @@ public static partial class HtmlComputedStyleEngine {
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectManagedPseudoElements(parseCss);
-            parseCss = PreserveFontShorthandDeclarations(parseCss);
+            parseCss = PreserveManagedDeclarations(parseCss);
             Dictionary<string, Queue<OfficeIMO.Html.Css.HtmlCssQualifiedRule>> ownedRules;
             OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext;
             try {
@@ -215,7 +215,7 @@ public static partial class HtmlComputedStyleEngine {
         string? providerCssText = null;
         for (int i = 0; ownedDeclarations == null && i < styleRule.Style.Length; i++) {
             string parsedPropertyName = styleRule.Style[i];
-            string propertyName = RestoreFontShorthandName(parsedPropertyName);
+            string propertyName = RestoreManagedDeclarationName(parsedPropertyName);
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 bool important = string.Equals(styleRule.Style.GetPropertyPriority(parsedPropertyName), "important", StringComparison.OrdinalIgnoreCase);
@@ -1068,7 +1068,7 @@ public static partial class HtmlComputedStyleEngine {
         string cssText,
         string propertyName) {
         if (ownedRule?.Declarations.Any(declaration => string.Equals(
-                RestoreFontShorthandName(declaration.Name), propertyName, StringComparison.OrdinalIgnoreCase)) == true) return true;
+                RestoreManagedDeclarationName(declaration.Name), propertyName, StringComparison.OrdinalIgnoreCase)) == true) return true;
         int open = cssText.IndexOf('{');
         int close = cssText.LastIndexOf('}');
         if (open < 0 || close <= open) return false;

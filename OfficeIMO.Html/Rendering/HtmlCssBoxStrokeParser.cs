@@ -266,25 +266,59 @@ internal static class HtmlCssBoxStrokeParser {
         return true;
     }
 
-    internal static bool IsSupportedBorderSyntax(string value) {
-        double width = 3D;
-        string style = "none";
-        OfficeColor color = OfficeColor.Black;
-        return TryParseStrokeShorthand(value, 100D, 16D, 16D, 100D, 100D, OfficeColor.Black, ref width, ref style, ref color);
+    internal static bool IsSupportedBorderSyntax(string value) =>
+        TryParseBorderComponents(value, out _, out _, out _);
+
+    internal static bool TryParseBorderComponents(string value, out string width, out string style, out string color) {
+        width = "medium";
+        style = "none";
+        color = "currentcolor";
+        bool widthSet = false;
+        bool styleSet = false;
+        bool colorSet = false;
+        IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
+        if (tokens.Count < 1 || tokens.Count > 3) return false;
+        foreach (string token in tokens) {
+            if (!widthSet && IsSupportedSideWidthSyntax(token)) {
+                width = token;
+                widthSet = true;
+            } else if (!styleSet && IsSupportedSideStyleSyntax(token)) {
+                style = token;
+                styleSet = true;
+            } else if (!colorSet && IsSupportedBorderColorSyntax(token)) {
+                color = token;
+                colorSet = true;
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     internal static bool IsSupportedOutlineSyntax(string value) {
         bool invert = false;
         return IsSupportedBorderSyntax(ReplaceOutlineInvertColor(value, ref invert));
     }
-    internal static bool IsSupportedWidthSyntax(string value) => TryParseWidths(value, 100D, 16D, 16D, 100D, 100D, out _);
+    internal static bool IsSupportedWidthSyntax(string value) {
+        IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
+        return tokens.Count >= 1 && tokens.Count <= 4 && tokens.All(IsSupportedSideWidthSyntax);
+    }
     internal static bool IsSupportedStyleSyntax(string value) => TryParseStyles(value, out _);
     internal static bool IsSupportedColorSyntax(string value) => TryParseColors(value, OfficeColor.Black, out _);
-    internal static bool IsSupportedSideWidthSyntax(string value) => TryStrokeWidth(value, 100D, 16D, 16D, 100D, 100D, out _);
+    internal static bool IsSupportedSideWidthSyntax(string value) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized is "thin" or "medium" or "thick") return true;
+        // Math is syntax-checked here; its sign depends on the actual font,
+        // viewport and container context used later by the paint parser.
+        return HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
+            && HtmlRenderCssValues.TryLength(normalized, 100D, 16D, 16D, 100D, 100D, out double width)
+            && (normalized.IndexOf('(') >= 0 || width >= 0D);
+    }
     internal static bool IsSupportedSideStyleSyntax(string value) => TryStrokeStyle(value, out _);
     internal static bool IsSupportedSideColorSyntax(string value) =>
         string.Equals(value.Trim(), "invert", StringComparison.OrdinalIgnoreCase)
         || TryStrokeColor(value, OfficeColor.Black, out _);
+    internal static bool IsSupportedBorderColorSyntax(string value) => TryStrokeColor(value, OfficeColor.Black, out _);
 
     private static string ReplaceOutlineInvertColor(string value, ref bool invertColor) {
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);

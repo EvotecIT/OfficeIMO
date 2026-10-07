@@ -166,9 +166,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (tag == "button") {
             string label = ResolveButtonLabel(element, type);
-            IReadOnlyList<GridIntrinsicTextRun> content = ResolveGridInFlowTextRuns(
+            IReadOnlyList<IntrinsicTextRun> content = ResolveInFlowIntrinsicTextRuns(
                 new FlexItem(element, style, 0), availableWidth);
-            double contentWidth = content.Count == 0 ? 0D : MeasureGridMaxContentRuns(content);
+            double contentWidth = content.Count == 0 ? 0D : MeasureMaxContentRuns(content);
             return label.Length == 0
                 ? contentWidth
                 : Math.Max(44D, Math.Max(MeasureInlineText(label, style), contentWidth) + 12D);

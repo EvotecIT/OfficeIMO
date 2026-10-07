@@ -157,18 +157,7 @@ public sealed partial class PdfOptions {
             }
         }
 
-        if (candidates.Count == 0) return false;
-        candidates = candidates
-            .GroupBy(candidate => candidate.FontName, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First())
-            .ToList();
-        PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedSlots).ToArray();
-        if (slots.Length == 0) return false;
-        if (slots.Length < candidates.Count) {
-            candidates = SelectPreferredEmbeddedFallbackCandidates(candidates, slots.Length, requiredText);
-        }
-        RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
-        return true;
+        return RegisterAutomaticFontFallbackCandidates(candidates, reservedSlots);
     }
 
     private static void AddInstalledRunFallbackCandidates(
@@ -269,59 +258,41 @@ public sealed partial class PdfOptions {
             return false;
         }
 
-        PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedFontSlots ?? Array.Empty<PdfStandardFont>()).ToArray();
-        if (slots.Length == 0) {
-            return false;
+        return RegisterAutomaticFontFallbackCandidates(candidates, reservedFontSlots ?? Array.Empty<PdfStandardFont>());
+    }
+
+    /// <summary>
+    /// Keeps every resolved automatic fallback when compatibility slots are occupied,
+    /// using distinct named resources without replacing caller fonts.
+    /// </summary>
+    internal bool RegisterAutomaticFontFallbackCandidates(
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidates,
+        IEnumerable<PdfStandardFont> reservedFontSlots) {
+        if (_embeddedFontFallbacks != null) return true;
+        if (candidates.Count == 0) return false;
+        PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedFontSlots).ToArray();
+        if (slots.Length == candidates.Count) {
+            RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
+            return true;
         }
 
-        if (slots.Length < candidates.Count) {
-            candidates = SelectPreferredEmbeddedFallbackCandidates(candidates, slots.Length, requiredText);
+        // Reserve fresh names even when a caller family has the same regular bytes:
+        // installing a regular-only fallback must not replace its styled faces.
+        var prospectiveFamilies = _namedFontFamilies == null
+            ? new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal)
+            : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
+        var namedCandidates = new List<PdfEmbeddedFontFallbackCandidate>(candidates.Count);
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
+            string name = CreatePromotedFallbackFamilyName(candidate.FontName, PdfStandardFont.Helvetica, prospectiveFamilies);
+            namedCandidates.Add(new PdfEmbeddedFontFallbackCandidate(
+                name, candidate.DataSnapshot, candidate.UnicodeRanges, candidate.Style, candidate.PlannerFamilyName));
+            prospectiveFamilies.Add(NormalizeNamedFontFamilyKey(name), new PdfEmbeddedFontFamily(name, candidate.DataSnapshot));
         }
-
-        RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
+        RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(namedCandidates));
+        // Only these automatic registrations belong to the fallback lifecycle.
+        // A later caller registration transfers the family out of this set.
+        _automaticFallbackOwnedNamedFamilyKeys = new HashSet<string>(
+            namedCandidates.Select(candidate => NormalizeNamedFontFamilyKey(candidate.FontName)), StringComparer.Ordinal);
         return true;
     }
-
-    private static List<PdfEmbeddedFontFallbackCandidate> SelectPreferredEmbeddedFallbackCandidates(
-        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidates,
-        int slotCount,
-        string? requiredText = null) {
-        var selected = new List<PdfEmbeddedFontFallbackCandidate>();
-        if (slotCount <= 0) {
-            return selected;
-        }
-
-        if (!string.IsNullOrEmpty(requiredText)) {
-            selected.AddRange(candidates.Take(slotCount));
-            return selected;
-        }
-
-        foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
-            if (selected.Count == slotCount) {
-                return selected;
-            }
-
-            if (!selected.Contains(candidate) && !IsEmojiFallbackCandidate(candidate)) {
-                selected.Add(candidate);
-            }
-        }
-
-        foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
-            if (selected.Count == slotCount) {
-                return selected;
-            }
-
-            if (!selected.Contains(candidate)) {
-                selected.Add(candidate);
-            }
-        }
-
-        return selected;
-    }
-
-    private static bool IsEmojiFallbackCandidate(PdfEmbeddedFontFallbackCandidate candidate) =>
-        System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(
-            candidate.FontName,
-            "Emoji",
-            System.Globalization.CompareOptions.IgnoreCase) >= 0;
 }

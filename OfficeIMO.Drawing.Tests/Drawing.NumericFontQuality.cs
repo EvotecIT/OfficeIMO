@@ -78,6 +78,8 @@ public sealed class DrawingNumericFontQualityTests {
     [InlineData(300, "bolder", 400)]
     [InlineData(400, "bolder", 700)]
     [InlineData(700, "bolder", 900)]
+    [InlineData(950, "bolder", 950)]
+    [InlineData(50, "lighter", 50)]
     public void RelativeSvgWeightsUseTheInheritedNumericWeight(int inherited, string relative, int expected) {
         string svg = $"<svg xmlns='http://www.w3.org/2000/svg' width='200' height='90'><g font-weight='{inherited}'><text x='10' y='50' font-size='20' font-weight='{relative}'>A</text></g></svg>";
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out var drawing, out int unsupported));

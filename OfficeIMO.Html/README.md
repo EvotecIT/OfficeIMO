@@ -445,6 +445,14 @@ an isolated render clone.
 
 Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Auto layout considers cell text, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
 
+Visibility follows the active CSS media and computed `display`. The `hidden` attribute supplies a `display:none` default that author CSS can override, including print rules that reveal report sections. Hidden inline breaks and table cells do not participate in layout. CSS `initial`, `unset`, `inherit`, and cascade reversion retain their distinct display behavior.
+
+Supported inline SVG font and paint presentation attributes participate in the CSS cascade before layout. A label's `font-family`, `font-size` and `font-weight` attributes can override inherited HTML fonts, while author CSS and inline declarations retain their cascade priority. Relative font weights resolve once before inheritance, and nested text adds a baseline shift only when that element declares one.
+
+An authored `<details>` disclosure without `open` renders its first `<summary>` and hides its remaining content. Hidden disclosure content does not size table columns, flex/grid tracks or shrink-to-fit boxes, consume image resources, advance generated counters or footnote numbering, or contribute PDF bookmarks. Adding `open` includes the body; a closed outer disclosure also hides nested disclosures. For a complete report export, prepare script-free HTML with the intended disclosures explicitly open and all required sections and dataset rows materialized. The static renderer does not execute `beforeprint` handlers.
+
+CSS corner radii scale proportionally to fit the used box before creating rounded shapes and clips. Fractional dimensions and narrow form-control tracks retain rounded geometry within the shared drawing bounds.
+
 The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
 including nested scripts. Logical replacement text owns its painted content once, so independent
 PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image

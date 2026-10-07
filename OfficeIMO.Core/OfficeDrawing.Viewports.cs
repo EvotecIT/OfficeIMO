@@ -22,6 +22,7 @@ public sealed partial class OfficeDrawing {
         for (int index = 0; index < content._elements.Count; index++) {
             OfficeDrawingElement element = content._elements[index];
             if (element is OfficeDrawingEffectGroup effect && effect.Transform.TryInvert(out OfficeTransform inverse)) {
+                if (effect.HasCompleteLocalPaintBounds) continue;
                 var visible = inverse.TransformRectangleBounds(left, top, width, height);
                 if (!effect.InnerDrawing.TryExpandViewportCanvas(visible.Left, visible.Top, visible.Right, visible.Bottom,
                         maximumDimension, maximumPixels, out OfficeDrawing child, out double childLeft, out double childTop,
@@ -39,7 +40,13 @@ public sealed partial class OfficeDrawing {
                         mask.BackdropColor, mask.LuminosityStandard);
                 }
                 content.ReplaceElement(index, element, new OfficeDrawingEffectGroup(child,
-                    OfficeTransform.Translate(childLeft, childTop).Then(effect.Transform), effect.BlendMode, mask, effect.Opacity));
+                    OfficeTransform.Translate(childLeft, childTop).Then(effect.Transform), effect.BlendMode, mask, effect.Opacity) {
+                    UnfilteredGeometryBounds = effect.UnfilteredGeometryBounds is { } bounds
+                        ? (bounds.Left - childLeft, bounds.Top - childTop, bounds.Right - childLeft, bounds.Bottom - childTop)
+                        : null,
+                    IsSvgMarkerPaint = effect.IsSvgMarkerPaint,
+                    HasCompleteLocalPaintBounds = effect.HasCompleteLocalPaintBounds
+                });
             } else if (element is OfficeDrawingGroup group) {
                 OfficeTransform frame = group.FrameTransform?.CreateDestinationTransform() ?? OfficeTransform.Identity;
                 if (!frame.TryInvert(out OfficeTransform inverseFrame)) continue;
@@ -61,5 +68,24 @@ public sealed partial class OfficeDrawing {
         expanded = new OfficeDrawing(width, height) { Fonts = Fonts.Clone() };
         expanded.AddDrawingForClippedRendering(content, -left, -top, null);
         return true;
+    }
+
+    // Clipped groups paint into their parent's surface. Effects retain a child
+    // surface; soft masks also retain the mask, a projection and a copied result.
+    // Count these recursively so a fitted viewport charges every enlarged layer.
+    internal double MeasureRetainedViewportSurfacePixels(bool includeCanvas = true) {
+        double pixels = includeCanvas ? Width * Height : 0D;
+        foreach (OfficeDrawingElement element in _elements) {
+            if (element is OfficeDrawingEffectGroup effect) {
+                pixels += effect.InnerDrawing.MeasureRetainedViewportSurfacePixels();
+                if (effect.SoftMask != null) {
+                    pixels += effect.InnerDrawing.Width * effect.InnerDrawing.Height * 2D;
+                    pixels += effect.SoftMask.InnerDrawing.MeasureRetainedViewportSurfacePixels();
+                }
+            } else if (element is OfficeDrawingGroup group) {
+                pixels += group.InnerDrawing.MeasureRetainedViewportSurfacePixels(includeCanvas: false);
+            }
+        }
+        return pixels;
     }
 }

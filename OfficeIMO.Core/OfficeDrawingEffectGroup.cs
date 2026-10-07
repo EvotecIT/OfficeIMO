@@ -8,6 +8,9 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
     // SVG markers are paint attached to a shape, not part of its object geometry.
     internal bool IsSvgMarkerPaint { get; set; }
+    // Measured text surfaces already retain their full ink. Expanding them to a
+    // fitted ancestor's viewport adds empty pixels without retaining more paint.
+    internal bool HasCompleteLocalPaintBounds { get; set; }
     private readonly OfficeDrawing _drawing;
 
     /// <summary>Creates a transformed, isolated nested drawing group.</summary>
@@ -55,6 +58,7 @@ public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
 
     internal override OfficeDrawingElement CloneElement() => new OfficeDrawingEffectGroup(_drawing, Transform, BlendMode, SoftMask, Opacity) {
         UnfilteredGeometryBounds = UnfilteredGeometryBounds,
-        IsSvgMarkerPaint = IsSvgMarkerPaint
+        IsSvgMarkerPaint = IsSvgMarkerPaint,
+        HasCompleteLocalPaintBounds = HasCompleteLocalPaintBounds
     };
 }

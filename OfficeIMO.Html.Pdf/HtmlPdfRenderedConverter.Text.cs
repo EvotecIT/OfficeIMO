@@ -24,6 +24,15 @@ internal static partial class HtmlPdfRenderedConverter {
         bool constrainToSurface = true,
         ClipBounds? logicalClip = null) {
         if (visual.Text.Length == 0) return;
+        if (visual.WrappedLines != null) {
+            foreach (HtmlRenderText fragment in visual.GetWrappedPaintFragments()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                AddText(canvas, fragment, webFonts, conversionReport, surfaceWidth,
+                    asSpan, logicalTextOwned, cancellationToken, baselineFontSize,
+                    colorOpacityApplied, suppressLink, preservePositionedFrame, constrainToSurface, logicalClip);
+            }
+            return;
+        }
         // Canvas and outline writers must anchor a script to the original line's metrics.
         baselineFontSize ??= visual.Font.Size;
         visual = visual.ResolveBaselineForPainting();

@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (!TryCollectFlexItems(element, availableOuterWidth, style, depth, captureRunningElements: false,
-                out List<FlexItem> items, out _, registerPositionedChildren: false)) return availableOuterWidth;
+            out List<FlexItem> items, out _, registerOutOfFlowElements: false)) return availableOuterWidth;
         List<FlexItem> ordered = items.OrderBy(item => item.Style.Order).ThenBy(item => item.SourceIndex).ToList();
         double intrinsicContentWidth;
         if (style.FlexDirection == "column" || style.FlexDirection == "column-reverse") {

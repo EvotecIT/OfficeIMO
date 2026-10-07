@@ -223,7 +223,7 @@ public static partial class HtmlComputedStyleEngine {
         var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
         int order = 0;
         foreach (OfficeIMO.Html.Css.HtmlCssDeclaration declaration in sourceDeclarations) {
-            string propertyName = RestoreFontShorthandName(declaration.Name);
+            string propertyName = RestoreManagedDeclarationName(declaration.Name);
             if (!propertyName.StartsWith("--", StringComparison.Ordinal)
                 && !OfficeIMO.Html.Css.HtmlCssPropertyCatalog.TryGet(propertyName, out _)) return null;
             OfficeIMO.Html.Css.HtmlCssPropertyParseResult parsed = OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(
