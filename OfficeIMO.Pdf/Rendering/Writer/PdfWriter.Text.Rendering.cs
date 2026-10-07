@@ -305,11 +305,13 @@ internal static partial class PdfWriter {
                     }
 
                     if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
-                        string leader = BuildTabLeaderText(gap, s.Font, s.FontSize, s.Baseline, s.LeadingTabLeader, opts);
+                        string leader = BuildTabLeaderText(gap, s, opts);
                         if (leader.Length > 0) {
+                            ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale), runFontSize, textRise, suppressActualText);
+                            ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);

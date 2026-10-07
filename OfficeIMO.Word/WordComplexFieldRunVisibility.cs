@@ -11,14 +11,16 @@ namespace OfficeIMO.Word {
         private FieldState? _state;
 
         internal sealed class FieldState {
-            internal FieldState(FieldState? parent, bool isResult) {
+            internal FieldState(FieldState? parent, bool isResult, FieldChar? beginMarker) {
                 Parent = parent;
                 IsResult = isResult;
+                BeginMarker = beginMarker;
                 HiddenCount = (parent?.HiddenCount ?? 0) + (isResult ? 0 : 1);
             }
 
             internal FieldState? Parent { get; }
             internal bool IsResult { get; }
+            internal FieldChar? BeginMarker { get; }
             internal int HiddenCount { get; }
         }
 
@@ -141,9 +143,9 @@ namespace OfficeIMO.Word {
 
         private void Observe(FieldChar marker) {
             if (marker.FieldCharType?.Value == FieldCharValues.Begin) {
-                _state = new FieldState(_state, false);
+                _state = new FieldState(_state, false, marker);
             } else if (marker.FieldCharType?.Value == FieldCharValues.Separate && _state != null) {
-                _state = new FieldState(_state.Parent, true);
+                _state = new FieldState(_state.Parent, true, _state.BeginMarker);
             } else if (marker.FieldCharType?.Value == FieldCharValues.End && _state != null) {
                 _state = _state.Parent;
             }
