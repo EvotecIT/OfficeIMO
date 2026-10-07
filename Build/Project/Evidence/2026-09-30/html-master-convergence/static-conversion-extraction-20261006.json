@@ -536,6 +536,173 @@
         "Current-source platform package artifacts and proof receipts.",
         "Authorized merge then qualified engine synchronization and two temporary worktree removals."
       ]
+    },
+    "ciRemediationReconciliation": {
+      "staticCandidate": "759eeac35e7556c626bdc25a276024641ffcc940",
+      "preparedMainBehavior": "04319d1b36fa361d6e431951990fd1b636ca38fa",
+      "engine": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
+      "selectedSourceIdentity": {
+        "static": "759eeac35e7556c626bdc25a276024641ffcc940",
+        "main": "04319d1b36fa361d6e431951990fd1b636ca38fa",
+        "paths": [
+          {
+            "path": "Directory.Build.props",
+            "gitEntry": "100644 blob 75c225a157144cf23d2e688fa9bf379fbc9a1a13\tDirectory.Build.props",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "Directory.Build.targets",
+            "gitEntry": "100644 blob d74a9894d591deb1a8b8739f291114bc0d4ec309\tDirectory.Build.targets",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "Directory.Packages.props",
+            "gitEntry": null,
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": false
+          },
+          {
+            "path": "global.json",
+            "gitEntry": "100644 blob 8b0a56720344fb9bbae1de41751356a9c68cbfc5\tglobal.json",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Core",
+            "gitEntry": "040000 tree d7458f35bc79dd2df6fe99f53b218401a7038819\tOfficeIMO.Core",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Drawing",
+            "gitEntry": null,
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": false
+          },
+          {
+            "path": "OfficeIMO.Html.Core",
+            "gitEntry": "040000 tree 2797c2dd624332e175463f53a786fe14c76b4baa\tOfficeIMO.Html.Core",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Html.AngleSharp",
+            "gitEntry": "040000 tree 87e7bdc9dbf6d14c1f52fd1edc40ad585c965e65\tOfficeIMO.Html.AngleSharp",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Html",
+            "gitEntry": "040000 tree a4f45beabbcd21d30da527baad8a715da93abcb4\tOfficeIMO.Html",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Html.Pdf",
+            "gitEntry": "040000 tree 75715c62849231c42d698bfa2ea8c71d2160534c\tOfficeIMO.Html.Pdf",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Mhtml",
+            "gitEntry": "040000 tree 50a4a1d06360614bfad22cd705418a397675dbfc\tOfficeIMO.Mhtml",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Pdf",
+            "gitEntry": "040000 tree 8169e524e856fb899b1d9ea6b5df26731ea2d09b\tOfficeIMO.Pdf",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Tool",
+            "gitEntry": "040000 tree b472dc815e17a71a60e1d8b29b2473ec1d08be91\tOfficeIMO.Tool",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Html.Tests",
+            "gitEntry": "040000 tree 9a0905210c02adfb7cedd5dfd3d389e197c10416\tOfficeIMO.Html.Tests",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": false,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Pdf.Tests",
+            "gitEntry": "040000 tree 7627874556af208724a77f7fb3613c6737a0991e\tOfficeIMO.Pdf.Tests",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          },
+          {
+            "path": "OfficeIMO.Drawing.Tests",
+            "gitEntry": "040000 tree ef00639f51c75ffe0d0cdd2929042a7bd10874d1\tOfficeIMO.Drawing.Tests",
+            "staticAndMainEqual": true,
+            "previousProduct329Equal": true,
+            "exists": true
+          }
+        ],
+        "longLivedAdopted": false,
+        "onlyChangedSelection": "HTML test APIs; all shipping owners unchanged from qualified329.",
+        "observerCorrection": "Historical inventory included absent optional paths. Git tree absence is verified explicitly instead of treating it as a blob."
+      },
+      "mainSchema2Comparison": {
+        "source": "04319d1b36fa361d6e431951990fd1b636ca38fa",
+        "cases": 2,
+        "pages": 3,
+        "passed": true,
+        "hinting": "none",
+        "reportSha256": "7d6ac19766b832c7006662f2a66d960bc241e404657698243d8663dd6eeb0096",
+        "normalBuildZeroWarningsErrors": true
+      },
+      "newPackageRun": {
+        "id": 37564394597,
+        "head": "759eeac35e7556c626bdc25a276024641ffcc940",
+        "suite": "html-static-package-probe",
+        "required": "Inspect actual nineteen packages/origins/loaded DLLs and Windows native consumers when completed."
+      },
+      "currentHeadLinuxComparison": "Pending; platform hinting hypothesis is not yet accepted. Existing tolerances retained.",
+      "shipOwnerSourceChanged": false,
+      "longLivedAdoption": false,
+      "remaining": [
+        {
+          "step": "PR2900 authorized merge",
+          "dependsOn": "Current-head all CI, Linux comparison, complete delayed feedback/text and current-source platform package artifacts."
+        },
+        {
+          "step": "One-branch synchronization",
+          "dependsOn": "Actual accepted merge/owner overlap inspection, then qualified main into engine."
+        },
+        {
+          "step": "Remove static/main temporary worktrees",
+          "dependsOn": "Latest unique proof preserved, no handles/clean state and merge ancestry."
+        }
+      ],
+      "generatedOutputCleanup": {
+        "targets": 160,
+        "initialBytes": 3334404655,
+        "allAbsentVerified": true,
+        "actualFilesystemErrorsRecoveredWithFreshGuardedDotNet": 85,
+        "sharedCachesUnchanged": true,
+        "retained": "Original failure logs, final TRX, package artifact ZIPs/origin/hash receipts, captured PDFs/raster/geometry and source recovery.",
+        "noNetFreeSpaceClaim": true
+      }
     }
   }
 }
