@@ -47,6 +47,21 @@ namespace OfficeIMO.Word.Pdf {
             List<double?> derivedMinimums = layout.ColumnWidths
                 .Select(width => (double?)(tableWidth * width / gridWidth * minimumScale))
                 .ToList();
+            if (style.AutoFitWidthUsesContentMinimum) {
+                // Only absolute cell preferences reserve the authored grid width.
+                // Automatic cells share the remaining width according to content.
+                var hasAbsolutePreference = new bool[derivedMinimums.Count];
+                foreach (var cell in EnumerateNativeTableCells(layout)) {
+                    if (cell.Cell.WidthType != WordTableWidthUnit.Dxa || cell.Cell.Width.GetValueOrDefault() <= 0)
+                        continue;
+                    for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < hasAbsolutePreference.Length; column++)
+                        hasAbsolutePreference[column] = true;
+                }
+                for (int column = 0; column < derivedMinimums.Count; column++) {
+                    if (!hasAbsolutePreference[column])
+                        derivedMinimums[column] = null;
+                }
+            }
             if (style.ColumnMinWidthPoints == null || style.ColumnMinWidthPoints.Count == 0) {
                 style.ColumnMinWidthPoints = derivedMinimums;
                 return;
