@@ -1,7 +1,7 @@
 {
   "SchemaVersion": 1,
-  "GeneratedAtUtc": "2026-10-06T21:30:41.4374565+00:00",
-  "SourceCommit": "42e07091409fdb7f4bef700a5e3b43c0a0d05043",
+  "GeneratedAtUtc": "2026-10-07T03:47:21.8313318+00:00",
+  "SourceCommit": "5d7c0b26a55a513387f2070540fdd726c914adbd",
   "Platform": "Microsoft Windows NT 10.0.26300.0",
   "Runtime": "10.0.12",
   "Consumer": "Microsoft WPF XpsDocument / DocumentPaginator / RenderTargetBitmap, 96 dpi",
@@ -21,22 +21,22 @@
     {
       "FullName": "OfficeIMO.Xps, Version=3.4.4.0, Culture=neutral, PublicKeyToken=null",
       "FileVersion": "3.4.4.0",
-      "Sha256": "bf2d0a7c648a39767ce5fe8fb61825d4b856b8859724163a3b22ffd00bbd67d4"
+      "Sha256": "0399811c0130625371930714a055b45a679be54b6ef7d39b268558ac8b9c951c"
     },
     {
       "FullName": "OfficeIMO.Xps.Pdf, Version=3.4.4.0, Culture=neutral, PublicKeyToken=null",
       "FileVersion": "3.4.4.0",
-      "Sha256": "d869eb1ab27baccecc50a0a1d40f53e7a0d4e515db739f7b027a03d1ca51fad2"
+      "Sha256": "99179fcd6fee40c5c7fd58b1cc132ce6002e571efdb8d11a2a1c270a1716e185"
     },
     {
       "FullName": "OfficeIMO.Core, Version=3.4.4.0, Culture=neutral, PublicKeyToken=null",
       "FileVersion": "3.4.4.0",
-      "Sha256": "2612a68be29de2083253b1088c43a4ff931fedae9671590f6fb6d2d2b0b2adf6"
+      "Sha256": "6ea968347a45f0adc6b24eaa8dc993444d58aca99a2b262ecbb0ec03932af35d"
     },
     {
       "FullName": "OfficeIMO.Pdf, Version=3.4.4.0, Culture=neutral, PublicKeyToken=null",
       "FileVersion": "3.4.4.0",
-      "Sha256": "b9932b8260c0ab174fcf9d8c77f16121c1758d436d388359a7b78f55cd35ce51"
+      "Sha256": "09a8f982fe12a831f64b1c82608bc92a171badef8d9ca41c32234f953a653d98"
     }
   ],
   "Scope": "Microsoft XPS authored fixtures and one independent WPF two-document, three-page producer. No OpenXPS, interleaved, StoryFragments, printing, viewer or independent PDF-reader conformance claim.",
@@ -1124,7 +1124,7 @@
       "PageCount": 3,
       "Text": "Native WPF page 1",
       "PdfText": "Native WPF page 1",
-      "SourceSha256": "d0fa2fd30cb579ad687c657c0188a11405fe870aed5de166e62ad04fc4a8d435",
+      "SourceSha256": "557061601438e5dea6e5cd8078b9775a720f3e1402e3c0d4a2b8d97b5b62deb8",
       "NativeSha256": "182c1bdd2e1df2e9f7b85ec0aa6f3451e361e5ebe16c7bc3dfec7a713686d533",
       "ManagedSha256": "3c6edc6f9b2b62dfd0246a170f91b60512a6047a222464bf6ef964e8707c6971",
       "PdfSha256": "c60ab5ef4ee653488277e96884d41e9f5b05b758fbae6230bdea1e36608556c1",
@@ -1152,7 +1152,7 @@
         "InteriorPixelsAboveFour": 0
       },
       "Lifecycle": {
-        "RoundTripSha256": "e7b3ed006129a458a54034cc7ea30fcf62528ff4f16886f58f4d447761ca3026",
+        "RoundTripSha256": "85fdb3a29bbee6c90d8f50b2409b9d7e7a65224be08f885258bc2428011e0d22",
         "RoundTripNative": {
           "Width": 200,
           "Height": 160,
@@ -1163,7 +1163,7 @@
           "InteriorMaximumChannelError": 0,
           "InteriorPixelsAboveFour": 0
         },
-        "EditedSha256": "ad90c1ec022eb1428e10c5f72d9392f22419ccc2eace77c28c3793efb6378373",
+        "EditedSha256": "0ef4b22e140f94b2ef55863b9486c09ca4b5a63c6ba39946051387c132ea981a",
         "Documents": 2,
         "Pages": 3,
         "Text": "Native WPF page 1",
@@ -1178,7 +1178,7 @@
       "PageCount": 3,
       "Text": "Native WPF page 2",
       "PdfText": "Native WPF page 2",
-      "SourceSha256": "d0fa2fd30cb579ad687c657c0188a11405fe870aed5de166e62ad04fc4a8d435",
+      "SourceSha256": "557061601438e5dea6e5cd8078b9775a720f3e1402e3c0d4a2b8d97b5b62deb8",
       "NativeSha256": "fee3e539426ea2dc87755ef44fc5ebf50fcfc4d9fa583b6412531274ef672a0e",
       "ManagedSha256": "10367819d7f8c693684b1f9fe3eb86982d8009e177fb2911db797e8c04d769cd",
       "PdfSha256": "c60ab5ef4ee653488277e96884d41e9f5b05b758fbae6230bdea1e36608556c1",
@@ -1206,7 +1206,7 @@
         "InteriorPixelsAboveFour": 0
       },
       "Lifecycle": {
-        "RoundTripSha256": "e7b3ed006129a458a54034cc7ea30fcf62528ff4f16886f58f4d447761ca3026",
+        "RoundTripSha256": "85fdb3a29bbee6c90d8f50b2409b9d7e7a65224be08f885258bc2428011e0d22",
         "RoundTripNative": {
           "Width": 200,
           "Height": 160,
@@ -1217,7 +1217,7 @@
           "InteriorMaximumChannelError": 0,
           "InteriorPixelsAboveFour": 0
         },
-        "EditedSha256": "2b78071c2265d716c3479343937785a85be4d460b31e729764d6a871e18dabc5",
+        "EditedSha256": "1988515ae6a4f2963c4d4063d5cfa93b264233077065e7be49e9b8cf156bce89",
         "Documents": 2,
         "Pages": 3,
         "Text": "Native WPF page 2",
@@ -1232,7 +1232,7 @@
       "PageCount": 3,
       "Text": "Native WPF page 3",
       "PdfText": "Native WPF page 3",
-      "SourceSha256": "d0fa2fd30cb579ad687c657c0188a11405fe870aed5de166e62ad04fc4a8d435",
+      "SourceSha256": "557061601438e5dea6e5cd8078b9775a720f3e1402e3c0d4a2b8d97b5b62deb8",
       "NativeSha256": "53100dbad99317756ab918a84ffcfd8a30712645e0b206cb79f576f978752aa0",
       "ManagedSha256": "08621684c7ab7353c39165ddc4e5ef94ac19322307ea50635002ec8c1018f5c1",
       "PdfSha256": "c60ab5ef4ee653488277e96884d41e9f5b05b758fbae6230bdea1e36608556c1",
@@ -1260,7 +1260,7 @@
         "InteriorPixelsAboveFour": 0
       },
       "Lifecycle": {
-        "RoundTripSha256": "e7b3ed006129a458a54034cc7ea30fcf62528ff4f16886f58f4d447761ca3026",
+        "RoundTripSha256": "85fdb3a29bbee6c90d8f50b2409b9d7e7a65224be08f885258bc2428011e0d22",
         "RoundTripNative": {
           "Width": 200,
           "Height": 160,
@@ -1271,7 +1271,7 @@
           "InteriorMaximumChannelError": 0,
           "InteriorPixelsAboveFour": 0
         },
-        "EditedSha256": "3f64cdf6b88cf3691763a6eff5a6c9d5cd39ff978cf402cbca4b6ac269371287",
+        "EditedSha256": "ac22b68d9b0548c178f885c7332ba31f61ac05bb002bc98ca367e96e4802e6f5",
         "Documents": 2,
         "Pages": 3,
         "Text": "Native WPF page 3",
