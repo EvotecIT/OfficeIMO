@@ -14,6 +14,27 @@ namespace OfficeIMO.Excel.Tests;
 
 public class ExcelTextEscapingTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PackageWritersRejectInvalidXmlInDirectInlineText(bool standardWriter) {
+        foreach (string invalid in new[] { "control\u0001", "surrogate\ud800" }) {
+            using var stream = new MemoryStream();
+            using var document = ExcelDocument.Create(new MemoryStream());
+            var sheet = document.AddWorksheet("Text");
+            sheet.CellValue(1, 1, "placeholder");
+            Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
+            cell.CellValue = null;
+            cell.DataType = CellValues.InlineString;
+            cell.InlineString = new InlineString(new Text(invalid));
+            sheet.MarkRequiresSavePreparation();
+
+            Exception? error = Record.Exception(() => document.Save(stream,
+                new ExcelSaveOptions { DisableFastPackageWriter = standardWriter }));
+            Assert.True(error is ArgumentException or System.Xml.XmlException, error?.ToString() ?? "Invalid XML was written.");
+        }
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]

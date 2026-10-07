@@ -1,0 +1,610 @@
+[
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-1000",
+    "BeforeLength": 47138,
+    "AfterLength": 47138,
+    "Sha256": "E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-1000",
+    "BeforeLength": 54410,
+    "AfterLength": 54410,
+    "Sha256": "B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-1000",
+    "BeforeLength": 84407,
+    "AfterLength": 84407,
+    "Sha256": "29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-25000",
+    "BeforeLength": 1519041,
+    "AfterLength": 1519041,
+    "Sha256": "3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-25000",
+    "BeforeLength": 2269032,
+    "AfterLength": 2269032,
+    "Sha256": "049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-100000",
+    "BeforeLength": 5492457,
+    "AfterLength": 5492457,
+    "Sha256": "E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-100000",
+    "BeforeLength": 6219729,
+    "AfterLength": 6219729,
+    "Sha256": "1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-100000",
+    "BeforeLength": 9219726,
+    "AfterLength": 9219726,
+    "Sha256": "5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-LongUnicode-3",
+    "BeforeLength": 65668,
+    "AfterLength": 65668,
+    "Sha256": "E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToText-LongUnicode-64",
+    "BeforeLength": 1903260,
+    "AfterLength": 1903260,
+    "Sha256": "7A1AFF47D15450D5D2B2C7079A41A3C0882A84E0B1692E152DE5DC42FD0D3B04"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "Save-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "SaveAsync-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "ToBytes-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "WriteDataReader-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net10.0",
+    "Case": "RowWriterFile-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-1000",
+    "BeforeLength": 47138,
+    "AfterLength": 47138,
+    "Sha256": "E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-1000",
+    "BeforeLength": 54410,
+    "AfterLength": 54410,
+    "Sha256": "B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-1000",
+    "BeforeLength": 84407,
+    "AfterLength": 84407,
+    "Sha256": "29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-25000",
+    "BeforeLength": 1519041,
+    "AfterLength": 1519041,
+    "Sha256": "3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-25000",
+    "BeforeLength": 2269032,
+    "AfterLength": 2269032,
+    "Sha256": "049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Plain-100000",
+    "BeforeLength": 5492457,
+    "AfterLength": 5492457,
+    "Sha256": "E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-Quoted-100000",
+    "BeforeLength": 6219729,
+    "AfterLength": 6219729,
+    "Sha256": "1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-MixedJson-100000",
+    "BeforeLength": 9219726,
+    "AfterLength": 9219726,
+    "Sha256": "5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-LongUnicode-3",
+    "BeforeLength": 65668,
+    "AfterLength": 65668,
+    "Sha256": "E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToText-LongUnicode-64",
+    "BeforeLength": 1903260,
+    "AfterLength": 1903260,
+    "Sha256": "7A1AFF47D15450D5D2B2C7079A41A3C0882A84E0B1692E152DE5DC42FD0D3B04"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "Save-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "SaveAsync-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "ToBytes-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "WriteDataReader-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net10.0",
+    "Case": "RowWriterFile-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-1000",
+    "BeforeLength": 47138,
+    "AfterLength": 47138,
+    "Sha256": "E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-1000",
+    "BeforeLength": 54410,
+    "AfterLength": 54410,
+    "Sha256": "B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-1000",
+    "BeforeLength": 84407,
+    "AfterLength": 84407,
+    "Sha256": "29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-25000",
+    "BeforeLength": 1519041,
+    "AfterLength": 1519041,
+    "Sha256": "3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-25000",
+    "BeforeLength": 2269032,
+    "AfterLength": 2269032,
+    "Sha256": "049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-100000",
+    "BeforeLength": 5492457,
+    "AfterLength": 5492457,
+    "Sha256": "E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-100000",
+    "BeforeLength": 6219729,
+    "AfterLength": 6219729,
+    "Sha256": "1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-100000",
+    "BeforeLength": 9219726,
+    "AfterLength": 9219726,
+    "Sha256": "5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-LongUnicode-3",
+    "BeforeLength": 65668,
+    "AfterLength": 65668,
+    "Sha256": "E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToText-LongUnicode-64",
+    "BeforeLength": 1903260,
+    "AfterLength": 1903260,
+    "Sha256": "7A1AFF47D15450D5D2B2C7079A41A3C0882A84E0B1692E152DE5DC42FD0D3B04"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "Save-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "SaveAsync-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "ToBytes-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "WriteDataReader-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "Windows",
+    "Runtime": "net8.0",
+    "Case": "RowWriterFile-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-1",
+    "BeforeLength": 48,
+    "AfterLength": 48,
+    "Sha256": "751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-1000",
+    "BeforeLength": 47138,
+    "AfterLength": 47138,
+    "Sha256": "E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-1000",
+    "BeforeLength": 54410,
+    "AfterLength": 54410,
+    "Sha256": "B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-1000",
+    "BeforeLength": 84407,
+    "AfterLength": 84407,
+    "Sha256": "29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-25000",
+    "BeforeLength": 1519041,
+    "AfterLength": 1519041,
+    "Sha256": "3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-25000",
+    "BeforeLength": 2269032,
+    "AfterLength": 2269032,
+    "Sha256": "049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Plain-100000",
+    "BeforeLength": 5492457,
+    "AfterLength": 5492457,
+    "Sha256": "E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-Quoted-100000",
+    "BeforeLength": 6219729,
+    "AfterLength": 6219729,
+    "Sha256": "1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-MixedJson-100000",
+    "BeforeLength": 9219726,
+    "AfterLength": 9219726,
+    "Sha256": "5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-LongUnicode-3",
+    "BeforeLength": 65668,
+    "AfterLength": 65668,
+    "Sha256": "E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToText-LongUnicode-64",
+    "BeforeLength": 1903260,
+    "AfterLength": 1903260,
+    "Sha256": "7A1AFF47D15450D5D2B2C7079A41A3C0882A84E0B1692E152DE5DC42FD0D3B04"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "Save-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "SaveAsync-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "ToBytes-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "WriteDataReader-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  },
+  {
+    "Platform": "macOS",
+    "Runtime": "net8.0",
+    "Case": "RowWriterFile-Plain-25000",
+    "BeforeLength": 1337225,
+    "AfterLength": 1337225,
+    "Sha256": "A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354"
+  }
+]

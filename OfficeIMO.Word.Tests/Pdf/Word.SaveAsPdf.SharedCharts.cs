@@ -40,6 +40,7 @@ public sealed class WordSharedChartPdfTests {
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
     public void ExplodedSliceSurvivesNativePdfProjection(OfficeChartKind kind) {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
         WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 }) }));
@@ -50,8 +51,10 @@ public sealed class WordSharedChartPdfTests {
         OfficeChartSnapshot projected = Assert.IsType<OfficeChartSnapshot>(arguments[1]);
         Assert.Equal(new[] { 25, 0 }, projected.Data.Series.Single().PointExplosions);
         var options = new WordToPdfOptions { IncludePageNumbers = false };
-        Assert.NotEmpty(document.ToPdfBytes(options));
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        var conversion = document.ToPdfDocumentResult(options);
+        conversionReport = conversion.Report;
+        Assert.NotEmpty(conversion.Value.ToBytes());
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
     }
 
     [Theory]
@@ -60,6 +63,7 @@ public sealed class WordSharedChartPdfTests {
     [InlineData("noFillOutline")]
     [InlineData("emptyEffectList")]
     public void DefaultLegendShapeDoesNotDisableSingleChartPdfWithDataTable(string appearance) {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartKind.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Count", new[] { 4d }) }));
@@ -78,14 +82,17 @@ public sealed class WordSharedChartPdfTests {
         Assert.True((bool)factory.Invoke(null, arguments)!);
         Assert.IsType<OfficeChartSnapshot>(arguments[1]);
         var options = new WordToPdfOptions { IncludePageNumbers = false };
-        byte[] pdfBytes = document.ToPdfBytes(options);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        var conversion = document.ToPdfDocumentResult(options);
+        conversionReport = conversion.Report;
+        byte[] pdfBytes = conversion.Value.ToBytes();
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         Assert.Single(pdf.GetPages());
     }
 
     [Fact]
     public void ImportedPieLegendFrameUsesQualifiedSharedStyleInPdf() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "LibreOffice", "status-pie.docx");
         using var document = WordDocument.Load(path);
         WordChart chart = Assert.Single(document.Charts);
@@ -102,8 +109,10 @@ public sealed class WordSharedChartPdfTests {
         Assert.Equal(shared.Style.LegendBorderWidth, projected.Style.LegendBorderWidth);
 
         var options = new WordToPdfOptions { IncludePageNumbers = false };
-        byte[] pdfBytes = document.ToPdfBytes(options);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        var conversion = document.ToPdfDocumentResult(options);
+        conversionReport = conversion.Report;
+        byte[] pdfBytes = conversion.Value.ToBytes();
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         Assert.Single(pdf.GetPages());
     }
@@ -112,6 +121,7 @@ public sealed class WordSharedChartPdfTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SharedCharts_RenderAllLayersAndBubbleDataInPdf(bool bubble) {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
         var data = bubble ? new OfficeChartData(new[] { "1", "2" }, new[] {
             OfficeChartSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
@@ -122,8 +132,8 @@ public sealed class WordSharedChartPdfTests {
         var options = new WordToPdfOptions { IncludePageNumbers = false };
         string path = Path.Combine(Path.GetTempPath(), "officeimo-shared-chart-" + Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            document.SaveAsPdf(path, options);
-            Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+            conversionReport = document.SaveAsPdf(path, options).Report;
+            Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
             using var pdf = PdfPigDocument.Open(path);
             string text = string.Join(" ", pdf.GetPages().SelectMany(page => page.GetWords()).Select(word => word.Text));
             Assert.Contains("Shared chart", text);

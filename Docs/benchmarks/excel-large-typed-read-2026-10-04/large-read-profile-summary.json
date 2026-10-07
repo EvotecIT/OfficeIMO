@@ -1,0 +1,757 @@
+{
+  "AllocationSamples": 24055,
+  "SampledAllocationBytes": 2564301240,
+  "CpuSamples": 3913,
+  "CpuLeaves": [
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+      "Value": 2945
+    },
+    {
+      "Key": "",
+      "Value": 650
+    },
+    {
+      "Key": "System.IO.Compression.SubReadStream.Read(unsigned int8[],int32,int32)",
+      "Value": 70
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElement()",
+      "Value": 26
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributes()",
+      "Value": 24
+    },
+    {
+      "Key": "System.Number.TryParseNumber(!!0*\u0026,!!0*,value class System.Globalization.NumberStyles,value class NumberBuffer\u0026,class System.Globalization.NumberFormatInfo)",
+      "Value": 23
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 20
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.Read()",
+      "Value": 15
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseEndElement()",
+      "Value": 14
+    },
+    {
+      "Key": "System.Xml.NameTable.Get(class System.String)",
+      "Value": 14
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlNumericCellValue(class System.Xml.XmlReader)",
+      "Value": 12
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.DateTime\u0026,class System.Object\u0026)",
+      "Value": 9
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)",
+      "Value": 9
+    },
+    {
+      "Key": "System.SpanHelpers.SequenceEqual(unsigned int8\u0026,unsigned int8\u0026,unsigned int)",
+      "Value": 8
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElementContent()",
+      "Value": 8
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryConvertExcelNumberToDecimal(float64,value class System.Decimal\u0026)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlValueTextAndSkipCell(class System.Xml.XmlReader,int32)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetNonDbNullValue(int32)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 4
+    },
+    {
+      "Key": "System.SpanHelpers.Memmove(unsigned int8\u0026,unsigned int8\u0026,unsigned int)",
+      "Value": 4
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlBooleanPrimitiveForDataReader(class System.Xml.XmlReader,value class XmlDataReaderPrimitiveKind\u0026,bool\u0026,class System.Object\u0026)",
+      "Value": 4
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 3
+    },
+    {
+      "Key": "System.Number.NumberToFloatingPointBits(value class NumberBuffer\u0026)",
+      "Value": 3
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 3
+    },
+    {
+      "Key": "System.Number.DigitsToUInt64(unsigned int8*,int32)",
+      "Value": 2
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)",
+      "Value": 2
+    },
+    {
+      "Key": "System.Number.TryParseFloat(value class System.ReadOnlySpan\u00601\u003C!!0\u003E,value class System.Globalization.NumberStyles,class System.Globalization.NumberFormatInfo,!!1\u0026)",
+      "Value": 2
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 2
+    },
+    {
+      "Key": "System.Text.Unicode.Utf8Utility.TranscodeToUtf16(unsigned int8*,int32,wchar*,int32,unsigned int8*\u0026,wchar*\u0026)",
+      "Value": 2
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseText()",
+      "Value": 2
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ReadData()",
+      "Value": 2
+    },
+    {
+      "Key": "System.String.Ctor(wchar[],int32,int32)",
+      "Value": 2
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.VirtualDispatchHelpers.VirtualFunctionPointerSlow(class System.Object,int,int)",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryComputeUsedRangeReferenceFromXml(class System.String\u0026,value class System.Threading.CancellationToken)",
+      "Value": 1
+    }
+  ],
+  "CpuInclusive": [
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)",
+      "Value": 3913
+    },
+    {
+      "Key": "dynamicClass.lambda_method1(pMT: 00007FFE4122BF00)",
+      "Value": 3913
+    },
+    {
+      "Key": "SnapshotProbe\u002B\u003C\u003Ec__DisplayClass7_0.\u003CLoad\u003Eb__0()",
+      "Value": 3913
+    },
+    {
+      "Key": "SnapshotProbe.Run()",
+      "Value": 3913
+    },
+    {
+      "Key": "Program\u002B\u003C\u003CMain\u003E$\u003Ed__0.MoveNext()",
+      "Value": 3913
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start(!!0\u0026)",
+      "Value": 3913
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start(!!0\u0026)",
+      "Value": 3913
+    },
+    {
+      "Key": "Program.\u003CMain\u003E$(class System.String[])",
+      "Value": 3913
+    },
+    {
+      "Key": "Program.\u003CMain\u003E(class System.String[])",
+      "Value": 3913
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ReadData()",
+      "Value": 3669
+    },
+    {
+      "Key": "System.IO.Compression.DeflateStream.ReadCore(value class System.Span\u00601\u003Cunsigned int8\u003E)",
+      "Value": 3665
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElementContent()",
+      "Value": 3208
+    },
+    {
+      "Key": "System.Threading.Monitor.Enter_Slowpath(class System.Object)",
+      "Value": 2945
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXml(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 2033
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 2033
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Open(class System.String)",
+      "Value": 2033
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXmlSheet(class OfficeIMO.Excel.ExcelDocumentReader,class System.String,class OfficeIMO.Excel.ExcelReadOptions,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass49_0.\u003CCreateOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.CreateOpenXml(class OfficeIMO.Excel.ExcelDocumentReader,class OfficeIMO.Excel.ExcelReadOptions,class System.IDisposable)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 1879
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElement()",
+      "Value": 1818
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 1626
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributes()",
+      "Value": 1532
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 1019
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)",
+      "Value": 1019
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryComputeUsedRangeReferenceFromXml(class System.String\u0026,value class System.Threading.CancellationToken)",
+      "Value": 1012
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.GetUsedRangeA1(value class System.Threading.CancellationToken)",
+      "Value": 1012
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)",
+      "Value": 978
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.Skip()",
+      "Value": 810
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseText(int32\u0026,int32\u0026,int32\u0026)",
+      "Value": 752
+    },
+    {
+      "Key": "",
+      "Value": 650
+    },
+    {
+      "Key": "System.IO.Compression.Inflater.Inflate(value class FlushCode)",
+      "Value": 650
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)",
+      "Value": 525
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlCellValue(class System.Xml.XmlReader,class System.String,bool)",
+      "Value": 424
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlNumericCellValue(class System.Xml.XmlReader)",
+      "Value": 423
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseQName(bool,int32,int32\u0026)",
+      "Value": 405
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 386
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseEndElement()",
+      "Value": 385
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)",
+      "Value": 384
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)",
+      "Value": 341
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlValueTextAndSkipCell(class System.Xml.XmlReader,int32)",
+      "Value": 321
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.DateTime\u0026,class System.Object\u0026)",
+      "Value": 316
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 238
+    }
+  ],
+  "OfficeFrames": [
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)",
+      "Value": 3913
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXml(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 2033
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 2033
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Open(class System.String)",
+      "Value": 2033
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXmlSheet(class OfficeIMO.Excel.ExcelDocumentReader,class System.String,class OfficeIMO.Excel.ExcelReadOptions,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass49_0.\u003CCreateOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.CreateOpenXml(class OfficeIMO.Excel.ExcelDocumentReader,class OfficeIMO.Excel.ExcelReadOptions,class System.IDisposable)",
+      "Value": 2031
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 1879
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 1626
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 1019
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)",
+      "Value": 1019
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryComputeUsedRangeReferenceFromXml(class System.String\u0026,value class System.Threading.CancellationToken)",
+      "Value": 1012
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.GetUsedRangeA1(value class System.Threading.CancellationToken)",
+      "Value": 1012
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)",
+      "Value": 525
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlCellValue(class System.Xml.XmlReader,class System.String,bool)",
+      "Value": 424
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlNumericCellValue(class System.Xml.XmlReader)",
+      "Value": 423
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 386
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)",
+      "Value": 384
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)",
+      "Value": 341
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlValueTextAndSkipCell(class System.Xml.XmlReader,int32)",
+      "Value": 321
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.DateTime\u0026,class System.Object\u0026)",
+      "Value": 316
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 238
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.TryReadLogicalRow(class System.Object[]\u0026)",
+      "Value": 235
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 168
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlBooleanPrimitiveForDataReader(class System.Xml.XmlReader,value class XmlDataReaderPrimitiveKind\u0026,bool\u0026,class System.Object\u0026)",
+      "Value": 123
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryConvertExcelNumberToDecimal(float64,value class System.Decimal\u0026)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetNonDbNullValue(int32)",
+      "Value": 5
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocumentReader.ValidateSdkMetadataLimits()",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocumentReader..ctor(class DocumentFormat.OpenXml.Packaging.SpreadsheetDocument,class OfficeIMO.Excel.ExcelReadOptions,bool,class System.IO.Packaging.Package,class System.IO.Stream,class OfficeIMO.Excel.OpenXmlPackagePartBufferReader,class System.IDisposable)",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocumentReader.Open(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.ValidatePartContentType(class System.String,class System.Collections.Generic.ISet\u00601\u003Cclass System.String\u003E,class System.String)",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook..ctor(class OfficeIMO.Excel.OpenXmlPackagePartBufferReader,class OfficeIMO.Excel.OpenXmlPackagePartBufferReader,class System.IDisposable,class OfficeIMO.Excel.ExcelReadOptions,bool)",
+      "Value": 1
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.Open(class System.String,class OfficeIMO.Excel.ExcelReadOptions,bool)",
+      "Value": 1
+    }
+  ],
+  "Types": [
+    {
+      "Key": "System.String",
+      "Value": 2206333504
+    },
+    {
+      "Key": "System.Decimal",
+      "Value": 191672880
+    },
+    {
+      "Key": "ExcelDataReaderDateSerial",
+      "Value": 93915552
+    },
+    {
+      "Key": "System.DateTime",
+      "Value": 71530280
+    },
+    {
+      "Key": "System.Byte[]",
+      "Value": 319968
+    },
+    {
+      "Key": "System.Collections.Generic.Dictionary\u00602[System.String,System.Int32]",
+      "Value": 106648
+    },
+    {
+      "Key": "System.Collections.Generic.List\u00601[System.Func\u00602[DocumentFormat.OpenXml.Builder.PackageDelegate\u00601[DocumentFormat.OpenXml.Packaging.SpreadsheetDocument],DocumentFormat.OpenXml.Builder.PackageDelegate\u00601[DocumentFormat.OpenXml.Packaging.SpreadsheetDocument]]]",
+      "Value": 106624
+    },
+    {
+      "Key": "System.Char[]",
+      "Value": 106624
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl",
+      "Value": 106600
+    },
+    {
+      "Key": "IEnumerableWhereIterator\u00601[OfficeIMO.Excel.XlsxTabularWorkbook\u002BPackageRelationship]",
+      "Value": 102560
+    }
+  ],
+  "FirstOfficeFrame": [
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 625531520
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 623516856
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryComputeUsedRangeReferenceFromXml(class System.String\u0026,value class System.Threading.CancellationToken)",
+      "Value": 596329752
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlValueTextAndSkipCell(class System.Xml.XmlReader,int32)",
+      "Value": 243053408
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlNumericCellValue(class System.Xml.XmlReader)",
+      "Value": 191672880
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 117262152
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.DateTime\u0026,class System.Object\u0026)",
+      "Value": 93915552
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetNonDbNullValue(int32)",
+      "Value": 71530280
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.GetXmlCellColumnIndex(class System.Xml.XmlReader,int32\u0026)",
+      "Value": 533144
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocumentReader.ValidateSdkMetadataLimits()",
+      "Value": 213320
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.OpenWorksheetXmlReader(class System.IO.Stream)",
+      "Value": 213320
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocumentReader.Open(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 213224
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocumentReader.TryGetSheetByNameXmlFast(class System.String,class System.String\u0026,class DocumentFormat.OpenXml.Packaging.WorksheetPart\u0026)",
+      "Value": 106672
+    },
+    {
+      "Key": "OfficeIMO.Excel.OpenXmlPackagePartBufferReader.BuildEntryIndex(class System.IO.Compression.ZipArchive)",
+      "Value": 106600
+    },
+    {
+      "Key": "OfficeIMO.Excel.XlsxTabularWorkbook.ResolveOptionalPart(class System.String,class System.Collections.Generic.IReadOnlyDictionary\u00602\u003Cclass System.String,class PackageRelationship\u003E,class System.String,class System.String,class System.String)",
+      "Value": 102560
+    }
+  ],
+  "InclusiveFrames": [
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Measure(class System.String)",
+      "Value": 2564301240
+    },
+    {
+      "Key": "dynamicClass.lambda_method1(pMT: 00007FFE4122BF00)",
+      "Value": 2564301240
+    },
+    {
+      "Key": "SnapshotProbe\u002B\u003C\u003Ec__DisplayClass7_0.\u003CLoad\u003Eb__0()",
+      "Value": 2564301240
+    },
+    {
+      "Key": "SnapshotProbe.Run()",
+      "Value": 2564301240
+    },
+    {
+      "Key": "Program\u002B\u003C\u003CMain\u003E$\u003Ed__0.MoveNext()",
+      "Value": 2564301240
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start(!!0\u0026)",
+      "Value": 2564301240
+    },
+    {
+      "Key": "System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start(!!0\u0026)",
+      "Value": 2564301240
+    },
+    {
+      "Key": "Program.\u003CMain\u003E$(class System.String[])",
+      "Value": 2564301240
+    },
+    {
+      "Key": "Program.\u003CMain\u003E(class System.String[])",
+      "Value": 2564301240
+    },
+    {
+      "Key": "System.String.Ctor(wchar[],int32,int32)",
+      "Value": 2198445032
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Read(class System.Data.Common.DbDataReader,bool,bool)",
+      "Value": 1342965792
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXml(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 1221335448
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelDocument.OpenDataReader(class System.String,class OfficeIMO.Excel.ExcelReadOptions)",
+      "Value": 1221335448
+    },
+    {
+      "Key": "OfficeIMO.Excel.Benchmarks.ExcelLargeTypedReadBenchmarks.Open(class System.String)",
+      "Value": 1221335448
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.OpenOpenXmlSheet(class OfficeIMO.Excel.ExcelDocumentReader,class System.String,class OfficeIMO.Excel.ExcelReadOptions,value class System.Threading.CancellationToken)",
+      "Value": 1220699744
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader\u002B\u003C\u003Ec__DisplayClass49_0.\u003CCreateOpenXml\u003Eb__0(int32,value class System.Threading.CancellationToken)",
+      "Value": 1220699744
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader..ctor(class System.Collections.Generic.IReadOnlyList\u00601\u003Cvalue class SheetSelection\u003E,class System.Func\u00603\u003Cint32,value class System.Threading.CancellationToken,class System.Data.Common.DbDataReader\u003E,class System.IDisposable,class System.Globalization.CultureInfo,class System.Func\u00604\u003Cclass System.Object,class System.Type,class System.Globalization.CultureInfo,value class System.ValueTuple\u00602\u003Cbool,class System.Object\u003E\u003E,bool,value class OfficeIMO.Data.DataMappingErrorValuePolicy,value class System.Threading.CancellationToken)",
+      "Value": 1220699744
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelWorkbookDataReader.CreateOpenXml(class OfficeIMO.Excel.ExcelDocumentReader,class OfficeIMO.Excel.ExcelReadOptions,class System.IDisposable)",
+      "Value": 1220699744
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadUsedRangeAsDataReader(bool,int32,value class System.Threading.CancellationToken)",
+      "Value": 1220593072
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsureCurrentValue(int32,value class XmlDataReaderTargetKind)",
+      "Value": 1154173360
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjectionXml(class System.IO.Stream,value class System.Threading.CancellationToken)",
+      "Value": 623623552
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ValidateDataReaderProjection(value class System.Threading.CancellationToken)",
+      "Value": 623623552
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryComputeUsedRangeReferenceFromXml(class System.String\u0026,value class System.Threading.CancellationToken)",
+      "Value": 596862896
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.GetUsedRangeA1(value class System.Threading.CancellationToken)",
+      "Value": 596862896
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.GetAttribute(class System.String)",
+      "Value": 473522504
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlNumericCellValue(class System.Xml.XmlReader)",
+      "Value": 434726288
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlCellValue(class System.Xml.XmlReader,class System.String,bool)",
+      "Value": 434726288
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDateTime(int32)",
+      "Value": 360737416
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetDecimal(int32)",
+      "Value": 342408336
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetInt32(int32)",
+      "Value": 332169160
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.ReadXmlValueTextAndSkipCell(class System.Xml.XmlReader,int32)",
+      "Value": 243053408
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetBoolean(int32)",
+      "Value": 190388728
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.EnsurePendingRow()",
+      "Value": 117262152
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.TryReadLogicalRow(class System.Object[]\u0026)",
+      "Value": 117262152
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.Read()",
+      "Value": 117262152
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader.TryReadXmlNumericPrimitiveForDataReader(class System.Xml.XmlReader,bool,value class XmlDataReaderPrimitiveKind\u0026,float64\u0026,value class System.DateTime\u0026,class System.Object\u0026)",
+      "Value": 93915552
+    },
+    {
+      "Key": "OfficeIMO.Excel.ExcelSheetReader\u002BExcelXmlRangeDataReader.GetNonDbNullValue(int32)",
+      "Value": 71530280
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributes()",
+      "Value": 8421400
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElement()",
+      "Value": 8421400
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseElementContent()",
+      "Value": 8421400
+    },
+    {
+      "Key": "System.Text.StringBuilder.ToString()",
+      "Value": 7781800
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ParseAttributeValueSlow(int32,wchar,class NodeData)",
+      "Value": 7142200
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.Skip()",
+      "Value": 1705600
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.ReadData()",
+      "Value": 1385800
+    },
+    {
+      "Key": "System.Xml.XmlTextReaderImpl.FinishPartialValue()",
+      "Value": 746200
+    }
+  ]
+}

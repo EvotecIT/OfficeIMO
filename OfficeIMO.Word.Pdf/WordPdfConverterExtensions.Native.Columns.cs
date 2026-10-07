@@ -54,12 +54,14 @@ public static partial class WordPdfConverterExtensions {
             for (int index = 0; index < elements.Count; index++) {
                 WordElement element = elements[index];
                 if (element is WordFootNote) continue;
+                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index,
+                    paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,
+                    footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
                 if (TryRenderNativeList(flow, elements, ref index, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap)) continue;
                 RenderNativeElement(flow, element, section,
                     paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                     GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById), footnoteNumbersById,
                     options, tableOfContentsEntries, headingDestinations, firstColumnWidth, nativeDefaults, nativeFontMap,
-                    renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, index),
                     nextElement: GetNextNativeRenderableElement(elements, index));
             }
         }, columnOptions));

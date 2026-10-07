@@ -1,0 +1,66 @@
+{
+  "Csv-Mixed-OfficeIMO_ReadStreamingRows": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadStreamingRows",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Mixed"
+    }
+  },
+  "Csv-Quoted-OfficeIMO_ReadStreamingRows": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadStreamingRows",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Quoted"
+    }
+  },
+  "Csv-Plain-AllRows-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Plain",
+      "RowCount": 100000,
+      "Operation": "AllRows"
+    }
+  },
+  "Csv-Multiline-AllRows-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Multiline",
+      "RowCount": 100000,
+      "Operation": "AllRows"
+    }
+  },
+  "Excel-Sst-RichText-Prefix-False": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "RichText",
+      "PrefixedWorksheet": false,
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-RichText-Prefix-True": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "RichText",
+      "PrefixedWorksheet": true,
+      "RowCount": 25000
+    }
+  }
+}

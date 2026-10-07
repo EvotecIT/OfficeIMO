@@ -135,12 +135,13 @@ namespace OfficeIMO.Excel {
 
             object? ReadColumnValue(Row row, int columnIndex, CancellationToken token) {
                 bool canCancelCell = token.CanBeCanceled;
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancelCell) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int cc = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cc = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cc != columnIndex) continue;
                     return TryConvertCell(cell, out object? value) ? value : null;
                 }
@@ -166,7 +167,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -176,17 +176,13 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -197,7 +193,6 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    seenRows.MarkSeen(rowOffset);
                     bool hasColumnCell = TryReadXmlColumnValue(reader, columnIndex, ct, out object? value);
 
                     if (denseValues != null) {
@@ -335,7 +330,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -345,17 +339,13 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -370,7 +360,6 @@ namespace OfficeIMO.Excel {
                         values[rowOffset] = value;
                     }
 
-                    seenRows.MarkSeen(rowOffset);
                 }
 
                 return true;

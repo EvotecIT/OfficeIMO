@@ -16,6 +16,11 @@ internal static partial class CsvParser
         private readonly char[] _buffer = new char[4096];
         private readonly Queue<CsvLine> _pending = new();
         private readonly Dictionary<string, string>? _cache;
+        private readonly string _delimiter;
+        private readonly List<string> _fields = new();
+        private StringBuilder? _logicalRecordBuffer;
+        private StringBuilder? _lineBuffer;
+        private const int MaximumRetainedTextCapacity = 64 * 1024;
         private int _offset, _length, _line = 1, _emitted;
         private bool _failed;
         internal CsvParsedRecord Current { get; private set; }
@@ -27,9 +32,11 @@ internal static partial class CsvParser
             _reader = reader;
             _options = options;
             _cache = CreateStringCache(options);
+            _delimiter = GetDelimiterText(options);
         }
 
-        internal async ValueTask<bool> ReadAsync(bool asynchronous, CancellationToken token)
+        // Initialization retains schema samples; normal traversal borrows fields until the next advance.
+        internal async ValueTask<bool> ReadAsync(bool asynchronous, CancellationToken token, bool reuseValues = false)
         {
             if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after an interrupted record.");
             try
@@ -39,7 +46,7 @@ internal static partial class CsvParser
                     token.ThrowIfCancellationRequested();
                     ThrowIfCancellationRequested(_options);
                     StartLine = first.PhysicalLineNumber;
-                    var delimiter = GetDelimiterText(_options);
+                    var delimiter = _delimiter;
                     var comment = IsRawCommentLine(first.Text, _options);
                     if (ShouldSkipCommentRecordBeforeParsing(comment, first.Text, _options, _emitted))
                     {
@@ -48,15 +55,19 @@ internal static partial class CsvParser
                     }
 
                     var quoted = first.Text.IndexOf('"') >= 0;
-                    string[] fields;
+                    List<string> fields = _fields;
                     try
                     {
                         if (!quoted)
                         {
                             if (delimiter.Length == 1)
-                                TrySplitUnquotedRecord(first.Text, delimiter[0], _options.TrimWhitespace, out fields);
+                                TrySplitUnquotedRecord(first.Text, delimiter[0], _options.TrimWhitespace, fields);
                             else
-                                TrySplitUnquotedRecord(first.Text, delimiter, _options.TrimWhitespace, out fields);
+                            {
+                                TrySplitUnquotedRecord(first.Text, delimiter, _options.TrimWhitespace, out string[] values);
+                                fields.Clear();
+                                fields.AddRange(values);
+                            }
                             EndLine = first.PhysicalLineNumber;
                         }
                         else
@@ -64,9 +75,11 @@ internal static partial class CsvParser
                             var strict = _options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
                             var record = first.Text;
                             EndLine = first.PhysicalLineNumber;
-                            if (!TryParse(record, delimiter, strict, EndLine, out fields))
+                            if (!TryParseIntoFields(record, delimiter, strict, EndLine))
                             {
-                                var text = new StringBuilder(record);
+                                var text = _logicalRecordBuffer ??= new StringBuilder();
+                                text.Clear();
+                                text.Append(record);
                                 var separator = first.Separator;
                                 var state = new QuotedRecordState();
                                 UpdateState(record, delimiter, ref state);
@@ -79,7 +92,9 @@ internal static partial class CsvParser
                                     separator = next.Value.Separator;
                                     UpdateState(next.Value.Text, delimiter, ref state);
                                 }
-                                if (!TryParse(text.ToString(), delimiter, strict, EndLine, out fields))
+                                string complete = text.ToString();
+                                if (text.Capacity > MaximumRetainedTextCapacity) _logicalRecordBuffer = null;
+                                if (!TryParseIntoFields(complete, delimiter, strict, EndLine))
                                     throw new CsvParseException("Unterminated quoted field.", EndLine);
                             }
                         }
@@ -92,7 +107,7 @@ internal static partial class CsvParser
                     if (!ShouldEmitRecord(fields, _options.AllowEmptyLines) ||
                         ShouldSkipCommentRecord(comment, first.Text, _options, _emitted) ||
                         !TryPrepareParsedRecord(fields, _options, EndLine, quoted, _cache)) continue;
-                    Current = new CsvParsedRecord(fields, comment);
+                    Current = new CsvParsedRecord(reuseValues ? fields : fields.ToArray(), comment);
                     ReportProgress(_options, ++_emitted, EndLine);
                     return true;
                 }
@@ -109,6 +124,16 @@ internal static partial class CsvParser
             delimiter.Length == 1
                 ? TryParseQuotedRecord(text, delimiter[0], _options.TrimWhitespace, strict, line, out fields)
                 : TryParseQuotedRecord(text, delimiter, _options.TrimWhitespace, strict, line, out fields);
+
+        private bool TryParseIntoFields(string text, string delimiter, bool strict, int line)
+        {
+            if (delimiter.Length == 1)
+                return TryParseQuotedRecord(text, delimiter[0], _options.TrimWhitespace, strict, line, _fields);
+            bool parsed = TryParse(text, delimiter, strict, line, out string[] values);
+            _fields.Clear();
+            if (parsed) _fields.AddRange(values);
+            return parsed;
+        }
 
         private void UpdateState(string text, string delimiter, ref QuotedRecordState state)
         {
@@ -144,16 +169,21 @@ internal static partial class CsvParser
             {
                 token.ThrowIfCancellationRequested();
                 if (!await EnsureBufferAsync(asynchronous, token).ConfigureAwait(false))
-                    return text is null ? null : new CsvLine(text.ToString(), string.Empty, _line++);
+                    return text is null ? null : new CsvLine(CompleteBufferedLine(text), string.Empty, _line++);
                 int start = _offset;
                 while (_offset < _length && _buffer[_offset] is not '\r' and not '\n') _offset++;
                 if (_offset == _length)
                 {
-                    (text ??= new StringBuilder()).Append(_buffer, start, _offset - start);
+                    if (text is null)
+                    {
+                        text = _lineBuffer ??= new StringBuilder();
+                        text.Clear();
+                    }
+                    text.Append(_buffer, start, _offset - start);
                     continue;
                 }
                 string value = text is null ? new string(_buffer, start, _offset - start)
-                    : text.Append(_buffer, start, _offset - start).ToString();
+                    : CompleteBufferedLine(text.Append(_buffer, start, _offset - start));
                 char separator = _buffer[_offset++];
                 string ending = separator == '\n' ? "\n" : "\r";
                 if (separator == '\r' && await EnsureBufferAsync(asynchronous, token).ConfigureAwait(false) && _buffer[_offset] == '\n')
@@ -163,6 +193,13 @@ internal static partial class CsvParser
                 }
                 return new CsvLine(value, ending, _line++);
             }
+        }
+
+        private string CompleteBufferedLine(StringBuilder text)
+        {
+            string value = text.ToString();
+            if (text.Capacity > MaximumRetainedTextCapacity) _lineBuffer = null;
+            return value;
         }
 
         private async ValueTask<bool> EnsureBufferAsync(bool asynchronous, CancellationToken token)
@@ -175,7 +212,13 @@ internal static partial class CsvParser
             return _length > 0;
         }
 
-        public void Dispose() => _reader.Dispose();
+        public void Dispose()
+        {
+            _fields.Clear();
+            _logicalRecordBuffer = _lineBuffer = null;
+            Current = default;
+            _reader.Dispose();
+        }
     }
 }
 #endif

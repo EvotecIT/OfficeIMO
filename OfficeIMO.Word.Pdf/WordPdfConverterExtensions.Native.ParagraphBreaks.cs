@@ -12,7 +12,7 @@ public static partial class WordPdfConverterExtensions {
         Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options,
         IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap,
-        bool renderSpacingOnlyEmptyParagraphLineBox, WordParagraph? nextParagraph) {
+        WordParagraph? nextParagraph) {
         if (!TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after)) return false;
 
         if (HasNativePageBreakBefore(paragraph)) pdf.PageBreak();
@@ -24,7 +24,7 @@ public static partial class WordPdfConverterExtensions {
                 before.KeepWithNextOverride = false;
                 before.LineSpacingAfterPoints = 0;
                 RenderNativeParagraph(pdf, before, marker, getMarker, System.Array.Empty<int>(), footnoteNumbersById,
-                    options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, null);
+                    options, headingDestinations, nativeDefaults, nativeFontMap, null);
                 marker = null;
             }
             if (breakType == W.BreakValues.Column) pdf.ColumnBreak();
@@ -41,11 +41,10 @@ public static partial class WordPdfConverterExtensions {
             indentation.HangingChars = null;
             if (!TrySplitNativeParagraphAtVisibleFlowBreak(after, out breakType, out before, out WordParagraph? remaining)) {
                 RenderNativeParagraph(pdf, after, marker, getMarker, System.Array.Empty<int>(), footnoteNumbersById,
-                    options, headingDestinations, nativeDefaults, nativeFontMap, false, nextParagraph);
+                    options, headingDestinations, nativeDefaults, nativeFontMap, nextParagraph);
                 return true;
             }
             after = remaining;
-            renderSpacingOnlyEmptyParagraphLineBox = false;
         }
     }
 

@@ -1,0 +1,78 @@
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.DataReaderValidation.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.DataReaderValidation.cs
+index 6dd185ae120dda798b0ea66a4eee6db5727ddc30..b2fb03c01444b8f80acdf502afc12643fb50c5ed 100644
+--- a/OfficeIMO.Excel/Read/ExcelSheetReader.DataReaderValidation.cs
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.DataReaderValidation.cs
+@@ -65,40 +65,42 @@ namespace OfficeIMO.Excel {
+             int rowDepth = -1;
+             while (reader.Read()) {
+                 ct.ThrowIfCancellationRequested();
+-                if (bounds != null) {
+-                    bool spreadsheetElement = reader.NamespaceURI == SpreadsheetNamespace
+-                        || reader.NamespaceURI == StrictSpreadsheetNamespace;
+-                    if (reader.NodeType == XmlNodeType.Element && reader.Depth == 0
+-                        && (reader.LocalName != "worksheet" || !spreadsheetElement)) {
+-                        bounds = null;
+-                    } else if (reader.LocalName == "sheetData" && reader.NodeType == XmlNodeType.Element) {
+-                        if (haveSheetData || reader.Depth != 1 || !spreadsheetElement) {
+-                            bounds = null;
+-                        } else {
+-                            haveSheetData = true;
+-                            completedSheetData = reader.IsEmptyElement;
+-                            sheetDataDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+-                        }
+-                    } else if (reader.LocalName == "row" && reader.NodeType == XmlNodeType.Element) {
+-                        if (sheetDataDepth < 0 || rowDepth >= 0
+-                            || reader.Depth != sheetDataDepth + 1 || !spreadsheetElement) {
++                XmlNodeType nodeType = reader.NodeType;
++                string localName = reader.LocalName;
++                if (nodeType != XmlNodeType.Element || localName != "c") {
++                    if (bounds != null) {
++                        bool spreadsheetElement = reader.NamespaceURI == SpreadsheetNamespace
++                            || reader.NamespaceURI == StrictSpreadsheetNamespace;
++                        if (nodeType == XmlNodeType.Element && reader.Depth == 0
++                            && (localName != "worksheet" || !spreadsheetElement)) {
+                             bounds = null;
+-                        } else {
+-                            bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
+-                            if (reader.IsEmptyElement) bounds.EndRow();
+-                            else rowDepth = reader.Depth;
+-                        }
+-                    } else if (reader.NodeType == XmlNodeType.EndElement) {
+-                        if (reader.Depth == rowDepth && reader.LocalName == "row") {
+-                            bounds.EndRow();
+-                            rowDepth = -1;
+-                        } else if (reader.Depth == sheetDataDepth && reader.LocalName == "sheetData") {
+-                            completedSheetData = true;
+-                            sheetDataDepth = -1;
++                        } else if (localName == "sheetData" && nodeType == XmlNodeType.Element) {
++                            if (haveSheetData || reader.Depth != 1 || !spreadsheetElement) {
++                                bounds = null;
++                            } else {
++                                haveSheetData = true;
++                                completedSheetData = reader.IsEmptyElement;
++                                sheetDataDepth = reader.IsEmptyElement ? -1 : reader.Depth;
++                            }
++                        } else if (localName == "row" && nodeType == XmlNodeType.Element) {
++                            if (sheetDataDepth < 0 || rowDepth >= 0
++                                || reader.Depth != sheetDataDepth + 1 || !spreadsheetElement) {
++                                bounds = null;
++                            } else {
++                                bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
++                                if (reader.IsEmptyElement) bounds.EndRow();
++                                else rowDepth = reader.Depth;
++                            }
++                        } else if (nodeType == XmlNodeType.EndElement) {
++                            if (reader.Depth == rowDepth && localName == "row") {
++                                bounds.EndRow();
++                                rowDepth = -1;
++                            } else if (reader.Depth == sheetDataDepth && localName == "sheetData") {
++                                completedSheetData = true;
++                                sheetDataDepth = -1;
++                            }
+                         }
+                     }
+-                }
+-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                     continue;
+                 }
+ 

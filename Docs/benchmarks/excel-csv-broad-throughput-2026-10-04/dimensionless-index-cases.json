@@ -1,0 +1,154 @@
+{
+  "Public-1000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 1000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-25000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-250000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "AllRows"
+    }
+  },
+  "Numeric-Public-25000-Utf16-False-Prefetch-False": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "Read",
+    "Properties": {
+      "RowCount": 25000,
+      "ReadRowCount": 0,
+      "NumericAsDecimal": true,
+      "InferDataTableColumnTypes": false,
+      "Api": "DataReader",
+      "Coordinates": "Explicit",
+      "Utf16": false,
+      "EnableWorksheetPrefetch": false
+    }
+  },
+  "Numeric-Public-25000-Utf16-True-Prefetch-False": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "Read",
+    "Properties": {
+      "RowCount": 25000,
+      "ReadRowCount": 0,
+      "NumericAsDecimal": true,
+      "InferDataTableColumnTypes": false,
+      "Api": "DataReader",
+      "Coordinates": "Explicit",
+      "Utf16": true,
+      "EnableWorksheetPrefetch": false
+    }
+  },
+  "Numeric-Public-25000-Utf16-False-Prefetch-True": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "Read",
+    "Properties": {
+      "RowCount": 25000,
+      "ReadRowCount": 0,
+      "NumericAsDecimal": true,
+      "InferDataTableColumnTypes": false,
+      "Api": "DataReader",
+      "Coordinates": "Explicit",
+      "Utf16": false,
+      "EnableWorksheetPrefetch": true
+    }
+  },
+  "Numeric-Public-1000-Utf16-False-Prefetch-False": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "Read",
+    "Properties": {
+      "RowCount": 1000,
+      "ReadRowCount": 0,
+      "NumericAsDecimal": true,
+      "InferDataTableColumnTypes": false,
+      "Api": "DataReader",
+      "Coordinates": "Explicit",
+      "Utf16": false,
+      "EnableWorksheetPrefetch": false
+    }
+  },
+  "Rows-5000-Width-65-Reverse-False-Utf16-False-ReadAutomatic": {
+    "Library": "Excel",
+    "Class": "ExcelBufferedTypedReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "ReadAutomatic",
+    "Properties": {
+      "RowCount": 5000,
+      "ColumnCount": 65,
+      "ReverseRows": false,
+      "Utf16": false
+    }
+  },
+  "Rows-5000-Width-65-Reverse-False-Utf16-False-ReadSequential": {
+    "Library": "Excel",
+    "Class": "ExcelBufferedTypedReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "ReadSequential",
+    "Properties": {
+      "RowCount": 5000,
+      "ColumnCount": 65,
+      "ReverseRows": false,
+      "Utf16": false
+    }
+  },
+  "Rows-5000-Width-65-Reverse-False-Utf16-True-ReadAutomatic": {
+    "Library": "Excel",
+    "Class": "ExcelBufferedTypedReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "ReadAutomatic",
+    "Properties": {
+      "RowCount": 5000,
+      "ColumnCount": 65,
+      "ReverseRows": false,
+      "Utf16": true
+    }
+  },
+  "Rows-5000-Width-65-Reverse-False-Utf16-True-ReadSequential": {
+    "Library": "Excel",
+    "Class": "ExcelBufferedTypedReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "ReadSequential",
+    "Properties": {
+      "RowCount": 5000,
+      "ColumnCount": 65,
+      "ReverseRows": false,
+      "Utf16": true
+    }
+  }
+}

@@ -1,0 +1,594 @@
+{
+  "Archive": "raw-packets.zip",
+  "Sha256": "4AFCBBE057D9EE6DCC73367E5717F8B841FB52F412C82F1F22F9C25EC62B758E",
+  "CompressedBytes": 17453994,
+  "OriginalBytes": 172000501.0,
+  "Policy": "Each member retains the original filename and exact captured bytes; every member verified by SHA-256 before replacing loose tracked packets.",
+  "Files": [
+    {
+      "Name": "async-document-formatting-diagnostics.json",
+      "Bytes": 2158260,
+      "Sha256": "ADB5B6DA85A67467700943CAFAE07847F8F0CBD69EA757591104F7445997842E"
+    },
+    {
+      "Name": "async-document-formatting-native.json",
+      "Bytes": 3303622,
+      "Sha256": "5D447D4233CBC36889867551B6825C7F5C8079EB5E60D8AB5445CAFC7E9A3A84"
+    },
+    {
+      "Name": "async-document-formatting-provenance.json",
+      "Bytes": 70002,
+      "Sha256": "7CB3ADACF4A4AABB33660B7E1575642FC4659D1489998144A41814BE51341726"
+    },
+    {
+      "Name": "async-document-formatting-rotated.json",
+      "Bytes": 2788589,
+      "Sha256": "9DABEEFA534D0459B51AD7ED7D6062AC824CE7F1CDFB54B562126CA9D180CDF7"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-memory-used-range-budget-v1-65535-N3-macos.json",
+      "Bytes": 758495,
+      "Sha256": "0CF1061BDB30B70001C5570F52D7DD33B628ED3518A46CBB1BC91F538EBE6233"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-memory-used-range-budget-v1-65535-N3.json",
+      "Bytes": 775169,
+      "Sha256": "D97FE47ADA2D37D6C8D34D36BBE4A02804B3E29CE9248D809928CBBEA242FF32"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-memory-used-range-budget-v1-net8-65535-N3-macos.json",
+      "Bytes": 752007,
+      "Sha256": "63A91CD4DFBB5CB6F1D37D774384DA64C7C814F5E621C6405E261C6D12706800"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-memory-used-range-budget-v1-net8-65535-N3.json",
+      "Bytes": 768338,
+      "Sha256": "4C055B92BCF89D6407E496D379FE490F0260E9B11E081EC5D484510D806B0CA2"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-used-range-budget-controls-net8-v1-65535-macos.json",
+      "Bytes": 938233,
+      "Sha256": "FA4F4A94AFAF8CFD2E4D467C938DE8E13FCED471A774680EE72455B0253D179E"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-used-range-budget-controls-net8-v1-65535.json",
+      "Bytes": 962139,
+      "Sha256": "FDB52E3FD685C49193BE749B75047E8A74A8AA170D5B1509174D394F05570C0F"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-used-range-budget-controls-screen-v1-65535.json",
+      "Bytes": 913571,
+      "Sha256": "28CB07C70B6F33C9CE86DCE9DCBE781EFE352CAEA16D1E84CECC585B2B7DFB22"
+    },
+    {
+      "Name": "budget-tail-rejected-retained-used-range-budget-controls-v1-macos.json",
+      "Bytes": 936892,
+      "Sha256": "745709476D3CE3721777F8D79BB97F107EDABCF138B90EE4BCB7871A5AC9B121"
+    },
+    {
+      "Name": "csv-delimiter-search-control-macos-net10.json",
+      "Bytes": 1221819,
+      "Sha256": "CBDC3C3E46AC0E00639602F74FA3F29FAA0F6C98887DF35562A93A82ADBC66A2"
+    },
+    {
+      "Name": "csv-delimiter-search-control-macos-net8.json",
+      "Bytes": 1224256,
+      "Sha256": "714C03F6509FF7F41F0194EC433ACE460624417005A084098B4A55BCDBBA8974"
+    },
+    {
+      "Name": "csv-delimiter-search-control-windows-net10.json",
+      "Bytes": 1261887,
+      "Sha256": "8F45052B36C76CAE6868CB0E21B8B062AB556E5C03C30AFC3B4C184188CA84C3"
+    },
+    {
+      "Name": "csv-delimiter-search-control-windows-net8.json",
+      "Bytes": 1263897,
+      "Sha256": "ED8E646FFE4088924C8130B30CCD59ACA71546120B7803DF71D068520E77B3CF"
+    },
+    {
+      "Name": "csv-delimiter-search-native-macos.json",
+      "Bytes": 4255954,
+      "Sha256": "179171B2772D725576184E08EB7499649341C3E020912F5B2852044B31BBBA22"
+    },
+    {
+      "Name": "csv-delimiter-search-native-summary.json",
+      "Bytes": 95592,
+      "Sha256": "38191E3E238346F4034F2137188AFF1983F1765EA3FFBDC83A3AC0FF77C2FCF8"
+    },
+    {
+      "Name": "csv-delimiter-search-native-windows-4294901760.json",
+      "Bytes": 4348677,
+      "Sha256": "68B220B133647F16AE05292A641F5600E5D4A25FFFF978FF64A0DC3260E1AB5E"
+    },
+    {
+      "Name": "csv-delimiter-search-native-windows-65535.json",
+      "Bytes": 4339316,
+      "Sha256": "365BCA728479B87B331C2C94D162A2FBED5ABE1CE77A7B460F1138B11AB414BA"
+    },
+    {
+      "Name": "csv-delimiter-search-reversed-macos-net10.json",
+      "Bytes": 611762,
+      "Sha256": "BCCD7E6AF44613E8C65D24ADF2F9BAE55781B8A8966DD56BEAC50DE346EAA15B"
+    },
+    {
+      "Name": "csv-delimiter-search-reversed-macos-net8.json",
+      "Bytes": 612956,
+      "Sha256": "AD180B5355D1E4A0990A435D16D8CC2539814664980B50A9FC89694427687A4A"
+    },
+    {
+      "Name": "csv-delimiter-search-reversed-windows-net10.json",
+      "Bytes": 629151,
+      "Sha256": "CB012C4DE95385174CD0609352BB42B75C53D54933D664C6062F5EB87987A8E9"
+    },
+    {
+      "Name": "csv-delimiter-search-reversed-windows-net8.json",
+      "Bytes": 629954,
+      "Sha256": "16DD0A0460598E4995E77A1C84E2F6CE78714471817604B4AE0E16960EDD6F52"
+    },
+    {
+      "Name": "csv-mixed-file-current-linux-summary.json",
+      "Bytes": 630118,
+      "Sha256": "73E75FDAF9EBBFA41BEDB6024F3B1D2F263E6F88F68B587B7E03B1116B8A2EFD"
+    },
+    {
+      "Name": "csv-mixed-file-current-linux.json",
+      "Bytes": 2526333,
+      "Sha256": "0FE98936658F8586DABAC749E37B6189987E0FCAB85E18D7B9D22A8913DF203C"
+    },
+    {
+      "Name": "csv-mixed-file-current-macos.json",
+      "Bytes": 2499689,
+      "Sha256": "9F47FD5894032E4D5DABDF7B2D809971539136D3F0EBBA2F61D603FAB4B736BF"
+    },
+    {
+      "Name": "csv-mixed-file-current-summary.json",
+      "Bytes": 429618,
+      "Sha256": "C30151EC80B965172133FCB0415138A845A529B72148724A2B38BC14FB54D0EC"
+    },
+    {
+      "Name": "csv-mixed-file-current-windows.json",
+      "Bytes": 4974637,
+      "Sha256": "386CDDDB1D1D4E07DABF3B813B91E16EF848E1240AD2D4D899D48BADCEC2C12B"
+    },
+    {
+      "Name": "csv-quoted-text-current-macos.json",
+      "Bytes": 2290871,
+      "Sha256": "E72C03A989935D864D7F20AADBE27F2F69717A8E507FE0E9528EB7CAE9EED7F1"
+    },
+    {
+      "Name": "csv-quoted-text-current-windows.json",
+      "Bytes": 4701440,
+      "Sha256": "4108ADDCD0017FD3BB3AFFA1242F3B2F22A342D2EC96B3805930A9C1742237A7"
+    },
+    {
+      "Name": "csv-text-delimiter-batching-control-macos.json",
+      "Bytes": 875343,
+      "Sha256": "A2D87BF34010ADCE90E37A8F124AD81639F9DAF842EB89933DAFD6A248D1B2DB"
+    },
+    {
+      "Name": "csv-text-delimiter-batching-control-windows.json",
+      "Bytes": 902421,
+      "Sha256": "386CD665876B813C058EE287ED9D18825D799DB9FD745A49FE779664CD97DF2A"
+    },
+    {
+      "Name": "csv-text-delimiter-batching-native-macos.json",
+      "Bytes": 2046530,
+      "Sha256": "2A9E1EA740A6596F17A8A5AF419BFC1227E7BDAAA59D17E23ED9A51932E2EEF3"
+    },
+    {
+      "Name": "csv-text-delimiter-batching-native-summary.json",
+      "Bytes": 2185384,
+      "Sha256": "29A45C9C083961E231F669022574F3FAD0BD2F9075B7FC258AC0165C1A1760FC"
+    },
+    {
+      "Name": "csv-text-delimiter-batching-native-windows-4294901760.json",
+      "Bytes": 2093646,
+      "Sha256": "EC087A2ADAE2CFF89C32676684FA714B447C5C7BF6CE7C49ADC9E5F23B546C72"
+    },
+    {
+      "Name": "csv-text-delimiter-batching-native-windows-65535.json",
+      "Bytes": 2085089,
+      "Sha256": "B4BDF821ADE700D92557E12D4839A6A4ECA461E96FBD00ABFCEB637F18CB9552"
+    },
+    {
+      "Name": "csv-text-native.json",
+      "Bytes": 1860358,
+      "Sha256": "CD517115E7A9C40BD75CC2900BA3A0F7F3426BA83059870D5EB42C5CDAEBDC15"
+    },
+    {
+      "Name": "csv-text-one-row.json",
+      "Bytes": 2342448,
+      "Sha256": "570BF1675FD0E9D0CB37184C786CB6B097F0B131065376AC548B317B5C2BCEF4"
+    },
+    {
+      "Name": "csv-text-provenance.json",
+      "Bytes": 152688,
+      "Sha256": "7813633B41A83914237BB8D83C9DB4ABAF455C3D3F987330CD9FFFC7B1C4BE18"
+    },
+    {
+      "Name": "csv-text-rotated.json",
+      "Bytes": 6439897,
+      "Sha256": "312EB38AB79F043825322A7EA2DBC7C4A01AA060166166E55BE9957F987BAF12"
+    },
+    {
+      "Name": "dimensionless-index-control-macos-net10.json",
+      "Bytes": 1092734,
+      "Sha256": "B63702589A5B29E73B8C6539A2E6DA7247FFCF4F39F887906514AABEFC8DA083"
+    },
+    {
+      "Name": "dimensionless-index-control-macos-net8.json",
+      "Bytes": 1094060,
+      "Sha256": "90C36243E8C97339A407EC0D1F687A516DFC7FC3FD3B67089B09C32A97B6A58F"
+    },
+    {
+      "Name": "dimensionless-index-control-windows-net10.json",
+      "Bytes": 1121616,
+      "Sha256": "D829235C6B4D2CC56D83183F4FFE64D880E930DCC981BC3A3D579EC9DBB5C49F"
+    },
+    {
+      "Name": "dimensionless-index-control-windows-net8.json",
+      "Bytes": 1122976,
+      "Sha256": "065BE213A472A01D5888C58E85A8A885585F254CFBAA23D37A7E2A4451A6D75A"
+    },
+    {
+      "Name": "dimensionless-index-memory-macos-net10.json",
+      "Bytes": 769964,
+      "Sha256": "686FD5F8038996773D40437041BC0B0A02D7309B28A60C9975667D5D1FCE1A94"
+    },
+    {
+      "Name": "dimensionless-index-memory-macos-net8.json",
+      "Bytes": 761739,
+      "Sha256": "AFD93FDB12320E456EB5A2B7C4A2C6326E7F60467EDFE11B9613D6064E13AF64"
+    },
+    {
+      "Name": "dimensionless-index-memory-windows-net10.json",
+      "Bytes": 786377,
+      "Sha256": "979E943C3DB4AE39FFED8C93BCFEF7EC6EE0282FEF874DD8804A9CE89EEC3F83"
+    },
+    {
+      "Name": "dimensionless-index-memory-windows-net8.json",
+      "Bytes": 778102,
+      "Sha256": "4B281B916A9846DB13FDB22E29FBB04ADAA6E36C3450995C0389694F92ACA509"
+    },
+    {
+      "Name": "dimensionless-index-native-macos.json",
+      "Bytes": 2644022,
+      "Sha256": "E993C7190BFB262BCCCE0887F57DB629B62C033CD4C02E60FC76D45E0310EC38"
+    },
+    {
+      "Name": "dimensionless-index-native-windows.json",
+      "Bytes": 2701179,
+      "Sha256": "A29AF802ED8A3DC57A887527287B4970453A44A1A211B5973D2BB145B0287567"
+    },
+    {
+      "Name": "macos-conformance.json",
+      "Bytes": 71762,
+      "Sha256": "150B3ACD984BB8E7859B0EE1F47A602811F0BCC0E0B3B8820547B6612C80B703"
+    },
+    {
+      "Name": "memory.json",
+      "Bytes": 65062,
+      "Sha256": "62EFF617C240E7728D564AC79B369F392C3DE5A34388746D7B91F7046FC149FF"
+    },
+    {
+      "Name": "native.json",
+      "Bytes": 1235767,
+      "Sha256": "F5ED40BFABAC5E24AA8E0B2CC56483BF9F598B7B16A3AC1C216AA158D9271EC0"
+    },
+    {
+      "Name": "peer-refresh-native.json",
+      "Bytes": 1548977,
+      "Sha256": "E6C5EE54F8A816D9387A4AD59B582EC594CEA38E50DE9402AC42BC1F62055CCE"
+    },
+    {
+      "Name": "public-reader-current-macos.json",
+      "Bytes": 893774,
+      "Sha256": "8F5159819302C1834591021747F2443A746F0F8E008A1886E65C3FC2CE0A7F3F"
+    },
+    {
+      "Name": "public-reader-current-windows-4294901760.json",
+      "Bytes": 916044,
+      "Sha256": "8CCE3B31ECD242D9E79BDCCF269F1434D1B2D2C2F5ED9492BD9F3D6A867F6CEC"
+    },
+    {
+      "Name": "public-reader-current-windows-65535.json",
+      "Bytes": 916017,
+      "Sha256": "420CA93C36FD297559D900208E5942C0E6960E30922A51F69E91ADFAE04192CA"
+    },
+    {
+      "Name": "public-reader-profile-macos.json",
+      "Bytes": 42475,
+      "Sha256": "A122E7D62865997709366E0932956EB1C7038F9E2524E24C66948C7389F4C4ED"
+    },
+    {
+      "Name": "public-reader-profile-windows.json",
+      "Bytes": 49295,
+      "Sha256": "81A14648457486E664A581A30F8352D14A1BA11D8FDD4F1ACA89432A3CEAFF76"
+    },
+    {
+      "Name": "rejected-csv-always-quoted-batching.json",
+      "Bytes": 205931,
+      "Sha256": "153E39D99FF079EBF45FDB660D2F9956745BAAC0325FA6CF1AA88A82F1BF587B"
+    },
+    {
+      "Name": "rejected-csv-batching-native.json",
+      "Bytes": 471110,
+      "Sha256": "EBA773574A3251F84A51D8D16DD52832AFFB4065461B1096DD30A13BA7079EAA"
+    },
+    {
+      "Name": "rejected-csv-batching-rotated.json",
+      "Bytes": 858062,
+      "Sha256": "B6F00FD046AF63332BC7617CE70345A701BE34C0148B3C7C2A8598DF9BA36627"
+    },
+    {
+      "Name": "rejected-csv-direct-buffer-native.json",
+      "Bytes": 831689,
+      "Sha256": "1C255BFD6909930292DF0DCD8676972D8D25E22ED6C20C6E828A022793910C7A"
+    },
+    {
+      "Name": "rejected-csv-direct-buffer-provenance.json",
+      "Bytes": 39237,
+      "Sha256": "A655E6AA29E564E332D7965EC81A87049AB1A8B39C9BF918F5B61586F02562E4"
+    },
+    {
+      "Name": "rejected-csv-direct-buffer-rotated.json",
+      "Bytes": 844159,
+      "Sha256": "BD187FFE43D9E9701D174AC694DEA9936E22092D43968BFD44F5E628FDA70FF0"
+    },
+    {
+      "Name": "rejected-csv-short-quoted-macos.json",
+      "Bytes": 2347041,
+      "Sha256": "F2723113BA3A89C47B872A8A76111493241F8870661449CE8EA5E522AB68A9D5"
+    },
+    {
+      "Name": "rejected-csv-short-quoted-windows.json",
+      "Bytes": 4732407,
+      "Sha256": "E79C4A16E403C32B2BE4A71834330D076DFA3119CFAD793C03E25A4068FDBF39"
+    },
+    {
+      "Name": "rotated.json",
+      "Bytes": 1332159,
+      "Sha256": "6E0B9977B2B66D5D96FEB474930A8DF020786BB33E0A80F54E35D3D2F74CDDAD"
+    },
+    {
+      "Name": "stream-save-native.json",
+      "Bytes": 2203349,
+      "Sha256": "34F84E458E90F76F6504203650CFFCB077F718E537C2A53B1A9EC410D39F1D2A"
+    },
+    {
+      "Name": "stream-save-provenance.json",
+      "Bytes": 144114,
+      "Sha256": "EC4D8FE78CF3B4AAB4E114BA0B7C33BFD7FBEC69CDAD5646E7F549FE252BBDAD"
+    },
+    {
+      "Name": "stream-save-rotated.json",
+      "Bytes": 3800013,
+      "Sha256": "0A6208A920B430577DB6310CD74A1D5C362A3A88CA2C044EDDA49F3CA37B7CF2"
+    },
+    {
+      "Name": "typed-xml-staging-memory-macos.json",
+      "Bytes": 780265,
+      "Sha256": "E7BAACE319CAA0091AF7888F281546096E7DC9A92EE4330B259086C89B9E67B9"
+    },
+    {
+      "Name": "typed-xml-staging-memory-windows.json",
+      "Bytes": 797037,
+      "Sha256": "8383F1615DF76C94F88ACFB6B28AC91A6B3983A58448BB9A5C9E3E9E08921F59"
+    },
+    {
+      "Name": "typed-xml-staging-native-macos.json",
+      "Bytes": 2342584,
+      "Sha256": "143C9C272F1360DDD09C2FB47F329BC8B257A645917606921F5F493C30C65C07"
+    },
+    {
+      "Name": "typed-xml-staging-native-windows.json",
+      "Bytes": 2392642,
+      "Sha256": "CFF1063F1B4CCBA20DB420DA56E7C142D00B6D933BF94407C6C7CDC9936BB26E"
+    },
+    {
+      "Name": "worksheet-encoding-controls-macos.json",
+      "Bytes": 2030381,
+      "Sha256": "ED9A858C01B4CB985C79A24077E28FD58F534B79A506209350D8BA870B3FC59B"
+    },
+    {
+      "Name": "worksheet-encoding-controls-summary.json",
+      "Bytes": 83926,
+      "Sha256": "4FF665193000F29E067E77C0F1ADF3EC7B06CE38CBF16E4A0A6390263BF5BEC6"
+    },
+    {
+      "Name": "worksheet-encoding-controls-windows.json",
+      "Bytes": 3452807,
+      "Sha256": "21B496F2D07D0C1AEF5D700B87CF7468C18239035394DD472A720C6457E92B1A"
+    },
+    {
+      "Name": "worksheet-encoding-memory-macos-net10.json",
+      "Bytes": 909807,
+      "Sha256": "1BCEBBCD74BD1D7B91F77241EF698094F68B8A9B28EBD412E2991652DDA05D63"
+    },
+    {
+      "Name": "worksheet-encoding-memory-macos-net8.json",
+      "Bytes": 892599,
+      "Sha256": "862E1FB2CADBECBAA787253200BF9B76FCB6C748B4FA337316F8D6CA35059E11"
+    },
+    {
+      "Name": "worksheet-encoding-memory-summary.json",
+      "Bytes": 86131,
+      "Sha256": "8DF89FA7761EA611D77ED76289DC312DCFDA61198787371AE839B4FE34250479"
+    },
+    {
+      "Name": "worksheet-encoding-memory-windows-net10.json",
+      "Bytes": 928349,
+      "Sha256": "7A5E6AF1DB105EF219B1CAD9303D0A53962B48D641D4C921E4571DCC05672022"
+    },
+    {
+      "Name": "worksheet-encoding-memory-windows-net8.json",
+      "Bytes": 911103,
+      "Sha256": "9BC4EDB3A2F7CBFB8998C899CFB007E014E5854256957563F02AC3350D8DD822"
+    },
+    {
+      "Name": "worksheet-encoding-native-macos.json",
+      "Bytes": 9230647,
+      "Sha256": "CEE96E2568BB054A60ECCAB7FFBE79D0314F4D644AFADE4BDCE51EF2E6BE9766"
+    },
+    {
+      "Name": "worksheet-encoding-native-summary.json",
+      "Bytes": 135470,
+      "Sha256": "B010A17E39965E40C3C1C012FE56CB14F939290E0E93CD2038FFFE26C7FA474E"
+    },
+    {
+      "Name": "worksheet-encoding-native-windows.json",
+      "Bytes": 9409219,
+      "Sha256": "EE1781EF2A561548BC4E8C492D73FCC71D6D17BFE5C90429385B65AB9B398A0D"
+    },
+    {
+      "Name": "worksheet-encoding-three-way-macos.json",
+      "Bytes": 508620,
+      "Sha256": "694EF62A3AFE064C13D50B60D565E75F6054FEAFCC66FC020E8F7C2E20F95654"
+    },
+    {
+      "Name": "worksheet-encoding-three-way-windows.json",
+      "Bytes": 563325,
+      "Sha256": "1E06F0911A291A69F5B95E8FFD9D69C78215AAFA01AABAD1C922BCD5B51D7105"
+    },
+    {
+      "Name": "writer-buffer-coverage-conformance.json",
+      "Bytes": 74748,
+      "Sha256": "BF1E926384293F5612505D93A82C7C9378851FC7E5127F476533DD194F31C819"
+    },
+    {
+      "Name": "writer-buffer-native.json",
+      "Bytes": 2405318,
+      "Sha256": "0CE299AB484B1609729BD7AF3C642515127E22BB1F9C5728950F2BFB81AF54DE"
+    },
+    {
+      "Name": "writer-buffer-provenance.json",
+      "Bytes": 58430,
+      "Sha256": "9DFFAA0A218DD6F8D0CB2641ADF7BF423E82D56339AD8D35E4A1C59A35CBDE3D"
+    },
+    {
+      "Name": "writer-buffer-rotated.json",
+      "Bytes": 2797408,
+      "Sha256": "62314F078A3CEA6CDBDB2AE6702D3F17F4A422802DE5660F7E415785DE3B03CC"
+    },
+    {
+      "Name": "writer-datatable-profiles.json",
+      "Bytes": 302361,
+      "Sha256": "DC2A318D6980D2208B1A9A08CDE144C12B4F4CB633F7B802B83B969A848907C9"
+    },
+    {
+      "Name": "xlsx-datatable-normalization-native-macos.json",
+      "Bytes": 2944764,
+      "Sha256": "C014A27A220943E50253A575C9AFDD7C2361EA4D289CEDB9553DFF40AEF04A22"
+    },
+    {
+      "Name": "xlsx-datatable-normalization-native-windows.json",
+      "Bytes": 3005000,
+      "Sha256": "E31F448079B9B7056E120A78CE162F85FF2AFB260622397B864CFB5D6D5C5FF7"
+    },
+    {
+      "Name": "xlsx-datatable-normalization-rotated-macos.json",
+      "Bytes": 1361681,
+      "Sha256": "5AF403F1CBEA8C5EE354D28B2A865F1ECB6994DF2A6F66C91A6921464D621641"
+    },
+    {
+      "Name": "xlsx-datatable-normalization-rotated-windows.json",
+      "Bytes": 2076052,
+      "Sha256": "2A4FB97F0CF8ACEFDB0B4603032828235E683DDCB9CEF666C4393E58F751290B"
+    },
+    {
+      "Name": "xlsx-native-index-eligibility-cold-macos.json",
+      "Bytes": 123168,
+      "Sha256": "4375E889C818DEC36107778EACCB957AAC93FA0EC0615550CAEFDEE97A68F635"
+    },
+    {
+      "Name": "xlsx-native-index-eligibility-cold-windows.json",
+      "Bytes": 125503,
+      "Sha256": "C2B95F07F2C495D50F01909D31DC5A417C84F7BE88FBBC7B795D6FA03CCEBA64"
+    },
+    {
+      "Name": "xlsx-native-index-eligibility-native-macos.json",
+      "Bytes": 581212,
+      "Sha256": "9C9B1C95940067AA49FF4F67E9749E4FB55CC20F6947259CB7AFB91229C4C175"
+    },
+    {
+      "Name": "xlsx-native-index-eligibility-native-windows.json",
+      "Bytes": 594058,
+      "Sha256": "F34EB9869D26257AF929040A862B4AD632E6738A5D9C67E11F7E979A09B131A9"
+    },
+    {
+      "Name": "xlsx-native-index-eligibility-rotated-macos.json",
+      "Bytes": 284651,
+      "Sha256": "474F8A26F1C204440E70A245C45145F94AC3321830542839F77FCB8DDE3EF437"
+    },
+    {
+      "Name": "xlsx-native-index-eligibility-rotated-windows.json",
+      "Bytes": 265099,
+      "Sha256": "178299E8C9081AFE12DCD47583CECD128049044F658C8C8451A101A5505240C5"
+    },
+    {
+      "Name": "xlsx-native-index-refinement-cold-macos.json",
+      "Bytes": 222395,
+      "Sha256": "99753D1DD57D6711F9C86CD637E34F33308365EEE1493F151438DEA06BEDD447"
+    },
+    {
+      "Name": "xlsx-native-index-refinement-cold-windows.json",
+      "Bytes": 227009,
+      "Sha256": "6C9E369C3D8B28476C56C3A163BA1662931DE472DA238F17DC26325B449742D1"
+    },
+    {
+      "Name": "xlsx-native-index-refinement-native-macos.json",
+      "Bytes": 920107,
+      "Sha256": "C214039F3598FD700AAD8412184B24947E1AC56D8A0B14FEBA65E258D6B4AB29"
+    },
+    {
+      "Name": "xlsx-native-index-refinement-native-windows.json",
+      "Bytes": 936025,
+      "Sha256": "DFD5E3A7D6F6AA7F182130B051CD2139EFC61FAD0926FC19C39106DCDC824760"
+    },
+    {
+      "Name": "xlsx-native-index-refinement-rotated-macos.json",
+      "Bytes": 332918,
+      "Sha256": "FC7E208906A70F69A2C5FE4A9B5504522674F285C4C946F7E3512EAF215B188D"
+    },
+    {
+      "Name": "xlsx-native-index-refinement-rotated-windows.json",
+      "Bytes": 608480,
+      "Sha256": "494DF303445EF7E928EE4D63F610DA48E8219690BD83F8B1B5EBEE6DB7453807"
+    },
+    {
+      "Name": "xlsx-public-reader-peers-second-placement.json",
+      "Bytes": 95749,
+      "Sha256": "5D03F7030A91FF07CF9C8B0E37E582A4357F7B5AEABBC2FCCC6A21A10258C23F"
+    },
+    {
+      "Name": "xlsx-public-reader-stream-macos.json",
+      "Bytes": 511020,
+      "Sha256": "ACF2D3A04165718BA30AE4F81C0B20982D675101D0CD10957B891CD81AFD424C"
+    },
+    {
+      "Name": "xlsx-public-reader-stream-rotated.json",
+      "Bytes": 225391,
+      "Sha256": "CF3625D81407B6B38D8E5DA068E47116A4CE2A948C5934955C57272EF554949F"
+    },
+    {
+      "Name": "xlsx-public-reader-stream-windows.json",
+      "Bytes": 523351,
+      "Sha256": "0A76A9CFD7F9DB1E687A54922B00F164E7DD6F9240FBACC183A7D103E385226A"
+    },
+    {
+      "Name": "xlsx-reader-termination-qualified.json",
+      "Bytes": 1803194,
+      "Sha256": "6E0D4E1792AEF0139CCD31885D5C4F0F2D67370ED6F945028D918FF252F1E384"
+    },
+    {
+      "Name": "xml-stream-buffering-screen-macos.json",
+      "Bytes": 1021514,
+      "Sha256": "6D14958A5022C4629BD01BCE221D0A0A3B04281AF605C0C99E192ACFD3E2303B"
+    },
+    {
+      "Name": "xml-stream-buffering-screen-windows.json",
+      "Bytes": 1040722,
+      "Sha256": "C29E0266631DDC7CE2BB4F5C7C6BD38C2B1F96D6955900ECB89DD6581031A6A3"
+    }
+  ]
+}

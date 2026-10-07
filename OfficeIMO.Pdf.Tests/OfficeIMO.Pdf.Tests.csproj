@@ -49,6 +49,7 @@
     <ProjectReference Include="..\OfficeIMO.Ocr\OfficeIMO.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Ocr.Tesseract\OfficeIMO.Ocr.Tesseract.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
@@ -84,6 +85,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\EnglishLayout\*-scan.png;..\OfficeIMO.TestAssets\EnglishLayout\*-provider.tsv;..\OfficeIMO.TestAssets\EnglishLayout\manifest.json" Link="EnglishLayout\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\phototest-skew.pdf" Link="ScanQuality\phototest-skew.pdf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\MultilingualLayout\*-native.pdf;..\OfficeIMO.TestAssets\MultilingualLayout\manifest.json" Link="MultilingualLayout\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -42,5 +42,7 @@
 
   <ItemGroup>
     <Using Include="OfficeIMO.Data" />
+    <Compile Include="../OfficeIMO.TestAssets/CSV/BrowserCsvVectorContract.cs" Link="Shared/BrowserCsvVectorContract.cs" />
+    <None Include="../OfficeIMO.TestAssets/CSV/browser-exports.json" Link="TestAssets/browser-exports.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

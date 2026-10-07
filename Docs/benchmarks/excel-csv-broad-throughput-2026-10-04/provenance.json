@@ -1,0 +1,123 @@
+{
+  "BaselineSource": "0d0d5a0b6e7bf048accdf8bfc8ca585a3e62e599",
+  "FinalSource": "8b84a1676c31db2d92a8b80ede7064c72748e554",
+  "MeasuredBeforeCommit": true,
+  "Stage1AssemblyHashes": [
+    {
+      "Snapshot": "baseline-csv",
+      "File": "OfficeIMO.Core.dll",
+      "Hash": "0975A93E3329AEAE5930B0A31A01C1D6262F8D75C68EDADA4E6299B5077B6AD4"
+    },
+    {
+      "Snapshot": "baseline-csv",
+      "File": "OfficeIMO.CSV.Benchmarks.dll",
+      "Hash": "83EBD483486F72450CAF0DAA33715EE7A24C4989D5635B19487525257410A55F"
+    },
+    {
+      "Snapshot": "baseline-csv",
+      "File": "OfficeIMO.CSV.dll",
+      "Hash": "201BBEFF772D2EEE02F83A947D5E0CB96F51C5F72DC8C61D8F78BBB57613B15B"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "File": "OfficeIMO.Core.dll",
+      "Hash": "0975A93E3329AEAE5930B0A31A01C1D6262F8D75C68EDADA4E6299B5077B6AD4"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "File": "OfficeIMO.Data.Arrow.dll",
+      "Hash": "05CA3FAF8586A0495481E10D22DE06AD663B3C6950BA9FCA3C4445D663808554"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "File": "OfficeIMO.Excel.Benchmarks.dll",
+      "Hash": "54B55F4A4A17277BAF98D405A86509D7BCD3C26F37779F958E47F5CAB04EC9BC"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "File": "OfficeIMO.Excel.dll",
+      "Hash": "C8BCCE62450F2D108F26EC0726032CE444F15876BFBBC3F5C5078D314CFC45C1"
+    },
+    {
+      "Snapshot": "candidate-csv",
+      "File": "OfficeIMO.Core.dll",
+      "Hash": "0975A93E3329AEAE5930B0A31A01C1D6262F8D75C68EDADA4E6299B5077B6AD4"
+    },
+    {
+      "Snapshot": "candidate-csv",
+      "File": "OfficeIMO.CSV.Benchmarks.dll",
+      "Hash": "09BD9192442C484C80E510D1B1011ADE97D27DDA5B85FCA62DBF6BBA6486B43B"
+    },
+    {
+      "Snapshot": "candidate-csv",
+      "File": "OfficeIMO.CSV.dll",
+      "Hash": "41BE5CFE7066ADF735E3C4DF59294F75DD74C30D5DD084A242CF71E5B7AA5A32"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "File": "OfficeIMO.Core.dll",
+      "Hash": "0975A93E3329AEAE5930B0A31A01C1D6262F8D75C68EDADA4E6299B5077B6AD4"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "File": "OfficeIMO.Data.Arrow.dll",
+      "Hash": "05CA3FAF8586A0495481E10D22DE06AD663B3C6950BA9FCA3C4445D663808554"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "File": "OfficeIMO.Excel.Benchmarks.dll",
+      "Hash": "EA35E97212AF940647E47000528910F414A8340C698C5072091C0BC6EA292B68"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "File": "OfficeIMO.Excel.dll",
+      "Hash": "C85FEA183414BA77AB916D8F39C39CD15F65BDCC602C89923374105946CCDA9F"
+    }
+  ],
+  "Stage2ExcelHash": "670D1882CE98CE319B5C62189CBF09FC8351E7E4787F53FD351985B25C1B542B",
+  "Stage3ExcelHash": "99BFBD43543CA9AC5B179B869AFBDABB21E799AC6D3EB99301A0AC8B6C09FC99",
+  "RejectedEncodingExcelHash": "FD54EFA56007B80448D5D2448B9FF5D26D356F03EFFC8C5B8F7F1B8CB657623A",
+  "FinalRebuildExcelHash": "1D1B8239190E220E0F19FCFFEFC7A7BF318F66875C3D147B2269120B8876BD63",
+  "BenchmarkDotNet": "0.15.8",
+  "WindowsRuntime": "10.0.12",
+  "SDK": "10.0.112",
+  "Cpu": "AMD Ryzen 9 9950X3D2, 16 cores, 32 logical processors",
+  "L3Domains": "Two 96 MiB cache domains, independently verified",
+  "AffinityMasks": [
+    "0xFFFF",
+    "0xFFFF0000"
+  ],
+  "Priority": "Normal",
+  "PowerPlan": "High performance",
+  "HostContention": "Other applications and builds active; timings are not portable budgets",
+  "PeerDriverPins": {
+    "ExcelDataReader": "3.9.0",
+    "Sep": "0.17.1",
+    "ExcelReaderNET_net8": "3.1.0",
+    "LargeXlsx": "2.0.2",
+    "SpreadCheetah": "1.28.0",
+    "ClosedXML": "0.105.1",
+    "SylvanDataExcel": "0.5.8",
+    "ExcelReaderNET_net10": "5.1.1"
+  },
+  "StageDescription": {
+    "Stage1": "CSV and rich SST reuse; CSV is identical to the final candidate",
+    "Stage3": "Final source, adding prefixed worksheets and XML reader correctness fixes",
+    "RejectedEncoding": "Nine-line GetBytes experiment, removed after the adjacent-workload comparison",
+    "Stage2": "Stage1 plus worksheet-copy and inline-string save changes"
+  },
+  "MemoryRunner": {
+    "PowerForgeBinarySha256": "517B9882C5FD10D918DEFAE23291CD75D7211F556F174AD9C143DB1B3439E4E1",
+    "PowerShellRunnerBinarySha256": "28633E6FDA1AA665A1E0FC24748CE3D693B891F6ECDA8239195D5869565968F5",
+    "Iterations": 3,
+    "BuildNote": "Reused existing canonical source-build binaries; not rebuilt in this run",
+    "Warmups": 1,
+    "Sampler": "5 ms lower-bound managed and resident peaks",
+    "SourceCheckoutHead": "60a5e52fa661e61cd862bb60a3900d0ef1101986"
+  },
+  "Review": {
+    "Outcome": "Two nonoverlapping read-only reviews, no actionable findings; fingerprints verified before commit",
+    "PrefixPatchSha256": "9323D0A66C33E25DD157C9C6CCAB2A5A877C4964F8B9FD92D07BED51A4D62D80",
+    "BroadPatchSha256": "941446D7BEDB811BCD292D39EE4C508BAF3891D87FABB4662E7ECE26CA025EC7"
+  }
+}

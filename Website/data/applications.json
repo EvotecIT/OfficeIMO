@@ -5,16 +5,24 @@
     "headlineAccent": "A clearer workspace.",
     "summary": "Edit supported PDF text and images, review comments, fill forms, and organize pages. Convert and assemble documents, then inspect the result before saving.",
     "primaryLabel": "Download Studio",
+    "storesPrimaryLabel": "All downloads",
     "primaryUrl": "/downloads/#studio-downloads",
     "secondaryLabel": "Source and build guide",
     "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme",
-    "availability": "Windows and Linux downloads are available for x64 and Arm64. Arm64 installation and runtime testing is pending. macOS uses the source build guide.",
+    "availability": "Get Studio from the Microsoft Store, or download it for Windows and Linux (x64 and Arm64). Mac App Store and App Store versions are on the way; until then, macOS uses the source build guide.",
     "image": "/images/studio/workspace-light.png",
     "imageDark": "/images/studio/workspace-dark.png",
     "imageAlt": "OfficeIMO Studio displaying the public document showcase dashboard with page navigation and document tools.",
     "caption": "Actual Studio window with an OfficeIMO sample PDF. Desktop source build. Select the image to open it at full size.",
-    "facts": ["Windows and Linux downloads", "Local document workflows", "MIT licensed"],
+    "facts": ["In the Microsoft Store", "Local document workflows", "MIT licensed"],
+    "stores": [
+      { "id": "microsoft-store", "name": "Microsoft Store", "status": "available", "url": "https://apps.microsoft.com/detail/xp9m6j7hvm2hz0", "badge": "/images/stores/microsoft-store-badge-dark.svg", "badgeDark": "/images/stores/microsoft-store-badge-light.svg", "badgeAlt": "Download from the Microsoft Store", "badgeWidth": 161, "badgeHeight": 44, "platforms": "Windows 10 and 11", "icon": "laptop" },
+      { "id": "mac-app-store", "name": "Mac App Store", "status": "coming-soon", "badge": "/images/stores/mac-app-store-badge-black.svg", "badgeDark": "/images/stores/mac-app-store-badge-white.svg", "badgeAlt": "Download on the Mac App Store", "badgeWidth": 156, "badgeHeight": 40, "platforms": "macOS", "icon": "laptop" },
+      { "id": "app-store", "name": "App Store", "status": "coming-soon", "badge": "/images/stores/app-store-badge-black.svg", "badgeDark": "/images/stores/app-store-badge-white.svg", "badgeAlt": "Download on the App Store", "badgeWidth": 120, "badgeHeight": 40, "platforms": "iPhone and iPad", "icon": "tablet" },
+      { "id": "winget", "name": "WinGet", "status": "coming-soon", "command": "winget install EvotecIT.OfficeIMO.Studio", "platforms": "Windows package manager", "icon": "terminal" }
+    ],
     "channels": [
+      { "name": "Microsoft Store", "detail": "Install on Windows 10 and 11 and receive updates automatically", "state": "Available", "url": "https://apps.microsoft.com/detail/xp9m6j7hvm2hz0", "label": "Open the Microsoft Store" },
       { "name": "Windows", "detail": "Signed MSI installer or portable ZIP for x64 and Arm64", "state": "Available", "url": "/downloads/#studio-downloads", "label": "Download for Windows" },
       { "name": "Linux", "detail": "Debian package or portable ZIP for x64 and Arm64", "state": "Available", "url": "/downloads/#studio-linux-downloads", "label": "Download for Linux" },
       { "name": "Source build", "detail": "Build the desktop workspace, including on macOS", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme", "label": "Open build guide" }

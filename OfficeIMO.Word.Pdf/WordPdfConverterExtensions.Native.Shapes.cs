@@ -13,13 +13,26 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeShape(INativePdfFlow pdf, WordShape shape) {
+        private static bool RenderNativeShape(INativePdfFlow pdf, WordShape shape, double spacingAfter = 6D, NativeObjectParagraphSpacing? paragraphSpacing = null) {
+            if (shape == null) {
+                return false;
+            }
+            bool alignToLineTop = shape._drawing == null ||
+                (shape.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot layout) && layout.Placement == WordDrawingPlacementKind.Anchored);
+            // Hidden flow shapes retain their occupied line height while omitting paint.
+            if (shape.Hidden == true && GetNativeShapeDimensions(shape) is { Height: > 0D } dimensions) {
+                RenderNativeFlowObject(pdf, paragraphSpacing,
+                    flow => flow.Spacer(dimensions.Height + spacingAfter), alignToLineTop);
+                return true;
+            }
             OfficeShape? nativeShape = CreateNativeShape(shape);
             if (nativeShape == null) {
-                return;
+                return false;
             }
 
-            pdf.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: 6);
+            RenderNativeFlowObject(pdf, paragraphSpacing,
+                flow => flow.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter), alignToLineTop);
+            return true;
         }
 
         private static OfficeShape? CreateNativeShape(WordShape shape) {

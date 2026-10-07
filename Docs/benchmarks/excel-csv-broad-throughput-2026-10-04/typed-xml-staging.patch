@@ -1,0 +1,151 @@
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.BufferedStream.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.BufferedStream.cs
+index 9db039213..c05b17dc4 100644
+--- a/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.BufferedStream.cs
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.BufferedStream.cs
+@@ -70,26 +70,32 @@ namespace OfficeIMO.Excel {
+                 CellRaw?[] cells = rowIndex == r1
+                     ? headerCells = new CellRaw?[cols]
+                     : GetPendingTypedCells(pendingRows, rowIndex, cols, enforcePendingLimit);
+-                if (reader.IsEmptyElement) continue;
+-                int depth = reader.Depth;
+-                int nextColumnIndex = 1;
+-                int visitedNodes = 0;
+-                while (reader.Read()) {
+-                    if ((++visitedNodes & 1023) == 0) ct.ThrowIfCancellationRequested();
+-                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "row") break;
+-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") continue;
+-                    int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
+-                    if (columnIndex < c1 || columnIndex > c2) {
+-                        SkipXmlElement(reader, "c");
+-                        continue;
+-                    }
+-                    cells[columnIndex - c1] = ReadXmlCellRaw(reader, rowIndex, columnIndex,
+-                        ParseXmlCellKind(ReadXmlCellTypeAttribute(reader)), readStyleIndex: true);
+-                }
++                ReadRawTypedRowCellsXml(reader, rowIndex, c1, c2, cells, ct);
+             }
+             return headerCells;
+         }
+ 
++        private void ReadRawTypedRowCellsXml(
++            XmlReader reader, int rowIndex, int c1, int c2, Span<CellRaw?> cells,
++            CancellationToken ct) {
++            if (reader.IsEmptyElement) return;
++            int depth = reader.Depth;
++            int nextColumnIndex = 1;
++            int visitedNodes = 0;
++            while (reader.Read()) {
++                if ((++visitedNodes & 1023) == 0) ct.ThrowIfCancellationRequested();
++                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "row") break;
++                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") continue;
++                int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
++                if (columnIndex < c1 || columnIndex > c2) {
++                    SkipXmlElement(reader, "c");
++                    continue;
++                }
++                cells[columnIndex - c1] = ReadXmlCellRaw(reader, rowIndex, columnIndex,
++                    ParseXmlCellKind(ReadXmlCellTypeAttribute(reader)), readStyleIndex: true);
++            }
++        }
++
+         private CellRaw?[]? BufferTypedRowsDom(
+             Dictionary<int, CellRaw?[]> pendingRows, int r1, int c1, int r2, int c2, int cols,
+             CancellationToken ct, bool enforcePendingLimit) {
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.XmlProjection.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.XmlProjection.cs
+new file mode 100644
+index 000000000..6f9e6eb90
+--- /dev/null
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.XmlProjection.cs
+@@ -0,0 +1,69 @@
++using System.Buffers;
++using System.Diagnostics.CodeAnalysis;
++using System.IO;
++using System.Threading;
++using System.Xml;
++
++namespace OfficeIMO.Excel {
++    internal sealed partial class ExcelSheetReader {
++        // Materialized results can stage the requested cells in one bounded buffer.
++        // The existing raw projection merges fragments before any user mapping runs.
++        private List<T> ReadObjectsFromBufferedXmlProjection<
++            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
++            string a1Range, int r1, int c1, int r2, int c2, int rows, int cols,
++            CancellationToken ct) where T : new() {
++            ct.ThrowIfCancellationRequested();
++            int length = checked(rows * cols);
++            CellRaw?[] buffer = ArrayPool<CellRaw?>.Shared.Rent(length);
++            try {
++                Array.Clear(buffer, 0, length);
++                using (var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read)) {
++                    RewindWorksheetStream(stream);
++                    using var reader = OpenWorksheetXmlReader(stream);
++                    int nextRowIndex = 1;
++                    while (reader.Read()) {
++                        ct.ThrowIfCancellationRequested();
++                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") continue;
++                        int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
++                        if (rowIndex <= 0) rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
++                        nextRowIndex = rowIndex + 1;
++                        if (rowIndex < r1 || rowIndex > r2) {
++                            SkipXmlElement(reader, "row");
++                            continue;
++                        }
++                        Span<CellRaw?> cells = buffer.AsSpan(checked((rowIndex - r1) * cols), cols);
++                        // Each physical header replaces its predecessor; data fragments
++                        // replace only cells they contain, including explicit blanks.
++                        if (rowIndex == r1) cells.Clear();
++                        ReadRawTypedRowCellsXml(reader, rowIndex, c1, c2, cells, ct);
++                    }
++                }
++
++                var headerValues = new object?[cols];
++                for (int column = 0; column < cols; column++) {
++                    if (buffer[column] is CellRaw cell) headerValues[column] = ConvertRaw(cell).TypedValue;
++                }
++                var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
++                    cols, column => headerValues[column]?.ToString(), _opt.NormalizeHeaders);
++                var bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
++                var result = new List<T>(rows - 1);
++                for (int rowOffset = 1; rowOffset < rows; rowOffset++) {
++                    ct.ThrowIfCancellationRequested();
++                    var target = new T();
++                    int offset = rowOffset * cols;
++                    for (int column = 0; column < cols; column++) {
++                        if ((column & 1023) == 0) ct.ThrowIfCancellationRequested();
++                        if (buffer[offset + column] is CellRaw cell && bindings[column] is { } binding)
++                            TrySetRawCellForBinding(cell, binding, target);
++                    }
++                    result.Add(target);
++                }
++                return result;
++            } finally {
++                // Raw cells hold workbook strings. Clear them even when XML, mapping
++                // or cancellation fails so the pool retains no workbook references.
++                ArrayPool<CellRaw?>.Shared.Return(buffer, clearArray: true);
++            }
++        }
++    }
++}
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.cs
+index ab806a4bc..6baeae198 100644
+--- a/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.cs
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.Objects.cs
+@@ -67,6 +67,18 @@ namespace OfficeIMO.Excel {
+                 return qualifiedParallelRows;
+             }
+ 
++            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
++                && _opt.CellValueConverter == null
++                && _opt.TypeConverter == null
++                && cellCount <= _opt.MaxDataReaderBufferedCells
++                && cellCount <= int.MaxValue
++                && CanUseTypedObjectXmlReader()) {
++                // Stage the final projected cells in one XML pass. Mapping happens
++                // after all row fragments and the final header are known.
++                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
++                return ReadObjectsFromBufferedXmlProjection<T>(a1Range, r1, c1, r2, c2, rows, cols, ct);
++            }
++
+             // Qualify row order before invoking converters or property setters.
+             // A later row fragment can replace an earlier value completely.
+             bool ordered = CanUseTypedObjectXmlReader()

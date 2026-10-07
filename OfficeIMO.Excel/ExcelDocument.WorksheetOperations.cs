@@ -541,38 +541,6 @@ namespace OfficeIMO.Excel {
             return tableParts;
         }
 
-        private static void RewriteStructuredTableReferences(Worksheet worksheet, IReadOnlyDictionary<string, string> tableNameMap) {
-            foreach (CellFormula formula in worksheet.Descendants<CellFormula>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-
-            foreach (Formula formula in worksheet.Descendants<Formula>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-
-            foreach (Formula1 formula in worksheet.Descendants<Formula1>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-
-            foreach (Formula2 formula in worksheet.Descendants<Formula2>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-
-            foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-        }
-
-        private static void RewriteStructuredTableReferences(Table table, IReadOnlyDictionary<string, string> tableNameMap) {
-            foreach (CalculatedColumnFormula formula in table.Descendants<CalculatedColumnFormula>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-
-            foreach (TotalsRowFormula formula in table.Descendants<TotalsRowFormula>()) {
-                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
-            }
-        }
-
         private static void RewriteCopiedWorksheetExternalReferences(WorksheetPart worksheetPart, IReadOnlyDictionary<int, int> externalReferenceMap) {
             if (externalReferenceMap.Count == 0) {
                 return;

@@ -94,7 +94,7 @@ the unspecified-extra-channel TIFF disagreement and photographic producer covera
 
 The [opt-in Windows runner](../Build/XpsWindowsEvidence/README.md) compares native
 Microsoft WPF rendering with managed XPS rendering and the rendered PDF projection
-at 96 dpi. Its [recorded run](../Build/XpsWindowsEvidence/Evidence/2026-10-06/report.json)
+at 96 dpi. Its [recorded run](../Build/XpsWindowsEvidence/Evidence/2026-10-07/report.json)
 contains input/output hashes, assembly versions and hashes, source context,
 diagnostics and both full-image and stable-interior error measurements.
 

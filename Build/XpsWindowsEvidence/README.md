@@ -41,7 +41,7 @@ open/render failures and lifecycle failures produce a nonzero exit code.
 The [XPS support matrix](../../OfficeIMO.Xps/SUPPORT.md#bounded-windows-wpf-comparison)
 describes the qualified scope and observed differences. This runner does not
 qualify OpenXPS, interleaved packages, StoryFragments, printing or an independent
-PDF renderer. The [recorded run](Evidence/2026-10-06/report.json) preserves the
+PDF renderer. The [recorded run](Evidence/2026-10-07/report.json) preserves the
 report, independent WPF package and representative input/render triples. Those
 triples cover a WPF page, a boundary Repeat field, coincident stroke endpoints
 and an unspecified TIFF extra sample. Full generated artifacts remain in the
