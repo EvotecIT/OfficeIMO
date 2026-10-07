@@ -489,7 +489,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             double baseline = current.ResolveBaseline(paragraphStyle);
-            bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
+            // A short inherited line height keeps the selected face's centered
+            // ascent/overflow metrics. The ordinary mixed-size baseline applies
+            // when the line box can contain the source em sizes.
+            bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle)
+                && !current.Segments.Any(segment => segment.Run.AtomicBlock == null
+                    && segment.Run.Style.Font.Size > lineHeight);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
             double lineX = current.HasExplicitPlacement ? current.X : 0D;

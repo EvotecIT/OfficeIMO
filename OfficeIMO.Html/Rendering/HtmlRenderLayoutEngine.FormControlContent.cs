@@ -193,7 +193,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double fraction = HtmlFormControlSemantics.GetRangeFraction(element);
         double trackHeight = Math.Max(2D, Math.Min(4D, height * 0.25D));
         double trackY = y + (height - trackHeight) / 2D;
-        OfficeShape track = OfficeShape.RoundedRectangle(width, trackHeight, trackHeight / 2D);
+        OfficeShape track = OfficeShape.RoundedRectangle(width, trackHeight, Math.Min(width, trackHeight) / 2D);
         track.FillColor = OfficeColor.FromRgb(196, 196, 196);
         track.StrokeWidth = 0D;
         visuals.Add(new HtmlRenderShape(track, x, trackY, visuals.Count, source: source + ":track"));
@@ -241,7 +241,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         string source) {
         double fraction = ResolveNumericFraction(element, 0D, tag == "progress" ? 1D : 1D, tag == "progress" ? 0D : 0D);
-        OfficeShape track = OfficeShape.RoundedRectangle(width, height, Math.Min(3D, height / 2D));
+        OfficeShape track = OfficeShape.RoundedRectangle(width, height, Math.Min(3D, Math.Min(width, height) / 2D));
         track.FillColor = OfficeColor.FromRgb(224, 224, 224);
         track.StrokeWidth = 0D;
         visuals.Add(new HtmlRenderShape(track, x, y, visuals.Count, source: source + ":track"));

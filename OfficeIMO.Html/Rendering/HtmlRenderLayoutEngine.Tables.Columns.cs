@@ -136,6 +136,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
+        if (style.MinWidth.HasValue) {
+            double authoredMinimum = style.MinWidth.Value + (style.BorderBox ? 0D : insets);
+            minimum = Math.Max(minimum, authoredMinimum);
+            preferred = Math.Max(preferred, authoredMinimum);
+        }
         ResolveTableDescendantIntrinsicWidths(cell, style, containingWidth, depth, insets, ref minimum, ref preferred);
     }
 

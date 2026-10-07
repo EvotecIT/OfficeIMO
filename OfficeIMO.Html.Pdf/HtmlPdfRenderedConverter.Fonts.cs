@@ -240,9 +240,7 @@ internal static partial class HtmlPdfRenderedConverter {
         ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots,
         CancellationToken cancellationToken) {
-        var textRuns = EnumerateUsedText(rendered.Pages.SelectMany(page => page.Visuals))
-            .Where(text => !EnumerateBoundedSystemFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
-            .ToList();
+        var textRuns = EnumerateUsedText(rendered.Pages.SelectMany(page => page.Visuals)).ToList();
         int loadedFamilyCount = 0;
         var attemptedFaces = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -262,6 +260,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
         foreach (string familyName in textRuns
                      .SelectMany(text => EnumerateBoundedSystemFamilies(text.Font.FamilyName))
+                     .Where(familyName => !activeWebFontFamilies.Contains(familyName))
                      .Distinct(StringComparer.OrdinalIgnoreCase)
                      .Take(MaximumSystemFontFamilyCandidates)) {
             cancellationToken.ThrowIfCancellationRequested();
