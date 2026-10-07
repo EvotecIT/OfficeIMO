@@ -320,6 +320,18 @@
       "bytes": 130587317,
       "allAbsent": true
     },
-    "preserved": "Historical measurement failures, original/final artifacts, source/fixtures, feeds, origins/hash receipts and provider history; linked private tooling left intact."
+    "preserved": "Historical measurement failures, original/final artifacts, source/fixtures, feeds, origins/hash receipts and provider history; linked private tooling left intact.",
+    "retainedEngineBuildOutputsRemoved": {
+      "targets": 140,
+      "bytes": 3955388344,
+      "allAbsent": true,
+      "copiedFixtureClassification": "Image/font/document fixtures equal tracked sources; remaining comparison-tool payloads equal declared Microsoft.Playwright/QuestPDF package copies. Shared caches and source retained."
+    },
+    "retainedProviderBuildOutputsRemoved": {
+      "targets": 5,
+      "bytes": 50617958,
+      "allAbsent": true,
+      "gitMetadataPreserved": true
+    }
   }
 }
