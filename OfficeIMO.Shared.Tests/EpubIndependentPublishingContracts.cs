@@ -98,14 +98,7 @@ public sealed class EpubIndependentPublishingContracts {
             package.Descendants(opf + "item").Single(item => (string?)item.Attribute("id") == "nav").SetAttributeValue("properties", "nav");
             entries["EPUB/package.opf"] = System.Text.Encoding.UTF8.GetBytes(package.ToString(SaveOptions.DisableFormatting));
         }
-        using var input = new MemoryStream();
-        using (var archive = new ZipArchive(input, ZipArchiveMode.Create, true)) {
-            foreach (var entry in entries.OrderBy(entry => entry.Key == "mimetype" ? 0 : 1).ThenBy(entry => entry.Key, StringComparer.Ordinal)) {
-                using Stream output = archive.CreateEntry(entry.Key, entry.Key == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal).Open();
-                output.Write(entry.Value, 0, entry.Value.Length);
-            }
-        }
-        return EpubPublication.Load(new MemoryStream(input.ToArray()));
+        return EpubPublication.Load(new MemoryStream(EpubIntegrityFixtures.Archive(entries.OrderBy(entry => entry.Key, StringComparer.Ordinal))));
     }
 
     private static string PageTarget(EpubNavigationItem item) => item.Label + "|" + item.Target + "|" + item.Fragment;
