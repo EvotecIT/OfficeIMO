@@ -25,6 +25,7 @@ const resolved = new core.ExportCell(12.5, { text: "=display", presentation: { b
 const streamedSink = new core.BlobByteSink();
 const streamed = createWorkbook({ sink: streamedSink, oversizedText: "preserve", dateMode: "utc", limits: { maxRows: 10, maxStyles: 32 } });
 const streamedSheet = streamed.addSheet("Resolved", { columns: [{ header: "Amount", key: "amount", type: "number", groups: ["Metrics"], format: "0.00" }],
+  conditionalFormats: [{ type: "cellIs", range: { column: "amount" }, operator: "greaterThan", value: 10, style: { fill: { color: "C6EFCE" } } }],
   autoSize: {}, footer: { totals: { amount: "sum" } }, print: { repeatHeaders: true } });
 await streamedSheet.addRows([{ amount: resolved }]); await streamedSheet.close();
 const streamedResult = await streamed.finish(); assert.equal(streamedResult.rows, 1);

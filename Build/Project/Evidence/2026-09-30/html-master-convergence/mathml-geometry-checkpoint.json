@@ -1,0 +1,532 @@
+{
+  "recordedUtc": "2026-10-02T00:25:47.589519+00:00",
+  "sourceCommit": "3b3c3e3624cca6db4eb901df4c8d0b650fb50ae1",
+  "integrationBaseline": "b361ddcbdf37f49014317064b5ae3760b3dd7fdf",
+  "branch": "feature/mathml-geometry",
+  "state": "Committed bounded measurement/paint correction; isolated checkpoint, not qualified for integration or publication.",
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Core/Math/OfficeMathRenderOptions.cs",
+      "sha256": "3531edc7e8a411df3576648c65f579efcbf76a7a4450f0b88b3cd632717fed07"
+    },
+    {
+      "path": "OfficeIMO.Core/Math/OfficeMathRenderer.FontMetrics.cs",
+      "sha256": "18b94b4481b87b3baa562ab33caaa6d375da5cf9684b595698595dfe61ff7b73"
+    },
+    {
+      "path": "OfficeIMO.Core/Math/OfficeMathRenderer.cs",
+      "sha256": "7385227319fad4add2329cd60def7ca3ea136cfee56ff1ee3e58ae05ffedd1b1"
+    },
+    {
+      "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.FallbackRuns.cs",
+      "sha256": "b66e3bdc6452ece8631bf78e8e1aa9571a296db888ac1a41a5be755c42f5a1c0"
+    },
+    {
+      "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.PositionedBounds.cs",
+      "sha256": "d13fd62fa2bda6f3fa66f42116ac27af50cadddc6629b4f356eb8bed064e5391"
+    },
+    {
+      "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.ScopedMetrics.cs",
+      "sha256": "5eadf235f8cf18827548f776f91e565c5c21a73b801bbdd7236c7a513141de74"
+    },
+    {
+      "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Text.cs",
+      "sha256": "204a1d7c5d241fbd722db8f2858bf259bb0363c0a6ca8ea0cffcb87f99083c80"
+    },
+    {
+      "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.TextShaping.cs",
+      "sha256": "b6cb6a629a8e3cb61561fecbf545152e02126b5ba5ee39ee772d70c4e3411f0a"
+    },
+    {
+      "path": "OfficeIMO.Core/Raster/OfficeRasterCanvas.cs",
+      "sha256": "f162224b77fcec6fef8ec08d5faf66d0325fee63dda15a6b11c1d890170527b7"
+    },
+    {
+      "path": "OfficeIMO.Core/Rendering/OfficeDrawingRasterRenderer.Text.cs",
+      "sha256": "2196a5cae9651068c86d63660db69c3f588d79d371e0f0dc5038750b50fcf1ec"
+    },
+    {
+      "path": "OfficeIMO.Core/Text/OfficeSyntheticTextStyle.cs",
+      "sha256": "e3ef6e63fcd899758aee9767ebc91b8494f70a51c0c62d3d1e3a9a333bc65a70"
+    },
+    {
+      "path": "OfficeIMO.Drawing.Tests/Drawing.Math.Geometry.cs",
+      "sha256": "07c6c50c6ee0a4c326cd86ac2e6d344596c1fa31638d39e890bb348024632ab4"
+    },
+    {
+      "path": "OfficeIMO.Html.Pdf/HtmlPdfRenderedConverter.VectorText.cs",
+      "sha256": "7712eb82cc478dae28264d78232110077b3815e180014dc7a5eb4f13bd06be90"
+    },
+    {
+      "path": "OfficeIMO.Html.Pdf/HtmlPdfRenderedConverter.cs",
+      "sha256": "08c77cc898b76e8899c499268870a3a65300b7d69f4ac09cca7d8edf33fe5f7c"
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.MathMl.Geometry.cs",
+      "sha256": "72ce08649d44dfabae929f1aee9dbb65b847ecc01d661321dfb779f58f068550"
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.MathMl.cs",
+      "sha256": "8c6f6c160d124450b4d30ba67b19b611d893e8741cc2dca684d67b566b70b38c"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Math.cs",
+      "sha256": "da9d6197e35f2390b6c64ba72e19b372f422cd45e13ad3bdb47abf9883aeb0d4"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.VerticalMetrics.cs",
+      "sha256": "4f97ff735ddb0b9c5294276e83b02a236a47a746683a3a3bbbc0fc0e0fb6504c"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+      "sha256": "b0a3310379d9060555f26207f5990f63e52c92e5f032f4ed08da256b961db2d9"
+    }
+  ],
+  "ownedContract": [
+    "DPI scales measurement and paint together; default72 units/inch and .71 child script sizing.",
+    "Scoped shaping/outline and color-font paint bounds share cancellation and budgets without installed-font lookup.",
+    "Compact nested fractions reduce child em rather than the complete expression.",
+    "Inline neighbor painted baselines and aligned math decoration boxes agree.",
+    "PDF drawing glyphs preserve centered frame, baseline and synthetic style; positioned small scripts retain their em."
+  ],
+  "frameworkTests": [
+    {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/drawing-review-final-net10.0-retry.trx",
+      "sha256": "9c7d4b0212bf4fbd5e00eb4b3200eee54266db620e2f41bb116b1bcf641802e4",
+      "counters": {
+        "total": "3284",
+        "executed": "3284",
+        "passed": "3284",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "reportRetained": false,
+      "retention": "Counters and report hash retained here and in ignored test-artifact-manifest.json; bulky successful TRX is compacted after validation."
+    },
+    {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/drawing-review-final-net8.0-retry.trx",
+      "sha256": "97be6482e0afaa46e42610ae1baded9cad47b870439db70edc70f63cb4f60caa",
+      "counters": {
+        "total": "3284",
+        "executed": "3284",
+        "passed": "3284",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "reportRetained": false,
+      "retention": "Counters and report hash retained here and in ignored test-artifact-manifest.json; bulky successful TRX is compacted after validation."
+    },
+    {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/html-final-style-net10.trx",
+      "sha256": "681c167bcd2f2a1e4ed51ea01eb676c1fdf864f6e4919e9c26eb5acaaab0ada2",
+      "counters": {
+        "total": "4057",
+        "executed": "4057",
+        "passed": "4057",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "reportRetained": false,
+      "retention": "Counters and report hash retained here and in ignored test-artifact-manifest.json; bulky successful TRX is compacted after validation."
+    },
+    {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/html-review-final-net8.0-retry.trx",
+      "sha256": "8b475c84a2e906915898ab0ead3b21e42ba9f0e107de9a5e93bda2badd2ff3a6",
+      "counters": {
+        "total": "4057",
+        "executed": "4057",
+        "passed": "4057",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "reportRetained": false,
+      "retention": "Counters and report hash retained here and in ignored test-artifact-manifest.json; bulky successful TRX is compacted after validation."
+    },
+    {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/pdf-review-final-net10.0-retry.trx",
+      "sha256": "696b9c760c26b440aad10dd205a5ddcfc0a6aedf13096f8657c7082ea34674f8",
+      "counters": {
+        "total": "8623",
+        "executed": "8623",
+        "passed": "8623",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "reportRetained": false,
+      "retention": "Counters and report hash retained here and in ignored test-artifact-manifest.json; bulky successful TRX is compacted after validation."
+    },
+    {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/pdf-review-final-net8.0-retry.trx",
+      "sha256": "9d39dd7b2698b293613d86800f4f92c3584d221d0dcf129d906c3e380881fb22",
+      "counters": {
+        "total": "8623",
+        "executed": "8623",
+        "passed": "8623",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "reportRetained": false,
+      "retention": "Counters and report hash retained here and in ignored test-artifact-manifest.json; bulky successful TRX is compacted after validation."
+    }
+  ],
+  "totalPassed": 31928,
+  "focusedRegressions": {
+    "drawing": {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/review-drawing-after.trx",
+      "sha256": "28e388a13867ace6997110b34debe334f1b207755e2e810bb83726429b4d9f3a",
+      "counters": {
+        "total": "44",
+        "executed": "44",
+        "passed": "44",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "htmlFinal": {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/review-html-style-after.trx",
+      "sha256": "34282b98a78e8adb1fbab0f1226966adbc75a82a0be5f1d35caec58e580d154d",
+      "counters": {
+        "total": "45",
+        "executed": "45",
+        "passed": "45",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "reproducedFailures": [
+      {
+        "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/review-bold-before.trx",
+        "sha256": "f608b2a5455750b79d9aaa2c2dcba6f8f4624712c4e9182af43456dd6d0acf8a",
+        "counters": {
+          "total": "3",
+          "executed": "3",
+          "passed": "2",
+          "failed": "1",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/review-center-before.trx",
+        "sha256": "93ffa4665720ddf1ed58253dc6903ce31dc50f6ea33e67f589e8a306e5391976",
+        "counters": {
+          "total": "1",
+          "executed": "1",
+          "passed": "0",
+          "failed": "1",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/review-small-before.trx",
+        "sha256": "3f32cf53443fb06b923ac8e9554e644f43581cc3e0dfde6919ae832690aa7a9c",
+        "counters": {
+          "total": "1",
+          "executed": "1",
+          "passed": "0",
+          "failed": "1",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/review-style-before.trx",
+        "sha256": "5fceb602f50f593e0a0b37b2971083115d0f32b855491bd6f4e47591bf6e7e97",
+        "counters": {
+          "total": "1",
+          "executed": "1",
+          "passed": "0",
+          "failed": "1",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ]
+  },
+  "netstandardBuilds": {
+    "Core": "zero warnings/errors",
+    "Html": "zero warnings/errors",
+    "Html.Pdf": "zero warnings/errors; repeated after final style fix"
+  },
+  "package": {
+    "path": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/package/OfficeIMO.Core.3.4.4.nupkg",
+    "sha256": "d76f48f6db663a76365d809cbaa5657c8a7dccb66c89a5f7cac17ef093188369",
+    "dlls": [
+      "lib/net10.0/OfficeIMO.Core.dll",
+      "lib/net8.0/OfficeIMO.Core.dll",
+      "lib/netstandard2.0/OfficeIMO.Core.dll"
+    ],
+    "externalDependencies": []
+  },
+  "independentReview": {
+    "fullReadOnlyPass": true,
+    "targetedConfirmation": true,
+    "initialFindings": 3,
+    "allInitialFindingsReproducedAndFixed": true,
+    "targetedStyleSibling": "Static-embeddable regular-only face bypassed owned synthetic styles; reproduced and fixed after targeted confirmation, directly validated by PDF-reread ink regression; no further independent pass."
+  },
+  "visualEvidence": {
+    "sourceCommit": "3b3c3e3624cca6db4eb901df4c8d0b650fb50ae1",
+    "browserVersion": "151.0.7922.34",
+    "files": [
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/frozen-chromium.json",
+        "sha256": "9aa364cdb2c622ffac53f07320bb9a34e6f746b6c1ee95edc97214dad1f0c5a5"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/frozen-chromium.pdf",
+        "sha256": "8f982a80c0104835a6e10dd641dd40de0c686b13e88c38357cf8b9e0b85d7953"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/frozen-chromium.png",
+        "sha256": "8a142bd31e329964c078550a2d48e6ea5229fcf7ce356a8979e26a91b590f247"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/frozen-native.json",
+        "sha256": "c4580ae88541e10674e78202761ea9b8b5b16840a382bbe2e6859e113df55595"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/frozen-native.pdf",
+        "sha256": "e88e4dc50356d97eef5e27c9ddbdc9373f7dd55cc1cd6121ad6358627dca0f35"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/frozen-native.svg",
+        "sha256": "671902615f3cf8aa91231daa28bab1b53877758b9bfbdd289bae7c32cc97d8d6"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-chromium.json",
+        "sha256": "c10be1cefea2de8e4d608b3647d4119da82f4b869bad54d9645387af800b9e44"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-chromium.pdf",
+        "sha256": "aacb0c27f2597f03f5985dbe4f223735fa0074d219fd820bba863f6a4ce30e9a"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-chromium.png",
+        "sha256": "ce1bec8b42a578cee3da1530c05e688cabbb4a659ca2127ed41942b20935d3bf"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-native-page.png",
+        "sha256": "dde96e09ade47fed4f8b72e597f732c107240ccd8ef8b8112efcc99de26af149"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-native.json",
+        "sha256": "50620a5575e65d5847fa33695bbe5f424b1e824f7d902509dc9b800eb54f41a0"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-native.pdf",
+        "sha256": "35203a0b8ab05e6cc166b8eb27ba30e9b07d803d0ac3576d11b5acb7917bb08c"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/checkpoint-3b3c3e362/geometry-native.svg",
+        "sha256": "ad9a355630f457cef0fc76697077236a8f95c7c00ff41c40e86cbc28544e8d5f"
+      }
+    ],
+    "inspection": "Native page and browser capture inspected; declared glyph sizes and full ink retained. Root fixture lacks radical coverage and is not an independent radical oracle. Default math-font selection, math-auto and full MATH-table geometry remain open; no browser-parity claim.",
+    "reproducerFiles": [
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/Probe.csproj",
+        "sha256": "5da62d790358930b805af3aa08b4f6c04ff1b434afe283f0f31fc587b5085296"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/Program.cs",
+        "sha256": "ce959ee6ebea4bf8f6bad05a822fd4a31481e54efb069fcb9fd22403a40c0edc"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/geometry.html",
+        "sha256": "4eccbd6210a4fbb646c2584f26c6b07a340f52d7921b69e455eb65651e806af7"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-tool/frozen.html",
+        "sha256": "eeb36c25ca894cb7da3856426b7d44e21fd2e3c87c2760df87e84d2b826281bb"
+      }
+    ]
+  },
+  "knownUnrelatedFailure": {
+    "owner": "Core file commit",
+    "test": "DrawingTests.CreateUniqueAtomicallyClaimsPathsAcrossConcurrentWriters",
+    "firstRun": {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/drawing-review-final-net10.0.trx",
+      "sha256": "14264b2091ad7407d3f8fdf8c63fa0f7d700a33f0d25f3a6858f49afc02fbe00",
+      "counters": {
+        "total": "3284",
+        "executed": "3284",
+        "passed": "3283",
+        "failed": "1",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focusedRetry": {
+      "artifact": "Ignore/HtmlUnknownPageQualification/mathml-scoped-geometry/drawing-concurrent-save-retry-retry.trx",
+      "sha256": "f47876751aad06682baf86b0f32ff89c5caa4b1818e228becccf6c84ef46cae2",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "disposition": "Twelve synchronous writers returned eleven distinct paths once. Retry and later full suites passed, but race is not fixed; same existing roadmap item also covers prior asynchronous reproduction."
+  },
+  "remainingQualification": [
+    "Default math-font selection/math-auto and full MATH-table layout.",
+    "Exact original MathML associated-file mapping to Formula structure.",
+    "Explicit requested PDF/A-3b and PDF/UA-1 independently validated output.",
+    "Windows/Linux platform and operation-budget qualification.",
+    "Known pre-existing synchronous/asynchronous concurrent unique-file save race."
+  ],
+  "authorization": "No HTML PR, merge to master, release or deployment.",
+  "subsequentQualification": "mathml-geometry-qualification.json"
+}

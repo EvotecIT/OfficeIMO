@@ -57,7 +57,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRelativePosition_PaginationUsesNormalFlowCoordinates() {
+    public void HtmlRelativePosition_PreservesFlowSlotsAndProjectsPaintIntoFollowingPages() {
         string children = string.Concat(Enumerable.Range(1, 6)
             .Select(index => "<div style='height:30px;margin:0'>Marker" + index + "</div>"));
         string baselineHtml = "<section>" + children + "</section>";
@@ -72,14 +72,20 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
         HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
 
-        Assert.Equal(baseline.Pages.Count, positioned.Pages.Count);
+        Assert.Equal(2, baseline.Pages.Count);
+        Assert.Equal(3, positioned.Pages.Count);
         for (int index = 1; index <= 6; index++) {
             string marker = "Marker" + index;
             (int BaselinePage, HtmlRenderText BaselineText) = FindTextWithPage(baseline, marker);
-            (int PositionedPage, HtmlRenderText PositionedText) = FindTextWithPage(positioned, marker);
-            Assert.Equal(BaselinePage, PositionedPage);
-            Assert.Equal(BaselineText.X, PositionedText.X, 3);
-            Assert.Equal(BaselineText.Y + 40D, PositionedText.Y, 3);
+            var placements = RelativeTextPlacements(positioned, marker).ToList();
+            Assert.NotEmpty(placements);
+            // The text can paint on both sides of a page edge. Its physical
+            // coordinate still equals the unchanged flow slot plus the inset.
+            double expected = (BaselinePage - 1) * 100D + BaselineText.Y + 40D;
+            Assert.All(placements, placement => {
+                Assert.Equal(BaselineText.X, placement.Text.X, 3);
+                Assert.Equal(expected, (placement.Page.PageNumber - 1) * 100D + placement.Text.Y, 3);
+            });
         }
     }
 
@@ -456,6 +462,38 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
+    public void HtmlScreenFullPage_IncludesRootAbsoluteOverflowWithoutLettingFixedContentGrowTheSurface() {
+        const string html = "<body style='margin:0'>"
+            + "<div id='flow' style='width:20px;height:20px;background:#0000ff'></div>"
+            + "<div id='absolute-overflow' style='position:absolute;left:500px;top:400px;width:100px;height:50px;background:#ff0000'></div>"
+            + "<div id='fixed-overflow' style='position:fixed;left:700px;top:700px;width:20px;height:20px;background:#00ff00'></div>"
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 320D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+
+        Assert.Equal(600D, page.Width, 3);
+        Assert.Equal(450D, page.Height, 3);
+        Assert.Equal(600, raster.Width);
+        Assert.Equal(450, raster.Height);
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(550, 425));
+        Assert.Contains("width=\"600\"", svg, StringComparison.Ordinal);
+        Assert.Contains("height=\"450\"", svg, StringComparison.Ordinal);
+        Assert.Equal(500D, FindPositionedShape(rendered, "div#absolute-overflow").X, 3);
+        Assert.Equal(700D, FindPositionedShape(rendered, "div#fixed-overflow").X, 3);
     }
 
     [Fact]

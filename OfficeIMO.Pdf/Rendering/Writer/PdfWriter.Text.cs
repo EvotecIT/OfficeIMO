@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
 
     private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         options?.BeginTextShapingAttempt();
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
                 options.Language,
                 featureSettings,
                 textDirection);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
+            if (!fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -60,9 +60,9 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
+            if (!fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
                 fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand)) return asciiCommand;
-            return glyphRun.ToTextShowCommand();
+            return fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
         }
 
         if (options != null &&
@@ -98,8 +98,11 @@ internal static partial class PdfWriter {
 
     private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
         PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
-        return new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs,
-            advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount);
+        return command.ActualText == null ? command
+            : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs, tracking: command.Tracking,
+                advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount,
+                unitsPerEm: command.UnitsPerEm, trackingBoundaries: command.TrackingBoundaries,
+                negativeTracking: command.NegativeTracking, fontMetricScale: command.FontMetricScale);
     }
 
     private static PdfTextShowCommand EncodeTextShowCommand(
@@ -108,7 +111,7 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? namedFont,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         options?.BeginTextShapingAttempt();
         if (namedFont.HasValue &&
             options != null &&
@@ -131,7 +134,7 @@ internal static partial class PdfWriter {
                 options.Language,
                 featureSettings,
                 textDirection);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
+            if (!fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -141,9 +144,9 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
+            if (!fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
                 fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand)) return asciiCommand;
-            return glyphRun.ToTextShowCommand();
+            return fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
         }
 
         if (namedFont.HasValue &&
@@ -171,7 +174,7 @@ internal static partial class PdfWriter {
             return glyphRun.ToTextShowCommand();
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection);
+        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection, fontMetricScale);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
@@ -1994,7 +1997,8 @@ internal static partial class PdfWriter {
                         syntheticOblique,
                         runFontSize,
                         textRise,
-                        color ?? PdfColor.Black);
+                        color ?? PdfColor.Black,
+                        hasLinkTarget && s.LeadingSpace && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.InlineElement == null);
                 }
 
                 if (s.LeadingSpace) {
@@ -2012,18 +2016,18 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts), runFontSize, textRise, suppressActualText);
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                         // Composite fonts encode spaces as two-byte CIDs, to which Tw
                         // does not apply. Position the next word at the expanded gap.
@@ -2037,6 +2041,7 @@ internal static partial class PdfWriter {
                         textMarkedContentOpen = false;
                     }
 
+                    if (structurePage != null) PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     AppendInlineElement(
                         sb,
                         s.InlineElement,
@@ -2060,15 +2065,17 @@ internal static partial class PdfWriter {
                 int? linkStructElementIndex = null;
                 if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
                     linkMarkedContentId = structurePage.NextMarkedContentId++;
+                    PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     linkStructElementIndex = structurePage.StructElements.Count;
                     structurePage.StructElements.Add(new PageStructElement {
                         MarkedContentId = linkMarkedContentId,
-                        StructureType = "Link"
+                        StructureType = "Link",
+                        ParentElementIndex = textStructElementIndex
                     });
                 }
 
                 double segmentStartX = xCursor;
-                PdfTextShowCommand textCommand = EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection);
+                PdfTextShowCommand textCommand = EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
                 if (linkMarkedContentId.HasValue) {
                     content.EndText();
                     if (textMarkedContentOpen) {
@@ -2133,7 +2140,7 @@ internal static partial class PdfWriter {
                             }
                         } else {
                             VisitWordDecorationAdvances(s.Text,
-                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection),
+                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale),
                                 (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
                                     lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
                         }
@@ -2171,7 +2178,7 @@ internal static partial class PdfWriter {
                     currentTextRise = separatorTextRise;
                 }
 
-                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts, last.FeatureSettings), separatorFontSize, separatorTextRise, suppressActualText);
+                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts, last.FeatureSettings, fontMetricScale: last.FontMetricScale), separatorFontSize, separatorTextRise, suppressActualText);
             }
 
             if (Math.Abs(currentTextRise) > 0.0001) {
@@ -2235,7 +2242,8 @@ internal static partial class PdfWriter {
         bool syntheticOblique,
         double fontSize,
         double textRise,
-        PdfColor fillColor) {
+        PdfColor fillColor,
+        bool isLinkLeadingWhitespace) {
         if (textMarkedContentOpen ||
             structurePage == null ||
             !textStructElementIndex.HasValue ||
@@ -2250,11 +2258,19 @@ internal static partial class PdfWriter {
         content.EndText();
         int markedContentId = structurePage.NextMarkedContentId++;
         PageStructElement element = structurePage.StructElements[textStructElementIndex.Value];
-        if (element.AdditionalMarkedContentIds == null) {
-            element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+        if (!element.MarkedContentId.HasValue) {
+            structurePage.StructElements.Add(new PageStructElement {
+                MarkedContentId = markedContentId,
+                StructureType = "Span",
+                ParentElementIndex = textStructElementIndex,
+                IsLinkLeadingWhitespace = isLinkLeadingWhitespace
+            });
+        } else {
+            if (element.AdditionalMarkedContentIds == null) {
+                element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+            }
+            element.AdditionalMarkedContentIds.Add(markedContentId);
         }
-
-        element.AdditionalMarkedContentIds.Add(markedContentId);
         AppendMarkedContentBegin(sb, structureType, markedContentId);
         content = new ContentStreamBuilder(sb)
             .BeginText()
@@ -2301,7 +2317,10 @@ internal static partial class PdfWriter {
                 Math.Abs(previous.Y2 - y2) <= 0.5D;
             if (sameTarget && sameLine && gap >= -0.25D && gap <= 18D) {
                 if (structElementIndex.HasValue && previous.StructElementIndex.HasValue && structurePage != null) {
-                    MergeLinkStructureElements(structurePage, previous.StructElementIndex.Value, structElementIndex.Value);
+                    if (!TryMergeLinkStructureElements(structurePage, previous.StructElementIndex.Value, structElementIndex.Value)) {
+                        annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
+                        return;
+                    }
                 } else if (structElementIndex.HasValue || previous.StructElementIndex.HasValue) {
                     annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
                     return;
@@ -2324,26 +2343,44 @@ internal static partial class PdfWriter {
         annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
     }
 
-    private static void MergeLinkStructureElements(LayoutResult.Page structurePage, int targetStructElementIndex, int mergedStructElementIndex) {
+    private static bool TryMergeLinkStructureElements(LayoutResult.Page structurePage, int targetStructElementIndex, int mergedStructElementIndex) {
         if (targetStructElementIndex < 0 || targetStructElementIndex >= structurePage.StructElements.Count ||
             mergedStructElementIndex < 0 || mergedStructElementIndex >= structurePage.StructElements.Count ||
-            targetStructElementIndex == mergedStructElementIndex) {
-            return;
+            mergedStructElementIndex > targetStructElementIndex + 2 ||
+            mergedStructElementIndex <= targetStructElementIndex ||
+            mergedStructElementIndex != structurePage.StructElements.Count - 1) {
+            return false;
         }
 
         PageStructElement target = structurePage.StructElements[targetStructElementIndex];
         PageStructElement merged = structurePage.StructElements[mergedStructElementIndex];
+        // Geometric proximity does not make links logically adjacent. Moving a later
+        // MCID across a Span or into another paragraph would reorder tagged content.
+        if (target.ParentElementIndex != merged.ParentElementIndex) {
+            return false;
+        }
+        PageStructElement? whitespace = null;
+        if (mergedStructElementIndex == targetStructElementIndex + 2) {
+            whitespace = structurePage.StructElements[targetStructElementIndex + 1];
+            if (!whitespace.IsLinkLeadingWhitespace || !whitespace.MarkedContentId.HasValue ||
+                whitespace.ParentElementIndex != target.ParentElementIndex) {
+                return false;
+            }
+        }
         if (merged.MarkedContentId.HasValue) {
             if (target.AdditionalMarkedContentIds == null) {
                 target.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
             }
 
+            // A word's own leading space belongs between the two word MCIDs. It
+            // can join that Link, but unrelated text must keep its separate owner.
+            if (whitespace != null) target.AdditionalMarkedContentIds.Add(whitespace.MarkedContentId!.Value);
             target.AdditionalMarkedContentIds.Add(merged.MarkedContentId.Value);
         }
 
-        if (mergedStructElementIndex == structurePage.StructElements.Count - 1) {
-            structurePage.StructElements.RemoveAt(mergedStructElementIndex);
-        }
+        structurePage.StructElements.RemoveAt(mergedStructElementIndex);
+        if (whitespace != null) structurePage.StructElements.RemoveAt(targetStructElementIndex + 1);
+        return true;
     }
 
 }

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "intent": "pdf-print-zero-margin",
+  "runs": [
+    {
+      "run": 1,
+      "sourceCommit": "cda62481aa90c6eb73c84e35c5e415622c6b9639",
+      "sourceClean": true,
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+      "osFamily": "macOS",
+      "conversionMilliseconds": 4650.0611,
+      "managedAllocatedBytes": 2162172056,
+      "peakWorkingSetBytes": 404045824,
+      "pageCount": 16,
+      "pdfSha256": "b00ced4369993859d7345b5fb9e934ca563b7a318d6b65f63135aa8b63cc7dd6",
+      "hasLoss": true
+    },
+    {
+      "run": 2,
+      "sourceCommit": "cda62481aa90c6eb73c84e35c5e415622c6b9639",
+      "sourceClean": true,
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+      "osFamily": "macOS",
+      "conversionMilliseconds": 4582.5765,
+      "managedAllocatedBytes": 2162198000,
+      "peakWorkingSetBytes": 433274880,
+      "pageCount": 16,
+      "pdfSha256": "b00ced4369993859d7345b5fb9e934ca563b7a318d6b65f63135aa8b63cc7dd6",
+      "hasLoss": true
+    },
+    {
+      "run": 3,
+      "sourceCommit": "cda62481aa90c6eb73c84e35c5e415622c6b9639",
+      "sourceClean": true,
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+      "osFamily": "macOS",
+      "conversionMilliseconds": 4610.9399,
+      "managedAllocatedBytes": 2162206072,
+      "peakWorkingSetBytes": 414187520,
+      "pageCount": 16,
+      "pdfSha256": "b00ced4369993859d7345b5fb9e934ca563b7a318d6b65f63135aa8b63cc7dd6",
+      "hasLoss": true
+    }
+  ]
+}

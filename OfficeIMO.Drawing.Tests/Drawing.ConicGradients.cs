@@ -30,6 +30,35 @@ public sealed class DrawingConicGradientTests {
     }
 
     [Theory]
+    [InlineData(0, 20, 2, 19, 2)]
+    [InlineData(90, 37, 20, 37, 19)]
+    [InlineData(180, 19, 37, 20, 37)]
+    [InlineData(270, 2, 19, 2, 20)]
+    public void OfficeConicGradient_PreservesColorsOnBothSidesOfRotatedHardSeam(
+        double angle, int afterX, int afterY, int beforeX, int beforeY) {
+        var gradient = new OfficeConicGradient(0.5D, 0.5D, angle, new[] {
+            new OfficeGradientStop(0D, OfficeColor.Red),
+            new OfficeGradientStop(0.25D, OfficeColor.Red),
+            new OfficeGradientStop(0.25D, OfficeColor.Blue),
+            new OfficeGradientStop(1D, OfficeColor.Blue)
+        });
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(gradient.CreateDrawing(40D, 40D, 72));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(afterX, afterY));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(beforeX, beforeY));
+        // The same hard boundary must hold near the center, where padded
+        // triangle apexes previously painted into the neighboring color sector.
+        for (int y = 18; y <= 21; y++) {
+            for (int x = 18; x <= 21; x++) {
+                double clockwise = Math.Atan2(x + 0.5D - 20D, 20D - (y + 0.5D)) * 180D / Math.PI;
+                double relative = (clockwise - angle + 720D) % 360D;
+                OfficeColor pixel = raster.GetPixel(x, y);
+                Assert.True(relative < 90D ? pixel.R > pixel.B : pixel.B > pixel.R);
+                Assert.True(pixel.A >= 200, "Antialiased wedges must retain center coverage.");
+            }
+        }
+    }
+
+    [Theory]
     [InlineData(11)]
     [InlineData(4097)]
     public void OfficeConicGradient_BoundsVectorExpansion(int segments) {

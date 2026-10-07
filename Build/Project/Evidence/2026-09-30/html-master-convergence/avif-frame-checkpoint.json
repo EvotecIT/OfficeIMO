@@ -1,0 +1,168 @@
+{
+  "schema": "officeimo.html.component-evidence",
+  "component": "av1-reduced-still-frame-and-tile-boundaries",
+  "sourceHead": "2f890df3918c5e20e903a725e032b50d73bb964e",
+  "scope": "Internal Main-8 reduced-still combined frame OBU: actual image dimensions, quantization/segmentation, filter parameters and bounded complete tile payloads. No entropy decoding or pixel reconstruction.",
+  "specification": {
+    "url": "https://aomediacodec.github.io/av1-spec/av1-spec.pdf",
+    "pdfSha256": "ec44e9fc42c4e5851faa879a1818dcb9014d834bbdd9420ccca7dcea05a3abe9",
+    "sections": [
+      "5.9",
+      "5.10",
+      "5.11.1",
+      "6.10.1"
+    ],
+    "retainedText": "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/av1-spec.txt"
+  },
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Bits.cs": "c5d6fd21185581550ef3fe98b4b4fe135e4670ff23b27960884234bea96b47ee",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillFrame.cs": "7e13ab2df08e66f595aee343c4c2ff5b9fab6cd01f643e17bdebd555ed6ccc43",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillFrameReader.Parameters.cs": "ccbd3080870333d2771a9c7154fc000fc574a1bacbfeb3efd685bcc0171e3c33",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillFrameReader.Tiles.cs": "cc34ae9428fe45c8b8cebb9b9da7854a43942f6732813036dbd9dade1b6e4be1",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillFrameReader.cs": "785b1280bfcb352f1c2e150de1f119f1b74db69f952d90bd302d011115afd28a",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillSequence.cs": "8da1dbd54bab5dce4b1527d938534da6fc6e3fd797d28a911968cf6a5a145b28",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillSequenceReader.cs": "4e4eb79a2c3d84ccf83b11e873d7488879575e3627e866dddb51b2692db57fec",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Frame.cs": "dc0c9095685400538605765cf63aea1c449b4c5cf7b9d797274f0bae23c47f2a",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/multitile.avif": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/multitile.json": "a3ffbbfcad78d30fa1415323894086ac416d34744ee802d20be7ec5b22efd5dc"
+  },
+  "independentReference": {
+    "tool": "FFmpeg 8.0.1 trace_headers",
+    "runtimeDependency": false,
+    "observations": [
+      {
+        "item": "avif-opaque color",
+        "dimensions": [
+          49,
+          33
+        ],
+        "frameHeaderBytes": 12,
+        "tileLengths": [
+          31
+        ],
+        "baseQIndex": 32,
+        "deltaUAndV": -2,
+        "qMatrixLevels": [
+          10,
+          10,
+          10
+        ],
+        "loopFilterLevels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "cdefDamping": 4
+      },
+      {
+        "item": "avif-alpha auxiliary",
+        "dimensions": [
+          49,
+          33
+        ],
+        "frameHeaderBytes": 5,
+        "tileLengths": [
+          43
+        ],
+        "baseQIndex": 24,
+        "loopFilterLevels": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "item": "multitile color",
+        "dimensions": [
+          256,
+          128
+        ],
+        "producer": "Pillow 11.3.0 / libavif 1.3.0",
+        "frameHeaderBytes": 7,
+        "tileGroupHeaderBytes": 1,
+        "tileLengths": [
+          1189,
+          1215,
+          1192,
+          1208
+        ],
+        "tileOffsetsInItem": [
+          23,
+          1214,
+          2431,
+          3623
+        ],
+        "baseQIndex": 112,
+        "loopFilterLevels": [
+          8,
+          8,
+          8,
+          8
+        ]
+      }
+    ],
+    "traces": {
+      "color-trace.log": "eb2eaf50515fbaecd29cd9cf8129abab3ef849aba758e98177b76ce911fa3f0b",
+      "alpha-trace.log": "01ea5a6351d50ec71a9dfbb849ddeda24204263362cda860dd81c96416e5cf13",
+      "multitile-trace.log": "a051f597ab1304c0d11c0cb6db95313350461fc8a6b2a13a92cc4b0a4ed64118"
+    }
+  },
+  "tests": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/avif-frame-candidate-net10.trx",
+      "sha256": "4ac9717913eb399d551ef1ca5ec0eb198dd30bbc7ccf1bbba0cece23415edc8d",
+      "passed": 29,
+      "failed": 0,
+      "total": 29
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/avif-frame-candidate-net8.trx",
+      "sha256": "f1b9c0cecc002cb16928e0d887f6d358ad23584436f8cefd39b99fa45675b7bb",
+      "passed": 29,
+      "failed": 0,
+      "total": 29
+    }
+  ],
+  "build": {
+    "project": "OfficeIMO.Core/OfficeIMO.Core.csproj",
+    "framework": "netstandard2.0",
+    "sdk": "10.0.303",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0
+  },
+  "review": {
+    "task": "avif_frame_review",
+    "fingerprint": "13ba36b0b5803862b90249ae680bc5943275f17b",
+    "boundary": "current",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "gaps": [
+      "Independent producers do not cover 128x128 superblocks, super-resolution/restoration, separate UV deltas, nonuniform tiles or loop-filter delta updates. Some have handwritten syntax tests; others only static specification review.",
+      "Entropy validity and reconstructed pixels are not proven by header traces."
+    ]
+  },
+  "unqualified": [
+    "Tile entropy decoding, partitions, intra modes and coefficient decoding",
+    "Inverse transforms, prediction, loop filtering/CDEF/restoration and super-resolution pixels",
+    "Applied film grain and separate frame/tile OBUs",
+    "Color conversion, alpha composition and direct independent RGBA tolerance",
+    "Public raster/caller-codec integration and frozen AVIF HTML/PDF output",
+    "Completed-decoder H4/NASA and unchanged applicable budgets",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "runtimeDependenciesAdded": [],
+  "cleanup": {
+    "removedBytes": 3911783,
+    "targets": [
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/avif-frame-first-net10.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/avif-frame-first-net8.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/multitile.avif",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/av1-spec.pdf"
+    ],
+    "retainedBytes": 1858797,
+    "reason": "Removed superseded passing logs, copied tracked fixture and PDF duplicate; retain traces, final results, payloads and specification text for entropy reconstruction."
+  }
+}

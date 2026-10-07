@@ -101,12 +101,23 @@ public sealed class HtmlPackageContentSafetyReviewWave41ContractTests {
     }
 
     [Fact]
-    public void Html_CascadeResetLeavesComputedConcealmentReportOnly() {
+    public void Html_CascadeResetMakesPreviouslyHiddenTextVisible() {
         const string html = "<html><head><style>p{display:none}p{all:initial}</style></head>" +
             "<body><p>Reset-visible text.</p></body></html>";
 
-        OfficeContentSafetyFinding finding = Assert.Single(HtmlContentSafety.Inspect(html).Findings, item =>
+        Assert.DoesNotContain(HtmlContentSafety.Inspect(html).Findings, item =>
             item.TextPreview.Contains("Reset-visible text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Html_ConcealmentAfterCascadeResetRemainsReportOnly() {
+        const string html = "<html><head><style>p{all:initial;display:none}</style></head>" +
+            "<body><p>Reset-hidden text.</p></body></html>";
+
+        OfficeContentSafetyFinding finding = Assert.Single(HtmlContentSafety.Inspect(html).Findings, item =>
+            item.TextPreview.Contains("Reset-hidden text", StringComparison.Ordinal));
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
+        Assert.Throws<InvalidOperationException>(() => HtmlContentSafety.RemoveSelected(
+            html, new OfficeContentCleanupSelection(new[] { finding.Id })));
     }
 }

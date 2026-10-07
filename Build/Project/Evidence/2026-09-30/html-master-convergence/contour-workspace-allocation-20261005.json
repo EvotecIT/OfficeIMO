@@ -1,0 +1,713 @@
+{
+  "scope": "Private Core contour scratch reuse; no public API, dependency, sample/order/work-limit or cancellation change.",
+  "sourceCommit": "1b94781713ac0c723e75d5de3b6823a0e250389e",
+  "candidateDiffFingerprint": "dcf82892289c97cc22b440b997cef48f8c323b01",
+  "diagnostic": {
+    "baseline": {
+      "number": 1,
+      "elapsedMilliseconds": 2571.7193,
+      "managedAllocatedBytes": 991508256,
+      "outputBytes": 2598201,
+      "caseCount": 8,
+      "outputCount": 76,
+      "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+    },
+    "candidate": {
+      "number": 1,
+      "elapsedMilliseconds": 3853.1372,
+      "managedAllocatedBytes": 964781848,
+      "outputBytes": 2598201,
+      "caseCount": 8,
+      "outputCount": 76,
+      "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+    },
+    "all76OutputHashesEqual": true,
+    "allocatedByteReduction": 26726408,
+    "scope": "single warm diagnostic per stable candidate; not normal timing qualification",
+    "cases": [
+      {
+        "id": "subgrid-operations",
+        "beforeAllocatedBytes": 67074736,
+        "afterAllocatedBytes": 65316208,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "nested-fragmentation-report",
+        "beforeAllocatedBytes": 122573480,
+        "afterAllocatedBytes": 117680912,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "columns-footnotes-brief",
+        "beforeAllocatedBytes": 138089488,
+        "afterAllocatedBytes": 133970568,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "named-pages-brochure",
+        "beforeAllocatedBytes": 71131632,
+        "afterAllocatedBytes": 69317096,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "stacking-clipping-board",
+        "beforeAllocatedBytes": 92698672,
+        "afterAllocatedBytes": 92940104,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "typography-specimen",
+        "beforeAllocatedBytes": 342407176,
+        "afterAllocatedBytes": 339696960,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "professional-print-catalog",
+        "beforeAllocatedBytes": 84795672,
+        "afterAllocatedBytes": 79941656,
+        "outputHashesEqual": true
+      },
+      {
+        "id": "legacy-portal",
+        "beforeAllocatedBytes": 72721000,
+        "afterAllocatedBytes": 65893744,
+        "outputHashesEqual": true
+      }
+    ]
+  },
+  "initialSmallerWorkspaceTrial": {
+    "capacity": 1024,
+    "allocatedBytes": 987004240,
+    "beforeAllocatedBytes": 991508256,
+    "disposition": "Superseded after sampled allocation trace identified larger contour-crossing buffers; not adopted."
+  },
+  "retention": {
+    "workspaceCountPerCanvas": 1,
+    "maximumListCapacity": 8192,
+    "oversizedWorkspace": "Discarded after use",
+    "noRetainedReferencesToInputContoursOrPaintCallbacks": true
+  },
+  "tests": {
+    "contour-focused-final-net10.trx": {
+      "total": "34",
+      "executed": "34",
+      "passed": "34",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "drawing-full-net10.trx": {
+      "total": "3436",
+      "executed": "3436",
+      "passed": "3436",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "drawing-full-net8.trx": {
+      "total": "3436",
+      "executed": "3436",
+      "passed": "3436",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "html-full-net10.trx": {
+      "total": "4328",
+      "executed": "4328",
+      "passed": "4328",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0",
+      "heldOutResults": [
+        {
+          "executionId": "b9af00f0-29b7-44c1-b1e9-c407f000e04e",
+          "testId": "c9ab22f6-600c-4282-6c0d-4d51b9ed546a",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"nested-fragmentation-report\")",
+          "computerName": "evomini",
+          "duration": "00:00:01.3958531",
+          "startTime": "2026-10-05T06:06:01.8244920+02:00",
+          "endTime": "2026-10-05T06:06:03.2199680+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "b9af00f0-29b7-44c1-b1e9-c407f000e04e"
+        },
+        {
+          "executionId": "9c85a22a-93cb-4a44-b4ad-678624fc080b",
+          "testId": "e793eda7-c610-37a3-a5ce-182126b2162c",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"columns-footnotes-brief\")",
+          "computerName": "evomini",
+          "duration": "00:00:03.3859633",
+          "startTime": "2026-10-05T06:05:33.8710060+02:00",
+          "endTime": "2026-10-05T06:05:37.2609690+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "9c85a22a-93cb-4a44-b4ad-678624fc080b"
+        },
+        {
+          "executionId": "023d848d-43ff-4084-aed9-92c38b0633db",
+          "testId": "bc6b09f0-5cd8-2c01-21d5-da385b20592d",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"named-pages-brochure\")",
+          "computerName": "evomini",
+          "duration": "00:00:00.9293068",
+          "startTime": "2026-10-05T06:06:00.8953740+02:00",
+          "endTime": "2026-10-05T06:06:01.8240610+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "023d848d-43ff-4084-aed9-92c38b0633db"
+        },
+        {
+          "executionId": "e5ce9341-4de7-4a02-96fb-91f34f583fe2",
+          "testId": "f78469d0-9da3-5873-c7e5-0f93b735a2e4",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"legacy-portal\")",
+          "computerName": "evomini",
+          "duration": "00:00:01.1119492",
+          "startTime": "2026-10-05T06:05:59.7827580+02:00",
+          "endTime": "2026-10-05T06:06:00.8947270+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "e5ce9341-4de7-4a02-96fb-91f34f583fe2"
+        },
+        {
+          "executionId": "95b4982b-a44e-4f4e-aa9e-123ea9af1132",
+          "testId": "994a8726-8b1c-63ab-6f95-65eb6944d120",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"subgrid-operations\")",
+          "computerName": "evomini",
+          "duration": "00:00:00.8727020",
+          "startTime": "2026-10-05T06:06:03.2200470+02:00",
+          "endTime": "2026-10-05T06:06:04.0927240+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "95b4982b-a44e-4f4e-aa9e-123ea9af1132"
+        },
+        {
+          "executionId": "bb8af03a-1e4c-4898-a30d-7fe48b7f7a4d",
+          "testId": "ecce0a62-74f4-fb61-c145-57387b9d9122",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"stacking-clipping-board\")",
+          "computerName": "evomini",
+          "duration": "00:00:19.5657063",
+          "startTime": "2026-10-05T06:05:37.2611640+02:00",
+          "endTime": "2026-10-05T06:05:56.8225680+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "bb8af03a-1e4c-4898-a30d-7fe48b7f7a4d"
+        },
+        {
+          "executionId": "ca7d0f62-c079-458b-bce2-1a22afdbc0a0",
+          "testId": "4a8bf7fe-5e0f-3699-ab51-24d0ce8a379d",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_LoadsOnlyFrozenInputsAndDeclaredContracts",
+          "computerName": "evomini",
+          "duration": "00:00:00.0047866",
+          "startTime": "2026-10-05T06:06:07.9938150+02:00",
+          "endTime": "2026-10-05T06:06:07.9985730+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "ca7d0f62-c079-458b-bce2-1a22afdbc0a0"
+        },
+        {
+          "executionId": "c4269b35-df8d-42c7-9512-f2deb085ae1c",
+          "testId": "29157325-4ed7-fe61-fa01-9433a5e18f57",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"professional-print-catalog\")",
+          "computerName": "evomini",
+          "duration": "00:00:03.1091950",
+          "startTime": "2026-10-05T06:05:30.7618470+02:00",
+          "endTime": "2026-10-05T06:05:33.8708250+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "c4269b35-df8d-42c7-9512-f2deb085ae1c"
+        },
+        {
+          "executionId": "9bb4696b-33de-4c4d-9a0f-cbd0e169b040",
+          "testId": "6a8383c9-8bb7-f491-e6fd-efd860ba9428",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"typography-specimen\")",
+          "computerName": "evomini",
+          "duration": "00:00:02.9601793",
+          "startTime": "2026-10-05T06:05:56.8234110+02:00",
+          "endTime": "2026-10-05T06:05:59.7826860+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "9bb4696b-33de-4c4d-9a0f-cbd0e169b040"
+        }
+      ]
+    },
+    "html-full-net8.trx": {
+      "total": "4328",
+      "executed": "4328",
+      "passed": "4328",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0",
+      "heldOutResults": [
+        {
+          "executionId": "02688bb5-f8e1-4afb-b910-6d49238f94e0",
+          "testId": "f78469d0-9da3-5873-c7e5-0f93b735a2e4",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"legacy-portal\")",
+          "computerName": "evomini",
+          "duration": "00:00:01.0079994",
+          "startTime": "2026-10-05T06:08:25.1966680+02:00",
+          "endTime": "2026-10-05T06:08:26.1987360+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "02688bb5-f8e1-4afb-b910-6d49238f94e0"
+        },
+        {
+          "executionId": "ef8efb92-f6b7-43ef-90ff-d4c57dbf831c",
+          "testId": "4a8bf7fe-5e0f-3699-ab51-24d0ce8a379d",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_LoadsOnlyFrozenInputsAndDeclaredContracts",
+          "computerName": "evomini",
+          "duration": "00:00:00.0045621",
+          "startTime": "2026-10-05T06:08:32.7604980+02:00",
+          "endTime": "2026-10-05T06:08:32.7650510+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "ef8efb92-f6b7-43ef-90ff-d4c57dbf831c"
+        },
+        {
+          "executionId": "b0f1c05d-1253-4f92-a749-6d83f4c9eb32",
+          "testId": "29157325-4ed7-fe61-fa01-9433a5e18f57",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"professional-print-catalog\")",
+          "computerName": "evomini",
+          "duration": "00:00:03.7384501",
+          "startTime": "2026-10-05T06:07:44.2181240+02:00",
+          "endTime": "2026-10-05T06:07:47.9507060+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "b0f1c05d-1253-4f92-a749-6d83f4c9eb32"
+        },
+        {
+          "executionId": "d5e11630-99f1-480c-b70c-630a1ec40986",
+          "testId": "6a8383c9-8bb7-f491-e6fd-efd860ba9428",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"typography-specimen\")",
+          "computerName": "evomini",
+          "duration": "00:00:04.8030948",
+          "startTime": "2026-10-05T06:08:20.3883010+02:00",
+          "endTime": "2026-10-05T06:08:25.1964220+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "d5e11630-99f1-480c-b70c-630a1ec40986"
+        },
+        {
+          "executionId": "07b567ce-5df8-418e-8a8b-e11e2cc57c0e",
+          "testId": "994a8726-8b1c-63ab-6f95-65eb6944d120",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"subgrid-operations\")",
+          "computerName": "evomini",
+          "duration": "00:00:00.6336754",
+          "startTime": "2026-10-05T06:08:28.1111330+02:00",
+          "endTime": "2026-10-05T06:08:28.7449200+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "07b567ce-5df8-418e-8a8b-e11e2cc57c0e"
+        },
+        {
+          "executionId": "326b2e75-7c21-4b5f-aefd-b78012792bd6",
+          "testId": "c9ab22f6-600c-4282-6c0d-4d51b9ed546a",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"nested-fragmentation-report\")",
+          "computerName": "evomini",
+          "duration": "00:00:01.1004027",
+          "startTime": "2026-10-05T06:08:27.0147790+02:00",
+          "endTime": "2026-10-05T06:08:28.1110090+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "326b2e75-7c21-4b5f-aefd-b78012792bd6"
+        },
+        {
+          "executionId": "0fba1e32-a1de-4e1c-8711-bb1df0da2b50",
+          "testId": "ecce0a62-74f4-fb61-c145-57387b9d9122",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"stacking-clipping-board\")",
+          "computerName": "evomini",
+          "duration": "00:00:27.9306825",
+          "startTime": "2026-10-05T06:07:52.4577660+02:00",
+          "endTime": "2026-10-05T06:08:20.3880960+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "0fba1e32-a1de-4e1c-8711-bb1df0da2b50"
+        },
+        {
+          "executionId": "60263a8b-cef1-4032-a3fc-430b291f6b70",
+          "testId": "bc6b09f0-5cd8-2c01-21d5-da385b20592d",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"named-pages-brochure\")",
+          "computerName": "evomini",
+          "duration": "00:00:00.8118144",
+          "startTime": "2026-10-05T06:08:26.1997310+02:00",
+          "endTime": "2026-10-05T06:08:27.0105850+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "60263a8b-cef1-4032-a3fc-430b291f6b70"
+        },
+        {
+          "executionId": "7d507d5f-144e-4547-bd47-b54660d34900",
+          "testId": "e793eda7-c610-37a3-a5ce-182126b2162c",
+          "testName": "OfficeIMO.Tests.HtmlRenderingTests.AdvancedHeldOutRenderingCorpus_ExercisesEverySelectedIntentAndOutputFamily(caseId: \"columns-footnotes-brief\")",
+          "computerName": "evomini",
+          "duration": "00:00:04.5060671",
+          "startTime": "2026-10-05T06:07:47.9514950+02:00",
+          "endTime": "2026-10-05T06:07:52.4568460+02:00",
+          "testType": "13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b",
+          "outcome": "Passed",
+          "testListId": "8c84fa94-04c1-424b-9868-57a2d4851a1d",
+          "relativeResultsDirectory": "7d507d5f-144e-4547-bd47-b54660d34900"
+        }
+      ]
+    }
+  },
+  "review": {
+    "task": "contour_workspace_lifetime_review",
+    "mode": "fresh independent strictly read-only full pass",
+    "findings": [],
+    "boundary": "current",
+    "confirmationUsed": false,
+    "gaps": [
+      "Nested paint and paint exception paths inspected without runtime reproduction.",
+      "Retained-memory and throughput qualification remain open."
+    ]
+  },
+  "budget": {
+    "initialBusyHostDeferral": {
+      "source": "1b94781713ac0c723e75d5de3b6823a0e250389e",
+      "runnerBuild": "normal build succeeded with zero warnings and errors",
+      "budgetExecuted": false,
+      "reason": "Unrelated Simulator PosterBoard and multiple Spotlight workers were consuming CPU immediately after runner build. No contended retry or ceiling change."
+    },
+    "cleanSourceAttempt": {
+      "schemaVersion": 1,
+      "generatedUtc": "2026-10-05T04:15:34.455001+00:00",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 27.0.1",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "frameworkDescription": ".NET 10.0.12",
+        "machineName": "evomini",
+        "processorCount": 10
+      },
+      "source": {
+        "commit": "17071d1cbfc2be750df330ac6e26b7450ded9e41",
+        "worktreeClean": true,
+        "corpusId": "officeimo-html-h4-advanced-held-out",
+        "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "caseCount": 8,
+        "outputsPerIteration": 76
+      },
+      "ceiling": {
+        "osFamily": "macOS",
+        "coldProcessElapsedMilliseconds": 8000,
+        "warmIterationElapsedMilliseconds": 3000,
+        "coldManagedAllocatedBytes": 1250000000,
+        "warmManagedAllocatedBytes": 1100000000,
+        "peakWorkingSetBytes": 700000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "cold": {
+        "mode": "cold",
+        "processElapsedMilliseconds": 8079.0675,
+        "peakWorkingSetBytes": 577781760,
+        "memorySampleCount": 163,
+        "iterations": [
+          {
+            "number": 1,
+            "elapsedMilliseconds": 8001.607,
+            "managedAllocatedBytes": 1201969872,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          }
+        ],
+        "deterministic": true
+      },
+      "warm": {
+        "mode": "warm",
+        "processElapsedMilliseconds": 12990.8439,
+        "peakWorkingSetBytes": 714522624,
+        "memorySampleCount": 261,
+        "iterations": [
+          {
+            "number": 1,
+            "elapsedMilliseconds": 2661.8313,
+            "managedAllocatedBytes": 962161568,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          },
+          {
+            "number": 2,
+            "elapsedMilliseconds": 2484.3708,
+            "managedAllocatedBytes": 962567864,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          },
+          {
+            "number": 3,
+            "elapsedMilliseconds": 2422.9404,
+            "managedAllocatedBytes": 962455232,
+            "outputBytes": 2598201,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+          }
+        ],
+        "deterministic": true
+      },
+      "cancellation": {
+        "status": "Passed",
+        "elapsedMilliseconds": 1.7771,
+        "detail": "Cancellation propagated through the asynchronous resource boundary."
+      },
+      "failures": [
+        "cold process elapsed milliseconds 8079.1 exceeded ceiling 8000.0.",
+        "peak working-set bytes 714522624.0 exceeded ceiling 700000000.0."
+      ]
+    },
+    "status": "Failed; no retry performed",
+    "boundary": "Current clean source with footer and workspace, local macOS only. Warm elapsed/allocation/output/cancellation pass; cold elapsed and peak memory fail.",
+    "control": {
+      "report": {
+        "schemaVersion": 1,
+        "generatedUtc": "2026-10-05T04:23:10.772069+00:00",
+        "environment": {
+          "osFamily": "macOS",
+          "osDescription": "macOS 27.0.1",
+          "osArchitecture": "Arm64",
+          "processArchitecture": "Arm64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "evomini",
+          "processorCount": 10
+        },
+        "source": {
+          "commit": "0295e16e52288e82db2973203b7a58704dd37c95",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "ceiling": {
+          "osFamily": "macOS",
+          "coldProcessElapsedMilliseconds": 8000,
+          "warmIterationElapsedMilliseconds": 3000,
+          "coldManagedAllocatedBytes": 1250000000,
+          "warmManagedAllocatedBytes": 1100000000,
+          "peakWorkingSetBytes": 700000000,
+          "outputBytesPerIteration": 3000000,
+          "cancellationElapsedMilliseconds": 250
+        },
+        "cold": {
+          "mode": "cold",
+          "processElapsedMilliseconds": 7366.6207,
+          "peakWorkingSetBytes": 433553408,
+          "memorySampleCount": 161,
+          "iterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 7276.0861,
+              "managedAllocatedBytes": 1228910728,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            }
+          ],
+          "deterministic": true
+        },
+        "warm": {
+          "mode": "warm",
+          "processElapsedMilliseconds": 15084.2667,
+          "peakWorkingSetBytes": 920453120,
+          "memorySampleCount": 320,
+          "iterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 2448.6775,
+              "managedAllocatedBytes": 991078368,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 2528.3588,
+              "managedAllocatedBytes": 990888472,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 2715.7749,
+              "managedAllocatedBytes": 990949136,
+              "outputBytes": 2598201,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "9b87fefb16089efe32ce36b3d81cc338b76784de453e703c4a7151d85c3e9062"
+            }
+          ],
+          "deterministic": true
+        },
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 1.92,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "peak working-set bytes 920453120.0 exceeded ceiling 700000000.0."
+        ]
+      },
+      "preservation": "Ignore/MasterConvergenceQualification/contour-workspace-0295e16e5/pre-change-control-0295e16e5",
+      "normalBuildWarnings": 0,
+      "normalBuildErrors": 0,
+      "measurementExecuted": true
+    },
+    "comparisonBoundary": "Same host/environment, providers, unchanged worker/corpus/ceilings and identical fingerprints. One ordered current/control pair with separate cold/warm workers, not ABBA or portable performance proof. Current fails cold and peak; control fails peak only. No repeat-until-green run or ceiling change.",
+    "ownerReceipt": "Ignore/MasterConvergenceQualification/contour-workspace-0295e16e5/budget-owner-receipts.json"
+  },
+  "allocationAttribution": {
+    "evidence": "Ignore/MasterConvergenceQualification/paired-allocation-e9819e175/sampled-allocation-attribution.json",
+    "method": "One gc-verbose sampled trace per graph of existing public split-stage diagnostic, includes startup/font loading.",
+    "finding": "ContourCrossing arrays feature prominently in current raster stacks. Samples are attribution evidence, not exact totals or proof of all increased allocation."
+  },
+  "remaining": [
+    "Hosted current-source unchanged budgets, nineteen-package graph after later footer and contour changes.",
+    "Relative paint redistribution and oversized-grid continuation.",
+    "H10 appearance/native/corpus/intent acceptance and qualified long-lived adoption."
+  ],
+  "validationBoundary": "Focused/full suites and paired diagnostic ran on the frozen candidate bytes before the implementation commit. The staged diff fingerprint identifies those bytes; no runtime edit followed. These are not current-source hosted package/timing claims.",
+  "standardBuild": {
+    "project": "OfficeIMO.Core",
+    "target": "netstandard2.0",
+    "warnings": 0,
+    "errors": 0,
+    "source": "1b9478171",
+    "mode": "normal Release build"
+  },
+  "standalone": {
+    "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2809",
+    "head": "950e1ea5781526bb10964f16a607d49fd2997bf3",
+    "base": "7a20ec970c6cc3b319228ab2c2a6275fc28c9ea2",
+    "drawingPassedEachFramework": 3317,
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "package": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "sha256": "b5dceedb5ac5349341aa39ac4aa131b18499492072ef3890d864f888de0e130f",
+      "targetDlls": {
+        "lib/net10.0/OfficeIMO.Core.dll": "b9113b8b89f4c6ec7f7fbb1e399571d49ce8b9a2af33cc7a31459f745537eb57",
+        "lib/net8.0/OfficeIMO.Core.dll": "5930086123c25d1cd1cab1136c8968509d67cc0fbf2063f7e237b2b2dc04f6de",
+        "lib/netstandard2.0/OfficeIMO.Core.dll": "c13ddf94d1e4cb8d82b8869c583fd6cbd544dad2ea97cf30887918ce41a43d1a"
+      },
+      "source": "950e1ea5781526bb10964f16a607d49fd2997bf3",
+      "ownerSourceStampCheck": {
+        "lib/net10.0/OfficeIMO.Core.dll": {
+          "sha256": "b9113b8b89f4c6ec7f7fbb1e399571d49ce8b9a2af33cc7a31459f745537eb57",
+          "containsExpectedCommit": true
+        },
+        "lib/net8.0/OfficeIMO.Core.dll": {
+          "sha256": "5930086123c25d1cd1cab1136c8968509d67cc0fbf2063f7e237b2b2dc04f6de",
+          "containsExpectedCommit": true
+        },
+        "lib/netstandard2.0/OfficeIMO.Core.dll": {
+          "sha256": "c13ddf94d1e4cb8d82b8869c583fd6cbd544dad2ea97cf30887918ce41a43d1a",
+          "containsExpectedCommit": true
+        }
+      }
+    },
+    "initialReviewThreads": 0,
+    "initialThreadPages": 1,
+    "ciAndDelayedReview": "pending; initial snapshot only; no manual hosted review requested"
+  },
+  "scopedCleanup20261005": {
+    "generatedTargetsRemoved": 92,
+    "generatedBytesRemoved": 2621165702,
+    "allTargetsAbsent": true,
+    "temporaryControlWorktreeRemoved": true,
+    "controlSourceRetainedInHistory": "0295e16e52288e82db2973203b7a58704dd37c95",
+    "controlProofCopiedAndShaVerified": true,
+    "boundary": "Task-generated owner/probe binaries and private expansion caches removed. Current budget runners, original failures, final corpus, fixtures, package feeds and receipts deliberately retained. Shared caches and unrelated worktrees preserved."
+  },
+  "standaloneDelivery": {
+    "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2809",
+    "head": "956e2e55607c2933e041af73fa49313c48cdf4fa",
+    "merge": "dbba3bbadc902dba177246844f25c5a8115f6413",
+    "mergedUtc": "2026-10-05T07:43:18Z",
+    "gate": "99 successful current-head checks and 6 skipped; complete delayed reviews/comments/reactions, zero unresolved threads.",
+    "preserved": "Ignore/MasterConvergenceQualification/merged-raster-contour-dbba3bbad",
+    "preservedFiles": 32,
+    "preservedBytes": 17032072,
+    "cleanup": "Owned worktree and local branch removed after source status, merge ancestry, outside-worktree open-handle and SHA preservation checks.",
+    "remaining": "Current-source platform budgets and deliberate graph convergence remain separate; no HTML/master merge or release."
+  }
+}

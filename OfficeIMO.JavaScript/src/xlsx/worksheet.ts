@@ -21,6 +21,8 @@ import { ExportCell, assertScalar } from "../core/presentation.js";
 import type { ExportValue } from "../core/presentation.js";
 import { ReportLayout, ComputedTotal, printXml } from "./layout.js";
 import { cleanXml } from "../xml/index.js";
+import { ConditionalFormats, prepareConditionalFormats } from "./conditional-formatting.js";
+import type { PreparedRule } from "./conditional-formatting.js";
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 export class Worksheet {
@@ -46,7 +48,8 @@ export class Worksheet {
   private readonly internalLinks: { cell: string; location: string }[] = [];
   private readonly links: Hyperlink[] = [];
   private readonly pictures: WorksheetImage[] = [];
-  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false) {
+  private readonly conditional: ConditionalFormats;
+  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = []) {
     this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -58,20 +61,27 @@ export class Worksheet {
     this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
     this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
-    for (const link of options.hyperlinks ?? []) { book.retainLink(); this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy)); }
+    for (const link of options.hyperlinks ?? []) this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
+    book.checkLinks(this.links.length);
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
       style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
       headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
         ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
     }));
+    // Register conditional styles only after worksheet construction can no longer reject its options.
+    this.conditional = new ConditionalFormats(conditional, book.styles);
+    book.retainLink(this.links.length);
   }
   /** @internal */
-  static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false): Worksheet { return new Worksheet(book, name, options, table, preserved); }
+  static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false, conditional?: readonly PreparedRule[]): Worksheet { return new Worksheet(book, name, options, table, preserved, conditional); }
   /** @internal Validate before allocating native compressor resources or registering the sheet name. */
-  static validate(book: Workbook, options: SheetOptions): void {
-    for (const feature of ["conditionalFormats", "dataValidation"] as const)
+  static validate(book: Workbook, options: SheetOptions): readonly PreparedRule[] {
+    for (const feature of ["dataValidation"] as const)
       if (options[feature] !== undefined) throw new NotSupportedError(feature);
     const columns = copyColumns(options.columns ?? []);
+    book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
+    const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
+    book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
     const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
     book.checkMerges(layout.merges.length);
     if (options.title?.style) validateStylePatch(options.title.style);
@@ -107,6 +117,7 @@ export class Worksheet {
       if (c.style !== undefined) book.styles.validateStyle(c.style);
       if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255)) throw new TypeError("Column format must be a string of at most 255 characters.");
     }
+    return conditional;
   }
   private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false, title = false): string {
     const col = this.declared[i]!;
@@ -310,6 +321,8 @@ export class Worksheet {
   /** @internal */
   get mergeCount(): number { return this.layout.merges.length; }
   /** @internal */
+  get conditionalFormatCount(): number { return this.conditional.count; }
+  /** @internal */
   get totalRows(): number { return Math.max(1, this.headerRows + this.count + (this.options.footer ? 1 : 0)); }
   /** @internal */
   get lastColumn(): string { return columnName(Math.max(1, this.columns.length)); }
@@ -341,6 +354,7 @@ export class Worksheet {
       await this.buffer!.write('</sheetData>');
       if (this.options.autoFilter && this.headerRows && !this.tableDefinition) await this.buffer!.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
       if (this.layout.merges.length) await this.buffer!.write('<mergeCells count="' + this.layout.merges.length + '">' + this.layout.merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
+      for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows)) await this.buffer!.write(xml);
       if (this.links.length || this.internalLinks.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
       await this.buffer!.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
       if (this.pictures.length) await this.buffer!.write('<drawing r:id="drawing"/>');

@@ -65,7 +65,7 @@ public static class HtmlMarkdownConverterExtensions {
                 operation,
                 document.SourceHtml.Length);
         }
-        return new HtmlToMarkdownResult(value, document.Diagnostics);
+        return new HtmlToMarkdownResult(value, document.Diagnostics.Concat(converter.Diagnostics));
     }
 
     /// <summary>Projects an independently owned, already filtered DOM using the source document's URL policies.</summary>

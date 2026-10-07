@@ -10,6 +10,31 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlRenderAsync_DoesNotReportUnusedExternalStylesheetUrlAsPaintLoss() {
+        var requested = new List<string>();
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                requested.Add(request.Uri.AbsoluteUri);
+                Assert.Equal(HtmlResourceKind.Stylesheet, request.Kind);
+                const string css = ":root{--unused-icon:url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22/%3E')} .hero{color:#123456}";
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><p class='hero'>VisibleMarker</p>",
+            options);
+
+        Assert.Equal(new[] { "https://assets.example.test/css/site.css" }, requested);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("VisibleMarker", StringComparison.Ordinal)
+                && text.Color == OfficeColor.FromRgb(0x12, 0x34, 0x56));
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_ResolvesExternalStylesheetBackgroundImageRelativeToTheStylesheet() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(12, 8);
         var requested = new List<string>();
@@ -540,6 +565,61 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(int.MinValue + 1, rootBackground.PaintOrder);
         Assert.Contains(page.Visuals.Skip(2), visual => visual is HtmlRenderText text && text.Text.Contains("RootCanvas", StringComparison.Ordinal));
         Assert.Equal(OfficeColor.FromRgb(0x12, 0x34, 0x56), raster.GetPixel(raster.Width - 1, raster.Height - 1));
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_AppliesNamedPageBackgroundBehindContent() {
+        const string html = """
+            <style>
+              @page cover { size: 200px 120px; margin: 10px; background: #173a63; }
+              @page chapter { size: 200px 120px; margin: 10px; background-color: #edf4fb; }
+            </style>
+            <section style="page:cover;break-after:page;color:white">Cover</section>
+            <section style="page:chapter">Chapter</section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        HtmlRenderShape cover = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "@page background");
+        HtmlRenderShape chapter = Assert.Single(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "@page background");
+        Assert.Equal(OfficeColor.FromRgb(0x17, 0x3a, 0x63), cover.Shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgb(0xed, 0xf4, 0xfb), chapter.Shape.FillColor);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Cover", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Chapter", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_StopsPageBackgroundAtPrinterMarkArea() {
+        const string html = """
+            <style>
+              @page { size: 100px 80px; margin: 0; bleed: 4px; marks: crop cross; background: #173a63; }
+              html, body { margin: 0; background: transparent; }
+            </style>
+            <p>Production page</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        Assert.Equal(148D, page.Width, 6);
+        Assert.Equal(128D, page.Height, 6);
+        HtmlRenderShape background = Assert.Single(
+            page.Visuals.OfType<HtmlRenderShape>(),
+            visual => visual.Source == "@page background");
+        Assert.Equal(20D, background.X, 6);
+        Assert.Equal(20D, background.Y, 6);
+        Assert.Equal(108D, background.Width, 6);
+        Assert.Equal(88D, background.Height, 6);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.FromRgb(0x17, 0x3a, 0x63), raster.GetPixel(22, 22));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(138, 118));
     }
 
     [Fact]

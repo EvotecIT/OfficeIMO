@@ -11,7 +11,7 @@ public static partial class HtmlComputedStyleEngine {
     // cascade before computed styles are projected into the shared SVG reader.
     // Geometry and transforms retain their separate SVG parsing contract.
     private static readonly HashSet<string> SvgTextAndPaintPresentationProperties = new HashSet<string>(StringComparer.Ordinal) {
-        "color", "direction", "unicode-bidi", "visibility", "font-family", "font-size",
+        "color", "direction", "unicode-bidi", "display", "visibility", "font-family", "font-size",
         "font-stretch", "font-style", "font-variant", "font-weight", "letter-spacing",
         "word-spacing", "white-space", "writing-mode", "fill", "fill-opacity", "fill-rule",
         "stroke", "stroke-width", "stroke-opacity", "stroke-dasharray", "stroke-dashoffset",

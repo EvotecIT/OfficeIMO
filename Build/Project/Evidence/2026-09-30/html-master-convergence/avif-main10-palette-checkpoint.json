@@ -1,0 +1,322 @@
+{
+  "sourceCommit": "8bbb846f6aa132437aebceed5ace02bf3945b324",
+  "baseCommit": "4ec132c7f5e40f12fda388e32097f4a466d74f72",
+  "recordedAt": "2026-10-01T11:16:46.667019+00:00",
+  "scope": "Internal eight/ten-bit palette colors, cache reuse, filter selection and padded index maps through the transform-size boundary. Public ten-bit reconstruction remains disabled.",
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PaletteReader.Colors.cs": "3f9c23ec06073e4284f15f38943c9aba1b6394527a6037315bceb95803551b92",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PaletteReader.cs": "950bf3e7c0a833cc11b9d333ba9eaffb4ede67895d9f3dc8f4259bde55fb7097",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Palettes.cs": "9435498ec5bd42b1da6775111e5a60184e86990862bc81fbb8ae72626c593297",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "65d4c232cdcd687aa1205d064f031b2f69b604b13c007e757ad93c4ce354de03",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePaletteFixtures.c": "fe4211c4d0522ec9051426074ffe0b37dc502b82f579ea5a78b8af93adb674b4",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePaletteFixtures.py": "008c0204c362c67ed95838ca28ce8a0e0859a319b8c688905c7b673149813be0",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePaletteNativeReference.py": "24e47b61aba4691d814fe24417a070425d370321a6163ec6984546ca2e36bd33",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficePaletteProbe.inc": "1c5c692d91234d8f3e1d46d4d6d6f772cc31389eede48bc2f59458ccba3fbb6f",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadPaletteReference.c": "068b90f09d25bdcb8cbdbc1372d0de6eba9954a1b2042851c7f77a12ec135e8d",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/palette-main10-reference.json": "73b5dbff54ef2ea807b97a9ef855f92ceeee195f1ebd4b6cf540a6ffab1ce54f"
+  },
+  "nativeReference": {
+    "tag": "v3.13.1",
+    "commit": "d772e334cc724105040382a977ebb10dfd393293",
+    "observation": "Pinned decodemv.c plus appended access-only include; actual native palette readers, cache, filter selection and detokenizer. Original component encoder writes streams; separate actual decoder checks every color/map.",
+    "oracles": [
+      {
+        "generatorSha256": "008c0204c362c67ed95838ca28ce8a0e0859a319b8c688905c7b673149813be0",
+        "harnessSha256": "fe4211c4d0522ec9051426074ffe0b37dc502b82f579ea5a78b8af93adb674b4",
+        "sharedModeHarnessSha256": "a338059889cabb41243e0913b64626397de7ac4d66025bd1ab7895c5e230ab2b",
+        "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+        "fixtureSha256": "7d14d2326eb65b46212e8163906f97f1a1ae1abc64cbe7f91cb71f7dcc114a67",
+        "cases": 48,
+        "nativeSelfCheck": true,
+        "prefixes": 3,
+        "nativeDecoder": {
+          "actualDecoder": true,
+          "bitDepth": 8,
+          "sourceSha256": {
+            "av1/decoder/decodemv.c": "86fb66757d52ea259eaf4bb654cdee0973daf4797601b892591d55754b8f34ed",
+            "av1/decoder/detokenize.c": "ac5139ecd526d22763bf72d4d6f26b7e0442573d7f7bd6874c560d22855a528c",
+            "av1/common/pred_common.c": "027a67e686ca5f4340bd11b6a55007d64993c1f6c68b5857927e52746c486636",
+            "av1/common/entropymode.c": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24"
+          },
+          "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+          "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+          "observationSha256": "98e11b228b118aa305c0bbf2cda7716571f80998ee6cfdc8cb53355b25fa1725",
+          "cases": 48,
+          "leaves": 2484,
+          "assetsSha256": {
+            "OfficePaletteProbe.inc": "1c5c692d91234d8f3e1d46d4d6d6f772cc31389eede48bc2f59458ccba3fbb6f",
+            "ReadPaletteReference.c": "068b90f09d25bdcb8cbdbc1372d0de6eba9954a1b2042851c7f77a12ec135e8d",
+            "GeneratePaletteNativeReference.py": "24e47b61aba4691d814fe24417a070425d370321a6163ec6984546ca2e36bd33"
+          }
+        }
+      },
+      {
+        "generatorSha256": "008c0204c362c67ed95838ca28ce8a0e0859a319b8c688905c7b673149813be0",
+        "harnessSha256": "fe4211c4d0522ec9051426074ffe0b37dc502b82f579ea5a78b8af93adb674b4",
+        "sharedModeHarnessSha256": "a338059889cabb41243e0913b64626397de7ac4d66025bd1ab7895c5e230ab2b",
+        "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+        "fixtureSha256": "73b5dbff54ef2ea807b97a9ef855f92ceeee195f1ebd4b6cf540a6ffab1ce54f",
+        "cases": 48,
+        "nativeSelfCheck": true,
+        "prefixes": 0,
+        "nativeDecoder": {
+          "actualDecoder": true,
+          "bitDepth": 10,
+          "sourceSha256": {
+            "av1/decoder/decodemv.c": "86fb66757d52ea259eaf4bb654cdee0973daf4797601b892591d55754b8f34ed",
+            "av1/decoder/detokenize.c": "ac5139ecd526d22763bf72d4d6f26b7e0442573d7f7bd6874c560d22855a528c",
+            "av1/common/pred_common.c": "027a67e686ca5f4340bd11b6a55007d64993c1f6c68b5857927e52746c486636",
+            "av1/common/entropymode.c": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24"
+          },
+          "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+          "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+          "observationSha256": "9fa7eb2a1e1d54d7e405c8d041967e4e6f26f4a1b5621b5fb6b4fc08be200b96",
+          "cases": 48,
+          "leaves": 2484,
+          "assetsSha256": {
+            "OfficePaletteProbe.inc": "1c5c692d91234d8f3e1d46d4d6d6f772cc31389eede48bc2f59458ccba3fbb6f",
+            "ReadPaletteReference.c": "068b90f09d25bdcb8cbdbc1372d0de6eba9954a1b2042851c7f77a12ec135e8d",
+            "GeneratePaletteNativeReference.py": "24e47b61aba4691d814fe24417a070425d370321a6163ec6984546ca2e36bd33"
+          }
+        }
+      }
+    ]
+  },
+  "preservationAndRepeatability": {
+    "original8BitFixtureUnchanged": true,
+    "depths": {
+      "8": {
+        "cases": 48,
+        "leaves": 2484,
+        "colorSamples": 11182,
+        "sampleRange": [
+          0,
+          255
+        ],
+        "distinctColors": 246,
+        "lowTwoBits": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "paddedMapSamples": 233472,
+        "visitedMapContexts": 68,
+        "unreachableMapContexts": [
+          1,
+          36
+        ],
+        "cacheSelections": 3680,
+        "filterSelections": 866,
+        "producerRepeatByteIdentical": true,
+        "decoderRepeatByteIdentical": true,
+        "producerSha256": "e1f9b1914098d7effdec9faec0c4875e8511d8bb7f3dd85b18f6d2569e59f871"
+      },
+      "10": {
+        "cases": 48,
+        "leaves": 2484,
+        "colorSamples": 11182,
+        "sampleRange": [
+          0,
+          1023
+        ],
+        "distinctColors": 683,
+        "lowTwoBits": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "paddedMapSamples": 233472,
+        "visitedMapContexts": 68,
+        "unreachableMapContexts": [
+          1,
+          36
+        ],
+        "cacheSelections": 3696,
+        "filterSelections": 866,
+        "producerRepeatByteIdentical": true,
+        "decoderRepeatByteIdentical": true,
+        "producerSha256": "469c1f53109f0e865d541283e8987062937275b89a774a7b69485ccea326de0e"
+      }
+    },
+    "original8BitFixtureSha256": "7d14d2326eb65b46212e8163906f97f1a1ae1abc64cbe7f91cb71f7dcc114a67"
+  },
+  "validation": {
+    "results": [
+      {
+        "file": "drawing-palette-net10.trx",
+        "sha256": "1228b29b3f63fbc90783031554b635c7e6797c950967713bb01e6b57f2f71bf6",
+        "counters": {
+          "total": "3061",
+          "executed": "3061",
+          "passed": "3061",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "drawing-palette-net8.trx",
+        "sha256": "0727270619cbbde9157b72eacb55b7520a3f57b656015c8ebbde565c189b0f6f",
+        "counters": {
+          "total": "3061",
+          "executed": "3061",
+          "passed": "3061",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "html-avif-palette-net10.trx",
+        "sha256": "4a62b192782f9b93259a4582efa8b176d9b0718e9b11c2923e899c97fa7709b8",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "palettes-after-net10.trx",
+        "sha256": "ac98d96414b42137bca6c065db12de37565ba1f64d8595a90ff6e0f0f800f5ee",
+        "counters": {
+          "total": "7",
+          "executed": "7",
+          "passed": "7",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "palettes-before-net10.trx",
+        "sha256": "b6643c29dbdb1399827cd50093c3f7d8e97d10881a9057a2f527ccfa76af7a01",
+        "counters": {
+          "total": "5",
+          "executed": "5",
+          "passed": "4",
+          "failed": "1",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "failure": [
+          "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   4"
+        ]
+      }
+    ],
+    "coreNetstandard2": {
+      "warnings": 0,
+      "errors": 0,
+      "sdk": "10.0.303",
+      "source": "unchanged candidate contents subsequently committed"
+    },
+    "stagedFingerprint": "1929980f5c8e0373a65743145c1f921bfc738caf"
+  },
+  "commands": {
+    "cwd": "outside worktree global.json; SDK 10.0.303",
+    "focused": "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -f net10.0 --filter FullyQualifiedName~DrawingAv1PaletteTests",
+    "broad": [
+      "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -f net8.0",
+      "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -f net10.0",
+      "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -f net10.0 --filter FullyQualifiedName~Avif",
+      "dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -f netstandard2.0 --no-restore"
+    ],
+    "note": "Use absolute project paths when running outside the checkout; tests used the unchanged candidate contents subsequently committed as sourceCommit."
+  },
+  "localReview": {
+    "agent": "avif_main10_palette_review",
+    "stagedFingerprint": "1929980f5c8e0373a65743145c1f921bfc738caf",
+    "boundary": "current",
+    "independence": "Fresh context, strictly read-only, no nested delegation or test execution.",
+    "findings": [],
+    "targetedConfirmation": "not needed",
+    "risk": "Depth-dependent entropy parsing, palette cache publication and native observation integrity.",
+    "gap": "Reused native source/build provenance retained and current configuration/library hashes verified; this does not authenticate arbitrary future supplied builds."
+  },
+  "testContracts": [
+    "All selected native Y/U/V colors, filter modes and complete padded maps at both depths; adaptive updates on/off, independent shifted tiles and 64px color-cache boundaries.",
+    "Eight-bit original fixture remains byte-identical; repeated producer and actual decoder invocations reproduce both depths.",
+    "Depth mismatch/unsupported depth reject before context use; chosen depth is snapshotted.",
+    "Failed and cancelled contexts do not publish partial neighbor state; existing geometry and retained-memory limits remain.",
+    "Full Drawing and HTML AVIF consumers retain qualified eight-bit independent pixel and content contracts."
+  ],
+  "notQualifiedByThisCheckpoint": [
+    "Complete ten-bit frame storage, in-loop filters, color/alpha RGBA publication or public decode.",
+    "Non-reduced still headers and formal AVIF Baseline support.",
+    "Ten-bit packaged consumers, H4/NASA/all-intent rendered acceptance or performance budgets.",
+    "Windows/net472 runtime and Windows/Linux H10 operation budgets."
+  ],
+  "nextBoundedDeliverable": "Widen the existing reconstructed sample planes and copy/residual consumers with depth-dependent bounds/accounting; prove complete unfiltered eight/ten-bit native planes before widening filter stages or enabling public output.",
+  "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-palette-work-4ec132c7f-10",
+  "retainedProbe": {
+    "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-palette-work-4ec132c7f-10/read-palette-reference",
+    "bytes": 1402008,
+    "sha256": "49b94f125ebd8c3c9362ddae1bbaec05452f25484ae880b0f9c3e3ea5967f755",
+    "inputs": [
+      "native-palette-cases-8.bin",
+      "native-palette-cases.bin"
+    ]
+  },
+  "cleanup": {
+    "state": "complete",
+    "exactVerifiedTargets": 15,
+    "generatedBytesRemoved": 18225238,
+    "retainedBytes": 1869941,
+    "removed": "Duplicate native units/headers/objects/probe, output captures and successful full Drawing TRXs after retaining source fixtures, receipts, hashes/counters and one replay probe."
+  }
+}

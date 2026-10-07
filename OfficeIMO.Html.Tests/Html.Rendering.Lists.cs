@@ -62,6 +62,85 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ListItemsWithParagraphsKeepOutsideMarkersBesideTheirFirstLines() {
+        const string html = "<style>body{margin:0}ul{margin:0;padding-left:32px}"
+            + "li p{margin:0 0 12px}</style><ul>"
+            + "<li><p><strong>First point</strong> continues on its own paragraph.</p></li>"
+            + "<li><p>Second point</p></li></ul>"
+            + "<ul style='list-style:none'><li><p>Markerless point</p></li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+        HtmlRenderText first = Assert.Single(texts, text => text.Text == "First point");
+        HtmlRenderText second = Assert.Single(texts, text => text.Text == "Second point");
+
+        Assert.Equal(2, markers.Length);
+        Assert.All(markers, marker => Assert.Equal("•", marker.Text));
+        Assert.True(markers[0].X < first.X);
+        Assert.True(markers[1].X < second.X);
+        Assert.InRange(Math.Abs(markers[0].Y - first.Y), 0D, 1D);
+        Assert.InRange(Math.Abs(markers[1].Y - second.Y), 0D, 1D);
+        Assert.True(markers[1].Y > markers[0].Y);
+        Assert.Contains("Second point", PdfCore.PdfReadDocument.Open(
+            HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_UnstyledListsReserveSpaceForOutsideMarkersAndHonorAuthoredPadding() {
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        const string item = "<li><p style='margin:0'>List content</p></li>";
+        HtmlRenderDocument defaultList = HtmlRenderTestDriver.Render("<ul>" + item + "</ul>", options);
+        HtmlRenderDocument resetList = HtmlRenderTestDriver.Render("<ul style='padding:0'>" + item + "</ul>", options);
+        HtmlRenderText[] defaultTexts = EnumerateRenderVisuals(defaultList.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] resetTexts = EnumerateRenderVisuals(resetList.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText marker = Assert.Single(defaultTexts, text => text.Source == "list-marker");
+        HtmlRenderText body = Assert.Single(defaultTexts, text => text.Text == "List content");
+        HtmlRenderText resetBody = Assert.Single(resetTexts, text => text.Text == "List content");
+
+        Assert.True(marker.X >= 0D);
+        Assert.True(marker.X < body.X);
+        Assert.InRange(body.X - resetBody.X, 39D, 41D);
+    }
+
+    [Fact]
+    public void HtmlRendering_OutsideMarkerKeepsInlineTextAtTheListContentEdge() {
+        const string html = "<style>body,ul{margin:0}ul{padding-left:40px}li p{margin:0}</style>"
+            + "<ul><li><a href='https://example.test/inline'>Inline item</a></li>"
+            + "<li><p>Block item</p></li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText inline = Assert.Single(texts, text => text.Text == "Inline item");
+        HtmlRenderText block = Assert.Single(texts, text => text.Text == "Block item");
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+
+        Assert.Equal(2, markers.Length);
+        Assert.InRange(Math.Abs(inline.X - block.X), 0D, 1D);
+        Assert.InRange(inline.X, 39D, 41D);
+        Assert.True(markers[0].X < inline.X);
+    }
+
+    [Fact]
+    public void HtmlRendering_RtlOutsideMarkerKeepsInlineTextAtTheListContentEdge() {
+        const string html = "<style>body,ul{margin:0}ul{padding-right:40px}li p{margin:0}</style>"
+            + "<ul dir='rtl'><li>Inline item</li><li><p>Block item</p></li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText inline = Assert.Single(texts, text => text.Text == "Inline item");
+        HtmlRenderText block = Assert.Single(texts, text => text.Text == "Block item");
+        HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
+
+        Assert.Equal(2, markers.Length);
+        Assert.InRange(Math.Abs((inline.X + inline.Width) - (block.X + block.Width)), 0D, 1D);
+        Assert.True(markers[0].X >= inline.X + inline.Width);
+    }
+
+    [Fact]
     public void HtmlRendering_ListStyleImageUsesSharedResourcePipelineAndFallsBackToTextMarker() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
         string source = "data:image/png;base64," + imageData;

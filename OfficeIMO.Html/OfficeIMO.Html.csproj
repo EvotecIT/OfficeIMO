@@ -40,7 +40,12 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.8.3" />
-    <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
+    <PackageReference Include="AngleSharp.Css" Version="1.1.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,7 +56,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Benchmarks" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Benchmarks.Comparisons" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Runtime.Worker" />
     <InternalsVisibleTo Include="OfficeIMO.Epub.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />

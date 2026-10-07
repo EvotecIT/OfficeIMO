@@ -1,0 +1,199 @@
+{
+  "sourceCommit": "372982cfccf887dfd5c7f859e6ef7f823f677f53",
+  "baseCommit": "9c6c9c1ade9d4d954f5c6b5418ac2926b1d7c0fa",
+  "recordedAt": "2026-10-01T15:12:20.358517+00:00",
+  "scope": "Internal eight/ten-bit superresolution and complete reconstruction through Upscaled; restoration, composition and default Main10 decode remain guarded.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "dcc65279630b1cf9546e67949ac7bd3582754283a8702f6f2c61f9bd85ba7f35",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Upscaler.cs": "e21dadb4e306530775b975f8a43e2ec8fe11461948cf43b26d27602bf0b971d1",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Reconstruction.cs": "0697051d22e8a9330eb78f3bff14e76461f88e6089e08dc883fa7024ab179486",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Superresolution.cs": "91ab7eb1098d3708f467bd44b4e65cd2bff9da8badf3f838a0dd0743ebbd9756",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.UpscaledFrames.cs": "19dc3aa99b29df1047a3b310936c6679fd9380c3371bc1148793c8cd023411b0",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "825b1c06e243dc177a6c79f5ce5642a235c822ae4aac616b7f0de0d211c27110"
+  },
+  "nativeReference": {
+    "fixtureSha256": "66438a9cc80b084f55ba5e138729aecf7672bb19a7c9a036c8cdd540c9f2b155",
+    "oracleCheckpoint": "avif-main10-upscale-oracle-checkpoint.json",
+    "cases": 26,
+    "activeUpscaleFrames": 10,
+    "croppedUpscaledSamples": 814655,
+    "tenBitRows": 1280,
+    "eightBitRows": 320,
+    "coverage": "All denominators9-16, four low-bit phases, odd chroma, four tiles, monochrome/color, SB64/SB128, lossless and alpha planes. Every checked sample agrees with actual pinned AOM output."
+  },
+  "validation": {
+    "checks": [
+      {
+        "file": "before/_evomini_2026-10-01_17_05_05.trx",
+        "sha256": "b8a75d2fa5910191f2b4aba21aaf1a74b1a1c01e0784b95082bba2e1359e606a",
+        "counters": {
+          "total": "31",
+          "executed": "31",
+          "passed": "3",
+          "failed": "28",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "framework": "net10.0"
+      },
+      {
+        "file": "focused/_evomini_2026-10-01_17_06_19.trx",
+        "sha256": "c6783631ffee16c772bb09bfcb05f22075acd980d83c1755b8d2751859ce5acc",
+        "counters": {
+          "total": "114",
+          "executed": "114",
+          "passed": "114",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "framework": "net10.0"
+      },
+      {
+        "file": "full/_evomini_2026-10-01_17_07_59.trx",
+        "sha256": "3eb4f735ee0efd826069f56443af347c43a63c8c1e74442e003736fb16d5004f",
+        "counters": {
+          "total": "3143",
+          "executed": "3143",
+          "passed": "3143",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "framework": "net10.0"
+      },
+      {
+        "file": "full/_evomini_2026-10-01_17_07_59[1].trx",
+        "sha256": "004aa73e544d90dd51969962ca8791fd6c703f8e916d811f3b91382be7547252",
+        "counters": {
+          "total": "3143",
+          "executed": "3143",
+          "passed": "3143",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "framework": "net8.0"
+      },
+      {
+        "file": "html/_evomini_2026-10-01_17_10_29.trx",
+        "sha256": "d5b1dab500e1822578436008eb308a51a21936143e1aa5740d67823de4b16c71",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "framework": "net10.0"
+      },
+      {
+        "file": "html/_evomini_2026-10-01_17_10_29[1].trx",
+        "sha256": "f23a79b199c412dfb184cd8fc6ee6af5289bfff5404a1b4cbc6a4559c3358df3",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "framework": "net8.0"
+      }
+    ],
+    "package": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "sha256": "afee4a3ce2c0f096403574984b4a16aa553f7399f066452e0f43425196c567e7",
+      "targets": [
+        "lib/net10.0/OfficeIMO.Core.dll",
+        "lib/net8.0/OfficeIMO.Core.dll",
+        "lib/netstandard2.0/OfficeIMO.Core.dll"
+      ],
+      "externalRuntimeDependencies": 0,
+      "nativeReferenceAssets": false
+    },
+    "corePack": "netstandard2.0/net8.0/net10.0; no warnings/errors in captured pack log.",
+    "review": {
+      "task": "/root/avif_main10_upscale_review",
+      "stagedDiffFingerprint": "e756ad8449875778b7f68bebed179f88be256eaf",
+      "boundary": "current",
+      "result": "No actionable P0-P3",
+      "confirmationUsed": false,
+      "limit": "Review was read-only; builds/tests performed by primary."
+    }
+  },
+  "remainingQualification": [
+    "Main10 restoration, final color/alpha/default decode and packed/rendered acceptance.",
+    "Non-reduced headers and formal AVIF Baseline qualification.",
+    "Remaining frozen eighteen static cases, semantic/SVG/hyphenation gaps.",
+    "Windows/net472 execution and Windows/Linux operation budgets; prior H4/NASA and performance evidence keeps its earlier recorded source boundary."
+  ],
+  "cleanup": {
+    "removedBytes": 371797202,
+    "verifiedAbsent": true,
+    "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-upscale-managed-9c6c9c1ad",
+    "retainedBytes": 370935,
+    "nativeReplay": "Unchanged reference replay executables and canonical OBUs retained at static-gap-avif-main10-upscale-work-464211fc8; prior26/1280/320 post-cleanup replay remains valid."
+  }
+}

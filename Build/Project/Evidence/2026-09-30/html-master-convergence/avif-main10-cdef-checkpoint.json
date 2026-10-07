@@ -1,0 +1,244 @@
+{
+  "sourceCommit": "903eec8f3eff02169a0fa2fea951ff3d95717ca3",
+  "baseCommit": "9990beb047d93d9da050201e2f6d48030509e014",
+  "recordedAt": "2026-10-01T12:38:19.916153+00:00",
+  "scope": "Internal Main8/Main10 CDEF over existing ushort planes; superresolution/restoration/color/default Main10 remain guarded.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Cdef.cs": "64edd4ed3edac60a6634c676dca6bdac2c8de913da6e7bf6751b59c8e9de89e3",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CdefFilter.cs": "faf9c82e2ec0d343bdefb1ccff67a5766caec94c60e9c5dd0e705854fe86a78c",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "914a95d2ba468f57122dd3f8993b57cf872b12ab19b59e72e1a1dfbc6a164577",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Cdef.cs": "b3842124c5ddfc33ac647e1f9a2a8263872f788500e53144a329af4f16c846f7",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Reconstruction.cs": "e6906a308c35680d4a673d5dd2213cdbe585fe933d219378acf9584d7f4c4d1b",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "0314b21e1a769b305e51ccd6fdfeb1d1f5a17cc93a81dc72e0f855e73be5dca6",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateCdefFixtures.py": "17a36d887f6f0dbc21a1064fb2a70e3cc5286a0a9933df0ccf0924a726e0144e",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadCdefKernels.c": "02682ecca4bc9da4b65cbfdc929230f60600a954578041787f3cd8d6dae54a4f",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/cdef-main10-reference.json.gz": "b55eb9ae5380371f95bdb131c74c1cc2a86c990062aa92ff0950c390656c1c23"
+  },
+  "nativeReference": {
+    "receipt": {
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+      "cdefSourceSha256": {
+        "av1/common/cdef.c": "a2832163c6041efb3085b8322b55b3d531a69a4641db14bdb4a6e01189c2fb3f",
+        "av1/common/cdef_block.c": "1a332f8523bb1daf8a21c6b67aaa9d53db760a18cf1fed8260c92cee017168ac",
+        "av1/common/cdef_block.h": "f41e9021c4869741c1d9711ed03d50ac3b1f132f04a1c394a11066d9cd2cb0b5"
+      },
+      "bitDepth": 10,
+      "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+      "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+      "assetsSha256": {
+        "GenerateCdefFixtures.py": "17a36d887f6f0dbc21a1064fb2a70e3cc5286a0a9933df0ccf0924a726e0144e",
+        "GenerateDeblockFixtures.py": "b2897e078d0c2dfdf4548f457307c8b90939bcb9c465964c95e289e59497b653",
+        "GenerateSvtCdefControl.py": "574e418d417e713e981e5ab514effbe78c8b4a1d9c4798636821dc3f0388387b",
+        "cdef-svt-mixed-skip.obu": "a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f",
+        "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+        "GenerateReconstructionFixtures.py": "83849acf40c853ea197b4239c2fa8e0d4da6ae895c28c7f000f51414d0eec668",
+        "TraceCdef.patch": "8373120ccdf79b7a487b7b5f3234736c8615a3125ce292857bb81d738fd9fc8e",
+        "OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+        "ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+        "EncodeFilterControls.c": "df0726e8b0b400756c50b626d13a9a2852c5a4e202fa6a52ddda0dd7ef7e8a71",
+        "ReadCdefKernels.c": "02682ecca4bc9da4b65cbfdc929230f60600a954578041787f3cd8d6dae54a4f",
+        "reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d",
+        "deblock-main10-reference.json.gz": "f5fd92b8ce74319120a5e6eab62f3979292d72de6f7990c7de9863007190bb38",
+        "reconstruction-main10-inputs.json": "897fab6fb38341b072a15927f4508abef0b35db17fe9772be75f6e09538e1a26"
+      },
+      "fixtureSha256": "b55eb9ae5380371f95bdb131c74c1cc2a86c990062aa92ff0950c390656c1c23",
+      "canonicalJsonSha256": "4f8450ebeaf62e7e67d5ffe74eec6fe2ff2c2aab2300a474b12c37df90187985",
+      "cases": 16,
+      "directions": 68,
+      "kernels": 9216,
+      "changedKernelCases": 7406,
+      "changedCdefSamples": 52526
+    },
+    "repeat": {
+      "repeatedFrames": 16,
+      "repeatedDirections": 68,
+      "repeatedKernels": 9216,
+      "frameSamples": 229984,
+      "lowBitPhases": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "repeat": "Every stage field, final YUV hash and numeric case identical."
+    },
+    "eightBitReplay": {
+      "cases": 9,
+      "directions": 17,
+      "kernels": 2304,
+      "comparison": "All original fixture fields and pixels identical; additional final YUV hashes excluded.",
+      "trackedFixtureSha256": "b789244cf8f076487f6120000627287234a3a26a381097d63e1778dc3885a243"
+    },
+    "observation": "Copied decodeframe observation unit; actual unmodified pinned AOM CDEF kernels. Reusable source/build unchanged; driver requests one decoding thread."
+  },
+  "validation": {
+    "checks": [
+      {
+        "file": "before/_evomini_2026-10-01_14_26_30_net10.0.trx",
+        "sha256": "513579ffc7c4a861b0bc03aa210c779bc3ff39a55af886dc9415661937988d4b",
+        "counters": {
+          "total": "29",
+          "executed": "29",
+          "passed": "12",
+          "failed": "17",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "focused/_evomini_2026-10-01_14_29_29_net10.0.trx",
+        "sha256": "2185b02974d10d04ec4112bbc47570d4e9fea539b6e42a26c4bee1184e434b0e",
+        "counters": {
+          "total": "77",
+          "executed": "77",
+          "passed": "77",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "full-net10/_evomini_2026-10-01_14_34_25_net10.0.trx",
+        "sha256": "0cf2fbae280eeaf94d31622cefed65ca28f9fe3ee20a30df0e12815d431667f4",
+        "counters": {
+          "total": "3114",
+          "executed": "3114",
+          "passed": "3114",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "full-net8/_evomini_2026-10-01_14_34_50_net8.0.trx",
+        "sha256": "06371f9f20e677e4680d4ea4c4d2afe1936ad8bb46aba5e70cd1e6433da7f7a7",
+        "counters": {
+          "total": "3114",
+          "executed": "3114",
+          "passed": "3114",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "html-net10/_evomini_2026-10-01_14_36_39_net10.0.trx",
+        "sha256": "057c6d9cb42067f441f755fed1cd3bb57e211ed879656def6e8d11e99ceb0af2",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "html-net8/_evomini_2026-10-01_14_36_39_net8.0.trx",
+        "sha256": "a9e5fe5c53fb6efbee1d6a7a72e199805e377f6284f100b3a7b7b0b1d92a6ce3",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "coreNetstandard2Build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "review": {
+      "task": "/root/avif_main10_cdef_review",
+      "stagedDiffFingerprint": "c8c7384e54fc09db539187aea2b5730ef5f9d43f",
+      "boundary": "current",
+      "result": "No actionable P0-P3",
+      "confirmationUsed": false,
+      "limits": [
+        "No active mixed skipped/non-skipped Main10 CDEF frame; retained Main8 SVT control exercises shared mapping.",
+        "Mid-CDEF cancellation inspected statically; no new targeted cancellation exercise."
+      ]
+    }
+  },
+  "remainingQualification": [
+    "Main10 superresolution, restoration, final color/alpha/default decoding and packed/rendered acceptance.",
+    "Non-reduced headers and formal AVIF Baseline claim.",
+    "Frozen eighteen-case static conversion suite and remaining semantic/SVG/hyphenation gaps.",
+    "Windows/net472 runtime and Windows/Linux operation budgets."
+  ],
+  "cleanup": {
+    "removedBytes": 23096139,
+    "verifiedAbsent": true,
+    "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-cdef-proof-9990beb04",
+    "postCleanupReplay": {
+      "frames": 16,
+      "directions": 68,
+      "kernels": 9216,
+      "result": "All planes, final native YUV hashes and numeric cases identical after cleanup."
+    },
+    "retainedBytes": 2613145
+  }
+}

@@ -16,7 +16,7 @@ public sealed partial class PdfPageCanvas {
     public PdfPageCanvas() {
     }
 
-    private PdfPageCanvas(bool allowOutOfPageCoordinates) {
+    internal PdfPageCanvas(bool allowOutOfPageCoordinates) {
         _allowOutOfPageCoordinates = allowOutOfPageCoordinates;
     }
 
@@ -476,11 +476,15 @@ public sealed partial class PdfPageCanvas {
             Math.Abs(opacity - 1D) <= 0.000001D &&
             blendMode == OfficeBlendMode.Normal;
         if (ContainsInteractiveFormContent(nestedCanvas.Items)) {
-            if (!trivialEffect) {
-                throw new ArgumentException("Interactive form fields cannot be nested inside a transformed, translucent, or blended canvas effect.", nameof(build));
+            bool uniformScale = transform.M11 > 0D && transform.M11 == transform.M22
+                && transform.M12 == 0D && transform.M21 == 0D;
+            if (!trivialEffect && (!uniformScale || opacity != 1D || blendMode != OfficeBlendMode.Normal)) {
+                throw new ArgumentException("Interactive form fields require an opaque, unblended, positive uniform-scale canvas effect.", nameof(build));
             }
-            _items.AddRange(nestedCanvas.Items);
-            return this;
+            if (trivialEffect) {
+                _items.AddRange(nestedCanvas.Items);
+                return this;
+            }
         }
         _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, transform, opacity, blendMode));
         return this;
@@ -725,6 +729,8 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public PdfCanvasTextStructureRole StructureRole { get; }
     internal bool PreservePositionedText { get; set; }
     internal double? PositionedAdvanceWidth { get; set; }
+    internal double PositionedClipTopOverflow { get; set; }
+    internal double PositionedFontMetricScale { get; set; } = 1D;
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {

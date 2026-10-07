@@ -9,6 +9,7 @@ public sealed class PdfCanvasStructureOptions {
     private List<PdfEmbeddedFile>? _associatedFiles;
 
     internal string? StructureElementKey { get; set; }
+    /// <summary>Explicit sibling order supplied by an owning source adapter; null retains arrival order.</summary>
     internal long? LogicalOrder { get; set; }
 
     /// <summary>Alternative text associated with the structure container.</summary>

@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "4ca132c17a40c5e1e94236949b5ccd694f84351a",
+  "scope": "Independent print-media geometry reproduction; no runtime change or gap-closure claim.",
+  "browserVersion": "151.0.7922.34",
+  "browserConsoleOrPageErrors": [],
+  "fixtureFont": {
+    "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+    "bytes": 105592,
+    "hasOpenTypeMathTable": false
+  },
+  "fixtureSha256": {
+    "geometry": "28bfe755b56754f51f59a71e0b65757c9736b705dbc8f398b3aac447b3782ecf",
+    "frozen": "eeb36c25ca894cb7da3856426b7d44e21fd2e3c87c2760df87e84d2b826281bb"
+  },
+  "cases": [
+    {
+      "case": "simple",
+      "nativeBoxCssPixels": {
+        "X": 59.06640625,
+        "Y": 20.31,
+        "Width": 8.66130470593679,
+        "Height": 29
+      },
+      "browserBoxCssPixels": {
+        "x": 58.078125,
+        "y": 24.640625,
+        "width": 9.953125,
+        "height": 21.625
+      },
+      "nativeEffectiveGlyphEm": [
+        {
+          "text": "x",
+          "cssPixels": 7.407338855212623
+        },
+        {
+          "text": "2",
+          "cssPixels": 7.407338855212623
+        }
+      ]
+    },
+    {
+      "case": "scripted",
+      "nativeBoxCssPixels": {
+        "X": 59.06640625,
+        "Y": 69.62,
+        "Width": 20.809667734961174,
+        "Height": 29
+      },
+      "browserBoxCssPixels": {
+        "x": 58.078125,
+        "y": 66.265625,
+        "width": 37.609375,
+        "height": 30.4375
+      },
+      "nativeEffectiveGlyphEm": [
+        {
+          "text": "x",
+          "cssPixels": 6.5007317790271
+        },
+        {
+          "text": "2",
+          "cssPixels": 4.55051224531897
+        },
+        {
+          "text": "+",
+          "cssPixels": 6.5007317790271
+        },
+        {
+          "text": "y",
+          "cssPixels": 6.5007317790271
+        },
+        {
+          "text": "2",
+          "cssPixels": 6.5007317790271
+        }
+      ]
+    },
+    {
+      "case": "nested",
+      "nativeBoxCssPixels": {
+        "X": 59.06640625,
+        "Y": 118.93,
+        "Width": 6.636190910966808,
+        "Height": 29
+      },
+      "browserBoxCssPixels": {
+        "x": 58.078125,
+        "y": 116.703125,
+        "width": 9.640625,
+        "height": 30.328125
+      },
+      "nativeEffectiveGlyphEm": [
+        {
+          "text": "x",
+          "cssPixels": 4.689776047730288
+        },
+        {
+          "text": "2",
+          "cssPixels": 4.689776047730288
+        },
+        {
+          "text": "3",
+          "cssPixels": 5.097582660576401
+        }
+      ]
+    },
+    {
+      "case": "root",
+      "nativeBoxCssPixels": {
+        "X": 59.06640625,
+        "Y": 173.12,
+        "Width": 19.74973360824742,
+        "Height": 21
+      },
+      "browserBoxCssPixels": {
+        "x": 58.078125,
+        "y": 170.34375,
+        "width": 11.1875,
+        "height": 15.6875
+      },
+      "nativeEffectiveGlyphEm": [
+        {
+          "text": "\u221a",
+          "cssPixels": 11.430927835051545
+        },
+        {
+          "text": "x",
+          "cssPixels": 10.391752577319586
+        }
+      ]
+    },
+    {
+      "case": "script",
+      "nativeBoxCssPixels": {
+        "X": 59.06640625,
+        "Y": 214.12,
+        "Width": 28.7648,
+        "Height": 47.58666666666667
+      },
+      "browserBoxCssPixels": {
+        "x": 58.078125,
+        "y": 211.28125,
+        "width": 22.390625,
+        "height": 18.75
+      },
+      "nativeEffectiveGlyphEm": [
+        {
+          "text": "x",
+          "cssPixels": 20
+        },
+        {
+          "text": "2",
+          "cssPixels": 13.999999999999998
+        }
+      ]
+    },
+    {
+      "case": "display",
+      "nativeBoxCssPixels": {
+        "X": 0,
+        "Y": 305.7066666666667,
+        "Width": 58.90073600000001,
+        "Height": 82.08306666666667
+      },
+      "browserBoxCssPixels": {
+        "x": 0,
+        "y": 279.03125,
+        "width": 960,
+        "height": 48.15625
+      },
+      "nativeEffectiveGlyphEm": [
+        {
+          "text": "x",
+          "cssPixels": 18.400000000000002
+        },
+        {
+          "text": "2",
+          "cssPixels": 12.88
+        },
+        {
+          "text": "+",
+          "cssPixels": 18.400000000000002
+        },
+        {
+          "text": "y",
+          "cssPixels": 18.400000000000002
+        },
+        {
+          "text": "2",
+          "cssPixels": 18.400000000000002
+        }
+      ]
+    }
+  ],
+  "browserStyleFacts": {
+    "baseFontCssPixels": 20,
+    "compactFractionChildFontCssPixels": 14.2,
+    "secondMathDepthFontCssPixels": 10.082,
+    "firstDisplayFractionChildFontCssPixels": 20
+  },
+  "frozenCase": {
+    "native": [
+      {
+        "Source": "math",
+        "X": 119.2734375,
+        "Y": 50.648,
+        "Width": 16.96833420895002,
+        "Height": 23.2,
+        "drawingWidth": 48.32058880000001,
+        "drawingHeight": 66.06645333333334,
+        "glyphs": [
+          {
+            "Text": "x",
+            "X": 3,
+            "Y": 9.037120000000002,
+            "Width": 11.010560000000002,
+            "Height": 25.51466666666667,
+            "font": "FixtureSans",
+            "fontSize": 14.72,
+            "effectiveEm": 5.169098426957584
+          },
+          {
+            "Text": "2",
+            "X": 14.010560000000002,
+            "Y": 1,
+            "Width": 8.6883328,
+            "Height": 17.860266666666668,
+            "font": "FixtureSans",
+            "fontSize": 10.304,
+            "effectiveEm": 3.6183688988703087
+          },
+          {
+            "Text": "+",
+            "X": 22.698892800000003,
+            "Y": 9.037120000000002,
+            "Width": 11.611136000000002,
+            "Height": 25.51466666666667,
+            "font": "FixtureSans",
+            "fontSize": 14.72,
+            "effectiveEm": 5.169098426957584
+          },
+          {
+            "Text": "y",
+            "X": 34.310028800000005,
+            "Y": 9.037120000000002,
+            "Width": 11.010560000000002,
+            "Height": 25.51466666666667,
+            "font": "FixtureSans",
+            "fontSize": 14.72,
+            "effectiveEm": 5.169098426957584
+          },
+          {
+            "Text": "2",
+            "X": 17.954342400000005,
+            "Y": 39.55178666666667,
+            "Width": 12.411904,
+            "Height": 25.51466666666667,
+            "font": "FixtureSans",
+            "fontSize": 14.72,
+            "effectiveEm": 5.169098426957584
+          }
+        ],
+        "rules": [
+          {
+            "X": 2,
+            "Y": 36.55178666666667,
+            "Width": 44.32058880000001,
+            "Height": 0
+          }
+        ]
+      }
+    ],
+    "browser": [
+      {
+        "$id": "1",
+        "tag": "math",
+        "id": "",
+        "text": "x2+y2",
+        "x": 119.28125,
+        "y": 48,
+        "width": 31.484375,
+        "height": 22.984375,
+        "font": "math",
+        "fontSize": "16px",
+        "mathStyle": "compact",
+        "mathDepth": "0"
+      },
+      {
+        "$id": "2",
+        "tag": "mfrac",
+        "id": "",
+        "text": "x2+y2",
+        "x": 119.28125,
+        "y": 48,
+        "width": 31.484375,
+        "height": 22.984375,
+        "font": "math",
+        "fontSize": "16px",
+        "mathStyle": "compact",
+        "mathDepth": "0"
+      },
+      {
+        "$id": "3",
+        "tag": "mrow",
+        "id": "",
+        "text": "x2+y",
+        "x": 120.28125,
+        "y": 48,
+        "width": 29.484375,
+        "height": 13,
+        "font": "math",
+        "fontSize": "11.36px",
+        "mathStyle": "compact",
+        "mathDepth": "1"
+      },
+      {
+        "$id": "4",
+        "tag": "msup",
+        "id": "",
+        "text": "x2",
+        "x": 120.28125,
+        "y": 48,
+        "width": 12.390625,
+        "height": 10.515625,
+        "font": "math",
+        "fontSize": "11.36px",
+        "mathStyle": "compact",
+        "mathDepth": "1"
+      },
+      {
+        "$id": "5",
+        "tag": "mi",
+        "id": "",
+        "text": "x",
+        "x": 120.28125,
+        "y": 53.421875,
+        "width": 6.359375,
+        "height": 5.09375,
+        "font": "math",
+        "fontSize": "11.36px",
+        "mathStyle": "compact",
+        "mathDepth": "1"
+      },
+      {
+        "$id": "6",
+        "tag": "mn",
+        "id": "",
+        "text": "2",
+        "x": 126.640625,
+        "y": 48,
+        "width": 4.03125,
+        "height": 5.421875,
+        "font": "math",
+        "fontSize": "8.0656px",
+        "mathStyle": "compact",
+        "mathDepth": "2"
+      },
+      {
+        "$id": "7",
+        "tag": "mo",
+        "id": "",
+        "text": "+",
+        "x": 135.109375,
+        "y": 52.78125,
+        "width": 6.421875,
+        "height": 5.734375,
+        "font": "math",
+        "fontSize": "11.36px",
+        "mathStyle": "compact",
+        "mathDepth": "1"
+      },
+      {
+        "$id": "8",
+        "tag": "mi",
+        "id": "",
+        "text": "y",
+        "x": 143.96875,
+        "y": 53.421875,
+        "width": 5.796875,
+        "height": 7.578125,
+        "font": "math",
+        "fontSize": "11.36px",
+        "mathStyle": "compact",
+        "mathDepth": "1"
+      },
+      {
+        "$id": "9",
+        "tag": "mn",
+        "id": "",
+        "text": "2",
+        "x": 132.171875,
+        "y": 63.34375,
+        "width": 5.6875,
+        "height": 7.640625,
+        "font": "math",
+        "fontSize": "11.36px",
+        "mathStyle": "compact",
+        "mathDepth": "1"
+      }
+    ]
+  },
+  "diagnosis": [
+    "Whole-expression height cap varies same-level painted glyph size with numerator complexity.",
+    "Measurement uses CSS font-size values as point sizes with Dpi=96, while painting uses raw font-size drawing units.",
+    "Core text baseline is estimated as 0.78 times measured line height, but positioned text paint baseline is raw font size.",
+    "Fraction metrics currently return the denominator baseline; mathematical alignment requires a common parent math axis."
+  ],
+  "requiredFixBoundary": "Shared Core math layout/paint metrics and compact/display child sizing, with CSS-unit adaptation in HTML. A cap-only or DPI-only patch does not meet the measured contract.",
+  "standardsSource": "https://www.w3.org/TR/mathml-core/",
+  "remainingGates": [
+    "Meaningful failing-before regression",
+    "Core/HTML/PDF math proof",
+    "Actual paired output inspection",
+    "Formula Alt/ActualText/vector/link preservation",
+    "Frozen cases",
+    "H4",
+    "NASA 11 intents",
+    "unchanged macOS static and H10 budgets",
+    "risk-based owner review"
+  ],
+  "evidenceRoot": "Ignore/HtmlUnknownPageQualification/static-gap-mathml-geometry-work-4ca132c17",
+  "limitations": [
+    "No PeachPDF execution in this probe.",
+    "Synthetic root font lacks mathematical coverage; its Chromium output is not an oracle for complete radical paint.",
+    "Geometry and requested-profile conformance remain open roadmap requirements."
+  ]
+}

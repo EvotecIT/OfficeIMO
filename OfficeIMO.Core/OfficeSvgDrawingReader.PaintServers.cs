@@ -79,10 +79,13 @@ public static partial class OfficeSvgDrawingReader {
         private readonly Dictionary<string, SvgGradientDefinition> _resolved = new(StringComparer.Ordinal);
         private readonly HashSet<string> _invalid = new(StringComparer.Ordinal);
 
-        internal SvgPaintServerRegistry(SvgDefinitionRegistry definitions, bool useFirstRadialIntersection = false) {
+        internal SvgPaintServerRegistry(SvgDefinitionRegistry definitions, string defaultFontFamily = "Arial", bool useFirstRadialIntersection = false) {
             _definitions = definitions;
+            DefaultFontFamily = defaultFontFamily;
             _useFirstRadialIntersection = useFirstRadialIntersection;
         }
+
+        internal string DefaultFontFamily { get; }
 
         internal bool TryResolve(string value, out SvgResolvedPaint paint) {
             paint = default;

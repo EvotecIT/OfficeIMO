@@ -5,31 +5,6 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
-    internal static bool HasStylesheetUrlResources(string css) {
-        if (string.IsNullOrWhiteSpace(css)) {
-            return false;
-        }
-
-        string normalized = StripCssCommentsOutsideStrings(css);
-        var importRanges = ExtractCssImports(normalized)
-            .Select(import => new SourceRange(import.Start, import.End))
-            .ToList();
-        foreach (Match match in CssUrlExpression.Matches(normalized)) {
-            string propertyName = GetCssDeclarationPropertyName(normalized, match.Index);
-            if (IsValidCssUrlMatch(normalized, match)
-                && IsCssFunctionNameAt(normalized, match.Index, "url")
-                && !IsInsideCssString(normalized, match.Index)
-                && !IsImportUrl(match.Index, importRanges)
-                && ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Font
-                && propertyName != "background"
-                && propertyName != "background-image") {
-                return true;
-            }
-        }
-
-        return ExtractImageSetStringUrls(normalized).Any(reference => !IsInRanges(reference.Start, importRanges));
-    }
-
     private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {
         Dictionary<string, List<CssCustomPropertyDefinition>> documentCustomPropertyDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
         Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));

@@ -1,0 +1,249 @@
+{
+  "sourceCommit": "234de3facd6ce99ca404fbb7500591c01635d621",
+  "baseCommit": "023f4f0e736696d0bda6ce136802c807ea63e0c0",
+  "scope": "Internal reduced-still Main-8 CDEF after deblocking; public AVIF/HTML/PDF output remains unqualified.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Cdef.cs": "bb2a04b07833008e570d51b3c62ed00a1c820d287be669e9cb588abc719afe6d",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CdefFilter.cs": "86ac3f576ed659a9bdc57dd9817f9d6c854e1690b5ef5d45f79e727e8c48a92b",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "c7b85e7ea3632d6f1e34bda3cc7613023118cc007e3bbfa60153f182df97e4f8",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Cdef.cs": "0e4b556845b408e8ab363b10206591ba46f2560ddf000cdcced4d4c791e14f59",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "595b4a9a7a3ae63bd364fb9339576d75d2c570e6a80c78906f76bf9d5c7d6627",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/EncodeFilterControls.c": "4db2b797cfbdf1b7166968ae0b615422a3b089e224402180c486519bae7ab3e7",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateCdefFixtures.py": "a2677fbf725267aa4bedc577b912cab456d7fa6fb4aad5aa06cc960b60171796",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateDeblockFixtures.py": "85bc8dfc62a278fc91d459216fe627d243c49c05f70c3b0fc4de5e2b66266184",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePredictionFixtures.py": "faec27523840459926f0f9cf1f0ec2c05a37d7a338a258ca22b59a008e9d40e2",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateReconstructionFixtures.py": "a1e3c6fa9c46972f12f006e3f66b425b3d55d1387e0828fd471a9d61a69150f3",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateResidualFixtures.py": "f5bfe4318179eaf6a881d92bebcd57e95c303e6fc4159650e16060ee11bf4709",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadCdefKernels.c": "a3f844928b5732ed2b6a21dc20aeacfc118606f57c889fdb5b617b0068d9f327",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TraceCdef.patch": "8373120ccdf79b7a487b7b5f3234736c8615a3125ce292857bb81d738fd9fc8e",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/cdef-reference.json.gz": "19cb7ca06c80365e2b9abcc62fdac158d7169f95d1e298e29483bc0725cd09bc"
+  },
+  "reference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "assetsSha256": {
+      "GenerateCdefFixtures.py": "a2677fbf725267aa4bedc577b912cab456d7fa6fb4aad5aa06cc960b60171796",
+      "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+      "GenerateReconstructionFixtures.py": "a1e3c6fa9c46972f12f006e3f66b425b3d55d1387e0828fd471a9d61a69150f3",
+      "TraceCdef.patch": "8373120ccdf79b7a487b7b5f3234736c8615a3125ce292857bb81d738fd9fc8e",
+      "OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+      "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+      "EncodeFilterControls.c": "4db2b797cfbdf1b7166968ae0b615422a3b089e224402180c486519bae7ab3e7",
+      "ReadCdefKernels.c": "a3f844928b5732ed2b6a21dc20aeacfc118606f57c889fdb5b617b0068d9f327",
+      "reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d"
+    },
+    "fixtureSha256": "19cb7ca06c80365e2b9abcc62fdac158d7169f95d1e298e29483bc0725cd09bc",
+    "canonicalJsonSha256": "e08b908d3d0874add508a665ba750c3355c44bb2d91eb7f0a6c04b692f7867d4",
+    "cases": 7,
+    "directions": 17,
+    "kernels": 2304,
+    "changedKernelCases": 938,
+    "changedCdefSamples": 13183
+  },
+  "sampleCoverage": {
+    "frames": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "monochrome": false,
+        "samples": 3360,
+        "deblockingChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": false,
+        "monochrome": false,
+        "samples": 3360,
+        "deblockingChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "monochrome": true,
+        "samples": 2240,
+        "deblockingChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "monochrome": false,
+        "samples": 49152,
+        "deblockingChangedSamples": 11042,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "lossless-copy",
+        "alpha": false,
+        "monochrome": false,
+        "samples": 122880,
+        "deblockingChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "odd-color",
+        "alpha": false,
+        "monochrome": false,
+        "samples": 11232,
+        "deblockingChangedSamples": 3091,
+        "cdefChangedSamples": 7909
+      },
+      {
+        "name": "odd-mono",
+        "alpha": false,
+        "monochrome": true,
+        "samples": 7488,
+        "deblockingChangedSamples": 1693,
+        "cdefChangedSamples": 5274
+      }
+    ],
+    "frameSamplesPerStage": 199712,
+    "kernelSamples": 331776,
+    "nativeDirectionOutcomes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "independence": {
+    "nativePatch": "Observation-only captures after complete tiles, after native deblocking and after CDEF/before superresolution/restoration; decoder/filter algorithms unmodified.",
+    "nativeStorage": "Pinned AOM v3.13.1 low-bit-depth byte storage; high-bit-depth internal storage rejected.",
+    "controls": "Actual native encoder, 97x65 lossy color and full-range monochrome, no palette/intrabc/restoration; both deblocking and CDEF change samples.",
+    "freshSourceCheckoutAndBuild": true,
+    "freshComparison": {
+      "compressedFixtureByteIdentical": true,
+      "fixtureSha256": "19cb7ca06c80365e2b9abcc62fdac158d7169f95d1e298e29483bc0725cd09bc",
+      "freshReceipt": {
+        "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+        "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+        "assetsSha256": {
+          "GenerateCdefFixtures.py": "a2677fbf725267aa4bedc577b912cab456d7fa6fb4aad5aa06cc960b60171796",
+          "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+          "GenerateReconstructionFixtures.py": "a1e3c6fa9c46972f12f006e3f66b425b3d55d1387e0828fd471a9d61a69150f3",
+          "TraceCdef.patch": "8373120ccdf79b7a487b7b5f3234736c8615a3125ce292857bb81d738fd9fc8e",
+          "OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+          "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+          "EncodeFilterControls.c": "4db2b797cfbdf1b7166968ae0b615422a3b089e224402180c486519bae7ab3e7",
+          "ReadCdefKernels.c": "a3f844928b5732ed2b6a21dc20aeacfc118606f57c889fdb5b617b0068d9f327",
+          "reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d"
+        },
+        "fixtureSha256": "19cb7ca06c80365e2b9abcc62fdac158d7169f95d1e298e29483bc0725cd09bc",
+        "canonicalJsonSha256": "e08b908d3d0874add508a665ba750c3355c44bb2d91eb7f0a6c04b692f7867d4",
+        "cases": 7,
+        "directions": 17,
+        "kernels": 2304,
+        "changedKernelCases": 938,
+        "changedCdefSamples": 13183
+      },
+      "postGuardFixReplay": true
+    },
+    "stagedSourceRejection": {
+      "defectClass": "Worktree-only native diff omitted staged algorithm edits.",
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "nativeFile": "av1/common/cdef_block.c",
+      "originalSourceSha256": "1a332f8523bb1daf8a21c6b67aaa9d53db760a18cf1fed8260c92cee017168ac",
+      "stagedMutation": "Primary tap 4 changed to 5.",
+      "oldWorktreeOnlyGuardWouldAccept": true,
+      "newHeadRelativeGuardRejected": true,
+      "generatorExitCode": 1,
+      "rejection": "Unexpected native edits",
+      "outputCreated": false,
+      "siblingGuardsCorrected": [
+        "Cdef",
+        "Deblock",
+        "Reconstruction",
+        "Tile",
+        "Residual",
+        "Prediction"
+      ]
+    },
+    "normalBuild": "Checked-in fixture only; native oracle/producer remain opt-in."
+  },
+  "validation": {
+    "tests": {
+      "cdef-focused-net10.trx": {
+        "total": 22,
+        "passed": 22,
+        "failed": 0,
+        "sha256": "888941d90c2923edbf2a9ee6ef22d68c934ae66c675b4960e3d374224196d66c"
+      },
+      "cdef-full-net10.trx": {
+        "total": 2981,
+        "passed": 2981,
+        "failed": 0,
+        "sha256": "39b4a1b92d53bd20d54bfe92cd3c7998fc3fe7156ccb0dce3b8e99e033650f78"
+      },
+      "cdef-full-net8.trx": {
+        "total": 2981,
+        "passed": 2981,
+        "failed": 0,
+        "sha256": "45a817767bb55691a189ee505b2e5fd5b1fea658bbda931fb6bd26c213f15607"
+      }
+    },
+    "package": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "sha256": "10da39622b5e853ae15bff7ad5d494248c9d1debead42ea0548717b49676ee3d",
+      "frameworkDlls": [
+        "lib/net10.0/OfficeIMO.Core.dll",
+        "lib/net8.0/OfficeIMO.Core.dll",
+        "lib/netstandard2.0/OfficeIMO.Core.dll"
+      ],
+      "dependencies": [],
+      "nativeAssets": [],
+      "oracleAssets": []
+    },
+    "packExitCode": 0,
+    "packWarnings": 0,
+    "packLogSha256": "2c62e8e18aa34acd44d901e4b365e78f1d1ecb84be308a866a4b15b7fb4b213d",
+    "availableFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "postReviewChange": "Native provenance guards only; no runtime CDEF change, fixed primary/fresh generator replays preserve fixture bytes."
+  },
+  "localReview": {
+    "decision": "used",
+    "reason": "Codec arithmetic/order/bounds, immutable filter neighborhoods and source oracle integrity.",
+    "reviewer": "av1_cdef_review",
+    "initialFingerprint": "0d4c984033854621b2e692dda349537d72c7fbd3",
+    "findings": [
+      {
+        "priority": "P2",
+        "owner": "Opt-in native fixture provenance",
+        "classification": "Pre-existing guard defect class propagated into the new CDEF generator.",
+        "finding": "Worktree-only diff missed staged native algorithm edits.",
+        "disposition": "HEAD-relative guards fixed across CDEF/Deblock/Reconstruction/Tile/Residual/Prediction; actual staged primary-tap mutation rejected before compilation."
+      }
+    ],
+    "managedRuntimeFindings": "None.",
+    "targetedConfirmationFingerprint": "a3fb0cb370e2c71df71785d4146cb03f392be3b8",
+    "targetedConfirmation": "P2 closed; no additional actionable findings in guard/sibling remediation scope.",
+    "boundary": "current",
+    "limits": "Read-only inspections; protects tracked-source staged/unstaged edits, not concurrent mutation or arbitrary untracked build inputs."
+  },
+  "explicitGaps": [
+    "Active CDEF frames have zero skipped leaves; direct native-frame proof across mixed skip regions and multiple tiles remains open.",
+    "Dedicated nondefault deblocking segmentation/deltaLF/reference-delta combinations remain limited.",
+    "Mid-filter cancellation is checked in implementation but not independently exercised; aggregate retained-budget failure is direct.",
+    "Restoration, applicable superresolution, color/alpha composition, public AVIF integration and original frozen HTML/PDF acceptance remain unfinished.",
+    "Prior H4/NASA/performance evidence retains its previous runtime boundary; this component stage does not qualify a completed decoder.",
+    "Windows/net472 execution and Windows/Linux H10 operation budgets remain unavailable and unfinished."
+  ],
+  "cleanup": {
+    "allTargetsAbsent": true,
+    "removedBytes": 133921893,
+    "retainedBytes": 84602992,
+    "retainedPurpose": "Final tests/receipts/notices and one pinned native source/build for the imminent restoration stage."
+  },
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/static-gap-av1-cdef-work-023f4f0e7",
+  "publication": "Branch checkpoint only; no HTML PR/master merge/release."
+}

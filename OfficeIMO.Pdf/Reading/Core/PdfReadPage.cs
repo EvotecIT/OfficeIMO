@@ -902,7 +902,8 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames? invokedResourceNames = null,
         Action<int>? onTextSpan = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
+        TextContentParser.MarkedContentState? inheritedActualTextState = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -977,6 +978,7 @@ public sealed partial class PdfReadPage {
             content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
+        var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
@@ -1031,7 +1033,9 @@ public sealed partial class PdfReadPage {
             initialTextState: initialTextState,
             onTextSpan: onTextSpan,
             initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
-            initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity));
+            initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
+            inheritedActualTextState: inheritedActualTextState,
+            onActualTextForm: (offset, state) => actualTextForms[offset] = state));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -1144,7 +1148,9 @@ public sealed partial class PdfReadPage {
                     initialTextState: formInitialTextState,
                     onTextSpan: onTextSpan,
                     initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
-                    initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity);
+                    initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
+                    inheritedActualTextState: inheritedActualTextState ??
+                        (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var formActualText) ? formActualText : null));
             } finally {
                 activeForms.Remove(formStream);
             }

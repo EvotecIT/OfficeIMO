@@ -29,7 +29,8 @@ internal static class OfficeShadowLayerPlanner {
         double baseStrokeWidth,
         bool hasFill,
         bool hasStroke,
-        bool canExpand) {
+        bool canExpand,
+        double minimumShapeDimension) {
         double clampedOpacity = Math.Max(0D, Math.Min(1D, opacity));
         double strokeWidth = Math.Max(0D, baseStrokeWidth);
         bool paintsFill = hasFill || !hasStroke;
@@ -46,7 +47,7 @@ internal static class OfficeShadowLayerPlanner {
             // source opaque at its center without turning every expanded blur layer opaque.
             double blurCompositeOpacity = clampedOpacity * 0.5D;
             double totalWeight = layerCount * (layerCount + 1D) / 2D;
-            var expandedLayers = new List<OfficeShadowLayer>(layerCount + 1);
+            var expandedLayers = new List<OfficeShadowLayer>(layerCount + 8);
             for (int index = layerCount; index >= 1; index--) {
                 double weight = layerCount - index + 1D;
                 double expandedLayerOpacity = blurCompositeOpacity <= 0D
@@ -62,7 +63,30 @@ internal static class OfficeShadowLayerPlanner {
             double coreOpacity = clampedOpacity >= 1D
                 ? 1D
                 : 1D - (1D - clampedOpacity) / Math.Max(0.000001D, 1D - blurCompositeOpacity);
-            expandedLayers.Add(new OfficeShadowLayer(0D, silhouetteExpansion, Math.Max(0D, Math.Min(1D, coreOpacity)), hasFill: true, hasStroke: false));
+            // A full-size opaque core gives a translated box shadow a hard rectangular
+            // edge outside the source box. Spread that core inward so its edge fades.
+            double maximumInset = Math.Min(blurRadius, Math.Max(0D, minimumShapeDimension * 0.45D));
+            int coreLayerCount = maximumInset > 0.01D
+                ? Math.Max(2, Math.Min(8, (int)Math.Ceiling(maximumInset / 4D)))
+                : 1;
+            // Keep the outer inset layers continuous at full opacity. The deepest
+            // layer supplies the remainder, so the center still reaches the source opacity.
+            double outerCoreCompositeOpacity = coreOpacity * 0.75D;
+            double partialCoreOpacity = coreLayerCount == 1
+                ? 0D
+                : 1D - Math.Pow(1D - outerCoreCompositeOpacity, 1D / (coreLayerCount - 1D));
+            double innerCoreOpacity = coreLayerCount == 1
+                ? coreOpacity
+                : 1D - (1D - coreOpacity) / (1D - outerCoreCompositeOpacity);
+            for (int index = 0; index < coreLayerCount; index++) {
+                double inset = coreLayerCount == 1 ? 0D : maximumInset * index / (coreLayerCount - 1D);
+                expandedLayers.Add(new OfficeShadowLayer(
+                    0D,
+                    silhouetteExpansion - inset,
+                    index == coreLayerCount - 1 ? innerCoreOpacity : partialCoreOpacity,
+                    hasFill: true,
+                    hasStroke: false));
+            }
             return expandedLayers;
         }
 
@@ -94,9 +118,9 @@ internal static class OfficeShadowLayerPlanner {
         expanded.Width += expansion * 2D;
         expanded.Height += expansion * 2D;
         if (expanded.Kind == OfficeShapeKind.RoundedRectangle) {
-            expanded.CornerRadius = Math.Min(
+            expanded.CornerRadius = Math.Max(0D, Math.Min(
                 expanded.CornerRadius + expansion,
-                Math.Min(expanded.Width, expanded.Height) / 2D);
+                Math.Min(expanded.Width, expanded.Height) / 2D));
         }
         return expanded;
     }
