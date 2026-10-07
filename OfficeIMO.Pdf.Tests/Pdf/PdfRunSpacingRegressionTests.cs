@@ -10,6 +10,26 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunSpacingRegressionTests {
     [Theory]
+    [InlineData(PdfTabLeaderStyle.Dots, ".", 200D, 1D)]
+    [InlineData(PdfTabLeaderStyle.Hyphens, "-", 50D, 1D)]
+    [InlineData(PdfTabLeaderStyle.Underscores, "_", 150D, 1D)]
+    public void TabLeadersUseTheRunGlyphWidthAndTracking(PdfTabLeaderStyle leader, string glyph, double scale, double tracking) {
+        PdfOptions options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
+            .Paragraph(p => p.HorizontalTextScaling(scale).CharacterSpacing(tracking)
+                .Text("A").Tab(leader).Text("Z")).ToBytes());
+        var dots = pdf.GetPage(1).Letters.Where(letter => letter.Value == glyph).ToArray();
+        Assert.True(dots.Length >= 3);
+        double units = glyph == "." ? 278D : glyph == "-" ? 333D : 556D;
+        double advance = units * 12D / 1000D * scale / 100D + tracking;
+        Assert.InRange(Math.Abs(dots[1].StartBaseLine.X - dots[0].StartBaseLine.X - advance), 0D, 0.02D);
+        Assert.InRange(Math.Abs(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X
+            - (options.MarginLeft + 150D)), 0D, 0.02D);
+        Assert.True(dots[^1].EndBaseLine.X <= options.MarginLeft + 150D + 0.02D);
+    }
+
+    [Theory]
     [InlineData(100D, -4D, 1, false)]
     [InlineData(50D, -2D, 1, false)]
     [InlineData(200D, -8D, 1, false)]
