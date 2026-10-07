@@ -547,8 +547,8 @@ claim conformance without passing external validator evidence.
                 writer.WriteStartObject();
                 writer.WriteString("id", profile.Id);
                 writer.WriteString("name", profile.Name);
-                WriteStringArray(writer, "documentStates", Enum.GetValues(typeof(HtmlRenderDocumentState))
-                    .Cast<HtmlRenderDocumentState>().Select(value => value.ToString()));
+                WriteStringArray(writer, "documentStates", Enum.GetValues<HtmlRenderDocumentState>()
+                    .Select(value => value.ToString()));
                 writer.WriteString("cssMedia", profile.CssMedia.ToString());
                 writer.WriteString("surface", profile.Surface.ToString());
                 writer.WriteString("pagination", profile.Pagination.ToString());
@@ -570,7 +570,7 @@ claim conformance without passing external validator evidence.
                 writer.WriteString("id", capability.Id);
                 writer.WriteString("area", capability.Area);
                 writer.WriteString("kind", capability.Kind.ToString());
-                WriteStringArray(writer, "stages", Enum.GetValues(typeof(HtmlCapabilityStage)).Cast<HtmlCapabilityStage>()
+                WriteStringArray(writer, "stages", Enum.GetValues<HtmlCapabilityStage>()
                     .Where(stage => stage != HtmlCapabilityStage.None && capability.Stages.HasFlag(stage))
                     .Select(stage => stage.ToString()));
                 writer.WriteString("behavior", capability.Behavior);
