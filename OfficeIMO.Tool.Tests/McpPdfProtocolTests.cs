@@ -8,6 +8,44 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class McpPdfProtocolTests {
     [Fact]
+    public async Task StdioPasswordReadsRequireAnExplicitHostAdmission() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-mcp-password-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "protected.pdf"), admitted = "PDF_TEST_ADMITTED", unrelated = "PDF_TEST_UNRELATED";
+        const string syntheticPassword = "synthetic-owner-only";
+        byte[] bytes = PdfDocument.Create(d => d.Content(c => c.Paragraph(p => p.Text("Protected page")))).ToBytes();
+        byte[] encrypted = PdfDocument.Load(bytes).Security.Encrypt(new("synthetic-reader") { OwnerPassword = syntheticPassword }).Pdf;
+        await File.WriteAllBytesAsync(source, encrypted);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+        try {
+            foreach (bool configured in new[] { false, true }) {
+                var arguments = new List<string> { typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio" };
+                if (configured) arguments.AddRange(["--pdf-password-env", admitted]);
+                var transport = new StdioClientTransport(new() {
+                    Name = "officeimo-password-test", Command = "dotnet", Arguments = arguments, WorkingDirectory = root,
+                    EnvironmentVariables = new Dictionary<string, string?> {
+                        [AgentPathPolicy.AllowedRootsEnvironmentVariable] = root, [admitted] = syntheticPassword, [unrelated] = syntheticPassword
+                    }
+                });
+                await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+                string output = Path.Combine(root, configured ? "admitted.pdf" : "default-refused.pdf");
+                var result = await client.CallToolAsync("officeimo_pdf", new Dictionary<string, object?> {
+                    ["path"] = source, ["outputPath"] = output, ["operation"] = "decrypt", ["passwordEnvironmentVariable"] = admitted
+                }, cancellationToken: timeout.Token);
+                Assert.Equal(!configured, result.IsError); Assert.Equal(configured, File.Exists(output));
+                Assert.DoesNotContain(syntheticPassword, Text(result));
+                var refused = await client.CallToolAsync("officeimo_pdf", new Dictionary<string, object?> {
+                    ["path"] = source, ["outputPath"] = Path.Combine(root, "unrelated.pdf"), ["operation"] = "decrypt", ["passwordEnvironmentVariable"] = unrelated
+                }, cancellationToken: timeout.Token);
+                Assert.True(refused.IsError); Assert.False(File.Exists(Path.Combine(root, "unrelated.pdf")));
+                Assert.Contains("not admitted", Text(refused)); Assert.DoesNotContain(syntheticPassword, Text(refused));
+                if (configured) Assert.False(PdfDocument.Load(output).Inspect().Security.HasEncryption);
+            }
+            Assert.Equal(encrypted, await File.ReadAllBytesAsync(source));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task StdioPdfToolsCreateVerifiedCopiesAndEnforceRootsAndAcknowledgement() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-mcp-pdf-" + Guid.NewGuid().ToString("N"));
         string allowed = Path.Combine(root, "allowed"); Directory.CreateDirectory(allowed);

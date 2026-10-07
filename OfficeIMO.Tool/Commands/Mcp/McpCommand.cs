@@ -15,10 +15,11 @@ OfficeIMO.Tool - Model Context Protocol
 
 Usage:
   officeimo mcp serve --stdio [--ocr-provider-assembly <trusted-provider.dll>]
-             [--ocr-option <key=value>]
+             [--ocr-option <key=value>] [--pdf-password-env <admitted-variable>]
 
 Optional OCR provider assemblies and executable/model paths are trusted server-startup configuration.
 PDF tools cannot load assemblies or choose executable paths. No OCR provider is installed automatically.
+PDF tools may read only password variable names admitted at startup with --pdf-password-env. The default admits none.
 """;
 
     internal static async Task<int> RunAsync(
@@ -42,10 +43,16 @@ PDF tools cannot load assemblies or choose executable paths. No OCR provider is 
             var ocrCatalog = new OcrEngineCatalog();
             var assemblies = new List<string>();
             var providerOptions = new Dictionary<string, string>(StringComparer.Ordinal);
+            var passwordVariables = new HashSet<string>(StringComparer.Ordinal);
             for (int index = 2; index < args.Length; index++) {
                 switch (args[index]) {
                     case "--ocr-provider-assembly": assemblies.Add(PdfWorkflowArguments.Value(args, ref index, args[index])); break;
                     case "--ocr-option": PdfWorkflowArguments.AddProviderOption(providerOptions, PdfWorkflowArguments.Value(args, ref index, args[index])); break;
+                    case "--pdf-password-env":
+                        string variable = PdfWorkflowArguments.Value(args, ref index, args[index]);
+                        if (!PdfWorkflowSettings.IsPasswordEnvironmentVariableName(variable) || passwordVariables.Count >= 32)
+                            throw new AgentUsageException("Admit at most 32 simple PDF password environment-variable names.");
+                        passwordVariables.Add(variable); break;
                     default: throw new AgentUsageException("Unknown MCP startup option.");
                 }
             }
@@ -55,7 +62,8 @@ PDF tools cannot load assemblies or choose executable paths. No OCR provider is 
             });
             builder.Logging.ClearProviders();
             builder.Services.AddSingleton(new OfficeImoAgentService(
-                AgentPathPolicy.FromMcpEnvironment(), pdfOcrCatalog: ocrCatalog, pdfOcrProviderOptions: providerOptions));
+                AgentPathPolicy.FromMcpEnvironment(), pdfOcrCatalog: ocrCatalog, pdfOcrProviderOptions: providerOptions,
+                pdfPasswordEnvironmentVariables: passwordVariables));
             builder.Services.AddSingleton(serviceProvider => new OfficeImoMcpTools(
                 serviceProvider.GetRequiredService<OfficeImoAgentService>()));
             var serializerOptions = AgentJson.CreateSerializerOptions();

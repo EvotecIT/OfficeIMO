@@ -15,7 +15,7 @@ internal sealed partial class OfficeImoAgentService {
         string input = ResolvePdfInput(path);
         await using Stream stream = await PdfInput(input).OpenRead(cancellationToken).ConfigureAwait(false);
         PdfDocument document = await PdfDocument.LoadAsync(stream, new PdfLoadOptions {
-            Password = settings.Password(), Limits = new PdfReadLimits { MaxInputBytes = settings.MaximumInputBytes }
+            Password = PdfPassword(settings), Limits = new PdfReadLimits { MaxInputBytes = settings.MaximumInputBytes }
         }, cancellationToken).ConfigureAwait(false);
         var selector = settings.Selector();
         if (selector is not null) _ = selector.Resolve(document.Inspect().PageCount, 10_000);

@@ -26,7 +26,7 @@ internal sealed partial class OfficeImoAgentService {
             throw new AgentUsageException("Acknowledge raster output: only rendered appearances are copied; native text, forms, links, signatures, and attachments are omitted.");
         string input = ResolvePdfInput(path);
         string destination = PreparePdfOutput(outputPath, [input], isDirectory: false, settings.Overwrite, operation, maxOutputCharacters);
-        string? password = settings.Password();
+        string? password = PdfPassword(settings);
         if (kind == OfficeWorkflowOperation.RemovePdfProtection && password is null)
             throw new AgentUsageException("Decryption requires an owner password environment variable.");
         var request = new OfficeWorkflowRequest {
@@ -53,7 +53,7 @@ internal sealed partial class OfficeImoAgentService {
         string destination = PreparePdfOutput(outputDirectory, [input], true, settings.Overwrite, "split", maxOutputCharacters);
         PdfSplitWorkflowResult result = await new OfficeWorkflowRunner().SplitPdfAsync(new PdfSplitWorkflowRequest {
             InputPath = input, InputStream = PdfInput(input), OutputDirectory = destination,
-            PagesPerDocument = pagesPerDocument, MaximumParts = settings.MaximumPages, PdfPassword = settings.Password(),
+            PagesPerDocument = pagesPerDocument, MaximumParts = settings.MaximumPages, PdfPassword = PdfPassword(settings),
             ConflictPolicy = settings.ConflictPolicy, Limits = settings.Limits(), PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, [input])
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
         return PdfResult("split", result.Status, OfficeWorkflowFailureKind.None, result.Succeeded ? destination : null,
@@ -70,12 +70,13 @@ internal sealed partial class OfficeImoAgentService {
         if (language is { Length: > 256 }) throw new AgentUsageException("language cannot exceed 256 characters.");
         string input = ResolvePdfInput(path);
         string destination = PreparePdfOutput(outputPath, [input], false, settings.Overwrite, "ocr", maxOutputCharacters);
+        string? password = PdfPassword(settings);
         IOcrEngine engine = _pdfOcrCatalog.Create(providerId, _pdfOcrProviderOptions);
         try {
             var options = OcrOptions(settings);
             options.Language = language; options.MinimumConfidence = minimumConfidence;
             PdfSearchableWorkflowResult result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new PdfSearchableWorkflowRequest {
-                InputPath = input, InputStream = PdfInput(input), OutputPath = destination, PdfPassword = settings.Password(),
+                InputPath = input, InputStream = PdfInput(input), OutputPath = destination, PdfPassword = password,
                 Ocr = options, PageSelector = settings.Selector(), ConflictPolicy = settings.ConflictPolicy,
                 Limits = settings.Limits(), PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, [input])
             }, engine, cancellationToken).ConfigureAwait(false);
@@ -90,6 +91,12 @@ internal sealed partial class OfficeImoAgentService {
     }
 
     internal IReadOnlyList<OcrEngineDescriptor> PdfOcrProviders() => _pdfOcrCatalog.Discover();
+
+    private string? PdfPassword(PdfWorkflowSettings settings) {
+        if (settings.PasswordEnvironmentVariable is { } name && !_pdfPasswordEnvironmentVariables.Contains(name))
+            throw new AgentUsageException("The selected PDF password environment variable is not admitted by this host.");
+        return settings.Password();
+    }
 
     internal AgentPdfOcrProvidersResult PdfOcrProviders(int maximumCharacters) {
         maximumCharacters = ValidateOutputBudget(maximumCharacters);

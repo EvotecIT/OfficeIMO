@@ -429,6 +429,13 @@ Tool calls can select a registered provider, language, confidence and page selec
 They cannot supply provider assemblies, executable/model paths or provider options.
 Configure only providers whose runtime and data-access behavior you authorize.
 
+Protected PDF tools read only environment-variable names explicitly admitted by
+the trusted host. No names are admitted by default. Start the server with repeated
+`--pdf-password-env PDF_OWNER_PASSWORD` options to admit selected names; then pass
+`passwordEnvironmentVariable="PDF_OWNER_PASSWORD"` in a PDF tool call. An unrelated
+process environment variable remains unavailable even when it contains valid PDF
+credentials. Password values stay out of tool arguments and reports.
+
 Use `officeimo agent inspect-email ./message.eml --max-output-characters 6000` or `officeimo_inspect_email`
 for the bounded mail-data and HTML safety report. EML/MSG/OFT/TNEF reports include body alternatives, charsets,
 attachment metadata, protection classification and unverified signature status. ICS/VCF reports root counts;

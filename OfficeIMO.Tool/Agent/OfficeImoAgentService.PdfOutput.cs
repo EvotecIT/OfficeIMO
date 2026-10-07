@@ -18,7 +18,7 @@ internal sealed partial class OfficeImoAgentService {
         PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(new PdfPageImageExportRequest {
             InputPath = input, InputStream = PdfInput(input), OutputDirectory = destination, Pages = settings.Pages,
             Format = imageFormat, TargetDpi = settings.Dpi, MaximumPages = settings.MaximumPages,
-            ConflictPolicy = settings.ConflictPolicy, PdfPassword = settings.Password(), Limits = settings.Limits(),
+            ConflictPolicy = settings.ConflictPolicy, PdfPassword = PdfPassword(settings), Limits = settings.Limits(),
             PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, [input])
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
         return PdfResult("export-pages", result.Status, result.FailureKind, result.OutputDirectory, result.OutputBytes,
@@ -38,7 +38,7 @@ internal sealed partial class OfficeImoAgentService {
         string destination = PreparePdfOutput(outputPath, sources, false, settings.Overwrite, "assemble", maxOutputCharacters);
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = sources, SourceStreams = sources.Distinct(StringComparer.Ordinal).ToDictionary(source => source, PdfInput, StringComparer.Ordinal),
-            OutputPath = destination, PdfPassword = settings.Password(), ConflictPolicy = settings.ConflictPolicy,
+            OutputPath = destination, PdfPassword = PdfPassword(settings), ConflictPolicy = settings.ConflictPolicy,
             Limits = settings.Limits(), Options = new PdfAssemblyOptions { MaximumSourceCount = 100 },
             PublicationGuard = new PdfRootPublicationGuard(_pathPolicy, sources)
         }, cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -38,9 +38,12 @@ internal sealed class PdfWorkflowSettings {
 
     internal string? Password() {
         if (PasswordEnvironmentVariable is null) return null;
-        if (PasswordEnvironmentVariable.Length is < 1 or > 128 || !PasswordEnvironmentVariable.All(character => char.IsAsciiLetterOrDigit(character) || character == '_'))
+        if (!IsPasswordEnvironmentVariableName(PasswordEnvironmentVariable))
             throw new AgentUsageException("passwordEnvironmentVariable must be a simple environment-variable name.");
         return Environment.GetEnvironmentVariable(PasswordEnvironmentVariable) is { Length: > 0 } secret
             ? secret : throw new AgentUsageException("The selected password environment variable is missing or empty.");
     }
+
+    internal static bool IsPasswordEnvironmentVariableName(string name) => name.Length is >= 1 and <= 128 &&
+        name.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
 }

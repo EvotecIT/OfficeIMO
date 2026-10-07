@@ -74,6 +74,9 @@ attachments are omitted. Reports contain bounded metadata and diagnostic codes,
 not document/OCR text or passwords. Protected-document operations retain the
 engine's permission and signature policy; decryption reads the owner password
 from a host environment variable named by `passwordEnvironmentVariable`.
+The host must admit that name at startup with `--pdf-password-env NAME`; no
+password-variable names are admitted by default, and other process variables
+are unavailable to PDF tool calls.
 
 OCR is optional. The server host can register trusted provider deployments with
 `--ocr-provider-assembly` and configure them with `--ocr-option key=value` at

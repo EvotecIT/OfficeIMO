@@ -41,7 +41,8 @@ JSON results contain bounded artifact metadata and diagnostic codes, never docum
             if (parsed.Help) { await output.WriteLineAsync(Usage).ConfigureAwait(false); return 0; }
             var catalog = ocrCatalog ?? new OcrEngineCatalog();
             PdfOcrProviderLoader.LoadExplicitAssemblies(catalog, parsed.ProviderAssemblies);
-            var service = new OfficeImoAgentService(new AgentPathPolicy(), pdfOcrCatalog: catalog, pdfOcrProviderOptions: parsed.ProviderOptions);
+            var service = new OfficeImoAgentService(new AgentPathPolicy(), pdfOcrCatalog: catalog, pdfOcrProviderOptions: parsed.ProviderOptions,
+                pdfPasswordEnvironmentVariables: parsed.Settings.PasswordEnvironmentVariable is { } variable ? [variable] : []);
             if (parsed.Operation == "providers") {
                 await output.WriteLineAsync(AgentJson.Serialize(service.PdfOcrProviders().ToArray())).ConfigureAwait(false); return 0;
             }
