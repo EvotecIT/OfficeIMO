@@ -6,6 +6,34 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeListDefinitions_SharedAuthoredIdentityKeepsTheCanonicalSequence(bool differentFormatting) {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        WordList list = source.Lists.Single();
+        list.AddItem("Third"); list.AddItem("Fourth");
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        NumberingInstance first = numbering.Elements<NumberingInstance>().Single();
+        var definition = (AbstractNum)numbering.Elements<AbstractNum>().Single().CloneNode(true);
+        definition.AbstractNumberId = 1;
+        if (differentFormatting) {
+            Level level = definition.Elements<Level>().First();
+            level.StartNumberingValue!.Val = 7; level.LevelText!.Val = "%1)";
+        }
+        numbering.InsertBefore(definition, first);
+        numbering.Append(new NumberingInstance(new AbstractNumId { Val = 1 }) { NumberID = 2 });
+        source.Paragraphs.First(paragraph => paragraph.Text == "Third")._paragraph.ParagraphProperties!
+            .NumberingProperties!.NumberingId!.Val = 2;
+        string before = numbering.OuterXml;
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        var markers = WordDocumentTraversal.BuildListMarkers(reopened);
+        string[] names = { "First", "Second", "Third", "Fourth" };
+        Assert.Equal(new[] { "12.", "13.", "14.", "15." }, names.Select(name => markers[reopened.Paragraphs.First(paragraph => paragraph.Text == name)].Marker));
+        Assert.Equal(before, numbering.OuterXml);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
     [Fact]
     public void NativeListDefinitions_AbsentOptionalRestartAttributeSupportsNativeRewrite() {
         using WordDocument source = CreateNativeListDefinitionControl();
