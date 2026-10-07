@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -15,7 +16,9 @@ public sealed class DrawingSvgReaderDefaultFontTests {
             Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
 
         Assert.Equal(0, unsupported);
-        Assert.Equal("serif", Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>()).Font.FamilyName);
+        XElement text = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing!)).Descendants(),
+            element => element.Name.LocalName == "text");
+        Assert.Equal("serif", (string?)text.Attribute("font-family"));
     }
 
     [Fact]
