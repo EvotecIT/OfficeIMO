@@ -4,6 +4,48 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRedactionSharingVerificationStagesTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharingPreservesGeneratedOutputReadAllowancesThroughLineageChecks(bool tightContentBudgets) {
+        byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.Text("Retained source content")),
+            new PdfOptions { CompressContentStreams = false }).ToBytes();
+        PdfStream[] streams = PdfSyntax.ParseObjects(bytes).Map.Values
+            .Select(static item => item.Value).OfType<PdfStream>().ToArray();
+        int maximumStreamBytes = streams.Max(static stream => stream.Data.Length);
+        long totalStreamBytes = streams.Sum(static stream => (long)stream.Data.Length);
+        var options = new PdfLoadOptions {
+            Limits = tightContentBudgets ? new PdfReadLimits {
+                MaxInputBytes = bytes.LongLength,
+                MaxRawStreamBytes = maximumStreamBytes,
+                MaxDecodedStreamBytes = maximumStreamBytes,
+                MaxTotalDecodedStreamBytes = totalStreamBytes,
+                MaxPageContentBytes = maximumStreamBytes,
+                MaxRetainedContentBytes = totalStreamBytes,
+                MaxContentOperations = 64,
+                MaxContentOperands = 128
+            } : new PdfReadLimits { MaxInputBytes = bytes.LongLength }
+        };
+        PdfDocument source = PdfDocument.Load(bytes, options);
+        PdfRedactionArea[] areas = Enumerable.Range(0, 64).Select(index => new PdfRedactionArea(
+            1, 20D + ((index % 8) * 24D), 20D + ((index / 8) * 24D), 8D, 8D)).ToArray();
+        PdfRedactionPlan plan = source.Redactions.Plan(areas);
+
+        PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan,
+            new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata },
+            verificationOptions: new PdfRedactionVerificationOptions {
+                // Rendering counts repeated content visits; the exact source-stream budgets
+                // qualify reading and lineage here, not that separate rendering work budget.
+                RequireCompleteStreamInspection = true, CheckManagedRendering = !tightContentBudgets
+            }.RequireRetainedText("Retained source content"));
+
+        Assert.True(result.ToBytes().LongLength > bytes.LongLength);
+        Assert.True(result.Summary.IsVerified);
+        Assert.Contains("Retained source content", result.Sanitization.ToDocument().Read().Text);
+        Assert.Equal(bytes.LongLength, options.Limits.MaxInputBytes);
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
     [Fact]
     public void SharingChecksGlobalMarkersAndExternalValidatorAfterMetadataCleanup() {
         PdfDocument source = CreateSource();
