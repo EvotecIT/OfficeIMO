@@ -1,0 +1,97 @@
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf;
+using UglyToad.PdfPig.Content;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using W = DocumentFormat.OpenXml.Wordprocessing;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public partial class Word {
+    [Theory]
+    [InlineData(false, "reset", false)]
+    [InlineData(true, "reset", true)]
+    [InlineData(false, "join", false)]
+    [InlineData(true, "join", true)]
+    [InlineData(false, "join-reset", false)]
+    [InlineData(true, "join-reset", true)]
+    [InlineData(false, "textbox", false)]
+    [InlineData(true, "textbox", true)]
+    [InlineData(false, "textbox-reset", false)]
+    [InlineData(true, "textbox-reset", true)]
+    [InlineData(false, "nested-textbox", false)]
+    [InlineData(true, "nested-textbox", true)]
+    [InlineData(false, "nested-textbox-prefix", false)]
+    [InlineData(true, "nested-textbox-prefix", true)]
+    public void HeaderFooterSpacingSurvivesAlternateStoryPaths(bool footer, string route, bool characterStyle) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        document.AddParagraph("BODY");
+        W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.DocDefaults = new W.DocDefaults(new W.RunPropertiesDefault(new W.RunPropertiesBaseStyle(
+            new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "24" })));
+        bool reset = route.Contains("reset", StringComparison.Ordinal);
+        int scale = reset ? 100 : 200;
+        int tracking = reset ? 0 : 20;
+        styles.Append(new W.Style(new W.StyleRunProperties(new W.Spacing { Val = 20 }, new W.CharacterScale { Val = 200L })) {
+            StyleId = "ExpandedParagraph", Type = W.StyleValues.Paragraph
+        });
+        styles.Append(new W.Style(new W.StyleRunProperties(new W.Spacing { Val = tracking }, new W.CharacterScale { Val = scale })) {
+            StyleId = "VisibleSpacing", Type = W.StyleValues.Character
+        });
+        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordParagraph outer = story.AddParagraph();
+        WordParagraph first = outer;
+        if (route.Contains("textbox", StringComparison.Ordinal)) {
+            WordTextBox box = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square);
+            first = box.Paragraphs.Single();
+            if (route.StartsWith("nested-textbox", StringComparison.Ordinal)) {
+                first.Text = route == "nested-textbox-prefix" ? "AB" : string.Empty;
+                ApplyClosureSpacing(first, characterStyle, scale, tracking);
+                first = first.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+            }
+            if (reset) outer.SetStyleId("ExpandedParagraph");
+        } else first = first.AddText(route.StartsWith("join", StringComparison.Ordinal) ? "MM" : "MMMMX");
+        first.SetStyleId("Normal");
+        if (reset) first.SetStyleId("ExpandedParagraph");
+        ApplyClosureSpacing(first, characterStyle, scale, tracking);
+        // Empty structural runs must not replace the visible text's typography.
+        if (!route.Contains("textbox", StringComparison.Ordinal))
+            first._paragraph.InsertAfter(new W.Run(), first._paragraph.ParagraphProperties);
+        if (route.StartsWith("join", StringComparison.Ordinal)) {
+            HideJoinMark(first, true);
+            WordParagraph second = story.AddParagraph("MMX");
+            second.SetStyleId("Normal");
+            if (reset) second.SetStyleId("ExpandedParagraph");
+            ApplyClosureSpacing(second, characterStyle, scale, tracking);
+            second._paragraph.InsertAfter(new W.Run(), second._paragraph.ParagraphProperties);
+        }
+        Assert.Empty(document.ValidateDocument());
+        string before = footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml;
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
+        Assert.Equal("MMMMX", string.Concat(text.Select(letter => letter.Value)));
+        Assert.All(text, letter => Assert.Equal(text[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
+        // Helvetica M advances 9.996pt at 12pt; tracking is fixed page points.
+        Assert.InRange(Math.Abs(text[4].StartBaseLine.X - text[0].StartBaseLine.X - (4D * 9.996D * scale / 100D + 4D * tracking / 20D)), 0D, 0.03D);
+        if (route == "nested-textbox-prefix") {
+            Letter a = pdf.GetPage(1).Letters.Single(letter => letter.Value == "A");
+            Letter b = pdf.GetPage(1).Letters.Single(letter => letter.Value == "B" && Math.Abs(letter.StartBaseLine.Y - a.StartBaseLine.Y) < 0.01D);
+            Assert.InRange(Math.Abs(b.StartBaseLine.X - a.StartBaseLine.X - (8.004D * scale / 100D + tracking / 20D)), 0D, 0.03D);
+        }
+        Assert.Equal(before, footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml);
+    }
+
+    private static void ApplyClosureSpacing(WordParagraph paragraph, bool characterStyle, int scale, int tracking) {
+        if (characterStyle) {
+            W.Run run = paragraph._paragraph.Elements<W.Run>().Last();
+            run.RunProperties ??= new W.RunProperties();
+            run.RunProperties.RunStyle = new W.RunStyle { Val = "VisibleSpacing" };
+        } else {
+            paragraph.CharacterScale = scale;
+            paragraph.Spacing = tracking;
+        }
+    }
+}

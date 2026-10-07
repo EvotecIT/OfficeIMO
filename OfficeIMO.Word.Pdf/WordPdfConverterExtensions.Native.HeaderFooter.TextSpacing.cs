@@ -7,9 +7,10 @@ namespace OfficeIMO.Word.Pdf {
             (spacing.WidthPercentage ?? 100D) != 100D || (spacing.CharacterSpacing ?? 0D) != 0D;
 
         private static IReadOnlyList<NativeHeaderFooterStyledReplacement>? CreateNativeHeaderFooterSpacingReplacements(
-            WordParagraph paragraph, NativeFontMap? fontMap) {
+            WordParagraph paragraph, NativeFontMap? fontMap, bool preserveNaturalSpacing = false) {
             var replacements = new List<NativeHeaderFooterStyledReplacement>();
-            bool hasSpacing = false;
+            bool hasSpacing = preserveNaturalSpacing || HasNativeTextSpacing(
+                ResolveNativeTextRunStyle(paragraph, nativeFontMap: fontMap).TextSpacing);
             bool hasLiteralPageTokens = false;
             var serializedRuns = new List<(W.Run Run, string Text, bool IsField)>();
             bool hasFields = TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out _, serializedRuns);
@@ -18,11 +19,19 @@ namespace OfficeIMO.Word.Pdf {
                 : GetNativeRuns(paragraph).Select(run => (run, run.Text, false));
             foreach (var item in visibleRuns) {
                 WordParagraph run = item.Run;
-                if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(item.Text)) continue;
+                string sourceText = item.Text;
+                if (!item.IsField && run._run?.Descendants<W.TextBoxContent>().Any() == true) {
+                    // Nested text boxes contribute their own runs below. Keep only
+                    // the enclosing run's direct text in this replacement.
+                    run = CreateNativeRunContentView(run, run._run.ChildElements
+                        .Where(child => child is not W.TextBoxContent && !child.Descendants<W.TextBoxContent>().Any()).ToArray());
+                    sourceText = run.Text;
+                }
+                if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(sourceText)) continue;
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraph, nativeFontMap: fontMap);
                 hasSpacing |= HasNativeTextSpacing(style.TextSpacing);
                 bool fieldToken = item.IsField;
-                string text = fieldToken ? item.Text : ApplyNativeTextTransform(item.Text, run, paragraph, nativeFontMap: fontMap);
+                string text = fieldToken ? sourceText : ApplyNativeTextTransform(sourceText, run, paragraph, nativeFontMap: fontMap);
                 hasLiteralPageTokens |= !fieldToken &&
                     (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
                      text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
