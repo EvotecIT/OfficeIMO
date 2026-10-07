@@ -31,13 +31,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         bool captureRunningElements,
         out List<FlexItem> items,
-        out List<HtmlCssRunningStringAssignment> runningElementAssignments) {
+        out List<HtmlCssRunningStringAssignment> runningElementAssignments,
+        bool registerOutOfFlowElements = true) {
         items = new List<FlexItem>();
         runningElementAssignments = new List<HtmlCssRunningStringAssignment>();
         int sourceIndex = 0;
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
         foreach (INode node in element.ChildNodes) {
-            if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items, captureRunningElements ? runningElementAssignments : null)) return false;
+            if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items,
+                captureRunningElements ? runningElementAssignments : null, registerOutOfFlowElements)) return false;
         }
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
 
@@ -173,7 +175,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private double ResolveFlexBasis(FlexItem item, double availableWidth) {
+    private double ResolveFlexBasis(FlexItem item, double availableWidth, int intrinsicDepth = 1, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         double boxBasis;
         if (style.FlexBasis != "auto") {
@@ -181,16 +183,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
             } else {
                 ReportUnsupportedFlexValue(item, "flex-basis=" + style.FlexBasis);
-                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth, resolvedRuns);
             }
         } else {
-            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth, resolvedRuns);
         }
 
         return Math.Max(0D, boxBasis + style.MarginLeft + style.MarginRight);
     }
 
-    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth) {
+    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth, int intrinsicDepth = 1, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
@@ -199,8 +201,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (tag == "table") return availableWidth;
-        string content = CollapseFlexText(item.TextContent);
-        double measured = content.Length == 0 ? 0D : MeasureInlineText(ApplyTextTransform(content, style), style);
+        IReadOnlyList<IntrinsicTextRun> runs = resolvedRuns ?? ResolveInFlowIntrinsicTextRuns(item, availableWidth, intrinsicDepth);
+        double measured = runs.Count == 0 ? 0D : MeasureMaxContentRuns(runs);
         return Math.Min(availableWidth, measured + style.HorizontalInsets);
     }
 

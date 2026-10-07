@@ -13,7 +13,8 @@ internal static partial class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         int maximumDepth,
-        HtmlCounterStyleRegistry counterStyles) {
+        HtmlCounterStyleRegistry counterStyles,
+        HtmlDisclosureState disclosures) {
         if (maximumDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
         var content = new Dictionary<IElement, HtmlGeneratedPseudoContentPair>();
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
@@ -24,7 +25,7 @@ internal static partial class HtmlGeneratedContentResolver {
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, disclosures, quoteCache, ref quoteParseCharacters);
             counters.ExitLevel(level);
         }
 
@@ -42,6 +43,7 @@ internal static partial class HtmlGeneratedContentResolver {
         QuoteState quotes,
         IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
         HtmlCounterStyleRegistry counterStyles,
+        HtmlDisclosureState disclosures,
         IDictionary<string, (bool Valid, HtmlCssQuotes Quotes, bool Reported)> quoteCache,
         ref long quoteParseCharacters) {
         if (depth > maximumDepth) {
@@ -69,7 +71,9 @@ internal static partial class HtmlGeneratedContentResolver {
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, quoteCache, ref quoteParseCharacters);
+            if (!ShouldSkipSubtree(child) && !disclosures.IsClosedChild(child)) {
+                TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, quotes, content, counterStyles, disclosures, quoteCache, ref quoteParseCharacters);
+            }
         }
 
         counters.ExitLevel(childLevel);

@@ -345,7 +345,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private string ResolveVisibleBookmarkText(IElement element) => ResolveVisibleBookmarkText(element, out _);
 
     private string ResolveVisibleBookmarkText(IElement element, out bool rootVisible) {
-        if (ShouldSkipElement(element)
+        if (IsInsideClosedDisclosure(element) || ShouldSkipElement(element)
             || !TryResolveBookmarkTextState(element, inheritedVisibility: true, out bool visible, out bool prunesSubtree)
             || prunesSubtree) {
             rootVisible = false;
@@ -357,6 +357,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private IEnumerable<string> EnumerateVisibleBookmarkText(IEnumerable<INode> nodes, bool inheritedVisibility) {
         foreach (INode node in nodes) {
+            if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
                 if (inheritedVisibility) yield return text.Data;
                 continue;
@@ -379,7 +380,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computedStyle)) {
             visible = inheritedVisibility;
-            prunesSubtree = false;
+            prunesSubtree = HtmlRenderStyleResolver.ResolveDisplay(element, string.Empty) == "none";
             return true;
         }
 
@@ -389,7 +390,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : visibility == "hidden" || visibility == "collapse"
                 ? false
                 : inheritedVisibility;
-        prunesSubtree = string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
+        prunesSubtree = HtmlRenderStyleResolver.ResolveDisplay(element, computedStyle.GetValue("display")) == "none"
             || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "artifact", StringComparison.OrdinalIgnoreCase)
             || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "none", StringComparison.OrdinalIgnoreCase);
         return true;

@@ -54,9 +54,10 @@ public static partial class OfficeMarkupParser {
         IEnumerable<IMarkdownBlock> markdownBlocks,
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         foreach (var markdownBlock in markdownBlocks) {
-            var mapped = MapMarkdownBlock(markdownBlock, profile, diagnostics);
+            var mapped = MapMarkdownBlock(markdownBlock, profile, diagnostics, markdownOptions);
             if (mapped != null) {
                 target.Add(mapped);
             }
@@ -66,7 +67,8 @@ public static partial class OfficeMarkupParser {
     private static OfficeMarkupBlock? MapMarkdownBlock(
         IMarkdownBlock markdownBlock,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         switch (markdownBlock) {
             case HeadingBlock heading:
                 return WithLazySourceText(new OfficeMarkupHeadingBlock(heading.Level, heading.Text), markdownBlock);
@@ -75,10 +77,10 @@ public static partial class OfficeMarkupParser {
                 return WithLazySourceText(new OfficeMarkupParagraphBlock(ToPlainText(paragraph.Inlines)), markdownBlock);
 
             case UnorderedListBlock unordered:
-                return MapList(unordered.Items, ordered: false, start: 1, profile, diagnostics, markdownBlock);
+                return MapList(unordered.Items, ordered: false, start: 1, profile, diagnostics, markdownBlock, markdownOptions);
 
             case OrderedListBlock ordered:
-                return MapList(ordered.Items, ordered: true, start: ordered.Start, profile, diagnostics, markdownBlock);
+                return MapList(ordered.Items, ordered: true, start: ordered.Start, profile, diagnostics, markdownBlock, markdownOptions);
 
             case CodeBlock code when IsMermaid(code.Language):
                 return WithLazySourceText(new OfficeMarkupDiagramBlock("mermaid", code.Content), markdownBlock);
@@ -88,7 +90,7 @@ public static partial class OfficeMarkupParser {
 
             case ImageBlock image:
                 return WithLazySourceText(
-                    new OfficeMarkupImageBlock(image.Path, image.PlainAlt ?? image.Alt, image.Title, image.Width, image.Height),
+                    new OfficeMarkupImageBlock(image.Path, image.PlainAlt ?? image.Alt, image.Title, image.Width, image.Height) { Caption = image.Caption },
                     markdownBlock);
 
             case TableBlock table:
@@ -98,7 +100,7 @@ public static partial class OfficeMarkupParser {
                 return WithLazySourceText(new OfficeMarkupDiagramBlock(semantic.Language, semantic.Content), markdownBlock);
 
             case SemanticFencedBlock semantic:
-                return MapOfficeExtension(semantic, profile, diagnostics, markdownBlock.RenderMarkdown());
+                return MapOfficeExtension(semantic, profile, diagnostics, markdownBlock.RenderMarkdown(), markdownOptions);
 
             default:
                 string rendered = markdownBlock.RenderMarkdown();
@@ -112,12 +114,13 @@ public static partial class OfficeMarkupParser {
         int start,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        IMarkdownBlock sourceBlock) {
+        IMarkdownBlock sourceBlock,
+        MarkdownReaderOptions markdownOptions) {
         var list = WithLazySourceText(new OfficeMarkupListBlock(ordered, start), sourceBlock);
 
         foreach (var item in source) {
             var astItem = new OfficeMarkupListItem(ToPlainText(item.Content), item.IsTask, item.Checked);
-            MapMarkdownBlocks(item.ChildBlocks, astItem.Blocks, profile, diagnostics);
+            MapMarkdownBlocks(item.ChildBlocks, astItem.Blocks, profile, diagnostics, markdownOptions);
             list.Items.Add(astItem);
         }
 
@@ -148,19 +151,20 @@ public static partial class OfficeMarkupParser {
         SemanticFencedBlock semantic,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        string sourceText) {
+        string sourceText,
+        MarkdownReaderOptions markdownOptions) {
         var directive = OfficeMarkupDirective.Parse(semantic.Language, semantic.Content);
         OfficeMarkupBlock block;
         switch (NormalizeCommand(directive.Command)) {
             case "slide":
-                block = CreateSlide(directive, profile, diagnostics);
+                block = CreateSlide(directive, profile, diagnostics, markdownOptions);
                 break;
             case "pagebreak":
             case "page-break":
                 block = new OfficeMarkupPageBreakBlock();
                 break;
             case "section":
-                block = CreateSection(directive, profile, diagnostics);
+                block = CreateSection(directive, profile, diagnostics, markdownOptions);
                 break;
             case "header":
             case "footer":
@@ -226,16 +230,26 @@ public static partial class OfficeMarkupParser {
                 break;
         }
 
+        if (block is OfficeMarkupColumnBlock column) PopulateColumn(column, profile, diagnostics, markdownOptions);
         block.SourceText = sourceText;
         ApplyPlacement(block, directive.Attributes);
         CopyAttributes(directive.Attributes, block.Attributes);
         return block;
     }
 
+    private static void PopulateColumn(OfficeMarkupColumnBlock column, OfficeMarkupProfile profile,
+        IList<OfficeMarkupDiagnostic> diagnostics, MarkdownReaderOptions markdownOptions) {
+        column.HasParsedBody = true;
+        if (string.IsNullOrWhiteSpace(column.Body)) return;
+        var nested = MarkdownReader.ParseProjectionWithBlockSpans(column.Body, markdownOptions);
+        MapMarkdownBlocks(nested.Blocks, column.Blocks, profile, diagnostics, markdownOptions);
+    }
+
     private static OfficeMarkupSlideBlock CreateSlide(
         OfficeMarkupDirective directive,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         var slide = new OfficeMarkupSlideBlock(GetAttribute(directive, "title")) {
             Layout = GetAttribute(directive, "layout"),
             Section = GetAttribute(directive, "section"),
@@ -249,8 +263,8 @@ public static partial class OfficeMarkupParser {
         }
 
         if (!string.IsNullOrWhiteSpace(directive.Body)) {
-            var nested = MarkdownReader.ParseSemanticProjection(directive.Body, CreateNestedMarkdownOptions());
-            MapMarkdownBlocks(nested.Blocks, slide.Blocks, profile, diagnostics);
+            var nested = MarkdownReader.ParseProjectionWithBlockSpans(directive.Body, markdownOptions);
+            MapMarkdownBlocks(nested.Blocks, slide.Blocks, profile, diagnostics, markdownOptions);
         }
 
         return slide;
@@ -259,15 +273,16 @@ public static partial class OfficeMarkupParser {
     private static OfficeMarkupSectionBlock CreateSection(
         OfficeMarkupDirective directive,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         var section = new OfficeMarkupSectionBlock(GetAttribute(directive, "name") ?? GetAttribute(directive, "title")) {
             PageSize = GetAttribute(directive, "pageSize") ?? GetAttribute(directive, "size"),
             Orientation = GetAttribute(directive, "orientation")
         };
 
         if (!string.IsNullOrWhiteSpace(directive.Body)) {
-            var nested = MarkdownReader.ParseSemanticProjection(directive.Body, CreateNestedMarkdownOptions());
-            MapMarkdownBlocks(nested.Blocks, section.Blocks, profile, diagnostics);
+            var nested = MarkdownReader.ParseProjectionWithBlockSpans(directive.Body, markdownOptions);
+            MapMarkdownBlocks(nested.Blocks, section.Blocks, profile, diagnostics, markdownOptions);
         }
 
         return section;
