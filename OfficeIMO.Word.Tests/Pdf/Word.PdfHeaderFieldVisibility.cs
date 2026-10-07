@@ -6,6 +6,32 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, true, true)]
+    public void HeaderFieldSplitResultKeepsGeneratedTokenAndEffectiveVisibility(bool footer, bool hiddenResult, bool visibleOverride) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        document.AddParagraph("BODY");
+        document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+            new W.Style(new W.StyleRunProperties(new W.Vanish())) { Type = W.StyleValues.Character, StyleId = "HiddenSplitResult" });
+        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordParagraph start = story.AddParagraph("VISIBLE");
+        start._paragraph.Append(new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
+            new W.Run(new W.FieldCode(" PAGE ")), new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }));
+        WordParagraph result = story.AddParagraph();
+        var properties = new W.RunProperties();
+        if (hiddenResult) properties.AddChild(new W.RunStyle { Val = "HiddenSplitResult" }, true);
+        if (visibleOverride) properties.AddChild(new W.Vanish { Val = false }, true);
+        result._paragraph.Append(new W.Run(properties, new W.Text("999")), new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
+        Assert.Empty(document.ValidateDocument());
+        using var pdf = OpenJoinedParagraphPdf(document);
+        string text = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.DoesNotContain("999", text);
+        if (!hiddenResult || visibleOverride) Assert.Contains("1", text);
+        else Assert.DoesNotContain("1", text);
+    }
+
+    [Theory]
     [InlineData(false, "literal", "character", false)]
     [InlineData(true, "literal", "paragraph", false)]
     [InlineData(false, "literal", "character", true)]
