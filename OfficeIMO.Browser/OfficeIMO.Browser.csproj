@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <VersionPrefix>3.4.4</VersionPrefix>
+    <PackageId>OfficeIMO.Browser</PackageId>
+    <Authors>Przemyslaw Klys</Authors>
+    <Company>Evotec</Company>
+    <Description>Embedded classic scripts and standalone modules built from the OfficeIMO TypeScript document libraries.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>xlsx;csv;browser;javascript;offline;reports</PackageTags>
+    <IsPublishable>true</IsPublishable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../OfficeIMO.JavaScript/bundles/*.js;../OfficeIMO.JavaScript/bundles/*.mjs" Link="Assets/%(Filename)%(Extension)" LogicalName="OfficeIMO.Browser.Assets.%(Filename)%(Extension)" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>
