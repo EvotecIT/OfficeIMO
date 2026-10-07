@@ -423,9 +423,8 @@ namespace OfficeIMO.Word.Pdf {
 
             WordDocumentTraversal.ListInfo? listInfo = WordDocumentTraversal.GetListInfo(paragraph);
             if (listInfo?.LevelSuffix == WordListLevelSuffix.Space) {
-                RegisterNativeEffectiveParagraphFont(CreateNativeParagraphMarkSource(paragraph),
-                    tableRunStyleDefaults, pdfOptions, registeredFamilies, registeredFontSlots,
-                    allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeFontCandidate("Arial", pdfOptions, registeredFamilies,
+                    registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             }
             if (listInfo.HasValue &&
                 !ShouldUseNativeListTextFontForNormalizedMarker(

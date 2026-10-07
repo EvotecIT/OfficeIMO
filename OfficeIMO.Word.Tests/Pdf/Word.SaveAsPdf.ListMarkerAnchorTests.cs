@@ -8,13 +8,15 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfListMarkerAnchorTests {
     [Theory]
-    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Nothing)]
-    [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Nothing)]
-    [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Nothing)]
-    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Space)]
-    [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Space)]
-    [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Space)]
-    public void SpaceAndNothingSuffixesFollowEachItemsActualMarkerWidth(WordListLevelAlignment alignment, WordListLevelSuffix suffix) {
+    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Nothing, 12, 100)]
+    [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Nothing, 12, 100)]
+    [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Nothing, 12, 100)]
+    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Space, 12, 100)]
+    [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Space, 12, 100)]
+    [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Space, 12, 100)]
+    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Space, 20, 100)]
+    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Space, 12, 50)]
+    public void SpaceAndNothingSuffixesFollowEachItemsActualMarkerWidth(WordListLevelAlignment alignment, WordListLevelSuffix suffix, int markerFontSize, int widthPercentage) {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
@@ -24,14 +26,15 @@ public sealed class PdfListMarkerAnchorTests {
         level.LevelJustification = alignment;
         level.LevelSuffix = suffix;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
-            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = (markerFontSize * 2).ToString() });
         foreach (string text in new[] { "FIRST", "SECOND" }) {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Courier New";
             paragraph.FontSize = 12;
             paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
             paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
-                new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new FontSize { Val = "24" });
+                new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
+                new CharacterScale { Val = widthPercentage }, new FontSize { Val = "40" });
         }
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
@@ -44,9 +47,10 @@ public sealed class PdfListMarkerAnchorTests {
             int markerLength = i == 0 ? 2 : 3;
             Assert.Equal(i == 0 ? "9.FIRST" : "10.SECOND", string.Concat(letters.Select(letter => letter.Value)));
             double gap = letters[markerLength].StartBaseLine.X - letters[markerLength - 1].EndBaseLine.X;
-            // Word's space suffix follows paragraph-mark typography, independently
-            // of the Courier marker and body run.
-            Assert.InRange(Math.Abs(gap - (suffix == WordListLevelSuffix.Space ? 3.336D : 0D)), 0D, 0.03D);
+            // The Arial suffix uses the numbering size independently of the
+            // Courier marker/body and the Times20 paragraph mark.
+            double expectedGap = suffix == WordListLevelSuffix.Space ? 0.278D * markerFontSize * widthPercentage / 100D : 0D;
+            Assert.InRange(Math.Abs(gap - expectedGap), 0D, 0.03D);
         }
     }
 
