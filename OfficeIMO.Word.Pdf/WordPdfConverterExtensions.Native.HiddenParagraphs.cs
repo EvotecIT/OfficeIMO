@@ -11,7 +11,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryRenderNativeJoinedParagraphs(
         INativePdfFlow pdf, IReadOnlyList<WordElement> elements, ref int index,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
-        Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options,
+        NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
         if (elements[index] is not WordParagraph first || ShouldRenderNativeEmptyParagraphLineBox(first) ||
             index + 1 >= elements.Count || elements[index + 1] is not WordParagraph) return false;

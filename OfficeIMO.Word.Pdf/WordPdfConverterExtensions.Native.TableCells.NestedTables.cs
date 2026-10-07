@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AppendNativeNestedTableText(
             WordTable nestedTable,
-            Dictionary<long, int>? footnoteNumbersById,
+            NativeNoteNumbering? footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap? nativeFontMap,
             Func<WordParagraph, (int Level, string Marker)?>? getMarker,

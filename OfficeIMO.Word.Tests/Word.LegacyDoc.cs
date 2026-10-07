@@ -5384,7 +5384,7 @@ namespace OfficeIMO.Tests {
                 int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
                 int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
                 Assert.True(fcDop > 0);
-                Assert.Equal(8, lcbDop);
+                Assert.Equal(500, lcbDop);
                 Assert.Equal(1, BitConverter.ToUInt16(tableStream, fcDop) & 0x0001);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -12025,7 +12025,7 @@ namespace OfficeIMO.Tests {
                 int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
                 int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
                 Assert.True(fcDop > 0);
-                Assert.Equal(56, lcbDop);
+                Assert.Equal(500, lcbDop);
                 Assert.Equal(0u, (BitConverter.ToUInt32(tableStream, fcDop + 52) >> 16) & 0x3);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
