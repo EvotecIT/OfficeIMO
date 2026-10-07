@@ -9,6 +9,19 @@ const columns = [{ header: "Name", key: "name", value: row => row.person.name },
   { header: "Amount", key: "amount", type: "number", format: "0.00" },
   { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }];
 
+test("one-table XLSX preflights required portable columns without reading rows or borrowing a destination", async () => {
+  let read = false, acquired = false, written = false;
+  const source = { [Symbol.iterator]() { read = true; return [][Symbol.iterator](); } };
+  const destination = { getWriter() { acquired = true; throw new Error("borrowed"); }, write() { written = true; } };
+  for (const options of [{}, { columns: null }, { columns: {} }, { columns: [{ header: "V", style: 0 }] },
+    { columns: [{ header: "V" }], sheet: { headerStyle: 0 } }]) {
+    await assert.rejects(writeXlsx([], options), TypeError);
+    await assert.rejects(writeXlsxTo(source, destination, options), TypeError);
+  }
+  assert.equal(read, false); assert.equal(acquired, false); assert.equal(written, false);
+  const empty = await writeXlsx([], { columns: [] }); assert.ok(empty.size > 0);
+});
+
 for (const compression of ["auto", "store"]) test("one-table XLSX shares the advanced report engine: " + compression, async () => {
   const options = { columns, compression, dateMode: "utc", sheet: { name: "Report", title: { text: "Results" },
     table: { name: "Results" }, footer: { values: ["Total"], totals: { amount: "sum" } },

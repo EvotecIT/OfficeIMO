@@ -15,7 +15,7 @@ async function* pages(url: string, signal: AbortSignal): AsyncGenerator<Sale> {
     if (!response.ok) throw new Error("Export source failed: " + response.status);
     const page: { rows: Sale[]; next: string | null } = await response.json();
     for (const row of page.rows) yield { ...row, seen: new Date(row.seen) };
-    next = page.next;
+    next = page.next === null ? null : new URL(page.next, response.url).href;
   }
 }
 let active: AbortController | undefined;

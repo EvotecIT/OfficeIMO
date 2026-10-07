@@ -30,9 +30,11 @@ export function createRowProjector(columns: readonly Column[],
   };
 }
 
-export function copyColumns(columns: readonly Column[]): Column[] {
+export function copyColumns<C extends Column>(columns: readonly C[], workbookStyles = false): C[] {
   if (!Array.isArray(columns)) throw new TypeError("Declare the columns in export order.");
   return columns.map(c => {
+    if (!workbookStyles && (c as { style?: unknown })?.style !== undefined)
+      throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
     if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
       throw new TypeError("Each column needs a string header and an optional string key.");
     if (c.value !== undefined && typeof c.value !== "function") throw new TypeError("Column value getters must be functions.");

@@ -6,6 +6,7 @@ import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/
 import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
 import type { Column, Rows } from "@evotecit/officeimo/core";
+import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
 import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "@evotecit/officeimo/integrations/datatables";
 import type { DataTablesApi, DataTablesHost } from "@evotecit/officeimo/integrations/datatables";
@@ -91,6 +92,25 @@ writeXlsx(records, { columns: [{ header: "Name" }] });
 writeXlsx(records, { columns: [{ header: "Name", key: "naem" }] });
 interface DomainRow { readonly person: { readonly name: string }; readonly amount: number; }
 const domainRows: readonly DomainRow[] = [{ person: { name: "Łódź" }, amount: 12.5 }];
+const advancedColumns: readonly XlsxColumn<DomainRow>[] = [{ header: "Amount", key: "amount", style }];
+await book.addWorksheet<DomainRow>("Registered", { columns: advancedColumns, headerStyle: style }).addRows(domainRows);
+// @ts-expect-error common columns use portable presentation
+const privateStyle: Column<DomainRow> = { header: "Amount", key: "amount", style: 1 };
+void privateStyle;
+// @ts-expect-error one-table helpers do not expose private workbook header IDs
+writeXlsx(domainRows, { columns: [], sheet: { headerStyle: 1 } });
+interface OptionalRow { text?: string | null; date: Date | null; cell: ExportCell; opaque: unknown; array: number[]; }
+const optionalColumns: readonly Column<OptionalRow>[] = [{ header: "Text", key: "text" }, { header: "Date", key: "date" }, { header: "Cell", key: "cell" }];
+void optionalColumns;
+// @ts-expect-error unknown properties need an explicit scalar projection
+const opaqueColumn: Column<OptionalRow> = { header: "Opaque", key: "opaque" };
+// @ts-expect-error nested arrays need an explicit scalar projection
+const arrayColumn: Column<OptionalRow> = { header: "Array", key: "array" };
+void [opaqueColumn, arrayColumn];
+// @ts-expect-error literal keys must select portable export values; project nested objects explicitly
+writeCsv(domainRows, { columns: [{ header: "Person", key: "person" }] });
+// @ts-expect-error XLSX uses the same portable key contract as CSV
+writeXlsx(domainRows, { columns: [{ header: "Person", key: "person" }] });
 const domainColumns = [{ header: "Name", value: (row: DomainRow) => row.person.name },
   { header: "Amount", key: "amount", format: "0.00" }] as const satisfies readonly Column<DomainRow>[];
 await writeXlsx(domainRows, { columns: domainColumns, sheet: { title: { text: "Report" }, table: {} } });

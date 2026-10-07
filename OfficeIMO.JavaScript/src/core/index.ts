@@ -22,8 +22,6 @@ export interface ColumnSettings {
   readonly format?: string;
   readonly wrapText?: boolean;
   readonly alignment?: Alignment;
-  /** XLSX StyleRegistry index. */
-  readonly style?: number;
   /** Contiguous shared prefixes form merged heading rows above the leaf headers. */
   readonly groups?: readonly string[];
 }
@@ -38,11 +36,12 @@ export interface ColumnValueContext {
   readonly worksheetRow?: number;
 }
 
+type ExportKey<T> = { [K in Extract<keyof T, string>]-?: T[K] extends import("./presentation.js").ExportValue ? K : never }[Extract<keyof T, string>];
 type ColumnSelector<T> = [T] extends [never] ? { readonly key?: string; readonly value?: never }
   : T extends readonly unknown[] ? { readonly key?: string; readonly value?: never }
-  : { readonly key: Extract<keyof T, string>; readonly value?: never };
+  : { readonly key: ExportKey<T>; readonly value?: never };
 /** Select a literal object key, or explicitly compute a value. Array rows remain positional unless every column has a getter. */
-export type Column<T = never> = ColumnSettings & (
+export type Column<T = never> = ColumnSettings & { readonly key?: string } & (
   | ColumnSelector<T>
   | { readonly key?: string; readonly value: (row: T, context: ColumnValueContext) => import("./presentation.js").ExportValue }
 );

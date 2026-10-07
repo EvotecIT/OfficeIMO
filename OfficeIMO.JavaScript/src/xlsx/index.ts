@@ -1,6 +1,7 @@
 export { Workbook } from "./workbook.js";
 export { writeXlsx, writeXlsxTo } from "./write.js";
 export type { XlsxOptions } from "./write.js";
+export type { XlsxColumn } from "./types.js";
 export { Worksheet } from "./worksheet.js";
 export { Cell } from "./values.js";
 export { StyleRegistry, NumberFormats } from "./styles.js";

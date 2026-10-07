@@ -1,7 +1,7 @@
 import { checkAbort, inputRows } from "../core/iteration.js";
 import { ChunkedTextSink, BlobByteSink } from "../core/sinks.js";
 import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
-import type { CellValue, Column } from "../core/index.js";
+import type { CellValue } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { EntryWriter } from "../zip/entry.js";
 import type { ZipEntry } from "../zip/index.js";
@@ -11,7 +11,7 @@ import { officeRelationshipsNamespace } from "../opc/index.js";
 import { Cell, cellText, columnName, inlineText, excelDate, copyValue } from "./values.js";
 import { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } from "./styles.js";
 import type { Workbook } from "./workbook.js";
-import type { SheetOptions, XlsxRows } from "./types.js";
+import type { SheetOptions, XlsxRows, XlsxColumn } from "./types.js";
 import type { RowStyleContext } from "./types.js";
 import type { CellStyle } from "./styles.js";
 import type { TableDefinition } from "./table.js";
@@ -26,9 +26,9 @@ import type { PreparedRule } from "./conditional-formatting.js";
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 export class Worksheet<T = never> {
-  private readonly columns: readonly Column[];
+  private readonly columns: readonly XlsxColumn[];
   private readonly project: ReturnType<typeof createRowProjector>;
-  private readonly declared: { column: Column; letter: string; style: number; dateStyle: number; headerStyle: number }[];
+  private readonly declared: { column: XlsxColumn; letter: string; style: number; dateStyle: number; headerStyle: number }[];
   private readonly options: SheetOptions;
   private entry: EntryWriter | ZipEntry | undefined;
   private completion: Promise<void> | undefined;
@@ -51,7 +51,7 @@ export class Worksheet<T = never> {
   private readonly pictures: WorksheetImage[] = [];
   private readonly conditional: ConditionalFormats;
   private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = []) {
-    this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
+    this.columns = copyColumns(options.columns ?? [], true).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
       ...(options.mergedCells ? { mergedCells: [...options.mergedCells] } : {}),
@@ -80,7 +80,7 @@ export class Worksheet<T = never> {
   static validate(book: Workbook, options: SheetOptions): readonly PreparedRule[] {
     for (const feature of ["dataValidation"] as const)
       if (options[feature] !== undefined) throw new NotSupportedError(feature);
-    const columns = copyColumns(options.columns ?? []);
+    const columns = copyColumns(options.columns ?? [], true);
     book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
     const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
     book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));

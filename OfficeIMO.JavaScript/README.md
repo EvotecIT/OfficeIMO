@@ -255,7 +255,7 @@ async function* pages(url: string, signal: AbortSignal): AsyncGenerator<Sale> {
     if (!response.ok) throw new Error("Export source failed: " + response.status);
     const page: { rows: Sale[]; next: string | null } = await response.json();
     for (const row of page.rows) yield { ...row, seen: new Date(row.seen) };
-    next = page.next;
+    next = page.next === null ? null : new URL(page.next, response.url).href;
   }
 }
 let active: AbortController | undefined;
@@ -365,7 +365,7 @@ saveBlob(await book.toBlob(), "health-report.xlsx");
 
 Styles apply in this order: column style/format, alternating-row patch, row patch, then cell patch. A `Cell` with an explicit style replaces the column/alternating/row presentation; the cell callback can still overlay it. `StyleRegistry.compose(base, patch)` exposes the same composition. Font fields and border edges merge; numeric font/fill/border indexes replace their component. Unspecified number formats, wrapping and alignment remain intact. Fonts support bold, italic, underline and strike; `verticalAlignment` complements horizontal `alignment`.
 
-Style callbacks are synchronous. Their `row` is the one-based worksheet row, including its header; `columnIndex` is one-based. Row `values` follow the declared export order and unwrap `Cell` values. A cell callback sees the value after a custom column writer. Headers use `headerStyle` separately. Alternating patches start on the second data row and remain consistent across appends. Heights are points, positive and at most 409; `freezeColumns` freezes leading columns alongside an optional header.
+Style callbacks are synchronous. Their `rowIndex` and `columnIndex` are zero-based data indexes. `worksheetRow` is the one-based Excel row, including titles and headings. Row `values` follow the declared export order and unwrap `Cell` values. A cell callback sees the value after a custom column writer. Headers use `headerStyle` separately. Alternating patches start on the second data row and remain consistent across appends. Heights are points, positive and at most 409; `freezeColumns` freezes leading columns alongside an optional header.
 
 Native tables default unspecified column widths to 20 characters so date/time and numeric columns have useful space. Set `defaultColumnWidth` for another fallback or a column's `width` for an individual override. Worksheets without a table retain Excel's default width unless a width is supplied. These are fixed widths, not font-measured autofit.
 
@@ -443,7 +443,7 @@ const blob = await writeCsv([{ name: "Łódź", healthy: false }], {
 });
 ```
 
-`quote` defaults to `"minimal"`; `"all"` quotes every field and `"strings"` always quotes string values. Required delimiter, quote and newline escaping applies in every mode. `nullValue` replaces null/undefined values and receives the same protection and quoting as other strings. Formatters run on data only; their context contains the one-based data `row`, one-based `columnIndex`, column definition and original projected `values`. Both Blob and caller-owned sink APIs share these options. CSV retains long text that exceeds Excel's per-cell text limit.
+`quote` defaults to `"minimal"`; `"all"` quotes every field and `"strings"` always quotes string values. Required delimiter, quote and newline escaping applies in every mode. `nullValue` replaces null/undefined values and receives the same protection and quoting as other strings. Formatters run on data only; their context contains zero-based data `rowIndex` and `columnIndex`, column definition and original projected `values`. Both Blob and caller-owned sink APIs share these options. CSV retains long text that exceeds Excel's per-cell text limit.
 
 The [shared vectors](../OfficeIMO.TestAssets/CSV/browser-exports.json) qualify byte-identical output with C#. The C# date lane uses `UseUtc = true` and `DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'"`. JavaScript and .NET use their own floating-point formatting conventions; equality is qualified for the shared numeric vectors, not every possible double.
 

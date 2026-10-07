@@ -51,7 +51,8 @@ function csvField(value: unknown, delimiter: string, protect: boolean, quote: No
 
 /** Stream UTF-8 to a caller-owned sink; a failing/cancelled destination owns partial-byte disposal. */
 export function writeCsvTo<T extends object>(rows: Iterable<T> | AsyncIterable<T>, destination: OutputDestination, options: CsvOptions<NoInfer<T>>): Promise<ExportResult>;
-export async function writeCsvTo(rows: Iterable<unknown> | AsyncIterable<unknown>, destination: OutputDestination, options: CsvOptions): Promise<ExportResult> {
+export async function writeCsvTo(rows: Iterable<unknown> | AsyncIterable<unknown>, destination: OutputDestination, configuration: unknown): Promise<ExportResult> {
+  const options = configuration as CsvOptions;
   return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: ByteSink, options: CsvOptions): Promise<ExportResult> {
@@ -93,7 +94,8 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
 }
 
 export function writeCsv<T extends object>(rows: Iterable<T> | AsyncIterable<T>, options: CsvOptions<NoInfer<T>>): Promise<Blob>;
-export async function writeCsv(rows: Iterable<unknown> | AsyncIterable<unknown>, options: CsvOptions): Promise<Blob> {
+export async function writeCsv(rows: Iterable<unknown> | AsyncIterable<unknown>, configuration: unknown): Promise<Blob> {
+  const options = configuration as CsvOptions;
   const sink = new BlobByteSink();
   try {
     let completedRows = 0;

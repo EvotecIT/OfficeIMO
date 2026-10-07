@@ -284,7 +284,7 @@ _modules.set("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323",
 return _exports;
 })();
 
-const _m6 = _modules.get("0b20a64c251ecb1e8408c5d6a7b3075e818fd52ac2aea3e428d32c8e5a28aabd") ?? (() => {
+const _m6 = _modules.get("1dc50182f6cfbbb7234812d619c00c0578e903bebbae6ec8d7de355d5a451f03") ?? (() => {
 const { ExportCell, assertScalar } = _m5;
 
 const { checkAbort } = _m1;
@@ -319,10 +319,12 @@ function createRowProjector(columns, worksheet, signal) {
         });
     };
 }
-function copyColumns(columns) {
+function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
+        if (!workbookStyles && c?.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
         if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
             throw new TypeError("Each column needs a string header and an optional string key.");
         if (c.value !== undefined && typeof c.value !== "function")
@@ -333,7 +335,7 @@ function copyColumns(columns) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("0b20a64c251ecb1e8408c5d6a7b3075e818fd52ac2aea3e428d32c8e5a28aabd", _exports);
+_modules.set("1dc50182f6cfbbb7234812d619c00c0578e903bebbae6ec8d7de355d5a451f03", _exports);
 return _exports;
 })();
 
@@ -384,7 +386,7 @@ _modules.set("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e",
 return _exports;
 })();
 
-const _m0 = _modules.get("904a55cb35888200f45ae01d9b1d2043d13afadf26270a311d5f161da2c667b7") ?? (() => {
+const _m0 = _modules.get("a332b64ceed0b0daafae3948166eb141025bdb6ebbd5f2f9867b34c3ebb15da4") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -423,7 +425,8 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
-async function writeCsvTo(rows, destination, options) {
+async function writeCsvTo(rows, destination, configuration) {
+    const options = configuration;
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
@@ -482,7 +485,8 @@ async function write(rows, sink, options) {
     checkAbort(signal);
     return { rows: count, columns: columns.length, bytes };
 }
-async function writeCsv(rows, options) {
+async function writeCsv(rows, configuration) {
+    const options = configuration;
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
@@ -503,7 +507,7 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("904a55cb35888200f45ae01d9b1d2043d13afadf26270a311d5f161da2c667b7", _exports);
+_modules.set("a332b64ceed0b0daafae3948166eb141025bdb6ebbd5f2f9867b34c3ebb15da4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

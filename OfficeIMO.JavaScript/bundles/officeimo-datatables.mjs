@@ -354,10 +354,12 @@ function createRowProjector(columns, worksheet, signal) {
         });
     };
 }
-function copyColumns(columns) {
+function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
+        if (!workbookStyles && c?.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
         if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
             throw new TypeError("Each column needs a string header and an optional string key.");
         if (c.value !== undefined && typeof c.value !== "function")
@@ -410,7 +412,8 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
-async function writeCsvTo(rows, destination, options) {
+async function writeCsvTo(rows, destination, configuration) {
+    const options = configuration;
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
@@ -469,7 +472,8 @@ async function write(rows, sink, options) {
     checkAbort(signal);
     return { rows: count, columns: columns.length, bytes };
 }
-async function writeCsv(rows, options) {
+async function writeCsv(rows, configuration) {
+    const options = configuration;
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
@@ -2247,7 +2251,7 @@ class Worksheet {
         this.name = name;
         this.table = table;
         this.preserved = preserved;
-        this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
+        this.columns = copyColumns(options.columns ?? [], true).map(c => Object.freeze(c));
         const alternate = options.alternatingRowStyle;
         this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
             ...(options.mergedCells ? { mergedCells: [...options.mergedCells] } : {}),
@@ -2278,7 +2282,7 @@ class Worksheet {
         for (const feature of ["dataValidation"])
             if (options[feature] !== undefined)
                 throw new NotSupportedError(feature);
-        const columns = copyColumns(options.columns ?? []);
+        const columns = copyColumns(options.columns ?? [], true);
         book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
         book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
@@ -2994,7 +2998,9 @@ class Workbook {
     addWorksheet(name, options = {}) {
         this.assertOpen();
         this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
-        const conditional = Worksheet.validate(this, options);
+        // Validation/serialization use erased column metadata; projection later receives T rows.
+        const metadata = options;
+        const conditional = Worksheet.validate(this, metadata);
         let tableOptions = options.table;
         if (tableOptions && tableOptions.name === undefined) {
             let suffix = this.tableCount + 1;
@@ -3005,7 +3011,7 @@ class Workbook {
         const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
         if (table && this.tableNames.has(table.name.toLowerCase()))
             throw new TypeError("Duplicate Excel table name: " + table.name);
-        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
         this.names.add(sheet.name.toLowerCase());
         this.mergedRanges += sheet.mergeCount;
         this.conditionalFormats += sheet.conditionalFormatCount;
@@ -3122,14 +3128,23 @@ return _exports;
 const _m28 = (() => {
 const { withDestination } = _m3;
 
+const { copyColumns } = _m8;
+
 const { Workbook } = _m10;
 
+function prepare(options) {
+    const columns = copyColumns(options?.columns);
+    if (options.sheet?.headerStyle !== undefined)
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    return { ...options, columns };
+}
 function worksheet(book, options) {
     const { name = "Data", ...sheet } = options.sheet ?? {};
     return book.addWorksheet(name, { boldHeader: true, autoFilter: sheet.includeHeader !== false,
-        autoSize: { sampleRows: 100, minWidth: 6, maxWidth: 54 }, ...sheet, columns: options.columns });
+        autoSize: { minWidth: 6, maxWidth: 54 }, ...sheet, columns: options.columns });
 }
-async function writeXlsx(rows, options) {
+async function writeXlsx(rows, configuration) {
+    const options = prepare(configuration);
     const { columns: _columns, sheet: _sheet, ...settings } = options;
     const book = new Workbook(settings);
     try {
@@ -3141,7 +3156,8 @@ async function writeXlsx(rows, options) {
         throw error;
     }
 }
-async function writeXlsxTo(rows, destination, options) {
+async function writeXlsxTo(rows, destination, configuration) {
+    const options = prepare(configuration);
     return withDestination(destination, async (sink) => {
         const { columns: _columns, sheet: _sheet, ...settings } = options;
         const book = new Workbook({ ...settings, sink });

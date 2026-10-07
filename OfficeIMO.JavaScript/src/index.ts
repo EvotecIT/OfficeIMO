@@ -8,5 +8,5 @@ export { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, wri
 export { writeCsv, writeCsvTo } from "./csv/index.js";
 export { saveBlob, ExportCell } from "./core/index.js";
 export type { CellValue, Column, ColumnSettings, ColumnValueContext, Row, Rows, ExportValue, CellPresentation, ExportCellOptions, ExportLimits, ExportProgress, ExportResult, OutputDestination, ByteSink, StreamOptions } from "./core/index.js";
-export type { XlsxOptions, WorkbookOptions, SheetOptions } from "./xlsx/index.js";
+export type { XlsxOptions, XlsxColumn, WorkbookOptions, SheetOptions } from "./xlsx/index.js";
 export type { CsvOptions, CsvColumn, CsvValueContext } from "./csv/index.js";

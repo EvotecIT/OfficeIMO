@@ -137,7 +137,9 @@ export class Workbook {
   addWorksheet<T = never>(name: string, options: SheetOptions<T> = {}): Worksheet<T> {
     this.assertOpen();
     this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
-    const conditional = Worksheet.validate(this, options);
+    // Validation/serialization use erased column metadata; projection later receives T rows.
+    const metadata = options as unknown as SheetOptions;
+    const conditional = Worksheet.validate(this, metadata);
     let tableOptions = options.table;
     if (tableOptions && tableOptions.name === undefined) {
       let suffix = this.tableCount + 1;
@@ -146,7 +148,7 @@ export class Workbook {
     }
     const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
     if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
-    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
     this.names.add(sheet.name.toLowerCase());
     this.mergedRanges += sheet.mergeCount;
     this.conditionalFormats += sheet.conditionalFormatCount;
