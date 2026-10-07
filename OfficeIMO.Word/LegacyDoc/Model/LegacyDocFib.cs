@@ -268,6 +268,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             ushort nFib = ReadUInt16(wordDocumentStream, 0x02);
+            // Word commonly retains C1 in FibBase even for newer file formats.
+            // When cswNew is nonzero, FibRgCswNew.nFibNew is authoritative.
+            ushort pairCount = ReadUInt16(wordDocumentStream, 0x98);
+            if (pairCount >= 0x005D) {
+                int extensionOffset = 0x9A + pairCount * 8;
+                if (extensionOffset > wordDocumentStream.Length - 2) {
+                    error = "The FIB extension is truncated.";
+                    return false;
+                }
+                ushort extensionWords = ReadUInt16(wordDocumentStream, extensionOffset);
+                if (extensionWords != 0) {
+                    if (extensionOffset > wordDocumentStream.Length - 2 - extensionWords * 2) {
+                        error = "The FIB extension is truncated.";
+                        return false;
+                    }
+                    nFib = ReadUInt16(wordDocumentStream, extensionOffset + 2);
+                }
+            }
             if (nFib < MinimumSupportedNFib) {
                 error = $"Unsupported Word FIB version 0x{nFib:X4}. OfficeIMO imports Word 97-2003 binary DOC streams with nFib 0x{MinimumSupportedNFib:X4} or newer.";
                 return false;

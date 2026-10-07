@@ -363,7 +363,7 @@ namespace OfficeIMO.Word {
             var props = _sectionProperties.GetFirstChild<FootnoteProperties>();
             if (props == null) {
                 props = new FootnoteProperties();
-                _sectionProperties.Append(props);
+                _sectionProperties.AddChild(props, true);
             }
 
             props.RemoveAllChildren<NumberingFormat>();
@@ -372,29 +372,29 @@ namespace OfficeIMO.Word {
             props.RemoveAllChildren<NumberingStart>();
 
             if (numberingFormat != null) {
-                props.Append(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() });
+                props.AddChild(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() }, true);
             }
 
             if (position != null) {
-                props.Append(new FootnotePosition() { Val = position.Value.ToOpenXml() });
+                props.AddChild(new FootnotePosition() { Val = position.Value.ToOpenXml() }, true);
             }
 
             if (restartNumbering != null) {
-                props.Append(new NumberingRestart() { Val = restartNumbering.Value.ToOpenXml() });
+                props.AddChild(new NumberingRestart() { Val = restartNumbering.Value.ToOpenXml() }, true);
             }
 
             if (startNumber != null) {
-                props.Append(new NumberingStart() { Val = (UInt16Value)startNumber.Value });
+                props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
             }
 
             return this;
         }
 
         /// <summary>
-        /// Configures endnote properties for the section.
+        /// Configures endnote numbering for the section and placement for the whole document.
         /// </summary>
         /// <param name="numberingFormat">Numbering format.</param>
-        /// <param name="position">Endnote position.</param>
+        /// <param name="position">Document-wide endnote position. A position-only update preserves section numbering.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
         /// <returns>The current section.</returns>
@@ -405,28 +405,32 @@ namespace OfficeIMO.Word {
             var props = _sectionProperties.GetFirstChild<EndnoteProperties>();
             if (props == null) {
                 props = new EndnoteProperties();
-                _sectionProperties.Append(props);
+                _sectionProperties.AddChild(props, true);
             }
 
-            props.RemoveAllChildren<NumberingFormat>();
             props.RemoveAllChildren<EndnotePosition>();
-            props.RemoveAllChildren<NumberingRestart>();
-            props.RemoveAllChildren<NumberingStart>();
+            bool positionOnly = position != null && numberingFormat == null && restartNumbering == null && startNumber == null;
+            if (!positionOnly) {
+                props.RemoveAllChildren<NumberingFormat>();
+                props.RemoveAllChildren<NumberingRestart>();
+                props.RemoveAllChildren<NumberingStart>();
+            }
 
             if (numberingFormat != null) {
-                props.Append(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() });
+                props.AddChild(new NumberingFormat() { Val = numberingFormat.Value.ToOpenXml() }, true);
             }
 
             if (position != null) {
-                props.Append(new EndnotePosition() { Val = position.Value.ToOpenXml() });
+                props.AddChild(new EndnotePosition() { Val = position.Value.ToOpenXml() }, true);
+                _document.SetDocumentEndnotePosition(position.Value.ToOpenXml());
             }
 
             if (restartNumbering != null) {
-                props.Append(new NumberingRestart() { Val = restartNumbering.Value.ToOpenXml() });
+                props.AddChild(new NumberingRestart() { Val = restartNumbering.Value.ToOpenXml() }, true);
             }
 
             if (startNumber != null) {
-                props.Append(new NumberingStart() { Val = (UInt16Value)startNumber.Value });
+                props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
             }
 
             return this;

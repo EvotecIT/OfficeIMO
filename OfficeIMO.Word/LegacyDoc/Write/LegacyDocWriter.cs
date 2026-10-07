@@ -55,7 +55,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort DefaultLanguageId = 0x0409;
         private const ushort FibRgW97WordCount = 0x000E;
         private const ushort FibRgLw97DwordCount = 0x0016;
-        private const ushort FibRgFcLcb97Size = 0x00B7;
         private const ushort OneTableStreamFlag = 0x0200;
         private const ushort ExtendedCharacterFlag = 0x1000;
         private const ushort DefaultFibFlags = 0x1200;
@@ -77,6 +76,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbStshfOffset = 0xA6;
         private const int FcDopOffset = 0x192;
         private const int LcbDopOffset = 0x196;
+        private const int FcSttbfAssocOffset = 0x19A;
+        private const int LcbSttbfAssocOffset = 0x19E;
         private const int FcPlcfBtePapxOffset = 0x102;
         private const int LcbPlcfBtePapxOffset = 0x106;
         private const int FcSttbfFfnOffset = 0x112;
@@ -85,6 +86,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbSttbfBkmkOffset = 0x146;
         private const int FcSttbfRMarkOffset = 0x232;
         private const int LcbSttbfRMarkOffset = 0x236;
+        private const int FcRmdThreadingOffset = 0x38A;
+        private const int LcbRmdThreadingOffset = 0x38E;
         private const int FcPlcfBkfOffset = 0x14A;
         private const int LcbPlcfBkfOffset = 0x14E;
         private const int FcPlcfBklOffset = 0x152;
@@ -266,7 +269,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
                 settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
                 settings?.GetFirstChild<Compatibility>()?.Elements<NoColumnBalance>().Any(IsOnOffEnabled) == true,
-                ReadDocumentEndnotePosition(sections),
+                checked((ushort)(ReadTwipValue(settings?.GetFirstChild<DefaultTabStop>()?.Val, 720, "default tab interval") ?? 720)),
+                ReadDocumentEndnotePosition(settings),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
         }
@@ -283,22 +287,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && protection.Enforcement.Value;
         }
 
-        private static EndnotePositionValues? ReadDocumentEndnotePosition(IReadOnlyList<LegacyDocWritableSection> sections) {
-            EndnotePositionValues? position = null;
-            foreach (LegacyDocWritableSection section in sections) {
-                EndnotePositionValues? sectionPosition = section.Format.EndnotePosition;
-                if (sectionPosition == null) {
-                    continue;
-                }
-
-                if (position != null && position.Value != sectionPosition.Value) {
-                    throw new NotSupportedException("Native DOC saving supports only one endnote placement for the whole document.");
-                }
-
-                position = sectionPosition;
-            }
-
-            return position;
+        private static EndnotePositionValues ReadDocumentEndnotePosition(Settings? settings) {
+            EndnoteDocumentWideProperties? properties = settings?.GetFirstChild<EndnoteDocumentWideProperties>();
+            return ReadEndnotePosition(properties?.GetFirstChild<EndnotePosition>()?.Val) ?? EndnotePositionValues.DocumentEnd;
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
@@ -484,8 +475,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     break;
                 case Table table:
-                    // Adjacent rows otherwise belong to the same binary DOC table.
-                    if (text.Length > 0 && text[text.Length - 1] == '\a') text.Append('\r');
                     AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
                     bodyContentCount++;
                     break;

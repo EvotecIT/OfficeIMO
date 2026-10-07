@@ -60,7 +60,7 @@ public partial class Word {
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         PdfTextSpan[] spans = PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("HeadingNoteMarker"));
-        Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
+        Assert.Equal(2, spans.Count(span => (span.Text == "1" || span.Text == "i") && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
         Assert.Contains("FootnoteBodyMarker", text);
         Assert.Contains("EndnoteBodyMarker", text);
     }

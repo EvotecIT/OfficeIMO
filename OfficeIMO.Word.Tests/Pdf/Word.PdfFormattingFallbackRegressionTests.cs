@@ -49,7 +49,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         referenceRun.RunProperties.FontSize = referencePoints > 0 ? new W.FontSize { Val = (referencePoints * 2).ToString() } : null;
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
         double baseline = pdf.GetPage(1).Letters.First(letter => letter.Value == "B").StartBaseLine.Y;
-        var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "1" && letter.StartBaseLine.Y > baseline + .1);
+        var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == (endnote ? "i" : "1") && letter.StartBaseLine.Y > baseline + .1);
         Assert.Equal((referencePoints > 0 ? referencePoints : 11D) * .65D, marker.PointSize, precision: 3);
     }
 
@@ -137,7 +137,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         if (kind == "link") Assert.Equal(authored ? 18D : 12.5D,
             pdf.GetPage(1).Letters.First(letter => letter.Value == "L").PointSize, precision: 3);
         else {
-            var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "1" && letter.StartBaseLine.Y > body.StartBaseLine.Y + .1);
+            var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == (kind == "endnote" ? "i" : "1") && letter.StartBaseLine.Y > body.StartBaseLine.Y + .1);
             // PDF text sizes are serialized to hundredths of a point.
             Assert.InRange(Math.Abs(marker.PointSize - (authored ? 18D : 12.5D) * .65D), 0D, .01D);
         }

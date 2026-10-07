@@ -32,23 +32,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         }
-        if (bytes != null && _options.ImageNormalizationBudget != null
-            && OfficeImageOrientationNormalizer.TryRead(bytes, out OfficeImageOrientation orientation)
-            && orientation != OfficeImageOrientation.Normal
-            && !TryAdmitImageOrientationNormalization(bytes, imageInfo, sourceDescription)) {
-            bytes = null;
-            normalizationRejected = true;
-        }
-        if (bytes != null
-            && OfficeImageOrientationNormalizer.TryNormalizeToPng(
-                bytes,
-                style.ApplyEmbeddedImageOrientation,
-                out byte[] orientedPng,
-                out OfficeImageInfo? orientedInfo)) {
-            bytes = orientedPng;
-            contentType = "image/png";
-            imageInfo = orientedInfo;
-        }
+        NormalizeImageOrientation(element, style.ApplyEmbeddedImageOrientation, sourceDescription,
+            ref bytes, ref contentType, ref imageInfo, out normalizationRejected);
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
         double intrinsicWidth = hasIntrinsicSize
             ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? imageInfo.DpiX)
@@ -138,34 +123,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
-    }
-
-    private bool TryAdmitImageOrientationNormalization(byte[] bytes, OfficeImageInfo? imageInfo, string source) {
-        HtmlImportBudget budget = _options.ImageNormalizationBudget!;
-        long pixels = imageInfo == null ? 0L : (long)imageInfo.Width * imageInfo.Height;
-        string detail;
-        if (pixels <= 0L || pixels > budget.Limits.MaxDecodedImagePixels) {
-            detail = "MaxDecodedImagePixels; requested=" + pixels + "; maximum=" + budget.Limits.MaxDecodedImagePixels;
-        } else if (budget.TryBeginImageDecodeWork(bytes.LongLength, out detail)) {
-            // Orientation normalization must not flatten a multipage native source before
-            // the adapter can enforce its static-image policy. Inspection is also admitted work.
-            var decodeOptions = new OfficeRasterDecodeOptions {
-                MaximumEncodedBytes = (int)Math.Min(budget.Limits.MaxImageBytes, 128L * 1024L * 1024L),
-                MaximumDecodedPixels = Math.Min(budget.Limits.MaxDecodedImagePixels, 50_000_000L),
-                FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
-            };
-            if (OfficeRasterContainerInspector.TryInspect(bytes, decodeOptions, out OfficeRasterContainerInfo? container)
-                && container != null && container.Frames.Count == 1) return true;
-            _diagnostics.Add(ComponentName, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                "An embedded image could not be normalized as a supported static image.",
-                HtmlDiagnosticSeverity.Warning, source, "Invalid or multiframe orientation source",
-                OfficeConversionLossKind.Omission);
-            return false;
-        }
-        _diagnostics.Add(ComponentName, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-            "An embedded image was omitted because its normalization limit was reached.",
-            HtmlDiagnosticSeverity.Warning, source, detail, OfficeConversionLossKind.Omission);
-        return false;
     }
 
     private double ResolveFloatingImageOuterWidth(IElement element, HtmlRenderBoxStyle style) {
