@@ -32,10 +32,10 @@ public sealed class EpubMetadataEntry {
     /// <summary>EPUB 2 meta name.</summary>
     public string? LegacyName { get; internal set; }
 
-    /// <summary>Creator/contributor role.</summary>
+    /// <summary>Legacy role attribute, or the first retained EPUB 3 role refinement. All refinements remain separate metadata entries.</summary>
     public string? Role { get; internal set; }
 
-    /// <summary>File-as sorting value.</summary>
+    /// <summary>Legacy file-as attribute, or the first retained EPUB 3 file-as refinement.</summary>
     public string? FileAs { get; internal set; }
 
     /// <summary>Date event classification.</summary>

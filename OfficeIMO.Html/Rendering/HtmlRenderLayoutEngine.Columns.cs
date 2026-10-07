@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = contentX + fragment.Column * (columnWidth + gap);
             double y = contentY + fragment.Y;
-            IReadOnlyList<HtmlRenderVisual> fragmentVisuals = SliceBlockVisuals(fragment.Block, fragment.Start, fragment.End);
+            IReadOnlyList<HtmlRenderVisual> fragmentVisuals = SliceColumnFragmentVisuals(fragment);
             foreach (HtmlRenderVisual visual in fragmentVisuals) {
                 visuals.Add(visual.Translate(x, y, visuals.Count));
             }
@@ -253,6 +253,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         return new MultiColumnPlan(fragments, fragments.Count == 0 ? 1 : column + 1, usedHeight);
     }
+
+    private IReadOnlyList<HtmlRenderVisual> SliceColumnFragmentVisuals(MultiColumnFragment fragment) =>
+        fragment.Start <= 0.0001D && fragment.End >= fragment.Block.Height - 0.0001D
+            ? fragment.Block.Visuals
+            : SliceBlockVisuals(fragment.Block, fragment.Start, fragment.End);
 
     private static double FindNextColumnBreak(HtmlRenderFlowBlock block, double start) {
         double next = block.BreakOffsets.FirstOrDefault(offset => offset > start + 0.0001D);

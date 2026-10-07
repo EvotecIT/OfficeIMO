@@ -51,7 +51,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             staticAnchor,
             artifactBoundaries,
             flattenedSemanticBoundaries);
-        if (IsRootLayoutContainer(containingBlock)) {
+        if (IsRootLayoutContainer(containingBlock)
+            && (!_layoutStyles.TryGetValue(containingBlock, out HtmlRenderBoxStyle? rootStyle) || rootStyle.Position == "static")) {
             _rootPositionedElements.Add(request);
             return;
         }
@@ -483,7 +484,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double? ResolveOutOfFlowInset(string value, double reference, HtmlRenderBoxStyle style, string source, string property) {
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return null;
-        if (TryResolveLength(value, reference, style.Font.Size, out double resolved)) return resolved;
+        if (TryResolveLength(value, reference, style, out double resolved)) return resolved;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PositionInsetUnsupported, "A positioned inset could not be resolved and used auto.", HtmlDiagnosticSeverity.Warning, source, property + "=" + value);
         return null;
     }

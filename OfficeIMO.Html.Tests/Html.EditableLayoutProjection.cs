@@ -431,9 +431,12 @@ public sealed class HtmlEditableLayoutProjectionTests {
         Assert.Contains("After", projection.RenderedDocument.Text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void MultiColumnProducerRegionKeepsNativePositionAndColumnFlowRemainsSemantic() {
-        const string html = "<main style='column-count:2;column-gap:24px;width:420px'>" +
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MultiColumnProducerRegionKeepsNativePositionAndColumnFlowRemainsSemantic(bool spanning) {
+        string html = "<main style='column-count:2;column-gap:24px;width:420px'>" +
+            (spanning ? "<h2 style='column-span:all'>Section heading</h2>" : string.Empty) +
             "<p>Column one content that remains editable semantic flow.</p>" +
             "<aside style='float:right;width:120px;height:48px;background:#ddeeff'>Producer note</aside>" +
             "<p>Column two continuation that remains editable semantic flow.</p></main>";
@@ -444,9 +447,9 @@ public sealed class HtmlEditableLayoutProjectionTests {
         Assert.Equal(HtmlRenderLayoutRegionKind.Floating, region.RegionKind);
         Assert.Equal("right", region.FloatSide);
         Assert.Equal("Producer note", region.SourceText);
-        string flowText = System.Text.RegularExpressions.Regex.Replace(projection.RenderedDocument.Text, @"\s+", " ");
-        Assert.Contains("Column one content", flowText, StringComparison.Ordinal);
-        Assert.Contains("Column two continuation", flowText, StringComparison.Ordinal);
+        string renderedText = System.Text.RegularExpressions.Regex.Replace(projection.RenderedDocument.Text, @"\s+", " ");
+        Assert.Contains("Column one content", renderedText, StringComparison.Ordinal);
+        Assert.Contains("Column two continuation", renderedText, StringComparison.Ordinal);
     }
 
     [Fact]

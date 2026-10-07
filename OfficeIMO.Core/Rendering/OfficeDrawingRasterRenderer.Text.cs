@@ -124,25 +124,27 @@ public static partial class OfficeDrawingRasterRenderer {
             }
         }
 
-        var frame = new OfficeImageFrameTransform(
-            text.RotationDegrees,
-            text.RotationCenterX * scale,
-            text.RotationCenterY * scale,
-            text.FlipHorizontal,
-            text.FlipVertical);
-        OfficeTransform transform = OfficeTransform.Translate(contentX, contentY).Then(frame.CreateDestinationTransform());
+        OfficeTransform transform = CreateVerticalTextPlacement(text, scale, contentX, contentY);
         canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
         return true;
     }
 
-    private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
+    internal static (double X, double Y, double Width, double Height) ResolveTextContentRectangle(OfficeDrawingText text, double scale) {
+        OfficeTextPadding padding = text.Padding.Scale(scale);
+        return ((text.X * scale) + padding.Left, (text.Y * scale) + padding.Top,
+            (text.Width * scale) - padding.Horizontal, (text.Height * scale) - padding.Vertical);
+    }
+
+    internal static OfficeTransform CreateVerticalTextPlacement(OfficeDrawingText text, double scale, double contentX, double contentY) {
+        var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale,
+            text.RotationCenterY * scale, text.FlipHorizontal, text.FlipVertical);
+        return OfficeTransform.Translate(contentX, contentY).Then(frame.CreateDestinationTransform());
+    }
+
+    internal static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         using var metricScope = canvas.PushFontMetricScale(canvas.FontMetricScale * text.FontMetricScale);
         using var faceScope = canvas.PushTextFace(text.Font.Face);
-        OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
-        double contentX = (text.X * scale) + scaledPadding.Left;
-        double contentY = (text.Y * scale) + scaledPadding.Top;
-        double contentWidth = (text.Width * scale) - scaledPadding.Horizontal;
-        double contentHeight = (text.Height * scale) - scaledPadding.Vertical;
+        var (contentX, contentY, contentWidth, contentHeight) = ResolveTextContentRectangle(text, scale);
         if (contentWidth <= 0D || contentHeight <= 0D) {
             return;
         }
