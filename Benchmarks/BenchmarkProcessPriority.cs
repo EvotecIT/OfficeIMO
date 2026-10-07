@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using OfficeIMO.Benchmarks;
 
-namespace OfficeIMO.Excel.Benchmarks;
+namespace OfficeIMO.Benchmarks;
 
 internal static class BenchmarkProcessPriority {
     [ModuleInitializer]

@@ -1,0 +1,32 @@
+{
+  "BaselineSource": "9fb634005140024e80c7a8620ea20d00b1219622",
+  "CandidateSource": "cc694e16783f711646c0234777c875b3a5c4e51c",
+  "BaselineExcelSha256": "52C33C17A5FDD38B7BF03930DB7DD332C1482C22AAE1A84EB839532DC9BF7561",
+  "CandidateExcelSha256": "DDC74536B7FD95DA8171FEE0AC210455CAFF2F9686110D288627B3B7A99B6BEC",
+  "MeasuredBenchmarkSha256": "DE04D37DFFADE584F94079FF042EA796EA7BE1BD4894E8F01CA057D90C1C5C08",
+  "HarnessNote": "Measured before commit; final harness separates OfficeIMO-only first-row measurement from peer full scans. The retained snapshot cases invoke the same methods and properties.",
+  "Runtime": "10.0.12",
+  "SDK": "10.0.112",
+  "BenchmarkDotNet": "0.15.8",
+  "Affinity": "0xFFFF",
+  "Priority": "Normal",
+  "Warmups": 8,
+  "Iterations": 8,
+  "Operations": 1,
+  "Outliers": "Retained",
+  "AllCasesComplete": true,
+  "HostContention": "Variable, with first-row samples varying from about 2 to over 10 seconds; no throughput improvement claimed.",
+  "Validation": [
+    "Windows DataReader tests: net10.0 250 passed, net8.0 250 passed, net472 245 passed.",
+    "Release benchmark builds: net8.0 and net10.0, zero warnings/errors.",
+    "Release OfficeIMO.Excel netstandard2.0 build: zero warnings/errors.",
+    "Before/after preflight verifies every header, typed value, and row count at all three generated sizes, plus the 65K corpus."
+  ],
+  "Profile": {
+    "RootFilter": "ExcelLargeTypedReadBenchmarks.Measure",
+    "Operations": 3,
+    "ThreadStacks": "Sampled thread stacks; not precise CPU time",
+    "Providers": "Microsoft-DotNETCore-SampleProfiler,Microsoft-Windows-DotNETRuntime:0x1:5",
+    "Allocation": "Weighted GC allocation samples"
+  }
+}

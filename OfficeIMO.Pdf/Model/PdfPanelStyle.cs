@@ -4,6 +4,17 @@ namespace OfficeIMO.Pdf;
 /// Visual style shared by panel paragraphs and decorated flow elements.
 /// </summary>
 public class PdfPanelStyle {
+    // Fixed document-format visuals share this panel's first-fragment anchor.
+    internal PdfCanvasBlock? AnchoredCanvas { get; set; }
+    private double _minimumContentHeight;
+    internal double MinimumContentHeight {
+        get => _minimumContentHeight;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(MinimumContentHeight), "Panel minimum content height must be non-negative and finite.");
+            _minimumContentHeight = value;
+        }
+    }
+    internal bool AlignContentToBottom { get; set; }
     private PdfAlign _align = PdfAlign.Left;
     private double _borderWidth = 0.5;
     private double _cornerRadius;
@@ -184,7 +195,10 @@ public class PdfPanelStyle {
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             KeepTogether = KeepTogether,
-            KeepWithNext = KeepWithNext
+            KeepWithNext = KeepWithNext,
+            AnchoredCanvas = AnchoredCanvas,
+            MinimumContentHeight = MinimumContentHeight,
+            AlignContentToBottom = AlignContentToBottom
         };
     }
 

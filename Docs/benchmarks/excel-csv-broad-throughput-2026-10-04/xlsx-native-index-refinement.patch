@@ -1,0 +1,39 @@
+diff --git a/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs b/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs
+index 926e7b254..40115978d 100644
+--- a/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs
++++ b/OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs
+@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
+         private sealed partial class ExcelUtf8RangeRowSource : IDisposable {
+             private const int InitialBufferSize = 64 * 1024;
+             private const int MaximumBufferSize = 64 * 1024 * 1024;
++            private const int HeaderProbeMinimumBytes = 8 * 1024 * 1024;
+             private const int MaximumIndexedCells = 1_000_000;
+             private const int StringCacheSize = 256;
+             private const int MaximumCachedStringBytes = 256;
+@@ -101,11 +102,21 @@ namespace OfficeIMO.Excel {
+                     return false;
+                 }
+ 
+-                // A native used-range index requires a dimension before sheetData.
+-                // Probe that header before renting and inflating the whole part.
+-                if (!owner._hasSdkWorksheetPart
+-                    && !owner.TryGetWorksheetDimensionReferenceFromXml(out _, ct)) {
+-                    return false;
++                // Probe only parts large enough to make a discarded buffer costly.
++                // Small parts retain their existing index path; oversized parts cannot index.
++                if (!owner._hasSdkWorksheetPart) {
++                    ct.ThrowIfCancellationRequested();
++                    bool probeHeader = true;
++                    if (owner._partBufferReader != null
++                        && owner._partBufferReader.TryGetLength(owner._worksheetPartName, out long declaredLength)) {
++                        if (declaredLength > MaximumBufferSize) {
++                            return false;
++                        }
++                        probeHeader = declaredLength > HeaderProbeMinimumBytes;
++                    }
++                    if (probeHeader && !owner.TryGetWorksheetDimensionReferenceFromXml(out _, ct)) {
++                        return false;
++                    }
+                 }
+ 
+                 byte[]? buffer = null;

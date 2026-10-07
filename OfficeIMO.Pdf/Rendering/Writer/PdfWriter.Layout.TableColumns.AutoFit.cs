@@ -184,7 +184,9 @@ internal static partial class PdfWriter {
                 AutoFitTextProfile textProfile = textProfiles[rowIndex * cols + cell.Column];
                 bool splitMinimumCamelCase = useLargeDenseCamelCaseCap || useLargeDenseDelimitedCodeCap;
                 string[] tokens = GetAutoFitMinimumWidthTokens(cell.Text, splitCamelCase: splitMinimumCamelCase);
-                double measuredTextWidth = cols == 1
+                double measuredTextWidth = style.AutoFitWidthUsesContentMinimum
+                    ? MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, wholeLine: true)
+                    : cols == 1
                     ? measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi
                     : MeasureAutoFitPreferredTextWidth(
                         cell.Text,
@@ -206,7 +208,7 @@ internal static partial class PdfWriter {
                     // Imported grids grow for unbreakable words and objects.
                     // Generic PDF technical-text heuristics are not a minimum
                     // width contract for an authored document table.
-                    double wordWidth = MeasureImportedTableMinimumTextWidth(cell, rowStandardFont, rowSize, options);
+                    double wordWidth = MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options);
                     // Subtracting the padding again during layout must not
                     // round the inner width below the measured word width.
                     double minimum = Math.Max(1D, Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding + .001D);

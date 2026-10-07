@@ -51,7 +51,12 @@ $nonNativeValidated = @(
     [ordered]@{
         name = 'OfficeIMO.ChartForgeX.Markdown'
         classification = 'managed-cross-platform'
-        evidence = 'The optional static Mermaid adapter is qualified through managed .NET 8 and 10 document and HTML integration tests; the ChartForgeX renderer NativeAOT proof does not qualify this complete adapter workflow.'
+        evidence = 'Static Mermaid Word/PDF/HTML/PowerPoint integration, packed .NET 8 and 10 consumers and .NET Framework 4.7.2 cross-compilation are validated; complete adapter NativeAOT qualification is separate.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Browser'
+        classification = 'managed-cross-platform'
+        evidence = 'Embedded JavaScript assets and content hashes are qualified by managed tests and packed .NET 8 and 10 consumers; no NativeAOT host is claimed.'
     }
     [ordered]@{
         name = 'OfficeIMO.Workflows.IWork'

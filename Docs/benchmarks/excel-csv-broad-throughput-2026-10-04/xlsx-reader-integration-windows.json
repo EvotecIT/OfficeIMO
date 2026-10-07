@@ -1,0 +1,63 @@
+{
+  "Base": "160bd10495e610e7c03ab06b7dc0302af464b50a",
+  "PatchSha256": "A8FF4AE185F6F067643EC249F75B4D4867D989478DBF8C7DA26BE18236098D90",
+  "Source": [
+    {
+      "Path": "OfficeIMO.Excel.Tests/Excel.Reader.TypedFormulaFallback.cs",
+      "Sha256": "7233A6B2543A058D1F8E39C68C166B0929B6354E391173E690DFEC03E6D5D3AA"
+    },
+    {
+      "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Objects.Utf8.cs",
+      "Sha256": "D4C9D389701D34CC75C0C08B5582F940F23E9B6BDB88D3288F2B7743AC898F1C"
+    },
+    {
+      "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs",
+      "Sha256": "F05FE98993509E611A801DBA3F38526D1AC5AF89CE257A48695398333810BD6D"
+    }
+  ],
+  "Results": [
+    {
+      "Kind": "full-net10.0",
+      "Passed": 5614,
+      "Failed": 0,
+      "Skipped": 5,
+      "File": "Ignore/Validation/reader-integration/review-fixes-full-net10.0.trx",
+      "Sha256": "762547AF6FB849F33E0DD8F5992A6F5FDE1F6D48210B867D17ED8ABDA1E3B79C"
+    },
+    {
+      "Kind": "full-net8.0",
+      "Passed": 5614,
+      "Failed": 0,
+      "Skipped": 5,
+      "File": "Ignore/Validation/reader-integration/review-fixes-full-net8.0.trx",
+      "Sha256": "8BF38EEC2A1C962D261023131682F4A41DCDD8921A60C85FE3AA38F2CFF2BF79"
+    },
+    {
+      "Kind": "net10.0",
+      "Passed": 994,
+      "Failed": 0,
+      "Skipped": 0,
+      "File": "Ignore/Validation/reader-integration/review-fixes-net10.0.trx",
+      "Sha256": "F94E06717EA8A8EC0484CB147E9AD4824D416B8C336CB25FA812B0A8C1E57880"
+    },
+    {
+      "Kind": "net8.0",
+      "Passed": 994,
+      "Failed": 0,
+      "Skipped": 0,
+      "File": "Ignore/Validation/reader-integration/review-fixes-net8.0.trx",
+      "Sha256": "8C03EE15DF14763F5EE2DD0992A6D2FE7FD7DC284ED54BD0C2808BB691BFC9DE"
+    },
+    {
+      "Kind": "net472",
+      "Passed": 987,
+      "Failed": 0,
+      "Skipped": 0,
+      "File": "Ignore/Validation/reader-integration/review-fixes-net472.trx",
+      "Sha256": "8089169D01F62BF29F120376C016EB319CDE998FEE70E897F3226FDF7C79EDFD"
+    }
+  ],
+  "NetStandard": "Release netstandard2.0 build succeeded",
+  "Review": "Single read-only targeted confirmation accepted both fixes; no new actionable findings",
+  "CancellationProof": "Ownership control-flow reviewed; no timing-sensitive test hook introduced"
+}

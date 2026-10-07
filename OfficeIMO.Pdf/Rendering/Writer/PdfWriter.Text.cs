@@ -60,6 +60,8 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
+                fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand)) return asciiCommand;
             return glyphRun.ToTextShowCommand();
         }
 
@@ -139,6 +141,8 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
+                fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand)) return asciiCommand;
             return glyphRun.ToTextShowCommand();
         }
 

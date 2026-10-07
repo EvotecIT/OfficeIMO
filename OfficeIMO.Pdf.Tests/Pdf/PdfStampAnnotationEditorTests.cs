@@ -111,7 +111,9 @@ public class PdfStampAnnotationEditorTests {
         var (objects, _) = PdfSyntax.ParseObjects(result.Bytes);
         PdfStream embedded = Assert.Single(objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
             static stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) &&
-                             subtype is PdfName { Name: "Image" } && stream.Dictionary.Items.ContainsKey("SMask"));
+                             subtype is PdfName { Name: "Image" } &&
+                             stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) &&
+                             colorSpace is PdfName { Name: "DeviceRGB" });
         Assert.Equal(1, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Width"]).Value);
         Assert.Equal(2, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Height"]).Value);
     }

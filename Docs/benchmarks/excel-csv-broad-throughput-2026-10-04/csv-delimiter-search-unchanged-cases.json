@@ -1,0 +1,34 @@
+{
+  "File-ShortAscii-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "ShortAscii",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-ShortUnicode-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "ShortUnicode",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "Text-Multi-Plain-4096-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvTextWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Delimiter": "||",
+      "QuoteMode": "AsNeeded",
+      "TextLength": 4096,
+      "TextShape": "Plain"
+    }
+  }
+}

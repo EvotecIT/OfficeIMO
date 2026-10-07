@@ -27,9 +27,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             var stream = new byte[Math.Max(FibLength, streamLength)];
             WriteUInt16(stream, 0x00, WordDocumentMagic);
-            WriteUInt16(stream, 0x02, Word97FibVersion);
+            bool hasNestedTables = body.HasNestedTables;
+            // Word 97 interprets nested cell marks as ordinary paragraph marks.
+            // Declare the Word 2000 format and its matching FIB extension when needed.
+            ushort fibVersion = hasNestedTables ? (ushort)0x00D9 : Word97FibVersion;
+            ushort fibPairCount = hasNestedTables ? (ushort)0x006C : (ushort)0x005D;
+            WriteUInt16(stream, 0x02, fibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
             ushort fibFlags = DefaultFibFlags;
+            // Since Word 2000, these four bits are a required sentinel, not a save count.
+            if (hasNestedTables) fibFlags = unchecked((ushort)(fibFlags | 0x00F0));
             if (body.HasPictures) fibFlags = unchecked((ushort)(fibFlags | HasPicturesFibFlag));
             if (isTemplate) fibFlags = unchecked((ushort)(fibFlags | TemplateFibFlag));
             WriteUInt16(stream, 0x0A, fibFlags);
@@ -44,7 +51,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0x54, body.HeaderFooterText.Length);
             WriteInt32(stream, 0x5C, body.CommentText.Length);
             WriteInt32(stream, 0x60, body.EndnoteText.Length);
-            WriteUInt16(stream, 0x98, FibRgFcLcb97Size);
+            WriteUInt16(stream, 0x98, fibPairCount);
+            int fibExtensionOffset = 0x9A + fibPairCount * 8;
+            WriteUInt16(stream, fibExtensionOffset, hasNestedTables ? (ushort)2 : (ushort)0);
+            if (hasNestedTables) {
+                WriteUInt16(stream, fibExtensionOffset + 2, fibVersion);
+                WriteUInt16(stream, fibExtensionOffset + 4, 0);
+                WriteInt32(stream, FcRmdThreadingOffset, body.RmdThreadingOffsetInTableStream);
+                WriteInt32(stream, LcbRmdThreadingOffset, body.RmdThreading.Length);
+            }
             WriteInt32(stream, FcStshfOffset, body.HasStyleSheet ? body.StyleSheetOffsetInTableStream : 0);
             WriteInt32(stream, LcbStshfOffset, body.StyleSheet.Bytes.Length);
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);
@@ -78,8 +93,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, LcbPlcfBklOffset, body.HasBookmarks ? body.PlcfBkl.Length : 0);
             WriteInt32(stream, FcSttbfFfnOffset, body.HasFontTable ? body.FontTableOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfFfnOffset, fontTable.Length);
-            WriteInt32(stream, FcDopOffset, body.HasDocumentOptions ? body.DopOffsetInTableStream : 0);
-            WriteInt32(stream, LcbDopOffset, body.HasDocumentOptions ? body.DopLength : 0);
+            WriteInt32(stream, FcDopOffset, body.DopOffsetInTableStream);
+            WriteInt32(stream, LcbDopOffset, body.DopLength);
+            WriteInt32(stream, FcSttbfAssocOffset, body.SttbfAssocOffsetInTableStream);
+            WriteInt32(stream, LcbSttbfAssocOffset, SttbfAssocLength);
             WriteInt32(stream, 0x1A2, 0);
             WriteInt32(stream, 0x1A6, ClxLength);
             Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
@@ -181,10 +198,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Buffer.BlockCopy(body.PlcfendTxt, 0, table, body.PlcfendTxtOffsetInTableStream, body.PlcfendTxt.Length);
             }
 
-            if (body.HasDocumentOptions) {
-                byte[] dop = CreateDopBase(body);
-                Buffer.BlockCopy(dop, 0, table, body.DopOffsetInTableStream, dop.Length);
-            }
+            byte[] dop = CreateDopBase(body);
+            Buffer.BlockCopy(dop, 0, table, body.DopOffsetInTableStream, dop.Length);
+            // Required18-string STTB; scalar metadata remains owned by the OLE streams.
+            WriteUInt16(table, body.SttbfAssocOffsetInTableStream, 0xFFFF);
+            WriteUInt16(table, body.SttbfAssocOffsetInTableStream + 2, 18);
 
             if (body.HasBookmarks) {
                 Buffer.BlockCopy(body.SttbfBkmk, 0, table, body.SttbfBkmkOffsetInTableStream, body.SttbfBkmk.Length);
@@ -194,6 +212,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (body.HasRevisions) {
                 Buffer.BlockCopy(body.SttbfRMark, 0, table, body.SttbfRMarkOffsetInTableStream, body.SttbfRMark.Length);
+            }
+
+            if (body.HasNestedTables) {
+                Buffer.BlockCopy(body.RmdThreading, 0, table, body.RmdThreadingOffsetInTableStream, body.RmdThreading.Length);
             }
 
             if (body.HasStyleSheet) {

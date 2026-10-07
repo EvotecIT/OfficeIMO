@@ -194,7 +194,8 @@ public partial class DrawingTests {
 
     [Fact]
     public void PngContainerValidatesSignificantBitsBackgroundAndPaletteHistogramMetadata() {
-        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        // These chunks specifically describe eight-bit RGBA samples.
+        byte[] png = OfficePngWriter.EncodeScanlines(1, 1, 8, 6, new byte[] { 0, 255, 255, 255, 255 });
         byte[] withSignificantBits = InsertPngChunkBefore(
             png, "IDAT", "sBIT", new byte[] { 8, 8, 8, 8 });
         byte[] invalidSignificantBits = InsertPngChunkBefore(

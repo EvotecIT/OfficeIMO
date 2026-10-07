@@ -7,6 +7,29 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfColumnFrameRegressionTests {
     [Fact]
+    public void Columns_KeptPanelIsValidatedAgainAfterItsKeepNextMoveChangesWidth() {
+        var options = new PdfOptions { PageWidth = 612, PageHeight = 792,
+            MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72, MaxGeneratedPages = 3 };
+        var columns = new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
+            new PdfFlowColumn(PdfColumnWidth.Fixed(100), 36), new PdfFlowColumn(PdfColumnWidth.Fixed(332), 0)
+        } };
+        var imageStyle = new PdfImageStyle { ScaleDownToFit = true, SpacingBefore = 0, SpacingAfter = 0 };
+        byte[] image = PdfPngTestImages.CreateRgbPng(0, 160, 96);
+        var line = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0,
+            SpacingAfter = 0, WidowControl = false };
+        var document = PdfDocument.Create(options).Columns(content => {
+            content.Paragraph(p => p.Text("Lead"), style: line).Spacer(378);
+            content.Panel(panel => panel.Image(image, 332, 400, style: imageStyle)
+                .Image(image, 332, 400, style: imageStyle),
+                new PdfPanelStyle { PaddingX = 0, PaddingY = 0, BorderWidth = 0,
+                    SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true, KeepWithNext = true });
+            content.Paragraph(p => p.Text("Caption"), style: line);
+        }, columns);
+        var error = Assert.Throws<ArgumentException>(() => document.ToBytes());
+        Assert.Contains("Container height exceeds", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Columns_LargeSpacerTraversesEveryColumnWithoutCountingColumnsAsPages() {
         var options = Options(); options.MaxGeneratedPages = 2;
         byte[] bytes = PdfDocument.Create(options).Columns(content => {

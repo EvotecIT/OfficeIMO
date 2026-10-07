@@ -24,6 +24,7 @@ internal static partial class PdfOcr {
         PdfOcrMergeOptions options, CancellationToken token) {
         var prepared = new PreparedPage(request.Region!.Width, request.Region.Height);
         PrepareRegionAndPerspective(request, options, prepared, token);
+        EnsurePreparedMediaSupport(request, engine);
         if (options.ScanProcessing == null && !options.DetectOrientation) return prepared;
         int detectedTurns = 0;
         if (options.DetectOrientation) {
@@ -93,7 +94,7 @@ internal static partial class PdfOcr {
             prepared.PointsToSource = OfficeTransform.Scale(originalWidth / originalPointWidth, originalHeight / originalPointHeight)
                 .Then(processed.Report.ProcessedToSource)
                 .Then(OfficeTransform.Scale(originalPointWidth / originalWidth, originalPointHeight / originalHeight));
-            request.Payload = payload;
+            SetPreparedPngPayload(request, payload);
             request.PixelWidth = processed.Image.Width; request.PixelHeight = processed.Image.Height;
             request.Region = new OcrRegion {
                 Width = processed.Image.Width * originalPointWidth / originalWidth,
@@ -102,10 +103,22 @@ internal static partial class PdfOcr {
         } catch (OfficeScanProcessingLimitException exception) {
             prepared.Diagnostics.Add("ocr-scan-limit: Retained the original rendered image. " + exception.Message);
         }
+        EnsurePreparedMediaSupport(request, engine);
         if (prepared.Diagnostics.Count > options.MaxDiagnosticsPerPage)
             throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, prepared.Diagnostics.Count);
         EnsureCharacters(prepared.Diagnostics, options.MaxDiagnosticCharactersPerPage);
         return prepared;
+    }
+
+    private static void SetPreparedPngPayload(OcrRequest request, byte[] payload) {
+        request.Payload = payload;
+        request.MediaType = "image/png";
+        if (request.FileName is not null) request.FileName = System.IO.Path.ChangeExtension(request.FileName, ".png");
+    }
+
+    private static void EnsurePreparedMediaSupport(OcrRequest request, OcrEngineExecution? engine) {
+        if (engine is not null && !engine.Capabilities.SupportsMediaType(request.MediaType))
+            throw new NotSupportedException("The OCR provider does not support the prepared image media type: " + request.MediaType);
     }
 
     private static PdfSelectionQuad MapWordGeometry(double x, double y, double width, double height, PreparedPage? prepared) {

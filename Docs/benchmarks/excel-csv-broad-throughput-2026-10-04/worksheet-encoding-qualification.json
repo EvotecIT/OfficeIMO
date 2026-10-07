@@ -1,0 +1,82 @@
+{
+  "CandidateHead": "908b7463e234299f49d62a62477f88fb44b024bf",
+  "IntegratedHead": "f62e0e45a52eab530b3b396ac542d0a5bb0324dc",
+  "Base": "7ea6a06f8eb11db5ba464825b50ca218e9bb7b07",
+  "IntegratedTrackedOwnerDiffEmpty": true,
+  "CombinedPatchSha256": "187DB7FDC1FE9AD0D005488493983B4898CD716A929C52180438ADAFF23953D5",
+  "Native": {
+    "Cases": 76,
+    "Observations": 608,
+    "RetainedMeasurements": 7296,
+    "ActualRuntimes": [
+      "net10.0",
+      "net8.0"
+    ],
+    "Hosts": [
+      "Windows",
+      "macOS"
+    ]
+  },
+  "Rotated": {
+    "Observations": 216,
+    "RetainedSamples": 5184,
+    "MatchedControlOwner": "4BAEBC1C6F257BB649C3ADB8964D13F96BDD659B58AF763498F3B69CCD8FE14D",
+    "MatchedControlCmdlets": "88CDDF20A9FCAAB7E215BCC04B549E3B51D217F918DAB6708AE792DCCD23E51F",
+    "LocalTestModuleVersion": "3.0.154.2"
+  },
+  "ThreeEngine": {
+    "Observations": 36,
+    "RetainedSamples": 1728,
+    "Control": "Separately loaded unchanged baseline rotates alongside Before and After",
+    "Policy": "24 warmups;48 retained samples;four complete reads/sample"
+  },
+  "Memory": {
+    "Cases": 20,
+    "FreshMeasurementWorkers": 480,
+    "SeparateActualNet8CompleteFieldValidationWorkers": 80,
+    "RepetitionsPerSide": 3,
+    "Net8SamplerHead": "60a5e52fa661e61cd862bb60a3900d0ef1101986",
+    "Net8SamplerSha256": "E2A5CBB6EB524BC9E79AA833F4A2967AE37B1D5048D95106C0389C2CEF6FCA1C",
+    "Net10SamplerSha256": "517B9882C5FD10D918DEFAE23291CD75D7211F556F174AD9C143DB1B3439E4E1",
+    "Limit": "Caller allocation excludes prefetch/sampler; all-thread includes sampler; peaks sampled lower bounds; JIT and reflection included; file cache warmed; reader/results released before return/GC"
+  },
+  "Correctness": [
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "FocusedPassed": 1071,
+      "FullPassed": 5624,
+      "FullSkipped": 5,
+      "Failed": 0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "FocusedPassed": 1071,
+      "FullPassed": 5624,
+      "FullSkipped": 5,
+      "Failed": 0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "FocusedPassed": 1071,
+      "FullPassed": 5624,
+      "FullSkipped": 5,
+      "Failed": 0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "FocusedPassed": 1071,
+      "FullPassed": 5624,
+      "FullSkipped": 5,
+      "Failed": 0
+    }
+  ],
+  "FrameworkFocusedPassed": 1066,
+  "NetStandard": "netstandard2.0 integrated source Release build;zero errors/warnings",
+  "Review": "One full read-only pass and single targeted prefetch confirmation;no actionable defects;coverage packet retained separately",
+  "Disposition": "Accepted first-call allocation/retained-memory improvement for ineligible buffering including prefetch;no portable timing or overall competitive ranking claim",
+  "Open": "Large reader throughput;earlier typed timing regressions;CSV mixed/file/Linux and XLSX write gaps"
+}

@@ -1,0 +1,144 @@
+{
+  "Disposition": "Rejected; not adopted in the integration branch",
+  "WindowsHead": "cc39dc4bab635a3accc3a0d745fa7e0ef9a82f44",
+  "MacHead": "011c50a0804d90ad9fb17060ea6ef83f026b2c77",
+  "RuntimeBoundary": "Cold native .NET8 workers used Windows 8.0.31 and macOS 8.0.23; PowerShell controls used 8.0.21. .NET10 used 10.0.12.",
+  "ColdWorkers": 120,
+  "SeparateNet8ValidationWorkers": 20,
+  "TimingObservations": 57,
+  "RetainedTimingMeasurements": 1368,
+  "CaptureNotes": [
+    "Windows .NET10 was a four-case screening run; other timing packets contain all five cases.",
+    "The Windows .NET10 memory aggregate recovers 30 original workers after correcting an obsolete six-case inventory expectation; samples were not rerun.",
+    "The captured Windows screen runner and its packet retain an obsolete diagnostic description of earlier tests. Snapshot hashes and source inventories identify the actual full-tail candidate.",
+    "Archived runners keep original relative fixture names; reconstruct those names in a task-owned directory and provide the recorded frozen assemblies and canonical PowerForge harness before reproducing."
+  ],
+  "Files": [
+    {
+      "ArchiveName": "budget-tail-rejected-retained-memory-used-range-budget-v1-65535-N3.json",
+      "OriginalName": "retained-memory-used-range-budget-v1-65535-N3.json",
+      "Bytes": 775169,
+      "Sha256": "D97FE47ADA2D37D6C8D34D36BBE4A02804B3E29CE9248D809928CBBEA242FF32"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-memory-used-range-budget-v1-net8-65535-N3.json",
+      "OriginalName": "retained-memory-used-range-budget-v1-net8-65535-N3.json",
+      "Bytes": 768338,
+      "Sha256": "4C055B92BCF89D6407E496D379FE490F0260E9B11E081EC5D484510D806B0CA2"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-memory-used-range-budget-v1-65535-N3-macos.json",
+      "OriginalName": "retained-memory-used-range-budget-v1-65535-N3-macos.json",
+      "Bytes": 758495,
+      "Sha256": "0CF1061BDB30B70001C5570F52D7DD33B628ED3518A46CBB1BC91F538EBE6233"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-memory-used-range-budget-v1-net8-65535-N3-macos.json",
+      "OriginalName": "retained-memory-used-range-budget-v1-net8-65535-N3-macos.json",
+      "Bytes": 752007,
+      "Sha256": "63A91CD4DFBB5CB6F1D37D774384DA64C7C814F5E621C6405E261C6D12706800"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-used-range-budget-controls-screen-v1-65535.json",
+      "OriginalName": "retained-used-range-budget-controls-screen-v1-65535.json",
+      "Bytes": 913571,
+      "Sha256": "28CB07C70B6F33C9CE86DCE9DCBE781EFE352CAEA16D1E84CECC585B2B7DFB22"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-used-range-budget-controls-net8-v1-65535.json",
+      "OriginalName": "retained-used-range-budget-controls-net8-v1-65535.json",
+      "Bytes": 962139,
+      "Sha256": "FDB52E3FD685C49193BE749B75047E8A74A8AA170D5B1509174D394F05570C0F"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-used-range-budget-controls-v1-macos.json",
+      "OriginalName": "retained-used-range-budget-controls-v1-macos.json",
+      "Bytes": 936892,
+      "Sha256": "745709476D3CE3721777F8D79BB97F107EDABCF138B90EE4BCB7871A5AC9B121"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-retained-used-range-budget-controls-net8-v1-65535-macos.json",
+      "OriginalName": "retained-used-range-budget-controls-net8-v1-65535-macos.json",
+      "Bytes": 938233,
+      "Sha256": "FA4F4A94AFAF8CFD2E4D467C938DE8E13FCED471A774680EE72455B0253D179E"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-summary-controls-all-runtimes.json",
+      "OriginalName": "summary-controls-all-runtimes.json",
+      "Bytes": 13866,
+      "Sha256": "3FEC7CA416A7CA5C87F865CACD8C194259E4D8583AD2B071B6D40FC1C0B29495"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-cases.json",
+      "OriginalName": "cases.json",
+      "Bytes": 1226,
+      "Sha256": "F4BDD6BCAB67D8B5F230911509EAFEAC68B8AD9732773A9F5233B2C5BAA3A2E6"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-memory-cases.json",
+      "OriginalName": "memory-cases.json",
+      "Bytes": 1226,
+      "Sha256": "F4BDD6BCAB67D8B5F230911509EAFEAC68B8AD9732773A9F5233B2C5BAA3A2E6"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-three-way-screen-v1-captured.ps1",
+      "OriginalName": "three-way-screen-v1-captured.ps1",
+      "Bytes": 8134,
+      "Sha256": "AD59C58852E740547F98084F2CCCF88E664A90BFEDFFD225C26DF800E1938297"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-three-way.ps1",
+      "OriginalName": "three-way.ps1",
+      "Bytes": 8169,
+      "Sha256": "57F75C9D40246C18128D9E6713C679194FAF3E51E423964A658ABC162392203A"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-three-way-net8.ps1",
+      "OriginalName": "three-way-net8.ps1",
+      "Bytes": 8165,
+      "Sha256": "EA3DA9DF6A8BF68D64983D448D3CB7B67900C36B31AF4AFB43E465333B7C48AC"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-memory-suite.ps1",
+      "OriginalName": "memory-suite.ps1",
+      "Bytes": 3088,
+      "Sha256": "7FC3A230046C8DA06FC96E06AB7D9D59874E80D83C8F20ACAFEE96A54C0CFBC3"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-memory-suite-net8.ps1",
+      "OriginalName": "memory-suite-net8.ps1",
+      "Bytes": 3929,
+      "Sha256": "8760321743222F19C7D7F1AB25510A0963CC0970F1A5915F0327FB855695256F"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-memory-fixtures.ps1",
+      "OriginalName": "memory-fixtures.ps1",
+      "Bytes": 2861,
+      "Sha256": "9E29504FEB9CB1C69F8C9C428DE467162B4B46FF78C6A5D50C8792B2A9F4C526"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-memory-worker.ps1",
+      "OriginalName": "memory-worker.ps1",
+      "Bytes": 4127,
+      "Sha256": "5A808672EEB6736F9B387B499D681015FE2170A4ED7FD1FAA22284ADA3608DA1"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-prepare.ps1",
+      "OriginalName": "prepare.ps1",
+      "Bytes": 4014,
+      "Sha256": "AF4F0B7552EE760453B4A678C58B34869769B46DB126A2D66954C63A92C61A12"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-summary-memory.json",
+      "OriginalName": "summary-memory.json",
+      "Bytes": 16335,
+      "Sha256": "3301C9EE6297F16233DCEDA7E2C91A99831AA0D89FD2968BB4F2C26CC03C8E3D"
+    },
+    {
+      "ArchiveName": "budget-tail-rejected-source.patch",
+      "OriginalName": "b57455a..cc39dc4 Git diff",
+      "Bytes": 6475,
+      "Sha256": "F26744C66213F5A50840BFAFF0AB0DDCF8C644BC98CB8AAD1F214B5108CC7085"
+    }
+  ]
+}

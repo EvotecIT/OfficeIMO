@@ -1727,6 +1727,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForInlineStrings() {
+            const string plainValue = " Plain\r\ninline 東京 😀 &<> ";
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
             var sheet = document.AddWorksheet("Inline");
@@ -1736,7 +1737,7 @@ namespace OfficeIMO.Tests {
                 new Cell {
                     CellReference = "A1",
                     DataType = CellValues.InlineString,
-                    InlineString = new InlineString(new Text("Plain inline"))
+                    InlineString = new InlineString(new Text(plainValue) { Space = SpaceProcessingModeValues.Preserve })
                 },
                 new Cell {
                     CellReference = "B1",
@@ -1757,7 +1758,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal(CellValues.InlineString, cells["A1"].DataType!.Value);
-            Assert.Equal("Plain inline", cells["A1"].InlineString!.InnerText);
+            Assert.Equal(plainValue, cells["A1"].InlineString!.InnerText);
+            Assert.Equal(SpaceProcessingModeValues.Preserve, cells["A1"].InlineString!.Text!.Space!.Value);
             Assert.Equal(CellValues.InlineString, cells["B1"].DataType!.Value);
             Assert.Equal("Rich inline", cells["B1"].InlineString!.InnerText);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());

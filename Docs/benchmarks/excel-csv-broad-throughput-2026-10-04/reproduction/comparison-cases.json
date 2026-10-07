@@ -1,0 +1,266 @@
+{
+  "Csv-Plain-FirstRow-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Plain",
+      "RowCount": 100000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Csv-Plain-FirstRow-Snapshot": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Snapshot",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Plain",
+      "RowCount": 100000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Csv-Plain-AllRows-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Plain",
+      "RowCount": 100000,
+      "Operation": "AllRows"
+    }
+  },
+  "Csv-Plain-AllRows-Snapshot": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Snapshot",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Plain",
+      "RowCount": 100000,
+      "Operation": "AllRows"
+    }
+  },
+  "Csv-Multiline-FirstRow-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Multiline",
+      "RowCount": 100000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Csv-Multiline-FirstRow-Snapshot": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Snapshot",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Multiline",
+      "RowCount": 100000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Csv-Multiline-AllRows-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Multiline",
+      "RowCount": 100000,
+      "Operation": "AllRows"
+    }
+  },
+  "Csv-Multiline-AllRows-Snapshot": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Snapshot",
+    "Setup": "Setup",
+    "Class": "CsvAsyncReadBenchmarks",
+    "Properties": {
+      "Shape": "Multiline",
+      "RowCount": 100000,
+      "Operation": "AllRows"
+    }
+  },
+  "Csv-Wide-AllRows-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvWideAsyncReadBenchmarks",
+    "Properties": {
+      "Operation": "AllRows",
+      "RowCount": 25000
+    }
+  },
+  "Csv-Wide-AllRows-Snapshot": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Snapshot",
+    "Setup": "Setup",
+    "Class": "CsvWideAsyncReadBenchmarks",
+    "Properties": {
+      "Operation": "AllRows",
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-Ascii-Prefix-False": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "Ascii",
+      "PrefixedWorksheet": false,
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-Ascii-Prefix-True": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "Ascii",
+      "PrefixedWorksheet": true,
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-Unicode-Prefix-False": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "Unicode",
+      "PrefixedWorksheet": false,
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-Unicode-Prefix-True": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "Unicode",
+      "PrefixedWorksheet": true,
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-RichText-Prefix-False": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "RichText",
+      "PrefixedWorksheet": false,
+      "RowCount": 25000
+    }
+  },
+  "Excel-Sst-RichText-Prefix-True": {
+    "Library": "Excel",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Class": "ExcelSharedStringReadBenchmarks",
+    "Properties": {
+      "Shape": "RichText",
+      "PrefixedWorksheet": true,
+      "RowCount": 25000
+    }
+  },
+  "Csv-Mixed-OfficeIMO_ReadRowsReusableCallback": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadRowsReusableCallback",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Mixed"
+    }
+  },
+  "Csv-Mixed-OfficeIMO_ReadStreamingRows": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadStreamingRows",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Mixed"
+    }
+  },
+  "Csv-Mixed-OfficeIMO_ReadDataReaderGetStrings": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadDataReaderGetStrings",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Mixed"
+    }
+  },
+  "Csv-Quoted-OfficeIMO_ReadRowsReusableCallback": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadRowsReusableCallback",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Quoted"
+    }
+  },
+  "Csv-Quoted-OfficeIMO_ReadStreamingRows": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadStreamingRows",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Quoted"
+    }
+  },
+  "Csv-Quoted-OfficeIMO_ReadDataReaderGetStrings": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadDataReaderGetStrings",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Quoted"
+    }
+  },
+  "Csv-Multiline-OfficeIMO_ReadRowsReusableCallback": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadRowsReusableCallback",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Multiline"
+    }
+  },
+  "Csv-Multiline-OfficeIMO_ReadStreamingRows": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadStreamingRows",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Multiline"
+    }
+  },
+  "Csv-Multiline-OfficeIMO_ReadDataReaderGetStrings": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadDataReaderGetStrings",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Multiline"
+    }
+  }
+}

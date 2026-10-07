@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
             double[] columnWidths, double columnGap, double rowGap, int headerCount, int footerStart,
             PreparedFlowTableRows? previous = null, int continuingRow = -1, int consumedLines = 0, double? fallbackFontSize = null) {
             var result = new PreparedFlowTableRows(table.Rows.Count);
+            var textLayouts = new TableTextLayoutReuse(currentOpts);
             for (int row = 0; row < table.Rows.Count; row++) {
                 bool continued = row == continuingRow && consumedLines > 0 && previous != null;
                 double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize);
@@ -35,7 +36,7 @@ internal static partial class PdfWriter {
                     TableCellTextLayout lines = continued
                         ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], consumedLines, innerWidth, font, size, leading,
                             currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum)
-                        : CreateTableCellTextLayout(cell, innerWidth, font, size, leading, currentOpts, sizing.RunFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
+                        : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {
                         maxLines = Math.Max(maxLines, lines.LineCount);

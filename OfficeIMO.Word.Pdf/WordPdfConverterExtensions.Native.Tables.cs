@@ -11,7 +11,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             RecordNativeBodyTableDiagnostics(table, options, "body table");
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
@@ -20,6 +20,8 @@ namespace OfficeIMO.Word.Pdf {
                 table,
                 nativeDefaults,
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
+            bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
+                table, table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
             var cellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
@@ -70,6 +72,7 @@ namespace OfficeIMO.Word.Pdf {
                         nativeFontMap,
                         getMarker,
                         ignoreFallbackTableStyle: hasExplicitDefaultTableStyle,
+                        options: options,
                         inlineImages: embeddedContent.InlineImages);
                     (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
@@ -83,7 +86,9 @@ namespace OfficeIMO.Word.Pdf {
                         embeddedContent.CheckBoxes.Count == 0 ? null : embeddedContent.CheckBoxes,
                         embeddedContent.FormFields.Count == 0 ? null : embeddedContent.FormFields,
                         embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
-                        noWrap: !cell.WrapText));
+                        // Word no-wrap changes automatic sizing. Fixed-layout tables and
+                        // cells with absolute preferred widths still wrap their content.
+                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText));
 
                     PdfCore.PdfColor? fill =
                         ParseNativeColor(cell.ShadingFillColorHex) ??
@@ -851,7 +856,8 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldApplyNativeTableStyleCellPadding(WordTable table) {
             string? styleId = GetNativeTableStyleId(table);
             if (string.IsNullOrWhiteSpace(styleId)) {
-                return false;
+                // An unnamed table still inherits the document's default table style.
+                return true;
             }
 
             if (!PdfCore.TableStyles.TryGetCanonicalWordStyleName(styleId!, out string? canonicalStyleName)) {

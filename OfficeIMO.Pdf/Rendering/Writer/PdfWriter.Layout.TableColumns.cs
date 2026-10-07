@@ -194,6 +194,12 @@ internal static partial class PdfWriter {
             throw new ArgumentException("Table cell spacing must leave a positive table width.");
         }
 
+        // Imported tables grow proportionally once their preferred content fits.
+        // Residual flexibility is useful when shrinking below those preferences,
+        // but using it during growth redistributes space merely because of no-wrap.
+        bool fitsImportedPreferences = style.AutoFitWidthUsesContentMinimum &&
+            autoFitWeights != null && autoFitWeights.Sum() <= tableInnerWidth + .001D;
+
         double[] columnWidths = new double[columns];
         double[] columnWeights = new double[columns];
         bool[] fixedColumns = new bool[columns];
@@ -250,7 +256,7 @@ internal static partial class PdfWriter {
                 weight = autoFitWeights[column];
             }
 
-            if (!hasExplicitWeight && autoFitWeights != null && minWidth.HasValue) {
+            if (!hasExplicitWeight && autoFitWeights != null && minWidth.HasValue && !fitsImportedPreferences) {
                 AutoFitColumnProfile profile = autoFitProfiles != null && column < autoFitProfiles.Length
                     ? autoFitProfiles[column]
                     : default;

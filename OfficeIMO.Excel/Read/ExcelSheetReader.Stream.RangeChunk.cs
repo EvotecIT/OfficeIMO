@@ -23,6 +23,8 @@ namespace OfficeIMO.Excel {
             public int ColCount { get; }
             /// <summary>Row-major values array. Size is <see cref="RowCount"/> x <see cref="ColCount"/>.</summary>
             public object?[][] Rows { get; }
+            // Internal typed mapping preserves constructor defaults for omitted cells.
+            internal bool[][]? CellPresence { get; set; }
 
             internal RangeChunk(int startRow, int rowCount, int startCol, int colCount, object?[][] rows) {
                 StartRow = startRow; RowCount = rowCount; StartCol = startCol; ColCount = colCount; Rows = rows;

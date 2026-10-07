@@ -1,0 +1,176 @@
+{
+  "WindowsIntegrationHead": "b57455a0cf8c5ddeb7f846ef7683307518bd7b98",
+  "MacOSIntegrationHead": "70e926a8eabac46e309d07a6505a6c8813d4a245",
+  "NormalizedSourceEquality": [
+    {
+      "Owner": "OfficeIMO.Excel",
+      "Files": 1085,
+      "QualifiedOwner": "C:/Support/GitHub/_worktrees/OfficeIMO-excel-native-reader-stream",
+      "Normalization": "UTF8, CRLF normalized to LF",
+      "Differences": 0
+    },
+    {
+      "Owner": "OfficeIMO.Excel.Tests",
+      "Files": 453,
+      "QualifiedOwner": "C:/Support/GitHub/_worktrees/OfficeIMO-excel-native-reader-stream",
+      "Normalization": "UTF8, CRLF normalized to LF",
+      "Differences": 0
+    },
+    {
+      "Owner": "OfficeIMO.Excel.Benchmarks",
+      "Files": 46,
+      "QualifiedOwner": "C:/Support/GitHub/_worktrees/OfficeIMO-excel-native-reader-stream",
+      "Normalization": "UTF8, CRLF normalized to LF",
+      "Differences": 0
+    },
+    {
+      "Owner": "OfficeIMO.CSV",
+      "Files": 92,
+      "QualifiedOwner": "C:/Support/GitHub/_worktrees/OfficeIMO-csv-text-delimiter-batching",
+      "Normalization": "UTF8, CRLF normalized to LF",
+      "Differences": 0
+    },
+    {
+      "Owner": "OfficeIMO.CSV.Tests",
+      "Files": 33,
+      "QualifiedOwner": "C:/Support/GitHub/_worktrees/OfficeIMO-csv-text-delimiter-batching",
+      "Normalization": "UTF8, CRLF normalized to LF",
+      "Differences": 0
+    },
+    {
+      "Owner": "OfficeIMO.CSV.Benchmarks",
+      "Files": 24,
+      "QualifiedOwner": "C:/Support/GitHub/_worktrees/OfficeIMO-csv-text-delimiter-batching",
+      "Normalization": "UTF8, CRLF normalized to LF",
+      "Differences": 0
+    }
+  ],
+  "Correctness": [
+    {
+      "Host": "Windows",
+      "File": "CSV-net10.0.trx",
+      "Passed": 681,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "DABE1FBCA273E02A103F79733AEEAD5A8B325AABB6F3A394618C63C3D67CF8CC"
+    },
+    {
+      "Host": "Windows",
+      "File": "CSV-net472.trx",
+      "Passed": 487,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "E22F71E23191C5B0BC69151C5FF11C944FE8B1CFF643477064BC1BA166E82C7E"
+    },
+    {
+      "Host": "Windows",
+      "File": "CSV-net8.0.trx",
+      "Passed": 681,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "A6B7504452455D0CCCB4EE3ABACEAC58ED762B762FFDA66020A82E0703C07D16"
+    },
+    {
+      "Host": "Windows",
+      "File": "Excel-net10.0.trx",
+      "Passed": 5629,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "162FB59F4F63454FC88B27C912CF438839FE9C143E82238E4080DE4315B21041"
+    },
+    {
+      "Host": "Windows",
+      "File": "Excel-net8.0.trx",
+      "Passed": 5629,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "D1BEFA815D3CF9B02562D28627788EE5FEA39934EB9EEFA0BC2DAE1692E84CA8"
+    },
+    {
+      "Host": "Windows",
+      "File": "Excel-reader-net472.trx",
+      "Passed": 938,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "0DBE4E4372CA3A227F304FD9AC35A42A44F30F6E8F3D9D4CC3B5D03501A31B69"
+    },
+    {
+      "Host": "macOS",
+      "File": "CSV-net10.0.trx",
+      "Passed": 681,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "7779EAD308C456A6B25189D8018C27F5339002E0CDBEBC8B5E5F217AE7E6ACC2"
+    },
+    {
+      "Host": "macOS",
+      "File": "CSV-net8.0.trx",
+      "Passed": 681,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "97C52F72EEC768D0ED6EACC5A7DD60D7BA4E37622760BFC529CB4B50532BDB42"
+    },
+    {
+      "Host": "macOS",
+      "File": "Excel-net10.0.trx",
+      "Passed": 5629,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "A04C69BE8D5701C6D0FB3360247E162D4C88668E0F3527827A3BB7DD94669113"
+    },
+    {
+      "Host": "macOS",
+      "File": "Excel-net8.0.trx",
+      "Passed": 5629,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "0DD0D035133C9175D0ABB583E598301C30599B2CF7387D76D9FA161D023234A0"
+    }
+  ],
+  "Filtering": "Category!=Performance for ordinary correctness; Framework Excel focuses reader/data-reader contracts",
+  "ReadOnlyReviews": [
+    {
+      "OriginalReviewHead": "376230c4c1c4283d2461005e7cde93010b9ced55",
+      "CorrectedHead": "1b0c3b146ba6799a68be681248b2366b9fbbf57a",
+      "Boundary": "candidate-reviewed",
+      "Reviewer": "/root/dimensionless_index_review",
+      "Why": "Untrusted XML inference, coordinate bounds, pooled buffer lifetime and publication",
+      "FullPass": 1,
+      "TargetedConfirmation": 1,
+      "Finding": {
+        "Severity": "P1",
+        "Siblings": "Absolute row and column bounds; candidate allocation and authoritative publication guards",
+        "Origin": "Prototype introduced",
+        "Status": "Reproduced and fixed",
+        "Contract": "Out-of-grid inferred coordinates bypassed A1 validation and int.MaxValue overflowed row enumeration"
+      },
+      "RuntimeProof": [
+        "dimensionless-grid-baseline.json",
+        "dimensionless-grid-prototype.json",
+        "dimensionless-grid-fixed.json"
+      ],
+      "Focused": {
+        "WindowsNet10": 15,
+        "MacOSNet10": 15,
+        "Failed": 0,
+        "Skipped": 0
+      },
+      "FullSuites": "Windows/macOS .NET8/.NET10: 5629 passed, five existing skips per run, zero failures; Windows net472:938 focused passed; netstandard2.0:zero errors/warnings",
+      "Integration": "Pending performance qualification; no publication authorized"
+    },
+    {
+      "Candidate": "0bed96b2aa801fdf29764d56984966791b1c3025",
+      "Base": "39827b8d8f",
+      "Reviewer": "/root/csv_delimiter_scan_review",
+      "Boundary": "Private semicolon and tab quote-character search; existing public CSV writer surfaces and supported runtime guards",
+      "FullReadOnlyPass": 1,
+      "TargetedConfirmation": 0,
+      "TechnicalFindings": [],
+      "ProductDisposition": "Accept shaped optimization; performance qualification and limits remain separate",
+      "ValidationLedger": "test-counts.json",
+      "IndependentValidation": "Read-only source, artifact and test-log inspection; no tests independently rerun",
+      "Publication": "No authorization, no PR/push/release"
+    }
+  ],
+  "Limits": "Source integration and local correctness only. Performance packets qualify their frozen candidate heads. No PR, push, package or release claim. Large used-range budget experiment remains separate."
+}

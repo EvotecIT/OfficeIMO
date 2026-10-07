@@ -16,6 +16,10 @@ internal static partial class CsvWriter
     {
         string delimiter = GetDelimiterText(options);
         var quoteFields = CreateQuoteFieldSet(options.QuoteFields);
+        bool defaultFormatting = delimiter.Length == 1 && options.NullValue == null
+            && options.DateTimeFormat == null && !options.UseUtc
+            && options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
+            && options.QuoteMode == CsvQuoteMode.AsNeeded && quoteFields == null;
         var buffer = new StringBuilder();
         using var recordWriter = new StringWriter(buffer, CultureInfo.InvariantCulture);
 
@@ -54,7 +58,9 @@ internal static partial class CsvWriter
         foreach (var row in document.AsEnumerable())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (delimiter.Length == 1)
+            if (defaultFormatting)
+                AppendRecordDefault(buffer, row.Values, delimiter[0], options.NewLine, options.Culture);
+            else if (delimiter.Length == 1)
                 WriteRecord(recordWriter, row.Values, delimiter[0], options.NewLine, options.Culture,
                     options.FormulaInjectionPolicy, options.QuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
             else

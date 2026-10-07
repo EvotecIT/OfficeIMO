@@ -35,6 +35,56 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  browser-exports:
+    name: 'Browser exports / Chromium, Firefox and WebKit'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Check TypeScript, classic bundles and embedded assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          npm ci --ignore-scripts --no-audit --no-fund --prefix OfficeIMO.JavaScript
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh test
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:consumer
+          dotnet test OfficeIMO.Browser.Tests/OfficeIMO.Browser.Tests.csproj -c Release --logger trx
+      - name: Verify browser workbooks, CSV vectors and offline examples
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:browser -- (Join-Path $evidence 'browser')
+      - name: Verify isolated npm and NuGet consumers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
+          ./Build/BrowserExports/Test-NpmConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'npm')
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate (Join-Path $evidence 'npm/packed-consumer.xlsx')
+          ./Build/BrowserExports/Test-NugetConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'nuget')
+      - name: Upload browser contract evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-export-contracts
+          path: |
+            ${{ runner.temp }}/officeimo-browser-exports/browser/interop
+            ${{ runner.temp }}/officeimo-browser-exports/npm/archive.json
+            ${{ runner.temp }}/officeimo-browser-exports/npm/*.tgz
+            ${{ runner.temp }}/officeimo-browser-exports/nuget/*.nupkg
+          if-no-files-found: ignore
+          retention-days: 7
+
   workflow-contracts:
     name: 'Workflow contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
     runs-on: ${{ matrix.os }}
@@ -781,7 +831,7 @@ jobs:
 
       - name: Run net472 contract tests
         # Exact image pixels are a dedicated modern-runtime visual-gate contract, not a cross-TFM invariant.
-        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --filter "Category!=ExcelImageVisualGate" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --filter "Category!=ExcelImageVisualGate&Category!=Performance" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Pack optional CodeGlyphX drawing bridge
         if: ${{ matrix.name == 'Drawing-CodeGlyphX' }}
