@@ -19239,6 +19239,20 @@
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
     },
     {
+      "id":"conversion:book-project-epub",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book project",
+      "targetFormatId":"EPUB",
+      "capabilityId":"book-project-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"BookProject.LoadProject(bytes).Export(options)",
+      "evidence":"Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".oibook"],
+      "limitation":"Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."
+    },
+    {
       "id":"native:book-project:create",
       "packageId":"OfficeIMO.Workflows",
       "formatId":"Book.Project",

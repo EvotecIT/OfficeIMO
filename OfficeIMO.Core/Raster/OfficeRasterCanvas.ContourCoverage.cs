@@ -243,7 +243,7 @@ public sealed partial class OfficeRasterCanvas {
                 if (crossings[index].SecondShape) secondWinding += delta;
                 else winding += delta;
                 index++;
-            } while (index < endIndex && Math.Abs(crossings[index].X - x) <= 1E-9D);
+            } while (index < endIndex && Math.Abs(crossings[index].X - x) <= ContourCrossingTolerance);
             previous = x;
         }
     }

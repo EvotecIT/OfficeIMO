@@ -445,6 +445,10 @@ an isolated render clone.
 
 Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Auto layout considers cell text, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
 
+Explicit body margins, padding, and borders participate in layout and painting. A body background propagated to the canvas is painted once; when the HTML element supplies the canvas background, the body retains its own background box. Overflow propagated from the body clips at the viewport; body-local clipping remains active when the HTML element owns viewport overflow.
+
+Block elements inside inline wrappers, including maps and links, retain their block boxes. Surrounding inline text continues before and after the block, while borders, padding, adjoining margins, ancestor opacity, and explicit page breaks remain in the shared scene used by HTML and EPUB image exports.
+
 Visibility follows the active CSS media and computed `display`. The `hidden` attribute supplies a `display:none` default that author CSS can override, including print rules that reveal report sections. Hidden inline breaks and table cells do not participate in layout. CSS `initial`, `unset`, `inherit`, and cascade reversion retain their distinct display behavior.
 
 Supported inline SVG font and paint presentation attributes participate in the CSS cascade before layout. A label's `font-family`, `font-size` and `font-weight` attributes can override inherited HTML fonts, while author CSS and inline declarations retain their cascade priority. Relative font weights resolve once before inheritance, and nested text adds a baseline shift only when that element declares one.
@@ -508,6 +512,26 @@ options.UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(new[] {
 ```
 
 The managed renderer also honors author soft hyphens and the bounded CSS controls `hyphenate-character`, `hyphenate-limit-chars`, `hyphenate-limit-lines`, `hyphenate-limit-last: always`, and `hyphenate-limit-zone`. Inserted hyphen glyphs do not replace the source word in logical text.
+
+`text-indent` accepts positive and negative lengths, percentages, and supported
+CSS length math. It affects the first formatted line, including wrapping beside
+floats and right-to-left alignment. Inherited lengths retain the declaring
+element's font context; percentages use the receiving block's inline size. Page
+continuations do not restart the indent. The `hanging` and `each-line` keywords
+are not implemented and produce `TextIndentValueUnsupported` diagnostics.
+
+Character-relative `ch` lengths use the rendered zero glyph's advance, including
+scoped fonts and active OpenType features, in supported layout and paint values
+and CSS length math. Letter and word spacing do not enlarge that measurement.
+Inherited text spacing, explicit line heights, border spacing and text-shadow
+offsets retain their computed lengths when a descendant changes font; unitless
+line heights continue to scale with the descendant's font.
+
+Horizontal block flow shares float exclusions across ordinary nested and sibling
+blocks. Side-specific `clear` advances the following block; independent formatting
+contexts fit beside a float or move below it when their width cannot fit. Block
+backgrounds paint below floats, and normal text paints above them. Float paint
+metadata survives page fragmentation without repeating its text label.
 
 ## Dependency footprint
 

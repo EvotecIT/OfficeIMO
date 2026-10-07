@@ -39,8 +39,8 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double height,
         double fontSize,
         double rootFontSize,
-        out OfficeRadialGradient? gradient) {
-        return TryResolve(width, height, fontSize, rootFontSize, width, height, out gradient, out _);
+        out OfficeRadialGradient? gradient, double characterAdvance = double.NaN) {
+        return TryResolve(width, height, fontSize, rootFontSize, width, height, out gradient, out _, characterAdvance);
     }
 
     internal bool TryResolve(
@@ -50,8 +50,8 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double rootFontSize,
         double viewportWidth,
         double viewportHeight,
-        out OfficeRadialGradient? gradient) {
-        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, out gradient, out _);
+        out OfficeRadialGradient? gradient, double characterAdvance = double.NaN) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, out gradient, out _, characterAdvance);
     }
 
     internal bool TryResolve(
@@ -62,8 +62,8 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double viewportWidth,
         double viewportHeight,
         out OfficeRadialGradient? gradient,
-        out bool stopLimitExceeded) {
-        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded);
+        out bool stopLimitExceeded, double characterAdvance = double.NaN) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded, characterAdvance);
     }
 
     internal bool TryResolve(
@@ -76,12 +76,12 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double containerWidth,
         double containerHeight,
         out OfficeRadialGradient? gradient,
-        out bool stopLimitExceeded) {
+        out bool stopLimitExceeded, double characterAdvance = double.NaN) {
         gradient = null;
         stopLimitExceeded = false;
         if (!IsFinitePositive(width) || !IsFinitePositive(height)
-            || !HtmlRenderCssValues.TryLength(CenterX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerXPixels)
-            || !HtmlRenderCssValues.TryLength(CenterY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerYPixels)
+            || !HtmlRenderCssValues.TryLength(CenterX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerXPixels, characterAdvance)
+            || !HtmlRenderCssValues.TryLength(CenterY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerYPixels, characterAdvance)
             || !IsFinite(centerXPixels)
             || !IsFinite(centerYPixels)) {
             return false;
@@ -91,7 +91,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double radiusYPixels;
         if (Size == HtmlCssRadialGradientSize.Explicit) {
             if (string.IsNullOrWhiteSpace(RadiusX)
-                || !HtmlRenderCssValues.TryLength(RadiusX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusXPixels)
+                || !HtmlRenderCssValues.TryLength(RadiusX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusXPixels, characterAdvance)
                 || radiusXPixels < 0D) {
                 return false;
             }
@@ -99,7 +99,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
             if (Shape == HtmlCssRadialGradientShape.Circle) {
                 radiusYPixels = radiusXPixels;
             } else if (string.IsNullOrWhiteSpace(RadiusY)
-                || !HtmlRenderCssValues.TryLength(RadiusY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusYPixels)
+                || !HtmlRenderCssValues.TryLength(RadiusY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusYPixels, characterAdvance)
                 || radiusYPixels < 0D) {
                 return false;
             }
@@ -112,7 +112,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double radiusX = Math.Max(MinimumRadius, radiusXPixels) / width;
         double radiusY = Math.Max(MinimumRadius, radiusYPixels) / height;
         if (!IsFinite(centerX) || !IsFinite(centerY) || !IsFinitePositive(radiusX) || !IsFinitePositive(radiusY)
-            || !Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, Repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded)
+            || !Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, Repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded, characterAdvance)
             || stops == null) return false;
         gradient = new OfficeRadialGradient(centerX, centerY, 0D, 0D, centerX, centerY, radiusX, radiusY, stops);
         return true;

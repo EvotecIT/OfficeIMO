@@ -238,7 +238,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport()).Resolve(document.QuerySelector("pre")!, 5000D);
+        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN).Resolve(document.QuerySelector("pre")!, 5000D);
         HtmlRenderText[] glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             ViewportWidth = 5000D,
             ViewportHeight = 100D
@@ -261,7 +261,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
         HtmlRenderBoxStyle child = resolver.Resolve(document.QuerySelector("pre")!, 120D, parent);
 
@@ -277,7 +277,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
         HtmlRenderBoxStyle reset = resolver.Resolve(document.QuerySelector("#reset")!, 120D, parent);
         HtmlRenderBoxStyle invalid = resolver.Resolve(document.QuerySelector("#invalid")!, 120D, parent);
@@ -415,7 +415,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport()).Resolve(document.QuerySelector("p")!, 1000D);
+        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN).Resolve(document.QuerySelector("p")!, 1000D);
 
         IReadOnlyList<HtmlRenderText> glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             ViewportWidth = 1000D,
@@ -438,7 +438,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
         AngleSharp.Dom.IElement childElement = document.QuerySelector("span")!;
         HtmlRenderBoxStyle child = resolver.Resolve(childElement, 120D, parent);
