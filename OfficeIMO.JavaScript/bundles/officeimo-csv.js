@@ -5,7 +5,7 @@ const officeimo = root.OfficeIMO || (root.OfficeIMO = {});
 const cacheKey = Symbol.for("@evotecit/officeimo/modules");
 const _modules = officeimo[cacheKey] || new Map();
 if (!officeimo[cacheKey]) Object.defineProperty(officeimo, cacheKey, { value: _modules });
-const _m1 = _modules.get("b85720aa18370c4d4d7ce13e31ba30ecc562a6e7f5686550d3074801e3453fc1") ?? (() => {
+const _m1 = _modules.get("60c75199fcb925cb57aae5b56e54ae795af64bb7459a77bff4388e611ad7ab9c") ?? (() => {
 function checkAbort(signal) {
     if (signal?.aborted)
         throw signal.reason ?? new DOMException("Export cancelled.", "AbortError");
@@ -105,6 +105,8 @@ async function consumeRows(input, signal, accept) {
 }
 let taskDeadline;
 const taskBudgetMs = 16;
+/** @internal Start a new write phase without carrying an idle operation's expired deadline. */
+function beginTask() { taskDeadline = performance.now() + taskBudgetMs; }
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
 function taskYieldDue() {
     const now = performance.now();
@@ -133,8 +135,8 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, taskYieldDue: taskYieldDue, pause: pause });
-_modules.set("b85720aa18370c4d4d7ce13e31ba30ecc562a6e7f5686550d3074801e3453fc1", _exports);
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
+_modules.set("60c75199fcb925cb57aae5b56e54ae795af64bb7459a77bff4388e611ad7ab9c", _exports);
 return _exports;
 })();
 
@@ -160,7 +162,7 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("e82bfa85963e892657b5f47f95a1ba46974d244983fb992c7722cf2315440b25") ?? (() => {
+const _m2 = _modules.get("5af3897ce914f684e2587ae2f637f33a34952eeea10dccf6ea5bc5bfad22dd41") ?? (() => {
 const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m1;
 
 const { OfficeIMOError } = _m3;
@@ -262,7 +264,7 @@ async function writeBytes(source, sink, signal) {
     }
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("e82bfa85963e892657b5f47f95a1ba46974d244983fb992c7722cf2315440b25", _exports);
+_modules.set("5af3897ce914f684e2587ae2f637f33a34952eeea10dccf6ea5bc5bfad22dd41", _exports);
 return _exports;
 })();
 
@@ -357,7 +359,7 @@ _modules.set("da9ec61605059ee8b7810da366bb47eeaa6127fa42f2e510666844e451ef1065",
 return _exports;
 })();
 
-const _m6 = _modules.get("cb9db175c25574bb442b41e2bf83b977564088e3c8e6cb78743668f235e54975") ?? (() => {
+const _m6 = _modules.get("4fd9d4ac6e7f2ff57e18cee2a8af785aaac912b25256e0cc162529623275a030") ?? (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
@@ -414,11 +416,11 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("cb9db175c25574bb442b41e2bf83b977564088e3c8e6cb78743668f235e54975", _exports);
+_modules.set("4fd9d4ac6e7f2ff57e18cee2a8af785aaac912b25256e0cc162529623275a030", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("f43dcc445aa3e6808d98c21c40b509134f4c22a087c5ede1e4d23837854015ad") ?? (() => {
+const _m7 = _modules.get("6e03c33c639da2c3082f77f8219622aef217069ce9ee1d68c1e3afb7b96b2751") ?? (() => {
 
 
 
@@ -461,12 +463,12 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("f43dcc445aa3e6808d98c21c40b509134f4c22a087c5ede1e4d23837854015ad", _exports);
+_modules.set("6e03c33c639da2c3082f77f8219622aef217069ce9ee1d68c1e3afb7b96b2751", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8bf41ab9929c161fa041f31b56168838fdc445a9cea4cbc37ad31d9166cd4419") ?? (() => {
-const { checkAbort, consumeRows, withAbort } = _m1;
+const _m0 = _modules.get("787ca9e95f8560828dc01e2ff2e8792db086e2464341e43d59ae35533bc7e9d3") ?? (() => {
+const { beginTask, checkAbort, consumeRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
@@ -509,6 +511,7 @@ async function writeCsvTo(rows, destination, configuration) {
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
+    beginTask();
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
@@ -587,7 +590,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("8bf41ab9929c161fa041f31b56168838fdc445a9cea4cbc37ad31d9166cd4419", _exports);
+_modules.set("787ca9e95f8560828dc01e2ff2e8792db086e2464341e43d59ae35533bc7e9d3", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

@@ -120,6 +120,8 @@ async function consumeRows(input, signal, accept) {
 }
 let taskDeadline;
 const taskBudgetMs = 16;
+/** @internal Start a new write phase without carrying an idle operation's expired deadline. */
+function beginTask() { taskDeadline = performance.now() + taskBudgetMs; }
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
 function taskYieldDue() {
     const now = performance.now();
@@ -148,7 +150,7 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -453,7 +455,7 @@ return _exports;
 })();
 
 const _m6 = (() => {
-const { checkAbort, consumeRows, withAbort } = _m4;
+const { beginTask, checkAbort, consumeRows, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
@@ -496,6 +498,7 @@ async function writeCsvTo(rows, destination, configuration) {
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
+    beginTask();
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");

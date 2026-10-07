@@ -29,6 +29,8 @@ internal static class DataTablesComparisonSession {
                         string stack = command.GetProperty("stack").GetString()!, browser = command.GetProperty("browser").GetString()!;
                         spec = command.Clone(); errors.Clear();
                         int rows = spec.GetProperty("rows").GetInt32(), columns = spec.GetProperty("columns").GetInt32();
+                        string textProfile = spec.TryGetProperty("textProfile", out var text) ? text.GetString()! : "unicode";
+                        if (textProfile is not ("unicode" or "bmp")) throw new ArgumentException("Unknown comparison text profile.");
                         if (rows < 1 || rows > 1000000 || columns < 1 || columns > 100 || (long)rows * columns > 20000000)
                             throw new ArgumentException("Comparison shape exceeds the bounded 20-million-cell matrix.");
                         if (spec.GetProperty("format").GetString() == "pdf" && columns > 20)
@@ -59,7 +61,7 @@ internal static class DataTablesComparisonSession {
                         }
                         result = await session.Page.EvaluateAsync<JsonElement>("spec => prepareDataTablesMeasurement(spec)", new { rows, columns, format = spec.GetProperty("format").GetString(), unique = spec.GetProperty("unique").GetBoolean(),
                             styled = spec.TryGetProperty("styled", out var styled) && styled.GetBoolean(),
-                            fullWidthScan = spec.TryGetProperty("fullWidthScan", out var fullScan) && fullScan.GetBoolean(), pdfFonts }).WaitAsync(TimeSpan.FromMinutes(5));
+                            fullWidthScan = spec.TryGetProperty("fullWidthScan", out var fullScan) && fullScan.GetBoolean(), textProfile, pdfFonts }).WaitAsync(TimeSpan.FromMinutes(5));
                     } else if (operation == "run") {
                         if (session is null) throw new InvalidOperationException("Prepare the browser first.");
                         bool profile = command.TryGetProperty("profile", out var requestedProfile) && requestedProfile.GetBoolean();
@@ -87,7 +89,8 @@ internal static class DataTablesComparisonSession {
                         object proof;
                         try { proof = format == "pdf" ? DataTablesPdfComparisonVerifier.Verify(path, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean())
                             : DataTablesComparisonVerifier.Verify(path, format, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean(),
-                                spec.TryGetProperty("fullWidthScan", out var fullScan) && fullScan.GetBoolean()); }
+                                spec.TryGetProperty("fullWidthScan", out var fullScan) && fullScan.GetBoolean(),
+                                spec.TryGetProperty("textProfile", out var text) ? text.GetString()! : "unicode"); }
                         catch {
                             string failed = Path.Combine(evidence, "first-failed-output." + format);
                             if (!File.Exists(failed) && new FileInfo(path).Length <= 64L * 1024 * 1024) File.Move(path, failed);

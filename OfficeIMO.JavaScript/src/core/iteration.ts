@@ -75,6 +75,9 @@ export async function consumeRows<T>(input: Iterable<T> | AsyncIterable<T>, sign
 let taskDeadline: number | undefined;
 const taskBudgetMs = 16;
 
+/** @internal Start a new write phase without carrying an idle operation's expired deadline. */
+export function beginTask(): void { taskDeadline = performance.now() + taskBudgetMs; }
+
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
 export function taskYieldDue(): boolean {
   const now = performance.now();

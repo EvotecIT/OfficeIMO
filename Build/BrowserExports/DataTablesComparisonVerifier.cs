@@ -7,7 +7,7 @@ using OfficeIMO.CSV;
 
 /// <summary>Every-value streaming validation of the common plain export contract.</summary>
 internal static class DataTablesComparisonVerifier {
-    internal static object Verify(string path, string format, int rows, int columns, bool unique, bool fullWidthScan = false) {
+    internal static object Verify(string path, string format, int rows, int columns, bool unique, bool fullWidthScan = false, string textProfile = "unicode") {
         long cells = 0;
         if (format == "csv") {
             using var reader = CsvDocument.OpenDataReader(path, new CsvLoadOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024, MaxDecompressedBytes = 2L * 1024 * 1024 * 1024 });
@@ -18,7 +18,7 @@ internal static class DataTablesComparisonVerifier {
             while (reader.Read()) {
                 Require(reader.FieldCount == columns, "CSV column count differs.");
                 for (int column = 0; column < columns; column++) {
-                    Require(reader.GetString(column) == Expected(row, column, unique), $"CSV value differs at {row}/{column}."); cells++;
+                    Require(reader.GetString(column) == Expected(row, column, unique, textProfile), $"CSV value differs at {row}/{column}."); cells++;
                 }
                 row++;
             }
@@ -46,7 +46,7 @@ internal static class DataTablesComparisonVerifier {
                     Require(column < columns && row > 0, "Unexpected XLSX cell.");
                     Require(cell.Attribute("r")?.Value == ColumnName(column + 1) + row, "XLSX cell coordinate differs.");
                     string actual = string.Concat(cell.Descendants().Where(e => e.Name.LocalName is "t" or "v").Select(e => e.Value));
-                    string expected = row == 1 ? "Column " + (column + 1) : Expected(row - 2, column, unique);
+                    string expected = row == 1 ? "Column " + (column + 1) : Expected(row - 2, column, unique, textProfile);
                     longest[column] = Math.Max(longest[column], expected.EnumerateRunes().Count());
                     bool numeric = row > 1 && column % 3 != 1;
                     Require(numeric ? double.TryParse(actual, CultureInfo.InvariantCulture, out double number) && number == double.Parse(expected, CultureInfo.InvariantCulture) : actual == expected,
@@ -62,8 +62,8 @@ internal static class DataTablesComparisonVerifier {
         return new { rows, columns, cells, allValues = true, contract = "ordered typed numbers and literal Unicode strings; headers; " + (fullWidthScan ? "whole-table approximate width sizing" : "fixed width 20") };
     }
 
-    private static string Expected(int row, int column, bool unique) => column % 3 == 0 ? ((long)row * 10 + column).ToString(CultureInfo.InvariantCulture)
-        : column % 3 == 1 ? unique ? $"Łódź 🧪 row-{row}-column-{column}" : $"Łódź 🧪 group-{row % 100}-column-{column}"
+    private static string Expected(int row, int column, bool unique, string textProfile) => column % 3 == 0 ? ((long)row * 10 + column).ToString(CultureInfo.InvariantCulture)
+        : column % 3 == 1 ? $"Łódź{(textProfile == "bmp" ? "" : " 🧪")} {(unique ? "row-" + row : "group-" + row % 100)}-column-{column}"
         : (row % 10000 + column / 100d).ToString("G", CultureInfo.InvariantCulture);
     private static string ColumnName(int column) { string name = ""; while (column > 0) { column--; name = (char)('A' + column % 26) + name; column /= 26; } return name; }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidDataException(message); }

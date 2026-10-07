@@ -1,4 +1,4 @@
-import { checkAbort, consumeRows, withAbort } from "../core/iteration.js";
+import { beginTask, checkAbort, consumeRows, withAbort } from "../core/iteration.js";
 import { BlobByteSink, ChunkedTextSink, withDestination } from "../core/sinks.js";
 import { ExportBudget, boundedSink } from "../core/limits.js";
 import { ExportCell } from "../core/presentation.js";
@@ -57,6 +57,7 @@ export async function writeCsvTo(rows: Iterable<unknown> | AsyncIterable<unknown
   return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: ByteSink, options: CsvOptions): Promise<ExportResult> {
+  beginTask();
   const columns = copyColumns(options.columns).map(c => Object.freeze(c)) as CsvColumn[], delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
   if (![",", ";", "\t"].includes(delimiter)) throw new RangeError("Delimiter must be comma, semicolon or tab.");
   if (!["\r\n", "\n", "\r"].includes(lineEnding)) throw new RangeError("Invalid line ending.");

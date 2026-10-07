@@ -1,7 +1,7 @@
 // One export operation per request. PowerForge owns repetition, warmups and ordering.
 let comparisonTable, comparisonSpec, comparisonBlob;
-const comparisonValue = (row, column, unique, format) => column % 3 === 0 ? row * 10 + column
-  : column % 3 === 1 ? (format === 'pdf' ? `Łódź${unique ? row : row % 100}-${column}` : unique ? `Łódź 🧪 row-${row}-column-${column}` : `Łódź 🧪 group-${row % 100}-column-${column}`)
+const comparisonValue = (row, column, unique, format, textProfile) => column % 3 === 0 ? row * 10 + column
+  : column % 3 === 1 ? (format === 'pdf' ? `Łódź${unique ? row : row % 100}-${column}` : `Łódź${textProfile === 'bmp' ? '' : ' 🧪'} ${unique ? 'row-' + row : 'group-' + row % 100}-column-${column}`)
     : (row % 10000) + column / 100;
 
 globalThis.prepareDataTablesMeasurement = function (spec) {
@@ -10,7 +10,7 @@ globalThis.prepareDataTablesMeasurement = function (spec) {
   document.body.innerHTML = '<table id="measurement"></table>';
   comparisonSpec = spec;
   if (spec.format === 'pdf') preparePdfMeasurement(spec.pdfFonts);
-  const data = Array.from({ length: spec.rows }, (_, row) => Array.from({ length: spec.columns }, (_, column) => comparisonValue(row, column, spec.unique, spec.format)));
+  const data = Array.from({ length: spec.rows }, (_, row) => Array.from({ length: spec.columns }, (_, column) => comparisonValue(row, column, spec.unique, spec.format, spec.textProfile)));
   comparisonTable = new DataTable('#measurement', { data, order: [], deferRender: true, pageLength: 10,
     autoWidth: false, columns: Array.from({ length: spec.columns }, (_, column) => ({ title: (spec.format === 'pdf' ? 'Column' : 'Column ') + (column + 1), type: column % 3 === 1 ? 'string' : 'num' })),
     layout: { topStart: null, topEnd: null, bottomStart: null, bottomEnd: null } });
