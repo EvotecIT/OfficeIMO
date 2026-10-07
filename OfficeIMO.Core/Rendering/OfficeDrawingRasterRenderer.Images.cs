@@ -68,6 +68,8 @@ public static partial class OfficeDrawingRasterRenderer {
         if (identifiedManagedRaster) {
             if (!OfficeRasterImageDecoder.IsWithinPixelLimit(identified.Width, identified.Height, maximumRasterPixels)) {
                 image = null;
+                AddImageDecodeOmission(diagnosticSink, diagnosticSource,
+                    "The embedded image dimensions exceed the configured raster limit.");
                 if (imageCodec is RequiredImageCodec) throw new NotSupportedException(
                     "Raster rendering cannot decode the image within the raster limit.");
                 return false;
@@ -128,11 +130,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 requireManagedFrame: true, validateMetadata: true);
         if (identifiedManagedRaster && !callerDecodedJpeg ||
             OfficeImageReader.HasWebpSignature(bytes) || OfficeImageReader.HasAvifSignature(bytes, cancellationToken) || !callerCodecInputWithinLimit) {
-            diagnosticSink?.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted,
-                decodeInfo.Diagnostic ?? "The embedded image could not be decoded within the configured limits.",
-                diagnosticSource, OfficeConversionLossKind.Omission));
+            AddImageDecodeOmission(diagnosticSink, diagnosticSource,
+                decodeInfo.Diagnostic ?? "The embedded image could not be decoded within the configured limits.");
             if (imageCodec is RequiredImageCodec) throw new NotSupportedException(
                 "Raster rendering cannot decode the image within the managed raster limits.");
             return false;
@@ -182,6 +181,11 @@ public static partial class OfficeDrawingRasterRenderer {
             expectedWidth = identified.Height;
             expectedHeight = identified.Width;
         }
+        if (callerSucceeded && image != null &&
+            !OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) {
+            AddImageDecodeOmission(diagnosticSink, diagnosticSource,
+                "The caller-decoded image dimensions exceed the configured raster limit.");
+        }
         if (callerSucceeded && image != null && (!callerDecodedJpeg || (image.Width == expectedWidth && image.Height == expectedHeight)) &&
             OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) {
             transformedTextBudget.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
@@ -197,6 +201,13 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         return false;
     }
+
+    private static void AddImageDecodeOmission(
+        ICollection<OfficeImageExportDiagnostic>? diagnostics, string? source, string message) =>
+        diagnostics?.Add(new OfficeImageExportDiagnostic(
+            OfficeImageExportDiagnosticSeverity.Warning,
+            OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted,
+            message, source, OfficeConversionLossKind.Omission));
 
     private static bool IsSvg(byte[] bytes, string? contentType) =>
         OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg ||

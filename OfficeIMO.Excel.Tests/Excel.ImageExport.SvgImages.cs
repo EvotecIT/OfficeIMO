@@ -97,6 +97,40 @@ public sealed class ExcelSvgImageExportTests {
             : OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OversizedSourceImageReportsOmissionAndStrictPolicyRejectsIt(bool callerDecodedSvg) {
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Limited");
+        byte[] bytes = callerDecodedSvg
+            ? Encoding.UTF8.GetBytes(UnsupportedSvg)
+            : OfficePngWriter.Encode(new OfficeRasterImage(64, 64, OfficeColor.Red));
+        sheet.AddImage(1, 1, bytes, callerDecodedSvg ? "image/svg+xml" : "image/png", 16, 16, name: "Oversized");
+        var codec = new SolidCodec(64, 64);
+        var options = new ExcelImageExportOptions {
+            ShowGridlines = false, MaximumRasterPixels = 1_500, ImageCodec = codec
+        };
+
+        OfficeImageExportResult result = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(callerDecodedSvg ? 1 : 0, codec.Calls);
+        OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics,
+            d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted);
+        Assert.Equal("Limited!Oversized", diagnostic.Source);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
+        Assert.Equal(OfficeColor.White, image!.GetPixel(8, 8));
+
+        options.Policy = new OfficeImageExportPolicy { RequireNoOmissions = true };
+        OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+            sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options));
+        Assert.Contains(exception.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted &&
+            d.Source == "Limited!Oversized" && d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Equal(callerDecodedSvg ? 2 : 0, codec.Calls);
+    }
+
     private static void AddImage(ExcelDocument document, string svg) {
         ExcelSheet sheet = document.AddWorksheet("Svg");
         sheet.AddImage(1, 1, Encoding.UTF8.GetBytes(svg), "image/svg+xml", 32, 16, name: "Probe");
