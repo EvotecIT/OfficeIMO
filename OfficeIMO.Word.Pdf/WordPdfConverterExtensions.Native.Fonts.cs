@@ -209,8 +209,8 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    RegisterNativeFontCandidate(
-                        ResolveNativeParagraphStyleFontFamily(document, paragraph.StyleId),
+                    RegisterNativeFontCandidates(
+                        ResolveNativeParagraphStyleFontFamilies(document, paragraph.StyleId),
                         pdfOptions,
                         registeredFamilies,
                         registeredFontSlots,
@@ -220,34 +220,22 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static string? ResolveNativeParagraphStyleFontFamily(WordDocument? document, string? styleId) {
+        private static IEnumerable<string> ResolveNativeParagraphStyleFontFamilies(WordDocument? document, string? styleId) {
             IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(document, styleId);
-            string? familyName = null;
+            NativeLatinFontFamilies families = default;
             foreach (W.Style style in styleChain) {
                 W.RunFonts? runFonts = style.GetFirstChild<W.StyleRunProperties>()?.GetFirstChild<W.RunFonts>();
-                familyName = ResolveNativeRunFontsFamily(document, runFonts) ?? familyName;
+                families = GetNativeRunFontFamilies(document, runFonts).Inherit(families);
             }
 
-            return familyName;
+            return families.Enumerate();
         }
 
         private static string? ResolveNativeRunFontsFamily(WordDocument? document, W.RunFonts? runFonts) =>
             EnumerateNativeLatinFontFamilies(document, runFonts).FirstOrDefault();
 
-        private static IEnumerable<string> EnumerateNativeLatinFontFamilies(WordDocument? document, W.RunFonts? runFonts) {
-            if (runFonts == null) {
-                yield break;
-            }
-
-            // Theme selectors override literals within each slot. Keep both
-            // slots available so mapping can continue when ASCII is unavailable.
-            foreach (string? family in new[] {
-                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.AsciiTheme)), runFonts.Ascii?.Value),
-                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.HighAnsiTheme)), runFonts.HighAnsi?.Value)
-            }) {
-                if (!string.IsNullOrWhiteSpace(family)) yield return family!;
-            }
-        }
+        private static IEnumerable<string> EnumerateNativeLatinFontFamilies(WordDocument? document, W.RunFonts? runFonts) =>
+            GetNativeRunFontFamilies(document, runFonts).Enumerate();
 
         private static string? GetNativeThemeFontValue(DocumentFormat.OpenXml.EnumValue<W.ThemeFontValues>? value) {
             if (value == null) {

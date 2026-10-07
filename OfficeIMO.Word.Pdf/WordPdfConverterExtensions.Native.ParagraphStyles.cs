@@ -214,22 +214,18 @@ namespace OfficeIMO.Word.Pdf {
                     lineHeight ?? 0D,
                     ResolveNativeWordSingleLineHeight(
                         nativeFontMap,
-                        EnumerateNativeParagraphOwnFontFamilies(run).Concat(new[] {
-                            characterStyle.FontFamily,
-                            styleDefaults.FontFamily,
-                            tableRunStyleDefaults.FontFamily,
-                            nativeDefaults.FontFamily
-                        }).ToArray()));
+                        EnumerateNativeParagraphOwnFontFamilies(run).Concat(EnumerateNativeStyleFontFamilies(
+                            characterStyle, styleDefaults, tableRunStyleDefaults, nativeDefaults,
+                            nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true)).ToArray()));
             }
 
             if (lineHeight.HasValue) return lineHeight.Value;
             W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
             return ResolveNativeWordSingleLineHeight(
                 nativeFontMap,
-                ResolveNativeRunFontsFamily(paragraph._document, markFonts),
-                styleDefaults.FontFamily,
-                tableRunStyleDefaults.FontFamily,
-                nativeDefaults.FontFamily);
+                EnumerateNativeLatinFontFamilies(paragraph._document, markFonts).Concat(EnumerateNativeStyleFontFamilies(
+                    default, styleDefaults, tableRunStyleDefaults, nativeDefaults,
+                    nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true)).ToArray());
         }
 
         private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {

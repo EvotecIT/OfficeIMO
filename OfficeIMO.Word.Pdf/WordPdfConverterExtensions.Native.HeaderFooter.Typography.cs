@@ -101,14 +101,14 @@ namespace OfficeIMO.Word.Pdf {
                 return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.HeaderFont : options.PdfOptions.FooterFont);
             }
 
-            foreach (string? familyName in new[] {
-                options?.FontFamily,
-                GetNativeDocumentDefaults(document).FontFamily,
+            NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);
+            foreach (string? familyName in EnumerateNativeFontFamilies(options?.FontFamily, default)
+                .Concat(EnumerateNativeFontFamilies(defaults.FontFamily, defaults.FontFamilies)).Concat(new[] {
                 document.Settings.FontFamily,
                 document.Settings.FontFamilyHighAnsi,
                 document.Settings.FontFamilyEastAsia,
                 document.Settings.FontFamilyComplexScript
-            }) {
+            })) {
                 if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
                     return PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
                 }
@@ -332,14 +332,10 @@ namespace OfficeIMO.Word.Pdf {
                 yield return familyName;
             }
 
-            string? styleFamily = GetNativeParagraphStyleDefaults(paragraph).FontFamily;
-            if (!string.IsNullOrWhiteSpace(styleFamily)) {
-                yield return styleFamily!;
-            }
-
-            string? characterStyleFamily = GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).FontFamily;
-            if (!string.IsNullOrWhiteSpace(characterStyleFamily)) {
-                yield return characterStyleFamily!;
+            NativeParagraphStyleDefaults style = GetNativeParagraphStyleDefaults(paragraph);
+            NativeCharacterStyleDefaults character = GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph));
+            foreach (string family in EnumerateNativeStyleFontFamilies(character, style, default, default, includeDocument: false)) {
+                yield return family;
             }
 
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
@@ -351,9 +347,9 @@ namespace OfficeIMO.Word.Pdf {
                     yield return familyName;
                 }
 
-                string? runCharacterStyleFamily = GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run)).FontFamily;
-                if (!string.IsNullOrWhiteSpace(runCharacterStyleFamily)) {
-                    yield return runCharacterStyleFamily!;
+                NativeCharacterStyleDefaults runCharacterStyle = GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run));
+                foreach (string family in EnumerateNativeFontFamilies(runCharacterStyle.FontFamily, runCharacterStyle.FontFamilies)) {
+                    yield return family;
                 }
             }
         }
