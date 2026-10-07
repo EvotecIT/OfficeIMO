@@ -9,6 +9,9 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static readonly System.Collections.Generic.Dictionary<string, System.Lazy<SystemFontFamilyCacheEntry>> SystemFontFamilyCache =
         new(System.StringComparer.Ordinal);
     private static readonly object SystemFontFamilyCacheLock = new();
+    private static readonly System.Lazy<SystemFontMetadataIndex> SystemFontIndex = new(
+        BuildSystemFontMetadataIndex,
+        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
     /// Loads an installed TrueType font family from common operating-system font folders.
@@ -57,12 +60,37 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static SystemFontFamilyCacheEntry ResolveSystemFontFamily(string requestedFamily, string exposedFamily) {
-        bool found = TryFromSystemFontFiles(
-            requestedFamily,
-            EnumerateSystemTrueTypeFontFiles(),
-            out PdfEmbeddedFontFamily? fontFamily,
-            exposedFamily);
-        return new SystemFontFamilyCacheEntry(found ? fontFamily : null);
+        foreach (string candidate in OfficeIMO.Drawing.OfficeSystemFontFamilyAliases.Expand(requestedFamily)) {
+            System.Collections.Generic.IReadOnlyList<string> files = SystemFontIndex.Value.Find(NormalizeFamilyKey(candidate));
+            if (TryFromSystemFontFiles(candidate, files, out PdfEmbeddedFontFamily? family, exposedFamily))
+                return new SystemFontFamilyCacheEntry(family);
+        }
+        return new SystemFontFamilyCacheEntry(null);
+    }
+
+    private static SystemFontMetadataIndex BuildSystemFontMetadataIndex() {
+        var filesByFamily = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>(System.StringComparer.Ordinal);
+        var fallbackFiles = new System.Collections.Generic.List<string>();
+        int inspectedFiles = 0;
+        foreach (string path in EnumerateSystemTrueTypeFontFiles()) {
+            if (inspectedFiles++ >= MaxSystemFontFilesToInspect) break;
+            fallbackFiles.Add(path);
+            if (!TryReadSystemFontNameMetadata(path,
+                    out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces,
+                    out _) || metadataFaces == null) continue;
+            foreach (TrueTypeNameMetadata metadata in metadataFaces) {
+                foreach (string? name in metadata.GetFamilyNames().Concat(metadata.GetFaceNames())) {
+                    if (string.IsNullOrWhiteSpace(name)) continue;
+                    string key = NormalizeFamilyKey(name!);
+                    if (!filesByFamily.TryGetValue(key, out System.Collections.Generic.List<string>? files)) {
+                        files = new System.Collections.Generic.List<string>();
+                        filesByFamily.Add(key, files);
+                    }
+                    if (!files.Contains(path, System.StringComparer.OrdinalIgnoreCase)) files.Add(path);
+                }
+            }
+        }
+        return new SystemFontMetadataIndex(filesByFamily, fallbackFiles);
     }
 
     internal static bool TryFromSystemFontFiles(
@@ -181,7 +209,7 @@ public sealed partial class PdfEmbeddedFontFamily {
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) && metadata != null) {
                 int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
                 if (familyScore >= 0) {
-                    FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
+                    FontFaceKind kind = ClassifyMetadataFace(metadata, data, out int metadataScore);
                     candidate = new SystemFontFaceCandidate(path, kind, metadataScore + familyScore, data);
                     return true;
                 }
@@ -292,13 +320,19 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
         }
 
+        // Localized full and PostScript names remain accepted aliases, with
+        // lower priority than an explicit family-name match.
+        foreach (string alias in metadata.Aliases) {
+            if (IsMetadataFamilyNameMatch(alias, normalizedMetadataFamily)) return 0;
+        }
+
         return -1;
     }
 
     internal static bool IsMetadataFamilyNameMatch(string fontFamilyName, string requestedFamilyName) =>
         string.Equals(NormalizeFamilyKey(fontFamilyName), NormalizeFamilyKey(requestedFamilyName), System.StringComparison.Ordinal);
 
-    private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, out int score) {
+    private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, byte[] data, out int score) {
         string primaryStyle = NormalizeFamilyKey(metadata.TypographicSubfamilyName ?? metadata.SubfamilyName ?? string.Empty);
         string fallbackStyle = NormalizeFamilyKey(
             (metadata.PostScriptName ?? string.Empty) + " " +
@@ -306,7 +340,31 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         string style = primaryStyle.Length == 0 ? fallbackStyle : primaryStyle;
         FontFaceKind kind = ClassifyMetadataStyle(style, primaryStyle, out score);
+        // Name-table style labels may be localized; OS/2 flags identify the face independently of language.
+        if (TryReadSystemFontStyleFlags(data, out int weight, out bool bold, out bool italic, out bool oblique)) {
+            score = 120 - System.Math.Min(80, System.Math.Abs(weight - (bold ? 700 : 400)) / 10);
+            return bold
+                ? (italic || oblique ? FontFaceKind.BoldItalic : FontFaceKind.Bold)
+                : (italic || oblique ? FontFaceKind.Italic : FontFaceKind.Regular);
+        }
         return kind;
+    }
+
+    private static bool TryReadSystemFontStyleFlags(byte[] data, out int weight, out bool bold, out bool italic, out bool oblique) {
+        weight = 0;
+        bold = false;
+        italic = false;
+        oblique = false;
+        System.Collections.Generic.Dictionary<string, FontTableRecord> tables = ReadFontTableDirectory(data);
+        if (!tables.TryGetValue("OS/2", out FontTableRecord os2) || os2.Length < 64) return false;
+        int version = ReadUInt16(data, os2.Offset);
+        weight = ReadUInt16(data, os2.Offset + 4);
+        if (weight < 1 || weight > 1000) return false;
+        int selection = ReadUInt16(data, os2.Offset + 62);
+        bold = weight >= 600 || (selection & 0x20) != 0;
+        italic = (selection & 0x01) != 0;
+        oblique = version >= 4 && (selection & 0x200) != 0;
+        return true;
     }
 
     private static FontFaceKind ClassifyMetadataStyle(string style, string primaryStyle, out int score) {
@@ -518,91 +576,6 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
     }
 
-    private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) {
-        metadata = null;
-        nameTableAbsent = false;
-        try {
-            if (data.Length < 12) {
-                return false;
-            }
-
-            var tables = ReadFontTableDirectory(data);
-            if (!tables.TryGetValue("name", out FontTableRecord nameTable)) {
-                nameTableAbsent = true;
-                return false;
-            }
-
-            return TryReadTrueTypeNameTable(data, nameTable.Offset,
-                nameTable.Length, out metadata);
-        } catch (System.Exception exception) when (exception is System.NotSupportedException) {
-            return false;
-        }
-    }
-
-    private static bool TryReadTrueTypeNameTable(byte[] data, int offset,
-        int tableLength, out TrueTypeNameMetadata? metadata) {
-        metadata = null;
-        try {
-            EnsureRange(data, offset, tableLength);
-            var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
-            var familyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            var typographicFamilyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            int count = ReadUInt16(data, offset + 2);
-            if (count > MaxSystemFontNameRecords || 6L + count * 12L > tableLength) {
-                return false;
-            }
-            int stringOffset = offset + ReadUInt16(data, offset + 4);
-            int decodedNameBytes = 0;
-            for (int i = 0; i < count; i++) {
-                int record = offset + 6 + i * 12;
-                EnsureRange(data, record, 12);
-                int platformId = ReadUInt16(data, record);
-                int encodingId = ReadUInt16(data, record + 2);
-                int languageId = ReadUInt16(data, record + 4);
-                int nameId = ReadUInt16(data, record + 6);
-                if (nameId != 1 && nameId != 2 && nameId != 4 && nameId != 6 && nameId != 16 && nameId != 17) {
-                    continue;
-                }
-
-                int length = ReadUInt16(data, record + 8);
-                int valueOffset = stringOffset + ReadUInt16(data, record + 10);
-                EnsureRange(data, valueOffset, length);
-                if (length > MaxSystemFontDecodedNameBytes - decodedNameBytes) {
-                    return false;
-                }
-                decodedNameBytes += length;
-                string? value = DecodeNameValue(data, valueOffset, length, platformId, encodingId);
-                if (string.IsNullOrWhiteSpace(value)) {
-                    continue;
-                }
-
-                string trimmedValue = value!.Trim();
-                if (nameId == 1) {
-                    familyAliases.Add(trimmedValue);
-                } else if (nameId == 16) {
-                    typographicFamilyAliases.Add(trimmedValue);
-                }
-                int score = GetNameValueScore(platformId, languageId);
-                if (!names.TryGetValue(nameId, out TrueTypeNameValue? existing) || score > existing.Score) {
-                    names[nameId] = new TrueTypeNameValue(trimmedValue, score);
-                }
-            }
-
-            metadata = new TrueTypeNameMetadata(
-                GetName(names, 1),
-                GetName(names, 2),
-                GetName(names, 4),
-                GetName(names, 6),
-                GetName(names, 16),
-                GetName(names, 17),
-                familyAliases,
-                typographicFamilyAliases);
-            return true;
-        } catch (System.Exception exception) when (exception is System.NotSupportedException) {
-            return false;
-        }
-    }
-
     private static System.Collections.Generic.Dictionary<string, FontTableRecord> ReadFontTableDirectory(byte[] data) {
         int numTables = ReadUInt16(data, 4);
         var tables = new System.Collections.Generic.Dictionary<string, FontTableRecord>(System.StringComparer.Ordinal);
@@ -623,35 +596,6 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         return tables;
     }
-
-    private static string? DecodeNameValue(byte[] data, int offset, int length, int platformId, int encodingId) {
-        if (platformId == 3 || platformId == 0) {
-            return length % 2 == 0
-                ? System.Text.Encoding.BigEndianUnicode.GetString(data, offset, length).TrimEnd('\0')
-                : null;
-        }
-
-        if (platformId == 1 && encodingId == 0) {
-            return System.Text.Encoding.ASCII.GetString(data, offset, length).TrimEnd('\0');
-        }
-
-        return null;
-    }
-
-    private static int GetNameValueScore(int platformId, int languageId) {
-        if (platformId == 3) {
-            return languageId == 0x0409 ? 50 : (languageId & 0x03ff) == 0x0009 ? 40 : 20;
-        }
-
-        if (platformId == 0) {
-            return 30;
-        }
-
-        return 10;
-    }
-
-    private static string? GetName(System.Collections.Generic.Dictionary<int, TrueTypeNameValue> names, int nameId) =>
-        names.TryGetValue(nameId, out TrueTypeNameValue? value) ? value.Value : null;
 
     private static ushort ReadUInt16(byte[] data, int offset) {
         EnsureRange(data, offset, 2);
@@ -704,70 +648,25 @@ public sealed partial class PdfEmbeddedFontFamily {
         public PdfEmbeddedFontFamily? FontFamily { get; }
     }
 
-    private sealed class TrueTypeNameMetadata {
-        public TrueTypeNameMetadata(
-            string? familyName,
-            string? subfamilyName,
-            string? fullName,
-            string? postScriptName,
-            string? typographicFamilyName,
-            string? typographicSubfamilyName,
-            System.Collections.Generic.IReadOnlyCollection<string> familyAliases,
-            System.Collections.Generic.IReadOnlyCollection<string> typographicFamilyAliases) {
-            FamilyName = familyName;
-            SubfamilyName = subfamilyName;
-            FullName = fullName;
-            PostScriptName = postScriptName;
-            TypographicFamilyName = typographicFamilyName;
-            TypographicSubfamilyName = typographicSubfamilyName;
-            FamilyAliases = familyAliases;
-            TypographicFamilyAliases = typographicFamilyAliases;
+    private sealed class SystemFontMetadataIndex {
+        private readonly System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.List<string>> _filesByFamily;
+        private readonly System.Collections.Generic.IReadOnlyList<string> _allFiles;
+
+        internal SystemFontMetadataIndex(
+            System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.List<string>> filesByFamily,
+            System.Collections.Generic.IReadOnlyList<string> allFiles) {
+            _filesByFamily = filesByFamily;
+            _allFiles = allFiles;
         }
 
-        public string? FamilyName { get; }
-
-        public string? SubfamilyName { get; }
-
-        public string? FullName { get; }
-
-        public string? PostScriptName { get; }
-
-        public string? TypographicFamilyName { get; }
-
-        public string? TypographicSubfamilyName { get; }
-        public System.Collections.Generic.IReadOnlyCollection<string> FamilyAliases { get; }
-        public System.Collections.Generic.IReadOnlyCollection<string> TypographicFamilyAliases { get; }
-
-        public System.Collections.Generic.IEnumerable<string?> GetFaceNames() {
-            yield return FullName;
-            yield return PostScriptName;
-            yield return CombineFamilyAndSubfamily(TypographicFamilyName, TypographicSubfamilyName);
-            yield return CombineFamilyAndSubfamily(FamilyName, SubfamilyName);
+        internal System.Collections.Generic.IReadOnlyList<string> Find(string normalizedFamily) {
+            if (_filesByFamily.TryGetValue(normalizedFamily, out System.Collections.Generic.List<string>? files)) return files;
+            string[] prefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
+            return _allFiles.Where(path => {
+                string fileName = NormalizeFamilyKey(System.IO.Path.GetFileNameWithoutExtension(path));
+                return prefixes.Any(prefix => fileName.StartsWith(prefix, System.StringComparison.Ordinal));
+            }).ToArray();
         }
-
-        private static string? CombineFamilyAndSubfamily(string? familyName, string? subfamilyName) {
-            if (string.IsNullOrWhiteSpace(familyName)) {
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(subfamilyName) ||
-                string.Equals(subfamilyName, "Regular", System.StringComparison.OrdinalIgnoreCase)) {
-                return familyName;
-            }
-
-            return familyName + " " + subfamilyName;
-        }
-    }
-
-    private sealed class TrueTypeNameValue {
-        public TrueTypeNameValue(string value, int score) {
-            Value = value;
-            Score = score;
-        }
-
-        public string Value { get; }
-
-        public int Score { get; }
     }
 
     private readonly struct FontTableRecord {

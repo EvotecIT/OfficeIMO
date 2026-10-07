@@ -11,6 +11,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Update="Assets/FixtureMath.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(EnableOfficeIMOHtmlPackageSmoke)' == 'true'">
     <PackageReference Include="OfficeIMO.Markdown.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
@@ -18,6 +22,7 @@
     <PackageReference Include="OfficeIMO.Excel.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.PowerPoint.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Html.Rtf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Mhtml.Pdf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Html.Pdf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
   </ItemGroup>
 

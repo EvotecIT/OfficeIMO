@@ -1,0 +1,1348 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-02T06:35:57.873424+00:00",
+  "scope": "Source-grounded reassessment and documentation checkpoint; no runtime code, dependency upgrade, PR, merge or release.",
+  "source": {
+    "integrationAndH10HeadBeforeDocumentation": "6f5d0a685710ccb8e742cb27a71e9f75dbbcc9e0",
+    "master": "79c9f5bd3fb6e24fbedf78eecd44f607b522fa77",
+    "commitsAheadOfMasterBeforeDocumentation": 762,
+    "staticQualificationSourceClean": {
+      "corpusId": "officeimo-static-html-pdf-gaps",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+      "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+      "commit": "6f5d0a685710ccb8e742cb27a71e9f75dbbcc9e0",
+      "worktreeDirty": false,
+      "caseCount": 18
+    },
+    "mathAuto": {
+      "branch": "fix/html-math-auto",
+      "base": "6f5d0a685710ccb8e742cb27a71e9f75dbbcc9e0",
+      "stagedFiles": 22,
+      "diffFingerprint": "a7280a9a1b4516754b1125bdd6c35d550489c921",
+      "state": "Preserved staged candidate; focused/browser evidence only, no independent review or broad qualification yet."
+    }
+  },
+  "decision": {
+    "retainProviders": [
+      "AngleSharp",
+      "AngleSharp.Css",
+      "AngleSharp.Js",
+      "Jint"
+    ],
+    "officeImoOwners": [
+      "Document and conversion contracts",
+      "Resource policy",
+      "Layout, pagination and scene integration",
+      "Core raster/typography/math/SVG",
+      "PDF and editable format adapters",
+      "Runtime host and capture policy"
+    ],
+    "removedDeliveryOutcomes": [
+      "H5 default owned HTML parser",
+      "H6 third-party-free static distribution",
+      "H9 owned JavaScript runtime"
+    ],
+    "planOwner": "Docs/ROADMAP.md#independent-html-engine",
+    "architectureOwner": "Docs/officeimo.html-engine-design.md",
+    "assessment": "Continue the existing renderer architecture; change delivery order toward owner extractions and finite static qualification. Retain useful owned syntax and DOM APIs without duplicating upstream engines."
+  },
+  "validation": {
+    "environment": {
+      "osDescription": "macOS 27.0.1",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "officeImoVersion": "3.4.4+6f5d0a685710ccb8e742cb27a71e9f75dbbcc9e0",
+      "peachPdfVersion": "0.9.20",
+      "htmlTinkerXVersion": "3.0.1",
+      "chromiumVersion": "151.0.7922.34",
+      "externalPdfRasterizer": "pdftoppm version 26.09.0"
+    },
+    "htmlNet10": {
+      "total": 4097,
+      "executed": 4097,
+      "passed": 4097,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "h4": {
+      "source": {
+        "corpusId": "officeimo-html-h4-advanced-held-out",
+        "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+        "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "commit": "6f5d0a685710ccb8e742cb27a71e9f75dbbcc9e0",
+        "worktreeDirty": false,
+        "caseCount": 8
+      },
+      "passed": true,
+      "cases": 8,
+      "reportSha256": "adcb17f4d8dc22b96e4b0a34cd1d97008c256a389ade000d69220ebdd458d81d",
+      "failureCount": 0,
+      "criteriaUnchanged": true
+    },
+    "static18": {
+      "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+      "frozenInputsVerified": [
+        {
+          "id": "webp-raw-filters",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "webp-compressed-filters",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "avif-opaque",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "avif-alpha",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "page-float-top",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "page-float-bottom",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "page-float-snap",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "column-float-left",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "column-float-top",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "column-float-bottom",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "column-notes",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "language-hyphenation",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "svg-patterns",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "svg-filter-graph",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "svg-resources",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "svg-resource-denied",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "mathml-semantics",
+          "sha256Matches": true,
+          "bytesMatch": true
+        },
+        {
+          "id": "pdf-conformance",
+          "sha256Matches": true,
+          "bytesMatch": true
+        }
+      ],
+      "runnerFailureCount": 0,
+      "officeImoPrintMarkersPresentCases": 18,
+      "independentInspector": "pypdf; page-content Do/inline-image placements, recursively through Form XObjects, excluding soft masks; distinct from unique image definitions. Poppler extraction/rasterization in runner.",
+      "allOfficeImoRequiredLinksAndMinimumImagePlacements": true,
+      "cases": [
+        {
+          "id": "webp-raw-filters",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "87bcb845ce85fb1f4a7171a2ed804c298aefad85c07a8c938846e1424d33d12a",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 8,
+              "minimumImageOccurrences": 8,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "dca07ca4172edad0253b85b22c82ff41ec5add11667455a7e3584da7f56cd907"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "fa24a4ef134c0a78d244add2234e96d58e603bb786aa52a680c6f33fe3519f48",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 8,
+              "minimumImageOccurrences": 8,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "dca07ca4172edad0253b85b22c82ff41ec5add11667455a7e3584da7f56cd907"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "0046b2e540780dea3ec215efe8d8912ec6e873e36b0a1378b71cec8a49fd7205",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 8,
+              "minimumImageOccurrences": 8,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "dca07ca4172edad0253b85b22c82ff41ec5add11667455a7e3584da7f56cd907"
+            }
+          ]
+        },
+        {
+          "id": "webp-compressed-filters",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "2f174bf075d5dd2c96c46f414f694fd2fc17396eab7e9f8e15307bf580ef49d6",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 8,
+              "minimumImageOccurrences": 8,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "ea5dfe3052338f878b20efb3d551c599a9140a4a85b5183261d9377b81d89ca0"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "747d538eb62126fa6ab3a99642fb5253856645d4a10d8e662ce81526f1448343",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 8,
+              "minimumImageOccurrences": 8,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "ea5dfe3052338f878b20efb3d551c599a9140a4a85b5183261d9377b81d89ca0"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "64471f1b801286a2587cd660069b255eb8a641378f74557c0b624c3ebe12c25e",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 8,
+              "minimumImageOccurrences": 8,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "ea5dfe3052338f878b20efb3d551c599a9140a4a85b5183261d9377b81d89ca0"
+            }
+          ]
+        },
+        {
+          "id": "avif-opaque",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "e4179493796a7b1ffee04318d6ca5f463ab203e338d1018c084a9a771df5a8ee",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 2,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "fa29a228dfaf9a1766521ef690a020437d6ad76a8dc34a21204a7aa0efd1d003"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "a73a306ef3787e0daf7b1345e1e884a31abc0ea618bc586683c3b61020f77eb3",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 2,
+              "minimumImagesMet": false,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "fa29a228dfaf9a1766521ef690a020437d6ad76a8dc34a21204a7aa0efd1d003"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "cddfa5867b6f136c07d918487c812423afece250cd7ada1cf10ee7a939bd4d80",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 2,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "fa29a228dfaf9a1766521ef690a020437d6ad76a8dc34a21204a7aa0efd1d003"
+            }
+          ]
+        },
+        {
+          "id": "avif-alpha",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "e0b060a133c63439589e81a0f625759b0ebb5564100227a86a1a08d40fea0dc7",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 2,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "abbe91c2a87d4d75edd60355148f72c61131db26150d0a48f95bb87199e201b8"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "5c5c2ce095ffdfaa9964b3c84710179576fee954e33479abf900d7ad2f903bc2",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 2,
+              "minimumImagesMet": false,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "abbe91c2a87d4d75edd60355148f72c61131db26150d0a48f95bb87199e201b8"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "cb2a0e2d03e1b0d65cbd07a523a5b59d72c546ca5528cd072adc97811e2fea35",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 2,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "abbe91c2a87d4d75edd60355148f72c61131db26150d0a48f95bb87199e201b8"
+            }
+          ]
+        },
+        {
+          "id": "page-float-top",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 2,
+              "sha256": "a43917cc9f6a4bdc114665dfab8336bcb587147d7c7712704929deee57e01cbc",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "e8626dde0e140c8332fe694f9dcb5e1c276d446a3d51febe4c015b54decf5b09"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 2,
+              "sha256": "9fcaa63ca00bf5a55b5ba95522e8cd74ada326052ac3c6f66496c567c826e007",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "4194aa88b707326f738b01dc01eb366a8d1665fc644d39576e8af091091c95cb"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 2,
+              "sha256": "e9223ab323e870f1487d5ca8f0682def0338b7b32914e41a5c2e86fa1dcc3883",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "86046cf42c0ec7c146c031b6b7d3d3fcb2b5b241d6497b4470545c4ed2792f00"
+            }
+          ]
+        },
+        {
+          "id": "page-float-bottom",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 2,
+              "sha256": "4940aa09bcba5d51ee1948ef64c6e490f065485525669f7b5423b84170ac5c69",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "a5dad3dc0addd015a4e1be438310bbf7019d52209ab98272331ed31574844c25"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 2,
+              "sha256": "819e83490575f567eb76e775bfe026b253abc9fa24b498cf771ad2229da159c1",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "8f61cc8e4437ffa32cb9896f45ede901e3407c20c0de6d106ab572da8deb94e9"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 2,
+              "sha256": "21225e45f521a2abe32360de59c3d13af69e26778e5678ea48b2e8ddae2e84bb",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "09421d2d3c302178869aa94a91beecd09ef6754604d628b2859fc305715c765c"
+            }
+          ]
+        },
+        {
+          "id": "page-float-snap",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 2,
+              "sha256": "642b70082319e18834a5516480db5e47651ca2cb87eb38db71ad9c8f93072570",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "024b699f8596bfa17e2de22ef085ac41e35c8615a7fa4a49cfa3fbead4d74e1a"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 2,
+              "sha256": "5f6f198e47965e975f3c3e26973062070e90760cdda65722c8cf5c64526fd858",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "fe0c700d23149adc4d213ca7b2289dfe521f63fb59010c88ad5a5099cdd8e37d"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 2,
+              "sha256": "abe6c1222752e4db232cceb1e6aba880e398473e5043e71c4caa2754ebdd7a7c",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "f8e6dfed7076d678b4d9e26cce494a70388c150a879a19ceb684d9dbf5d56a85"
+            }
+          ]
+        },
+        {
+          "id": "column-float-left",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "9094f79744136e3385123d54ef355572dbc1c43580239dcd3555a778f469e1b5",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "5b16e2beec6f167a00ef30bb338ffb2df96e75f3e5db1160c77ee16242becf35"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "721b1185455acfa5a7d1405b561621ac177388ee7d38122eeead26ffaa7c3b80",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "2417d881cf7c186851bc120bdcdebb0a3e77097acdf0fa51fa53bebe615b7aad"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "939ff98ec51a13d163599cdea25e851a745b5318b660e92b2f459ca42369d74c",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "15629ac012522955994d2cff86b17537f2cbef9d6e8cc104ea637ba942af91da"
+            }
+          ]
+        },
+        {
+          "id": "column-float-top",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 2,
+              "sha256": "7105b32841ec474ab3330afc7a296f872b3918a60edfb1b50bc3379564393cda",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "67273537f6e5dfb590085c9dd9fa89c23a6ecacec294b64461d3e0100b1a0222"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "2aa6074a066300513133c6c43149e2c409dce70242579639d0afa1b749a2332d",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "80d735f5e5c75600c5cf34a28007a80344e6ce326f6a7ee17426bf2097a81807"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "b8d0d94bd5cb16d243913eb50193c970bf1f8078f4432ecfe445bd9dcc7d29ad",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": false,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "bff1a90190ff4a028bb1071d380f101d8980ba5d153bfdd30adf673579e77332"
+            }
+          ]
+        },
+        {
+          "id": "column-float-bottom",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 2,
+              "sha256": "183a76d4ba093c87f0251416ece30f1a2e5c707e52c2821e8e9bd92d0a41c7d6",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "6496cc9f2d4b8e1988e4eb06daedcee4e34d6eaa1c416cc1a22f2f99a2fc8ac4"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "89c82dee38f228c3da7e5a65d65ae288a5f740d4fac444fcd06f3504a5c8da35",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/column-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "ca944dcaf489f8ad087141441787dc90ed5dcb4752e4f497e1ff34ae44308c9b"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "8e9b2b5df6f4a02c6c80bfd6404dfb599c57b2c15180bbaa219a8c182d65d7da",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": false,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "d66c0da639d34b4910fe339158b66cb3c389c242a591d12f3f6016d8db46f3c9"
+            }
+          ]
+        },
+        {
+          "id": "column-notes",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 3,
+              "sha256": "f40f2c3b69285ef3f2ab5debe18e55b4105b194eab3f5e849410c2e862edad35",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "485151688c9315137674de3480d580ce4a098333498a744601dadddbbb554ee0"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "1bc65c23b9aff3e095dfcd44c3524533fb1ce83e0cc26cad274a260778835e84",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "6e55f22fae6bfc2ef6bb67014afeae95f2d2df99a2b2666c2bbc470a4de1d5a2"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "73e3df7d2b1e9875d66d26e8898c516ed093f2baa83379119990c6b2765a1dca",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "0d6c3543e1107108adda264773d12eba14a3acd30bf9af18fba7417baf8f5c45"
+            }
+          ]
+        },
+        {
+          "id": "language-hyphenation",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "a586783ea07f5697966000fbec9287e1912b504b1bdea00ece0eec05e6a33804",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "d3be99fcd7bada5ebe3a2c3027f5fdf11fc18db0230903edd5e89a6baa0221f2"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "28b0fc8b14ce4ba1cbbcc6ce14a10db41c0f3d136144a204bc1896bcb529489e",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "51d847ecb1803f12d7629c1c52ed9c6657c0bea2009069ffa295c33b09cb9542"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "d2a8d1317c6de5e2a63dd9c8323f6f8a85a63b560ff2bddce28102cc31f640fb",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "8b5107bd4d032ec1e268bd0994d15014ec0cb0dbae5db9cbf3ff38970626fed0"
+            }
+          ]
+        },
+        {
+          "id": "svg-patterns",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "bef46c8ce493cfffa5ccfad42e137120525719b0ea79a7997f358e3d2c9dbb57",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "133365f57cfb9c65ad4ef49466ce9b529ffaea9cecf3e28aae210054de5be1b8"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "74882cc8493771d9fc1611fcf8b7252af6719850e9da9b66f1f6b8d5d224170e",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "133365f57cfb9c65ad4ef49466ce9b529ffaea9cecf3e28aae210054de5be1b8"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "c1d1554ef865cb5ba3d1669119163be4f72a96e2380f5447b4bf9fcae8efef65",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "133365f57cfb9c65ad4ef49466ce9b529ffaea9cecf3e28aae210054de5be1b8"
+            }
+          ]
+        },
+        {
+          "id": "svg-filter-graph",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "f4e40be74838a91f7a66d2e718ab88a038258dfbc0ba9843626ea2b295aa82f6",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "5a0ac5c781c315195e2cf420cb23af3ee5b9da2d5c19a59528ad28fbe0233b21"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "51181281c7e4983541ff2a98030e3cdcb50614e73fbb6c03cbc5ee46b974c7ad",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "5a0ac5c781c315195e2cf420cb23af3ee5b9da2d5c19a59528ad28fbe0233b21"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "9176593a2a1de986b77ccbe4fd2c919d5adaeb1afbc742fe61b9bca8dea023c5",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 2,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "5a0ac5c781c315195e2cf420cb23af3ee5b9da2d5c19a59528ad28fbe0233b21"
+            }
+          ]
+        },
+        {
+          "id": "svg-resources",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "0b718852e088082bd68901c4e995768d52bf2058d46cfee5f5a29183c7ff5934",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/svg-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "86483dee5066a54683769767290c251d637acde8df94b80efcc2c4f2b59944f3"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "a7e7d59f125c673413f72c34ea47bbe2cdc81bf0eba26978828bafb23a763a00",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/svg-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "86483dee5066a54683769767290c251d637acde8df94b80efcc2c4f2b59944f3"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "fc00e0363657913a2f1346eae41c66552ab0853d3e3cefdaf8153cc117f7d32f",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/svg-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "86483dee5066a54683769767290c251d637acde8df94b80efcc2c4f2b59944f3"
+            }
+          ]
+        },
+        {
+          "id": "svg-resource-denied",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "455a1832503740adf5be62ef7a9779bd42873e2bad9486e882032d7fe1cccdb3",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "435f4dda6cea170b72292d34ef7d3256c7d1e60373cb725d9760eabcb42b6754"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "fb4d3fe79810952f2a8df421f522cc9fce34fa2fc18ec60eaf46f0339ba55fc2",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "435f4dda6cea170b72292d34ef7d3256c7d1e60373cb725d9760eabcb42b6754"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "7ace1b22762be757348a7e86111c9a46f0c610f300a576b6fe90d6d32b31af96",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 1,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "435f4dda6cea170b72292d34ef7d3256c7d1e60373cb725d9760eabcb42b6754"
+            }
+          ]
+        },
+        {
+          "id": "mathml-semantics",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "6c8fd0111b58c31ff0ee7bb24696e322d802721f12d2f131aa562a05d07a07e2",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/math-link"
+              ],
+              "formulas": [
+                {
+                  "alt": "x squared plus y over two",
+                  "associatedFiles": [
+                    {
+                      "sha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+                      "bytes": 183,
+                      "relationship": "/Supplement"
+                    }
+                  ]
+                }
+              ],
+              "pypdfExtractedTextSha256": "82ef4aeb8aa3bad405f0e8c6b44699fae90c3c6d2649049d265281c4a3df4431"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "c9fe6d48038f4d5ac9d6f361aa4702c16fe927bfd3b0e36f1ee4e61a5b6f6ca6",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/math-link"
+              ],
+              "formulas": [
+                {
+                  "alt": "",
+                  "associatedFiles": [
+                    {
+                      "sha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+                      "bytes": 183,
+                      "relationship": "/Supplement"
+                    }
+                  ]
+                }
+              ],
+              "pypdfExtractedTextSha256": "c593050bb8929a8cf26b061496a6efb3b2d436bd0da9b6644aedc840b837d17f"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "9c6c96049f1811105765ae015cae38a619db1d2dcca809fdd70b60ddc532cefa",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/math-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "ed76d9ae9f7bf6f86b53207497e635e5acfabcfefdd86237af7c543283dd1253"
+            }
+          ]
+        },
+        {
+          "id": "pdf-conformance",
+          "failures": [],
+          "engines": [
+            {
+              "engine": "OfficeIMO",
+              "pages": 1,
+              "sha256": "317dafe6b44cb113e7f0e011179cda4cb6ee0b684aa0c5bec1d8ad5404c42b1e",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/math-link"
+              ],
+              "formulas": [
+                {
+                  "alt": "x squared plus y over two",
+                  "associatedFiles": [
+                    {
+                      "sha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+                      "bytes": 183,
+                      "relationship": "/Supplement"
+                    }
+                  ]
+                }
+              ],
+              "pypdfExtractedTextSha256": "66ec01b130da692c8760505da501093948a6beba13925519c4a09b84d029167e"
+            },
+            {
+              "engine": "PeachPDF",
+              "pages": 1,
+              "sha256": "76b73471f40157c86cb06d5fef48b040f3421ca38037f13f50c7545da8354a93",
+              "reportedMissingPrintMarkers": [],
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/math-link"
+              ],
+              "formulas": [
+                {
+                  "alt": "",
+                  "associatedFiles": [
+                    {
+                      "sha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+                      "bytes": 183,
+                      "relationship": "/Supplement"
+                    }
+                  ]
+                }
+              ],
+              "pypdfExtractedTextSha256": "a30e26180fa93521e215c2d7b9895dd64aadf59d0c5edbb29849d91a1fdbf8d2"
+            },
+            {
+              "engine": "Chromium",
+              "pages": 1,
+              "sha256": "48e51a1a5b86e94053fc9dad12ec8efe1f683081fd73c7b3a5dd8435d0859701",
+              "reportedMissingPrintMarkers": null,
+              "pdfImageOccurrences": 0,
+              "minimumImageOccurrences": 0,
+              "minimumImagesMet": true,
+              "requiredLinksMet": true,
+              "uriLinks": [
+                "https://example.test/math-link"
+              ],
+              "formulas": [],
+              "pypdfExtractedTextSha256": "6a73f24c6736079f1415c0969625e64dafed3a21ebbbd9040d4b7fdf92055896"
+            }
+          ]
+        }
+      ],
+      "acceptanceLimit": "Observation/structural checks only; no new all-page geometry/color acceptance, full-text equivalence or formal conformance claim. Known provider-specific behavior and untested criteria remain explicit.",
+      "visualSpotCheck": "Inspected current OfficeIMO and Chromium MathML print rasters; math-auto/full MATH scope remains open. No new UI/layout fix in this checkpoint."
+    },
+    "runtime": {
+      "rootSdk": "10.0.112",
+      "rootSdkResult": "Build fails CS9057: source generator references Roslyn 5.6 while selected compiler is 5.0.",
+      "owningPin": "External/Jint/Directory.Packages.props Microsoft.CodeAnalysis.CSharp 5.6.0",
+      "compatibleInstalledSdk": "10.0.401",
+      "compatibleCompiler": "5.9.0-1.26423.113",
+      "selection": "Task-local ignored global.json; product global.json unchanged.",
+      "compatibleSdkTests": {
+        "total": 44,
+        "executed": 44,
+        "passed": 44,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "filter": "RuntimeProviderConformanceTests|RuntimeSessionTests|RuntimeNavigationTests",
+      "limit": "44 focused tests, not full runtime suite/platform/worker-package qualification."
+    },
+    "historicalEvidenceChecked": [
+      {
+        "path": "pdf-structure-associated-file-qualification.json",
+        "sha256": "97ece1103a1b6e0345b57f788f242ddf45a554bb92e756a364ab93e52c9caf34",
+        "recordedSource": "062d6b03d7a10d20d7764947b8710f3188811780",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "language-hyphenation-checkpoint.json",
+        "sha256": "06be4fdfc90782fb16eccd3af2f1c91d21ddc66ac7389bfad1a6303957001f4c",
+        "recordedSource": "674f67167b74eafa0f0ec91a34b94f67eafdb82e",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "svg-symbol-checkpoint.json",
+        "sha256": "eebacc1d7456b10e4499fac397bf342997a9a1b8cbeaa835cbfd9fa206cad03d",
+        "recordedSource": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "svg-filter-graph-checkpoint.json",
+        "sha256": "b4167f4aaf3d3235108c4f78b28c6e9324f471d7ca472e7d84b000689334edaa",
+        "recordedSource": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "avif-full-header-checkpoint.json",
+        "sha256": "67c4856604b69c92ecd798a0ef3dc5f47f5e738392bb60e2e0f3fd608655813f",
+        "recordedSource": "6594a706c33330e64a3e8590e318f70b493c76f0",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "mathml-geometry-qualification.json",
+        "sha256": "1e14baff5d40c6d684a8c8d69b3b455106542964ab14282ca5c4c8387305fc90",
+        "recordedSource": "345893cd87a8d9158b54675d3d568bd8400d3933",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "mathml-source-associated-file-qualification.json",
+        "sha256": "6aa6b1127ca492bae8b2590a183af7633206863e752d46810b26ccf48cd7aed0",
+        "recordedSource": "acfe39e8aee338680caf5b375a9e59b8b8e69219",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "mathml-default-font-qualification.json",
+        "sha256": "67f43b83b37b219bfcee46fadae4d4e50bc5de7885dc5779248ca0ba364c1fa7",
+        "recordedSource": "754c1112ab20ac3ffe2dce39e79246a8d302b80c",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "mathml-pdf-font-policy-qualification.json",
+        "sha256": "a1d74c29ca70fc0a5bced34720294544a32ae72b649cf9fb318d5253f1b6eb1f",
+        "recordedSource": "8b06d7e8bafb6508dda4a826738efb1c5704b532",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      },
+      {
+        "path": "static-package-baseline-qualification.json",
+        "sha256": "6572e76b60b4a5d3c9a46de29aca0f72c83441a4937af3f6231bd92d33bd73a8",
+        "recordedSource": "aeb7f38e7b5bf9d749d750106828ed4d8ef3926a",
+        "sourceIsAncestor": true,
+        "qualificationRemainsAtRecordedBoundary": true
+      }
+    ],
+    "notRerun": [
+      "Full net8 suites",
+      "Drawing/PDF full suites",
+      "Windows/Linux/native net472",
+      "H10 timing/allocation budgets",
+      "All NASA intents",
+      "Package publication or fresh complete package qualification"
+    ],
+    "commands": [
+      "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter Category!=Performance",
+      "dotnet build OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0",
+      "dotnet <built-comparison-dll> html-corpus-evidence --corpus static-gaps --require-clean-source --output <task-output>/static-gaps",
+      "dotnet <built-comparison-dll> html-corpus-evidence --corpus advanced-held-out --require-clean-source --verify-acceptance --output <task-output>/h4",
+      "dotnet test <absolute-runtime-test-project> -c Release -f net10.0 --filter FullyQualifiedName~RuntimeProviderConformanceTests|FullyQualifiedName~RuntimeSessionTests|FullyQualifiedName~RuntimeNavigationTests (from task-local SDK 10.0.401 selection)",
+      "Independent pypdf inspection script retained in task output: inspect-artifacts.py"
+    ],
+    "documentationChecks": {
+      "localLinkedFilesExist": true,
+      "diffWhitespaceCheckPassed": true,
+      "humanAuthoredRoadmapAndDesign": true,
+      "generatedSupportClaimsChanged": false,
+      "localCodeReview": "Not selected: documentation and evidence only; no runtime implementation change."
+    }
+  },
+  "providerSnapshot": {
+    "staticPins": {
+      "AngleSharp": "1.7.1",
+      "AngleSharp.Css": "1.0.1"
+    },
+    "runtimeGitlinks": {
+      "AngleSharp": "ac1b3d83b4b6cc66d4b7736e106c6d5c98208553",
+      "AngleSharp.Js": "01df7181bc933fff3d21c5f06d40ea7888004111",
+      "Jint": "2339be034e48b1f2195987fff27cda225582b7b7"
+    },
+    "jintConsumer": "4.16 backport Host.CanExecuteJob; not migrated to merged Engine.Advanced.Retire contract.",
+    "packages": {
+      "officeimo.core": {
+        "latestStable": "3.4.4",
+        "latestListed": "3.4.4"
+      },
+      "officeimo.html": {
+        "latestStable": "3.4.4",
+        "latestListed": "3.4.4"
+      },
+      "officeimo.html.core": {
+        "latestStable": "3.4.4",
+        "latestListed": "3.4.4"
+      },
+      "officeimo.html.anglesharp": {
+        "latestStable": "3.4.4",
+        "latestListed": "3.4.4"
+      },
+      "officeimo.html.pdf": {
+        "latestStable": "3.4.4",
+        "latestListed": "3.4.4"
+      },
+      "officeimo.html.runtime": {
+        "queryError": "HTTP Error 404: The specified blob does not exist."
+      },
+      "anglesharp": {
+        "latestStable": "1.8.3",
+        "latestListed": "1.8.3"
+      },
+      "anglesharp.css": {
+        "latestStable": "1.1.2",
+        "latestListed": "1.1.3-beta.330"
+      },
+      "anglesharp.js": {
+        "latestStable": "1.1.0",
+        "latestListed": "1.1.1-beta.169"
+      },
+      "jint": {
+        "latestStable": "4.16.4",
+        "latestListed": "4.16.4"
+      },
+      "peachpdf": {
+        "latestStable": "0.9.20",
+        "latestListed": "0.9.20"
+      }
+    },
+    "packageAvailabilityLimit": "NuGet version-index availability, not proof the integration changes are in those packages or that a merged upstream API is in a stable release.",
+    "pullRequests": [
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1354",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1355",
+        "observedState": "CLOSED"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1356",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1357",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1358",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1362",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp.Js/pull/141",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/sebastienros/jint/pull/4146",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/sebastienros/jint/pull/4148",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/EvotecIT/OfficeIMO/pull/2633",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/EvotecIT/OfficeIMO/pull/2642",
+        "observedState": "MERGED"
+      },
+      {
+        "url": "https://github.com/EvotecIT/OfficeIMO/pull/2657",
+        "observedState": "MERGED"
+      }
+    ],
+    "openOfficeImoPullRequestsObserved": 0
+  },
+  "extractionChecks": {
+    "pdfStructureFiles": {
+      "commit": "062d6b03d7a10d20d7764947b8710f3188811780",
+      "gitApplyCheckOnCurrentMaster": "Code/test patch passes with README excluded; complete commit conflicts only in README.",
+      "classification": "First extraction candidate, not yet built or reviewed as a master-based PR."
+    },
+    "hyphenation": {
+      "commit": "4eb423fe6",
+      "gitApplyCheckOnCurrentMaster": "Whole commit conflicts in generated support matrix, Core resource ItemGroup and HTML capability/first-line/options paths.",
+      "classification": "Core owner extraction before HTML wiring; not an automatic cherry-pick."
+    },
+    "largeBranch": "762 commits is history size, not a readiness score; runtime and shared-owner changes require deliberate extraction rather than wholesale integration PR."
+  },
+  "retainedArtifacts": {
+    "root": "Ignore/HtmlUnknownPageQualification/roadmap-reassessment-20261002",
+    "purpose": "Fresh 18-case/H4 artifacts, logs, provider package snapshot and independent PDF inspection.",
+    "bulkPolicy": "Retain current approximately 40 MiB artifact proof; removed 1425199470 bytes of generated project/provider output."
+  },
+  "remainingAssessmentLimits": [
+    "No blanket PeachPDF/browser parity assertion",
+    "No current-source cross-platform qualification",
+    "No full owner code audit of hundreds of accumulated commits",
+    "Separate observed concurrent unique-save race is not resolved by these tests",
+    "Unfinished math candidate preserved and not represented as integrated"
+  ],
+  "cleanup": {
+    "removedBytes": 1365944109,
+    "removedDirectories": 120,
+    "retainedCurrentProof": "Ignore/HtmlUnknownPageQualification/roadmap-reassessment-20261002",
+    "scope": "Verified ignored project bin/obj; no tracked files or open handles; no other worktree changed.",
+    "providerGeneratedBytesRemoved": 59255361,
+    "totalBytesRemoved": 1425199470
+  }
+}

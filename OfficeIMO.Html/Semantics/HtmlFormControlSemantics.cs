@@ -160,10 +160,11 @@ internal static class HtmlFormControlSemantics {
     internal static IReadOnlyList<string> GetValues(IElement element) {
         string name = NormalizeIdentifier(element.LocalName);
         if (name == "select") return GetSelectValues(element);
-        if (name == "textarea") return new[] { element.TextContent ?? string.Empty };
+        if (name == "textarea") return new[] { NativeFormState.Get(element)?.Value ?? element.TextContent ?? string.Empty };
         if (name == "input") {
             string effectiveType = GetEffectiveType(name, element.GetAttribute("type"));
             if (effectiveType == "file") return Array.Empty<string>();
+            if (NativeFormState.Get(element)?.Value is string liveValue) return new[] { liveValue };
             if (effectiveType == "range") {
                 return new[] { GetRangeValue(
                     element.GetAttribute("value"),
@@ -231,6 +232,8 @@ internal static class HtmlFormControlSemantics {
 
     internal static bool IsEffectivelyChecked(IElement element) {
         string effectiveType = GetEffectiveType(element.LocalName, element.GetAttribute("type"));
+        if (IsCheckedStateApplicable(element.LocalName, effectiveType) && NativeFormState.Get(element) is { } live)
+            return live.IsChecked;
         if (!IsCheckedStateApplicable(element.LocalName, effectiveType) || !element.HasAttribute("checked")) {
             return false;
         }
@@ -251,6 +254,7 @@ internal static class HtmlFormControlSemantics {
     }
 
     internal static IReadOnlyList<IElement> GetEffectiveSelectedOptions(IElement select) {
+        if (NativeFormState.GetSelectedOptions(select) is IElement[] liveSelected) return liveSelected;
         IElement[] options = select.QuerySelectorAll("option").ToArray();
         IElement[] selected = options.Where(option => option.HasAttribute("selected")).ToArray();
         if (select.HasAttribute("multiple")) return selected;
@@ -288,10 +292,15 @@ internal static class HtmlFormControlSemantics {
         ResolveRange(value, minimum, maximum, step).ValueText;
 
     internal static double GetRangeFraction(IElement element) => ResolveRange(
-        element.GetAttribute("value"),
+        NativeFormState.Get(element)?.Value ?? element.GetAttribute("value"),
         element.GetAttribute("min"),
         element.GetAttribute("max"),
         element.GetAttribute("step")).Fraction;
+
+    internal static bool IsIndeterminate(IElement element) =>
+        string.Equals(element.LocalName, "input", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(element.GetAttribute("type"), "checkbox", StringComparison.OrdinalIgnoreCase)
+        && NativeFormState.Get(element)?.IsIndeterminate == true;
 
     private static HtmlRangeState ResolveRange(string? value, string? minimum, string? maximum, string? step) {
         bool hasMinimum = TryParseHtmlNumber(minimum, out double parsedMinimum);

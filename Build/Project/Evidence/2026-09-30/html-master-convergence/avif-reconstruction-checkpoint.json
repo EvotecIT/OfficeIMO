@@ -1,0 +1,363 @@
+{
+  "sourceCommit": "5eb9169ddf5516507e377d9d7ffa3a2dd4538d2a",
+  "baseCommit": "f373111377ef08749ceff216135baf780d434d99",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.Edges.cs": "3ce760aedee1c27ccb16046f97b34395ef5a9228b010dee340d2f6b46e16233f",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.Prediction.cs": "b8fe4496f5cda2cc61b672e816d15eab2ef4f703bc6bfb9442e2115d2979a360",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "ef2a19c74db56def0e611b366f14ce8dc98cef58b42f5ce6e46fd17282c252bd",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.cs": "3549ddfe6d23659e0a8991bed85198605e4c29d2101e06a12da29f2d00b48d52",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1ResidualTransform.cs": "8961da22db4a08822dd60c0be9ebee6e0a0efb34b05746779e361e72c0256c4a",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TileReader.cs": "bc06957f81468723ca2a5a1aea5eb17059ed17bcd6069ce4b79afe5e23385272",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Reconstruction.cs": "4a39c5d2de8eabee167bd02526d0febeef1913c2cc850f680576dda8a6f61fe6",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "bd4263160a832b1196aa663715dbed1b94a973835eaa775701212e2ea9f96d0d",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/EncodeReconstructionControls.c": "5fc33498be6877b57da4c40ce6a2aca27a2834eeadce0591614dd4576cf94509",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateReconstructionFixtures.py": "9aaa826fde25d494e4d5f66c8c7f80b9e5d1fedb927644c3bcd98498b2e791e5",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TraceReconstruction.patch": "0c79e5fed5001b187e61a63104d64ab125a516a6610afb4dacdf6d851d07dec1",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/tile-reference.json.gz": "b09250b48a38a856b3292a67a4eeded9c042a6a891cf581d59d6fe866500808a"
+  },
+  "scope": "Internal reduced-still Main-8 pre-filter plane reconstruction; no default/public AVIF decode or HTML/PDF integration.",
+  "reference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "assetsSha256": {
+      "GenerateReconstructionFixtures.py": "9aaa826fde25d494e4d5f66c8c7f80b9e5d1fedb927644c3bcd98498b2e791e5",
+      "GenerateTileFixtures.py": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+      "TraceReconstruction.patch": "0c79e5fed5001b187e61a63104d64ab125a516a6610afb4dacdf6d851d07dec1",
+      "OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+      "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+      "EncodeReconstructionControls.c": "5fc33498be6877b57da4c40ce6a2aca27a2834eeadce0591614dd4576cf94509"
+    },
+    "fixtureSha256": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d",
+    "canonicalJsonSha256": "76097e4b54f52604a4a9ce26c93c5911de963d471a13f92175c8214e27c89cd7",
+    "cases": 5,
+    "samples": 180992
+  },
+  "independence": {
+    "officialPinnedAomCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "nativePatch": "Observational leaf counters and completed-frame plane capture before loop filters; no decoder arithmetic/grammar changes.",
+    "nativeStorage": "allow_lowbitdepth=1; shared driver rejects high-bit-depth storage even for 8-bit streams.",
+    "freshSourceCheckoutAndBuild": true,
+    "freshFixtureByteIdentical": true,
+    "freshComparison": {
+      "compressedFixtureByteIdentical": true,
+      "fixtureSha256": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d",
+      "freshReceipt": {
+        "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+        "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+        "assetsSha256": {
+          "GenerateReconstructionFixtures.py": "9aaa826fde25d494e4d5f66c8c7f80b9e5d1fedb927644c3bcd98498b2e791e5",
+          "GenerateTileFixtures.py": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+          "TraceReconstruction.patch": "0c79e5fed5001b187e61a63104d64ab125a516a6610afb4dacdf6d851d07dec1",
+          "OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+          "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+          "EncodeReconstructionControls.c": "5fc33498be6877b57da4c40ce6a2aca27a2834eeadce0591614dd4576cf94509"
+        },
+        "fixtureSha256": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d",
+        "canonicalJsonSha256": "76097e4b54f52604a4a9ce26c93c5911de963d471a13f92175c8214e27c89cd7",
+        "cases": 5,
+        "samples": 180992
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "avif-opaque",
+      "alpha": false,
+      "inputSha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3",
+      "itemOffset": 275,
+      "itemLength": 58,
+      "finalImage": {
+        "width": 49,
+        "height": 33,
+        "planes": 3,
+        "depth": 8,
+        "planeBytes": [
+          1617,
+          425,
+          425
+        ]
+      },
+      "finalYuvSha256": "70f4940fea52a7618543c8e41835a6cd0b64afe81866417dce971e37a6d7871b",
+      "unfiltered": {
+        "width": 49,
+        "height": 33,
+        "level": 0,
+        "miCols": 14,
+        "miRows": 10,
+        "leaves": 4,
+        "skipLeaves": 0,
+        "copyLeaves": 0,
+        "fractionalCopyLeaves": 0,
+        "planeSha256": [
+          "4ce8be89c7eae21256da5fe828afe32656842992e8a8ab356755f103f191f447",
+          "9df3c7452f6e7e339466f83872af5b643bbb069b787fa01405a4ca15d76dff57",
+          "3b37faf2423119b0b1e93a4491f2e9dcb71bcd54df62d1ccc27cce1802af910e"
+        ]
+      }
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": false,
+      "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+      "itemOffset": 490,
+      "itemLength": 58,
+      "finalImage": {
+        "width": 49,
+        "height": 33,
+        "planes": 3,
+        "depth": 8,
+        "planeBytes": [
+          1617,
+          425,
+          425
+        ]
+      },
+      "finalYuvSha256": "70f4940fea52a7618543c8e41835a6cd0b64afe81866417dce971e37a6d7871b",
+      "unfiltered": {
+        "width": 49,
+        "height": 33,
+        "level": 0,
+        "miCols": 14,
+        "miRows": 10,
+        "leaves": 4,
+        "skipLeaves": 0,
+        "copyLeaves": 0,
+        "fractionalCopyLeaves": 0,
+        "planeSha256": [
+          "4ce8be89c7eae21256da5fe828afe32656842992e8a8ab356755f103f191f447",
+          "9df3c7452f6e7e339466f83872af5b643bbb069b787fa01405a4ca15d76dff57",
+          "3b37faf2423119b0b1e93a4491f2e9dcb71bcd54df62d1ccc27cce1802af910e"
+        ]
+      }
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": true,
+      "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+      "itemOffset": 430,
+      "itemLength": 60,
+      "finalImage": {
+        "width": 49,
+        "height": 33,
+        "planes": 1,
+        "depth": 8,
+        "planeBytes": [
+          1617
+        ]
+      },
+      "finalYuvSha256": "07a4a7b657e3447ef7b78b4fa1785c2cf84271a4b67e8368a5016a1dddc9d0d2",
+      "unfiltered": {
+        "width": 49,
+        "height": 33,
+        "level": 0,
+        "miCols": 14,
+        "miRows": 10,
+        "leaves": 9,
+        "skipLeaves": 0,
+        "copyLeaves": 0,
+        "fractionalCopyLeaves": 0,
+        "planeSha256": [
+          "5587ae154ec280f230823b4b2479771687bd6ea4f1091ae9c43bc24f096a0e3b"
+        ]
+      }
+    },
+    {
+      "name": "multitile",
+      "alpha": false,
+      "inputSha256": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a",
+      "itemOffset": 275,
+      "itemLength": 4831,
+      "finalImage": {
+        "width": 256,
+        "height": 128,
+        "planes": 3,
+        "depth": 8,
+        "planeBytes": [
+          32768,
+          8192,
+          8192
+        ]
+      },
+      "finalYuvSha256": "af96ec5c0b488fffe0a12251028197741f841c85747f4e7c85ffad4ec104a0ec",
+      "unfiltered": {
+        "width": 256,
+        "height": 128,
+        "level": 0,
+        "miCols": 64,
+        "miRows": 32,
+        "leaves": 350,
+        "skipLeaves": 0,
+        "copyLeaves": 0,
+        "fractionalCopyLeaves": 0,
+        "planeSha256": [
+          "b97c8d332a430f0c05d3192e2e95085a21dcbc2cfd17817831a8495a80b091e5",
+          "0c086610b41b4a270ed33106a1b845a9cc03bf706a2cf9fa07e20c08a34dc701",
+          "036a9083225b0c74912284fbd9648fc00b332aacac7364a45a6da93b5a240fad"
+        ]
+      }
+    },
+    {
+      "name": "lossless-copy",
+      "alpha": false,
+      "inputSha256": "9d7eca4b07732cab2bd1da6dd6567690607cf17cf80cf280c723b442d27a0cae",
+      "finalImage": {
+        "width": 640,
+        "height": 128,
+        "planes": 3,
+        "depth": 8,
+        "planeBytes": [
+          81920,
+          20480,
+          20480
+        ]
+      },
+      "finalYuvSha256": "a5fb65075f95106e6bd06404b744ddbbfdc620b8d97c7b5ebc7cf64373e4bfa9",
+      "unfiltered": {
+        "width": 640,
+        "height": 128,
+        "level": 0,
+        "miCols": 160,
+        "miRows": 32,
+        "leaves": 1091,
+        "skipLeaves": 59,
+        "copyLeaves": 86,
+        "fractionalCopyLeaves": 27,
+        "planeSha256": [
+          "fef4c2ea3d1ea6c194bc510359f1a1b1e7963d86cd344d5df2e1d8761fc37d12",
+          "23c083babdc302ecd7a6bcf3cfcf2456b405c1ec861470fdcb1cdd576404e775",
+          "2976036414f452a94cfc82c2fdbe98bdcba88b42874ef84263ab4cbcf60f5fa7"
+        ]
+      }
+    }
+  ],
+  "matchedSamples": 180992,
+  "matchedLeaves": 1458,
+  "tileOracleCorrection": {
+    "grammarUnchanged": true,
+    "grammarProjectionSha256": "8f3eddf532f99a8361170d3a6f53aec5779a8ed8867fb87b181a53770ec1f074",
+    "newTileFixtureSha256": "b09250b48a38a856b3292a67a4eeded9c042a6a891cf581d59d6fe866500808a",
+    "priorPixelHashBoundary": "Prior driver allowed high-bit-depth storage, then read it as bytes. Those old pixel hashes are superseded; syntax observations are unchanged."
+  },
+  "priorTileFixtureSha256": "a843da5b39fa072a3c3e7879e148e60b7cd8224f6e5890534fcd99924d629e0e",
+  "tileOracleReceipt": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "sourceSha256": {
+      "PATENTS": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61",
+      "LICENSE": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2",
+      "aom_dsp/binary_codes_writer.c": "0dd2d7d157be8df162c64ca91b609a11b1717540b75966a44892d0fd951e2304",
+      "av1/common/entropymode.c": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "av1/common/restoration.c": "5a547e46f94b52e8117cc9e9f47e60c9677e6ea3e82f3f1a49047fd57611c92d",
+      "av1/decoder/decodeframe.c": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+      "av1/decoder/decodetxb.c": "cd87de06a3f215926b58453c3efda90b43c0f9ac3242ad87309b1703863c8243"
+    },
+    "patchSha256": "22993c2bd76d604b9deea00004e96b345f6edacdae1f71e1e98e668d48576847",
+    "driverSha256": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+    "generatorSha256": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+    "fixtureSha256": "b09250b48a38a856b3292a67a4eeded9c042a6a891cf581d59d6fe866500808a",
+    "canonicalJsonSha256": "9c7ef2e77fb37c5580ea0d399564737df7e89d79212b5574305fa148fb970727",
+    "restorationHarnessSha256": "726daa2aa781fbe316dd9c0ccca93ebb49abfa78b8d83c8ab3147c782dc18e8f",
+    "restorationFixtureSha256": "f3b88fe1e76cda0216fbb8a102d0cacc1ec059b31409c77414d0ac8434cb21aa",
+    "restorationCases": 192,
+    "restorationUnits": 1938,
+    "restorationNativeSelfCheck": true,
+    "cases": 4,
+    "tiles": 7,
+    "leaves": 367,
+    "residuals": 1530
+  },
+  "validation": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-reconstruction-work-f37311137/reconstruction-control-net10.trx",
+      "sha256": "c80b6dcdbbcbc099fd6b76419e33e92fa3eb8c2841a083e1997f7e6ef2f73c82",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-reconstruction-work-f37311137/drawing-reconstruction-net8.trx",
+      "sha256": "470d88070f893e64c96f54f66e0d7b6f6034b70602464df87d8f813b02d996b6",
+      "total": 2965,
+      "passed": 2965,
+      "failed": 0
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-reconstruction-work-f37311137/drawing-reconstruction-net10.trx",
+      "sha256": "9e1fda1f77032c01525bd94f17fe2baffe38a0e70d95011c24df1997615d79d5",
+      "total": 2965,
+      "passed": 2965,
+      "failed": 0
+    }
+  ],
+  "corePackage": {
+    "packageSha256": "85eee967ee02ae410c3941d54f552f9368734dae30eeaeb49f12f5a793067496",
+    "runtimeDependencies": 0,
+    "libraries": {
+      "lib/net10.0/OfficeIMO.Core.dll": "3b6d1887e801c21d7abb16b1b856d16966de6374a7686ff3b47047d6d3da7bb1",
+      "lib/net8.0/OfficeIMO.Core.dll": "ed99aab4307b5e4e8a9ac732b8873d0e14a47113b98b0d69fd5dcac6faefc913",
+      "lib/netstandard2.0/OfficeIMO.Core.dll": "f367afa23fc1bfd144617ddb6192a3c166b5070dbaab5ab6af8a8db2c559f374"
+    },
+    "noNativeOracleAssets": true,
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "disposition": "Inspected package removed; hashes and package facts retained."
+  },
+  "coreBuild": {
+    "configuration": "Release",
+    "sdk": "10.0.303",
+    "targets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "warnings": 0,
+    "errors": 0
+  },
+  "localReview": {
+    "task": "av1_reconstruction_review",
+    "base": "f373111377ef08749ceff216135baf780d434d99",
+    "stagedBinaryDiffFingerprint": "ff3e0ea554bf39355633eeb64044bf82e4734ed8",
+    "reason": "Full canvas composition, decode-order availability, CfL/copy, aggregate retained allocation, cancellation/termination and immutable result ownership.",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "boundary": "current",
+    "reviewerRanTests": false
+  },
+  "limits": {
+    "aggregateManagedBytes": 268435456,
+    "ownedScratchReservationBytes": 131072,
+    "predictorContextBytes": 12288,
+    "residualContextBytes": 104416,
+    "tileBudget": "Exact existing live tile reservation projected before canvas allocation.",
+    "inputAndOutput": "Whole encoded array, padded Y/UV planes, mode maps, tile contexts and live result scratch are reserved together.",
+    "cancellation": "Entry, each reconstructed row/CfL copy, tile grammar chunks and before final publication. Pre-cancellation directly tested; mid-reconstruction cancellation remains unprobed in this slice.",
+    "publication": "Partial canvas stays private; all tile entropy termination must pass."
+  },
+  "defaultAvifDecodeQualified": false,
+  "supportCatalogChanged": false,
+  "externalRuntimeDependenciesAdded": false,
+  "fullMilestoneComplete": false,
+  "unchangedRendererEvidence": "No default decode/render caller changed. Prior H4/NASA/performance evidence retains its earlier boundary; it does not qualify AVIF output.",
+  "remainingAvif": [
+    "In-loop deblocking/CDEF/restoration and superresolution where declared",
+    "Color/alpha composition and independent full-image pixel comparison",
+    "Public raster integration, original frozen HTML/PDF acceptance and unchanged applicable ceilings",
+    "Broader complete-frame syntax and mid-reconstruction cancellation proof as public integration requires"
+  ],
+  "unavailableProof": [
+    "Windows/net472 execution",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "cleanup": {
+    "removedBytes": 212135733,
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-reconstruction-work-f37311137",
+    "retainedBytes": 10420606,
+    "removed": "Three disposable native source/build copies, raw/obsolete probe outputs, duplicate native producer executable and inspected package.",
+    "purpose": "Final tests, native replay/package/grammar receipts, pinned notices and one native reconstruction reference executable."
+  }
+}

@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
             MultiColumnSpanPartition partition = partitions[index];
-            IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(
+            IReadOnlyList<HtmlRenderFlowBlock> children = BuildMultiColumnChildBlocks(
                 element,
                 partition.Nodes,
                 columnWidth,

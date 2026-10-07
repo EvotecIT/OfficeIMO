@@ -1,0 +1,178 @@
+{
+  "schema": "officeimo.html.component-evidence",
+  "component": "av1-tile-partition-context-and-child-geometry",
+  "sourceHead": "34f6194e2af0597f281866fd3247ab36217d961c",
+  "scope": "Internal tile-local partition CDF/context selection, edge collapse, forced splits and child decode order. Frozen prefixes reach the first non-Split node. No leaf modes, coefficients, complete tile grammar or pixels.",
+  "specification": {
+    "url": "https://aomediacodec.github.io/av1-spec/av1-spec.pdf",
+    "pdfSha256": "ec44e9fc42c4e5851faa879a1818dcb9014d834bbdd9420ccca7dcea05a3abe9",
+    "sections": [
+      "5.11.4",
+      "8.3.2",
+      "Default_Partition_W8/W16/W32/W64/W128_Cdf"
+    ]
+  },
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PartitionContext.cs": "384831751c45cb5c98b0f272027911264425ca48e5ba52c0bfd7b543492010a9",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PartitionContext.Cdfs.cs": "9526c9c031d2ae82c9987ba705cda24d52cdc6a9f7b7b3290ef737b7a048e9c5",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PartitionLayout.cs": "412433ef4e8241e307ce6e1a05e2ecf2d80869630bd159d4ce8f702226aca26a",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Partitions.cs": "3560cce7cdc1c0917ca1b1805de68fab4cd7651dc5704374705348ddefe86d24",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "78d6c33add4955eb3c0baa2d2ecf9a4bc4724f7c96312aaf19dcb1c93e07d673",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePartitionFixtures.c": "566a82de6defea9855728ef6109311f75a8575bbd6db23d70f731bc43889b16d",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePartitionFixtures.py": "4c626dc05f58dbeec2491cf6bf6c7915e0b5e0e58c09cc5394b688c368d96eb7",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/partition-oracle.json": "102412ef87ddcdc7498be834ec8d43ee33dc5b187d01fcd432a23c774f441287",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/partition-reference.json": "7994ea863792505f7205839988148348d887fb8a32a949444eba8d2f50817901"
+  },
+  "independentReference": {
+    "tool": "AOM v3.13.1 official partition tables and entropy encoder/decoder; original specification-based partition harness",
+    "runtimeDependency": false,
+    "tableSource": "https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/av1/common/entropymode.c",
+    "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+    "receipt": "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/partition-oracle-receipt.json",
+    "receiptSha256": "89c2403241d20ac6eb72b4f6f22f2b53e1c4f9f07149c7de76f40554dfaa4dbf",
+    "entropyReceipt": "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/oracle-receipt.json",
+    "entropyReceiptSha256": "643081bac70ad2047e5b4301fa6c8b0269798a2686874e541ae1e9f547ca826e",
+    "syntheticStreams": 40,
+    "partitionReads": 1920,
+    "nativeSelfCheck": true,
+    "exactCurrentGeneratorReplay": true,
+    "freshReferenceSourceReplayFixtureSha256": "7994ea863792505f7205839988148348d887fb8a32a949444eba8d2f50817901",
+    "actualFramePrefixes": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "offset": 302,
+        "length": 31,
+        "miRows": 10,
+        "miCols": 14,
+        "superblockPixels": 64,
+        "partitions": [
+          {
+            "pixels": 64,
+            "kind": 3
+          },
+          {
+            "pixels": 32,
+            "kind": 0
+          }
+        ]
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "offset": 447,
+        "length": 43,
+        "miRows": 10,
+        "miCols": 14,
+        "superblockPixels": 64,
+        "partitions": [
+          {
+            "pixels": 64,
+            "kind": 3
+          },
+          {
+            "pixels": 32,
+            "kind": 0
+          }
+        ]
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "offset": 298,
+        "length": 1189,
+        "miRows": 32,
+        "miCols": 64,
+        "superblockPixels": 64,
+        "partitions": [
+          {
+            "pixels": 64,
+            "kind": 3
+          },
+          {
+            "pixels": 32,
+            "kind": 3
+          },
+          {
+            "pixels": 16,
+            "kind": 0
+          }
+        ]
+      }
+    ],
+    "reproduce": "python3 OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePartitionFixtures.py --work-dir <task-owned-scratch>",
+    "limits": [
+      "The native harness implements specification partition selection; it is not a complete native AV1 tile decoder.",
+      "Synthetic tests preseed neighbor geometry; they do not prove a complete recursive walk with evolving neighbor state.",
+      "Real AVIF prefixes stop at the first non-Split node before leaf modes/coefficients."
+    ]
+  },
+  "tests": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/av1-partition-candidate-net10.trx",
+      "sha256": "95991a279a96c80aac403a212629ffa8b221671f2aa96c1026e4584218e5ab45",
+      "passed": 53,
+      "failed": 0,
+      "total": 53
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/av1-partition-candidate-net8.trx",
+      "sha256": "38e19c552638ef6a47b4037823df25c512f1ca805cb21c055953ab009862f178",
+      "passed": 53,
+      "failed": 0,
+      "total": 53
+    }
+  ],
+  "build": {
+    "project": "OfficeIMO.Core/OfficeIMO.Core.csproj",
+    "framework": "netstandard2.0",
+    "sdk": "10.0.303",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0
+  },
+  "review": {
+    "task": "av1_partition_review",
+    "fingerprint": "773e7d637bf198103b18d8e7817f51826ec90a3a",
+    "boundary": "current",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "replayReceiptCorrection": "Refreshed the replay after final generator-notice edit; current generator/harness/source/fixture hashes match the primary receipt. No production code changed.",
+    "gaps": [
+      "Complete recursive traversal with evolving neighbors and leaf grammar has not been executed; compressed neighbor arrays have static specification review.",
+      "Complete tile syntax, reconstructed pixels and rendered output remain unproved.",
+      "Windows/net472 execution and Windows/Linux H10 budgets remain unproved."
+    ]
+  },
+  "unqualified": [
+    "Skip/segmentation/CDEF/quantizer and loop-filter deltas, intra luma/chroma modes, palettes, transform/coefficient syntax",
+    "Complete partition traversal interleaved with leaf syntax and evolving context",
+    "Inverse transforms, prediction, loop filtering/CDEF/restoration and super-resolution pixels",
+    "Applied grain and separate frame/tile OBUs",
+    "Color conversion, alpha composition and independent RGBA tolerance",
+    "Public raster/caller-codec integration and frozen AVIF HTML/PDF output",
+    "Completed-decoder H4/NASA and unchanged applicable budgets",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "runtimeDependenciesAdded": [],
+  "supportCatalogChanged": false,
+  "cleanup": {
+    "removedBytes": 330667,
+    "targets": [
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/oracle-replay",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/av1-partition-first-net10.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/multitile-prefix.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/avif-alpha-prefix.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/avif-opaque-prefix.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/avif-opaque-partitions.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/avif-alpha-partitions.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/multitile-partitions.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/native-vectors.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/native-partitions.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/partition-reference.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-partition-work-9c5d5ec67/entropy-reference.json"
+    ],
+    "retainedBytes": 367206,
+    "reason": "Remove obsolete passing log, duplicate replay build and intermediate JSON; retain final framework results, receipts and small isolated reference sources/binaries with notices for subsequent leaf grammar proof."
+  }
+}

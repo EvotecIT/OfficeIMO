@@ -188,22 +188,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> rowBreakOffsets = Enumerable.Range(1, Math.Max(0, rowCount - 1))
             .Where(boundary => !items.Any(item => item.Row < boundary && item.Row + item.RowSpan > boundary))
             .Select(boundary => contentY + rows.Positions[boundary]);
-        var rowItemCountDeltas = new int[rowCount + 1];
-        foreach (GridItem item in items) {
-            rowItemCountDeltas[item.Row]++;
-            rowItemCountDeltas[Math.Min(rowCount, item.Row + item.RowSpan)]--;
-        }
-        var rowItemCounts = new int[rowCount];
-        int activeRowItems = 0;
-        for (int row = 0; row < rowCount; row++) {
-            activeRowItems += rowItemCountDeltas[row];
-            rowItemCounts[row] = activeRowItems;
-        }
-        IEnumerable<double> itemBreakOffsets = items
-            .Where(item => item.RowSpan == 1 && rowItemCounts[item.Row] == 1)
-            .SelectMany(item => item.Block!.BreakOffsets.Select(offset =>
-                contentY + rows.Positions[item.Row] + item.OffsetY + offset));
+        // Every participating item must permit an interior cut. Restricting cuts
+        // to rows with one item forces oversized shared rows through arbitrary
+        // coordinates, which can bisect and omit an otherwise ordinary text line.
+        IEnumerable<double> itemBreakOffsets = items.SelectMany(item => item.Block!.BreakOffsets
+            .Where(offset => offset > 0.0001D)
+            .Select(offset => contentY + rows.Positions[item.Row] + item.OffsetY + offset));
         IEnumerable<double> breakOffsets = rowBreakOffsets.Concat(itemBreakOffsets).Distinct().OrderBy(offset => offset);
+        if (_options.Mode == HtmlRenderMode.Paged)
+            breakOffsets = FilterSafeGridBreaks(breakOffsets, items, rows.Positions, contentY);
+        IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = items.SelectMany(item =>
+            item.Block!.LineBreakGroups.Select(group => group.Translate(
+                contentY + rows.Positions[item.Row] + item.OffsetY).WithInteriorBreaks()));
+        IEnumerable<HtmlRenderAvoidBreakRange> itemKeepRanges = items.SelectMany(item => {
+            HtmlRenderFlowBlock itemBlock = item.Block!;
+            IEnumerable<HtmlRenderAvoidBreakRange> ranges = itemBlock.AvoidBreakRanges;
+            if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
+            return ranges.Select(range => range.Translate(contentY + rows.Positions[item.Row] + item.OffsetY));
+        });
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -213,6 +215,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
+            lineBreakGroups: lineBreakGroups,
+            avoidBreakRanges: itemKeepRanges,
             pageName: style.PageName,
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(
@@ -419,6 +423,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (vertical == "stretch" && !item.HasExplicitHeight && !HasVerticalAutoMargin(style)) {
             double targetBoxHeight = Math.Max(0.01D, cellHeight - style.MarginTop - style.MarginBottom);
+            style.AutoHeightLayoutStretch = true;
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
         }
         item.Item.Style = style;

@@ -34,13 +34,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double y = text.Y + layer.OffsetY + sample.Y;
                     painted.Add(CloneTextShadow(text, layer.Color, x, y, painted.Count));
                     left = Math.Min(left, x);
-                    top = Math.Min(top, y);
+                    top = Math.Min(top, y - text.PaintTopOverflow);
                     right = Math.Max(right, x + text.Width);
                     bottom = Math.Max(bottom, y + text.Height);
                 }
                 if (painted.Count == 0) continue;
                 double sampleLeft = painted.Min(visual => visual.X);
-                double sampleTop = painted.Min(visual => visual.Y);
+                double sampleTop = painted.OfType<HtmlRenderText>()
+                    .Min(text => text.Y - text.PaintTopOverflow);
                 double sampleRight = painted.Max(visual => visual.X + visual.Width);
                 double sampleBottom = painted.Max(visual => visual.Y + visual.Height);
                 sampleGroups.Add(new HtmlRenderEffectGroup(
@@ -65,7 +66,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sampleGroups,
                 rootVisuals.Count,
                 layerSource);
-            AddInlineOwnedVisual(rootVisuals, ownedVisuals, artifact, run.OwnerElement, formattingContainer);
+            AddInlineOwnedVisual(rootVisuals, ownedVisuals,
+                artifact.TranslateRelativePaint(run.PaintOffsetX, run.PaintOffsetY, artifact.PaintOrder),
+                run.OwnerElement, formattingContainer);
         }
     }
 
@@ -141,7 +144,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             null,
             text.Source,
             null,
-            layoutY: null,
+            layoutY: text.LayoutY,
             semanticNodeId: null,
             textAdvanceWidth: text.TextAdvanceWidth,
             bidiVisualOrderResolved: text.BidiVisualOrderResolved,
@@ -156,7 +159,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             textPaintWidth: text.TextPaintWidth,
             decorationColor: color,
             featureSettings: text.FeatureSettings,
-            fontPalette: text.FontPalette);
+            fontPalette: text.FontPalette,
+            layoutHeight: text.LayoutHeight,
+            fontDescriptor: text.FontDescriptor,
+            paintTopOverflow: text.PaintTopOverflow,
+            paintOnly: true);
 
     private static string TextShadowSource(string source, int index, int count) =>
         count == 1

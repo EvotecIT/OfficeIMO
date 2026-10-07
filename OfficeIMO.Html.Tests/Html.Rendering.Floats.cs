@@ -8,6 +8,242 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("<img style='display:block;width:120px;height:10px' src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E'>")]
+    [InlineData("<input style='display:block;width:120px;height:10px' value='A'>")]
+    public void HtmlFloat_ShrinkToFitPreservesBlockReplacedWidth(string child) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<body style='margin:0'><div id='outer' style='float:left;background:red'>" + child + "</div></body>",
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
+        Assert.True(outer.Width >= 119D);
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitUsesFixedChildWidthDespiteClippedText() {
+        const string html = "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
+            + "<div style='width:40px;overflow:hidden'>AnUnbreakablyLongLabel</div></div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
+        Assert.InRange(outer.Width, 39D, 41D);
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitPreservesBreakInsidePaddedInlineChild() {
+        static double WidthFor(string content) {
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+                "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
+                + "X<span style='padding-left:10px'>" + content + "</span>Y</div></body>",
+                new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+            return FindPositionedShape(rendered, "div#outer").Width;
+        }
+
+        double withBreak = WidthFor("AAAA<br>BBBB");
+        double withoutBreak = WidthFor("AAAABBBB");
+        Assert.True(withBreak + 20D < withoutBreak,
+            $"Inline break width {withBreak} should be narrower than unbroken width {withoutBreak}");
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitIncludesNestedPaddingAroundFloatedLinks() {
+        const string html = "<style>body{margin:0;font-family:Arial}.nav{height:25px}"
+            + ".nav ul{margin:0;padding:0;list-style:none;float:left;width:100%}"
+            + ".nav li{float:left;margin:0;padding:0}"
+            + ".nav li div{padding-right:8px}"
+            + ".nav li a{float:left;display:block;padding-right:11px;font-size:9pt;font-weight:bold}"
+            + "</style><div class='nav'><ul>"
+            + "<li><div><a href='#hazards'>Current Hazards</a></div></li>"
+            + "<li><div><a href='#conditions'>Current Conditions</a></div></li>"
+            + "</ul></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 500D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Current Hazards");
+        HtmlRenderText second = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Current Conditions");
+
+        Assert.Equal(first.Y, second.Y, 1);
+        Assert.True(second.X >= first.X + first.Width + 8D);
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitRetainsPaddingAcrossNestedBlockBoundaries() {
+        const string html = "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
+            + "<div style='padding:0 12px'><div style='padding:0 8px'>Long label</div></div>"
+            + "</div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 500D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
+        HtmlRenderText label = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Long label");
+
+        Assert.True(outer.Width >= label.Width + 39D);
+    }
+
+    [Fact]
+    public void HtmlFloat_PagedOverflowBlockNarrowsBesideActiveFloat() {
+        const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:260px'>Prelude</div>"
+            + "<p style='margin:0'><span id='float' style='float:right;width:100px;height:200px;background:#ddd'></span></p>"
+            + "<p style='height:80px;margin:0'>Text</p>"
+            + "<hr id='rule' style='border:0;border-top:1px solid black;height:0;margin:0;overflow:auto'>"
+            + "<p style='height:150px;margin:0'>More text</p>"
+            + "<hr id='rule-after' style='border:0;border-top:1px solid black;height:0;margin:0;overflow:auto'>"
+            + "</article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape rule = FindPositionedShape(rendered, "hr#rule");
+        HtmlRenderShape ruleAfter = FindPositionedShape(rendered, "hr#rule-after");
+
+        Assert.Equal(80D, rule.Y, 1);
+        Assert.Equal(200D, rule.Width, 1);
+        Assert.Equal(300D, ruleAfter.Width, 1);
+    }
+
+    [Theory]
+    [InlineData("<span style='float:left;width:100px;height:150px;background:#ddd'></span>", "width:100px;height:60px", 100D, 0D, 100D)]
+    [InlineData("<span style='float:left;width:100px;height:150px;background:#ddd'></span>", "width:400px;height:60px", 0D, 150D, 400D)]
+    [InlineData("<span style='float:left;width:300px;height:150px;background:#ddd'></span>", "min-width:50px;height:60px", 0D, 150D, 300D)]
+    [InlineData("<span style='float:right;width:100px;height:100px;background:#ddd'></span><span style='float:left;width:250px;height:100px;background:#ccc'></span>", "height:150px", 250D, 100D, 50D)]
+    public void HtmlFloat_PagedFormattingBlockUsesAFreeBandForItsWholeBox(
+        string floats, string blockStyle, double expectedX, double expectedY, double expectedWidth) {
+        string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:260px'>Prelude</div><p style='margin:0'>" + floats + "</p>"
+            + "<div id='bfc' style='overflow:auto;background:#faa;" + blockStyle + "'>Block</div>"
+            + "</article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape block = FindPositionedShape(rendered, "div#bfc");
+
+        Assert.Equal(expectedX, block.X, 1);
+        Assert.Equal(expectedY, block.Y, 1);
+        Assert.Equal(expectedWidth, block.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_PagedShortAutoFormattingBlockStaysBesideFloat() {
+        const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:260px'>Prelude</div>"
+            + "<p style='margin:0'><span style='float:right;width:100px;height:200px;background:#ddd'></span></p>"
+            + "<p style='height:80px;margin:0'>Text</p>"
+            + "<div id='bfc' style='overflow:auto;background:#faa;font-size:14px;line-height:16px'>Short</div>"
+            + "</article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape block = FindPositionedShape(rendered, "div#bfc");
+
+        Assert.Equal(0D, block.X, 1);
+        Assert.Equal(80D, block.Y, 1);
+        Assert.Equal(200D, block.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_PagedTallAutoFormattingBlockMovesToTheNextFreeBand() {
+        const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:460px'>Prelude</div>"
+            + "<p style='margin:0'><span style='float:right;width:100px;height:200px;background:#ddd'></span>"
+            + "<span style='float:left;width:250px;height:100px;background:#ccc'></span></p>"
+            + "<p style='height:80px;margin:0'>Text</p>"
+            + "<div id='bfc' style='overflow:auto;background:#faa;font-size:14px;line-height:16px'>"
+            + "Short<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line"
+            + "</div></article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 500D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape block = FindPositionedShape(rendered, "div#bfc");
+
+        Assert.Equal(250D, block.X, 1);
+        Assert.Equal(200D, block.Y, 1);
+        Assert.Equal(50D, block.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_OverflowAutoListItemDoesNotAddParagraphBottomMarginAfterTallerFloat() {
+        const string html = "<ul style='margin:0;padding:0;list-style:none'>"
+            + "<li id='first' style='overflow:auto;margin:0;padding:0;background:#eee'>"
+            + "<p style='margin:16px 0;font-size:12px;line-height:24px'>"
+            + "<span id='float' style='float:left;width:40px;height:120px;background:red'></span>Short text"
+            + "</p></li><li id='second' style='height:20px;background:#ddd'>Next</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape first = FindPositionedShape(rendered, "li#first");
+        HtmlRenderShape second = FindPositionedShape(rendered, "li#second");
+        Assert.Equal(136D, first.Height, 1);
+        Assert.Equal(first.Y + first.Height, second.Y, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_ContainedByExplicitParagraphHeightKeepsBottomMargin() {
+        const string html = "<div id='first' style='overflow:auto;background:#eee'>"
+            + "<p style='height:200px;margin:16px 0;font-size:12px;line-height:24px'>"
+            + "<span style='float:left;width:40px;height:120px;background:red'></span>Short text"
+            + "</p></div><div id='second' style='height:20px;background:#ddd'>Next</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape first = FindPositionedShape(rendered, "div#first");
+        HtmlRenderShape second = FindPositionedShape(rendered, "div#second");
+        Assert.Equal(232D, first.Height, 1);
+        Assert.Equal(first.Y + first.Height, second.Y, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_ContainedByParagraphFormattingContextKeepsBottomMargin() {
+        const string html = "<div id='first' style='overflow:auto;background:#eee'>"
+            + "<p style='overflow:auto;margin:16px 0;font-size:12px;line-height:24px'>"
+            + "<span style='float:left;width:40px;height:120px;background:red'></span>Short text"
+            + "</p></div><div id='second' style='height:20px;background:#ddd'>Next</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape first = FindPositionedShape(rendered, "div#first");
+        HtmlRenderShape second = FindPositionedShape(rendered, "div#second");
+        Assert.Equal(152D, first.Height, 1);
+        Assert.Equal(first.Y + first.Height, second.Y, 1);
+    }
+
     [Fact]
     public void HtmlFloats_ApplyLayoutDepthBeforeScanningNestedDescendants() {
         string html = "<span>" + string.Concat(Enumerable.Repeat("<span>", 12))
@@ -39,6 +275,60 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(lines.Where(line => line.Y < floating.Y + floating.Height - 0.001D), line => Assert.True(line.X >= floating.X + floating.Width - 0.001D));
         Assert.Contains(lines, line => line.Y >= floating.Y + floating.Height - 0.001D && line.X < 0.001D);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFloatFollowingText_SharesTheLineWhenTheFloatFits() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span>Lead</span><span id='float' style='float:left;width:30px;height:20px;background:red'></span>"
+            + "<span> tail</span></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape floating = FindPositionedShape(rendered, "span#float");
+        HtmlRenderText lead = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Lead");
+        HtmlRenderText tail = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("tail", StringComparison.Ordinal));
+
+        Assert.Equal(lead.Y, floating.Y, 3);
+        Assert.Equal(lead.Y, tail.Y, 3);
+        Assert.True(lead.X >= floating.X + floating.Width - 0.001D);
+        Assert.True(tail.X > lead.X);
+    }
+
+    [Fact]
+    public void HtmlFloatFollowingText_StartsBelowTheLineWhenItDoesNotFit() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span>Long heading</span><span id='float' style='float:left;width:70px;height:20px;background:red'></span>"
+            + "<span> tail</span></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape floating = FindPositionedShape(rendered, "span#float");
+        HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Long heading");
+
+        Assert.True(floating.Y >= heading.Y + 9.999D);
+    }
+
+    [Theory]
+    [InlineData("left")]
+    [InlineData("right")]
+    public void HtmlFloatFollowingText_CollapsesWhitespaceAcrossTheSharedLine(string side) {
+        string html = "<p style='width:200px;margin:0;font-size:10px;line-height:10px'>"
+            + "Lead <span style='float:" + side + ";width:20px;height:20px'></span> tail</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .OrderBy(fragment => fragment.X).ToArray();
+
+        Assert.All(text, fragment => Assert.Equal(text[0].Y, fragment.Y, 3));
+        Assert.Equal("Lead tail", string.Concat(text.Select(fragment => fragment.Text)));
     }
 
     [Fact]
@@ -354,6 +644,426 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFloat_ThatFitsNextPageDoesNotSplitAtAnInlineLineBreak() {
+        const string html = "<body style='margin:0'><div style='overflow:auto'>"
+            + "<p style='height:40px;margin:0;font-size:10px;line-height:10px'>Prelude</p>"
+            + "<p style='margin:0;font-size:10px;line-height:10px'>"
+            + "<span id='paged-float' style='float:left;width:30px;height:30px;background:red'></span>"
+            + "One two three four five six seven eight nine ten eleven twelve.</p>"
+            + "</div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(), shape => shape.Source == "span#paged-float");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#paged-float" && shape.Height >= 29.99D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFloat_OverflowAutoCardThatFitsNextPageKeepsTextAndFloatTogether() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'>"
+            + "<div style='height:80px'>Prelude</div>"
+            + "<ul style='margin:0;padding:0;list-style:none'>"
+            + "<li style='overflow:auto;margin:0;padding:0 0 0 45px'>"
+            + "<p style='margin:0'><strong><a href='https://example.test/card'>Card caption"
+            + "<span id='card-image' style='float:left;width:40px;height:40px;margin-left:-45px;background:red'></span>"
+            + "</a>:</strong> A card description that wraps onto another line.</p>"
+            + "</li></ul></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Card", StringComparison.Ordinal));
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Card", StringComparison.Ordinal));
+        HtmlRenderShape image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#card-image" && shape.LinkUri == null);
+        Assert.True(image.Y <= 10.01D, $"Expected the moved float beside the first line on page two; Y={image.Y:R}.");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFloat_TooTallForRemainingPageLetsTextUseTheSpaceBeforeIt(bool nested) {
+        string paragraph = "<p style='margin:0;font:10px/10px Arial'>"
+            + "<strong>Title <span id='deferred-float' style='float:right;width:30px;height:30px;background:red'></span>:</strong>"
+            + " A caption identifies the overall topic of a table and is useful in most situations."
+            + " A summary provides orientation or navigation hints in complex tables.</p>";
+        string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + (nested
+                ? "<main><ul style='margin:0;padding:0;list-style:none'><li>" + paragraph + "</li></ul></main>"
+                : paragraph)
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] secondPageText = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderShape[] firstPageShapes = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>().ToArray();
+        HtmlRenderShape[] secondPageShapes = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>().ToArray();
+
+        Assert.Contains(firstPageText, text => text.Text.Contains("Title", StringComparison.Ordinal) && text.Y >= 39.99D);
+        Assert.Contains(firstPageText, text => text.Text.Contains("identifies the overall", StringComparison.Ordinal));
+        Assert.DoesNotContain(firstPageShapes, shape => shape.Source == "span#deferred-float");
+        Assert.Contains(secondPageShapes, shape => shape.Source == "span#deferred-float" && shape.Y < 0.01D && shape.Height >= 29.99D);
+        Assert.Contains(secondPageText, text => text.Text.Contains("topic of a table", StringComparison.Ordinal) && text.X < 0.01D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFloat_BlockSiblingDefersWithoutMovingFollowingParagraph() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<main><div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(firstPageText, text => text.Text.Contains("Alpha", StringComparison.Ordinal));
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(), shape => shape.Source == "div#sidebar");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(), shape => shape.Source == "div#sidebar");
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("mu.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFloat_ColumnReverseWithTwoItemsKeepsAsideBeforeDeferredContent() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;flex-flow:column-reverse wrap'><main>"
+            + "<div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main><aside style='height:10px;background:blue'>Aside</aside></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Aside", StringComparison.Ordinal));
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Alpha", StringComparison.Ordinal));
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("mu.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFloat_ColumnFlexItemDefersAcrossPageAndWrapsFollowingText() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;flex-flow:column-reverse wrap'><main>"
+            + "<div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Alpha", StringComparison.Ordinal) && text.Y >= 39.99D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D && shape.Height >= 29.99D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("mu.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFloat_ColumnFlexMovesFollowingSiblingAfterDeferredContent() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;flex-direction:column'><main>"
+            + "<div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main><aside style='height:10px;background:blue'>Following sibling</aside></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        var text = rendered.Pages.SelectMany((page, index) => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderText>().Select(visual => (Page: index, Visual: visual))).ToArray();
+        var end = Assert.Single(text, entry => entry.Visual.Text.Contains("mu.", StringComparison.Ordinal));
+        var sibling = Assert.Single(text, entry => entry.Visual.Text.Contains("Following sibling", StringComparison.Ordinal));
+        Assert.True(sibling.Page * 60D + sibling.Visual.Y >= end.Page * 60D + end.Visual.Y + end.Visual.Height - 0.01D,
+            "The following flex item must not overlap the deferred float's wrapped text.");
+    }
+
+    [Fact]
+    public void HtmlFloat_RowFlexItemDefersAcrossPageAndWrapsFollowingText() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;flex-direction:row'><main style='flex:1'>"
+            + "<div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Alpha", StringComparison.Ordinal) && text.Y >= 39.99D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("mu.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlFloat_RowFlexRestretchesSiblingAfterDeferredContentGrows() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;align-items:stretch'><main style='flex:1'>"
+            + "<div id='sidebar' style='float:right;width:25px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main><aside id='stretch-sibling' style='width:20px;background:blue'>Side</aside></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        var text = rendered.Pages.SelectMany((page, index) => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderText>().Select(visual => (Page: index, Visual: visual))).ToArray();
+        var end = Assert.Single(text, entry => entry.Visual.Text.Contains("mu.", StringComparison.Ordinal));
+        var sibling = rendered.Pages.SelectMany((page, index) => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderShape>().Where(shape => shape.Source == "aside#stretch-sibling")
+            .Select(shape => (Page: index, Shape: shape))).ToArray();
+        Assert.NotEmpty(sibling);
+        Assert.True(sibling.Max(entry => entry.Page * 60D + entry.Shape.Y + entry.Shape.Height)
+            >= end.Page * 60D + end.Visual.Y + end.Visual.Height - 0.01D,
+            "The stretched sibling's background must cover the grown row.");
+    }
+
+    [Fact]
+    public void HtmlFloat_RowFlexRestretchesSecondFloatingSibling() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;align-items:stretch'><main style='flex:1'>"
+            + "<div style='float:right;width:25px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main><aside id='stretch-sibling' style='width:25px;background:blue'>"
+            + "<span style='float:right;width:8px;height:8px;background:green'></span>Side</aside></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        var end = Assert.Single(rendered.Pages.SelectMany((page, index) => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderText>().Where(text => text.Text.Contains("mu.", StringComparison.Ordinal))
+            .Select(text => (Page: index, Text: text))));
+        var sibling = rendered.Pages.SelectMany((page, index) => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderShape>().Where(shape => shape.Source == "aside#stretch-sibling")
+            .Select(shape => (Page: index, Shape: shape))).ToArray();
+        Assert.NotEmpty(sibling);
+        Assert.True(sibling.Max(entry => entry.Page * 60D + entry.Shape.Y + entry.Shape.Height)
+            >= end.Page * 60D + end.Text.Y + end.Text.Height - 0.01D,
+            "A floating sibling's background must cover the grown row.");
+    }
+
+    [Fact]
+    public void HtmlFloat_CenteredRowItemUsesUpdatedPageBoundary() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<div style='display:flex;align-items:center;height:70px'><main style='flex:1'>"
+            + "<div id='sidebar' style='float:right;width:25px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main><aside style='width:20px;height:70px;background:blue'>Side</aside></div></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar");
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 75.01D && text.Source == "p");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFloat_NestedSiblingStillExcludesFollowingParagraph(bool displayContents) {
+        string wrapperStyle = displayContents ? " style='display:contents'" : string.Empty;
+        string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div><main>"
+            + "<div" + wrapperStyle + "><div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 61D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Alpha", StringComparison.Ordinal));
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+    }
+
+    [Fact]
+    public void HtmlFloat_AnonymousTextAfterBlockStillHonorsDeferredFloat() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div><main>"
+            + "<div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha.</p>"
+            + "Beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma."
+            + "</main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D);
+        HtmlRenderText[] secondPageText = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().ToArray();
+        Assert.NotEmpty(secondPageText);
+        Assert.DoesNotContain(secondPageText,
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+    }
+
+    [Fact]
+    public void HtmlFloat_WithoutLegalParagraphBreakMovesToNextPageAtItsTop() {
+        const string html = "<body style='margin:0'><div style='height:40px'>Prelude</div>"
+            + "<p style='overflow:auto;margin:0;font-size:10px;line-height:10px'>"
+            + "<span id='deferred-float' style='float:left;width:30px;height:50px;background:red'></span>Short text"
+            + "</p></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float" && shape.Y < 0.01D && shape.Height >= 49.99D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFloat_DeferredAfterCollapsedMarginsKeepsParagraphPosition(bool nested) {
+        const string paragraph = "<p style='margin:10px 0 0;font-size:10px;line-height:10px'>"
+            + "<span id='deferred-float' style='float:left;width:30px;height:40px;background:red'></span>"
+            + "First<br>Second<br>Third<br>Fourth<br>Fifth</p>";
+        string html = "<body style='margin:0'><div style='height:30px;margin-bottom:10px'>Prelude</div>"
+            + (nested ? "<main>" + paragraph + "</main>" : paragraph) + "</body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(firstPageText, text => text.Text.Contains("First", StringComparison.Ordinal) && Math.Abs(text.Y - 40D) < 0.01D);
+        Assert.Contains(firstPageText, text => text.Text.Contains("Third", StringComparison.Ordinal));
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span#deferred-float" && shape.Y < 0.01D && shape.Height >= 39.99D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFloat_ProtectedBreaksStillCountTowardParagraphOrphans() {
+        const string html = "<body style='margin:0'><p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span style='float:left;width:30px;height:30px;background:red'></span>"
+            + "First<br>Second<br>Third<br>Fourth<br>Fifth<br>Sixth<br>Seventh<br>Eighth"
+            + "</p></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        string text = string.Concat(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().Select(visual => visual.Text));
+        Assert.Contains("Fourth", text, StringComparison.Ordinal);
+        Assert.Contains("Eighth", text, StringComparison.Ordinal);
     }
 
     [Fact]

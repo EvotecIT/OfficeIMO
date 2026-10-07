@@ -11,6 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool includeFractionTracks,
         int depth = 1,
         bool minimumContribution = false,
+        bool autoTracksUseMaxContent = false,
         Dictionary<FlexItem, (double Minimum, double Maximum)>? measurements = null) {
         measurements ??= new Dictionary<FlexItem, (double Minimum, double Maximum)>();
         var sizes = tracks.Select(track => track.IsCollapsed ? 0D : Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
@@ -19,7 +20,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IReadOnlyList<GridTrack> spannedTracks = tracks.Skip(item.Column).Take(item.ColumnSpan).ToList();
             bool usesMaxContentContribution = minimumContribution
                 ? spannedTracks.Any(track => track.MinimumSizing == GridIntrinsicSizing.MaxContent)
-                : includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
+                : autoTracksUseMaxContent && spannedTracks.Any(track => track.Kind == GridTrackKind.Auto)
+                    || includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
                     || GridTracksUseMaxContentContribution(spannedTracks);
             if (!measurements.TryGetValue(item.Item, out var measured)) {
                 measured = ResolveGridContentContributions(item.Item, availableSize, depth + 1);
@@ -99,8 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool GridTracksUseMaxContentContribution(IReadOnlyList<GridTrack> tracks) =>
         tracks.Any(track =>
             track.MaximumSizing == GridIntrinsicSizing.MaxContent
-            || track.MinimumSizing == GridIntrinsicSizing.MaxContent
-            || track.Kind == GridTrackKind.Auto);
+            || track.MinimumSizing == GridIntrinsicSizing.MaxContent);
 
     private double ResolveGridMinContentContribution(FlexItem item, double availableSize, int depth = 1) =>
         ResolveGridContentContributions(item, availableSize, depth).Minimum;
@@ -110,28 +111,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
         IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth);
         double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
-        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns), replaced);
+        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns),
+            ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
         double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns), replaced);
         return (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
     }
 
-    private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize) {
+    private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize, bool minimum = false) {
         if (item.Element == null) return 0D;
-        return ResolveDescendantReplacedGridContribution(item.Element, item.Style, availableSize, 1);
+        return ResolveDescendantReplacedGridContribution(item.Element, item.Style, availableSize, 1, minimum);
     }
 
-    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth) {
+    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth, bool minimum) {
         double maximum = 0D;
         foreach (IElement child in parent.Children) {
             EnsureDepth(depth, child);
-            if (ShouldSkipElement(child)) continue;
+            if (IsClosedDisclosureChild(child) || ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             double contribution;
             if (IsReplacedImageElement(child)) {
-                contribution = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+                contribution = minimum && (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage)
+                    ? ResolveCompressibleReplacedMinimumWidth(childStyle)
+                    : ResolveIntrinsicReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
             } else {
-                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1);
+                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1, minimum);
                 contribution = descendant > 0D ? ResolveGridMeasuredContribution(childStyle, descendant) : 0D;
             }
             maximum = Math.Max(maximum, contribution);
@@ -139,9 +143,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return maximum;
     }
 
+    private static double ResolveCompressibleReplacedMinimumWidth(HtmlRenderBoxStyle style) {
+        if (style.MinWidthWithIndefiniteReference.HasValue) {
+            style = style.Clone();
+            style.MinWidth = style.MinWidthWithIndefiniteReference;
+        }
+        return ResolveGridMeasuredContribution(style, 0D);
+    }
+
     private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {
         HtmlRenderBoxStyle style = item.Style;
-        if (style.ExplicitWidth.HasValue) {
+        if (style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
@@ -149,7 +161,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
-            contribution = Math.Max(1D, ResolveReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
+            contribution = Math.Max(1D, ResolveIntrinsicReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight);
             return true;
         }
         if (item.TagName == "table") {
@@ -168,6 +180,5 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double outer = boxBasis + style.MarginLeft + style.MarginRight;
         return Math.Max(1D, outer);
     }
-
 
 }
