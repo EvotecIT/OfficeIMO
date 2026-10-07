@@ -2260,6 +2260,18 @@
     "priorFailuresRetained": true,
     "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007/second-master-overlap",
     "canonicalReceiptSha256": "a40d21c41253c3e7e3b6403bd678efb78d49958083569081d2a3b71818e74daa",
-    "freshHostedGate": "Pending final-head CI/packages and delayed complete feedback; older hosted graphs are not current proof."
+    "freshHostedGate": "Pending final-head CI/packages and delayed complete feedback; older hosted graphs are not current proof.",
+    "finalComparisonGeometry": {
+      "staticComparisonContractCommit": "8fb80fc1c2c15c4cc75e306bc1f806c282fc0175",
+      "combinedComparisonSource": "fde317bb9",
+      "cases": 2,
+      "pages": 3,
+      "passed": true,
+      "schema": 2,
+      "output": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-geometry-settled",
+      "originalFailureRetained": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-net8",
+      "reconciliation": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-geometry-reconciliation.json",
+      "scope": "Managed PDF/SVG/raster route geometry and independent source-browser reference; only expected coordinates/region position changed after verified selected-font inline SVG descent. Original pixel minima, baseline tolerances, visual limits, supplied fonts and source fixture unchanged. Shipping owner code unchanged."
+    }
   }
 }
