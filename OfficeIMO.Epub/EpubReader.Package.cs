@@ -482,6 +482,23 @@ internal static partial class EpubReader {
                 MediaType = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "media-type"))
             });
         }
+        // Project only retained declarations. A metadata limit must not be bypassed
+        // by consulting refinements that extraction deliberately omitted.
+        var identified = package.Metadata.Where(entry => entry.Id != null)
+            .GroupBy(entry => entry.Id!, StringComparer.Ordinal).Where(group => group.Count() == 1)
+            .ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
+        foreach (EpubMetadataEntry refinement in package.Metadata) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (refinement.Kind != EpubMetadataKind.Meta || refinement.NamespaceUri != "http://www.idpf.org/2007/opf" ||
+                refinement.Property == null || refinement.Refines == null || !refinement.Refines.StartsWith("#", StringComparison.Ordinal) ||
+                refinement.Value.Length == 0) continue;
+            EpubReference reference = EpubReference.Resolve(opfPath, refinement.Refines);
+            if (reference.Fragment == null || !identified.TryGetValue(reference.Fragment, out EpubMetadataEntry? target)) continue;
+            string property = EpubVocabulary.Expand(metadata.Document!.Root!, refinement.Property);
+            if (property == "http://idpf.org/epub/vocab/package/#file-as") target.FileAs ??= refinement.Value;
+            else if (property == "http://idpf.org/epub/vocab/package/#role" && target.Kind == EpubMetadataKind.DublinCore &&
+                (target.Name == "creator" || target.Name == "contributor" || target.Name == "publisher")) target.Role ??= refinement.Value;
+        }
     }
 
 }

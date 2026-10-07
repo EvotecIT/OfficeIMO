@@ -1,0 +1,10 @@
+{
+  "purpose": "Test-only narration for the two-cue SMIL fixture; not shipped in OfficeIMO libraries.",
+  "text": "First, the reader hears this sentence. Next, the narration continues with the second sentence.",
+  "source": "macOS say default voice, generated locally from the original text above",
+  "encoding": "ffmpeg libmp3lame 64k mono, map_metadata -1",
+  "durationSeconds": "7.117959",
+  "cueBoundarySeconds": "2.8",
+  "boundaryEvidence": "Sentence gap detected at 2.704580 through 2.937551 seconds in source PCM; midpoint selected. Reader synchronization requires independent playback qualification.",
+  "sha256": "4b5e533cbc1892ac534ce8406b15ddbd6ed2e1e2ddbb7417b843dbe2da166856"
+}

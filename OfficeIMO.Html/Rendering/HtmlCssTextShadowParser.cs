@@ -13,9 +13,9 @@ internal static class HtmlCssTextShadowParser {
         double containerWidth,
         double containerHeight,
         OfficeColor currentColor,
-        out IReadOnlyList<HtmlCssTextShadow> shadows) =>
+        out IReadOnlyList<HtmlCssTextShadow> shadows, double characterAdvance = double.NaN) =>
         TryParse(value, fontSize, rootFontSize, viewportWidth, viewportHeight,
-            containerWidth, containerHeight, currentColor, 256, out shadows, out _);
+            containerWidth, containerHeight, currentColor, 256, out shadows, out _, characterAdvance);
 
     internal static bool TryParse(
         string value,
@@ -28,7 +28,7 @@ internal static class HtmlCssTextShadowParser {
         OfficeColor currentColor,
         int maximumLayers,
         out IReadOnlyList<HtmlCssTextShadow> shadows,
-        out int layerCount) {
+        out int layerCount, double characterAdvance = double.NaN) {
         shadows = Array.Empty<HtmlCssTextShadow>();
         layerCount = 0;
         if (value == null || value.Length > 65536 || maximumLayers <= 0) return false;
@@ -67,7 +67,7 @@ internal static class HtmlCssTextShadowParser {
                     containerWidth,
                     containerHeight,
                     currentColor,
-                    out HtmlCssTextShadow? shadow)) return false;
+                    out HtmlCssTextShadow? shadow, characterAdvance)) return false;
             if (parsed.Count < maximumLayers) parsed.Add(shadow!);
         }
 
@@ -84,13 +84,14 @@ internal static class HtmlCssTextShadowParser {
         double containerWidth,
         double containerHeight,
         OfficeColor currentColor,
-        out HtmlCssTextShadow? shadow) {
+        out HtmlCssTextShadow? shadow, double characterAdvance = double.NaN) {
         shadow = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(layer);
         if (tokens.Count < 2) return false;
 
         OfficeColor color = currentColor;
         bool colorSpecified = false;
+        bool usesCurrentColor = true;
         var lengths = new List<double>(3);
         foreach (string token in tokens) {
             if (string.Equals(token, "currentcolor", StringComparison.OrdinalIgnoreCase)) {
@@ -102,6 +103,7 @@ internal static class HtmlCssTextShadowParser {
             if (HtmlRenderCssValues.TryColor(token, out OfficeColor parsedColor)) {
                 if (colorSpecified) return false;
                 color = parsedColor;
+                usesCurrentColor = false;
                 colorSpecified = true;
                 continue;
             }
@@ -115,7 +117,7 @@ internal static class HtmlCssTextShadowParser {
                     viewportHeight,
                     containerWidth,
                     containerHeight,
-                    out double length)) return false;
+                    out double length, characterAdvance)) return false;
             lengths.Add(length);
         }
 
@@ -127,7 +129,7 @@ internal static class HtmlCssTextShadowParser {
             color.A / 255D,
             lengths[0],
             lengths[1],
-            blurRadius);
+            blurRadius, usesCurrentColor);
         return true;
     }
 
@@ -136,7 +138,8 @@ internal static class HtmlCssTextShadowParser {
 }
 
 internal sealed class HtmlCssTextShadow {
-    internal HtmlCssTextShadow(OfficeColor color, double opacity, double offsetX, double offsetY, double blurRadius) {
+    internal HtmlCssTextShadow(OfficeColor color, double opacity, double offsetX, double offsetY, double blurRadius, bool usesCurrentColor = false) {
+        UsesCurrentColor = usesCurrentColor;
         Color = color;
         Opacity = opacity;
         OffsetX = offsetX;
@@ -144,6 +147,7 @@ internal sealed class HtmlCssTextShadow {
         BlurRadius = blurRadius;
     }
 
+    internal bool UsesCurrentColor { get; }
     internal OfficeColor Color { get; }
     internal double Opacity { get; }
     internal double OffsetX { get; }

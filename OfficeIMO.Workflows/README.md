@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -63,7 +63,7 @@ var imported = await BookManuscriptImporter.ImportFileAsync("manuscript.md",
 BookProject project = BookProject.FromImport(imported);
 imported.Report.RequireNoLoss();
 project.RenameChapter(0, "Opening chapter");
-project.SetStylesheet("body{font-family:serif;line-height:1.6}");
+project.SetStylesheet(EpubTypography.CreateStylesheet(EpubTypographyProfile.Prose));
 await File.WriteAllBytesAsync("book.oibook", project.ToProjectBytes());
 BookProject reopened = BookProject.LoadProject(await File.ReadAllBytesAsync("book.oibook"));
 await File.WriteAllBytesAsync("book.epub", reopened.Export().Bytes);
@@ -76,17 +76,52 @@ files implicitly; a host may supply a permission-aware resource resolver and bas
 Typed `ImportWordAsync` and `ImportMarkdownAsync` reuse an already loaded source.
 
 `BookProject` owns validated edits: metadata, chapter insertion/removal/reordering,
-chapter titles and XHTML bodies, a project stylesheet, and cover selection.
+chapter titles and XHTML bodies, resource renaming with reference repair, a project stylesheet, and cover selection.
+`RenameResource(manifestId, containerPath)` delegates to the EPUB owner and retains the same undo/redo behavior as other project edits. Its resource-inspection limits are described in the EPUB README.
+
+`SplitChapter(manifestId, boundaryId, newManifestId, newContainerPath, title)` delegates the atomic chapter split to the EPUB owner. The resulting content, navigation and reading-order changes participate in project undo/redo and persistence. See the EPUB README for supported boundaries and reference-repair limits.
+
+`MergeChapters(firstManifestId, secondManifestId, boundaryId)` combines consecutive compatible chapters through the same owner and undoable transaction. Both navigation entries survive, and the second chapter's links target retained content or its new boundary. Pass `EpubChapterMergeOptions` to the overload to select body scopes, matter and language preservation, identifier repairs, stylesheet reconciliation or package refinement retargeting. The project delegates these choices to the EPUB owner and keeps the merge undoable. Unresolved conflicts fail without changing the project; see the EPUB README for the merge contract.
+`ApplyContentEdits` accepts the EPUB owner's stale-checked element proposals and commits them as one undoable edit. Named revisions can capture the book before or after this transaction. See the EPUB README for element selection and batch validation.
+
 `ApplyEdits` commits a complete editor draft atomically. Invalid or cancelled edits
 retain the previous publication. Deleting a linked chapter requires repairing its
 remaining links first. A blank creator retains the current creator. Package edits
-have one bounded session-only undo/redo step; the history is not saved in the project.
+have one bounded session-only undo/redo step. Named revisions are saved separately.
 `PreviewChapter` renders through `OfficeIMO.Epub.Image` using retained package assets.
 It selects the requested spine position and fails if that chapter was omitted by the
 bounded reading policy. Navigation edits also reject incomplete reader projections,
 retaining the complete publication when item, depth, or XML size limits are reached.
 
-The `.oibook` container stores `publication.epub` and a versioned review record, with
+Capture editorial milestones explicitly with `CreateRevision(name)`. `Revisions`
+returns immutable descriptors with an ID, name, UTC timestamp, SHA-256 hash and byte
+count. `RestoreRevision(id)` restores publication content as an undoable edit;
+`RemoveRevision(id)` removes only that snapshot. Import diagnostics and acceptance
+remain project-wide. Direct edits through `Publication` are included when capturing
+a revision, but are not automatically recorded as history.
+
+```csharp
+var baseline = project.CreateRevision("Before copyediting");
+project.SetMetadata("Revised title", "en", "Author");
+byte[] saved = project.ToProjectBytes();
+var restored = BookProject.LoadProject(saved);
+restored.RestoreRevision(baseline.Id);
+restored.Undo(); // Return to the revised title.
+```
+
+Use `CompareRevision(id)` to compare a retained revision with the current book.
+The EPUB owner reports metadata, reading-order, resource and source-text changes;
+`TextChanges` contains bounded before/after excerpts. Comparison does not modify the
+project, undo state or revision history. See the EPUB README for matching rules and
+coverage limits.
+
+A project retains up to 100 named revisions and 128 MiB of combined revision EPUB
+bytes, in addition to its current publication (up to 128 MiB). Capture rejects an
+exhausted bound without evicting existing revisions. Version-2 projects retain these
+snapshots; version-1 projects remain readable. Session undo/redo is not persisted.
+Revision hashes detect inconsistent stored content; they are not digital signatures.
+
+The `.oibook` container stores `publication.epub`, named revision EPUBs and a versioned review record, with
 physical ZIP validation and byte/count limits. Loading never extracts files.
 Projects may retain non-fatal review findings until the author acknowledges them;
 failure diagnostics cannot be accepted as export-ready. Every EPUB export still runs
@@ -94,6 +129,1350 @@ the native writer's validation. Project review records are user-owned state, not
 authenticity certificate. Project instances are mutable and not thread-safe.
 Hosts own destination permissions, conflict handling and safe publication; Studio
 uses its existing verified storage owner for those operations.
+
+## Batch book publication
+
+The built-in `book-project-epub` route exports `.oibook` files through `BookProject`
+and the EPUB writer. It uses the same runner, publication guards, conflict policies,
+byte limits and checkpoint recovery as other conversions.
+
+```csharp
+OfficeConversionBatchResult published = await OfficeWorkflow.ConvertDirectory("BookProjects")
+    .ToDirectory("PublishedBooks", ".epub")
+    .SelectExtensions(true, ".oibook")
+    .WithLimits(BookProject.MaximumProjectBytes, 128L * 1024 * 1024)
+    .WithCheckpoint("PublishingState")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+Outputs retain source names, such as `novel.oibook.epub`. Export requires saved author
+acknowledgment of non-fatal import losses; failures always block it. The batch does
+not acknowledge losses automatically. Accepted import findings and writer fidelity
+findings remain structured workflow diagnostics. Only the current publication is
+exported; named revisions and review records stay in the source project. Each staged
+EPUB is reopened and checked by its owner before publication. This native check does
+not replace EPUBCheck, accessibility review or independent-reader qualification.
+
+For an individual in-memory project, `Export(EpubWriteOptions, cancellationToken)`
+applies explicit writer limits while enforcing the same import-review gate.
+
+## Book delivery bundles
+
+`ToDeliveryBytes` packages the current reviewed publication for a local handoff:
+
+```csharp
+byte[] delivery = project.ToDeliveryBytes(
+    new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) },
+    cancellationToken: cancellationToken);
+// The host owns destination permissions, conflict handling and safe file publication.
+```
+
+The ZIP contains exactly `publication.epub`, `package.opf` and `manifest.json`.
+The OPF is copied byte-for-byte from the selected package in the exported EPUB,
+including identifiers, refinements, extensions and the writer's modification time.
+Its resource references remain relative to the original `PackagePath` recorded in
+the manifest; the sidecar is for metadata inspection, not standalone rendering.
+
+The version-1 `OfficeIMO.BookDelivery` JSON manifest records each payload's name,
+media type, byte length and uppercase SHA-256, plus import acknowledgment and
+separate import/writer diagnostics. Diagnostic loss categories are strings.
+Diagnostics can include source locations and author-supplied text. Named revisions,
+undo history and project review files are excluded. Hashes detect payload changes;
+they do not authenticate the sender or protect a manifest that is replaced with
+the payloads.
+
+Delivery uses the same import-review and signature policies as `Export`. The native
+writer check is recorded as `passed`; independent validation and retailer acceptance
+are recorded as `not-performed`. The bundle performs no ONIX conversion, external
+validation, upload or retailer-specific packaging.
+
+The EPUB is limited to 128 MiB, its OPF sidecar to 4 MiB, and the manifest to 1 MiB
+and 10,000 diagnostics per stage. `maximumOutputBytes` can lower the 134 MiB delivery
+ZIP ceiling. Writer limits remain effective and supplied options are not modified.
+Exceeded bounds or cancellation return no bundle and leave the project intact.
+Unchanged content and identical writer options produce identical delivery bytes
+on the same runtime. The API returns bytes and does not write destination files.
+
+## KDP offline delivery
+
+`ToKdpDeliveryBytes` prepares a local handoff with a separate listing cover:
+
+```csharp
+byte[] handoff = project.ToKdpDeliveryBytes(
+    File.ReadAllBytes("listing-cover.jpeg"),
+    cancellationToken: cancellationToken);
+```
+
+Extract the ZIP before using KDP: upload `publication.epub` as the manuscript and
+`listing-cover.jpeg` or `listing-cover.tiff` as the listing cover. The ZIP itself
+is an OfficeIMO handoff format. `package.opf` and `manifest.json` are inspection
+sidecars. The EPUB's embedded cover is preserved; this API does not replace it.
+
+The API inspects the cover's actual format, dimensions and encoded color structure,
+then decodes it using the existing managed Core decoder. It accepts supported
+three-component JPEG and explicitly RGB single-page TIFF payloads with a display
+width of 625–10,000 pixels and a display
+height of 1,000–10,000 pixels after embedded orientation is applied. The manifest
+records this dimension basis; cover bytes and orientation metadata are preserved.
+Recommendations for larger images and a taller aspect ratio
+remain recommendations. These checks follow the
+[KDP listing-cover criteria](https://kdp.amazon.com/en_US/help/topic/G200645690).
+The local encoded-size cap is 49,999,999 bytes, a conservative interpretation of
+“less than 50MB”; the local decoding cap is 16 million pixels. These local limits
+can reject images within the retailer's dimension limits. Unsupported decoder
+profiles and multi-page TIFFs are rejected without converting the supplied cover.
+
+The version-1 `OfficeIMO.KdpDelivery` manifest nests the ordinary delivery evidence
+under `Delivery`, including exact payload hashes and import/writer diagnostics.
+`Cover` records dimension and decode checks, local limits, recommendations and
+`EncodedColorStructure` (`three-component-jpeg` or `rgb-tiff`). Grayscale and
+four-component JPEGs, and TIFFs without one valid RGB photometric tag, are rejected.
+The structural check and successful decode do **not** establish an RGB ICC profile
+or validate all color-separation metadata. Those checks, visual orientation,
+resolution, quality, matching the
+listing and embedded cover, rights, commercial terms, accessibility assessment,
+Kindle Previewer and retailer acceptance remain explicitly unchecked. Review
+these separately; no overall retailer-ready status is emitted.
+KDP recommends [Kindle Previewer](https://kdp.amazon.com/en_US/help/topic/G200634390)
+before manuscript upload.
+
+The API uses the ordinary export review/signature policies and preserves both
+caller options and editorial history. It snapshots the cover and packages its
+original bytes. The EPUB and OPF limits are unchanged, the combined manifest is
+limited to 1 MiB, and `maximumOutputBytes` can lower the 184 MiB ZIP ceiling.
+No accounts are accessed, files written, images resampled or books uploaded.
+
+## ONIX bibliographic export
+
+`ExportOnix` creates one ONIX 3.1 reference-tag product record for a single EPUB
+digital download. It takes a selected title (the first by default) and an explicitly
+selected ISBN-13 from the exported package. Supply the message identity, notification intent,
+language, publisher and credits explicitly:
+
+```csharp
+// schemas is a compiled XmlSchemaSet loaded from vetted ONIX 3.1 reference XSD files.
+var options = new BookOnixExportOptions {
+    SenderName = "Example Press", RecordReference = "digital-edition-42",
+    SentAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero),
+    Notification = BookOnixNotification.Confirmed,
+    IdentifierId = "digital-isbn", LanguageCode = "eng", PublisherName = "Example Press",
+    PublicationDate = new DateOnly(2026, 10, 5),
+    Contributors = [new("Alice Example", BookOnixContributorRole.Author),
+                    new("Example Studio", BookOnixContributorRole.Illustrator, IsOrganization: true)]
+};
+BookOnixExportResult record = project.ExportOnix(options, schemas, cancellationToken: cancellationToken);
+// record.Bytes is ONIX XML; record.Publication contains the exact EPUB and its writer report.
+```
+
+The selected `dc:identifier` must exist and contain a valid ISBN-13. The shared
+ISBN validator checks spelling, prefix and checksum; it does not verify registration
+or that an ISBN was allocated to this digital edition. Language codes use ONIX list
+74 (`eng`, `pol`, `fre`), not BCP 47 tags. The supplied schema checks code membership.
+Credits distinguish people from organizations and support author, editor,
+translator, illustrator and other creative responsibility. Supply 1–100 credits,
+or explicitly set `NoContributors = true` with an empty list. Missing EPUB credits
+are not interpreted as an assertion that there are no contributors.
+
+Early, advance and confirmed notifications are **complete-record replacements**.
+Commercial and accessibility blocks are emitted only when supplied. This profile
+has no series, subject, description or retailer-specific blocks.
+Do not use it to update an existing richer trade record unless replacing that record
+with this profile is intended. Subtitle and publication date are optional explicit
+values; all other EPUB metadata stays in the EPUB and is not automatically mapped.
+Block updates, deletion records and multi-product messages are outside this profile.
+
+Add accessibility discovery information as explicit publisher assertions:
+
+```csharp
+record = project.ExportOnix(options with {
+    Accessibility = new BookOnixAccessibilityMetadata {
+        Summary = "Language-tagged text and labelled links; some diagrams lack extended descriptions.",
+        Status = BookOnixAccessibilityStatus.Limited,
+        Features = [BookOnixAccessibilityFeature.LanguageTagging,
+                    BookOnixAccessibilityFeature.ClearLinkPurposes],
+        AssessmentDate = new DateOnly(2026, 10, 5),
+        PublisherInformationUrl = "https://example.org/accessibility/edition-42",
+        PublisherContactEmail = "accessibility@example.org"
+    }
+}, schemas);
+```
+
+These declarations use `ProductFormFeatureType` 09 and the supported
+[ONIX list 196](https://ns.editeur.org/onix/en/196) values. Feature assertions describe
+the edition as a whole. The typed API restricts supported code values; the ONIX
+XSD checks their XML placement but does not enforce list 196 membership or verify
+the truth of an assertion. A chapter-only TOC does not establish complete TOC navigation,
+and partial narration does not establish synchronized audio for substantially all
+text. EPUB metadata and validator passes never populate these fields automatically.
+
+After an appropriate assessment, callers can explicitly supply
+`Conformance = new(BookOnixWcagVersion.V2_2, BookOnixWcagLevel.AA)` to declare EPUB
+Accessibility 1.1 plus that WCAG version and level. This is a publisher assertion,
+not certification by OfficeIMO. Unknown accessibility cannot also assert conformance.
+Legal exemption claims are outside this export profile.
+
+Record certification provenance separately from conformance:
+
+```csharp
+var assessed = new BookOnixAccessibilityMetadata {
+    Certification = new("Edition certifier", "https://certifier.example.org/scheme") {
+        CredentiallingOrganizationName = "Credentialling organization",
+        CredentiallingOrganizationUrl = "https://credentials.example.org/"
+    },
+    IndependentReportUrl = "https://certifier.example.org/reports/edition-1",
+    IntermediaryInformationUrl = "https://intermediary.example.org/edition-1",
+    CompatibilityReportUrl = "https://publisher.example.org/compatibility/edition-1",
+    IntermediaryContactEmail = "accessibility@intermediary.example.org"
+};
+record = project.ExportOnix(options with { Accessibility = assessed }, schemas);
+```
+
+`Certification` requires a certifier name and organization or scheme URL (90/93);
+its optional credentialling organization uses 88/89. Product-specific independent
+reports use 94, trusted intermediary information uses 95, publisher information uses
+96, compatibility testing reports use 97, and intermediary contacts use 98. A report
+can describe an assessment without certification, so report URLs do not require a
+certifier. Neither certification provenance nor reports add a conformance declaration.
+The example uses fictional organizations; supply only claims supported by the actual
+edition's assessment.
+
+Omit `Accessibility` when no assertions are supplied; an empty declaration is rejected.
+Feature lists must be distinct and contain at most 32 supported values. Text fields
+are limited to 4096 characters, URLs must be absolute HTTP(S) without credentials,
+and contacts must be plain email addresses. Export does not fetch URLs, send email,
+verify assessments or derive an assessment date from the transmission timestamp.
+
+Add explicit commercial metadata when the record must describe a market offer:
+
+```csharp
+var uk = new BookOnixTerritory { Countries = ["GB"] };
+record = project.ExportOnix(options with {
+    Commercial = new BookOnixCommercialMetadata {
+        PublishingStatus = BookOnixPublishingStatus.Active,
+        SalesRights = [new(BookOnixSalesRightsKind.Exclusive, uk)],
+        Supplies = [new() {
+            Territory = uk, SupplierName = "Example Press",
+            SupplierRole = BookOnixSupplierRole.PublisherToCustomers,
+            Availability = BookOnixAvailability.Available,
+            Prices = [new() { Kind = BookOnixPriceKind.RecommendedIncludingTax,
+                             Amount = 9.99m, CurrencyCode = "GBP" }]
+        }]
+    }
+}, schemas, cancellationToken: cancellationToken);
+```
+
+Territories use explicit `Countries` and/or `Regions`, or `Worldwide = true` with
+optional `ExcludedCountries` and `ExcludedRegions`. Country codes are uppercase
+ONIX list 91 values and the supplied schema checks membership. Regions use a bounded
+[ONIX list 49](https://ns.editeur.org/onix/en/49) geographic profile: Australian
+states/territories, Belgian regions, Canadian provinces/territories, mainland Chinese
+alphabetic subdivision codes, `ES-CN`, `FR-H`, `GB-ENG`, `GB-NIR`, `GB-SCT`, `GB-WLS`,
+and US states plus `US-DC`. Deprecated aliases, airport markets, economic aggregates
+and other region hierarchies are rejected. Each list accepts at most 250 unique codes.
+
+```csharp
+var california = new BookOnixTerritory { Regions = ["US-CA"] };
+var restOfUs = new BookOnixTerritory {
+    Countries = ["US"], ExcludedRegions = ["US-CA"]
+};
+```
+
+An included region cannot repeat its included parent country. An excluded region
+must belong to an included country or the worldwide scope; its parent cannot also
+be excluded. Rights territories cannot overlap in this profile. Available,
+forthcoming or temporarily unavailable supply must fit the union of declared
+for-sale rights. A finite subdivision list never implies a whole-country grant,
+and no finite country list is treated as worldwide permission. A country grant
+excluding California and a separate California grant can jointly cover the US.
+Unavailable or withdrawn supply can be reported after rights are lost. Undeclared
+territories remain unstated, and OfficeIMO does not verify rights ownership.
+Regional territories also apply to collateral text and supporting resources;
+recipient interpretation remains a separate qualification step.
+
+Each supply requires prices or an explicit `Unpriced` reason: `Free`,
+`ToBeAnnounced` or `ContactSupplier`. A zero price does not mean free. Prices preserve
+positive decimal amounts without rounding or currency conversion and distinguish
+recommended, fixed, supplier-net and publisher agency price bases and tax inclusion.
+Currency codes use ONIX list 96. Price territories default to the declared supply
+market and may narrow it; they cannot broaden it. Optional `ValidFrom` and `ValidUntil`
+dates preserve the supplied effective period and reject a reversed interval.
+Overlapping-offer resolution is not supported by this profile.
+Jurisdiction-specific business rules are not calculated or qualified.
+
+Forthcoming publishing status requires `PublicationDate`; cancelled or indefinitely
+postponed status forbids it. Supplier availability has its own date: not-yet-available
+or temporarily unavailable supply requires `ExpectedSupplyDate`, or the explicit
+`ExpectedSupplyDateUnknown` exception when no date is known. Other availability states
+do not accept that expected-date declaration. Product publishing status and supplier
+availability are separate assertions.
+
+Use `BookOnixPrice.Discounts` for up to 16 explicit business-to-business discount
+declarations. The containing price's amount, currency, territory and effective dates
+remain unchanged:
+
+```csharp
+var price = new BookOnixPrice {
+    Kind = BookOnixPriceKind.RecommendedExcludingTax,
+    Amount = 10.00m,
+    CurrencyCode = "GBP",
+    Discounts = [
+        new() { Kind = BookOnixDiscountKind.Rising, MinimumQuantity = 1,
+            MaximumQuantity = 9, Percent = 10.00m },
+        new() { Kind = BookOnixDiscountKind.Rising, MinimumQuantity = 10,
+            Percent = 20.00m }
+    ]
+};
+```
+
+Discount kinds follow [ONIX list 170](https://ns.editeur.org/onix/en/170). Each
+needs a percentage from 0–100, a nonnegative amount per copy no greater than the
+price, or both. Decimal scale is preserved. Optional copy quantities must be positive
+integers; a maximum requires a minimum and cannot precede it. Omitting quantities
+leaves them unspecified. An empty list makes no discount assertion; an explicit zero
+is retained. A zero percentage cannot accompany a positive amount.
+
+The exporter preserves declaration order. It does not resolve overlapping tiers,
+select a discount, stack declarations, check percentage/amount arithmetic, calculate
+net prices or recalculate taxes. Cumulative periods and purchaser eligibility remain
+trading-partner agreements; price effective dates are not a cumulative-order period.
+
+For trading-partner codes, use `BookOnixPrice.DiscountCodes`:
+
+```csharp
+var codedPrice = new BookOnixPrice {
+    Kind = BookOnixPriceKind.RecommendedExcludingTax,
+    Amount = 10.00m,
+    CurrencyCode = "GBP",
+    DiscountCodes = [new() {
+        Scheme = BookOnixDiscountScheme.ProprietaryDiscount,
+        SchemeName = "Example Press trade terms",
+        Code = "A1"
+    }]
+};
+```
+
+The seven schemes follow [ONIX list 100](https://ns.editeur.org/onix/en/100).
+Proprietary discount and commission schemes require a distinctive `SchemeName`;
+other schemes omit it. Up to 16 codes are retained in supplied order, before numeric
+discounts. Codes and scheme names use the existing 4096-character text limit.
+BIC codes require five ASCII letters followed by one to three alphanumeric
+characters. ISNI-based codes require 15 digits and a final digit or `X`, followed
+by a hyphen and one to three alphanumeric characters. Input is preserved verbatim.
+These checks do not verify ISNI checksums or allocation, BIC prefix ownership,
+local terms-code membership, partner eligibility, or code-to-rate mappings.
+Discount and commission codes keep their distinct scheme values; neither changes
+the price or creates a numeric discount automatically.
+
+Tax-inclusive prices can carry up to 16 explicit `BookOnixTax` components:
+
+```csharp
+var price = new BookOnixPrice {
+    Kind = BookOnixPriceKind.RecommendedIncludingTax,
+    Amount = 10.50m,
+    CurrencyCode = "PLN",
+    Taxes = [new() {
+        Type = BookOnixTaxType.ValueAdded,
+        RateCode = BookOnixTaxRateCode.Lower,
+        RatePercent = 5.00m,
+        TaxableAmount = 10.00m,
+        Amount = 0.50m
+    }]
+};
+```
+
+These are illustrative publisher-supplied values, not a tax-rate recommendation.
+Types follow [ONIX list 171](https://ns.editeur.org/onix/en/171); optional rate
+classifications follow [list 62](https://ns.editeur.org/onix/en/62). Each component
+needs a percentage, a tax amount, or both, and can describe the affected price part.
+Values retain decimal scale and use the price's currency and territory. Percentages
+are bounded to 0–100, taxable amounts must be positive, and tax amounts cannot be
+negative. Each supplied taxable amount plus its tax must fit within the price;
+the sum of supplied tax amounts cannot exceed it. Zero-rate assertions cannot carry
+positive tax amounts. Different taxes may share a taxable base, so taxable bases
+are not summed.
+
+Use `TaxExempt = true` with an empty `Taxes` list to assert exemption. A zero-rated
+tax uses `BookOnixTaxRateCode.Zero`; an empty list alone leaves tax information
+unstated. Tax components require a tax-inclusive price kind. OfficeIMO does not
+calculate missing values, reconcile percentage arithmetic or rounding, determine
+applicable laws, or verify that a rate classification applies to the market.
+
+Commercial metadata is bounded to 32 rights declarations, 32 supplies, 16 prices per
+supply and 250 unique codes per country list. The total XML byte limit still applies.
+
+The host supplies and owns the provenance of a compiled `XmlSchemaSet` declaring
+`ONIXMessage` in `http://ns.editeur.org/onix/3.1/reference`. OfficeIMO ships no ONIX
+schema files and fetches none during export. The [opt-in evidence runner](../Build/Epub/README.md#onix-fixtures)
+shows loading with a resolver restricted to three local schema files. The exporter
+enforces that schema and rejects validation findings; schema validation alone does
+not establish business-rule completeness or recipient acceptance.
+
+The same import-review and EPUB signature gates apply as for `Export`. Results retain
+import findings, acknowledgment, writer findings and an EPUB SHA-256 captured at
+export time. They perform no upload or independent EPUB validation. Options do not
+change project metadata or history. Text fields are limited to 4,096 characters,
+the inspected OPF to 4 MiB and ONIX XML to 1 MiB. EPUB writer limits and signature
+policy can be supplied separately through `epubOptions`. Project instances, input
+credit/commercial lists and schema sets must not be mutated concurrently with export.
+
+### Title selection and subjects
+
+`TitleId` selects a `dc:title` by its OPF identifier from the exact exported EPUB.
+Omitting it retains the first-title default. Missing identifiers are rejected;
+selection does not change EPUB metadata. `Subtitle` remains an explicit assertion.
+
+`AlternativeTitles` adds up to 32 publisher-supplied product-level titles after the
+selected distinctive title. Declare their meaning explicitly: original-language,
+abbreviated, parallel-language, former, distributor, cover, back-cover, expanded,
+widely known alternative, spine, or intermediate translation title. Serial-only
+title types are outside this book profile. Multiple titles of the same type are
+allowed, for example parallel titles in different languages; caller order is retained.
+
+```csharp
+var translated = existingOptions with {
+    AlternativeTitles = [
+        new() { Type = BookOnixAlternativeTitleType.OriginalLanguage,
+            Title = "L’histoire", LanguageCode = "fre", TitleSorting = new() { Prefix = "L’" } },
+        new() { Type = BookOnixAlternativeTitleType.OtherLanguage,
+            Title = "Historia", LanguageCode = "pol" }
+    ]
+};
+```
+
+Each alternative may carry a subtitle and an ONIX list 74 language code, applied to
+its title, sorting components and subtitle. Omitted language remains unspecified.
+These are separate ONIX assertions: they neither change EPUB metadata nor infer
+translation history or territorial applicability. The supplied schema validates
+codes, while retailer acceptance requires recipient-specific qualification.
+
+`TitleSorting` distinguishes an unknown prefix from a publisher's explicit sorting
+instruction. It is available on `BookOnixExportOptions`, a simple `BookOnixCollection`,
+`BookOnixAlternativeTitle`, and each `BookOnixCollectionTitleElement`:
+
+```csharp
+var prefixed = existingOptions with {
+    // For a selected EPUB title such as "The history of publishing":
+    TitleSorting = new() { Prefix = "The " }
+};
+var unprefixed = existingOptions with { TitleSorting = new() };
+```
+
+Omitting `TitleSorting` retains the unsplit `TitleText` output. `new()` asserts
+`NoPrefix` and writes the full title as `TitleWithoutPrefix`. Supplying `Prefix`
+writes it as `TitlePrefix` and removes that exact leading text from
+`TitleWithoutPrefix`. Include any separator to remove in the prefix, such as the
+space in `"The "`. Matching is ordinal and case-sensitive; text, punctuation and
+remaining whitespace are preserved. Prefix plus remainder reconstructs the full
+title exactly. Empty, whitespace-only, mismatched and exhaustive prefixes are
+rejected. OfficeIMO does not infer sorting rules from language or strip articles
+automatically.
+
+`BookOnixExportOptions.TitleSorting` applies to the selected title from the exported
+EPUB. Alternative titles use their own declared text and language. For collections,
+the declared title language applies to both prefix and remainder.
+Sorting cannot be attached to a part-only element. With `TitleElements`, place
+sorting on each element, not on the collection's simple-title fields. The choice
+is explicit because `TitleText` is deprecated but still accepted in ONIX 3.1;
+existing callers retain their output until they supply a sorting assertion.
+
+Declare discoverability metadata in `Subjects`:
+
+```csharp
+var options = existingOptions with {
+    TitleId = "catalog-title",
+    Subjects = [
+        new() { Scheme = BookOnixSubjectScheme.Bisac, Code = "JUV000000", IsMain = true },
+        new() { Scheme = BookOnixSubjectScheme.Thema, Code = "YFB", IsMain = true,
+            SchemeVersion = "1.5",
+            Headings = [new("Children's fiction", "eng"), new("Literatura dziecięca", "pol")] },
+        new() { Scheme = BookOnixSubjectScheme.Keywords,
+            Headings = [new("stories; adventure", "eng")] }
+    ]
+};
+```
+
+The supported [ONIX list 27](https://ns.editeur.org/onix/en/27) schemes are Dewey,
+Library of Congress classification and headings, BISAC, keywords, named proprietary
+schemes, Thema categories and its six qualifier schemes. Each declaration needs a
+code or heading; keywords use heading text only. Use semicolon-separated keywords
+in one heading per language. Proprietary schemes require `SchemeName`; standard
+schemes omit it. Optional versions are preserved verbatim.
+
+Export accepts up to 64 subjects with 16 headings each. A subject cannot repeat a
+heading language. A single heading may omit its language; repeated headings require
+a distinct explicit language on every entry. Heading language codes use ONIX
+list 74 rather than EPUB BCP 47 tags. At most one subject per scheme (and name for
+proprietary schemes) can be main; keywords and Thema qualifiers cannot be main.
+Text fields use the existing 4096-character bound and the total XML limit still
+applies. Subject authority strings in the EPUB are not automatically mapped. Schema
+validation checks ONIX structure and list values, not membership of individual
+subject codes, supplied scheme versions, classification suitability or discoverability
+in a recipient's catalog.
+
+### Collateral text and attribution
+
+`CollateralTexts` carries publisher-supplied descriptions, review quotes, excerpts,
+cover copy and other supporting text. The recipient of this copy is separate from
+the readership of the book:
+
+```csharp
+var options = existingOptions with {
+    CollateralTexts = [new() {
+        Type = BookOnixTextType.ReviewQuote,
+        Audiences = [BookOnixContentAudience.EndCustomers],
+        Texts = [new("A supplied review quotation.", "eng")],
+        Authors = ["Example Reviewer"],
+        SourceCorporate = "Example Journal",
+        SourceTitles = [new("Review of the book", "eng")],
+        SourceLinks = ["https://example.org/review"],
+        PublishedOn = new DateOnly(2026, 9, 1),
+        UsableFrom = new DateOnly(2026, 10, 1)
+    }]
+};
+```
+
+The profile supports [ONIX list 153](https://ns.editeur.org/onix/en/153) text types
+02–19: short/full product descriptions, table of contents, cover copy, current or
+previous-edition/work review quotes, endorsement, headline, feature, biographical
+note for all contributors, publisher notice, excerpt, index, short/full collection
+descriptions, new feature and version history. Each item requires explicit
+[list 154 recipients](https://ns.editeur.org/onix/en/154). Recipient codes must be
+distinct; `Unrestricted` cannot accompany another code. List order becomes the
+collateral sequence order.
+
+Text defaults to plain text (`textformat="06"`). Markup-like input remains
+literal unless the variant explicitly selects `Format = BookOnixCollateralTextFormat.Xhtml`;
+links are never fetched. Each item supports up to 16 language variants,
+16 authors, 16 source-title variants and 16 source links. Language codes use ONIX
+list 74. Each repeated text or source-title list requires distinct explicit languages
+on every entry; a single value may omit its language. Source
+links require absolute HTTP(S) URLs without credentials. Optional `Territory`
+reuses the existing country/worldwide profile and describes use of the collateral,
+independently of product sales rights.
+
+There may be at most 64 items. Each text variant accepts up to 65,536 UTF-16 code
+units, and texts, source titles, rating units, license names, license expression links, supporting-resource notes, filenames and links share
+a 524,288-unit export budget. Source
+titles and other attribution fields retain the 4096-unit field bound. Short product
+and collection descriptions additionally permit at most 350 Unicode scalar values,
+so a supplementary character counts once. The complete ONIX document still has its
+1 MiB serialized size limit.
+
+`PublishedOn` and `UpdatedOn` describe the collateral. `UsableFrom` and `UsableUntil`
+carry its permitted-use dates; reversed intervals are rejected. These dates,
+restricted-recipient labels and territory declarations are metadata assertions,
+not access controls: export includes the text and does not enforce embargoes or
+filter a recipient's copy. The publisher remains responsible for accurate attribution,
+permission to use the text and recipient acceptance. Use `SupportingResources` for separately hosted media and files. No text or
+attribution is inferred from EPUB content, and export does not change the book.
+
+#### Review ratings
+
+Attach a publisher-supplied score to `ReviewQuote`, `PreviousEditionReview` or
+`PreviousWorkReview` text with `ReviewRating`:
+
+```csharp
+var review = new BookOnixCollateralText {
+    Type = BookOnixTextType.ReviewQuote,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Texts = [new("A supplied review quotation.", "eng")],
+    ReviewRating = new(4.5m, Limit: 5) {
+        Units = [new("stars", "eng"), new("gwiazdki", "pol")]
+    },
+    SourceCorporate = "Example Journal"
+};
+```
+
+The decimal score must be nonnegative. An optional `Limit` must be a positive
+integer at least as large as the score. Missing limits and units stay absent;
+export does not assume a five-star scale or convert between scales. Numeric
+output uses an invariant decimal point and retains decimal precision.
+
+Up to 16 plain-text unit translations are supported, each at most 50 UTF-16 code
+units. Repeated units require distinct explicit ONIX list 74 languages; a single
+unit may omit its language. Units share the collateral text budget. Ratings may
+accompany plain text or XHTML review variants, but not descriptions or endorsements.
+The publisher supplies and verifies the score, source and permission to quote it;
+OfficeIMO does not fetch reviews, calculate aggregates or validate a reviewer's judgment.
+
+#### Supporting resources
+
+Set `SupportingResources` on `BookOnixExportOptions` to describe publisher-supplied
+cover images, contributor recordings, trailers, samples and promotional files.
+Resources may accompany collateral text or appear on their own:
+
+```csharp
+var cover = new BookOnixSupportingResource {
+    Type = BookOnixResourceContentType.FrontCover,
+    Mode = BookOnixResourceMode.Image,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Credits = [new("Publisher and cover artist", "eng")],
+    AlternativeTexts = [new("A blue cover with the title in white", "eng")],
+    Versions = [new() {
+        Form = BookOnixResourceForm.Downloadable,
+        FileFormatCode = "D502", // ONIX JPEG code
+        ImageWidth = 1200,
+        ImageHeight = 1800,
+        FileName = "cover.jpg",
+        Links = [new("https://example.org/cover.jpg")],
+        UpdatedOn = new DateOnly(2026, 10, 6)
+    }]
+};
+var resourceOptions = options with { SupportingResources = [cover] };
+```
+
+The profile supports 55 current [list 158 content types](https://ns.editeur.org/onix/en/158),
+excluding transitional thumbnail code 27 and deprecated codes 53 and 99. Use
+`FrontCover` for a thumbnail version of a current cover. All six
+[list 159 modes](https://ns.editeur.org/onix/en/159) and three
+[list 161 forms](https://ns.editeur.org/onix/en/161) are explicit. `Linkable`
+describes sender-hosted content, `Downloadable` describes a copy the recipient
+hosts, and `EmbeddableApplication` describes an application supplied for embedding.
+Export performs none of those operations.
+
+Each export accepts up to 64 resources, with one to 16 versions per resource and
+one to 16 distinct URL/language pairs per version. Links must be absolute HTTP(S)
+URLs without credentials and use the existing 4096-character field bound.
+Alternate URLs may share a language or all omit it. When language tags differ,
+every link must carry an explicit ONIX list 74 language; mixing tagged and untagged
+links is rejected. Links are preserved without fetching them.
+
+`Credits`, `Captions`, `CopyrightHolders` and `AlternativeTexts` accept up to 16
+plain-text translations each, at most 4096 UTF-16 code units per note. Repeated
+notes require distinct explicit languages. These properties reuse
+`BookOnixCollateralTextValue`; XHTML notes are outside this profile. Audio and
+video resources may declare a nonnegative whole-number `LengthMinutes` estimate.
+
+`BookOnixContributor.Identifiers` accepts up to 16 identifiers, one per type and
+proprietary scheme name, on product and collection credits. `Isni` and `Orcid`
+use compact ONIX values: 15 ASCII digits followed by a digit or uppercase `X`,
+without spaces, hyphens or a URL prefix. Checksums, registration and ownership
+are not verified. `Proprietary` requires a distinctive `SchemeName`; both the
+name and value are limited to 100 UTF-16 code units.
+
+A resource's `ContributorReferences` accepts up to 16 distinct identifiers and
+emits [list 160 features 05, 06 and 11](https://ns.editeur.org/onix/en/160).
+Every reference must match an exported product contributor; collection-only
+credits do not qualify. The same identity may appear in multiple product roles.
+Proprietary values reused across different scheme names are rejected when
+referenced, because the resource feature cannot retain the scheme name.
+Reference values share the aggregate collateral text budget.
+
+```csharp
+var personId = new BookOnixContributorIdentifier(
+    BookOnixContributorIdentifierType.Proprietary, "writer-42", "Example Press people");
+var portraitOptions = options with {
+    Contributors = [new("Alex Writer", BookOnixContributorRole.Author) {
+        Identifiers = [personId]
+    }],
+    SupportingResources = [cover with { ContributorReferences = [personId] }]
+};
+```
+
+Each version can declare a [list 178 format code](https://ns.editeur.org/onix/en/178),
+positive image dimensions, a filename of at most 255 UTF-16 code units, a
+nonnegative exact `ByteLength`, and a 64-hex-digit `Sha256`. Format, mode, URL and
+file details are supplied separately; export does not infer them, download the
+asset, calculate its digest or verify its contents. Filenames cannot be paths.
+Resource notes, links, filenames and license text share the existing aggregate
+collateral budget. The complete ONIX document retains its size limit.
+
+Versions reuse `UsageConstraints` and `Licenses`, with the same validation and
+schema qualification limits as collateral text. `UsableFrom`, `UsableUntil` and
+`UpdatedOn` describe that version's dates; reversed usage intervals are rejected.
+The optional resource `Territory` and recipient declarations describe permitted
+use without controlling access. Resource and text sequences are emitted in their
+respective supplied order.
+
+Resource metadata does not insert assets into the EPUB or change its bytes.
+Alternative text and rights declarations remain publisher assertions, not proof
+of accessibility or permission. Contributor identity links, image background and
+perspective features, XHTML feature notes, and additional version features such
+as previous-filename instructions are outside this profile. Recipient download,
+rendering and acceptance require separate qualification.
+
+#### Collateral usage constraints
+
+`UsageConstraints` describes permitted, limited or prohibited uses of a collateral
+item. For example, a publisher can supply a copying allowance and a separate
+text-and-data-mining prohibition:
+
+```csharp
+var excerpt = new BookOnixCollateralText {
+    Type = BookOnixTextType.Excerpt,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Texts = [new("An excerpt supplied by the publisher.")],
+    UsageConstraints = [
+        new(BookOnixUsageType.CopyPaste, BookOnixUsageStatus.Limited) {
+            Limits = [BookOnixUsageLimit.Number(BookOnixUsageUnit.Words, 250)]
+        },
+        new(BookOnixUsageType.TextAndDataMining, BookOnixUsageStatus.Prohibited)
+    ]
+};
+```
+
+The profile supports the current [list 145 usage types](https://ns.editeur.org/onix/en/145),
+[list 146 statuses](https://ns.editeur.org/onix/en/146) and
+[list 147 units](https://ns.editeur.org/onix/en/147). Each item accepts up to 32
+constraints, each with up to 32 distinct units. Repeated usage types can describe
+separate dated periods; export does not resolve overlapping assertions or select
+an applicable period.
+
+Use `BookOnixUsageLimit.Number(unit, quantity)` for nonnegative numeric limits.
+Counts must be whole numbers, percentages cannot exceed 100, and page positions
+start at one. Fractional percentages, periods and resolutions use invariant decimal
+notation. Explicit zero quantities are preserved, including ONIX's unlimited-user
+and perpetual-license conventions; they are not changed into another status.
+
+Use `Time(unit, timeSpan)` for `MediaDuration`, `StartTime` or `EndTime`.
+Durations require whole seconds; positions support centiseconds. Values must be
+nonnegative and below 1000 hours. Output uses ONIX's `HHHMMSS` or `HHHMMSScc`
+notation, preserving required leading zeros and rejecting excess precision rather
+than rounding. Use `Date(unit, dateOnly)` for `ValidFrom` or `ValidUntil`; output
+uses `YYYYMMDD`.
+
+Page and media start positions require an explicit end, extent or percentage.
+End positions require a start. Percentage-per-period limits require a days, weeks
+or months limit. Reversed page, time and date bounds are rejected. Publishers must
+supply appropriate fixed-page positions and media bounds; OfficeIMO does not
+infer them from the EPUB or verify them against the collateral's source.
+
+`Limited` requires a quantitative limit or expiry. `Unlimited` and `Prohibited`
+can carry date boundaries but no quantitative limits. `NoConstraints` is an
+explicit standalone unlimited assertion without limits. Text-and-data-mining
+assertions use unlimited or prohibited status. Limited time licenses require a
+period or expiry; limited multi-user licenses require a concurrent-user quantity.
+
+`PrivatePurchaseAi` and `PrivateReadingAi` use codes introduced in codelist issue
+73. The retained issue 72 schema rejects these codes; export continues to enforce
+the caller-supplied schema. Their mapping is checked against the current vocabulary,
+but acceptance with a current schema and by a recipient remains unqualified.
+These specialized permissions describe exceptions to a broader mining prohibition;
+the publisher supplies the complete applicable assertions.
+
+Usage constraints belong to the collateral text, independently of product sales
+rights. They serialize publisher assertions without enforcing access, granting
+permissions, interpreting a license or assessing legal effect. With multiple
+collateral licenses, ONIX associates the constraints with the current license.
+
+#### Collateral licenses
+
+Use `Licenses` to describe the publisher-supplied terms for an excerpt, description
+or other collateral item. These assertions are separate from product sales rights
+and do not change the EPUB package:
+
+```csharp
+var licensedExcerpt = new BookOnixCollateralText {
+    Type = BookOnixTextType.Excerpt,
+    Audiences = [BookOnixContentAudience.EndCustomers],
+    Texts = [new("An excerpt supplied by the publisher.")],
+    Licenses = [new() {
+        Names = [new("Publisher excerpt terms", "eng")],
+        Expressions = [new(BookOnixLicenseExpressionType.HumanReadable,
+                           "https://example.org/excerpt-terms")],
+        ValidFrom = new DateOnly(2026, 1, 1),
+        ValidUntil = new DateOnly(2026, 12, 31)
+    }]
+};
+```
+
+Each item supports up to 16 licenses. Each license requires one to 16 plain-text
+names, at most 100 UTF-16 code units each. Repeated names require distinct explicit
+ONIX list 74 languages; a single name may omit its language. Names and expression
+links share the collateral text budget.
+
+A license accepts up to 16 distinct expression format/link pairs. Supported
+[list 218 formats](https://ns.editeur.org/onix/en/218) are `HumanReadable`,
+`ProfessionalReadable`, `AdditionalHumanReadable`, `AdditionalProfessionalReadable`,
+`OnixPl`, `Odrl` and `AdditionalOdrl`. This profile accepts absolute HTTP(S) links
+without credentials, using the existing 4096-character field bound. Links are
+preserved and never fetched or interpreted. Additional-license formats describe
+separately obtainable terms; their presence does not assert that they were acquired.
+
+`ValidFrom` and `ValidUntil` are optional inclusive dates, emitted as roles 14 and 15
+with day precision. Reversed dates are rejected; equal dates describe one day.
+When neither date is supplied, ONIX treats the license as effective when the
+message is sent. Date periods are not rewritten into another role to satisfy a schema.
+
+The supplied schema remains authoritative for export validation. The retained
+ONIX 3.1.2 schema rejects repeated license date roles across sibling licenses,
+including two licenses each with their own start and end dates, despite the
+specification allowing multiple validity periods. Such input raises a schema
+validation error; OfficeIMO does not discard dates or bypass validation. Single
+licenses and open-ended transitions with distinct date roles are qualified against
+that schema. Multi-period acceptance with a current schema remains unqualified.
+License metadata does not establish legal permission, enforce an embargo, select
+a currently applicable license or validate the linked terms.
+
+#### XHTML collateral variants
+
+Use an explicit fragment when the description needs semantic formatting:
+
+```csharp
+var variant = new BookOnixCollateralTextValue(
+    "<p>A <strong>formatted</strong> description.</p><ul><li>A feature</li></ul>", "eng") {
+    Format = BookOnixCollateralTextFormat.Xhtml
+};
+```
+
+XHTML variants emit `textformat="05"`. Input must be well-formed XML fragments,
+not HTML requiring parser repair. Multiple elements and surrounding text are allowed.
+Elements without an explicit namespace, in the standard XHTML namespace, or in the
+ONIX reference namespace are normalized to the ONIX namespace used by its XHTML
+subset schema. `xml:lang` becomes the subset's `lang` attribute; conflicting values
+are rejected. The outer variant language remains an ONIX list 74 code. This is
+semantic serialization, not byte-for-byte preservation of the original markup.
+
+The authoring profile supports paragraphs/divisions, headings, ordered/unordered and
+definition lists, block quotations, preformatted text, links, line breaks, rules,
+common emphasis and code/phrase elements, and tables with captions, row groups and
+column groups. Allowed attributes are `title`, `lang`, `dir`, link `href`/`hreflang`,
+quotation `cite`, ordered-list `start`/`type`, cell `colspan`/`rowspan`, header-cell
+`scope`, and column/group `span`, subject to the supplied schema's element rules.
+Links and citations must be absolute HTTP(S) URLs without credentials. The profile
+rejects styles/classes, identifiers/local anchors, images, active content, event
+handlers, foreign elements/attributes, comments, processing instructions and DTDs.
+No entities or resources are retrieved. Use numeric references or XML's built-in
+entities; HTML-only entities such as `&nbsp;` are not defined.
+
+Fragments need nonblank text and are bounded to 32 nested elements and 4096 XML
+nodes before tree materialization. Existing source-text length and aggregate limits
+include markup. For short descriptions, the 350-scalar limit counts decoded text,
+including supplied whitespace, while excluding markup. `SourceTitles` remains plain
+text only. Full-schema validation checks nesting and attribute values; recipient
+rendering and acceptance are separate qualifications.
+
+### Audience categories, ages and school grades
+
+Use `Audience` for explicit readership assertions:
+
+```csharp
+var options = existingOptions with {
+    Audience = new() {
+        Categories = [new(BookOnixAudienceType.Children, IsMain: true),
+                      new(BookOnixAudienceType.Teenage)],
+        AgeRanges = [new(BookOnixAgeRangeType.InterestYears, Minimum: 10, Maximum: 14),
+                     new(BookOnixAgeRangeType.ReadingYears, Minimum: 9, Maximum: 12)],
+        GradeRanges = [new(BookOnixGradeSystem.UnitedStates, BookOnixGrade.Grade5, BookOnixGrade.Grade8)],
+        Descriptions = [new("Readers of adventure and exploration", "eng")]
+    }
+};
+```
+
+All 13 [ONIX list 28](https://ns.editeur.org/onix/en/28) categories are supported.
+Categories must be distinct, with at most one main audience. Descriptions are plain
+text, not HTML, with ONIX list 74 language codes. A single description may omit its
+language; repeated descriptions require a distinct explicit language on every entry.
+Up to 16 descriptions are allowed; text fields retain the
+4096-character bound. Omit `Audience` when making no assertion.
+
+Use `Codes` to add national, educational or proprietary readership codes alongside
+those general categories:
+
+```csharp
+var audience = new BookOnixAudienceMetadata {
+    Categories = [new(BookOnixAudienceType.AdditionalLanguageTeaching, IsMain: true)],
+    Codes = [
+        new(BookOnixAudienceScheme.Cefr, "B2") { IsMain = true },
+        new(BookOnixAudienceScheme.IntendedLanguage, "pol"),
+        new(BookOnixAudienceScheme.Proprietary, "adult-learners") {
+            SchemeName = "Publisher readership scheme", IsMain = true
+        }
+    ]
+};
+```
+
+The supported [list 29](https://ns.editeur.org/onix/en/29) schemes are `Proprietary`,
+`Btlf`, `Electre`, `Anele`, `Avi`, `Aws`, `FinnishSchoolLevel`, `CbgAgeGuidance`,
+`BookData`, `AviRevised`, `JapaneseChildren`, `Cefr`, `IntendedLanguage`,
+`SwedishCurriculum` and `Isced2011`. Up to 64 additional audience declarations are allowed. A proprietary code
+requires a distinctive `SchemeName` agreed with recipients; other schemes do not
+accept that field. Code values are preserved without interpretation or trimming,
+with surrounding whitespace rejected. Duplicate scheme/name/value assertions are
+rejected. Heading-only declarations are compared by scheme, name and language/text
+pairs, regardless of translation order. At most one code per list 29 type may be main, including across differently
+named proprietary schemes; a general ONIX category can also be main independently.
+
+CEFR values are A1, A2, B1, B2, C1 and C2. Japanese children's codes require two
+ASCII digits, and intended-language values require three lowercase ASCII letters.
+Other external values receive text/XML validation only. These checks do not verify
+current membership in externally maintained vocabularies, code allocation, or
+recipient acceptance. Obtain those values from the scheme owner or recipient.
+
+Both `BookOnixAudience` and `BookOnixAudienceCode` accept up to 16 `Headings`:
+plain-text labels or translations of the audience designation. A single heading may
+omit `LanguageCode`; repeated headings require distinct explicit ONIX list 74
+languages. Headings preserve caller order and whitespace, use XML escaping, and
+retain the 4096-character text bound. No automatic translation or code-to-label
+mapping is performed.
+
+Additional schemes may omit `Value` when headings carry the assertion:
+
+```csharp
+var familyAudience = new BookOnixAudienceCode(BookOnixAudienceScheme.Proprietary) {
+    SchemeName = "Publisher readership scheme",
+    Headings = [new("Families", "eng"), new("Rodziny", "pol")]
+};
+var children = new BookOnixAudience(BookOnixAudienceType.Children) {
+    Headings = [new("Children", "eng"), new("Dzieci", "pol")]
+};
+```
+
+A heading-only declaration emits no `AudienceCodeValue`. Supplying neither a code
+nor a heading is rejected, as is an explicitly empty code. Generic categories keep
+their typed list 28 code; headings add labels without changing that code. A heading
+is scoped to its containing audience, while `Descriptions` describe the readership
+of the product as a whole. Single-record message composition preserves both forms.
+
+Age ranges distinguish interest in years or months from reading age in years.
+At least one nonnegative integer bound is required. Equal bounds mean an exact age;
+a lone minimum means “from”, a lone maximum means “to”, and different minimum/maximum
+bounds form a closed range. Each range type may appear once. Interest months and
+interest years cannot coexist. Following [ONIX list 30](https://ns.editeur.org/onix/en/30),
+month-based interest ages allow a first value up to 36 and a second value up to 42.
+Thus 36–42 months is valid, while an exact age of 42 months or a lone upper bound of
+42 months is not.
+
+`GradeRanges` adds school and college levels for `UnitedStates` (qualifier 11),
+`CanadaExcludingQuebec` (26), and `China` (29). The first two use
+[ONIX list 77](https://ns.editeur.org/onix/en/77); China uses
+[list 227](https://ns.editeur.org/onix/en/227). Values are `Preschool` (P),
+`Kindergarten` (K), then `Grade1` through `Grade17`, in that order. Their educational
+meaning depends on the selected system; grades 13–17 denote tertiary levels.
+The Canadian profile does not represent Québec's grading system.
+
+Each system may appear once, with at least one bound. Equal bounds express an exact
+grade; a lone minimum means “from” and a lone maximum means “to”. Closed ranges
+must follow grade order, including preschool before kindergarten before grade 1.
+Age and grade ranges may coexist. No age-to-grade conversion is performed.
+
+Audience categories, age ranges and grade ranges are independent assertions. Supply an appropriate
+range for children's, teenage and school material when known; export does not guess
+one from a category or inspect the book to assess suitability. This profile does not
+represent other national grade schemes, national statutory
+ratings. Schema validity does not establish educational
+suitability or recipient acceptance, and audience export does not change EPUB metadata.
+
+### Adult-audience content advice
+
+Supply `AdultRatings` for explicit publisher ratings using [ONIX list 203](https://ns.editeur.org/onix/en/203).
+An explicit `GeneralAdult` category is required:
+
+```csharp
+var adultAudience = new BookOnixAudienceMetadata {
+    Categories = [new(BookOnixAudienceType.GeneralAdult)],
+    AdultRatings = [
+        new(BookOnixAdultAudienceRating.Violence, IsMain: true),
+        new(BookOnixAdultAudienceRating.OffensiveLanguage) {
+            Headings = [new("Strong language", "eng")]
+        }
+    ]
+};
+```
+
+The supported ratings are `Unrated`, `AnyAdultAudience`, `ContentAdvice`,
+`SexualContent`, `Violence`, `DrugsOrAlcohol`, `OffensiveLanguage`, `Intolerance`,
+`Abuse`, `SelfHarm`, `AnimalCruelty`, `Illness`, `DeathAndGrief` and `Suicide`.
+The last two require recipients that recognize list 203 issue 74 or later.
+These emit audience scheme 22, independently of general audience categories.
+
+Ratings must be distinct, with at most one main rating. This export profile requires
+`Unrated` and `AnyAdultAudience` each to stand alone; general and specific content
+advice may be combined. Omitting `AdultRatings` makes no rating assertion, whereas
+`Unrated` explicitly communicates code 00. Optional `Headings` follow the same
+translation rules as category headings. OfficeIMO does not analyze the manuscript,
+assign a national statutory classification or establish reader suitability.
+
+### Reading and listening complexity
+
+Use `Audience.Complexities` for publisher-supplied [ONIX list 32](https://ns.editeur.org/onix/en/32)
+values, independently of audience categories, ages and grades:
+
+```csharp
+var readership = new BookOnixAudienceMetadata {
+    Complexities = [
+        new(BookOnixComplexityScheme.Lexile, "HL600L"),
+        new(BookOnixComplexityScheme.FleschKincaid, "5.7")
+    ]
+};
+```
+
+The supported schemes are `FryReadability`, `IoeBookBand`, `FountasAndPinnell`,
+`Lexile`, `Atos`, `FleschKincaid`, `GuidedReading`, `ReadingRecovery`, `Lix`,
+`LexileAudio` and `LexileSpanish`. Deprecated separate Lexile code/number schemes
+are omitted; use the combined measure. English-text, Spanish-text and listening
+measures remain distinct assertions.
+
+This profile accepts up to 64 distinct scheme/value pairs, each with at most
+20 characters and no control characters or surrounding whitespace. Fry values
+must be integers from 1 through 15; Reading Recovery values from 1 through 20.
+Fountas and Pinnell levels must be `A` through `Z` or `Z+`. ATOS accepts decimal
+scores from 0 through 17. Flesch-Kincaid accepts decimal scores, including negative
+values and values outside the typical grade range. Decimal syntax uses a period,
+without grouping separators or exponent notation, and is independent of system
+culture. Supplied spelling is preserved in the output.
+
+Other schemes carry the supplied external code without checking its vocabulary,
+assignment, licensing or applicability to the book. The publisher must obtain and
+verify those values. OfficeIMO does not calculate scores, equate different schemes,
+infer age suitability or certify a leveling result. Schema validation establishes
+the ONIX structure, not the correctness of an external measure.
+
+### Collection membership
+
+Declare collection identity and ordering explicitly. These fields do not change or
+automatically project EPUB series metadata:
+
+```csharp
+var options = existingOptions with {
+    Collections = [new() {
+        Type = BookOnixCollectionType.Publisher,
+        Title = "Collected studies",
+        LanguageCode = "eng",
+        Identifiers = [new(BookOnixCollectionIdentifierType.Proprietary,
+            "studies", "Publisher catalog")],
+        Sequences = [new(BookOnixCollectionSequenceType.Publication, "3"),
+                     new(BookOnixCollectionSequenceType.Narrative, "2.1")],
+        Contributors = [new("Alex Editor", BookOnixContributorRole.SeriesEditor)]
+    }]
+};
+```
+
+Up to 32 named collections are supported. Each can declare a subtitle, an ONIX list
+74 title language, up to 16 identifiers and up to 16 sequence positions. Collection
+types distinguish publisher series/sets, collections éditoriales, and ascribed
+collections. An ascribed collection requires the defining party's `SourceName`.
+
+Identifiers support all collection schemes in ONIX list 13: named proprietary IDs,
+ISSN, ISBN-13, German National Bibliography, German Books in Print (VLB), Electre,
+DOI, URN, Japanese magazine IDs, BNF control numbers, ARK resolver URLs and ISSN-L.
+National catalog IDs retain the supplied text; allocation and authority-specific
+syntax are the caller's responsibility. DOI values use bare `10.` names with a
+numeric registrant prefix and nonempty suffix, not resolver URLs. URNs receive
+RFC 8141 lexical checks, without namespace registration or namespace-specific
+validation. ARKs require an HTTP(S) resolver URL containing `/ark:/`, a numeric
+authority and a nonempty name. Japanese magazine IDs require five ASCII digits,
+without an issue extension. Values are not fetched or resolved during export.
+ISSN and ISSN-L shape and check digits are checked; an optional central hyphen is removed and a final `x` is
+uppercased. Use ISSN-L when it differs from the serial ISSN. ISBN normalization uses the shared publishing validator. Checks establish
+neither identifier allocation nor ownership. Use a collection ISBN only when the
+collection is available as a single product. Each identifier type may occur once per
+hierarchy level, except that different named proprietary schemes may coexist.
+Set an identifier's `Level` when it identifies a particular level of a hierarchy;
+that level must be present in the title. Scoped and unscoped identifiers for the
+same type and proprietary scheme cannot coexist.
+
+Sequence types cover title, publication, narrative, original publication, suggested
+reading, suggested display and named proprietary ordering. Positions retain their
+text: `2.1` is hierarchical, and `3.-.8` can omit an intermediate level. Components
+must be ASCII digits or a hyphen, separated by dots. Each sequence type/name may
+occur once. Named proprietary identifiers and sequences require a name; standard
+types omit it. All text fields retain the 4096-character bound.
+
+Each collection can carry up to 100 ordered `Contributors`, using the same person or
+organization credit model as product credits. `SeriesEditor` writes ONIX role `B09`.
+Collection credit numbering starts at 1 for each membership. Credits are never copied
+between the product, collections and EPUB metadata; place them according to the
+recipient's requirements. An empty list makes no assertion. `NoContributors = true`
+explicitly asserts no collection contributors and cannot accompany credits.
+
+For structured collection titles, use `TitleElements` instead of the simple `Title`, `Subtitle`,
+`LanguageCode` and `TitleSorting` fields:
+
+```csharp
+var collection = new BookOnixCollection {
+    Type = BookOnixCollectionType.Publisher,
+    TitleElements = [
+        new() { Level = BookOnixCollectionLevel.Collection,
+                Title = "Collected studies", LanguageCode = "eng" },
+        new() { Level = BookOnixCollectionLevel.Subcollection,
+                Title = "Historical studies", PartNumber = "Series II", LanguageCode = "eng" },
+        new() { Level = BookOnixCollectionLevel.SubSubcollection,
+                PartNumber = "Part 3" }
+    ],
+    Identifiers = [new(BookOnixCollectionIdentifierType.Issn, "0317-8471") {
+        Level = BookOnixCollectionLevel.Subcollection
+    }],
+    Frequency = BookOnixCollectionFrequency.Annual
+};
+```
+
+The list holds one element per represented level, up to five. Subcollections and
+sub-subcollections must include their series parent levels. List order determines display order and writes consecutive
+`SequenceNumber` values; it can differ from hierarchy order. Each series level needs
+a title, a part designation (including its caption), or both. Its optional language
+applies to its title, subtitle and part designation; languages are not inherited
+between levels. The product title remains separate. Collection-level alternative
+title types are outside this profile.
+
+`MasterBrand` and `Universe` add explicit ONIX levels `05` and `07` to `TitleElements`.
+They require a nonblank `Title` and can appear alone or alongside series levels.
+Neither is treated as a parent of the series or of the other identity. For example:
+
+```csharp
+var branded = new BookOnixCollection {
+    Type = BookOnixCollectionType.Publisher,
+    TitleElements = [
+        new() { Level = BookOnixCollectionLevel.MasterBrand, Title = "Voyager Tales" },
+        new() { Level = BookOnixCollectionLevel.Universe, Title = "Orbital Commons" },
+        new() { Level = BookOnixCollectionLevel.Collection, Title = "Early readers" }
+    ]
+};
+```
+
+This profile writes these identities in `Collection` composites, keeping the product
+title separate. Use separate `Collections` entries for independent brands or universes
+at the same level. Identifiers can select either level when it appears in that entry's title;
+existing scheme and scope checks apply. These are publisher-supplied identities,
+not inferred licensing, ownership, or associations from EPUB text.
+
+`Frequency` declares the schedule of successive products in the collection. It
+supports the [ONIX list 259 values](https://ns.editeur.org/onix/en/259), including
+irregular, explicitly unknown and no future publications. Omitting it makes no
+schedule assertion. `TwiceYearly` and `EveryTwoMonths` distinguish two from six
+publications per year; `MoreOftenThanWeekly` includes daily publication. Frequency
+is not inferred from publication dates and does not assert product availability.
+
+`NoCollection = true` explicitly asserts no collection membership and cannot accompany
+`Collections`. An empty list with the default `NoCollection = false` makes no assertion.
+Collection claims and recipient acceptance remain the publisher's responsibility.
+The [ONIX collection types](https://ns.editeur.org/onix/en/148),
+[title levels](https://ns.editeur.org/onix/en/149),
+[contributor roles](https://ns.editeur.org/onix/en/17),
+[identifier schemes](https://ns.editeur.org/onix/en/13) and
+[sequence types](https://ns.editeur.org/onix/en/197) define the trade semantics.
+
+### Edition metadata
+
+`Edition` describes the publication edition independently of project revision history:
+
+```csharp
+var options = existingOptions with {
+    Edition = new() {
+        Types = [BookOnixEditionType.Revised, BookOnixEditionType.Annotated],
+        Number = 2,
+        VersionNumber = "1.2",
+        Statements = [new("Second revised and annotated edition", "eng"),
+                      new("Drugie wydanie", "pol")]
+    }
+};
+```
+
+Numbered editions use a positive integer. A minor version requires that number and
+is preserved as text. Statements are complete display descriptions, serialized as
+plain text with optional ONIX list 74 language codes. They are not interpreted as
+HTML. Up to 16 statements are allowed. Repeated statements require distinct explicit
+languages; a single statement may omit its language. Each text field is limited to
+4096 characters.
+
+The supported [list 21](https://ns.editeur.org/onix/en/21) characteristics are abridged,
+unabridged, annotated, revised, enlarged, illustrated, critical and new. Types must
+be distinct; abridged and unabridged conflict. `New` cannot accompany a more specific
+type or edition number. Set `Edition = new() { NoEdition = true }` only when explicitly
+asserting that no edition information applies; it cannot accompany edition details.
+Omitting `Edition` makes no assertion. These values do not change EPUB metadata,
+assign a new ISBN, establish the truth of an edition claim, or substitute for a
+recipient's business rules.
+
+### Multi-product ONIX messages
+
+Compose exported records into one message with `BookOnixMessage.Create`:
+
+```csharp
+// Both options use the same SenderName and SentAt, and select distinct edition ISBNs.
+var first = firstBook.ExportOnix(firstOptions, schemas);
+var second = secondBook.ExportOnix(secondOptions, schemas);
+var message = BookOnixMessage.Create([first, second], schemas);
+File.WriteAllBytes("catalog.onix", message.Bytes);
+```
+
+The composer preserves product order and complete product XML, then validates the
+combined message against the supplied schema. All serialized headers must match;
+it does not choose a sender or timestamp on the publisher's behalf. Repeated record
+references or ISBNs are rejected. Each result's ONIX and EPUB bytes must still match
+its hashes captured at export time.
+
+`message.Products` retains the original export results, including each EPUB,
+writer report, import diagnostics and loss acknowledgment. The collection is
+snapshotted; its results' byte arrays remain mutable. Do not modify inputs during
+composition, and keep exported bytes unchanged when using their recorded hashes.
+Composition accepts 1–1000 records, at most 16 MiB of source ONIX XML, and at most
+16 MiB of combined XML. Individual exports retain their 1 MiB limit. Composition
+does not submit files or obtain recipient acknowledgment.
+
+### ONIX block updates and record deletions
+
+Create changes from complete `ExportOnix` results. Select entire blocks to replace;
+omitted blocks remain unchanged at the recipient. Clearing a block is a separate,
+explicit instruction:
+
+```csharp
+var current = book.ExportOnix(options, schemas);
+var update = BookOnixMessage.CreateBlockUpdates([
+    new(current) {
+        ReplaceBlocks = [BookOnixBlock.DescriptiveDetail, BookOnixBlock.PublishingDetail],
+        ClearBlocks = [BookOnixBlock.CollateralDetail]
+    }
+], schemas);
+File.WriteAllBytes("update.onix", update.Bytes);
+
+// Only for a metadata record issued in error, not a book withdrawn from sale.
+var deletion = BookOnixMessage.CreateDeletions([
+    new(current) { Reasons = [new("Record issued in error", "eng")] }
+], schemas);
+File.WriteAllBytes("delete.onix", deletion.Bytes);
+```
+
+Block updates use notification `04`; record deletions use `05`. Each factory creates
+one kind of message, exposed by `Kind`. They retain the same header matching,
+identity, source-integrity, schema, count and byte limits as `Create`. `Products`
+holds the original complete exports and EPUB evidence, not partial record copies.
+
+Every selected replacement must exist in the source and is copied in full,
+including unchanged fields. `ProductSupply` block selection copies **all** unnamed
+source markets. Named markets use the explicit selections below. Only `CollateralDetail`,
+`PromotionDetail`, `ContentDetail`, `RelatedMaterial` and `ProductionDetail` can be
+cleared. Empty selections, duplicate blocks and overlapping replace/clear requests
+are rejected. A missing replacement is an error, never an inferred clear.
+
+Deletion reasons are optional plain text: at most 16 translations of 100 UTF-16
+code units each. Multiple translations require distinct three-letter ONIX language
+codes, checked against the supplied schema. Product cancellation, withdrawal from
+sale and out-of-print status belong in publishing and availability metadata.
+
+These operations do not compare a recipient's existing record, discover changes,
+sequence deliveries or transmit deletions. Supply a complete current block, retain
+stable record references, and agree update handling with the recipient before
+delivery. See [BIC's block-update guidance](https://bic.org.uk/wp-content/uploads/2025/06/BIC_DRE_Delta-Files-vs.-Block-Updates.pdf).
+Schema validation is not recipient acceptance.
+
+
+Set `BookOnixSupply.MarketReference` to a permanent, product-scoped identifier to
+address markets individually. References are optional for complete exports, unique
+within a product and limited to 100 UTF-16 code units. OfficeIMO preserves them
+exactly and does not derive them from territory, supplier or array position.
+
+```csharp
+// The complete source export contains named supply declarations.
+var marketUpdate = BookOnixMessage.CreateBlockUpdates([
+    new(current) {
+        ReplaceMarketReferences = ["uk-direct"],
+        RemoveMarketReferences = ["former-eu-distributor"]
+    }
+], schemas);
+```
+
+A selected replacement copies the complete matching `ProductSupply`. A removal
+emits only its `MarketReference`; omitted named markets remain unchanged at the
+recipient. Removal references may be absent from the current source, allowing a
+previously supplied market to be retired. This does not verify recipient state or
+change publishing status, availability or sales rights.
+
+Per-market operations require every source supply to be named, accept at most 32
+combined replacements/removals, and reject missing replacement references,
+duplicates and replace/remove overlap. They may accompany other block changes,
+but cannot accompany a whole `ProductSupply` selection. Whole supply selection
+rejects named markets to avoid implying that omitted named markets are deleted.
+Replacements retain selection order, followed by removals in selection order.
+Existing feeds must agree stable market identities with their recipient before
+switching from unnamed to named supply updates.
+
+### ONIX sales restrictions
+
+Both `BookOnixSalesRights.Restrictions` and `BookOnixSupply.Restrictions` accept
+explicit non-territorial sales restrictions. A rights restriction applies within
+its rights territory; a supply restriction applies to the entire supply market.
+They share one serializer and do not infer or enforce purchasing eligibility.
+
+```csharp
+var restriction = new BookOnixSalesRestriction(BookOnixSalesRestrictionKind.RetailerExclusive) {
+    Outlets = [new() { Name = "Example Books", Identifiers = [
+        new(BookOnixSalesOutletScheme.Proprietary, "store-1") { SchemeName = "Publisher outlets" }
+    ] }],
+    Notes = [new("Exclusive launch partner", "eng")],
+    ValidFrom = new DateOnly(2026, 10, 1),
+    ValidUntil = new DateOnly(2026, 10, 31)
+};
+// Assign [restriction] to the relevant rights or supply record's Restrictions property.
+```
+
+The digital-download profile supports [list 71](https://ns.editeur.org/onix/en/71)
+codes 00–02, 04–16, 20–23 and 99. Internal-use-only code 03 and print-on-demand
+codes 17–19 are excluded. `Unspecified` needs a note. Retailer-specific and selected
+subscription-service restrictions need at least one named or identified outlet.
+`NoRestrictions` is an explicit assertion; an empty list makes no assertion.
+
+Each territory or market accepts up to 32 restrictions. Each restriction accepts
+16 outlets and 16 translated notes; repeated notes require distinct
+explicit language codes. Notes allow 300 decoded UTF-16 code units, outlet names 200,
+and identifiers and proprietary scheme names 100. The combined restriction text
+budget across rights and supply is 524,288 UTF-16 code units; the existing XML byte
+limit still applies. Effective dates may be open-ended or equal, but cannot run
+backwards. Directly opposing channel assertions within the same restriction list are rejected
+when their inclusive date ranges overlap. An unrestricted assertion cannot overlap another restriction
+or identify a restricted set of outlets. Other business-rule interactions are not
+resolved automatically.
+
+Outlets support a name, up to eight identifiers, or both. Identifier schemes are
+proprietary (with a scheme name), ONIX list 139, GLN and SAN. Validation is lexical:
+three uppercase alphanumeric characters for ONIX codes, 13 digits for GLN, and
+seven digits for SAN. It does not verify codelist membership, check digits,
+assignment, ownership or outlet existence. Distinct proprietary schemes may coexist;
+repeated identifier schemes are rejected. Optional outlet-name language requires
+a name. Recipient eligibility enforcement is outside this profile.
+
+Notes default to literal plain text. Set `Format = BookOnixCollateralTextFormat.Xhtml`
+for a well-formed fragment using the same bounded XHTML profile as collateral text:
+
+```csharp
+var formattedNote = new BookOnixSalesRestrictionNote(
+    "<p>Only <strong>approved</strong> outlets &amp; partners.</p>", "eng") {
+    Format = BookOnixCollateralTextFormat.Xhtml
+};
+```
+
+XHTML notes allow at most 4,096 UTF-16 source units and 300 decoded text units;
+markup overhead counts toward the combined restriction text budget. Whitespace is
+preserved. The shared parser normalizes supported namespaces and rejects active
+content, unsafe links, declarations, comments and unsupported elements or attributes.
+The supplied schema checks XHTML nesting. Plain-text notes retain literal markup
+characters and their existing 300-unit source limit. Recipient rendering of
+formatted notes remains a separate qualification step.
+
+Use `BookOnixSupply.MarketSegments` when channel restrictions differ across parts
+of one supply territory:
+
+```csharp
+var segments = new BookOnixMarketSegment[] {
+    new() {
+        Territory = new() { Regions = ["US-CA"] },
+        Restrictions = [new(BookOnixSalesRestrictionKind.LibrariesOnly)]
+    },
+    new() {
+        Territory = new() { Countries = ["US"], ExcludedRegions = ["US-CA"] },
+        Restrictions = [new(BookOnixSalesRestrictionKind.ExceptLibraries)]
+    }
+};
+// Set MarketSegments = segments on a supply whose Territory is Countries = ["US"].
+```
+
+Supply-wide restrictions apply to every segment and are checked together with its
+local restrictions. Up to 32 segments must form a disjoint, complete partition of
+the supply territory; gaps, overlaps and outside territory are rejected. An empty
+segment list keeps the single-market behavior. Each combined restriction list is
+limited to 32 entries, and repeated supply-wide text counts toward the output text
+budget. A segment without local restrictions makes no additional assertion.
+
+Segments serialize as sibling `Market` composites under one `ProductSupply`.
+Supplier, availability, prices and the optional `MarketReference` remain shared;
+prices still refer to the complete supply territory unless explicitly narrowed.
+A market update replaces all segments together. Use separate supply declarations
+when supplier, availability, prices or update identity need to differ. Recipient
+interpretation of segmented markets requires separate acceptance evidence.
+
+Restrictions survive complete-record composition, publishing-block replacement
+and market updates. Neither these assertions nor schema validation establish
+recipient acceptance or the validity of a commercial agreement.
 
 ## Optional checkpoints
 
@@ -775,7 +2154,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Edit | 1 | 0 | 0 | 0 | 0 | 0 |
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 0 | 1 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 3 | 0 | 0 | 0 | 0 |
 | Export | 1 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

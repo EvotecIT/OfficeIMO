@@ -48,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.ContainerUnitHeight ?? double.NaN,
                 style,
                 out clipPath,
-                out string clipDetail)) {
+                out string clipDetail, style.CharacterAdvance)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.ClipPathValueUnsupported,
@@ -176,7 +176,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.ContainerUnitHeight ?? double.NaN,
                 style,
                 out clipPath,
-                out string clipDetail)) {
+                out string clipDetail, style.CharacterAdvance)) {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.ClipPathValueUnsupported,
@@ -252,14 +252,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Transform, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
             style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
-            out transform, out detail);
+            out transform, out detail, style.CharacterAdvance);
         retainedScale = false;
         if (parsed || style.IndividualScale == "none") return parsed;
         retainedScale = HtmlCssTransformParser.TryParse(
             style.IndividualScale, style.TransformOrigin, boxX, boxY, boxWidth, boxHeight,
             style.Font.Size, _styleResolver.RootFontSize, viewportWidth, viewportHeight,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
-            out OfficeTransform scaleTransform, out _);
+            out OfficeTransform scaleTransform, out _, style.CharacterAdvance);
         transform = retainedScale ? scaleTransform : OfficeTransform.Identity;
         return false;
     }
