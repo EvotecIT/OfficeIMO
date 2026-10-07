@@ -53,6 +53,8 @@ public abstract partial class HtmlRenderVisual {
     /// </summary>
     internal double LayoutY { get; }
 
+    internal HtmlRenderPaintPhase PaintPhase { get; set; }
+
     /// <summary>Normal-flow height used for fragmentation, independent of paint overhang.</summary>
     internal double LayoutHeight { get; }
 
@@ -75,6 +77,7 @@ public abstract partial class HtmlRenderVisual {
     }
 
     internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
+        result.PaintPhase = PaintPhase;
         result.StackingContext = StackingContext;
         result.PaintProjectionIdentity = PaintProjectionIdentity;
         result.RelativePaintOffsetY = RelativePaintOffsetY;
@@ -104,3 +107,5 @@ public abstract partial class HtmlRenderVisual {
         }
     }
 }
+
+internal enum HtmlRenderPaintPhase { Content, BlockBackground, Float, Atomic }

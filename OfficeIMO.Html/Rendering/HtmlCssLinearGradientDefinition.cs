@@ -15,15 +15,15 @@ internal sealed class HtmlCssLinearGradientDefinition {
         _explicitAngle = explicitAngle;
     }
 
-    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out OfficeLinearGradient? gradient) {
-        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, out gradient, out _);
+    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out OfficeLinearGradient? gradient, double characterAdvance = double.NaN) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, out gradient, out _, characterAdvance);
     }
 
-    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out OfficeLinearGradient? gradient, out bool stopLimitExceeded) {
-        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded);
+    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out OfficeLinearGradient? gradient, out bool stopLimitExceeded, double characterAdvance = double.NaN) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded, characterAdvance);
     }
 
-    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out OfficeLinearGradient? gradient, out bool stopLimitExceeded) {
+    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out OfficeLinearGradient? gradient, out bool stopLimitExceeded, double characterAdvance = double.NaN) {
         gradient = null;
         stopLimitExceeded = false;
         if (width <= 0D || height <= 0D) return false;
@@ -36,7 +36,7 @@ internal sealed class HtmlCssLinearGradientDefinition {
             dy = physical.EndY - physical.StartY;
         }
         double lineLength = Math.Sqrt((dx * dx) + (dy * dy));
-        if (!_stops.TryResolve(lineLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, _repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded) || stops == null) return false;
+        if (!_stops.TryResolve(lineLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, _repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded, characterAdvance) || stops == null) return false;
         // CSS angle endpoints describe a physical color field. Drawing and SVG
         // evaluate normalized bounding-box coordinates, including their normals.
         gradient = _explicitAngle

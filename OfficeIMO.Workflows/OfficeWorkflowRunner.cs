@@ -530,6 +530,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
+            case ".epub":
+                await using (FileStream stream = OpenStagedArtifact(stagingPath)) {
+                    var publication = OfficeIMO.Epub.EpubPublication.Load(stream, cancellationToken: cancellationToken);
+                    _ = publication.Write(cancellationToken: cancellationToken);
+                }
+                break;
             case ".pdf": {
                     PdfDocument document = await PdfDocument
                         .LoadAsync(stagingPath, loadOptions, cancellationToken)

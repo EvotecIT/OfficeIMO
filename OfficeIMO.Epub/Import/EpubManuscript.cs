@@ -8,7 +8,6 @@ namespace OfficeIMO.Epub;
 /// <summary>Imports inert HTML manuscripts through the shared HTML owner into a reflowable EPUB 3 publication.</summary>
 public static partial class EpubManuscript {
     private static readonly XNamespace Xhtml = "http://www.w3.org/1999/xhtml";
-    private const string DefaultCss = "body{line-height:1.5}img,svg{max-width:100%;height:auto}table{border-collapse:collapse;max-width:100%}th,td{padding:.25em}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{overflow-wrap:anywhere}";
 
     /// <summary>Imports a prepared HTML manuscript with embedded resources. Use the asynchronous route for an application resolver.</summary>
     public static EpubManuscriptResult ImportHtml(HtmlConversionDocument manuscript, EpubManuscriptOptions? options = null,
@@ -27,6 +26,7 @@ public static partial class EpubManuscript {
         options = options.Clone();
         cancellationToken.ThrowIfCancellationRequested();
         if (options.ChapterHeadingLevel < 0 || options.ChapterHeadingLevel > 6) throw new ArgumentOutOfRangeException(nameof(options.ChapterHeadingLevel));
+        string defaultCss = EpubTypography.CreateStylesheet(options.TypographyProfile);
         var source = manuscript.CreateSourceDocumentForConversion();
         string title = options.Title ?? source.Title ?? string.Empty;
         string language = options.Language ?? source.DocumentElement?.GetAttribute("lang") ?? source.DocumentElement?.GetAttribute("xml:lang") ?? "en";
@@ -42,11 +42,19 @@ public static partial class EpubManuscript {
         var chapters = SplitChapters(body, options.ChapterHeadingLevel, title, diagnostics, cancellationToken);
         AssignAnchors(chapters, diagnostics);
         RewriteChapterLinks(chapters, manuscript, diagnostics);
+        foreach (Chapter chapter in chapters) {
+            try {
+                var ids = EpubContentIdentifiers.Collect(chapter.Body, chapter.Path, true, cancellationToken);
+                EpubContentIdentifiers.ValidateReferences(chapter.Body, ids, chapter.Path, cancellationToken);
+            } catch (InvalidDataException error) {
+                AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", error.Message, chapter.Path, OfficeConversionLossKind.Failure);
+            }
+        }
         foreach (var active in source.QuerySelectorAll("script,iframe,object,embed,form,input,button,select,textarea")) active.Remove();
         List<ImportedStylesheet> sourceStyles = await CollectResourcesAsync(source, chapters, publication, manuscript, options, diagnostics, cancellationToken).ConfigureAwait(false);
         var styles = new List<string>();
         if (options.IncludeDefaultStyles) {
-            publication.AddStylesheet("manuscript-defaults", "EPUB/styles/defaults.css", DefaultCss);
+            publication.AddStylesheet("manuscript-defaults", "EPUB/styles/defaults.css", defaultCss);
             styles.Add("manuscript-defaults");
         }
         styles.AddRange(sourceStyles.Select(stylesheet => stylesheet.Id));

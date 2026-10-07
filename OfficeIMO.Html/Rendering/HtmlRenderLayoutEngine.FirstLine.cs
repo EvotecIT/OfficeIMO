@@ -85,6 +85,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 parentStyle,
                 out HtmlRenderBoxStyle firstLineStyle)) return;
 
+        width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
         double lineWidth = 0D;
         bool firstLine = true;
