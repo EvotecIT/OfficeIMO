@@ -1,5 +1,5 @@
 {
-  "recordedUtc": "2026-10-07T01:10:42.438209+00:00",
+  "recordedUtc": "2026-10-07T01:19:51.520200+00:00",
   "scope": "Current publication and branch consolidation of completed owned contracts; no full HTML/runtime PR, release, timing qualification or long-lived adoption",
   "source": "dda7c1d097687f563582004191f979fc863940a2",
   "master": "3e297566715341b5205494e0721ce6c64b238aee",
@@ -131,7 +131,7 @@
   "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
   "nextDeliverable": "Settle static PR2900 current-head CI/delayed feedback and actual platform package proof; fast-forward the reconciled development source into feature/html-engine, preserve new unique evidence, and remove the two temporary owned worktrees/branches. Wider H10/native/runtime/timing remains on the sole roadmap.",
   "wrapUpUtc": "2026-10-06T11:40:40.405648+00:00",
-  "wrapUpSource": "dda7c1d097687f563582004191f979fc863940a2",
+  "wrapUpSource": "621059e4b",
   "focusedMerges": [
     {
       "number": 2841,
@@ -295,7 +295,17 @@
       "newActionableFeedback": false,
       "checksPending": true,
       "delayedLatestHeadCheckStillRequired": true
-    }
+    },
+    "cleanup": {
+      "generatedTargets": 278,
+      "originalGeneratedBytes": 3931308703,
+      "allAbsent": true,
+      "nativeFilesystemErrors": 144,
+      "boundedDotNetRecoveryVerified": true,
+      "noOwnedBuildTestBrowserHandles": true,
+      "sourcesFixturesFailuresAndSharedCachesPreserved": true
+    },
+    "nextCheck": "2026-10-07T02:45:00Z;95 minutes after current-source package dispatch, allowing prior73-minute duration and CI runner backlog."
   },
   "assessmentSource": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
   "reconciledOptionalRuntime": {
@@ -361,6 +371,19 @@
       "bytes": 50617958,
       "allAbsent": true,
       "gitMetadataPreserved": true
+    },
+    "staticSettlement20261007": {
+      "archive": "OfficeIMO-html-provider-forks/Ignore/HtmlProgramEvidence/wrap-up-20261006/static-settlement-20261007/evidence-recovery.zip",
+      "sha256": "80b57334bfab1932afc85cb35966bbf8f5501549ddf43ae4501574612b7f21da",
+      "archiveBytes": 414792859,
+      "newOrChangedFiles": 192,
+      "logicalBytes": 492947365,
+      "allPayloadHashesVerified": true,
+      "threeIndependentRestoresVerified": true,
+      "priorArchivesRequired": true,
+      "sourceBundle": "OfficeIMO-html-provider-forks/Ignore/HtmlProgramEvidence/wrap-up-20261006/settlement-source-621059e4b.bundle",
+      "sourceBundleBytes": 19204275,
+      "sourceBundlePrerequisite": "19b405c2e14effdaf53bf12afc342132c64b8e75"
     }
   }
 }
