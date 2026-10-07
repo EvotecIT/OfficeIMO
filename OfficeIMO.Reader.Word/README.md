@@ -7,6 +7,8 @@ including authored starts, Roman or lettered formats, continuation, and explicit
 Portable bullet symbols are retained, and invisible list markers are empty.
 The values come from `WordParagraphSnapshot.ListMarker`; inspection snapshots also expose
 the numeric counter of an ordered item through `WordParagraphSnapshot.ListIndex`.
+Inspection and ingestion reject list markers longer than 4,096 characters or more than
+4,194,304 generated marker characters in a document with an `InvalidDataException`.
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()

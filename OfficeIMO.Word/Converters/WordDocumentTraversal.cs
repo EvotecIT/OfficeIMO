@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace OfficeIMO.Word {
@@ -622,78 +621,5 @@ namespace OfficeIMO.Word {
             public int GetHashCode(WordParagraph obj) => RuntimeHelpers.GetHashCode(obj._paragraph);
         }
 
-        private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
-            if (string.IsNullOrEmpty(pattern)) {
-                string formatted = FormatNumber(index, formats[level]);
-                return formatted + ".";
-            }
-
-            string marker = pattern!;
-            marker = marker.Replace("%CurrentLevel", FormatNumber(index, formats[level]));
-            marker = Regex.Replace(marker, "%([0-9]+)", m => {
-                if (!int.TryParse(m.Groups[1].Value, out int placeholderLevel) || placeholderLevel <= 0) {
-                    return m.Value;
-                }
-                int lvl = placeholderLevel - 1;
-                int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
-                formats.TryGetValue(lvl, out WordNumberFormat? fmt);
-                return FormatNumber(value, fmt);
-            });
-            return marker;
-        }
-
-        private static string FormatNumber(int number, WordNumberFormat? format) {
-            if (format == WordNumberFormat.LowerRoman) {
-                return ToRoman(number).ToLowerInvariant();
-            }
-            if (format == WordNumberFormat.UpperRoman) {
-                return ToRoman(number);
-            }
-            if (format == WordNumberFormat.LowerLetter) {
-                return ToAlphabeticSequence(number, uppercase: false);
-            }
-            if (format == WordNumberFormat.UpperLetter) {
-                return ToAlphabeticSequence(number, uppercase: true);
-            }
-            return number.ToString();
-        }
-
-        private static string ToAlphabeticSequence(int number, bool uppercase) {
-            if (number <= 0) {
-                return number.ToString();
-            }
-
-            char baseCharacter = uppercase ? 'A' : 'a';
-            StringBuilder sb = new();
-            while (number > 0) {
-                number--;
-                sb.Insert(0, (char)(baseCharacter + (number % 26)));
-                number /= 26;
-            }
-
-            return sb.ToString();
-        }
-
-        private static string ToRoman(int number) {
-            if (number <= 0) {
-                return number.ToString();
-            }
-
-            (int Value, string Symbol)[] map = new (int, string)[] {
-                (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
-                (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
-                (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
-            };
-
-            StringBuilder sb = new();
-            foreach ((int value, string symbol) in map) {
-                while (number >= value) {
-                    sb.Append(symbol);
-                    number -= value;
-                }
-            }
-
-            return sb.ToString();
-        }
     }
 }

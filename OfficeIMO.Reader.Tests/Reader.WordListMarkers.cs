@@ -5,6 +5,21 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderWordListMarkerTests {
+    [Fact]
+    public void WordReaderRejectsUnboundedGeneratedListMarkers() {
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            WordList list = document.AddCustomList();
+            list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.UpperRomanDot));
+            list.Numbering.Levels[0].StartNumberingValue = int.MaxValue;
+            list.AddItem("Extreme Roman item");
+            document.Save();
+        }
+        stream.Position = 0;
+        Assert.Contains("list marker", Assert.Throws<InvalidDataException>(() =>
+            OfficeIMO.Reader.Tests.ReaderTestReaders.Word().ReadDocument(stream, "bounded.docx")).Message);
+    }
+
     [Theory]
     [InlineData(WordListLevelKind.BulletSolidRound, "•")]
     [InlineData(WordListLevelKind.None, "")]

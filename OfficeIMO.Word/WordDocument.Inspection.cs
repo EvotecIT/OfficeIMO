@@ -39,6 +39,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
+        /// <exception cref="InvalidDataException">Generated list markers exceed the supported marker length or document character budget.</exception>
         public WordDocumentSnapshot CreateInspectionSnapshot() {
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),

@@ -8,11 +8,16 @@ namespace OfficeIMO.Word {
         internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document,
             CancellationToken cancellationToken = default) {
             Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
+            int totalMarkerCharacters = 0;
             VisitListCounters(document, cancellationToken, (paragraph, info, index, counters, formats) => {
                 string rawMarker = !info.MarkerVisible ? string.Empty : info.PictureBulletId.HasValue ? "•"
                     : info.Ordered ? BuildMarker(info.Level, index, counters, formats, info.LevelText)
                     : info.LevelText ?? "•";
+                if (rawMarker.Length > MaximumListMarkerLength) throw ListMarkerLengthExceeded();
                 (string marker, bool useTextFont) = NormalizeListMarker(rawMarker, info.MarkerFontFamily);
+                if (marker.Length > MaximumDocumentListMarkerCharacters - totalMarkerCharacters)
+                    throw new InvalidDataException("Word generated list markers exceed the supported document character budget.");
+                totalMarkerCharacters += marker.Length;
                 result[paragraph] = new ResolvedListMarker(info, index, marker, useTextFont);
             });
             return result;
