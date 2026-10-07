@@ -205,10 +205,9 @@
     "Naive raw-vs-normalized screen observer and paged-note expectation on screen composition corrected; original observations retained"
   ],
   "remaining": [
-    "Current-head supported-platform CI and delayed complete feedback",
-    "Normal PR merge and unique-proof-preserving cleanup",
-    "Deliberate optional-runtime source reconciliation and qualified one-branch adoption",
-    "Broader H10/native/resource/all-intent and unchanged platform timing acceptance"
+    "Broader H10/native/resource/all-intent and unchanged supported-platform timing acceptance",
+    "Optional runtime/worker compiler-provider migration and productization",
+    "Actual public package availability when release is authorized"
   ],
   "historicalEvidence": "321 already-referenced HTML evidence files are preserved to keep owner documentation links resolvable. They are historical evidence, not current extraction qualification.",
   "broaderLimits": "No browser parity, native-app/manual accessibility parity or timing acceptance is claimed. Prior timing failures remain open; ceilings are unchanged.",
@@ -237,7 +236,7 @@
   ],
   "qualifiedProductSource": "828d615435e9fa3fb4f484bf45f1dcc4052f37e4",
   "prerequisiteImageNormalizationSource": "9d25575e4c23ddf9b455319e371958b97bd31e30",
-  "qualificationCaveat": "Current local normal source, full two-framework owners, frozen API/Tool/static output and project-reference machine profiles are qualified. Current-head three-platform packages/native consumers, CI and delayed feedback remain required; prior packed graphs are not current proof. Broader timing/H10/manual accessibility/runtime criteria remain open.",
+  "qualificationCaveat": "The selected static publication is merged after current-head CI, complete delayed feedback and actual three-platform package/public-consumer qualification. Historical timing failures, broader H10/native/manual accessibility/all-intent and optional runtime criteria remain open. No release was performed.",
   "finalEvidenceReceipts": [
     {
       "path": "Ignore/StaticConversionExtractionQualification/final-pdf-743e796c7/net10.0.trx",
@@ -2643,7 +2642,7 @@
           }
         }
       ],
-      "scope": "Normal current project-reference graph; new hosted package/native proof remains pending. Standalone UA1 with formula attachment remains rejected."
+      "scope": "Normal selected project-reference graph. Separate current-source hosted package proof is recorded in freshHostedGate. Standalone UA1 with formula attachment remains rejected."
     },
     "combinedComparison": {
       "source": "205e47a500fa4d947fdbd94798dc30ef390cd755",
@@ -2653,15 +2652,71 @@
       "normalBuildAndRunExitZero": true,
       "receipt": "convergence/wrap-up-audit-20261006/accepted-master-final-comparison"
     },
-    "freshHostedGate": "Pending consolidated final-head CI, all3OS nineteen-package/private-feed/loaded-owner receipts, native Windows consumers and delayed complete feedback. Older successful hosted graphs do not qualify this graph.",
+    "freshHostedGate": {
+      "run": 37601342844,
+      "source": "08354bbae3366bc5dced10cf43fe49851894318b",
+      "passed": true,
+      "platforms": [
+        {
+          "platform": "linux",
+          "packages": 19,
+          "loadedDlls": 42,
+          "consumerFrameworks": [
+            "net10.0",
+            "net8.0"
+          ],
+          "consumerExecutions": 4
+        },
+        {
+          "platform": "macos",
+          "packages": 19,
+          "loadedDlls": 42,
+          "consumerFrameworks": [
+            "net10.0",
+            "net8.0"
+          ],
+          "consumerExecutions": 4
+        },
+        {
+          "platform": "windows",
+          "packages": 19,
+          "loadedDlls": 63,
+          "consumerFrameworks": [
+            "net10.0",
+            "net472",
+            "net8.0"
+          ],
+          "consumerExecutions": 6
+        }
+      ],
+      "allInstalledBytesSHA512OriginsLoadedDllsVerified": true,
+      "nativeWindowsRuntime": ".NET Framework 4.8 for two net472-targeted consumers",
+      "receipt": "static/hosted-final-37601342844/verified-package-origins.json",
+      "scope": "Packages and public consumers only; excludes full suites, profiles, timings and releases."
+    },
     "originalFailuresRetained": true,
     "evidenceRoot": "Ignore/StaticConversionExtractionQualification/accepted-master-22dd0d7e8",
-    "remaining": [
-      "current-head CI/packages and complete delayed feedback",
-      "authorized merge, concrete merge-owner reconciliation, qualified feature/html-engine synchronization",
-      "proof-preserving temporary worktree and local branch removal"
-    ],
+    "remaining": [],
     "broaderLimits": "Historical candidate/control timing failures, wider H10/native/manual accessibility/all-intent and runtime acceptance remain open. No performance or universal extraction claim.",
-    "canonicalReceiptSha256": "ef6e5061aee0b524449867e9ba8f9b3253f8645864936f2a7b99f1e5a02619c9"
+    "canonicalReceiptSha256": "ef6e5061aee0b524449867e9ba8f9b3253f8645864936f2a7b99f1e5a02619c9",
+    "publicationSettlement": {
+      "pr": 2900,
+      "head": "08354bbae3366bc5dced10cf43fe49851894318b",
+      "mergeCommit": "4467d2f09dd1cab22797adb8d89f9d7e50b78f91",
+      "mergedAt": "2026-10-07T11:16:27Z",
+      "ciSuccess": 101,
+      "ciSkipped": 6,
+      "completeDelayedFeedback": true,
+      "unresolvedThreads": 0,
+      "prTitleAndBodyExact": true,
+      "actualMerge13SelectedOwnerTreesExact": true,
+      "acceptedBaseOverlap": "Current master changed Word/JavaScript and their documentation, with no selected-owner overlap. Prepared history deliberately adopts the exact inspected merge.",
+      "preparedCombinedSource": "07500a48ae981af71d03155faf35fb5c37312ec3",
+      "longLivedBranch": "feature/html-engine",
+      "recoveryRoot": "Ignore/HtmlProgramEvidence/wrap-up-20261006",
+      "finalRecoveryAndCleanupReceipt": "publication-completion-20261007/final-wrap-up-receipt.json",
+      "broaderGoalsComplete": false,
+      "releasePerformed": false
+    }
   }
 }
