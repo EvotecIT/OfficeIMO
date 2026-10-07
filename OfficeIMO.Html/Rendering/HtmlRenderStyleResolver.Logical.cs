@@ -1,6 +1,13 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
+    // Default control chrome must inspect the same physical cascade that
+    // supplied its resolved box values, including authored logical zeroes.
+    internal HtmlComputedStyle? GetBoxCascadeStyle(AngleSharp.Dom.IElement element, HtmlRenderBoxStyle style) =>
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
+            ? PhysicalizeLogicalProperties(computed, style.WritingMode, style.Direction)
+            : null;
+
     private static string ResolveWritingMode(string value, string? inherited) {
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "horizontal-tb";

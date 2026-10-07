@@ -21,11 +21,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("button", "<span>Visible</span>")]
-    [InlineData("input", "")]
-    public void HtmlRendering_ControlPaddingLonghandsOverrideDefaultChrome(string tag, string content) {
+    [InlineData("button", "<span>Visible</span>", "padding-left:0;padding-right:0;padding-top:0;padding-bottom:0")]
+    [InlineData("input", "", "padding-left:0;padding-right:0;padding-top:0;padding-bottom:0")]
+    [InlineData("button", "<span>Visible</span>", "padding-inline:0;padding-block:0")]
+    [InlineData("input", "", "padding-inline:0;padding-block:0")]
+    [InlineData("button", "<span>Visible</span>", "padding-inline-start:0;padding-inline-end:0;padding-block-start:0;padding-block-end:0")]
+    [InlineData("input", "", "padding-inline-start:0;padding-inline-end:0;padding-block-start:0;padding-block-end:0")]
+    public void HtmlRendering_ControlPaddingLonghandsOverrideDefaultChrome(string tag, string content, string padding) {
         string html = "<" + tag + " id='control' value='Visible' style='box-sizing:content-box;width:80px;height:24px;border:1px solid;"
-            + "padding-left:0;padding-right:0;padding-top:0;padding-bottom:0'>" + content
+            + padding + "'>" + content
             + (tag == "button" ? "</button>" : "");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
             new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
