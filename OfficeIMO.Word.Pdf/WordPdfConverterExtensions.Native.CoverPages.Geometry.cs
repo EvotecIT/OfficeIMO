@@ -259,8 +259,14 @@ namespace OfficeIMO.Word.Pdf {
                    value.Equals("hidden", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static double? ParseNativeVmlStrokeWeight(string? value) =>
-            ResolveNativeVmlLength(value, 1D, 1D);
+        private static double? ParseNativeVmlStrokeWeight(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            double? unitless = ParseNativeVmlDouble(value!.Trim());
+            // Unitless VML stroke weights use EMUs, unlike shape coordinates.
+            return unitless.HasValue
+                ? NormalizeNativeVmlLength(unitless.Value / 12700D)
+                : ResolveNativeVmlLength(value, 1D, 1D);
+        }
 
         private static double GetNativeVmlFirstAdjustment(OpenXmlElement element, double fallback) {
             string? value = GetNativeOpenXmlAttribute(element, "adj");
