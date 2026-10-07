@@ -33,7 +33,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             // Match the native default style's resolved fonts. Table formatting
             // supplied by the caller precedes Normal on otherwise unstyled cells.
-            LegacyDocWritableFormatting normal = ReadSupportedRunFormatting(CreateDefaultParagraphStyle(main, definitions, styles).StyleRunProperties);
+            StyleRunProperties defaults = CreateDefaultParagraphStyle(main, definitions, styles).StyleRunProperties!;
+            // A root without BasedOn inherits docDefaults rather than Normal's
+            // authored width. Keep this fallback below the caller's table style.
+            if (!string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase) && visited.Count != 0) {
+                defaults.RemoveAllChildren<CharacterScale>();
+            }
+            if (defaults.GetFirstChild<CharacterScale>() == null) {
+                CharacterScale? documentScale = styles.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.GetFirstChild<CharacterScale>();
+                defaults.AddChild(documentScale?.CloneNode(true) ?? new CharacterScale { Val = 100L }, true);
+            }
+            LegacyDocWritableFormatting normal = ReadSupportedRunFormatting(defaults);
             return direct.WithInheritedFormatting(paragraphStyle.WithInheritedFormatting(inherited).WithInheritedFormatting(normal));
         }
     }
