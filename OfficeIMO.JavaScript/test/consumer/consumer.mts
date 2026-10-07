@@ -20,6 +20,10 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
   await exportDataTable(host, table, 'xlsx', { columnOptions: { 0: { style: 1 } } });
   // @ts-expect-error header style IDs belong to the advanced Workbook API
   await exportDataTable(host, table, 'xlsx', { sheet: { headerStyle: 1 } });
+  // @ts-expect-error portable style patches contain definitions, not workbook component indexes
+  await exportDataTable(host, table, 'xlsx', { sheet: { alternatingRowStyle: { font: 0 } } });
+  // @ts-expect-error custom adapter writers return portable values
+  await exportDataTable(host, table, 'xlsx', { workbook: { cellValueWriters: { custom: v => new Cell(v, 0) } } });
   await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
   registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
   // @ts-expect-error PDF is a separate format milestone
