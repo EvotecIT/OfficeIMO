@@ -107,10 +107,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderBoxStyle CreateFormControlStyle(IElement element, HtmlRenderBoxStyle authoredStyle) {
         HtmlRenderBoxStyle style = authoredStyle.Clone();
+        HtmlComputedStyle? computed = _styleResolver.GetBoxCascadeStyle(element, authoredStyle);
+        bool Declared(string property) => computed?.HasCascadeState(property) == true;
         bool compact = IsCompactChoiceControl(element);
         bool range = IsInputType(element, "range");
 
-        if (!style.BorderDeclared && !range && !_styleResolver.HasPropertyCascadeState(element, "border")) {
+        if (!style.BorderDeclared && !range && !Declared("border")) {
             style.Borders = HtmlRenderBorderEdges.Uniform(
                 1D,
                 "solid",
@@ -118,22 +120,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.BorderDeclared = true;
         }
         if (style.BackgroundColor == null
-            && !_styleResolver.HasPropertyCascadeState(element, "background")
-            && !_styleResolver.HasPropertyCascadeState(element, "background-color")) {
+            && !Declared("background")
+            && !Declared("background-color")) {
             style.BackgroundColor = element.HasAttribute("disabled")
                 ? ControlDisabledFillColor
                 : OfficeColor.White;
         }
-        if (!compact && !range && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
-            if (style.PaddingLeft == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-left"))
+        if (!compact && !range && !Declared("padding")) {
+            if (style.PaddingLeft == 0D && !Declared("padding-left"))
                 style.PaddingLeft = 6D;
-            if (style.PaddingRight == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-right"))
+            if (style.PaddingRight == 0D && !Declared("padding-right"))
                 style.PaddingRight = 6D;
         }
-        if (!compact && !range && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
-            if (style.PaddingTop == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-top"))
+        if (!compact && !range && !Declared("padding")) {
+            if (style.PaddingTop == 0D && !Declared("padding-top"))
                 style.PaddingTop = 4D;
-            if (style.PaddingBottom == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-bottom"))
+            if (style.PaddingBottom == 0D && !Declared("padding-bottom"))
                 style.PaddingBottom = 4D;
         }
         if (!compact && style.BorderRadius == "0") style.BorderRadius = "3px";
