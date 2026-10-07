@@ -6,7 +6,7 @@ namespace OfficeIMO.Word {
         private const int MaximumListMarkerLength = 4096;
         private const int MaximumDocumentListMarkerCharacters = 4 * 1024 * 1024;
 
-        private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
+        private static string BuildMarker(int level, int index, Dictionary<int, long> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
             if (string.IsNullOrEmpty(pattern)) {
                 string formatted = FormatNumber(index, formats[level]);
                 return formatted + ".";
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
                 if (match.Value == "%CurrentLevel") Append(FormatNumber(index, formats[level]));
                 else if (int.TryParse(match.Groups[1].Value, out int placeholderLevel) && placeholderLevel > 0) {
                     int lvl = placeholderLevel - 1;
-                    int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
+                    int value = lvl == level ? index : indices.TryGetValue(lvl, out long val) ? checked((int)(val - 1)) : 0;
                     formats.TryGetValue(lvl, out WordNumberFormat? fmt);
                     Append(FormatNumber(value, fmt));
                 } else Append(match.Value);
