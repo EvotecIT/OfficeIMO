@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return ReadGrpprl(bytes, grpprlOffset + 2, grpprlLength - 2, styleIndex == 0 ? null : styleIndex);
         }
 
-        internal static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex = null) {
+        internal static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex = null, bool requireComplete = false) {
             int end = offset + count;
             LegacyDocParagraphAlignment? alignment = null;
             int? spacingBeforeTwips = null;
@@ -691,6 +691,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 offset += 2 + operandLength;
             }
+
+            if (requireComplete && offset != end)
+                throw new InvalidDataException("Truncated native list paragraph formatting operand.");
 
             return new LegacyDocParagraphFormat(
                 alignment,

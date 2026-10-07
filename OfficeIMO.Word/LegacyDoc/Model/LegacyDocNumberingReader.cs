@@ -108,8 +108,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     text.Append(character);
                 }
             }
-            var paragraph = LegacyDocParagraphFormattingReader.ReadGrpprl(table, papx, papxLength);
-            var characterFormat = LegacyDocCharacterFormattingReader.ReadGrpprl(table, chpx, chpxLength, fonts);
+            var paragraph = LegacyDocParagraphFormattingReader.ReadGrpprl(table, papx, papxLength, requireComplete: true);
+            var characterFormat = LegacyDocCharacterFormattingReader.ReadGrpprl(table, chpx, chpxLength, fonts, requireComplete: true);
             cursor = textOffset + 2 + textLength * 2;
             return new LegacyDocListLevel(start, format.Value, text.ToString(), flags, follow, restart, style, paragraph, characterFormat);
         }
