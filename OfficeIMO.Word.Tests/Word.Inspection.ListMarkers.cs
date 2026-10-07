@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void InspectionListMarkersRejectOverflowBeforePublishingAnIndex() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(int.MaxValue));
+        list.AddItem("Last index");
+        WordParagraphSnapshot paragraph = Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements.OfType<WordParagraphSnapshot>());
+        Assert.Equal(int.MaxValue, paragraph.ListIndex);
+        Assert.Equal("2147483647.", paragraph.ListMarker);
+        list.AddItem("Overflow");
+        Assert.Empty(document.ValidateDocument());
+        Assert.Throws<System.IO.InvalidDataException>(() => document.CreateInspectionSnapshot());
+    }
+
+    [Fact]
     public void InspectionListMarkersRetainNestedParentNumbersAndLevelIndices() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
