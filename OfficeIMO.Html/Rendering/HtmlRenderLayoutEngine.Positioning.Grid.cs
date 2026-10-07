@@ -10,43 +10,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight,
         GridAxisLayout columns,
         GridAxisLayout rows,
-        IReadOnlyDictionary<string, GridAreaDefinition> areas,
         IReadOnlyDictionary<string, int> columnLineNames,
-        IReadOnlyDictionary<string, int> rowLineNames) {
+        IReadOnlyDictionary<string, int> rowLineNames,
+        int explicitColumnCount,
+        int explicitRowCount,
+        int leadingColumnCount,
+        int leadingRowCount) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
         foreach (PositionedElementRequest request in requests.Where(item => ReferenceEquals(item.DirectParent, container))) {
             string source = HtmlRenderStyleResolver.DescribeSource(request.Element);
-            int? requestedRow = null;
-            int? requestedColumn = null;
-            int rowSpan = 1;
-            int columnSpan = 1;
-            string areaName = request.Style.GridArea;
-            if (areaName != "auto" && areaName.IndexOf('/') < 0 && areas.TryGetValue(areaName, out GridAreaDefinition? area)) {
-                requestedRow = area.Row;
-                requestedColumn = area.Column;
-                rowSpan = area.RowSpan;
-                columnSpan = area.ColumnSpan;
-            } else {
-                GridAxisPlacement column = ParseGridAxisPlacement(
-                    request.Style.GridColumnStart,
-                    request.Style.GridColumnEnd,
-                    source,
-                    "grid-column",
-                    columnLineNames);
-                GridAxisPlacement row = ParseGridAxisPlacement(
-                    request.Style.GridRowStart,
-                    request.Style.GridRowEnd,
-                    source,
-                    "grid-row",
-                    rowLineNames);
-                requestedColumn = column.Start;
-                requestedRow = row.Start;
-                columnSpan = column.Span;
-                rowSpan = row.Span;
-            }
-
-            ResolvePositionedGridAxis(columns, contentWidth, requestedColumn, columnSpan, source, "grid-column", out double x, out double width);
-            ResolvePositionedGridAxis(rows, contentHeight, requestedRow, rowSpan, source, "grid-row", out double y, out double height);
+            GridAxisPlacement column = ParseGridAxisPlacement(
+                request.Style.GridColumnStart,
+                request.Style.GridColumnEnd,
+                source,
+                "grid-column",
+                columnLineNames,
+                explicitColumnCount,
+                leadingColumnCount);
+            GridAxisPlacement row = ParseGridAxisPlacement(
+                request.Style.GridRowStart,
+                request.Style.GridRowEnd,
+                source,
+                "grid-row",
+                rowLineNames,
+                explicitRowCount,
+                leadingRowCount);
+            ResolvePositionedGridAxis(columns, contentWidth, column.Start, column.Span, source, "grid-column", out double x, out double width);
+            ResolvePositionedGridAxis(rows, contentHeight, row.Start, row.Span, source, "grid-row", out double y, out double height);
             _positionedContainingRects[request.Element] = new PositionedContainingRect(
                 containerStyle.PaddingLeft + x,
                 containerStyle.PaddingTop + y,

@@ -16,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle blockStyle = BlockifyFlexItemStyle(inlineStyle);
         double outerWidth = Math.Min(
             Math.Max(1D, availableWidth),
-            ResolvePositionedOuterWidth(element, blockStyle, availableWidth, null, null));
+            ResolvePositionedOuterWidth(element, blockStyle, availableWidth, null, null, depth));
         if (!blockStyle.ExplicitWidth.HasValue) {
             blockStyle = blockStyle.Clone();
             SetPositionedExplicitWidth(blockStyle, outerWidth);

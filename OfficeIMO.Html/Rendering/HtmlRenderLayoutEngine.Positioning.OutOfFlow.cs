@@ -253,7 +253,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
         double? top = ResolveOutOfFlowInset(style.Top, containingHeight, style, source, "top");
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
-        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right);
+        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right, request.Depth);
         if (!style.ExplicitWidth.HasValue) SetPositionedExplicitWidth(style, outerWidth);
         if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue) {
             double targetOuterHeight = Math.Max(0.01D, containingHeight - top.Value - bottom.Value);
@@ -264,6 +264,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.ZIndex = "auto";
         HtmlRenderFlowBlock block = LayoutElementWithoutEditableRegionMarker(
             request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
+        double translatedX = 0D;
+        double translatedY = 0D;
+        bool localPagedBox = _options.Mode == HtmlRenderMode.Paged && !request.IsFixed
+            && !ReferenceEquals(request.ContainingBlock, _document.Body ?? _document.DocumentElement);
+        bool tookTranslation = localPagedBox && TryTakePositionedTranslation(
+            ref block, style, Math.Max(1D, outerWidth), out translatedX, out translatedY);
         block = WrapEditableLayoutRegion(block, request.Element, request.Style, HtmlRenderLayoutRegionKind.Positioned);
         int artifactIndex = 0;
         foreach (FlattenedSemanticBoundary boundary in request.FlattenedSemanticBoundaries) {
@@ -287,7 +293,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             top.HasValue || bottom.HasValue);
         double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
-        return new PositionedLayer(block, x, y);
+        return new PositionedLayer(block, x + translatedX, y + translatedY,
+            supportsBoundaryBreaks: localPagedBox && (request.Style.Transform == "none" || tookTranslation));
     }
 
     private static HtmlRenderFlowBlock ApplyPositionedArtifactBoundary(
@@ -322,7 +329,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return parentStyle ?? request.ParentStyle;
     }
 
-    private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
+    private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right, int depth) {
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
@@ -333,7 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
         if (IsReplacedImageElementTag(tag)) return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
-        string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style);
+        string content = ApplyTextTransform(CollapseFlexText(ResolveDisclosureTextContent(element, depth)), style);
         double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
         double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
             .Select(token => MeasureInlineText(token, style))
@@ -422,14 +429,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class PositionedLayer {
-        internal PositionedLayer(HtmlRenderFlowBlock block, double x, double y) {
+        internal PositionedLayer(HtmlRenderFlowBlock block, double x, double y, bool supportsBoundaryBreaks) {
             Block = block;
             X = x;
             Y = y;
+            SupportsBoundaryBreaks = supportsBoundaryBreaks;
         }
         internal HtmlRenderFlowBlock Block { get; }
         internal double X { get; }
         internal double Y { get; }
+        internal bool SupportsBoundaryBreaks { get; }
     }
 
     private sealed class PositionedRequestPlacement {

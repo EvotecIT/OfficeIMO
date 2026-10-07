@@ -559,11 +559,15 @@ public sealed partial class PdfOptions {
         IEnumerable<PdfEmbeddedFontFamily> profileFamilies,
         PdfEmbeddedFontFallbackSet? promotedFallbacks,
         OfficeRenderingProfileApplyMode mode,
-        IEnumerable<string>? releasedCallerFamilyNames = null) {
+        IEnumerable<string>? releasedCallerFamilyNames = null,
+        bool replacingAutomaticFallbacks = false) {
         var familyKeys = new HashSet<string>(StringComparer.Ordinal);
         if (mode == OfficeRenderingProfileApplyMode.Overlay
             && _namedFontFamilies != null) {
             familyKeys.UnionWith(_namedFontFamilies.Keys);
+        }
+        if (replacingAutomaticFallbacks && _automaticFallbackOwnedNamedFamilyKeys != null) {
+            familyKeys.ExceptWith(_automaticFallbackOwnedNamedFamilyKeys);
         }
         if (releasedCallerFamilyNames != null) {
             foreach (string familyName in releasedCallerFamilyNames) {

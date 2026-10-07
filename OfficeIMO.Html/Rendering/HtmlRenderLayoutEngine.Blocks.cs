@@ -42,6 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             CheckCancellation();
+            if (IsClosedDisclosureChild(node)) continue;
             if (seekingContinuation) {
                 if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
                 seekingContinuation = false;
@@ -507,6 +508,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
+        if (children.Count == 0 && contentVisuals.Count == 0) {
+            breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
+                element,
+                Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+                Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+                style.MarginTop + style.BorderTopWidth,
+                outerHeight));
+        }
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
         IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));
         IEnumerable<HtmlRenderContinuationGroup> adjustedContinuationGroups = continuationGroups.Select(group => group.Translate(contentX, contentYForBreaks));
@@ -744,9 +753,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static bool ShouldSkipElement(IElement element) {
+    private bool ShouldSkipElement(IElement element) {
+        if (IsClosedDisclosureChild(element)) return true;
         string tag = element.TagName.ToLowerInvariant();
-        if (element.HasAttribute("hidden")) return true;
         if (tag == "input" && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) return true;
         return tag == "head" || tag == "style" || tag == "script" || tag == "template" || tag == "noscript" || tag == "meta" || tag == "link" || tag == "title" || tag == "base";
     }

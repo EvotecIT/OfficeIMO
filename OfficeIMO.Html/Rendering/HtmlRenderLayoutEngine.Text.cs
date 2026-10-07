@@ -176,6 +176,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
+        if (IsClosedDisclosureChild(node)) return;
         if (depth > _options.MaxLayoutDepth) {
             if (node is IElement limitedElement) EnsureDepth(depth, limitedElement);
             throw new InvalidOperationException("HTML inline layout exceeded the configured maximum depth.");
@@ -200,11 +201,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
-        if (tag == "br") {
-            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
-            return;
-        }
-
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
             // CSS footnote extraction is a paged-media behavior. Continuous output
@@ -214,6 +210,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (tag == "br") {
+            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
+            return;
+        }
         if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
@@ -1510,85 +1510,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return 0D;
     }
 
-    private sealed class InlineLine {
-        private int _flowContentCount;
-
-        internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
-        internal double Width { get; private set; }
-        internal bool HasFlowContent => _flowContentCount > 0;
-        internal bool HasExplicitPlacement { get; private set; }
-        internal double X { get; private set; }
-        internal double Y { get; private set; }
-        internal double AvailableWidth { get; private set; }
-        internal bool EndsWithHyphenation { get; set; }
-
-        internal void Place(double x, double y, double availableWidth) {
-            HasExplicitPlacement = true;
-            X = Math.Max(0D, x);
-            Y = Math.Max(0D, y);
-            AvailableWidth = Math.Max(0.01D, availableWidth);
-        }
-
-        internal void Add(InlineSegment segment) {
-            Segments.Add(segment);
-            Width += segment.Width;
-            if (segment.Run.RunningStringElement == null
-                && segment.Run.RunningElementAssignment == null
-                && !segment.Run.IsBookmarkMarker) _flowContentCount++;
-        }
-
-        internal void RemoveAt(int index) {
-            if (Segments[index].Run.RunningStringElement == null
-                && Segments[index].Run.RunningElementAssignment == null
-                && !Segments[index].Run.IsBookmarkMarker) _flowContentCount--;
-            Width -= Segments[index].Width;
-            Segments.RemoveAt(index);
-        }
-
-        internal void SetSegmentWidth(int index, double width) {
-            double normalized = Math.Max(0D, width);
-            Width += normalized - Segments[index].Width;
-            Segments[index].SetWidth(normalized);
-        }
-
-        internal double ResolveLineHeight(double fallback) {
-            if (!HasFlowContent) return 0D;
-            double height = fallback;
-            for (int i = 0; i < Segments.Count; i++) {
-                height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
-            }
-            if (!HasReplacedImage) return Math.Max(0.01D, height);
-
-            double ascent = 0D;
-            double descent = 0D;
-            for (int i = 0; i < Segments.Count; i++) {
-                HtmlInlineRun run = Segments[i].Run;
-                if (run.AtomicBlock != null) {
-                    double atomicBaseline = Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height));
-                    ascent = Math.Max(ascent, atomicBaseline);
-                    descent = Math.Max(descent, run.AtomicBlock.Height - atomicBaseline);
-                } else {
-                    ascent = Math.Max(ascent, ResolveTextAscent(run.Style));
-                    descent = Math.Max(descent, Math.Max(0D, run.Style.LineHeight - ResolveTextAscent(run.Style)));
-                }
-            }
-            return Math.Max(0.01D, ascent + descent);
-        }
-
-        internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
-
-        internal double ResolveBaseline(double fallback) {
-            if (!HasReplacedImage) return ResolveLineHeight(fallback);
-            double ascent = 0D;
-            for (int i = 0; i < Segments.Count; i++) {
-                HtmlInlineRun run = Segments[i].Run;
-                ascent = Math.Max(ascent, run.AtomicBlock == null
-                    ? ResolveTextAscent(run.Style)
-                    : Math.Min(run.AtomicBlock.Height, Math.Max(0D, run.AtomicBaseline ?? run.AtomicBlock.Height)));
-            }
-            return ascent;
-        }
-    }
 
     private readonly struct HyphenationToken {
         internal HyphenationToken(
@@ -1637,14 +1558,4 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void SetWidth(double width) => Width = Math.Max(0D, width);
     }
 
-    private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
-        double effectiveSize = GetEffectiveTextFont(style).Size;
-        double leading = Math.Max(0D, style.LineHeight - effectiveSize);
-        return Math.Min(style.LineHeight, leading / 2D + effectiveSize * 0.8D);
-    }
-
-    private static OfficeFontInfo GetEffectiveTextFont(HtmlRenderBoxStyle style) =>
-        Math.Abs(style.BaselineScale - 1D) < 0.000001D
-            ? style.Font
-            : style.Font.WithSize(style.Font.Size * style.BaselineScale);
 }

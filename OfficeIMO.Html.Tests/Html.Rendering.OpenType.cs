@@ -100,15 +100,16 @@ public sealed partial class HtmlRenderingTests {
         };
         byte[] enabledPdf = HtmlConversionDocument.Parse(enabledHtml).ToPdfBytes(pdfOptions);
         byte[] disabledPdf = HtmlConversionDocument.Parse(disabledHtml).ToPdfBytes(pdfOptions);
-        int enabledPathCommandCount = PdfCore.PdfDocument.Load(enabledPdf).Render.Drawing(1).Shapes
-            .Sum(shape => shape.Shape.PathCommands.Count);
-        int disabledPathCommandCount = PdfCore.PdfDocument.Load(disabledPdf).Render.Drawing(1).Shapes
-            .Sum(shape => shape.Shape.PathCommands.Count);
+        PdfCore.PdfReadDocument enabledRead = PdfCore.PdfReadDocument.Open(enabledPdf);
+        PdfCore.PdfReadDocument disabledRead = PdfCore.PdfReadDocument.Open(disabledPdf);
 
         Assert.NotEqual(enabledPng, disabledPng);
-        Assert.True(enabledPathCommandCount < disabledPathCommandCount);
-        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(enabledPdf).ExtractText().Trim());
-        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(disabledPdf).ExtractText().Trim());
+        Assert.Equal(1, enabledRead.Pages[0].GetTextSpans().Where(span => span.IsVisible)
+            .Sum(span => span.GlyphBytes?.Count ?? 0));
+        Assert.Equal(2, disabledRead.Pages[0].GetTextSpans().Where(span => span.IsVisible)
+            .Sum(span => span.GlyphBytes?.Count ?? 0));
+        Assert.Equal("fi", enabledRead.ExtractText().Trim());
+        Assert.Equal("fi", disabledRead.ExtractText().Trim());
     }
 
     [Fact]

@@ -17,7 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var occupancy = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
-            foreach (IElement cell in rows[rowIndex].Children.Where(IsTableCell)) {
+            foreach (IElement cell in EnumerateVisibleTableCells(rows[rowIndex])) {
                 int requestedSpan = ReadSpan(cell.GetAttribute("colspan"), columnCount);
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
@@ -38,7 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ApplyFirstRowAuthoredWidths(IReadOnlyList<IElement> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
         if (rows.Count == 0) return;
         int column = 0;
-        foreach (IElement cell in rows[0].Children.Where(IsTableCell)) {
+        foreach (IElement cell in EnumerateVisibleTableCells(rows[0])) {
             int span = Math.Min(ReadSpan(cell.GetAttribute("colspan"), widths.Length), widths.Length - column);
             if (span <= 0) break;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(cell, contentWidth, tableStyle);
@@ -71,7 +71,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
-        string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style);
+        string text = ApplyTextTransform(ResolveDisclosureTextContent(cell, depth), style);
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
         string normalized = string.Join(" ", tokens);
         double insets = style.HorizontalInsets;
@@ -81,6 +81,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : insets);
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
+        }
+        if (style.MinWidth.HasValue) {
+            double authoredMinimum = style.MinWidth.Value + (style.BorderBox ? 0D : insets);
+            minimum = Math.Max(minimum, authoredMinimum);
+            preferred = Math.Max(preferred, minimum);
         }
         foreach (IElement image in cell.QuerySelectorAll("img, svg").Where(candidate => BelongsToTableCell(candidate, cell))) {
             if (!TryResolveVisibleTableDescendantStyle(
@@ -106,6 +111,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         int depth,
         out HtmlRenderBoxStyle elementStyle) {
+        if (IsInsideClosedDisclosure(element)) {
+            elementStyle = cellStyle;
+            return false;
+        }
         var ancestors = new Stack<IElement>();
         for (IElement? current = element.ParentElement;
              current != null && !ReferenceEquals(current, cell);
