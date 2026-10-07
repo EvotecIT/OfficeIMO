@@ -1,6 +1,7 @@
 {
   "schemaVersion": 2,
   "fontPath": "OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Regular.woff2",
+  "boldFontPath": "OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf",
   "fontFamily": "Arial",
   "dpi": 96,
   "cases": [

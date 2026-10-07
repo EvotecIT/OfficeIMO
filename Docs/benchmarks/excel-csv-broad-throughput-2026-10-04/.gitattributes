@@ -1,0 +1,5 @@
+# Captured evidence keeps its original bytes, including native line endings and whitespace.
+dimensionless-index-* -text -whitespace
+csv-delimiter-search-* -text -whitespace
+index-and-delimiter-* -text -whitespace
+budget-tail-rejected-* -text -whitespace

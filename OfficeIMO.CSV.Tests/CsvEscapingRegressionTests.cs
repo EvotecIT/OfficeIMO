@@ -11,6 +11,7 @@ public class CsvEscapingRegressionTests {
     [Theory]
     [InlineData(",", CsvQuoteMode.AsNeeded)]
     [InlineData(";", CsvQuoteMode.AsNeeded)]
+    [InlineData("\t", CsvQuoteMode.AsNeeded)]
     [InlineData("||", CsvQuoteMode.AsNeeded)]
     [InlineData(",", CsvQuoteMode.Always)]
     [InlineData("||", CsvQuoteMode.Always)]
@@ -48,6 +49,11 @@ public class CsvEscapingRegressionTests {
         yield return string.Concat(Enumerable.Repeat("\"key\":\"value\",", 300));
         yield return "  =SUM(1;2), \"quoted\"";
         yield return "Łódź 😀,;||\r\n\t";
+        yield return new string('a', 4096) + ";tail";
+        yield return new string('a', 4096) + "\ttail";
+        yield return new string('a', 4096) + "\rtail";
+        yield return new string('a', 4096) + "\ntail";
+        yield return new string('a', 4096);
         foreach (int length in new[] { 0, 15, 16, 31, 32, 63, 64, 255, 256, 257, 511, 512, 513, 4096, 32768 }) {
             yield return new string('a', length) + "\"";
             yield return "\"" + new string('b', length) + "\"\"suffix";

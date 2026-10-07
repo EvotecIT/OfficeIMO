@@ -56,7 +56,7 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
             SetCurrent(_buffered.Dequeue());
             return true;
         }
-        if (!await _records.ReadAsync(asynchronous, effective).ConfigureAwait(false))
+        if (!await _records.ReadAsync(asynchronous, effective, reuseValues: true).ConfigureAwait(false))
         {
             _current = Array.Empty<string>();
             CurrentPhysicalLineNumber = CurrentPhysicalEndLineNumber = null;

@@ -1,0 +1,85 @@
+{
+  "Disposition": "Rejected for integration",
+  "CandidateWindows": "080b9ca47a2679f895364f51b896f2d2325f946d",
+  "CandidateMacOS": "b188d24562e084ac0cb9b0e5e11f19d9dc41c1e4",
+  "Baseline": "Current qualified CSV source; normalized inventory of 936 source/project files matches both hosts",
+  "ProductionPaths": [
+    "OfficeIMO.CSV/CsvRowWriter.cs",
+    "OfficeIMO.CSV/CsvRowWriter.DataReader.cs"
+  ],
+  "Native": {
+    "RetainedMeasurements": 2016,
+    "Placements": [
+      "Windows 65535",
+      "Windows 4294901760",
+      "macOS OS scheduled"
+    ],
+    "Outliers": "Retained",
+    "Runtimes": [
+      "net8.0",
+      "net10.0"
+    ],
+    "Cases": 14,
+    "Operations": 4,
+    "Observations": 168,
+    "Warmups": 16,
+    "Samples": 12
+  },
+  "Rotated": {
+    "IdenticalBaselineControl": true,
+    "RetainedMeasurements": 1728,
+    "Outliers": "Retained",
+    "Engines": [
+      "Before",
+      "Control",
+      "After"
+    ],
+    "Runtime": "Actual .NET10",
+    "Cases": 6,
+    "Operations": 4,
+    "Observations": 36,
+    "Warmups": 24,
+    "Samples": 48
+  },
+  "Reason": [
+    "Native timing gains do not survive consistently across actual runtimes and placements",
+    "Windows target rotated medians are 8-12 percent slower; same-baseline controls also shift",
+    "macOS .NET8 target native medians are 1.146 and 2.068 times baseline",
+    "Target native allocation increases by 4102 bytes per operation in Windows .NET10 and macOS .NET8"
+  ],
+  "Validation": {
+    "Candidate": "080b9ca47a2679f895364f51b896f2d2325f946d",
+    "Base": "d3d06cdb031ee710d081ccf841fe017d939abc85",
+    "Boundary": "current",
+    "Reviewer": "/root/csv_unformatted_batch_review",
+    "Why": "Pooled batched output enabled for an additional public path; cancellation, partial records, source failure and writer reuse",
+    "FullReadOnlyPass": 1,
+    "TargetedConfirmation": 0,
+    "TechnicalFindings": [],
+    "ProductDisposition": "Accept implementation shape; performance adoption pending",
+    "Validation": {
+      "WindowsNet10": 680,
+      "Skips": 0,
+      "MacOSNet8": 680,
+      "WindowsFramework": 486,
+      "WindowsNet8": 680,
+      "Failures": 0,
+      "MacOSNet10": 680,
+      "NetStandardBuild": "0 errors, 0 warnings"
+    },
+    "Publication": "Not authorized; no PR/push/release"
+  },
+  "Scope": "No dependency, public API or option changes. Only private batched-record eligibility broadened.",
+  "Integration": "Production candidate excluded; existing public writer regression cases retained separately after backout and focused validation",
+  "Limits": "No fresh-process memory qualification performed because the timing/allocation evidence does not support adopting this candidate",
+  "Published": false,
+  "BackoutWindows": "39827b8d8f",
+  "BackoutMacOS": "9e0e1f496",
+  "RetainedWriterContracts": {
+    "WindowsNet10QualifiedBaselinePassed": 28,
+    "Failed": 0,
+    "TestOwner": "OfficeIMO.CSV.Tests/CsvDataReaderWriterRegressionTests.cs",
+    "Skipped": 0,
+    "CsvDllSource": "Frozen qualified baseline, verified original artifact hashes; only test-output CSV DLL/PDB replaced temporarily and restored in finally"
+  }
+}

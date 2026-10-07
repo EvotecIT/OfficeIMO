@@ -103,7 +103,13 @@ public sealed class PdfTablesToExcelOptions {
         /// </summary>
         public string EmptyWorkbookSheetName { get; set; } = "PDF Tables";
 
-        internal PdfTablesToExcelOptions CloneForConversion() =>
+        /// <summary>Use the first row of a table without an established schema as caller-confirmed column headers.
+        /// Default false preserves all source rows. This applies to each imported logical table.</summary>
+        public bool UseFirstRowAsHeader { get; set; }
+
+        /// <summary>Copies the import settings so convenience parameters do not change caller-owned options.</summary>
+        /// <remarks>Referenced read settings and cultures are shared; scalar import settings are independent.</remarks>
+        public PdfTablesToExcelOptions Clone() =>
             (PdfTablesToExcelOptions)MemberwiseClone();
     }
 }

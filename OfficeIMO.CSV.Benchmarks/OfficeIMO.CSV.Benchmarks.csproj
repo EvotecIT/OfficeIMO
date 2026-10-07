@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">5.1.1</ExcelReaderBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,9 +16,9 @@
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Dataplat.Dbatools.Csv" Version="1.1.15" />
       <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
-      <PackageReference Include="ExcelReader.NET" Version="3.0.1" ExcludeAssets="analyzers" />
+      <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
     <PackageReference Include="LumenWorksCsvReader2" Version="4.4.0" />
-    <PackageReference Include="Sep" Version="0.17.0" />
+    <PackageReference Include="Sep" Version="0.17.1" />
     <PackageReference Include="Sylvan.Data.Csv" Version="1.4.4" />
   </ItemGroup>
 
@@ -26,12 +28,13 @@
 
   <ItemGroup>
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
   </ItemGroup>
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\3.0.1\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
+      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\$(ExcelReaderBenchmarkVersion)\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
     </ItemGroup>
   </Target>
 

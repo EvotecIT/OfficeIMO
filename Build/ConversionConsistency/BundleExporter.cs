@@ -17,6 +17,9 @@ internal static partial class BundleExporter {
             throw new InvalidDataException("No matching cases or duplicate case identifiers.");
         byte[] fontBytes = File.ReadAllBytes(ArtifactPaths.Resolve(repository, suite.FontPath));
         var fonts = new OfficeFontFaceCollection().Add(suite.FontFamily, fontBytes).AddFallbackFamily(suite.FontFamily);
+        byte[]? boldFontBytes = suite.BoldFontPath == null
+            ? null : File.ReadAllBytes(ArtifactPaths.Resolve(repository, suite.BoldFontPath));
+        if (boldFontBytes != null) fonts.Add(suite.FontFamily, boldFontBytes, OfficeFontStyle.Bold);
         var profile = new OfficeRenderingProfile("conversion-consistency", fonts, OfficeManagedTextShapingProvider.Instance);
         var provenance = await ArtifactPaths.ProvenanceAsync(repository);
         Directory.CreateDirectory(output);
@@ -68,7 +71,9 @@ internal static partial class BundleExporter {
             if (browser != null) await browser.DisposeAsync();
         }
         GateJson.Write(Path.Combine(output, "bundle.json"), new EvidenceBundle(2, provenance.Commit, provenance.DiffHash,
-            ArtifactPaths.Hash(fontBytes), suite.FontFamily, suite.Dpi, nameof(OfficeManagedTextShapingProvider), "#ffffff", cases, provenance.Untracked));
+            ArtifactPaths.Hash(fontBytes), suite.FontFamily, suite.Dpi, nameof(OfficeManagedTextShapingProvider), "#ffffff", cases, provenance.Untracked) {
+            BoldFontSha256 = boldFontBytes == null ? null : ArtifactPaths.Hash(boldFontBytes)
+        });
     }
 }
 

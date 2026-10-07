@@ -7,17 +7,19 @@ namespace OfficeIMO.Excel.Benchmarks;
 public class ExcelRoundTripBenchmarks {
     private byte[] _workbookBytes = [];
 
-    [Params(250, 2500)]
+    [Params(250, 2500, 25000)]
     public int RowCount { get; set; }
 
     [GlobalSetup]
     public void Setup() {
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
         _workbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
+        ExcelSalesOutputValidator.ValidateWorkbook(OfficeIMO_Load_Edit_Save(), rows, reviewed: true);
+        ExcelSalesOutputValidator.ValidateWorkbook(ClosedXML_Load_Edit_Save(), rows, reviewed: true);
     }
 
     [Benchmark(Baseline = true)]
-    public int OfficeIMO_Load_Edit_Save() {
+    public byte[] OfficeIMO_Load_Edit_Save() {
         using var input = new MemoryStream(_workbookBytes, writable: false);
         using var output = new MemoryStream();
 
@@ -33,11 +35,11 @@ public class ExcelRoundTripBenchmarks {
             document.Save(output);
         }
 
-        return checked((int)output.Length);
+        return output.ToArray();
     }
 
     [Benchmark]
-    public int ClosedXML_Load_Edit_Save() {
+    public byte[] ClosedXML_Load_Edit_Save() {
         using var input = new MemoryStream(_workbookBytes, writable: false);
         using var output = new MemoryStream();
         using var workbook = new XLWorkbook(input);
@@ -50,6 +52,6 @@ public class ExcelRoundTripBenchmarks {
         }
 
         workbook.SaveAs(output);
-        return checked((int)output.Length);
+        return output.ToArray();
     }
 }

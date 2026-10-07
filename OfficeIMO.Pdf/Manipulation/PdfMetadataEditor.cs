@@ -208,7 +208,7 @@ internal static partial class PdfMetadataEditor {
 
         var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
     }
 
     private static byte[] ReadStream(Stream stream) =>

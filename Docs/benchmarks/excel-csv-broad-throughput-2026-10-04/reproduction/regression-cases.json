@@ -1,0 +1,41 @@
+{
+  "Csv-Wide-AllRows-Incremental": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Incremental",
+    "Setup": "Setup",
+    "Class": "CsvWideAsyncReadBenchmarks",
+    "Properties": {
+      "Operation": "AllRows",
+      "RowCount": 25000
+    }
+  },
+  "Csv-Wide-AllRows-Snapshot": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_Snapshot",
+    "Setup": "Setup",
+    "Class": "CsvWideAsyncReadBenchmarks",
+    "Properties": {
+      "Operation": "AllRows",
+      "RowCount": 25000
+    }
+  },
+  "Csv-Multiline-OfficeIMO_ReadStreamingRows": {
+    "Library": "CSV",
+    "Method": "OfficeIMO_ReadStreamingRows",
+    "Setup": "Setup",
+    "Class": "CsvBenchmarks",
+    "Properties": {
+      "RowCount": 25000,
+      "Shape": "Multiline"
+    }
+  },
+  "Excel-ValuesCopy-2500": {
+    "Method": "ValuesCopy",
+    "Properties": {
+      "RowCount": 2500
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  }
+}

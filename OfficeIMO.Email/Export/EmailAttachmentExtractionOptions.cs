@@ -5,6 +5,14 @@ public sealed class EmailAttachmentExtractionOptions {
     /// <summary>Creates an export policy. Embedded messages are exported as EML; nested attachments are optional.</summary>
     public EmailAttachmentExtractionOptions(int maxAttachments = 1000, long maxAttachmentBytes = 64L * 1024 * 1024,
         long maxTotalBytes = 256L * 1024 * 1024, int maxDepth = 4, bool recurseEmbeddedMessages = false,
+        bool includeInline = true, bool includeHidden = false)
+        : this(null, null, maxAttachments, maxAttachmentBytes, maxTotalBytes, maxDepth,
+            recurseEmbeddedMessages, includeInline, includeHidden) { }
+
+    /// <summary>Creates a bounded policy for selected top-level attachments, with an optional source-specific filename prefix.</summary>
+    public EmailAttachmentExtractionOptions(IEnumerable<int>? selectedAttachmentIndexes, string? fileNamePrefix = null,
+        int maxAttachments = 1000, long maxAttachmentBytes = 64L * 1024 * 1024,
+        long maxTotalBytes = 256L * 1024 * 1024, int maxDepth = 4, bool recurseEmbeddedMessages = false,
         bool includeInline = true, bool includeHidden = false) {
         if (maxAttachments <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachments));
         if (maxAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentBytes));
@@ -13,6 +21,10 @@ public sealed class EmailAttachmentExtractionOptions {
         MaxAttachments = maxAttachments; MaxAttachmentBytes = maxAttachmentBytes; MaxTotalBytes = maxTotalBytes;
         MaxDepth = maxDepth; RecurseEmbeddedMessages = recurseEmbeddedMessages;
         IncludeInline = includeInline; IncludeHidden = includeHidden;
+        int[]? selected = selectedAttachmentIndexes?.Distinct().ToArray();
+        if (selected != null && selected.Any(i => i < 0)) throw new ArgumentOutOfRangeException(nameof(selectedAttachmentIndexes));
+        SelectedAttachmentIndexes = selected == null ? null : Array.AsReadOnly(selected);
+        FileNamePrefix = fileNamePrefix;
     }
     /// <summary>Maximum operation-wide attachment visits, including skipped entries and embedded-message serialization.</summary>
     public int MaxAttachments { get; }
@@ -28,6 +40,10 @@ public sealed class EmailAttachmentExtractionOptions {
     public bool IncludeInline { get; }
     /// <summary>Whether to export attachments marked hidden.</summary>
     public bool IncludeHidden { get; }
+    /// <summary>Optional top-level zero-based indexes. Null selects all; an empty collection selects none.</summary>
+    public IReadOnlyList<int>? SelectedAttachmentIndexes { get; }
+    /// <summary>Optional portable prefix for saving several messages into one directory.</summary>
+    public string? FileNamePrefix { get; }
 }
 
 /// <summary>Outcome for one logical attachment path in the source model.</summary>

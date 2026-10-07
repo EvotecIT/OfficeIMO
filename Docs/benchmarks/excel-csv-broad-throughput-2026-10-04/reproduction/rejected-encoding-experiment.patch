@@ -1,0 +1,20 @@
+diff --git a/OfficeIMO.Excel/ExcelDocument.DirectDataSet.PooledUtf8TextWriter.cs b/OfficeIMO.Excel/ExcelDocument.DirectDataSet.PooledUtf8TextWriter.cs
+index 3f0d6ddde..6126cd994 100644
+--- a/OfficeIMO.Excel/ExcelDocument.DirectDataSet.PooledUtf8TextWriter.cs
++++ b/OfficeIMO.Excel/ExcelDocument.DirectDataSet.PooledUtf8TextWriter.cs
+@@ -169,6 +169,15 @@ namespace OfficeIMO.Excel {
+             char[] characters = GetCharacters();
+             if (_characterCount == 0 && !flushEncoder) return;
+             byte[] bytes = _bytes!;
++            // When the entire buffered input fits even with encoder fallback,
++            // avoid Convert's partial-buffer bookkeeping. Keep the same encoder
++            // so a surrogate pair can still straddle writes and flushes.
++            if (_encoding.GetMaxByteCount(_characterCount) <= bytes.Length - _byteCount) {
++                _byteCount += _encoder.GetBytes(
++                    characters, 0, _characterCount, bytes, _byteCount, flushEncoder);
++                _characterCount = 0;
++                return;
++            }
+             int offset = 0;
+             bool completed;
+             do {

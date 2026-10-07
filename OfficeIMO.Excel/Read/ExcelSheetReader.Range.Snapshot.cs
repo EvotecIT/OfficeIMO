@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
+                int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
                 if (rowIndex < r1) continue;
                 if (rowIndex > r2) continue;
 
@@ -42,12 +42,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 object?[]? values = null;
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     int cc = cIndex - c1;
@@ -211,16 +212,17 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
+                var rIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     var raw = SnapshotCell(cell, rIndex, cIndex);
@@ -251,19 +253,20 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
+                var rIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
                 int rr = rIndex - r1;
                 if ((uint)rr >= (uint)height) continue;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cIndex < c1 || cIndex > c2) continue;
 
                     int cc = cIndex - c1;
@@ -273,16 +276,6 @@ namespace OfficeIMO.Excel {
                         result[rr, cc] = value;
                 }
             }
-        }
-
-        private static int GetSequentialRowIndex(Row row, ref int inferredRowIndex) {
-            if (row.RowIndex != null) {
-                inferredRowIndex = checked((int)row.RowIndex.Value);
-            } else {
-                inferredRowIndex++;
-            }
-
-            return inferredRowIndex;
         }
 
         private bool TryFillRangeXmlFast(object?[,] result, int r1, int c1, int r2, int c2, CancellationToken ct) {
@@ -297,11 +290,7 @@ namespace OfficeIMO.Excel {
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 int width = result.GetLength(1);
-                int height = result.GetLength(0);
-                var seenRows = CreateCompletedRowTracker(height);
                 object?[]? rowBuffer8 = width == 8 ? new object?[8] : null;
-                bool orderedRows = true;
-                int orderedRowsSeen = 0;
                 if (canCancel) {
                     while (reader.Read()) {
                         ct.ThrowIfCancellationRequested();
@@ -310,44 +299,18 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                        int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) {
-                            rowIndex = nextRowIndex;
+                            rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                         }
 
                         nextRowIndex = rowIndex + 1;
                         if (rowIndex < r1 || rowIndex > r2) {
-                            bool allRowsSeen = orderedRows ? orderedRowsSeen == height : seenRows.AllRowsSeen;
-                            if (rowIndex > r2 && allRowsSeen) {
-                                break;
-                            }
-
                             SkipXmlElement(reader, "row");
                             continue;
                         }
 
                         ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, rowBuffer8, ct);
-                        if (orderedRows && rowIndex == r1 + orderedRowsSeen) {
-                            orderedRowsSeen++;
-                            if (orderedRowsSeen == height) {
-                                break;
-                            }
-
-                            continue;
-                        }
-
-                        if (orderedRows) {
-                            for (int row = 0; row < orderedRowsSeen; row++) {
-                                seenRows.MarkSeen(row);
-                            }
-
-                            orderedRows = false;
-                        }
-
-                        seenRows.MarkSeen(rowIndex - r1);
-                        if (seenRows.AllRowsSeen) {
-                            break;
-                        }
                     }
                 } else {
                     while (reader.Read()) {
@@ -355,44 +318,18 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                        int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) {
-                            rowIndex = nextRowIndex;
+                            rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                         }
 
                         nextRowIndex = rowIndex + 1;
                         if (rowIndex < r1 || rowIndex > r2) {
-                            bool allRowsSeen = orderedRows ? orderedRowsSeen == height : seenRows.AllRowsSeen;
-                            if (rowIndex > r2 && allRowsSeen) {
-                                break;
-                            }
-
                             SkipXmlElement(reader, "row");
                             continue;
                         }
 
                         ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, rowBuffer8, CancellationToken.None);
-                        if (orderedRows && rowIndex == r1 + orderedRowsSeen) {
-                            orderedRowsSeen++;
-                            if (orderedRowsSeen == height) {
-                                break;
-                            }
-
-                            continue;
-                        }
-
-                        if (orderedRows) {
-                            for (int row = 0; row < orderedRowsSeen; row++) {
-                                seenRows.MarkSeen(row);
-                            }
-
-                            orderedRows = false;
-                        }
-
-                        seenRows.MarkSeen(rowIndex - r1);
-                        if (seenRows.AllRowsSeen) {
-                            break;
-                        }
                     }
                 }
 

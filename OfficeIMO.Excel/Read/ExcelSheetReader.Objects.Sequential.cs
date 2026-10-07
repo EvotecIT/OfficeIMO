@@ -184,62 +184,8 @@ namespace OfficeIMO.Excel {
             int rows,
             int cols,
             CancellationToken ct) where T : new() {
-            bool canCancel = ct.CanBeCanceled;
-            if (canCancel) {
-                ct.ThrowIfCancellationRequested();
-            }
-
-            TypedPropertyBinding<T>?[]? bindings = null;
-            foreach (var row in EnumerateWorksheetRows(ct)) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                int rowIndex = checked((int)row.RowIndex!.Value);
-                if (rowIndex != r1) {
-                    continue;
-                }
-
-                bindings = CreateTypedHeaderBindingsFromRow<T>(row, a1Range, c1, c2, cols);
-                break;
-            }
-
-            bindings ??= CreateTypedHeaderBindingsFromMissingRow<T>(a1Range, cols);
-
-            int dataRowCount = rows - 1;
-            var result = new List<T>(dataRowCount);
-            for (int r = 0; r < dataRowCount; r++) {
-                if (canCancel && (r & 1023) == 0) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                result.Add(new T());
-            }
-
-            int convertedCells = 0;
-            foreach (var row in EnumerateWorksheetRows(ct)) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                int rowIndex = checked((int)row.RowIndex!.Value);
-                if (rowIndex <= r1) {
-                    continue;
-                }
-
-                if (rowIndex > r2) {
-                    continue;
-                }
-
-                int resultIndex = rowIndex - r1 - 1;
-                if ((uint)resultIndex >= (uint)result.Count) {
-                    continue;
-                }
-
-                FillTypedObjectFromRow(row, c1, c2, bindings, result[resultIndex], ct, ref convertedCells);
-            }
-
-            return result;
+            return ReadObjectsStreamBufferedIterator<T>(
+                a1Range, r1, c1, r2, c2, cols, ct, enforcePendingLimit: false).ToList();
         }
 
         private TypedPropertyBinding<T>?[] CreateTypedHeaderBindingsFromRow<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
@@ -249,8 +195,9 @@ namespace OfficeIMO.Excel {
             int c2,
             int cols) where T : new() {
             var headerValues = new object?[cols];
+            int nextDomColumnIndex = 1;
             foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
                     continue;
                 }
@@ -280,12 +227,13 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             ref int convertedCells) {
             bool canCancel = ct.CanBeCanceled;
+            int nextDomColumnIndex = 1;
             foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
                 if (canCancel && (++convertedCells & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
                     continue;
                 }

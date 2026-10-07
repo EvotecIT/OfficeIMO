@@ -1,0 +1,31 @@
+{
+  "FullPass": {
+    "Base": "7ea6a06f8eb11db5ba464825b50ca218e9bb7b07",
+    "Agent": "/root/utf16_prefix_buffer_review",
+    "PatchSha256": "AED3366C30FDD6AA48A67E0AEA93760FF2378655C7996C2E866E6B8F2E836262",
+    "Boundaries": [
+      "Same first-256-byte eligibility as existing indexer",
+      "Accepted read resumes same ZIP stream with exact-length validation",
+      "Clear pooled buffers on decline, throw, cancellation, and disposal",
+      "No encoding/API/dependency expansion"
+    ],
+    "Limitation": "Enabled prefetch still read the complete part in V1",
+    "Disposition": "No actionable P0-P3 technical findings; accept internal owner/API shape subject to performance qualification"
+  },
+  "TargetedConfirmation": {
+    "Agent": "/root/utf16_prefix_buffer_review",
+    "Disposition": "No new P0-P3 findings; V2 closes the enabled-prefetch allocation limitation by checking prefix before worksheet-sized rent",
+    "PatchSha256": "AC6EE8FE149CE4A9C4462F3721D3651E741704FEB15B5DAB5C2A4A52AD601102",
+    "Boundaries": [
+      "Background predicate handoff",
+      "Declined null-result consumption and existing fallback",
+      "Accepted UTF8 exact-length buffer ownership",
+      "Linked cancellation and unconsumed task disposal",
+      "Identical benchmark controls on both sides"
+    ],
+    "Checkpoint": "3d73d54f6bb1b1438135162de7425bf128cab0b6"
+  },
+  "Allowance": "Full pass and single targeted confirmation consumed; no fresh full review based solely on a changed SHA",
+  "Validation": "Strictly read-only source/test inspection, no independent test or timing rerun",
+  "NoPerformanceAcceptance": true
+}

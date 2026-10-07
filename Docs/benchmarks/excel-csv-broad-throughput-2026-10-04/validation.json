@@ -1,0 +1,114 @@
+{
+  "Source": "8b84a1676c31db2d92a8b80ede7064c72748e554",
+  "Tests": [
+    {
+      "Project": "OfficeIMO.CSV.Tests",
+      "Platform": "Windows",
+      "Framework": "net10.0",
+      "Command": "dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release -f net10.0 --filter Category!=Performance",
+      "Passed": 630,
+      "Failed": 0,
+      "Total": 630,
+      "TrxSha256": "733DC91C5CE23C839929115B72B322E7BEFC01AA49A9AB24DBD9D9B33C6FDFC4"
+    },
+    {
+      "Project": "OfficeIMO.CSV.Tests",
+      "Platform": "Windows",
+      "Framework": "net8.0",
+      "Command": "dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release -f net8.0 --filter Category!=Performance",
+      "Passed": 630,
+      "Failed": 0,
+      "Total": 630,
+      "TrxSha256": "810E826DAA37823DA3B812573DA57CB695325C4FC923538679F57A571D883B69"
+    },
+    {
+      "Project": "OfficeIMO.CSV.Tests",
+      "Platform": "Windows",
+      "Framework": "net472",
+      "Command": "dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release -f net472 --filter Category!=Performance",
+      "Passed": 440,
+      "Failed": 0,
+      "Total": 440,
+      "TrxSha256": "FE67F231ABFAD489976598826A4AADFC640C6314FED17B24B9A388B33E759356"
+    },
+    {
+      "Project": "OfficeIMO.Excel.Tests",
+      "Platform": "Windows",
+      "Framework": "net10.0",
+      "Command": "dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj -c Release -f net10.0 --filter Category!=Performance",
+      "Passed": 5225,
+      "Failed": 0,
+      "Total": 5230,
+      "Skipped": 5,
+      "TrxSha256": "C9C5767FA784265482B8DB0BFFB5F82C4927F90DF8224EB60C1ACD7E85F87769"
+    },
+    {
+      "Project": "OfficeIMO.Excel.Tests",
+      "Platform": "Windows",
+      "Framework": "net8.0",
+      "Command": "dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj -c Release -f net8.0 --filter '(FullyQualifiedName~DataReader_PrefixedWorksheet|FullyQualifiedName~DataReader|FullyQualifiedName~SharedString|FullyQualifiedName~CopyWorksheet|FullyQualifiedName~WorksheetCopy|FullyQualifiedName~TextEscaping|FullyQualifiedName~ExplicitStreamSave_UsesSimplePackageWriterForInlineStrings)&Category!=Performance'",
+      "Passed": 355,
+      "Failed": 0,
+      "Summary": "Passed!  - Failed:     0, Passed:   355, Skipped:     0, Total:   355, Duration: 3 s - OfficeIMO.Excel.Tests.dll (net8.0)",
+      "LogSha256": "567B4CF31C2E3CBF1357EA2AF53A46B84BEA343970E9D50793250D21B91E3993"
+    },
+    {
+      "Project": "OfficeIMO.Excel.Tests",
+      "Platform": "Windows",
+      "Framework": "net472",
+      "Command": "dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj -c Release -f net472 --filter '(FullyQualifiedName~DataReader_PrefixedWorksheet|FullyQualifiedName~DataReader|FullyQualifiedName~SharedString|FullyQualifiedName~CopyWorksheet|FullyQualifiedName~WorksheetCopy|FullyQualifiedName~TextEscaping|FullyQualifiedName~ExplicitStreamSave_UsesSimplePackageWriterForInlineStrings)&Category!=Performance'",
+      "Passed": 350,
+      "Failed": 0,
+      "Summary": "Passed!  - Failed:     0, Passed:   350, Skipped:     0, Total:   350, Duration: 5 s - OfficeIMO.Excel.Tests.dll (net472)",
+      "LogSha256": "14FA77B08C449DAE6BBBD288E722ECCC53E7E16B257E833CD45F18FA5D5974DB"
+    },
+    {
+      "Project": "OfficeIMO.CSV.Tests",
+      "Platform": "Ubuntu 24.04 under WSL",
+      "Framework": "net10.0",
+      "Runtime": "10.0.12",
+      "Command": "dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release -f net10.0 --filter 'Category!=Performance'",
+      "Passed": 630,
+      "Failed": 0,
+      "Summary": "Passed!  - Failed:     0, Passed:   630, Skipped:     0, Total:   630, Duration: 309 ms - OfficeIMO.CSV.Tests.dll (net10.0)",
+      "LogSha256": "5183A9894E5A02C21AE9550A36B90FE0F2327E073C0EEBB3D98F461474C64A95"
+    },
+    {
+      "Project": "OfficeIMO.Excel.Tests",
+      "Platform": "Ubuntu 24.04 under WSL",
+      "Framework": "net10.0",
+      "Runtime": "10.0.12",
+      "Command": "dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj -c Release -f net10.0 --filter '(FullyQualifiedName~DataReader|FullyQualifiedName~SharedString|FullyQualifiedName~CopyWorksheet|FullyQualifiedName~WorksheetCopy|FullyQualifiedName~TextEscaping|FullyQualifiedName~PooledTextWriter|FullyQualifiedName~ExplicitStreamSave_UsesSimplePackageWriterForInlineStrings)&Category!=Performance'",
+      "Passed": 362,
+      "Failed": 0,
+      "Summary": "Passed!  - Failed:     0, Passed:   362, Skipped:     0, Total:   362, Duration: 3 s - OfficeIMO.Excel.Tests.dll (net10.0)",
+      "LogSha256": "3711DDF3605D36A581B089C9CBC482087F6AFCB0DC9A7F26C18ED85E852139EF"
+    }
+  ],
+  "Builds": [
+    "OfficeIMO.Excel.Benchmarks: net8.0, net10.0",
+    "OfficeIMO.CSV.Benchmarks: net8.0, net10.0",
+    "OfficeIMO.Excel: netstandard2.0",
+    "OfficeIMO.CSV: netstandard2.0"
+  ],
+  "BuildResult": "Release builds passed, zero warnings and errors",
+  "FinalBuildLogSha256": "F0252452FC8A5D5D767E62E7A30BAEE0C83003C1C113A90CE241F530DED63B75",
+  "MillionRowOutput": {
+    "Scenario": "One million generated rows, four typed columns, sync and async XLSX writes",
+    "OfficeIMO": "Validated",
+    "ExcelReaderNET": "5.1.1 validated",
+    "RowsPerFile": 1000000,
+    "Outputs": 4,
+    "Validation": "Every header, field value, row count, and single-sheet result checked by OfficeIMO OpenDataReader",
+    "TemporaryDirectoryEmpty": true,
+    "TimeUtc": "2026-10-04T13:33:05.8078803Z",
+    "OfficeIMOBinary": "1D1B8239190E220E0F19FCFFEFC7A7BF318F66875C3D147B2269120B8876BD63"
+  },
+  "Review": "Two independent, nonoverlapping, read-only passes; no actionable findings. Patch hashes in provenance match the committed source.",
+  "QualificationLimits": [
+    "WSL correctness is not native Linux timing or macOS qualification.",
+    "CSV Linux tests passed, but the wrapper exited 127 after shell interpretation of the logger semicolon; the passing TRX was retained.",
+    "Excel Linux passing stdout was retained; its temporary TRX directory disappeared before collection.",
+    "Timing and sampled-memory measurements are opt-in evidence, not ordinary test gates."
+  ]
+}

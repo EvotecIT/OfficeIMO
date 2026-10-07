@@ -14,6 +14,22 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
+## PDF editing protection and source fonts
+
+Authenticated page, text, form, metadata and redaction rewrites preserve the
+source's password protection. Extraction and splitting also retain encryption;
+reopen their output with the source password. Merge output follows the primary
+source's protection settings. If an application depended on these operations
+producing plaintext, call `Security.Decrypt(ownerPassword)` explicitly before or
+after the operation. Permission restrictions and signed-rewrite blocking still
+apply.
+
+Text replacement and movement reuse supported embedded TrueType and Identity-H
+CID fonts when `PdfTextEditOptions.Font` is null. Text outside the existing subset's
+Unicode map now throws instead of substituting silently. Set `Font` to a Standard
+14 font when substitution is intended and inspect `PdfTextEditResult.Warnings`.
+Source-font reuse rejects replacements requiring shaping, bidirectional layout
+or combining-mark positioning.
 
 ## Owned HTML parser providers
 

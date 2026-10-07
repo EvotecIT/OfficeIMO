@@ -1,0 +1,222 @@
+{
+  "Excel-Sst-256-EntityTail-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "EntityTail",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-Ascii-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "Ascii",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-EntityTail-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "EntityTail",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-Ascii-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "Ascii",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-EntityTail-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "EntityTail",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-Unicode-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "Unicode",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-Unicode-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "Unicode",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-UnicodeTail-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "UnicodeTail",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-Ascii-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "Ascii",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-RichText-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "RichText",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-UnicodeTail-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "UnicodeTail",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-RichText-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "RichText",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-RichText-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "RichText",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-RichText-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "RichText",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-UnicodeTail-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "UnicodeTail",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-Unicode-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "Unicode",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-Ascii-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "Ascii",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-256-UnicodeTail-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "UnicodeTail",
+      "RowCount": 256
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-Unicode-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "Unicode",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-EntityTail-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "EntityTail",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  }
+}

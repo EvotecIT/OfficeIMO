@@ -63,13 +63,14 @@ internal static partial class PdfTextEditor {
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var rewrittenRequests = new List<PdfStamper.TextStampRequest>();
         var positioned = new List<PositionedRewrite>();
+        PdfReadDocument styleDocument = PdfReadDocument.Open(pdf, readOptions);
         foreach (KeyValuePair<PageSpanKey, List<SpanTextEdit>> rewrite in rewrites
             .OrderBy(item => item.Key.PageNumber)
             .ThenByDescending(item => item.Key.Span.Y)
             .ThenBy(item => item.Key.Span.X)) {
             PdfTextSpan sourceSpan = rewrite.Key.Span;
             PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
-            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected);
+            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected, styleDocument.Pages[rewrite.Key.PageNumber - 1]);
             PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan, rewrite.Value, style, style);
             positioned.Add(new PositionedRewrite(rewrite.Key.PageNumber, sourceSpan, fragments));
         }
@@ -149,8 +150,8 @@ internal static partial class PdfTextEditor {
                 throw new NotSupportedException("The text edit would require recreating invisible or clipped source text without its original rendering state.");
             }
             PdfRegionText detected = BuildRegionText(new[] { snapshot.Span });
-            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected);
-            warnings.AddRange(BuildSubstitutionWarnings(detected, style.Font));
+            PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected, before.Pages[snapshot.PageNumber - 1]);
+            warnings.AddRange(BuildSubstitutionWarnings(detected, style));
             AddStampLines(restamps, snapshot.PageNumber, snapshot.Span.X, snapshot.Span.Y, snapshot.Span.RestampText, style, snapshot.Span.PaintOrder);
         }
         return new TextRemovalResult(removed, warnings, restamps);
@@ -210,7 +211,7 @@ internal static partial class PdfTextEditor {
                 style.Color,
                 style.RotationDegrees,
                 paintOrder + (index * 0.0000001D),
-                style.TextRenderingMode));
+                style.TextRenderingMode, style.SourceFont));
         }
     }
 
@@ -343,52 +344,9 @@ internal static partial class PdfTextEditor {
         double uy = Math.Sin(radians);
         double normalX = Math.Sin(radians) * fragment.Style.FontSize * 1.15D;
         double normalY = -Math.Cos(radians) * fragment.Style.FontSize * 1.15D;
-        double finalWidth = PdfWriter.EstimateSimpleTextWidth(lines[finalLineIndex], fragment.Style.Font, fragment.Style.FontSize);
+        double finalWidth = fragment.Style.Measure(lines[finalLineIndex]);
         cursorX += normalX * finalLineIndex + ux * finalWidth;
         cursorY += normalY * finalLineIndex + uy * finalWidth;
-    }
-
-    private static PdfResolvedTextStyle ResolveStyle(PdfTextEditOptions options, PdfRegionText? detected) => new PdfResolvedTextStyle(
-        options.Font ?? detected?.SuggestedFont ?? PdfStandardFont.Helvetica,
-        options.FontSize ?? detected?.FontSize ?? 12D,
-        options.Color ?? detected?.Color ?? PdfColor.Black,
-        options.RotationDegrees ?? detected?.RotationDegrees ?? 0D,
-        detected?.Spans.Count > 0 && detected.Spans.All(static span => span.TextRenderingMode == 3) ? 3 : 0);
-
-    private static PdfResolvedTextStyle FitStyleToRegion(
-        PdfResolvedTextStyle style,
-        string text,
-        PdfPageRegion region,
-        PdfTextEditOptions options,
-        out string? warning) {
-        double radians = style.RotationDegrees * Math.PI / 180D;
-        double availableWidth = Math.Abs(Math.Cos(radians)) * region.Width + Math.Abs(Math.Sin(radians)) * region.Height;
-        return FitStyleToBaselineExtent(style, text, availableWidth, options, out warning);
-    }
-
-    private static PdfResolvedTextStyle FitStyleToBaselineExtent(
-        PdfResolvedTextStyle style, string text, double availableWidth,
-        PdfTextEditOptions options, out string? warning) {
-        warning = null;
-        if (options.RegionWidthPolicy == PdfTextRegionWidthPolicy.PreserveFontSize || text.Length == 0) return style;
-        string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-        double widestLine = lines.Max(line => PdfWriter.EstimateSimpleTextWidth(line, style.Font, style.FontSize));
-        if (widestLine <= availableWidth + 0.01D) return style;
-        if (options.RegionWidthPolicy == PdfTextRegionWidthPolicy.RejectOverflow) {
-            throw new NotSupportedException("The replacement text exceeds the selected region's baseline extent under the RejectOverflow width policy.");
-        }
-        double fittedSize = style.FontSize * availableWidth / widestLine;
-        if (fittedSize + 0.001D < options.MinimumFontSize) {
-            throw new NotSupportedException("The replacement text cannot fit the selected region without reducing the font below MinimumFontSize.");
-        }
-        warning = "The replacement font size was reduced from " + style.FontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " to " + fittedSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " points to fit the selected region.";
-        return style.WithFontSize(fittedSize);
-    }
-
-    private static string[] BuildSubstitutionWarnings(PdfRegionText detected, PdfStandardFont targetFont) {
-        string source = StripSubsetPrefix(detected.SourceFont);
-        if (source.Length == 0 || string.Equals(source, targetFont.ToBaseFontName(), StringComparison.OrdinalIgnoreCase)) return Array.Empty<string>();
-        return new[] { "The source font '" + source + "' is not reused by the dependency-free text editor; replacement text uses '" + targetFont.ToBaseFontName() + "'. Metrics and letterforms can differ." };
     }
 
     private static PdfStandardFont ResolveStandardFont(string? baseFont) {
@@ -658,7 +616,7 @@ internal static partial class PdfTextEditor {
     }
 
     private static PdfReadPage.PdfAppendedTextBounds ToAppendedTextBounds(PdfStamper.TextStampRequest request) {
-        double advance = Math.Max(0.1D, PdfWriter.EstimateSimpleTextWidth(request.Text, request.Font, request.FontSize));
+        double advance = Math.Max(0.1D, request.SourceFont?.Measure(request.Text, request.FontSize) ?? PdfWriter.EstimateSimpleTextWidth(request.Text, request.Font, request.FontSize));
         double radians = request.RotationDegrees * Math.PI / 180D;
         double ux = Math.Cos(radians);
         double uy = Math.Sin(radians);
@@ -698,19 +656,6 @@ internal static partial class PdfTextEditor {
         internal byte[] Bytes { get; }
         internal int AffectedCount { get; }
         internal IReadOnlyList<string> Warnings { get; }
-    }
-
-    private readonly struct PdfResolvedTextStyle : IEquatable<PdfResolvedTextStyle> {
-        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees, int textRenderingMode) { Font = font; FontSize = fontSize; Color = color; RotationDegrees = rotationDegrees; TextRenderingMode = textRenderingMode; }
-        internal PdfStandardFont Font { get; }
-        internal double FontSize { get; }
-        internal PdfColor Color { get; }
-        internal double RotationDegrees { get; }
-        internal int TextRenderingMode { get; }
-        internal PdfResolvedTextStyle WithFontSize(double fontSize) => new PdfResolvedTextStyle(Font, fontSize, Color, RotationDegrees, TextRenderingMode);
-        public bool Equals(PdfResolvedTextStyle other) => Font == other.Font && FontSize.Equals(other.FontSize) && Color.Equals(other.Color) && RotationDegrees.Equals(other.RotationDegrees) && TextRenderingMode == other.TextRenderingMode;
-        public override bool Equals(object? obj) => obj is PdfResolvedTextStyle other && Equals(other);
-        public override int GetHashCode() { unchecked { int hash = (int)Font; hash = (hash * 397) ^ FontSize.GetHashCode(); hash = (hash * 397) ^ Color.GetHashCode(); hash = (hash * 397) ^ RotationDegrees.GetHashCode(); return (hash * 397) ^ TextRenderingMode; } }
     }
 
     private readonly struct SpanBounds {

@@ -240,19 +240,11 @@ namespace OfficeIMO.Excel {
 
             int inferredRow = 0;
             foreach (var row in sheetData.Elements<Row>()) {
-                int rowIndex;
-                if (row.RowIndex != null) {
-                    rowIndex = checked((int)row.RowIndex.Value);
-                    inferredRow = rowIndex;
-                } else {
-                    rowIndex = ++inferredRow;
-                }
+                int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRow);
 
-                if (rowIndex < headerRowIndex) {
-                    continue;
+                if (rowIndex == headerRowIndex) {
+                    return row.Elements<Cell>().Count();
                 }
-
-                return rowIndex == headerRowIndex ? row.Elements<Cell>().Count() : 0;
             }
 
             return 0;
@@ -275,23 +267,12 @@ namespace OfficeIMO.Excel {
             Row? headerRow = null;
             int inferredRow = 0;
             foreach (var row in sheetData.Elements<Row>()) {
-                int rowIndex;
-                if (row.RowIndex != null) {
-                    rowIndex = checked((int)row.RowIndex.Value);
-                    inferredRow = rowIndex;
-                } else {
-                    rowIndex = ++inferredRow;
-                }
-
-                if (rowIndex < headerRowIndex) {
-                    continue;
-                }
+                int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref inferredRow);
 
                 if (rowIndex == headerRowIndex) {
                     headerRow = row;
+                    break;
                 }
-
-                break;
             }
 
             int columnCount = lastColumn - firstColumn + 1;
@@ -301,14 +282,7 @@ namespace OfficeIMO.Excel {
                 var headerCells = new Cell?[columnCount];
                 int maxSharedStringIndex = -1;
                 foreach (var cell in headerRow.Elements<Cell>()) {
-                    int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
-                    if (columnIndex <= 0) {
-                        columnIndex = string.IsNullOrEmpty(cell.CellReference?.Value) ? nextColumnIndex : 0;
-                    }
-
-                    if (columnIndex > 0) {
-                        nextColumnIndex = columnIndex + 1;
-                    }
+                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextColumnIndex);
 
                     if (columnIndex < firstColumn || columnIndex > lastColumn) {
                         continue;

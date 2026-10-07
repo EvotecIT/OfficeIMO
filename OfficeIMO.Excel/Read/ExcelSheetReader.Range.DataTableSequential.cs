@@ -165,12 +165,13 @@ namespace OfficeIMO.Excel {
 
             void FillHeaderValues(Row row, int firstColumn, int lastColumn, int columnCount, object?[] headers, CancellationToken token, ref int visitedCells) {
                 bool rowCanCancel = token.CanBeCanceled;
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (rowCanCancel && (++visitedCells & 1023) == 0) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (columnIndex < firstColumn || columnIndex > lastColumn) {
                         continue;
                     }
@@ -188,12 +189,13 @@ namespace OfficeIMO.Excel {
 
             void FillDataRow(Row row, int firstColumn, int lastColumn, int columnCount, DataRow dataRow, CancellationToken token, ref int visitedCells) {
                 bool rowCanCancel = token.CanBeCanceled;
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (rowCanCancel && (++visitedCells & 1023) == 0) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (columnIndex < firstColumn || columnIndex > lastColumn) {
                         continue;
                     }

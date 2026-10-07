@@ -5,6 +5,14 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
     internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects,
+        string trailerRaw, PdfReadDocument document, CancellationToken cancellationToken = default) {
+        CatalogRewriteState state = ExtractCatalogRewriteState(sourceObjects, trailerRaw, cancellationToken);
+        state.SourceEncryption = PdfSourceEncryptionContext.Create(sourceObjects, trailerRaw,
+            document.Security, document.ReadOptions, cancellationToken);
+        return state;
+    }
+
+    internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects,
         string? trailerRaw = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw, cancellationToken);
@@ -27,7 +35,7 @@ internal static partial class PdfPageExtractor {
             return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines, cancellationToken), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names, cancellationToken), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences, cancellationToken), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri, cancellationToken), BuildOutputIntents(sourceObjects, outputIntents, cancellationToken), BuildEmbeddedFiles(sourceObjects, names, cancellationToken), BuildAssociatedFiles(sourceObjects, associatedFiles, cancellationToken), BuildOptionalContent(sourceObjects, optionalContent, cancellationToken), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary, cancellationToken), sourceObjects, cancellationToken);
         }
     
-        return CatalogRewriteState.Empty;
+        return new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
     
     internal static CatalogRewriteState PruneCatalogStateForPages(
@@ -48,7 +56,9 @@ internal static partial class PdfPageExtractor {
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
             ? null
             : catalogState.PageMode;
-        return new CatalogRewriteState(pageMode, catalogState.PageLayout, catalogState.CatalogVersion, catalogState.CatalogLanguage, outlines, pageLabels, namedDestinations, namedDestinationNameTree, openAction, catalogState.ViewerPreferences, catalogState.XmpMetadata, catalogState.CatalogUri, catalogState.OutputIntents, catalogState.EmbeddedFiles, catalogState.AssociatedFiles, catalogState.OptionalContent);
+        return new CatalogRewriteState(pageMode, catalogState.PageLayout, catalogState.CatalogVersion, catalogState.CatalogLanguage, outlines, pageLabels, namedDestinations, namedDestinationNameTree, openAction, catalogState.ViewerPreferences, catalogState.XmpMetadata, catalogState.CatalogUri, catalogState.OutputIntents, catalogState.EmbeddedFiles, catalogState.AssociatedFiles, catalogState.OptionalContent) {
+            SourceEncryption = catalogState.SourceEncryption
+        };
     }
     
     internal static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(

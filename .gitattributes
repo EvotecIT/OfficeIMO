@@ -12,6 +12,7 @@ OfficeIMO.Html.Tests/Fixtures/ExcelRaster/*.webp -text -diff
 *.obu -text -diff
 *.bin -text -diff
 Build/PackageSmoke/OfficeIMO.Html/Assets/FixtureMath.ttf -text -diff
+OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf -text -diff
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
 # AV1 matrix facts are an embedded byte table; preserve their exact bytes.
@@ -163,3 +164,8 @@ OfficeIMO.TestAssets/OcrQuality/*.json -text
 # Reviewed upstream license texts are hash-bound packaging inputs. Preserve their
 # bytes and original whitespace across checkout platforms.
 OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
+
+# Captured benchmark packets retain exact member bytes inside verified archives.
+Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
+Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
+Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff

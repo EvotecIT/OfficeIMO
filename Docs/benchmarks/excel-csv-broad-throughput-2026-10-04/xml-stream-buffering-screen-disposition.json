@@ -1,0 +1,24 @@
+{
+  "Disposition": "Rejected; not integrated",
+  "Checkpoint": "51ee7193c365b00d2ee6effc0acfd1517233a4fa",
+  "Base": "f2cee78e3c02a51daf8f308f5d4ad0a07b2b1b8e",
+  "ActualRuntime": "net10.0",
+  "Hosts": [
+    "Windows",
+    "macOS"
+  ],
+  "Cases": 6,
+  "Observations": 24,
+  "RetainedMeasurements": 288,
+  "Warmup": 8,
+  "Invocations": 1,
+  "NoOutlierRemoval": true,
+  "Correctness": "Windows 1061 focused reader/typed tests passed; macOS focused exit0; separate native setup validates every selected field and complete observations",
+  "SourceContract": "One production C# stream-open path differs; copied benchmark controls match frozen baseline; only Excel DLL/PDB differ",
+  "Finding": "Million-row median After/Before 1.003 Windows,1.028 macOS; small 1000-row control adds65736bytes/operation on both hosts;250000-row adds~185KB;numeric UTF16 adds~133KB;no useful improvement in primary target",
+  "TimingLimits": "Initial six-case screen only; no universal timing ranking or further full/legacy qualification",
+  "FollowUp": "Fresh current qualified public-reader peer comparison; profiler samples are observations rather than proof of a beneficial buffering change",
+  "WindowsBackout": "234ff89c0fd5977e4d77ce1c3e960b75bc22392a",
+  "MacCheckpoint": "c6a7c23deb7ab9740043f3252aa06065ace6fcda",
+  "MacBackout": "c2a773428"
+}

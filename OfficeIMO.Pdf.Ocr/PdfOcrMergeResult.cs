@@ -22,6 +22,14 @@ public sealed class PdfOcrMergeResult {
     /// True when at least one OCR word passed merge filtering and was supplied to the parsed document.
     /// </summary>
     public bool HasAcceptedOcrContent => AcceptedWordCount > 0;
+    /// <summary>Requires accepted recognition content before exporting an editable or searchable artifact.</summary>
+    /// <remarks>A successful check establishes the presence of content, not recognition accuracy or completeness.
+    /// Inspect confidence exclusions, diagnostics and table structure before publishing the output.</remarks>
+    public PdfOcrMergeResult RequireAcceptedOcrContent() {
+        if (!HasAcceptedOcrContent)
+            throw new InvalidOperationException("No OCR words passed recognition and confidence filtering. Review the image, provider and recognition settings before exporting.");
+        return this;
+    }
     /// <summary>OCR merge reports in requested page order.</summary>
     public IReadOnlyList<PdfOcrPageMergeResult> Pages { get; }
     /// <summary>Combined page text separated by blank lines.</summary>

@@ -29,9 +29,25 @@ namespace OfficeIMO.Core.Internal {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 #endif
+            WriteBuffer(destination, bytes, 0, bytes.Length);
+        }
+
+        /// <summary>
+        /// Writes a complete artifact from an existing buffer segment without copying it or closing the destination.
+        /// Seekable streams are truncated before byte emission and rewound after success, so a destination that
+        /// rejects resizing fails before its existing bytes are overwritten.
+        /// </summary>
+        public static void WriteAllBytes(Stream destination, ArraySegment<byte> bytes) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            byte[]? buffer = bytes.Array;
+            if (buffer == null) throw new ArgumentException("The buffer segment must contain an array.", nameof(bytes));
+            WriteBuffer(destination, buffer, bytes.Offset, bytes.Count);
+        }
+
+        private static void WriteBuffer(Stream destination, byte[] buffer, int offset, int count) {
             EnsureWritable(destination);
             PrepareDestination(destination);
-            destination.Write(bytes, 0, bytes.Length);
+            destination.Write(buffer, offset, count);
             destination.Flush();
             RewindDestination(destination);
         }

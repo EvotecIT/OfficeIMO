@@ -1,0 +1,52 @@
+{
+  "Policy": "Common-source D13 qualification followed by conservative-row-loop restoration; retained raw timing negatives; original array reuse and reader review fixes remain",
+  "Windows": {
+    "Host": "Windows",
+    "RowsNormalizedSha256": "53676876C478CEF95F81E6D47F91116B38667F7351DDDD0E82C6246264BFF0EB",
+    "Tests": [
+      {
+        "Runtime": "net10.0",
+        "Passed": 5614,
+        "Failed": 0,
+        "Skipped": 5,
+        "TrxSha256": "0446A12C347A04B225988EC4F045B5F8142A37FA7CF77B2F6E6E6561037A0D44"
+      },
+      {
+        "Runtime": "net8.0",
+        "Passed": 5614,
+        "Failed": 0,
+        "Skipped": 5,
+        "TrxSha256": "07F15C457CBF5B49321A1C3D8851E42E55E411DAC0F2C68109D647AD71AE3A5E"
+      },
+      {
+        "Runtime": "net472",
+        "Passed": 1038,
+        "Failed": 0,
+        "Skipped": 0,
+        "TrxSha256": "68B221EB56A8C44631814AC57390A571E31E11244DC70D3615295AB1296AA645"
+      }
+    ],
+    "Disposition": "D13 shortcut removed; input-buffer reuse retained; source matches the fresh qualified Before snapshots"
+  },
+  "MacOS": {
+    "Host": "macOS",
+    "RowsNormalizedSha256": "53676876C478CEF95F81E6D47F91116B38667F7351DDDD0E82C6246264BFF0EB",
+    "Tests": [
+      {
+        "Runtime": "net10.0",
+        "Passed": 5614,
+        "Failed": 0,
+        "Skipped": 5,
+        "TrxSha256": "7E061654F1DD8B0B59A5483071D6CA490AF2C43CB76CE3DB544AFC04B11888E7"
+      },
+      {
+        "Runtime": "net8.0",
+        "Passed": 5614,
+        "Failed": 0,
+        "Skipped": 5,
+        "TrxSha256": "6905DA56A59FF99CEBAE5D187D7EF3F659B9147A7F351E02E39BEA5D0F619DE0"
+      }
+    ],
+    "Disposition": "D13 shortcut removed; input-buffer reuse retained; matches fresh qualified Before"
+  }
+}

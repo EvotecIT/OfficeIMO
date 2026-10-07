@@ -14,6 +14,51 @@ public class CsvAsyncSaveContractTests
     [InlineData(CsvCompressionType.None)]
     [InlineData(CsvCompressionType.GZip)]
     [InlineData(CsvCompressionType.Deflate)]
+#if NET6_0_OR_GREATER
+    [InlineData(CsvCompressionType.Brotli)]
+    [InlineData(CsvCompressionType.ZLib)]
+#endif
+    public async Task SaveAsync_Replaces_Seekable_Stream_And_Rewinds(CsvCompressionType compression)
+    {
+        var document = CsvDocument.Parse("Name,Notes\nAlpha,\"Łódź, line1\nline2\"\n");
+        var options = new CsvSaveOptions { NewLine = "\n", CompressionType = compression };
+        using var expected = new MemoryStream();
+        await document.SaveAsync(expected, options);
+
+        using var output = new MemoryStream();
+        byte[] previous = Encoding.UTF8.GetBytes(new string('x', 2048));
+        output.Write(previous, 0, previous.Length);
+        output.Position = 5;
+        await document.SaveAsync(output, options);
+
+        Assert.True(output.CanWrite);
+        Assert.Equal(0, output.Position);
+        Assert.Equal(expected.ToArray(), output.ToArray());
+        Assert.Equal(document.ToString(), CsvDocument.Load(output,
+            new CsvLoadOptions { CompressionType = compression }).ToString());
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreCanceled_Stream_Preserves_Contents_And_Position()
+    {
+        byte[] previous = Encoding.UTF8.GetBytes("existing content");
+        using var output = new MemoryStream();
+        output.Write(previous, 0, previous.Length);
+        output.Position = 5;
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CsvDocument.Parse("Name\nAlpha\n").SaveAsync(output,
+                cancellationToken: new CancellationToken(canceled: true)));
+
+        Assert.Equal(5, output.Position);
+        Assert.Equal(previous, output.ToArray());
+        Assert.True(output.CanWrite);
+    }
+
+    [Theory]
+    [InlineData(CsvCompressionType.None)]
+    [InlineData(CsvCompressionType.GZip)]
+    [InlineData(CsvCompressionType.Deflate)]
     public async Task SaveAsync_Uses_Async_Output_And_Leaves_Caller_Stream_Open(CsvCompressionType compression)
     {
         var document = CsvDocument.Parse("Name,Notes\nAlpha,\"line1\nline2\"\nBeta,\"a,b\"\n");

@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
     /// Streaming APIs for large ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private void ReadXmlRowIntoChunk(XmlReader rowReader, object?[][] rows, int rowIndex, int startRow, int c1, int c2, CancellationToken ct, bool preserveDateSerial = false) {
+        private void ReadXmlRowIntoChunk(XmlReader rowReader, object?[][] rows, int rowIndex, int startRow, int c1, int c2, CancellationToken ct, bool preserveDateSerial = false, bool[]? cellPresence = null) {
             if (rowReader.IsEmptyElement) {
                 return;
             }
@@ -20,17 +20,17 @@ namespace OfficeIMO.Excel {
             }
 
             object?[] rowValues = rows[rowOffset];
-            if (rowValues.Length == 8) {
+            if (rowValues.Length == 8 && cellPresence == null) {
                 ReadXmlRowIntoChunk8(rowReader, rowValues, c1, c2, ct, preserveDateSerial);
                 return;
             }
 
-            if (rowValues.Length == 3) {
+            if (rowValues.Length == 3 && cellPresence == null) {
                 ReadXmlRowIntoChunkKnownWidth(rowReader, rowValues, c1, c2, 3, 0x7UL, ct, preserveDateSerial);
                 return;
             }
 
-            if (rowValues.Length == 10) {
+            if (rowValues.Length == 10 && cellPresence == null) {
                 ReadXmlRowIntoChunkKnownWidth(rowReader, rowValues, c1, c2, 10, 0x3FFUL, ct, preserveDateSerial);
                 return;
             }
@@ -92,7 +92,8 @@ namespace OfficeIMO.Excel {
                     seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
                 }
 
-                rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"), preserveDateSerial);
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader), preserveDateSerial);
+                if (cellPresence != null) cellPresence[columnOffset] = true;
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;
                 }
@@ -167,7 +168,7 @@ namespace OfficeIMO.Excel {
                     canUseOrderedFullWidthExit = false;
                 }
 
-                rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"), preserveDateSerial);
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader), preserveDateSerial);
                 seenColumnMask |= (byte)(1 << columnOffset);
 
                 if (canUseOrderedFullWidthExit) {
@@ -245,7 +246,7 @@ namespace OfficeIMO.Excel {
                     canUseOrderedFullWidthExit = false;
                 }
 
-                rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"), preserveDateSerial);
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader), preserveDateSerial);
 
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;
