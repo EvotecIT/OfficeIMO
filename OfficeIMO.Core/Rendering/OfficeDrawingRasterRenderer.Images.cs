@@ -148,7 +148,9 @@ public static partial class OfficeDrawingRasterRenderer {
             return false;
         }
         if (IsSvg(bytes, contentType) &&
-            OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
+            OfficeSvgDrawingReader.TryRead(bytes, new OfficeSvgDrawingReaderOptions {
+                CancellationToken = cancellationToken
+            }, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
             vector != null &&
             unsupportedFeatureCount == 0) {
             cancellationToken.ThrowIfCancellationRequested();
