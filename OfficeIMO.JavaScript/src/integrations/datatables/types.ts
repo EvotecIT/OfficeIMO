@@ -1,0 +1,86 @@
+import type { Column, ExportValue, StreamOptions } from "../../core/index.js";
+import type { CsvOptions } from "../../csv/index.js";
+import type { SheetOptions, WorkbookOptions, WorkbookLimits } from "../../xlsx/index.js";
+
+/** Structural interoperability boundary; importing this adapter never imports DataTables. */
+export type DataTablesMethod = (...args: never[]) => unknown;
+export interface DataTablesApi {
+  readonly rows: DataTablesMethod;
+  readonly columns: DataTablesMethod;
+  readonly cells: DataTablesMethod;
+  readonly page: { readonly info: DataTablesMethod };
+  readonly buttons: { readonly exportData: DataTablesMethod };
+}
+export interface DataTablesHost {
+  /** Checked at runtime; older Buttons declarations omit the public stripData helper. */
+  readonly Buttons: object;
+  readonly ext: { readonly buttons: Record<string, unknown> };
+}
+export interface DataTablesCellContext {
+  /** DataTables indexes, after any column reordering. */
+  readonly rowIndex: number;
+  readonly columnIndex: number;
+  /** Zero-based position in the selected export. */
+  readonly rowOrdinal: number;
+}
+export interface DataTablesFormat {
+  readonly header?: (value: unknown, column: number, node: unknown) => unknown;
+  readonly footer?: (value: unknown, column: number, node: unknown) => unknown;
+  readonly body?: (value: unknown, row: number, column: number, node: unknown) => unknown;
+}
+/** Passed to the installed Buttons implementation in compatibility mode. */
+export interface DataTablesExportOptions {
+  readonly rows?: unknown;
+  readonly columns?: unknown;
+  readonly modifier?: Readonly<Record<string, unknown>>;
+  readonly orthogonal?: string;
+  readonly stripHtml?: boolean;
+  readonly stripNewlines?: boolean;
+  readonly decodeEntities?: boolean;
+  readonly escapeExcelFormula?: boolean;
+  readonly trim?: boolean;
+  readonly format?: DataTablesFormat;
+  /** Whole-matrix customization is supported only by compatibility mode. */
+  readonly customizeData?: (data: unknown) => void;
+}
+export interface DataTablesOptions extends StreamOptions {
+  /** Batched avoids Buttons' complete body matrix; compatibility delegates gathering to Buttons. */
+  readonly mode?: "batched" | "compatibility";
+  readonly exportOptions?: DataTablesExportOptions;
+  /** Maximum rows per projection batch, default 256, at most 4,096. */
+  readonly batchRows?: number;
+  /** Maximum cells per projection batch, default 65,536. One row must fit. */
+  readonly maxBatchCells?: number;
+  /** Grouped accepts horizontal header spans. Leaf explicitly selects a single heading row. */
+  readonly headings?: "grouped" | "leaf";
+  readonly includeFooter?: boolean;
+  /** Server-side tables require explicit acknowledgement that only loaded rows are available. */
+  readonly serverSide?: "reject" | "loaded";
+  /** Overrides keyed by DataTables column index, independent of the selected export position. */
+  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups">>>>;
+  /** Resolve portable values/presentation once. Results must be synchronous scalar values or ExportCells. */
+  readonly project?: (value: ExportValue, context: DataTablesCellContext) => ExportValue;
+}
+/** Selection and heading metadata are captured immediately; batched body values are read during iteration. */
+export interface DataTablesExport {
+  readonly columns: readonly Column[];
+  readonly headers: readonly (readonly ExportValue[])[];
+  readonly footer: readonly ExportValue[] | undefined;
+  readonly rowCount: number;
+  /** Single-use source. Keep the table's data stable until iteration finishes. */
+  readonly rows: AsyncIterable<readonly ExportValue[]>;
+}
+export interface DataTablesWriteOptions extends DataTablesOptions {
+  readonly limits?: WorkbookLimits;
+  readonly sheetName?: string;
+  readonly workbook?: Omit<WorkbookOptions, "sink" | "signal" | "onProgress" | "limits">;
+  readonly sheet?: Omit<SheetOptions, "columns" | "includeHeader">;
+  readonly csv?: Omit<CsvOptions, "columns" | "includeHeader" | "signal" | "onProgress" | "limits">;
+}
+export interface DataTablesButtonOptions extends DataTablesWriteOptions {
+  readonly filename?: string | (() => string);
+  /** Receives failures after Buttons' completion callback has cleared its processing state. */
+  readonly onError?: (error: unknown) => void | Promise<void>;
+  /** Override destination delivery, for example to retain a download in an application. */
+  readonly save?: (blob: Blob, filename: string) => void | Promise<void>;
+}

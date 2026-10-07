@@ -19,7 +19,7 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run sizes -- "$evidence/sizes.json"
 ```
 
-`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all six byte/hash contracts on .NET 8 and .NET 10.
+`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all eight byte/hash contracts on .NET 8 and .NET 10.
 
 The shared XLSX manifest is `OfficeIMO.TestAssets/JavaScript/xlsx-writer.json`; CSV vectors are in `OfficeIMO.TestAssets/CSV/browser-exports.json`. A C# test invokes the Node fixture producer and validates every generated file using the shared `JavaScriptWorkbookContract`. Both OfficeIMO.Excel and OfficeIMO.Reader.Excel open the workbooks, expected cells/styles/parts are checked, and the Open XML SDK validates each document. The CSV contract compares TypeScript bytes with independently generated OfficeIMO.CSV bytes.
 
@@ -47,6 +47,29 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 The measurement script compares actual inline-string worksheet XML with an equivalent shared-string representation using the same compressor, and measures the generated bundles. The scale runner writes 100,000 rows by 20 columns for XLSX/CSV, validates output and records responsiveness and available heap metrics. These timing/memory measurements do not become ordinary CI correctness envelopes.
 
 `Check-Excel.ps1` and `check-libreoffice.py` preserve optional application spot checks. They do not install, ship or invoke either application as a product dependency.
+
+## DataTables integration and comparisons
+
+The optional grid integration is qualified against the version pairs in `comparison-assets.json`. The downloaded MIT-licensed assets are test-only and hash-checked; they never enter npm, NuGet or product build dependencies. The `bundled` pair identifies the assessed HtmlForgeX asset versions, while `current` identifies the pinned current comparison pair. Updating this manifest is an intentional comparison-input change.
+
+```powershell
+node Build/BrowserExports/fetch-comparison.mjs "$evidence/comparison-assets"
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/datatables" --datatables "--comparison-assets=$evidence/comparison-assets"
+npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:datatables-types -- "$evidence/npm"
+```
+
+The interoperability lane covers actual search/order/selected-row defaults, hidden and reordered columns, grouped headings, footers, presentation, button delivery/completion, server-side loaded scope, cancellation and bounded host-owned workers in Chromium, Firefox and WebKit. Workers request at most 64 portable rows at a time and acknowledge output chunks of at most 64 KiB with a delayed sink; auto/stored compression and cancellation run separately. Every completed workbook is opened by both C# readers and the Open XML validator. Wide/compact captures and runtime errors are retained. Type consumers install the actual npm archive and upstream declarations in isolated folders; newer upstream declaration errors are recorded separately from strict consumer assignability.
+
+The comparison suite uses PSPublishModule/PowerForge for warmups, rotated ordering, measurements and JSON/CSV/Markdown artifacts. Build the runner first and supply its DLL. Pass an affinity mask for a discovered processor domain; repeat the complete selected matrix on each domain when interpreting a heterogeneous host. Setup, grid creation, output transfer and validation are excluded. Each measured operation completes one Blob export. The inner `BrowserExportMs` metric excludes the small control roundtrip; host process allocation/working set metrics describe PowerShell, not the browser.
+
+```powershell
+./Build/BrowserExports/Run-DataTablesComparison.ps1 -Binary /path/to/OfficeIMO.Browser.Interop.dll -Assets "$evidence/comparison-assets" -OutputRoot "$evidence/comparison" -Rows 10000 -Columns 20,100 -Plan
+./Build/BrowserExports/Run-DataTablesComparison.ps1 -Binary /path/to/OfficeIMO.Browser.Interop.dll -Assets "$evidence/comparison-assets" -OutputRoot "$evidence/comparison" -Rows 10000,100000 -Columns 20 -WarmupCount 1 -IterationCount 3
+```
+
+Native Buttons, OfficeIMO compatibility and OfficeIMO batched lanes use the same grid and ordered values: typed numbers and repeated literal Unicode strings, no title/footer, fixed column width 20, no filter and quoted CSV. `-Unique` selects unique strings. Native Excel still executes its internal full width scan before the supported customization sets fixed widths. Each output is independently traversed to verify every value, cell type, coordinate, count and declared width. XLSX styles are SDK-validated at every size; workbooks up to 10,000 rows additionally use both C# readers and the full SDK validator when styles conform. Larger worksheets use forward-only validation rather than a whole-document DOM.
+
+The runner retains each operation's measurement, content hash and validation result before deleting the large output. Any conformance failure leaves its lane failed and the wrapper exits with an error after collecting all cases. A native exporter may preserve values while failing the schema check: its retained timings are diagnostic, not a qualified speed ranking. Do not suppress that failure or repair the baseline's generated document to improve its status. Responsiveness is the largest sampled timer gap; sampled Chromium JavaScript heap excludes native/browser-process memory and is unavailable in Firefox/WebKit. Keep environment, source/binary/asset hashes, affinity, browser versions and failed lanes alongside any interpretation.
 
 ## Representative export qualification
 

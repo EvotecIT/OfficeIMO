@@ -13,6 +13,8 @@
     "./opc": { "types": "./dist/opc/index.d.ts", "import": "./dist/opc/index.js" },
     "./xlsx": { "types": "./dist/xlsx/index.d.ts", "import": "./dist/xlsx/index.js" },
     "./csv": { "types": "./dist/csv/index.d.ts", "import": "./dist/csv/index.js" },
+    "./integrations/datatables": { "types": "./dist/integrations/datatables/index.d.ts", "import": "./dist/integrations/datatables/index.js" },
+    "./datatables.js": "./bundles/officeimo-datatables.js",
     "./classic.js": "./bundles/officeimo.js",
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
     "./csv.js": "./bundles/officeimo-csv.js"
@@ -24,6 +26,7 @@
     "test": "npm run check && node scripts/test.mjs",
     "test:consumer": "node node_modules/typescript/bin/tsc -p test/consumer/tsconfig.json",
     "test:pack": "node scripts/pack-test.mjs",
+    "test:datatables-types": "node ../Build/BrowserExports/test-datatables-types.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "sizes": "node scripts/sizes.mjs",
     "prepack": "npm run check"

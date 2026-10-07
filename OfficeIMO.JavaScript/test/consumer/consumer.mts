@@ -7,6 +7,20 @@ import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } fro
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
 import type { Column, Rows } from "@evotecit/officeimo/core";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
+import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "@evotecit/officeimo/integrations/datatables";
+import type { DataTablesApi, DataTablesHost } from "@evotecit/officeimo/integrations/datatables";
+
+async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
+  const source = createDataTablesExport(host, table, { exportOptions: { columns: ':visible', modifier: { selected: null } },
+    project: value => new ExportCell(value instanceof ExportCell ? value.value : value, { presentation: { bold: true } }) });
+  void source.rowCount;
+  await exportDataTable(host, table, 'xlsx', { sheet: { table: {} }, columnOptions: { 1: { type: 'number', format: '0.00' } } });
+  await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
+  registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
+  // @ts-expect-error PDF is a separate format milestone
+  exportDataTable(host, table, 'pdf');
+}
+void exportGrid;
 
 const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column[];
 interface RecordRow { readonly name: string; readonly seen: Date; }

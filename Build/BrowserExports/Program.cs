@@ -18,6 +18,8 @@ if (args.Length == 2 && args[0] == "--validate-directory") {
 if (args.Length < 2) throw new ArgumentException("Usage: <repository> <evidence-directory> [--scale] [--limits] [--example=<directory>]");
 string repository = Path.GetFullPath(args[0]), evidence = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(evidence);
+if (args.Contains("--datatables-session")) { await DataTablesComparisonSession.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--datatables")) { await DataTablesInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--qualify")) { await ExportQualification.RunAsync(repository, evidence, args); return; }
 string vectorJson = File.ReadAllText(Path.Combine(repository, "OfficeIMO.TestAssets", "CSV", "browser-exports.json"));
 string scenarios = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "scenarios.js"));

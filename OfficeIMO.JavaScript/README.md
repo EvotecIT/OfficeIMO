@@ -20,6 +20,70 @@ npm pack --pack-destination /path/to/local-packages
 
 `tsc` produces ES modules and declarations in `dist/`. The archive contains those files, portable bundles, this README and the MIT license. TypeScript is a development dependency; installing the archive as an application dependency installs no compiler or runtime packages.
 
+## DataTables Excel and CSV exports
+
+The optional `@evotecit/officeimo/integrations/datatables` entry connects an installed DataTables/Buttons instance to the XLSX and CSV writers. It imports neither DataTables nor jQuery and does not use JSZip. Importing the main OfficeIMO package does not load the integration.
+
+```js
+import DataTable from "datatables.net";
+import "datatables.net-buttons";
+import { registerDataTablesButtons } from "@evotecit/officeimo/integrations/datatables";
+
+registerDataTablesButtons(DataTable, {
+  exportOptions: { columns: ":visible" },
+  columnOptions: { 2: { type: "number", format: "0.00" } },
+  sheet: { table: { style: "TableStyleMedium2" }, freezeHeader: true },
+  onError: error => console.error("Export failed", error)
+});
+const table = new DataTable("#report", {
+  layout: { topStart: { buttons: [
+    { extend: "officeimoExcel", filename: "Report" },
+    { extend: "officeimoCsv", filename: "Report" }
+  ] } }
+});
+```
+
+Register once, after installing Buttons. Processing clears when saving completes or before calling `onError`. The default destination downloads a Blob; `save(blob, filename)` replaces delivery. Each button can override registration options through its `officeimo` property. Familiar `filename`, `exportOptions` and `footer: false` properties are supported. Native XML `customize`, `header: false`, `title`, `messageTop` and `messageBottom` are rejected: express report layout through `officeimo.sheet` instead.
+
+For application-owned buttons, `exportDataTable(DataTable, table, "xlsx" | "csv", options)` returns a Blob. `writeDataTableTo(DataTable, table, format, destination, options)` awaits a caller-owned `ByteSink` and returns data-row, column and byte counts. Both accept `signal`, `onProgress`, shared resource `limits`, and `sheet`, `workbook` or `csv` options. XLSX defaults to a bold header, filtering and bounded width sampling of 100 rows, clamped to 6–54 characters. Explicit column widths avoid sampling that column.
+
+`project(value, { rowIndex, columnIndex, rowOrdinal })` resolves each rendered/normalized value into a scalar or an `ExportCell`. The indexes belong to DataTables; the ordinal is its zero-based export position. `columnOptions` is keyed by DataTables column index. Use an orthogonal renderer for raw numbers/dates when display text contains currency, markup or localized dates. The adapter does not infer types from formatted strings. For example:
+
+```js
+import { exportDataTable, ExportCell } from "@evotecit/officeimo/integrations/datatables";
+const controller = new AbortController();
+const blob = await exportDataTable(DataTable, table, "xlsx", {
+  signal: controller.signal,
+  exportOptions: { columns: ":visible", orthogonal: "export", modifier: { selected: null } },
+  columnOptions: { 2: { type: "number", format: "0.00" } },
+  project: (value, cell) => cell.columnIndex === 2
+    ? new ExportCell(value, { presentation: { background: "E2F0D9" } }) : value,
+  limits: { maxRows: 100000, maxCells: 2000000, maxOutputBytes: 100000000 }
+});
+```
+
+CSS classes and computed DOM styles are not copied automatically. CSV retains values or explicit display text and formula protection; it cannot carry colors or Excel layout.
+
+| Contract | Batched mode, the default | Compatibility mode |
+| --- | --- | --- |
+| Row/column selectors, search/order modifiers | Captured through public DataTables APIs | Passed to `buttons.exportData()` |
+| Select extension | Selected rows when a selection exists; `selected: null` exports all matching rows | Same installed Buttons behavior |
+| Orthogonal rendering and synchronous `format.header/body/footer` | Supported; cleanup uses installed `Buttons.stripData` | Supported by installed Buttons |
+| Whole-matrix `customizeData` | Rejected | Supported; cannot combine with source-index `project` |
+| Body memory | Selected row indexes and bounded cell batches | Complete Buttons matrix, then batched writing |
+| Horizontal grouped headers | Preserved through shared column group paths | Same |
+| Vertical spans, blank spanning groups, adjacent separate equal group paths | Rejected; `headings: "leaf"` explicitly selects one heading row | Same |
+| Footers | One unmerged row; `includeFooter: false` explicitly omits unsupported shapes | Same |
+| Server-side processing | Rejected unless `serverSide: "loaded"` acknowledges loaded rows only | Same |
+
+Qualified pairs are DataTables 2.3.7/Buttons 3.2.6 and DataTables 3.1.3/Buttons 4.1.2, including Select and ColReorder. TypeScript 5.9.3 consumer checks use bundler resolution. The newer pair has duplicate upstream declaration index signatures and requires `skipLibCheck`; OfficeIMO's declarations remain strictly checked. This declaration limit is separate from browser interoperability.
+
+`createDataTablesExport(DataTable, table, options)` exposes readonly `columns`, heading rows, optional footer, `rowCount` and a single-use async `rows` source. Selection/headings are captured immediately; batched body values are read during iteration. Keep table data and column layout stable until export finishes. `batchRows` defaults to 256, at most 4,096; `maxBatchCells` defaults to 65,536 and one row must fit. Cancellation is checked between cells and yielding occurs between batches. A synchronous DataTables renderer cannot be interrupted while it runs.
+
+Direct sink output avoids retaining the finished file. Blob exports and registered download buttons retain it; caller-owned sinks own partial bytes after failure. The grid still holds its input. Server-side full-data export needs an application-owned paged source passed directly to the writers with the server's filter/order contract.
+
+DataTables and its DOM stay on the page. A host-owned worker can consume portable columns and bounded row batches from the source: request/acknowledge batches and output chunks rather than cloning the full matrix. Reconstruct `ExportCell` in the worker because structured cloning loses its brand. The [verification guide](../Build/BrowserExports/README.md#datatables-integration-and-comparisons) covers workers, cancellation, fallback and reproducible comparisons. Measurements describe the tested workload/browser, without a universal speed claim.
+
 ## XLSX: workbook, worksheets and cells
 
 ```ts

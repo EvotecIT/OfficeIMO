@@ -25,10 +25,14 @@ Each `BrowserAsset` exposes `FileName`, `Content`, `ContentHash` and `HashedFile
 | `Module` | Combined standalone ES module |
 | `XlsxModule` | Standalone XLSX ES module |
 | `CsvModule` | Standalone CSV ES module |
+| `DataTablesScript` | Optional classic DataTables/Buttons bridge with XLSX/CSV writers |
+| `DataTablesModule` | Optional standalone DataTables bridge ES module |
 
 Classic scripts compose in either order and work in a plain `file://` page or a host-owned worker. The `createWorkbook`, `writeCsv` and `saveBlob` root helpers remain available. Browser local-file policy can block ES module imports; serve modules through HTTP(S). The standalone `.mjs` assets contain their module graph and require no relative runtime imports.
 
 The [offline current-view example](../OfficeIMO.Browser.Examples/README.md) produces an inline HTML report and an HTML/script bundle. Both export filtered, sorted, reordered and visible table data without a server. Full-dataset Excel generation at report-build time remains on OfficeIMO.Excel. Grid, iframe, CSP and download policy belong to the host integration.
+
+The DataTables assets expose `registerDataTablesButtons`, `createDataTablesExport`, `exportDataTable` and `writeDataTableTo`. They use an already installed DataTables/Buttons host and do not embed DataTables, jQuery or JSZip. Loading an asset does not register buttons automatically. The [JavaScript integration guide](../OfficeIMO.JavaScript/README.md#datatables-excel-and-csv-exports) owns options and compatibility limits.
 
 ## Build or install a local asset package
 

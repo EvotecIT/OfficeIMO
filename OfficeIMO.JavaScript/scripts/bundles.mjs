@@ -22,7 +22,8 @@ function bindings(text) {
 for (const [name, entry, namespaces] of [
   ["officeimo", "index.js", []],
   ["officeimo-xlsx", "xlsx/index.js", ["core", "zip", "xml", "opc", "xlsx"]],
-  ["officeimo-csv", "csv/index.js", ["core", "csv"]]
+  ["officeimo-csv", "csv/index.js", ["core", "csv"]],
+  ["officeimo-datatables", "integrations/datatables/index.js", []]
 ]) {
   const modules = new Map(), ordered = [], visiting = new Set();
   async function visit(path) {

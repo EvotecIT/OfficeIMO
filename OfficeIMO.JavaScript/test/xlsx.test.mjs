@@ -118,7 +118,7 @@ test("XLSX cancels mid-stream and never finalizes a partial workbook", async () 
 });
 
 test("classic scripts compose in either order without a module loader", async () => {
-  for (const order of [["xlsx", "csv"], ["csv", "xlsx"]]) {
+  for (const order of [["datatables", "xlsx", "csv"], ["csv", "xlsx", "datatables"]]) {
     const context = vm.createContext({ TextEncoder, Blob, Date, performance, setTimeout, DOMException });
     let core;
     for (const kind of order) {
@@ -129,6 +129,7 @@ test("classic scripts compose in either order without a module loader", async ()
     assert.equal(typeof context.OfficeIMO.createWorkbook, "function");
     assert.equal(typeof context.OfficeIMO.writeCsv, "function");
     assert.equal(typeof context.OfficeIMO.saveBlob, "function");
+    assert.equal(typeof context.OfficeIMO.registerDataTablesButtons, "function");
     assert.throws(() => context.OfficeIMO.createWorkbook().addWorksheet("Pending", { dataValidation: [] }), error =>
       error instanceof context.OfficeIMO.core.NotSupportedError && error instanceof context.OfficeIMO.core.OfficeIMOError);
     vm.runInContext(await readFile(new URL("../bundles/officeimo.js", import.meta.url), "utf8"), context);

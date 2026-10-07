@@ -22,14 +22,14 @@ using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Browser;
 foreach (var asset in new[] { BrowserAssets.Script, BrowserAssets.Module, BrowserAssets.XlsxScript,
-    BrowserAssets.XlsxModule, BrowserAssets.CsvScript, BrowserAssets.CsvModule }) {
+    BrowserAssets.XlsxModule, BrowserAssets.CsvScript, BrowserAssets.CsvModule, BrowserAssets.DataTablesScript, BrowserAssets.DataTablesModule }) {
     var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(asset.Content))).ToLowerInvariant()[..16];
     if (asset.ContentHash != hash || !asset.HashedFileName.Contains(hash) || asset.Content.Length == 0)
         throw new InvalidDataException("Packed embedded asset content/hash differs.");
     if (!Encoding.UTF8.GetBytes(asset.Content).SequenceEqual(File.ReadAllBytes(Path.Combine(args[0], asset.FileName))))
         throw new InvalidDataException("Packed asset differs from the current generated source.");
 }
-Console.WriteLine("Packed .NET consumer verified all six assets and their SHA-256 names.");
+Console.WriteLine("Packed .NET consumer verified all eight assets and their SHA-256 names.");
 '@ | Set-Content -LiteralPath (Join-Path $consumer 'Program.cs') -Encoding utf8
 # A task-local packages directory ensures this tests the archive, not a cached package.
 $packageCache = Join-Path $consumer ('packages/' + [Guid]::NewGuid().ToString('N'))

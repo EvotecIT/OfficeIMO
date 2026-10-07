@@ -7,10 +7,13 @@ import * as xmlModule from "@evotecit/officeimo/xml";
 import * as opcModule from "@evotecit/officeimo/opc";
 import * as xlsxModule from "@evotecit/officeimo/xlsx";
 import * as csvModule from "@evotecit/officeimo/csv";
+import * as dataTablesModule from "@evotecit/officeimo/integrations/datatables";
 
 for (const [namespace, module] of [[core, coreModule], [zip, zipModule], [xml, xmlModule], [opc, opcModule], [xlsx, xlsxModule], [csv, csvModule]])
   for (const [key, value] of Object.entries(module)) assert.equal(namespace[key], value);
 assert.equal(globalThis.document, undefined);
+assert.equal(typeof dataTablesModule.createDataTablesExport, 'function');
+assert.equal(dataTablesModule.ExportCell, coreModule.ExportCell);
 const book = createWorkbook({ compression: "store" });
 await book.addWorksheet("Packed", { columns: [{ header: "Name" }] }).addRows([["Łódź"]]);
 await writeFile("packed-consumer.xlsx", new Uint8Array(await (await book.toBlob()).arrayBuffer()));

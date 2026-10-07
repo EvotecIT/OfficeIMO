@@ -20,4 +20,10 @@ public static class BrowserAssets {
 
     /// <summary>The standalone CSV ES module.</summary>
     public static BrowserAsset CsvModule { get; } = new BrowserAsset("officeimo-csv.mjs");
+
+    /// <summary>The optional DataTables Excel/CSV integration, including its document writers.</summary>
+    public static BrowserAsset DataTablesScript { get; } = new BrowserAsset("officeimo-datatables.js");
+
+    /// <summary>The optional standalone DataTables ES module, including its document writers.</summary>
+    public static BrowserAsset DataTablesModule { get; } = new BrowserAsset("officeimo-datatables.mjs");
 }
