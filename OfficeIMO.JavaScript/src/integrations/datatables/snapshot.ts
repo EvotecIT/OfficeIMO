@@ -35,6 +35,9 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     throw new TypeError("Server-side DataTables exports require a separate full-data source or explicit serverSide: 'loaded'.");
   const config = safeOptions(options.exportOptions ?? {});
   const stripOptions = { stripHtml: true, stripNewlines: true, decodeEntities: true, trim: true, ...config };
+  const stripOwner = host.Buttons, strip = member(stripOwner, "stripData");
+  if (mode === "batched" && !config.format?.body && typeof strip !== "function")
+    throw new TypeError("DataTables API requires stripData().");
   if (mode === "batched" && config.customizeData) throw new TypeError("customizeData requires compatibility mode.");
   if (config.customizeData && options.project) throw new TypeError("project cannot identify source indexes after customizeData.");
   const modifier = { search: "applied", order: "applied", ...config.modifier };
@@ -76,6 +79,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   const count = columns.length ? body?.length ?? rowIndexes.length : 0;
   budget.check("maxRows", count);
   const batchSize = columns.length ? Math.min(batchRows, Math.floor(maxBatchCells / columns.length)) : batchRows;
+  const columnPositions = new Map(columnIndexes.map((index, ordinal) => [index, ordinal]));
   // Keep the public cell API context without selecting or traversing the table's rows.
   const emptyCells = mode === "batched" && count ? call(table, "cells", [], []) : undefined;
   if (emptyCells) {
@@ -101,7 +105,9 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
         const selectedRows = rowIndexes.slice(first, first + batchSize);
         // Public result-set operations replace the bounded cell indexes. Row selectors would
         // rescan the complete table on every batch, even with constant-time membership.
-        const requested = selectedRows.flatMap(row => columnIndexes.map(column => ({ row, column })));
+        const requested = new Array<{ row: number; column: number }>(selectedRows.length * columns.length);
+        for (let row = 0, cell = 0; row < selectedRows.length; row++)
+          for (const column of columnIndexes) requested[cell++] = { row: selectedRows[row]!, column };
         call(emptyCells, "pop");
         call(emptyCells, "push", requested);
         const cells = emptyCells;
@@ -111,15 +117,19 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
         if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length > rendered.length)
           throw new TypeError("The table changed or returned an incomplete export batch.");
         batch = selectedRows.map(() => new Array<ExportValue>(columns.length));
-        const rowPositions = new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
-        const columnPositions = new Map(columnIndexes.map((index, ordinal) => [index, ordinal]));
-        const seen = new Set<number>();
+        // The ordinary public result set preserves the requested order. Verify it before
+        // using ordinals; adapters returning another order retain coordinate-based mapping.
+        const ordered = positions.every((position, i) => member(position, "row") === requested[i]!.row
+          && member(position, "column") === requested[i]!.column);
+        const rowPositions = ordered ? undefined : new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
+        const seen = ordered ? undefined : new Set<number>();
         for (let cell = 0; cell < rendered.length; cell++) {
           checkAbort(signal);
           const rowIndex = member(positions[cell], "row"), columnIndex = member(positions[cell], "column");
-          const row = rowPositions.get(rowIndex as number), column = columnPositions.get(columnIndex as number);
-          if (row === undefined || column === undefined || seen.has(row * columns.length + column)) throw new TypeError("Invalid DataTables cell indexes.");
-          seen.add(row * columns.length + column);
+          const row = ordered ? Math.floor(cell / columns.length) : rowPositions!.get(rowIndex as number);
+          const column = ordered ? cell % columns.length : columnPositions.get(columnIndex as number);
+          if (row === undefined || column === undefined || seen?.has(row * columns.length + column)) throw new TypeError("Invalid DataTables cell indexes.");
+          seen?.add(row * columns.length + column);
           let node = nodes?.[cell];
           if (nodes && nodes.length !== rendered.length) {
             // nodes() omits deferred cells without DOM nodes. Resolve each coordinate
@@ -131,7 +141,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
             node = exact[0];
           }
           const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex as number, columnIndex as number, node)
-            : call(host.Buttons, "stripData", rendered[cell], stripOptions);
+            : Reflect.apply(strip as (...args: unknown[]) => unknown, stripOwner, [rendered[cell], stripOptions]);
           batch[row]![column] = project(formatted, rowIndex as number, column, first + row);
         }
       }

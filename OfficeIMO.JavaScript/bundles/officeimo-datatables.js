@@ -5081,7 +5081,7 @@ _modules.set("32b517ba4354c67d18845619b53504032d1bbae555d033baed1f90f4345b787b",
 return _exports;
 })();
 
-const _m47 = _modules.get("5400b1bdf75f5ec206e007f99ee4de5159fe611dc8cf950cc09123d8892fdc40") ?? (() => {
+const _m47 = _modules.get("d169a0ea9d865742861b111fe35db24f9e50f38a5fab840fba115707f4412523") ?? (() => {
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m7;
@@ -5126,6 +5126,9 @@ function createDataTablesExport(host, table, options = {}) {
         throw new TypeError("Server-side DataTables exports require a separate full-data source or explicit serverSide: 'loaded'.");
     const config = safeOptions(options.exportOptions ?? {});
     const stripOptions = { stripHtml: true, stripNewlines: true, decodeEntities: true, trim: true, ...config };
+    const stripOwner = host.Buttons, strip = member(stripOwner, "stripData");
+    if (mode === "batched" && !config.format?.body && typeof strip !== "function")
+        throw new TypeError("DataTables API requires stripData().");
     if (mode === "batched" && config.customizeData)
         throw new TypeError("customizeData requires compatibility mode.");
     if (config.customizeData && options.project)
@@ -5175,6 +5178,7 @@ function createDataTablesExport(host, table, options = {}) {
     const count = columns.length ? body?.length ?? rowIndexes.length : 0;
     budget.check("maxRows", count);
     const batchSize = columns.length ? Math.min(batchRows, Math.floor(maxBatchCells / columns.length)) : batchRows;
+    const columnPositions = new Map(columnIndexes.map((index, ordinal) => [index, ordinal]));
     // Keep the public cell API context without selecting or traversing the table's rows.
     const emptyCells = mode === "batched" && count ? call(table, "cells", [], []) : undefined;
     if (emptyCells) {
@@ -5205,7 +5209,10 @@ function createDataTablesExport(host, table, options = {}) {
                 const selectedRows = rowIndexes.slice(first, first + batchSize);
                 // Public result-set operations replace the bounded cell indexes. Row selectors would
                 // rescan the complete table on every batch, even with constant-time membership.
-                const requested = selectedRows.flatMap(row => columnIndexes.map(column => ({ row, column })));
+                const requested = new Array(selectedRows.length * columns.length);
+                for (let row = 0, cell = 0; row < selectedRows.length; row++)
+                    for (const column of columnIndexes)
+                        requested[cell++] = { row: selectedRows[row], column };
                 call(emptyCells, "pop");
                 call(emptyCells, "push", requested);
                 const cells = emptyCells;
@@ -5215,16 +5222,20 @@ function createDataTablesExport(host, table, options = {}) {
                 if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length > rendered.length)
                     throw new TypeError("The table changed or returned an incomplete export batch.");
                 batch = selectedRows.map(() => new Array(columns.length));
-                const rowPositions = new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
-                const columnPositions = new Map(columnIndexes.map((index, ordinal) => [index, ordinal]));
-                const seen = new Set();
+                // The ordinary public result set preserves the requested order. Verify it before
+                // using ordinals; adapters returning another order retain coordinate-based mapping.
+                const ordered = positions.every((position, i) => member(position, "row") === requested[i].row
+                    && member(position, "column") === requested[i].column);
+                const rowPositions = ordered ? undefined : new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
+                const seen = ordered ? undefined : new Set();
                 for (let cell = 0; cell < rendered.length; cell++) {
                     checkAbort(signal);
                     const rowIndex = member(positions[cell], "row"), columnIndex = member(positions[cell], "column");
-                    const row = rowPositions.get(rowIndex), column = columnPositions.get(columnIndex);
-                    if (row === undefined || column === undefined || seen.has(row * columns.length + column))
+                    const row = ordered ? Math.floor(cell / columns.length) : rowPositions.get(rowIndex);
+                    const column = ordered ? cell % columns.length : columnPositions.get(columnIndex);
+                    if (row === undefined || column === undefined || seen?.has(row * columns.length + column))
                         throw new TypeError("Invalid DataTables cell indexes.");
-                    seen.add(row * columns.length + column);
+                    seen?.add(row * columns.length + column);
                     let node = nodes?.[cell];
                     if (nodes && nodes.length !== rendered.length) {
                         // nodes() omits deferred cells without DOM nodes. Resolve each coordinate
@@ -5237,7 +5248,7 @@ function createDataTablesExport(host, table, options = {}) {
                         node = exact[0];
                     }
                     const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, node)
-                        : call(host.Buttons, "stripData", rendered[cell], stripOptions);
+                        : Reflect.apply(strip, stripOwner, [rendered[cell], stripOptions]);
                     batch[row][column] = project(formatted, rowIndex, column, first + row);
                 }
             }
@@ -5262,11 +5273,11 @@ function createDataTablesExport(host, table, options = {}) {
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
-_modules.set("5400b1bdf75f5ec206e007f99ee4de5159fe611dc8cf950cc09123d8892fdc40", _exports);
+_modules.set("d169a0ea9d865742861b111fe35db24f9e50f38a5fab840fba115707f4412523", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("b6101befb436945bab132ae893361d3320527ae6a690641625259167623e1002") ?? (() => {
+const _m0 = _modules.get("ea7536ceef698a62f0e1895abd778670a03d0abd8eae735ffd876d32812d1607") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -5409,7 +5420,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m47.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("b6101befb436945bab132ae893361d3320527ae6a690641625259167623e1002", _exports);
+_modules.set("ea7536ceef698a62f0e1895abd778670a03d0abd8eae735ffd876d32812d1607", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

@@ -26,7 +26,7 @@ test("adapter portable presentation rejects component IDs and advanced Cells in 
 });
 
 // Contract-shaped external API: deliberately returns batch cells in a different order.
-function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows } = {}) {
+function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows, ordered = false } = {}) {
   const calls = [], apiArray = values => ({ toArray: () => values });
   const host = { Buttons: { stripData: v => v }, ext: { buttons: {} } };
   const table = {
@@ -39,7 +39,7 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
       let positions = [];
       return { iterator(type, callback) { assert.equal(type, 'table'); callback(); },
         pop() { positions = []; },
-        push(requested) { calls.push([...new Set(requested.map(p => p.row))]); positions = [...requested].reverse(); },
+        push(requested) { calls.push([...new Set(requested.map(p => p.row))]); positions = ordered ? [...requested] : [...requested].reverse(); },
         render: () => apiArray(positions.map(p => data[p.row][p.column])),
         indexes: () => apiArray(positions), nodes: () => apiArray(nodeRows ? positions.filter(p => nodeRows.includes(p.row)) : positions.map(() => null)) };
     },
@@ -54,6 +54,18 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
   };
   return { host, table, calls, data };
 }
+
+test("ordered and reordered cell results preserve projected values, callback coordinates and deferred nodes", async () => {
+  for (const ordered of [true, false]) {
+    const { host, table } = fixture({ ordered, nodeRows: [1], grouped: false });
+    const contexts = [];
+    const blob = await exportDataTable(host, table, "csv", { includeFooter: false, batchRows: 2,
+      exportOptions: { format: { body(v, r, c, node) { contexts.push([r, c, node]); return v; } } } });
+    assert.equal(await blob.text(), "Name,Amount\r\nfirst,7.5\r\nsecond,12.5\r\n");
+    assert.deepEqual(contexts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]),
+      [[0, 0, undefined], [0, 1, undefined], [1, 0, { row: 1, column: 0 }], [1, 1, { row: 1, column: 1 }]]);
+  }
+});
 
 test("batched export preserves scope, reordered cell indexes, typed presentation, grouped headings and footer", async () => {
   const { host, table, calls } = fixture();
