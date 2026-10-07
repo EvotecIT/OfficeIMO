@@ -1086,6 +1086,8 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            if (target.Tooltip != null) hyperlink.Tooltip = target.Tooltip;
+            if (target.TargetFrame != null) hyperlink.TargetFrame = target.TargetFrame;
             for (int index = startIndex; index < startIndex + count; index++) {
                 AppendLegacyDocHyperlinkRunContent(hyperlink, paragraph, legacyRuns[index], bookmarks);
             }

@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException("Native DOC saving supports hyperlinks only when they target an external relationship or an internal bookmark anchor.");
                 }
 
-                return " HYPERLINK \\l \"" + EscapeFieldString(hyperlink.Anchor!.Value!) + "\" ";
+                return AppendHyperlinkMetadata(" HYPERLINK \\l \"" + EscapeFieldString(hyperlink.Anchor!.Value!) + "\" ", hyperlink);
             }
 
             HyperlinkRelationship? relationship = relationshipOwner.HyperlinkRelationships.FirstOrDefault(item => item.Id == hyperlink.Id);
@@ -102,7 +102,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports external hyperlinks only when their target URI is absolute.");
             }
 
-            return " HYPERLINK \"" + EscapeFieldString(relationship.Uri.ToString()) + "\" ";
+            return AppendHyperlinkMetadata(" HYPERLINK \"" + EscapeFieldString(relationship.Uri.ToString()) + "\" ", hyperlink);
+        }
+
+        private static string AppendHyperlinkMetadata(string instruction, Hyperlink hyperlink) {
+            if (hyperlink.Tooltip?.Value is string tooltip) {
+                instruction += "\\o \"" + EscapeFieldString(tooltip) + "\" ";
+            }
+            if (!string.IsNullOrEmpty(hyperlink.TargetFrame?.Value)) {
+                instruction += "\\t \"" + EscapeFieldString(hyperlink.TargetFrame!.Value!) + "\" ";
+            }
+            return instruction;
         }
 
         private static void EnsureSupportedHyperlinkRun(Run run) {

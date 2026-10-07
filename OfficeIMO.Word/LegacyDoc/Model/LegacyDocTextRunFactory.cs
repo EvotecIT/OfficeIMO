@@ -33,6 +33,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 characterPositions,
                 hyperlinkUri: hyperlinkTarget.Uri,
                 hyperlinkAnchor: hyperlinkTarget.Anchor,
+                hyperlinkTooltip: hyperlinkTarget.Tooltip,
+                hyperlinkTargetFrame: hyperlinkTarget.TargetFrame,
                 fieldKind: fieldKind,
                 fieldInstruction: fieldInstruction,
                 specified: format.Specified,

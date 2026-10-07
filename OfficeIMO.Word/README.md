@@ -57,6 +57,11 @@ native DOC round trips retain run width and tracking in body text, tables, links
 headers, footers and notes. Native DOC also preserves character width in paragraph
 styles and document defaults, including explicit normal-width overrides.
 
+`WordHyperLink.Tooltip` and `TargetFrame` retain hyperlink descriptions and target
+windows through DOCX and supported native DOC conversions. External links and
+internal bookmark links preserve these settings in body text, tables, headers,
+footers and notes. Adjacent links can retain different descriptions or targets.
+
 When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
 
 ```csharp
