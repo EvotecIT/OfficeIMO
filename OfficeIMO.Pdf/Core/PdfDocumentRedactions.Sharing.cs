@@ -6,7 +6,8 @@ public sealed partial class PdfDocumentRedactions {
     /// and rechecks the final artifact before returning it. No source file is modified.
     /// </summary>
     /// <remarks>The final verification checks the original reviewed areas and configured markers again,
-    /// because sanitization is a second rewrite. Report summaries omit document text and search criteria.</remarks>
+    /// because sanitization is a second rewrite. Configured text markers and external validators check
+    /// the final sanitized artifact. Report summaries omit document text and search criteria.</remarks>
     public PdfRedactionSharingResult ApplyForSharing(
         PdfRedactionPlan plan,
         PdfSanitizationOptions sanitizationOptions,
@@ -19,7 +20,11 @@ public sealed partial class PdfDocumentRedactions {
             CancellationToken = sanitizationOptions.CancellationToken
         };
         applyOptions ??= new PdfRedactionApplyOptions { CancellationToken = sanitizationOptions.CancellationToken };
-        PdfRedactionApplyResult redaction = ApplyWithEvidence(plan, applyOptions, verification).ThrowIfUnverified();
+        // Global markers can remain in metadata or attachments until the requested sanitizer runs.
+        // Prove the reviewed page-content rewrite first; apply whole-artifact requirements only
+        // to the final output so validators never receive the intermediate unsanitized artifact.
+        PdfRedactionApplyResult redaction = ApplyWithEvidence(plan, applyOptions,
+            CreateIntermediateVerification(verification)).ThrowIfUnverified();
         sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
         PdfSanitizationResult sanitization = redaction.ToDocument().Sanitize(sanitizationOptions);
         if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
@@ -51,4 +56,15 @@ public sealed partial class PdfDocumentRedactions {
         sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
         return new PdfRedactionSharingResult(redaction.Evidence, sanitization, finalVerification);
     }
+
+    private static PdfRedactionVerificationOptions CreateIntermediateVerification(PdfRedactionVerificationOptions final) => new() {
+        CheckRawPdfBytes = final.CheckRawPdfBytes,
+        CheckEncodedPdfStrings = final.CheckEncodedPdfStrings,
+        CheckDecodedPdfStreams = final.CheckDecodedPdfStreams,
+        FailOnUndecodablePdfStreams = final.FailOnUndecodablePdfStreams,
+        RequireCompleteStreamInspection = final.RequireCompleteStreamInspection,
+        MatchCase = final.MatchCase,
+        CheckManagedRendering = final.CheckManagedRendering,
+        CancellationToken = final.CancellationToken
+    };
 }
