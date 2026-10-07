@@ -408,7 +408,11 @@ public sealed partial class WordListMarkerSemanticsTests {
         PdfTextSpan pdfTenText = Assert.Single(spans, span => span.Text.Contains("TextBoxTen", StringComparison.Ordinal));
         double expectedStartShift = alignment == WordListLevelAlignment.Right ? 10D : 5D;
         Assert.InRange(pdfNine.X - pdfTen.X, expectedStartShift - 1D, expectedStartShift + 1D);
-        Assert.InRange(Math.Abs(pdfNineText.X - pdfTenText.X), 0D, 1D);
+        // With no suffix, centered markers end at different body positions;
+        // right-aligned markers share their right edge and body position.
+        double expectedBodyShift = alignment == WordListLevelAlignment.Center
+            ? (pdfTen.Advance - pdfNine.Advance) / 2D : 0D;
+        Assert.InRange(Math.Abs(pdfTenText.X - pdfNineText.X - expectedBodyShift), 0D, 0.05D);
 
         OfficeDrawingRichText rich = Assert.Single(document.CreateVisualSnapshot().Drawing.Elements
             .OfType<OfficeDrawingRichText>(), item => item.PlainText.Contains("TextBoxNine", StringComparison.Ordinal));

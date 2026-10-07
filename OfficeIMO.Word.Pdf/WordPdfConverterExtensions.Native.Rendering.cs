@@ -614,9 +614,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (inlineMarkerColumnWidth.HasValue && nativeFontMap.MeasureText(measuredMarker) is { } measuredWidth) {
                         trailingMarkerOffset = markerInfo.Value.LevelSuffix switch {
                             WordListLevelSuffix.Nothing => 0D,
-                            WordListLevelSuffix.Space => Math.Max(0D,
-                                (nativeFontMap.MeasureText(CreateNativeListMarkerTextRun(marker.Value.Marker,
-                                    paragraph, textStyle, nativeFontMap)) ?? measuredWidth) - measuredWidth),
+                            WordListLevelSuffix.Space => ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap),
                             _ => Math.Max(0D, inlineMarkerColumnWidth.Value - measuredWidth)
                         };
                         useAlignedMarkerColumn = true;
@@ -631,7 +629,7 @@ namespace OfficeIMO.Word.Pdf {
                             ? Math.Max(0D, markerColumnWidth - markerWidth)
                             : Math.Max(0D, (markerColumnWidth - markerWidth) / 2D);
                         double suffixWidth = markerInfo.Value.LevelSuffix == WordListLevelSuffix.Space
-                            ? EstimateNativeListMarkerWidth(" ", markerFontSize, markerSpacing)
+                            ? ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap)
                             : 0D;
                         trailingMarkerOffset = Math.Max(0D, markerColumnWidth - leadingMarkerOffset - markerWidth) + suffixWidth;
                         useAlignedMarkerColumn = true;

@@ -29,6 +29,9 @@ public sealed class PdfListMarkerAnchorTests {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Courier New";
             paragraph.FontSize = 12;
+            paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+            paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
+                new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new FontSize { Val = "24" });
         }
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
@@ -41,7 +44,9 @@ public sealed class PdfListMarkerAnchorTests {
             int markerLength = i == 0 ? 2 : 3;
             Assert.Equal(i == 0 ? "9.FIRST" : "10.SECOND", string.Concat(letters.Select(letter => letter.Value)));
             double gap = letters[markerLength].StartBaseLine.X - letters[markerLength - 1].EndBaseLine.X;
-            Assert.InRange(Math.Abs(gap - (suffix == WordListLevelSuffix.Space ? 7.2D : 0D)), 0D, 0.03D);
+            // Word's space suffix follows paragraph-mark typography, independently
+            // of the Courier marker and body run.
+            Assert.InRange(Math.Abs(gap - (suffix == WordListLevelSuffix.Space ? 3.336D : 0D)), 0D, 0.03D);
         }
     }
 
@@ -109,6 +114,7 @@ public sealed class PdfListMarkerAnchorTests {
         }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("12.MARKERBODY", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.InRange(Math.Abs(letters[3].StartBaseLine.Y - letters[0].StartBaseLine.Y), 0D, 0.03D);
         double anchor = alignment switch {
             WordListLevelAlignment.Right => letters[2].EndBaseLine.X,
             WordListLevelAlignment.Center => (letters[0].StartBaseLine.X + letters[2].EndBaseLine.X) / 2D,

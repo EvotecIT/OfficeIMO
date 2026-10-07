@@ -9,6 +9,7 @@ internal static partial class PdfWriter {
         TableCellTextLayout layout = CreateTableCellTextLayout(cell, TableCellNoWrapWidth,
             font, size, size * 1.25D, options, runFontSizeScale, minimumShrinkFontSize);
         double minimum = 0D;
+        int paragraphIndex = 0;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             var line = layout.Lines[lineIndex];
             double indents = layout.LineWidths != null
@@ -16,6 +17,14 @@ internal static partial class PdfWriter {
             if (wholeLine || cell.NoWrap) {
                 minimum = Math.Max(minimum, MeasureRichLineWidth(line, options) + indents);
                 continue;
+            }
+            if (layout.ParagraphRanges is { Count: > 0 } ranges) {
+                while (paragraphIndex + 1 < ranges.Count && ranges[paragraphIndex + 1].StartLine <= lineIndex)
+                    paragraphIndex++;
+                PdfTableCellParagraph paragraph = ranges[paragraphIndex].Paragraph;
+                // A hanging first line has extra room, but any word may need
+                // the narrower continuation frame at the full body indent.
+                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent + paragraph.RightIndent));
             }
             var word = new System.Collections.Generic.List<RichSeg>();
             foreach (RichSeg segment in line) {

@@ -20,8 +20,7 @@ namespace OfficeIMO.Word.Pdf {
                 ?? EstimateNativeListMarkerWidth(marker, markerFontSize, markerSpacing);
             double anchorShift = GetNativeMarkerAnchorShift(info.Value, markerWidth);
             double suffixWidth = info.Value.LevelSuffix == WordListLevelSuffix.Space
-                ? Math.Max(0D, (nativeFontMap?.MeasureText(CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap))
-                    ?? markerWidth + EstimateNativeListMarkerWidth(" ", markerFontSize, markerSpacing)) - markerWidth)
+                ? ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle)
                 : 0D;
             double trailingOffset = info.Value.LevelSuffix switch {
                 WordListLevelSuffix.Nothing => 0D,
