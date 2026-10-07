@@ -141,14 +141,16 @@ namespace OfficeIMO.Word.Pdf {
                 style.CellSpacing = cellSpacing.Value;
             }
 
-            double? maxWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
+            double? preferredWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
                 GetNativeTablePreferredWidth(tableStyleDefaults.PreferredWidth, contentWidth);
-            if (maxWidth.HasValue) {
-                style.MaxWidth = maxWidth.Value;
+            if (preferredWidth.HasValue && !style.AutoFitColumns) {
+                style.MaxWidth = preferredWidth.Value;
                 style.PreserveWidth = true;
             } else {
-                double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
+                preferredWidth ??= GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
+                    // An automatic table's preferred width can grow to fit an
+                    // unbreakable cell; it is not a clipping boundary.
                     style.PreferredWidth = preferredWidth.Value;
                     // Positive spacing receives its independent perimeter and
                     // final cell-grid minimums after cell formatting is applied.

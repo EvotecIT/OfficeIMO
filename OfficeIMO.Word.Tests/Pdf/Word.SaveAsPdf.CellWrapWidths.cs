@@ -7,12 +7,14 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
-    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Dxa)]
-    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Auto)]
-    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Pct)]
-    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Dxa)]
-    public void SaveAsPdf_NoWrapRetainsWrappingForFixedLayoutOrAbsoluteCellWidth(
-        WordTableLayoutMode layout, WordTableWidthUnit widthType) {
+    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Dxa, 3)]
+    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Auto, 3)]
+    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Pct, 3)]
+    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Dxa, 3)]
+    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Auto, 1)]
+    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Pct, 1)]
+    public void SaveAsPdf_CellNoWrapUsesTableLayoutAndPreferredWidthType(
+        WordTableLayoutMode layout, WordTableWidthUnit widthType, int expectedLines) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
         table.ConditionalFormattingFirstRow = false;
@@ -42,8 +44,13 @@ public partial class Word {
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToList();
         Assert.Equal(text.Split(' '), words.Select(word => word.Text));
-        Assert.Equal(3, words.Select(word => Math.Round(word.BoundingBox.Bottom, 2)).Distinct().Count());
+        Assert.Equal(expectedLines, words.Select(word => Math.Round(word.BoundingBox.Bottom, 2)).Distinct().Count());
         double left = words.Min(word => word.BoundingBox.Left);
-        Assert.InRange(words.Max(word => word.BoundingBox.Right) - left, 1D, 140D);
+        Assert.InRange(words.Max(word => word.BoundingBox.Right) - left, 1D, expectedLines == 1 ? 468D : 140D);
+        var frame = Assert.Single(pdf.GetPage(1).Paths.Where(path => path.IsStroked)
+            .Select(path => path.GetBoundingRectangle()).Where(bounds => bounds.HasValue)).Value;
+        // Extractors can return text outside a PDF clipping rectangle. Every word
+        // must also fit inside the visible cell, including its authored padding.
+        Assert.True(words.Max(word => word.BoundingBox.Right) <= frame.Right - 5.4D + 0.01D);
     }
 }
