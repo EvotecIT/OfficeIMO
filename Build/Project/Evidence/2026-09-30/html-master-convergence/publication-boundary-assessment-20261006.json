@@ -1,13 +1,12 @@
 {
-  "recordedUtc": "2026-10-06T18:02:56.432035+00:00",
+  "recordedUtc": "2026-10-07T01:10:42.438209+00:00",
   "scope": "Current publication and branch consolidation of completed owned contracts; no full HTML/runtime PR, release, timing qualification or long-lived adoption",
   "source": "dda7c1d097687f563582004191f979fc863940a2",
   "master": "3e297566715341b5205494e0721ce6c64b238aee",
   "programWorktrees": {
-    "feature/html-master-convergence": "dda7c1d097687f563582004191f979fc863940a2",
     "feature/html-engine": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
-    "feature/html-unknown-page-qualification": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
-    "fix/html-image-normalization-relayout": "e9013cd06eff19673c84cea574cbb3573e1fd5d6"
+    "feature/html-master-convergence": "56087bf38ca8609ca46dad374b9447ed50d19418",
+    "feature/html-static-conversion": "880b245036d23069a8c4c5f5b95bf88dcc2b9092"
   },
   "workingTrees": "Main static convergence and the two long-lived HTML/H10 boundaries remain cleanly separated. The three merged publication worktrees/local branches are removed with preserved proof; only the new narrow PR2885 corrective worktree remains pending external gates.",
   "unsubmittedBoundaries": [
@@ -33,17 +32,16 @@
   "qualification": "Stable combined candidate bytes pass full normal HTML correctness: 4419/4419 on each of net8/net10, including the eight H4 cases. Normal Html/Excel.Html netstandard2.0 builds pass with zero warnings/errors. The retained Drawing188/Pdf42/math-H4-114 per-framework and independent PDF paint proof cover the precise accepted-owner convergence. These are combined-source/project-reference proofs, not qualification of an extracted static package graph, current hosted budgets, all historical profile visuals, native applications or optional runtime.",
   "branchConsolidation": {
     "target": "feature/html-engine",
-    "preparedSource": "9e576a9540979ab6a15ed1d5e8a03ce6dc7fe22e",
-    "selectedStaticSource": "743e796c7136ccd02e57180b1e117ec187b5002a",
-    "selectedStaticPublication": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
-    "selectedProductAndTestOwners": "Tree-identical to the published static extraction; exact approved versions supersede older convergence variants.",
+    "preparedSource": "56087bf38ca8609ca46dad374b9447ed50d19418",
+    "selectedStaticSource": "329f60ede91a2e5ab370a7990b266c886660cd51",
+    "selectedStaticPublication": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+    "selectedProductAndTestOwners": "Exact 11 Core/HTML/PDF/MHTML/Tool and decisive-test owner trees match the static candidate; retained comparison helper additionally preserves its schema-2 browser evidence and supplied bold-face identity.",
     "temporaryBranches": [
       "feature/html-master-convergence",
-      "feature/html-static-conversion",
-      "fix/html-image-normalization-relayout"
+      "feature/html-static-conversion"
     ],
     "duplicateH10": "Clean ancestor source and 45374 evidence files/6620104170 bytes SHA-verified; provider all-ref/HEAD bundles verified. Worktree, registration, local and exact-head remote branch removed.",
-    "adoptionGate": "Settle selected extraction and prerequisite exact-head CI/delayed feedback, inspect current platform packages, then deliberately fast-forward the long-lived branch. Optional worker qualification remains an explicit separate milestone.",
+    "adoptionGate": "Settle current static publication CI, delayed complete feedback and actual new-graph platform package artifacts before long-lived fast-forward and temporary worktree removal. Wider timing and optional worker acceptance remain open.",
     "recoveryRoot": "OfficeIMO-html-provider-forks/Ignore/HtmlProgramEvidence/wrap-up-20261006",
     "broaderGoalsComplete": false
   },
@@ -131,7 +129,7 @@
     "ordinaryWorktreeAndLocalBranchRemoved": true
   },
   "planOwner": "Docs/ROADMAP.md#planned-pr-boundaries",
-  "nextDeliverable": "Settle the dependency-ordered static PRs and current-source platform package proof; synchronize the reconciled development source into feature/html-engine, preserve unique evidence, and remove temporary owned branches/worktrees. Continue wider H10 and optional runtime only through their existing roadmap criteria.",
+  "nextDeliverable": "Settle static PR2900 current-head CI/delayed feedback and actual platform package proof; fast-forward the reconciled development source into feature/html-engine, preserve new unique evidence, and remove the two temporary owned worktrees/branches. Wider H10/native/runtime/timing remains on the sole roadmap.",
   "wrapUpUtc": "2026-10-06T11:40:40.405648+00:00",
   "wrapUpSource": "dda7c1d097687f563582004191f979fc863940a2",
   "focusedMerges": [
@@ -205,7 +203,7 @@
       "feature/html-static-delivery",
       "feature/html-math-geometry"
     ],
-    "retained": "Complete unique evidence and verified source bundles; long-lived integration/H10 archive checkouts remain while referenced sources and qualified adoption are open."
+    "retained": "Complete unique evidence and verified source bundles in the long-lived integration checkout; obsolete H10/static/math checkpoint worktrees and branches are removed."
   },
   "ownedDomCssPublication": {
     "number": 2864,
@@ -253,20 +251,40 @@
     "checkpointArchivesBytes": 795840287
   },
   "currentFollowThrough": {
-    "prerequisitePr": 2885,
-    "prerequisiteHead": "9d25575e4c23ddf9b455319e371958b97bd31e30",
+    "mergedPrerequisite": {
+      "pr": 2885,
+      "head": "9d25575e4c23ddf9b455319e371958b97bd31e30",
+      "merge": "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+      "checks": {
+        "success": 91,
+        "skipped": 3
+      },
+      "completeDelayedFeedback": true,
+      "worktreeAndBranchesRemoved": true,
+      "preservation": "OfficeIMO-html-provider-forks/Ignore/HtmlProgramEvidence/wrap-up-20261006/merged-image-relayout-b7372b6d8/evidence.zip",
+      "archiveSha256": "8b5562b85ca7a2f1e9479fc2b406e62c11d43cde2ca3c61b355c12f2be3e6542"
+    },
     "staticPr": 2900,
-    "staticHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
-    "stack": 2901,
-    "platformPackageRun": 37546894462,
-    "platformPackageScope": "19 normal packages and public consumers; excludes full correctness and timing.",
-    "review": "Initial static automatic code/security review quota failures are optional missing evidence. Existing scoped local coverage and direct tests retained; no manual review requested.",
+    "staticHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+    "combinedProductSource": "329f60ede91a2e5ab370a7990b266c886660cd51",
+    "priorPlatformPackageProof": {
+      "run": 37546894462,
+      "source": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+      "allThreePlatformsActualOriginsAndConsumerDllHashesVerified": true,
+      "nineteenFourTargetPackagesPerPlatform": true,
+      "nativeWindowsNet472ConsumerExecutions": 2,
+      "doesNotQualifyNewMasterGraph": true
+    },
+    "review": "New nonoverlapping accepted-master PDF interaction review passed read-only; no findings, no confirmation used. Earlier static/math review coverage retained. Automatic quota failures remain optional missing evidence; no manual request.",
+    "combinedCorrectness": "9237 PDF cases per framework net8/net10; normal standard/API/Tool builds clean; nine API/Tool routes and all97 pages byte-identical to accepted independent controls; raw Poppler per-page text/reports equal.",
+    "fixtureFix": "Report comparison supplies genuine Open Sans Bold; source/license/hash recorded, original visual limits unchanged. Both static schema-1 and retained development schema-2 comparisons pass2cases/3pages; final source-browser bold contact visually inspected.",
     "heldSteps": [
-      "Exact-head CI and delayed complete feedback before either merge",
-      "Actual platform package artifacts before supported-platform claim",
-      "Evidence-preserving long-lived synchronization and temporary-worktree retirement"
+      "Current-head CI and delayed complete feedback before static merge",
+      "Actual new-graph three-platform package/native-consumer artifacts",
+      "Qualified engine fast-forward, unique-proof preservation and removal of two temporary worktrees"
     ],
-    "availableWork": "Source reconciliation, duplicate retirement, recovery bundles, documentation and generated-output cleanup."
+    "availableWork": "Preserve newly generated proof, clean completed outputs and push reconciled development/evidence backups.",
+    "broaderGoalsComplete": false
   },
   "assessmentSource": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
   "reconciledOptionalRuntime": {
