@@ -1,0 +1,151 @@
+using System.Threading;
+
+namespace OfficeIMO.Epub;
+
+public sealed partial class EpubPublication {
+    /// <summary>
+    /// Merges consecutive compatible reflowable chapters into the first resource. Retains both
+    /// navigation entries, targets the second chapter's start with boundaryId, and repairs references
+    /// atomically. Conflicting scaffolding, styles, identifiers and package refinements are rejected.
+    /// </summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
+        MergeChapters(firstManifestId, secondManifestId, boundaryId, new EpubChapterMergeOptions(), cancellationToken);
+
+    /// <summary>Merges consecutive reflowable chapters with explicit style, identifier and document-scope reconciliation. The selected
+    /// cascade applies to both chapters; unresolved scaffold, identifier and package-refinement conflicts fail atomically.</summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
+        CancellationToken cancellationToken = default) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        EpubChapterMergeStylePolicy stylePolicy = options.StylePolicy;
+        if (stylePolicy != EpubChapterMergeStylePolicy.RequireEquivalent && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
+            throw new ArgumentOutOfRangeException(nameof(options.StylePolicy));
+        if (options.RewriteChapterSelectors && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
+            throw new ArgumentException("Selector reconciliation requires AppendSecondStyles.", nameof(options));
+        cancellationToken.ThrowIfCancellationRequested();
+        RequireText(boundaryId, nameof(boundaryId)); XmlConvert.VerifyNCName(boundaryId);
+        EpubManifestItem firstItem = RequireManifestItem(firstManifestId), secondItem = RequireManifestItem(secondManifestId);
+        XElement firstPosition = RequireRestructurablePosition(firstItem), secondPosition = RequireRestructurablePosition(secondItem);
+        if (firstPosition.ElementsAfterSelf(Opf + "itemref").FirstOrDefault() != secondPosition)
+            throw new InvalidOperationException("Merge chapters in consecutive reading order, first followed by second.");
+        if (options.RetargetPackageRefinements && PackageVersion != "3.0")
+            throw new NotSupportedException("Package refinement retargeting requires EPUB 3.");
+        VerifyMergeDeclarations(firstItem, secondItem, firstPosition, secondPosition, options.RetargetPackageRefinements);
+        string? retainedPositionId = options.RetargetPackageRefinements
+            ? (string?)firstPosition.Attribute("id") ?? (string?)secondPosition.Attribute("id") : null;
+        var refinementTargets = options.RetargetPackageRefinements
+            ? MergePackageRefinementTargets(firstItem.Id, secondItem.Id, secondPosition, retainedPositionId)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+        string firstPath = RequireLocalPath(firstItem), secondPath = RequireLocalPath(secondItem);
+        EnsureResourceMutationAllowed(firstPath); EnsureResourceMutationAllowed(secondPath, removing: true);
+        XDocument first = EditableXhtml(firstManifestId), second = EditableXhtml(secondManifestId);
+        VerifyMergeDocument(first); VerifyMergeDocument(second);
+        XElement firstBody = first.Root!.Element(Html + "body")!, secondBody = second.Root!.Element(Html + "body")!;
+        XElement? languageWrapper = options.PreserveSecondChapterLanguageAndDirection ? CreateMergeLanguageWrapper(first.Root, second.Root) : null;
+        XElement? secondBodyScope = null;
+        if (options.PreserveBodyScopes) {
+            PrepareMergeBodyScope(firstBody);
+            secondBodyScope = PrepareMergeBodyScope(secondBody);
+        }
+        XElement? secondMatter = null;
+        if (options.PreserveDocumentMatter) {
+            if (PackageVersion != "3.0") throw new NotSupportedException("Document partition semantics require EPUB 3.");
+            PrepareMergeMatterScope(firstBody);
+            secondMatter = PrepareMergeMatterScope(secondBody);
+        }
+        var firstIds = EpubContentIdentifiers.Collect(first.Root, firstPath, true, cancellationToken);
+        var secondIds = EpubContentIdentifiers.Collect(second.Root, secondPath, true, cancellationToken);
+        if (firstIds.Contains(boundaryId) || secondIds.Contains(boundaryId)) throw new ArgumentException("The merge boundary ID already exists in chapter content.", nameof(boundaryId));
+        if (!SameMergeScaffoldAttributes(first.Root, second.Root, options.PreserveSecondChapterLanguageAndDirection) || !SameMergeScaffoldAttributes(firstBody, secondBody, options.PreserveSecondChapterLanguageAndDirection))
+            throw new NotSupportedException("Resolve differing root/body attributes before merging; their language, direction, styling and semantics cannot be discarded.");
+        if (!MergeRootNotes(first.Root).SequenceEqual(MergeRootNotes(second.Root), StringComparer.Ordinal))
+            throw new NotSupportedException("Chapter root-level annotations conflict.");
+        var shared = languageWrapper == null && !options.PreserveBodyScopes ? FindMergeSeam(firstBody, secondBody, cancellationToken) :
+            new HashSet<string>(secondBody.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
+        foreach (XAttribute id in second.Root.Attributes().Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")) shared.Add(id.Value);
+        var idMap = PrepareMergeIdentifierMap(second.Root, firstIds, secondIds, shared, boundaryId, options.SecondChapterIdMap, cancellationToken);
+        VerifyMergeStylesheetFragments(idMap, cancellationToken);
+        var firstRelationshipAttributes = options.RewriteChapterSelectors ?
+            CaptureMergeRelationshipAttributes(first.Root, cancellationToken) : null;
+        var secondRelationshipAttributes = options.RewriteChapterSelectors ?
+            CaptureMergeRelationshipAttributes(second.Root, cancellationToken) : null;
+        ApplyMergeIdentifierMap(second.Root, idMap, cancellationToken);
+        VerifyMergeLocalReferences(second.Root, shared, secondPath, cancellationToken);
+        (string Path, string? Fragment) Map(EpubReference reference) => reference.ContainerPath == secondPath ?
+            (firstPath, string.IsNullOrEmpty(reference.Fragment) || shared.Contains(reference.Fragment!) ? boundaryId :
+                idMap.TryGetValue(reference.Fragment!, out string? replacement) ? replacement : reference.Fragment) :
+            (reference.ContainerPath!, reference.Fragment);
+        RewriteMovedXml(first, firstPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
+        RewriteMovedXml(second, secondPath, firstPath, string.Empty, string.Empty, cancellationToken, Map, removeHtmlBase: true);
+        var selectorStyles = new MergeSelectorStyles();
+        if (options.RewriteChapterSelectors) {
+            PrepareMergeSelectors(first, firstPath, new Dictionary<string, string>(), Map, firstRelationshipAttributes!, selectorStyles, cancellationToken);
+            PrepareMergeSelectors(second, firstPath, idMap, Map, secondRelationshipAttributes!, selectorStyles, cancellationToken);
+        }
+        if (!SameMergeScaffoldAttributes(first.Root, second.Root, options.PreserveSecondChapterLanguageAndDirection) || !SameMergeScaffoldAttributes(firstBody, secondBody, options.PreserveSecondChapterLanguageAndDirection))
+            throw new NotSupportedException("Root/body attributes resolve differently after reference repair; resolve their styling and semantics before merging.");
+        XElement firstHead = first.Root.Element(Html + "head")!, secondHead = second.Root.Element(Html + "head")!;
+        ReconcileMergeHeadStyles(firstHead, secondHead, stylePolicy, cancellationToken);
+        if (!first.Nodes().Where(node => node != first.Root).Select(node => node.ToString()).SequenceEqual(second.Nodes().Where(node => node != second.Root).Select(node => node.ToString()), StringComparer.Ordinal))
+            throw new NotSupportedException("Resolve conflicting chapter heads or document instructions before merging. Styles and metadata are not silently combined or discarded.");
+        var boundary = new XElement(Html + "span", new XAttribute("id", boundaryId), new XAttribute("title", secondHead.Element(Html + "title")!.Value));
+        XElement? boundaryScope = secondBodyScope ?? secondMatter;
+        if (boundaryScope != null) boundaryScope.AddFirst(boundary);
+        if (languageWrapper == null) {
+            if (boundaryScope == null) JoinMergeContainers(firstBody, secondBody, boundary, cancellationToken);
+            else firstBody.Add(secondBody.Nodes());
+        }
+        else {
+            if (boundaryScope == null) languageWrapper.Add(boundary);
+            languageWrapper.Add(secondBody.Nodes());
+            firstBody.Add(languageWrapper);
+        }
+        EpubContentIdentifiers.ValidateReferences(first.Root, EpubContentIdentifiers.Collect(first.Root, firstPath, true, cancellationToken), firstPath, cancellationToken);
+        if (first.Descendants(Html + "map").Attributes("name").GroupBy(attribute => attribute.Value, StringComparer.Ordinal).Any(group => group.Count() > 1))
+            throw new InvalidDataException("Image-map names collide in the merged chapter.");
+        byte[] merged = SerializeXml(first, _maximumEntryBytes);
+        XDocument package = new XDocument(_package);
+        if (package.Descendants().Attributes(XNamespace.Xml + "base").Any()) throw new NotSupportedException("Chapter merging does not support XML base declarations.");
+        XAttribute[] originals = Root.DescendantsAndSelf().Attributes().ToArray(), proposed = package.Root!.DescendantsAndSelf().Attributes().ToArray();
+        var packageEdits = new List<(XAttribute Attribute, string Value)>();
+        var references = new HashSet<XAttribute>(PackageResourceReferences(package.Root));
+        for (int index = 0; index < proposed.Length; index++) {
+            if (!references.Contains(proposed[index])) continue;
+            string value = RetargetMergePackageRefinement(proposed[index], refinementTargets)
+                ?? RewriteMovedReference(PackagePath, null, PackagePath, null, proposed[index].Value, string.Empty, string.Empty, Map);
+            if (value != proposed[index].Value) { proposed[index].Value = value; packageEdits.Add((originals[index], value)); }
+        }
+        if (retainedPositionId != null)
+            package.Root.Element(Opf + "spine")!.Elements(Opf + "itemref").Single(item => (string?)item.Attribute("idref") == firstManifestId).SetAttributeValue("id", retainedPositionId);
+        package.Root.Element(Opf + "manifest")!.Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == secondManifestId).Remove();
+        package.Root.Element(Opf + "spine")!.Elements(Opf + "itemref").Single(item => (string?)item.Attribute("idref") == secondManifestId).Remove();
+        foreach (XElement declaration in selectorStyles.Declarations) package.Root.Element(Opf + "manifest")!.Add(new XElement(declaration));
+        var entries = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
+        foreach (var group in Manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container).GroupBy(RequireLocalPath, StringComparer.Ordinal)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string path = group.Key;
+            if (path == secondPath) continue;
+            string[] types = group.Select(item => item.MediaType).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            if (types.Length != 1) throw new NotSupportedException("Reference repair requires unambiguous resource media types.");
+            byte[] original = _entries[path];
+            byte[] edited = path == firstPath ? merged : RewritePublicationResource(types[0], original, path, path, string.Empty, string.Empty, cancellationToken, Map);
+            if (!ReferenceEquals(original, edited)) EnsureResourceMutationAllowed(path);
+            if (edited.LongLength > _maximumEntryBytes) throw new InvalidDataException("Merge reference repair exceeds the retained entry-byte limit.");
+            entries[path] = edited;
+        }
+        entries.Remove(secondPath);
+        foreach (var entry in selectorStyles.Entries) entries.Add(entry.Key, entry.Value);
+        long delta = entries.Values.Sum(value => value.LongLength) - _retainedBytes;
+        EnsurePackageBudget(package, delta);
+        ValidatePublication(package, entries, new List<OfficeConversionFidelityDiagnostic>(), cancellationToken, changed: true);
+        EnsurePackageBudget(package, delta);
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (var edit in packageEdits) edit.Attribute.Value = edit.Value;
+        RequireSection("manifest").Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == secondManifestId).Remove();
+        if (retainedPositionId != null) firstPosition.SetAttributeValue("id", retainedPositionId);
+        secondPosition.Remove();
+        foreach (XElement declaration in selectorStyles.Declarations) RequireSection("manifest").Add(declaration);
+        _entries.Clear(); foreach (var entry in entries) _entries.Add(entry.Key, entry.Value);
+        RetainMergedOrigins(firstPath, secondPath);
+        _retainedBytes += delta; MarkChanged();
+    }
+}

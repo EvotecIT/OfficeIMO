@@ -221,6 +221,9 @@ public sealed class HtmlCssLengthResolutionContext {
     public double? RootFontSize { get; set; }
     /// <summary>Whether text is upright in a vertical writing mode, requiring a 1em fallback for the ch unit.</summary>
     public bool UprightVerticalText { get; set; }
+
+    /// <summary>Measured advance of the zero glyph in CSS pixels, when available.</summary>
+    public double? CharacterAdvance { get; set; }
     /// <summary>Default viewport width in CSS pixels. Specialized viewport sizes fall back to this value.</summary>
     public double? ViewportWidth { get; set; }
     /// <summary>Default viewport height in CSS pixels. Specialized viewport sizes fall back to this value.</summary>

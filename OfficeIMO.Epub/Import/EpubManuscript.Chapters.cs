@@ -13,6 +13,7 @@ public static partial class EpubManuscript {
 
     private static List<Chapter> SplitChapters(XElement body, int headingLevel, string title,
         List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        HashSet<XElement> boundaries = PlanChapterBoundaries(body, headingLevel, diagnostics, token);
         var chapters = new List<Chapter>();
         var ancestors = new List<XElement>();
         var targets = new List<XElement>();
@@ -23,7 +24,7 @@ public static partial class EpubManuscript {
         foreach (Chapter chapter in chapters) {
             token.ThrowIfCancellationRequested();
             foreach (XElement empty in chapter.Body.Descendants().Reverse().Where(element =>
-                !element.Nodes().Any() && new[] { "section", "article", "main", "div" }.Contains(element.Name.LocalName)).ToArray()) empty.Remove();
+                !element.Nodes().Any() && element.Attribute("id") == null && element.Attribute(XNamespace.Xml + "id") == null && new[] { "section", "article", "main", "div" }.Contains(element.Name.LocalName)).ToArray()) empty.Remove();
         }
         chapters.RemoveAll(chapter => !chapter.HasReadableContent);
         if (chapters.Count == 0) throw new InvalidDataException("The manuscript has no readable body content.");
@@ -34,9 +35,8 @@ public static partial class EpubManuscript {
             token.ThrowIfCancellationRequested();
             if (node is XElement element) {
                 int level = HeadingLevel(element);
-                bool canSplit = ancestors.All(parent => parent.Name.Namespace == Xhtml &&
-                    new[] { "section", "article", "main", "div" }.Contains(parent.Name.LocalName));
-                if (headingLevel != 0 && level != 0 && level <= headingLevel && canSplit) {
+                if (boundaries.Contains(element) || !current.HasReadableContent && headingLevel != 0 &&
+                    level != 0 && level <= headingLevel && ancestors.All(IsChapterContainer)) {
                     string label = element.Value.Trim();
                     if (current.HasReadableContent) {
                         current = new Chapter { Title = label.Length == 0 ? title : label, Body = new XElement(body.Name, body.Attributes()) };
@@ -61,6 +61,9 @@ public static partial class EpubManuscript {
         }
     }
 
+    private static bool IsChapterContainer(XElement element) => element.Name.Namespace == Xhtml &&
+        element.Name.LocalName is "section" or "article" or "main" or "div";
+
     private static bool IsReadableMedia(XElement element) => element.Name.LocalName is "img" or "svg" or "math" or "audio" or "video" or "hr";
     private static int HeadingLevel(XElement element) => element.Name.Namespace == Xhtml &&
         element.Name.LocalName.Length == 2 && element.Name.LocalName[0] == 'h' && element.Name.LocalName[1] >= '1' && element.Name.LocalName[1] <= '6'
@@ -76,6 +79,7 @@ public static partial class EpubManuscript {
                 id.Remove();
             }
         }
+        used.UnionWith(chapters.SelectMany(chapter => chapter.Body.DescendantsAndSelf().Attributes(XNamespace.Xml + "id")).Select(attribute => attribute.Value));
         foreach (XElement heading in chapters.SelectMany(chapter => chapter.Body.Descendants()).Where(element => HeadingLevel(element) != 0)) {
             if (heading.Attribute("id") != null) continue;
             string id;

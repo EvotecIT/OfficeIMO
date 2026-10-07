@@ -124,6 +124,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal double BaselineOffset;
     internal OfficeColor Color = OfficeColor.Black;
     internal OfficeTextAlignment Alignment;
+    internal HtmlRenderTextIndent? TextIndent;
+    internal double CharacterAdvance = double.NaN;
     internal double LineHeight;
     internal double LetterSpacing;
     internal double WordSpacing;

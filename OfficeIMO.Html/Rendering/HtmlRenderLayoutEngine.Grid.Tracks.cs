@@ -147,7 +147,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (normalized == "max-content") return GridTrack.Intrinsic(GridIntrinsicSizing.MaxContent, normalized);
         if (normalized.StartsWith("fit-content(", StringComparison.Ordinal) && normalized.EndsWith(")", StringComparison.Ordinal)) {
             string argument = normalized.Substring(12, normalized.Length - 13).Trim();
-            if (TryResolveLength(argument, reference, style.Font.Size, out double limit) && limit >= 0D) {
+            if (TryResolveLength(argument, reference, style, out double limit) && limit >= 0D) {
                 return GridTrack.FitContent(limit, normalized);
             }
             ReportUnsupportedGridValue(source, axis + "=" + normalized);
@@ -166,7 +166,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return GridTrack.Auto(normalized);
         }
 
-        if (TryResolveLength(normalized, reference, style.Font.Size, out double fixedSize) && fixedSize >= 0D) {
+        if (TryResolveLength(normalized, reference, style, out double fixedSize) && fixedSize >= 0D) {
             return GridTrack.Fixed(fixedSize, normalized);
         }
 
