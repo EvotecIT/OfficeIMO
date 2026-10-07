@@ -51,12 +51,12 @@ namespace OfficeIMO.Word {
             if (format == WordNumberFormat.UpperLetter) {
                 return ToAlphabeticSequence(number, uppercase: true);
             }
-            return number.ToString();
+            return number.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static string ToAlphabeticSequence(int number, bool uppercase) {
             if (number <= 0) {
-                return number.ToString();
+                return number.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
             char baseCharacter = uppercase ? 'A' : 'a';
@@ -72,7 +72,7 @@ namespace OfficeIMO.Word {
 
         private static string ToRoman(int number) {
             if (number <= 0) {
-                return number.ToString();
+                return number.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
             (int Value, string Symbol)[] map = new (int, string)[] {
