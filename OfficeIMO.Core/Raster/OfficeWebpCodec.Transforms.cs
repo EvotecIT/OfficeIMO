@@ -73,19 +73,23 @@ public static partial class OfficeWebpCodec {
             switch (transform.Type) {
                 case 0:
                     if (!TryApplyPredictorTransform(result, width, height, transform,
-                            allocationBudget, cancellationToken, out result)) return false;
+                            cancellationToken, out result)) return false;
                     break;
                 case 1:
                     if (!TryApplyColorTransform(result, width, height, transform, cancellationToken)) return false;
                     break;
                 case 2:
-                    for (int pixel = 0; pixel < result.Length; pixel++) {
+                    int pixel = 0;
+#if NET8_0_OR_GREATER
+                    if (System.Runtime.Intrinsics.X86.Sse2.IsSupported)
+                        pixel = RestoreVp8lGreenVector(result, cancellationToken);
+#endif
+                    for (; pixel < result.Length; pixel++) {
                         if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                         uint color = result[pixel];
-                        int green = (int)(color >> 8) & 255;
-                        int red = ((int)(color >> 16) + green) & 255;
-                        int blue = ((int)color + green) & 255;
-                        result[pixel] = (color & 0xFF00FF00U) | (uint)(red << 16 | blue);
+                        uint green = (color >> 8) & 255U;
+                        uint redBlue = ((color & 0x00FF00FFU) + green * 0x00010001U) & 0x00FF00FFU;
+                        result[pixel] = (color & 0xFF00FF00U) | redBlue;
                     }
                     break;
                 case 3:
@@ -169,20 +173,19 @@ public static partial class OfficeWebpCodec {
         int width,
         int height,
         Vp8lTransform transform,
-        Vp8lAllocationBudget allocationBudget,
         CancellationToken cancellationToken,
         out uint[] output) {
-        if (!allocationBudget.TryReserveArray(residuals.Length, sizeof(uint))) {
-            output = Array.Empty<uint>();
-            return false;
-        }
+        // Residuals belong to this decode and are no longer needed after each
+        // pixel is reconstructed. Previous rows and the left neighbor are
+        // already restored when later predictions read them.
+        output = residuals;
         cancellationToken.ThrowIfCancellationRequested();
-        output = new uint[residuals.Length];
         int blockWidth = transform.Value;
         if (blockWidth < 1) return false;
         for (int y = 0; y < height; y++) {
             if ((y & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
+                if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 uint prediction;
                 if (x == 0 && y == 0) {
                     prediction = 0xFF000000U;
@@ -228,30 +231,29 @@ public static partial class OfficeWebpCodec {
     }
 
     private static uint AddArgb(uint first, uint second) {
-        uint result = 0;
-        for (int shift = 0; shift <= 24; shift += 8) {
-            result |= (uint)((((first >> shift) & 255U) + ((second >> shift) & 255U)) & 255U) << shift;
-        }
-        return result;
+        // Independent 16-bit lanes keep carries out of the neighboring color channel.
+        uint redBlue = ((first & 0x00FF00FFU) + (second & 0x00FF00FFU)) & 0x00FF00FFU;
+        uint alphaGreen = (((first >> 8) & 0x00FF00FFU) + ((second >> 8) & 0x00FF00FFU)) & 0x00FF00FFU;
+        return redBlue | (alphaGreen << 8);
     }
 
     private static uint AverageArgb(uint first, uint second) {
-        uint result = 0;
-        for (int shift = 0; shift <= 24; shift += 8) {
-            result |= ((((first >> shift) & 255U) + ((second >> shift) & 255U)) >> 1) << shift;
-        }
-        return result;
+        return (first & second) + (((first ^ second) & 0xFEFEFEFEU) >> 1);
     }
 
     private static uint SelectArgb(uint left, uint top, uint topLeft) {
+#if NET8_0_OR_GREATER
+        if (System.Runtime.Intrinsics.X86.Sse2.IsSupported)
+            return SelectVp8lNeighborVector(left, top, topLeft);
+#endif
         int leftDistance = 0;
         int topDistance = 0;
         for (int shift = 0; shift <= 24; shift += 8) {
             int l = (int)(left >> shift) & 255;
             int t = (int)(top >> shift) & 255;
-            int estimate = l + t - ((int)(topLeft >> shift) & 255);
-            leftDistance += Math.Abs(estimate - l);
-            topDistance += Math.Abs(estimate - t);
+            int c = (int)(topLeft >> shift) & 255;
+            leftDistance += Math.Abs(t - c);
+            topDistance += Math.Abs(l - c);
         }
         return leftDistance < topDistance ? left : top;
     }
@@ -262,7 +264,7 @@ public static partial class OfficeWebpCodec {
             int a = (int)(first >> shift) & 255;
             int b = (int)(second >> shift) & 255;
             int c = (int)(subtract >> shift) & 255;
-            int value = half == 0 ? a + b - c : a + ((a - c) >> 1);
+            int value = half == 0 ? a + b - c : a + (a - c) / 2;
             value = Math.Max(0, Math.Min(255, value));
             result |= (uint)value << shift;
         }

@@ -20,6 +20,14 @@ public partial class DrawingTests {
 
         Assert.Throws<OperationCanceledException>(() =>
             OfficeImageReader.TryValidateContent(png, "cancelled.png", cancellation.Token, out _));
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageDecoder.TryDecode(png,
+                new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token }, out _, out _));
+        byte[] tiff = OfficeTiffCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OperationCanceledException decodeCancellation = Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageDecoder.TryDecode(tiff,
+                new OfficeRasterDecodeOptions { CancellationToken = cancellation.Token }, out _, out _));
+        Assert.Equal(cancellation.Token, decodeCancellation.CancellationToken);
         using var stream = new MemoryStream(png, writable: false);
         Assert.Throws<OperationCanceledException>(() =>
             OfficeImageReader.TryValidateContent(stream, "cancelled.png", cancellation.Token, out _));
@@ -32,6 +40,7 @@ public partial class DrawingTests {
 
         Assert.False(OfficePngReader.TryGetFrameCount(png, out _));
         Assert.False(OfficePngReader.TryDecode(png, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(png, out _));
         Assert.Throws<ArgumentException>(() =>
             new OfficeImageExportResult(OfficeImageExportFormat.Png, 1, 1, png));
     }
@@ -70,6 +79,7 @@ public partial class DrawingTests {
 
         Assert.True(OfficePngReader.TryGetFrameCount(png, out _));
         Assert.False(OfficePngReader.TryDecode(png, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(png, out _));
         Assert.Throws<ArgumentException>(() =>
             new OfficeImageExportResult(OfficeImageExportFormat.Png, 1, 1, png));
     }
@@ -85,6 +95,9 @@ public partial class DrawingTests {
         Assert.True(OfficePngReader.TryGetFrameCount(apngWithTrailingFrameDeflateByte, out _));
         Assert.False(OfficeImageReader.TryValidateContent(pngWithTrailingDeflateByte, "trailing.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(apngWithTrailingFrameDeflateByte, "trailing-apng.png", out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(pngWithTrailingDeflateByte, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(apngWithTrailingFrameDeflateByte,
+            new OfficeRasterDecodeOptions { FrameIndex = 1 }, out _, out _));
     }
 
     [Fact]

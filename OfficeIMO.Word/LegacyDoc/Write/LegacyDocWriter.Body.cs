@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 bool mirrorMargins,
                 bool gutterAtTop,
                 bool noColumnBalance,
+                ushort defaultTabStop,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
@@ -59,6 +60,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 MirrorMargins = mirrorMargins;
                 GutterAtTop = gutterAtTop;
                 NoColumnBalance = noColumnBalance;
+                DefaultTabStop = defaultTabStop;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
@@ -99,6 +101,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     FootnoteText, FootnoteFormattedRuns, CommentText, CommentFormattedRuns, EndnoteText, EndnoteFormattedRuns);
                 ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
+                HasNestedTables = PapxPages.Any(page => page.Any(segment => segment.Formatting.TableDepth > 1));
+                RmdThreading = HasNestedTables ? CreateRevisionThreading(RevisionAuthors.Count) : Array.Empty<byte>();
             }
 
             internal string Text { get; }
@@ -179,6 +183,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool NoColumnBalance { get; }
 
+            internal ushort DefaultTabStop { get; }
+
             internal byte[] PictureData { get; }
 
             internal bool HasPictures { get; }
@@ -207,6 +213,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal byte[] SttbfRMark { get; }
 
+            internal bool HasNestedTables { get; }
+
+            internal byte[] RmdThreading { get; }
+
             internal bool HasCharacterFormatting => true;
 
             internal bool HasParagraphFormatting => true;
@@ -231,17 +241,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
-            internal bool HasDocumentOptions => FacingPages
-                || MirrorMargins
-                || GutterAtTop
-                || NoColumnBalance
-                || EndnotePosition != null
-                || TrackRevisions
-                || LockRevisionTracking;
-
-            internal int DopLength => NoColumnBalance ? Dop95Length
-                : GutterAtTop ? DopBaseFullLength
-                : EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+            internal int DopLength => HasNestedTables ? Dop2000Length : Dop97Length;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 
@@ -286,9 +286,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterEndnoteDataOffsetInTableStream => AfterCommentDataOffsetInTableStream + (HasEndnotes ? PlcfendRef.Length + PlcfendTxt.Length : 0);
 
-            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterFieldTablesOffsetInTableStream) : AfterFieldTablesOffsetInTableStream;
+            internal int DopOffsetInTableStream => AlignToEven(AfterFieldTablesOffsetInTableStream);
 
-            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterFieldTablesOffsetInTableStream;
+            internal int SttbfAssocOffsetInTableStream => DopOffsetInTableStream + DopLength;
+
+            private int AfterDocumentOptionsOffsetInTableStream => SttbfAssocOffsetInTableStream + SttbfAssocLength;
 
             internal int SttbfBkmkOffsetInTableStream => HasBookmarks ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
 
@@ -304,11 +306,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? SttbfRMarkOffsetInTableStream + SttbfRMark.Length
                 : AfterBookmarkDataOffsetInTableStream;
 
-            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
+            internal int RmdThreadingOffsetInTableStream => HasNestedTables
+                ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
+
+            private int AfterRevisionThreadingOffsetInTableStream => RmdThreadingOffsetInTableStream + RmdThreading.Length;
+
+            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionThreadingOffsetInTableStream) : AfterRevisionThreadingOffsetInTableStream;
 
             internal int FontTableOffsetInTableStream => HasStyleSheet
                 ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
-                : AfterRevisionDataOffsetInTableStream;
+                : AfterRevisionThreadingOffsetInTableStream;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();
@@ -402,7 +409,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 if (segments.Count > 0) {
                     LegacyDocWritableSegment previous = segments[segments.Count - 1];
                     if (previous.EndCharacter == startCharacter
-                        && previous.Formatting.Equals(formatting)
+                        && previous.Formatting.HasSameEncoding(formatting)
                         && previous.PictureDataOffset == pictureDataOffset) {
                         segments[segments.Count - 1] = previous.Extend(length);
                         return;

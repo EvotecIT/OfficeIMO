@@ -244,7 +244,7 @@ internal static class PdfPngTestImages {
         return ms.ToArray();
     }
 
-    internal static byte[] CreateWidePackedGrayscalePng(int width) {
+    internal static byte[] CreateWidePackedGrayscalePng(int width, bool includeTransparency = false) {
         if (width <= 0) {
             throw new ArgumentOutOfRangeException(nameof(width));
         }
@@ -257,7 +257,21 @@ internal static class PdfPngTestImages {
         };
         WriteInt32BigEndian(header, 0, width);
         WritePngChunk(ms, "IHDR", header);
+        if (includeTransparency) WritePngChunk(ms, "tRNS", new byte[] { 0, 0 });
         WritePngChunk(ms, "IDAT", BuildStoredZlibBlocks(new byte[1 + ((width + 7) / 8)]));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    internal static byte[] CreatePngWithScanlines(int width, int height, int bitDepth, int colorType, byte[] scanlines) {
+        using var ms = CreatePng();
+        var header = new byte[13];
+        WriteInt32BigEndian(header, 0, width);
+        WriteInt32BigEndian(header, 4, height);
+        header[8] = (byte)bitDepth;
+        header[9] = (byte)colorType;
+        WritePngChunk(ms, "IHDR", header);
+        WritePngChunk(ms, "IDAT", BuildStoredZlibBlocks(scanlines));
         WritePngChunk(ms, "IEND", Array.Empty<byte>());
         return ms.ToArray();
     }

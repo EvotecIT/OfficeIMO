@@ -139,10 +139,10 @@ internal static class PdfSyntaxEscaper {
         cancellationToken.ThrowIfCancellationRequested();
         destination.Append('<');
         if (PdfDocEncoding.CanEncode(value, cancellationToken)) {
-            byte[] bytes = PdfDocEncoding.Encode(value, cancellationToken);
-            for (int index = 0; index < bytes.Length; index++) {
+            for (int index = 0; index < value.Length; index++) {
                 if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                AppendHexByte(destination, bytes[index]);
+                PdfDocEncoding.TryGetByte(value[index], out byte encoded);
+                AppendHexByte(destination, encoded);
             }
         } else {
             destination.Append("FEFF");

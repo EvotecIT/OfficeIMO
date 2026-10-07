@@ -99,7 +99,7 @@ public partial class Word {
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
         WordTableCell cell = restored.Tables[0].Rows[0].Cells[0];
         Assert.Equal(string.Empty, cell.ShadingFillColorHex);
-        Assert.Null(cell.MarginTopWidth);
+        Assert.Equal((short)0, cell.MarginTopWidth);
         Assert.Equal(string.Empty, cell.Paragraphs[0].ColorHex);
         Assert.Equal(0, cell.Paragraphs[0].LineSpacingBefore ?? 0);
     }

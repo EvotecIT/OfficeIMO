@@ -8,6 +8,25 @@ namespace OfficeIMO.Tests {
     /// Tests configuring footnote and endnote properties.
     /// </summary>
     public partial class Word {
+        [Fact]
+        public void AddingASectionPreservesTheEarlierSectionsNoteRestartSettings() {
+            using WordDocument document = WordDocument.Create();
+            document.Sections[0].AddFootnoteProperties(WordNumberFormat.UpperLetter,
+                WordFootnotePosition.PageBottom, WordNoteNumberRestart.EachSection, 3);
+            document.Sections[0].AddEndnoteProperties(WordNumberFormat.LowerLetter,
+                WordEndnotePosition.DocumentEnd, WordNoteNumberRestart.EachSection, 9);
+            document.AddParagraph("FIRST");
+            document.AddSection().AddParagraph("SECOND");
+            Assert.Equal(WordNoteNumberRestart.EachSection, document.Sections[0].FootnoteSettings.NumberingRestart);
+            Assert.Equal(WordNoteNumberRestart.EachSection, document.Sections[0].EndnoteSettings.NumberingRestart);
+            Assert.Null(document.Sections[1].FootnoteSettings.NumberingRestart);
+            Assert.Null(document.Sections[1].EndnoteSettings.NumberingRestart);
+            Assert.Empty(document.ValidateDocument());
+            using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
+            Assert.Equal(WordNoteNumberRestart.EachSection, restored.Sections[0].FootnoteSettings.NumberingRestart);
+            Assert.Equal(WordNoteNumberRestart.EachSection, restored.Sections[0].EndnoteSettings.NumberingRestart);
+        }
+
         /// <summary>
         /// Creates a document, sets footnote and endnote options, and reloads it.
         /// </summary>
@@ -23,6 +42,7 @@ namespace OfficeIMO.Tests {
                                             WordEndnotePosition.SectionEnd,
                                             WordNoteNumberRestart.EachSection,
                                             5);
+                Assert.Empty(document.ValidateDocument());
                 document.Save();
             }
 

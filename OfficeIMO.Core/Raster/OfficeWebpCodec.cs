@@ -565,7 +565,16 @@ public static partial class OfficeWebpCodec {
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal uint ReadBits(int count) {
+            uint value = PeekBits(count);
+            _buffer >>= count;
+            _bitCount -= count;
+            return value;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal uint PeekBits(int count) {
             if (count < 0 || count > 32) throw new FormatException("WebP bit count is invalid.");
             while (_bitCount < count) {
                 if (_offset >= _end) throw new FormatException("WebP bitstream is truncated.");
@@ -573,12 +582,18 @@ public static partial class OfficeWebpCodec {
                 _bitCount += 8;
             }
             ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
-            uint value = (uint)(_buffer & mask);
-            _buffer >>= count;
-            _bitCount -= count;
-            return value;
+            return (uint)(_buffer & mask);
         }
 
+        // Only a successful prefix lookup consumes pre-buffered bits. Keep
+        // this separate from checked reads so the hot path does not peek twice.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal void ConsumeBufferedBits(int count) {
+            _buffer >>= count;
+            _bitCount -= count;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal bool HasBits(long count) =>
             count >= 0L &&
             count <= _bitCount + ((long)_end - _offset) * 8L;

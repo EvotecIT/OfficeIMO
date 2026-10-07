@@ -115,7 +115,7 @@ internal static partial class PdfWriter {
                     fontSize,
                     spacingBefore + style.TopPadding));
                 return contentHeight.HasValue
-                    ? spacingBefore + style.TopPadding + contentHeight.Value + style.BottomPadding + style.SpacingAfter
+                    ? spacingBefore + style.TopPadding + Math.Max(contentHeight.Value, style.MinimumContentHeight) + style.BottomPadding + style.SpacingAfter
                     : null;
             }
 
@@ -149,7 +149,32 @@ internal static partial class PdfWriter {
             }
 
             double height = MeasureKeepWithNextBlockHeight(block, frameX, frameWidth, fontSize);
-            return height > 0D || block is SpacerBlock ? height : null;
+            return height > 0D || block is SpacerBlock or ShapeBlock ? height : null;
+        }
+
+        // Resolve against this frame after image scaling. The same padded block
+        // sequence feeds page and row-column rendering, rather than relying on
+        // a consumer's requested image dimensions.
+        private IReadOnlyList<IPdfBlock> ResolveContainerContentBlocks(ContainerBlock container, PdfPanelStyle style,
+            double frameX, double frameWidth, double fontSize, double reservedImageHeight = 0D) {
+            if (style.MinimumContentHeight <= 0D) return container.Blocks;
+            double savedReservation = imageMeasurementReservedHeight;
+            double? height;
+            try {
+                imageMeasurementReservedHeight += reservedImageHeight;
+                height = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
+                    container.Blocks, frameX, frameWidth, fontSize, style.TopPadding));
+            } finally {
+                imageMeasurementReservedHeight = savedReservation;
+            }
+            if (!height.HasValue) throw new NotSupportedException("Minimum panel content height requires measurable content.");
+            double padding = style.MinimumContentHeight - height.Value;
+            if (padding <= 0.001D) return container.Blocks;
+            var result = new List<IPdfBlock>(container.Blocks.Count + 1);
+            if (style.AlignContentToBottom) result.Add(new SpacerBlock(padding));
+            result.AddRange(container.Blocks);
+            if (!style.AlignContentToBottom) result.Add(new SpacerBlock(padding));
+            return result;
         }
 
         private double GetCurrentFramePageStartY() {

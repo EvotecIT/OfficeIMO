@@ -6,7 +6,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private const int MaxUnicodeCMapMappings = 131_072;
 
     private readonly byte[] _data;
-    private readonly ushort[] _advanceWidths;
+    // Immutable PDF-unit widths are shared by document forks.
+    private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
     private readonly SubsetFontFingerprint _subsetFontFingerprint;
@@ -14,8 +15,10 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
 
-    private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
+    private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
@@ -30,7 +33,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         ItalicAngle = italicAngle;
         Flags = flags;
         StemV = stemV;
-        _advanceWidths = advanceWidths;
+        _advanceWidths1000 = advanceWidths1000;
         _cmap = cmap;
         _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
     }
@@ -48,7 +51,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         ItalicAngle = source.ItalicAngle;
         Flags = source.Flags;
         StemV = source.StemV;
-        _advanceWidths = source._advanceWidths;
+        _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
         _subsetFontFingerprint = source._subsetFontFingerprint;
         _tracking = source._tracking;
@@ -93,9 +96,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
         // Skip the external shaper only where it would not engage (no provider, default features); the
         // width then comes from the scalar path with no glyph-run allocation.
-        int advanceWidth1000 = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode != PdfTextShapingMode.OpenTypeLigatures
-            ? PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options)
-            : ShapeText(text!, options).TotalAdvanceWidth1000;
+        int advanceWidth1000;
+        if (shapingProvider == null && options.FeatureSettings.IsDefault) {
+            advanceWidth1000 = shapingMode == PdfTextShapingMode.OpenTypeLigatures
+                ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
+                : PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options);
+        } else {
+            advanceWidth1000 = ShapeText(text!, options).TotalAdvanceWidth1000;
+        }
         return advanceWidth1000 * fontSize / 1000D;
     }
 
@@ -105,7 +113,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public double GetDescender(double fontSize) =>
         Math.Abs(Descent) * fontSize / 1000D;
 
-    public int GlyphCount => _advanceWidths.Length;
+    public int GlyphCount => _advanceWidths1000.Length;
 
     internal byte[] FontDataForInspection => _data;
 
@@ -124,11 +132,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
     }
 
     public int GetGlyphWidth1000(int glyphId) {
-        if (glyphId < 0 || glyphId >= _advanceWidths.Length) {
-            return _advanceWidths.Length == 0 ? 500 : ScaleMetric(_advanceWidths[_advanceWidths.Length - 1], UnitsPerEm);
+        if (glyphId < 0 || glyphId >= _advanceWidths1000.Length) {
+            return _advanceWidths1000.Length == 0 ? 500 : _advanceWidths1000[_advanceWidths1000.Length - 1];
         }
 
-        return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
+        return _advanceWidths1000[glyphId];
     }
 
     public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) {
@@ -153,6 +161,18 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
+        if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
+            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
+            return cached;
+        }
+        PdfGlyphRun result = ShapeUncachedText(text, options);
+        if (cacheable && !result.HasMissingGlyphs) _shortGlyphRuns.Add(text, options, result, result.Glyphs.Count);
+        return result;
+    }
+
+    private PdfGlyphRun ShapeUncachedText(string text, PdfTextShapingOptions options) {
         if (PdfExternalTextShaper.TryShapeText(text, this, options, out PdfGlyphRun glyphRun)) {
             return glyphRun;
         }
@@ -201,6 +221,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         lock (_usageLock) {
             _usedGlyphIds.Clear();
             _usedGlyphToUnicode.Clear();
+            _usedAsciiLow = _usedAsciiHigh = 0;
         }
     }
 
@@ -210,7 +231,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
+            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
+            // A stored mapping already owns this glyph in the usage set; reset clears both.
+            if (!hasMapping) _usedGlyphIds.Add(glyphId);
             if (glyphId <= 0) {
                 return;
             }
@@ -219,13 +242,13 @@ internal sealed partial class PdfTrueTypeFontProgram {
             // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
             // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
             // runs the normal replacement check, so the stored map is unchanged.
-            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+            if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
                 return;
             }
 
             string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
             if (!string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
                 _usedGlyphToUnicode[glyphId] = unicodeText;
             }
         }
@@ -252,12 +275,18 @@ internal sealed partial class PdfTrueTypeFontProgram {
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
 
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
-            if (glyphId > 0 &&
-                !string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
-                _usedGlyphToUnicode[glyphId] = unicodeText;
-            }
+            RecordNormalizedGlyphUsage(glyphId, unicodeText);
+        }
+    }
+
+    // The caller owns _usageLock. This also serves token batches without entering it per glyph.
+    private void RecordNormalizedGlyphUsage(int glyphId, string unicodeText) {
+        bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText);
+        if (!hasMapping) _usedGlyphIds.Add(glyphId);
+        if (glyphId > 0 &&
+            !string.IsNullOrEmpty(unicodeText) &&
+            (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existingText!))) {
+            _usedGlyphToUnicode[glyphId] = unicodeText;
         }
     }
 
@@ -333,7 +362,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             fixedPitch = ReadUInt32(data, post.Value.Offset + 12) != 0;
         }
 
-        ushort[] widths = ReadAdvanceWidths(data, hmtx, numberOfHMetrics, glyphCount);
+        int[] widths = ReadAdvanceWidths1000(data, hmtx, numberOfHMetrics, glyphCount, unitsPerEm);
         Dictionary<int, int> charMap = ReadUnicodeCMap(data, cmap);
         string fontName = SanitizePdfName(string.IsNullOrWhiteSpace(fontNameOverride) ? ReadPostScriptName(data, name) : fontNameOverride!);
         int flags = 32;
@@ -358,8 +387,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return 500;
         }
 
-        ushort advance = glyphId >= 0 && glyphId < _advanceWidths.Length ? _advanceWidths[glyphId] : _advanceWidths[_advanceWidths.Length - 1];
-        return ScaleMetric(advance, UnitsPerEm);
+        return glyphId >= 0 && glyphId < _advanceWidths1000.Length ? _advanceWidths1000[glyphId] : _advanceWidths1000[_advanceWidths1000.Length - 1];
     }
 
     private static Dictionary<string, TableRecord> ReadTableDirectory(byte[] data) {
@@ -392,14 +420,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return record;
     }
 
-    private static ushort[] ReadAdvanceWidths(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount) {
-        var widths = new ushort[glyphCount];
-        ushort lastAdvance = 500;
+    private static int[] ReadAdvanceWidths1000(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount, int unitsPerEm) {
+        var widths = new int[glyphCount];
+        int lastAdvance = ScaleMetric(500, unitsPerEm);
         for (int glyph = 0; glyph < glyphCount; glyph++) {
             if (glyph < numberOfHMetrics) {
                 int metricOffset = hmtx.Offset + glyph * 4;
                 EnsureRange(data, metricOffset, 4);
-                lastAdvance = ReadUInt16(data, metricOffset);
+                lastAdvance = ScaleMetric(ReadUInt16(data, metricOffset), unitsPerEm);
             }
 
             widths[glyph] = lastAdvance;

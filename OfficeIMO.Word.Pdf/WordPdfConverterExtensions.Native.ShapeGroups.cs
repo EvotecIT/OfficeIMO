@@ -17,8 +17,9 @@ namespace OfficeIMO.Word.Pdf {
                 .Any(child => child is V.Group || child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp"));
 
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
-        private static void RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
-            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount) {
+        private static bool RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
+            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) {
+            bool renderedFlowObject = false;
             foreach (WordParagraph run in runs) {
                 foreach (W.Drawing drawing in run.EnumerateEffectiveRunContent().OfType<W.Drawing>()) {
                     OpenXmlElement? group = drawing.Descendants<A.GraphicData>().FirstOrDefault()?.ChildElements
@@ -34,7 +35,11 @@ namespace OfficeIMO.Word.Pdf {
                     var theme = GetNativeDrawingThemeColors(group.Ancestors<OpenXmlPartRootElement>().FirstOrDefault()?.OpenXmlPart);
                     bool native = TryAddNativeGroupChildren(scene, group, 0D, 0D, scene.Width, scene.Height, run, drawing, theme, options, 0);
                     if (layout.Placement == WordDrawingPlacementKind.Inline) {
-                        if (native) pdf.Drawing(scene, align, spacingAfter: 0D);
+                        if (native) {
+                            RenderNativeFlowObject(pdf, paragraphSpacing,
+                                flow => flow.Drawing(scene, align, spacingAfter: 0D));
+                            renderedFlowObject = true;
+                        }
                         else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The inline shape group contains unsupported geometry or transforms.");
                         continue;
                     }
@@ -42,7 +47,9 @@ namespace OfficeIMO.Word.Pdf {
                     if (!TryGetNativeGroupPosition(pdf, paragraph, layout, options, out double x, out double y,
                             out bool paragraphRelative, out double? horizontalMarginOrigin)) {
                         if (native) {
-                            pdf.Drawing(scene, align, spacingAfter: 0D);
+                            RenderNativeFlowObject(pdf, paragraphSpacing,
+                                flow => flow.Drawing(scene, align, spacingAfter: 0D));
+                            renderedFlowObject = true;
                             WarnNativeGroup(options, "NativeShapeGroupFlowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");
                         } else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The shape group's geometry and anchor could not be mapped.");
                         continue;
@@ -78,6 +85,7 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeLegacyBodyGroup(pdf, paragraph, legacy, options, style, ref imageCount);
                 }
             }
+            return renderedFlowObject;
         }
 
         private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas,

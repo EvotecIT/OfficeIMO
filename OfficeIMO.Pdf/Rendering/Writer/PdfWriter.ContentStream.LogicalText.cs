@@ -33,6 +33,31 @@ internal sealed partial class ContentStreamBuilder {
             * 1000D / command.UnitsPerEm * (command.NegativeTracking ? -1D : 1D);
         for (int index = 0; index < glyphs.Count;) {
             int firstGlyph = index;
+            PdfGlyphInfo single = glyphs[index];
+            int singleLogicalEnd = Math.Max(single.LogicalClusterStart + 1,
+                single.TextIndex + single.UnicodeText.Length);
+            if (!single.HasPositioning &&
+                (index + 1 == glyphs.Count || glyphs[index + 1].LogicalClusterStart >= singleLogicalEnd)) {
+                // Keep the same isolated text object and ActualText boundary, but
+                // avoid allocating a list, builders and formatted strings per scalar.
+                _sb.Append("ET\nBT\n");
+                TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
+                bool singleMarked = single.UnicodeText.Length != 0;
+                if (singleMarked) {
+                    _sb.Append("/Span << /ActualText ");
+                    PdfSyntaxEscaper.AppendTextStringCancellable(_sb, single.UnicodeText, default);
+                    _sb.Append(" >> BDC\n");
+                }
+                _sb.Append('<');
+                PdfGlyphRun.AppendGlyphHex(_sb, single.GlyphId);
+                _sb.Append("> Tj\n");
+                if (singleMarked) _sb.Append("EMC\n");
+                double trackingAdvance1000 = command.TrackingBoundaries != null && command.TrackingBoundaries[index]
+                    ? tracking1000 : 0D;
+                AdvanceTrackedText((single.AdvanceWidth1000 + trackingAdvance1000) * fontSize / 1000D);
+                index++;
+                continue;
+            }
             var cluster = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
             int logicalEnd = glyphs[index].LogicalClusterStart;

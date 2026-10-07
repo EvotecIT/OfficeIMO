@@ -379,6 +379,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var instruction = new StringBuilder();
             var resultText = new StringBuilder();
             LegacyDocWritableFormatting? resultFormatting = null;
+            LegacyDocWritableFormatting? effectiveResultFormatting = null;
             var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
             bool sawSeparator = false;
             int resultOffset = 0;
@@ -404,6 +405,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
+                LegacyDocWritableFormatting effectiveRunFormatting = ReadFieldComparisonFormatting(run, runFormatting, LegacyDocWritableFormatting.Plain);
                 foreach (OpenXmlElement child in run.ChildElements) {
                     switch (child) {
                         case RunProperties:
@@ -414,7 +416,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         case Text textNode when sawSeparator:
                             resultFormatting ??= runFormatting;
-                            if (!resultFormatting.Value.Equals(runFormatting)) {
+                            effectiveResultFormatting ??= effectiveRunFormatting;
+                            if (!effectiveResultFormatting.Value.Equals(effectiveRunFormatting)) {
                                 throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when their display runs use one formatting set.");
                             }
 
@@ -427,7 +430,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         case SoftHyphen when sawSeparator:
                         case Break when sawSeparator:
                             resultFormatting ??= runFormatting;
-                            if (!resultFormatting.Value.Equals(runFormatting)) {
+                            effectiveResultFormatting ??= effectiveRunFormatting;
+                            if (!effectiveResultFormatting.Value.Equals(effectiveRunFormatting)) {
                                 throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when their display runs use one formatting set.");
                             }
 
@@ -880,7 +884,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int length = value!.Length;
             if (runs.Count > 0) {
                 LegacyDocWritableRun previous = runs[runs.Count - 1];
-                if (previous.EndCharacter == start && previous.Formatting.Equals(formatting)) {
+                if (previous.EndCharacter == start && previous.Formatting.HasSameEncoding(formatting)) {
                     runs[runs.Count - 1] = previous.Extend(length);
                     return;
                 }

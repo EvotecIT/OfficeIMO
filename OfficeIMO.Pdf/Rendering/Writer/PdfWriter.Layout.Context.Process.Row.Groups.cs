@@ -31,7 +31,6 @@ internal static partial class PdfWriter {
             double childWidth = columnWidth;
             switch (block) {
                 case ContainerBlock container:
-                    blocks = container.Blocks;
                     group.Container = container;
                     group.Style = ResolveContainerStyle(container);
                     group.KeepTogether = ResolveContainerStyle(container).KeepTogether;
@@ -40,6 +39,8 @@ internal static partial class PdfWriter {
                     group.OuterWidth = frame.Width;
                     childX = frame.X + ResolveContainerStyle(container).PaddingX;
                     childWidth = frame.ContentWidth;
+                    blocks = ResolveContainerContentBlocks(container, group.Style, childX, childWidth,
+                        currentOpts.DefaultFontSize, reservedImageHeight);
                     break;
                 case SemanticBlock semantic:
                     blocks = semantic.Blocks;
@@ -102,6 +103,8 @@ internal static partial class PdfWriter {
             if (group.Semantic != null) flowSemanticScopes.Add(group.Semantic);
             if (group.Style != null) {
                 bool continuation = group.Decoration != null;
+                if (!continuation && group.Style.AnchoredCanvas is { } anchoredCanvas)
+                    RenderParagraphCanvas(anchoredCanvas, cursor);
                 group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth,
                     currentPage!.Options, currentOpts, currentOpts, group.Container) { IsContinuation = continuation };
                 double next = BeginContainerFragment(group.Decoration, cursor);

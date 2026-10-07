@@ -8,7 +8,7 @@ Schema version: 1
 | Lifecycle | Word.Lifecycle.Variants | Word.Doc | Native | Native | Native | Native | Native | Native | None |  |
 | Structure | Word.Structure.MainStory | Word.Doc | Native | Native | Native | Native | Native | Native | None |  |
 | Structure | Word.Structure.Sections | Word.Doc | Native | Native | Native | Native | Native | Native | None |  |
-| Structure | Word.Structure.HeadersFooters | Word.Doc | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Visual, Editability | Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. |
+| Structure | Word.Structure.HeadersFooters | Word.Doc | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Visual, Editability | Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story. |
 | Text | Word.Text.CharacterFormatting | Word.Doc | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Visual, Editability | Common and tested sprm mappings are editable; unsupported Open XML-only effects block legacy output. |
 | Text | Word.Text.ParagraphFormatting | Word.Doc | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Visual, Editability | Common and tested paragraph properties map natively; unsupported properties are preflight-blocked. |
 | Text | Word.Text.Numbering | Word.Doc | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Visual, Editability | The supported classic numbering subset maps editably in both directions. |

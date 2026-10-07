@@ -6,6 +6,22 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 Deliberately bounded compatibility contracts are not backlog by themselves. A preserved or rejected profile with a documented diagnostic becomes roadmap work only when the repository adopts a concrete supported shape and evidence plan for it.
 
+## OfficeIMO JavaScript
+
+The [TypeScript foundation](../OfficeIMO.JavaScript/README.md) and [architecture contract](officeimo.javascript-architecture.md) own the current package and public layers. Delivery order follows browser consumers. HtmlForgeX and PSWriteHTML's DataTables export paths use JSZip for Excel and pdfmake plus its font file for PDF; TestimoX, CertNoob and DomainDetective reports inherit those paths. CanopyX's replacement grid needs both table exports. Word and PowerPoint remain later modules because their browser consumers are not yet defined; C# OfficeIMO supplies their build-time document generation.
+
+Every milestone retains strict TypeScript compiled with `tsc`, zero runtime dependencies, documented public layers, C# conformance, isolated package qualification and measured size budgets. Keep format models and shared ZIP/XML/OPC behavior in the library, with thin consumer integrations.
+
+| Open milestone | Content and acceptance | Consumers |
+| --- | --- | --- |
+| [ ] 2. Excel export, report grade | Build on the [streaming, preservation and report-layout contract](../OfficeIMO.JavaScript/README.md#streamed-output-and-resource-limits) with dynamic conditional formats where useful. Consumer migration remains milestone 4. | CanopyX, HtmlForgeX data explorer and report shell, PSWriteHTML, TestimoX, CertNoob, DomainDetective |
+| [ ] 3. PDF table export | Typed PDF object model, TrueType subsetting/embedding for Polish and other non-Latin-1 text, paginated tables with repeated headers, title, page size/orientation, header/footer and page numbers. Qualify the current DataTables PDF-button contract so HtmlForgeX can remove pdfmake and its font asset, approximately 1 MB. | Same report consumers as milestone 2 |
+| [ ] 4. Adoption | In the owning consumer repositories, use OfficeIMO JavaScript for CanopyX/HtmlForgeX Excel and PDF export; remove JSZip, pdfmake and the font asset from HtmlForgeX after equivalent exports are qualified. | HtmlForgeX, CanopyX |
+| [ ] 5. PDF documents | Images, vector paths from SVG/ChartForgeX charts, text layout beyond tables and a portable report-to-PDF path without a server. | Portable reports that need a PDF without a server |
+| [ ] 6. Readers, on demand | Streaming ZIP reader, XLSX reader for values/types/basic styles and streaming CSV reader. Begin a bounded import slice when a report/application needs it, such as importing a domain list. | The report/application with an identified import workflow |
+| [ ] 7. Word writer, later | Paragraphs, runs, headings, lists, tables, images, headers/footers and sections, mapping to `OfficeIMO.Word` vocabulary and independent DOCX qualification. | A browser consumer that needs Export to Word |
+| [ ] 8. PowerPoint writer, later | Slides, text, tables, images and charts as visuals, with independent PPTX qualification. | A browser consumer that needs PowerPoint export |
+
 ## Release-wide quality
 
 - [ ] Establish an all-page conversion consistency gate over the existing Drawing scene and format owners. Cover DOCX, XLSX, PPTX, HTML, PDF, Visio, OneNote, email, EPUB, ODT, ODS, and ODP to SVG, PNG, JPEG, TIFF, and WebP with identical page selection, layout profile, font bytes, shaping provider, dimensions, DPI, background, and resource policy. Compare direct raster output with independently rendered SVG and PDF, then compare all three against source-producer or labelled semantic evidence so matching outputs cannot hide a shared import loss. Gate text and object coverage, crop/rotation, clipping, gradients, alpha, images, page counts, and diagnostics; allow encoder-specific visual tolerances only after geometry and content pass.
@@ -15,6 +31,10 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Link every conversion support assessment to either an open roadmap outcome or an explicit intentional boundary, and expose that linkage in the generated route matrix. Fail catalog verification when any route gains a non-intentional limitation without an owner.
 - [ ] Add handle-bound output creation and writing for report-producing tools so path authorization remains tied to the final file handles instead of a separate pre-write check. Cover symlink, junction, hard-link, and replacement races across supported operating systems in the shared path owner.
 - [ ] Publish versioned, self-contained NativeAOT `OfficeIMO.Tool` release assets for supported Windows, Linux, and macOS x64/Arm64 targets in addition to the NuGet tool. Require exact-artifact startup and representative HTML/PDF workflow smoke tests, dependency and license inventory, checksums, SBOM and provenance, and release-page install instructions; keep one CLI command contract rather than a separate native implementation.
+
+## Portable browser exports
+
+- [ ] Integrate [OfficeIMO.Browser](../OfficeIMO.Browser/README.md) with CanopyX's current-view export menu and HtmlForgeX's data explorer/report shell in their owning repositories. Preserve the current filter, sort, column order and visibility; qualify inline and bundled delivery in SharePoint through UltimateHtmlViewer. Decide whether the hosts retain their browser CSV implementation or consume the same OfficeIMO writer.
 
 ## Product discovery and public evidence
 

@@ -5384,7 +5384,7 @@ namespace OfficeIMO.Tests {
                 int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
                 int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
                 Assert.True(fcDop > 0);
-                Assert.Equal(8, lcbDop);
+                Assert.Equal(500, lcbDop);
                 Assert.Equal(1, BitConverter.ToUInt16(tableStream, fcDop) & 0x0001);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -8802,13 +8802,13 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Default sides", row.Cells[0].Paragraphs[0].Text);
                 Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Null(row.Cells[0].MarginLeftWidth);
+                Assert.Equal((short)108, row.Cells[0].MarginLeftWidth);
                 Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Null(row.Cells[0].MarginRightWidth);
+                Assert.Equal((short)108, row.Cells[0].MarginRightWidth);
                 Assert.Equal("Specific sides", row.Cells[1].Paragraphs[0].Text);
-                Assert.Null(row.Cells[1].MarginTopWidth);
+                Assert.Equal((short)0, row.Cells[1].MarginTopWidth);
                 Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-                Assert.Null(row.Cells[1].MarginBottomWidth);
+                Assert.Equal((short)0, row.Cells[1].MarginBottomWidth);
                 Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
             } finally {
                 DeleteIfExists(docPath);
@@ -9369,8 +9369,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(untouchedCell.FitText);
                 Assert.True(untouchedCell.WrapText);
                 Assert.False(untouchedCell.HideMark);
-                Assert.Null(untouchedCell.MarginTopWidth);
-                Assert.Null(untouchedCell.MarginLeftWidth);
+                Assert.Equal((short)0, untouchedCell.MarginTopWidth);
+                Assert.Equal((short)108, untouchedCell.MarginLeftWidth);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -12025,7 +12025,7 @@ namespace OfficeIMO.Tests {
                 int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
                 int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
                 Assert.True(fcDop > 0);
-                Assert.Equal(56, lcbDop);
+                Assert.Equal(500, lcbDop);
                 Assert.Equal(0u, (BitConverter.ToUInt32(tableStream, fcDop + 52) >> 16) & 0x3);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
