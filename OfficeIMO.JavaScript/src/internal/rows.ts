@@ -1,15 +1,33 @@
-import type { Column } from "../core/index.js";
+import type { Column, ColumnValueContext } from "../core/index.js";
+import { ExportCell, assertScalar } from "../core/presentation.js";
+import { checkAbort } from "../core/iteration.js";
 
-export function rowValues(row: unknown, columns: readonly Column[]): readonly unknown[] {
-  if (Array.isArray(row)) {
-    if (row.length > columns.length) throw new RangeError("Row has more values than declared columns.");
-    return row;
-  }
-  if (!row || typeof row !== "object" || row instanceof Date) throw new TypeError("A row must be an array or object.");
-  return columns.map(c => {
-    const key = c.key ?? c.header;
-    return Object.prototype.hasOwnProperty.call(row, key) ? (row as Record<string, unknown>)[key] : undefined;
-  });
+export function createRowProjector(columns: readonly Column[],
+  worksheet?: { readonly sheetName: string; readonly firstDataRow: number }, signal?: AbortSignal): (row: unknown, rowIndex?: number) => readonly unknown[] {
+  const getters = columns.some(column => column.value);
+  return (row, rowIndex = 0) => {
+    if (Array.isArray(row) && !getters) {
+      if (row.length > columns.length) throw new RangeError("Row has more values than declared columns.");
+      return row;
+    }
+    if (!row || typeof row !== "object" || row instanceof Date) throw new TypeError("A row must be an array or object.");
+    if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
+      throw new RangeError("Project every column explicitly when selecting from a wider array row.");
+    return columns.map((c, columnIndex) => {
+      if (c.value) {
+        checkAbort(signal);
+        const context: ColumnValueContext = { rowIndex, columnIndex, column: c,
+          ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
+        const result = c.value(row as never, context);
+        if (!(result instanceof ExportCell)) assertScalar(result);
+        checkAbort(signal);
+        return result;
+      }
+      if (Array.isArray(row)) return row[columnIndex];
+      const key = c.key ?? c.header;
+      return Object.prototype.hasOwnProperty.call(row, key) ? (row as Record<string, unknown>)[key] : undefined;
+    });
+  };
 }
 
 export function copyColumns(columns: readonly Column[]): Column[] {
@@ -17,6 +35,7 @@ export function copyColumns(columns: readonly Column[]): Column[] {
   return columns.map(c => {
     if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
       throw new TypeError("Each column needs a string header and an optional string key.");
+    if (c.value !== undefined && typeof c.value !== "function") throw new TypeError("Column value getters must be functions.");
     if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group: unknown) => typeof group !== "string"))) throw new TypeError("Column groups must be an array of strings.");
     return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
   });

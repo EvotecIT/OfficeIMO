@@ -90,11 +90,26 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("311c6b94822327e0943ef92c269732012aea671daa01dfeb58c7611460dc47d9") ?? (() => {
+const _m2 = _modules.get("60cf0981a38cb266035d2230b7e8b540d43f02453ed61d060506b02a2200c0d6") ?? (() => {
 const { checkAbort, withAbort, inputRows, pause } = _m1;
 
 const { OfficeIMOError } = _m3;
 
+/** @internal Borrow a stream writer without closing or aborting the caller's destination. */
+async function withDestination(destination, operation) {
+    if (typeof WritableStream === "function" && destination instanceof WritableStream) {
+        const writer = destination.getWriter();
+        try {
+            return await operation({ write: bytes => writer.write(bytes) });
+        }
+        finally {
+            writer.releaseLock();
+        }
+    }
+    if (!destination || typeof destination.write !== "function")
+        throw new TypeError("Destination must be a ByteSink or WritableStream.");
+    return operation(destination);
+}
 /** Collects output only; it does not retain source rows or XML strings. */
 class BlobByteSink {
     parts = [];
@@ -178,8 +193,8 @@ async function writeBytes(source, sink, signal) {
         await withAbort(Promise.resolve(sink.write(bytes)), signal);
     }
 }
-const _exports = Object.freeze({ BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("311c6b94822327e0943ef92c269732012aea671daa01dfeb58c7611460dc47d9", _exports);
+const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
+_modules.set("60cf0981a38cb266035d2230b7e8b540d43f02453ed61d060506b02a2200c0d6", _exports);
 return _exports;
 })();
 
@@ -268,19 +283,40 @@ _modules.set("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323",
 return _exports;
 })();
 
-const _m6 = _modules.get("b3567060ef6d355755db17d818d4e23aa4bf205183cb0e3d5316df8c25450bc0") ?? (() => {
-function rowValues(row, columns) {
-    if (Array.isArray(row)) {
-        if (row.length > columns.length)
-            throw new RangeError("Row has more values than declared columns.");
-        return row;
-    }
-    if (!row || typeof row !== "object" || row instanceof Date)
-        throw new TypeError("A row must be an array or object.");
-    return columns.map(c => {
-        const key = c.key ?? c.header;
-        return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
-    });
+const _m6 = _modules.get("0b20a64c251ecb1e8408c5d6a7b3075e818fd52ac2aea3e428d32c8e5a28aabd") ?? (() => {
+const { ExportCell, assertScalar } = _m5;
+
+const { checkAbort } = _m1;
+
+function createRowProjector(columns, worksheet, signal) {
+    const getters = columns.some(column => column.value);
+    return (row, rowIndex = 0) => {
+        if (Array.isArray(row) && !getters) {
+            if (row.length > columns.length)
+                throw new RangeError("Row has more values than declared columns.");
+            return row;
+        }
+        if (!row || typeof row !== "object" || row instanceof Date)
+            throw new TypeError("A row must be an array or object.");
+        if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
+            throw new RangeError("Project every column explicitly when selecting from a wider array row.");
+        return columns.map((c, columnIndex) => {
+            if (c.value) {
+                checkAbort(signal);
+                const context = { rowIndex, columnIndex, column: c,
+                    ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
+                const result = c.value(row, context);
+                if (!(result instanceof ExportCell))
+                    assertScalar(result);
+                checkAbort(signal);
+                return result;
+            }
+            if (Array.isArray(row))
+                return row[columnIndex];
+            const key = c.key ?? c.header;
+            return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+        });
+    };
 }
 function copyColumns(columns) {
     if (!Array.isArray(columns))
@@ -288,17 +324,19 @@ function copyColumns(columns) {
     return columns.map(c => {
         if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
             throw new TypeError("Each column needs a string header and an optional string key.");
+        if (c.value !== undefined && typeof c.value !== "function")
+            throw new TypeError("Column value getters must be functions.");
         if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
             throw new TypeError("Column groups must be an array of strings.");
         return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
     });
 }
-const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns });
-_modules.set("b3567060ef6d355755db17d818d4e23aa4bf205183cb0e3d5316df8c25450bc0", _exports);
+const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
+_modules.set("0b20a64c251ecb1e8408c5d6a7b3075e818fd52ac2aea3e428d32c8e5a28aabd", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198") ?? (() => {
+const _m7 = _modules.get("1009cc29d41caf7892ec8e7fe5d9f10980b19917a1af97565995919a7291d6dd") ?? (() => {
 
 
 
@@ -341,20 +379,20 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198", _exports);
+_modules.set("1009cc29d41caf7892ec8e7fe5d9f10980b19917a1af97565995919a7291d6dd", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("42e9d6251f811464010f1e9f20f625e8b3d6e7539680748177e7fc4604749c90") ?? (() => {
+const _m0 = _modules.get("04f974811a38d24bbae0f6ae3eca1e1eaa87b756ecda51ceb6de6d7c854c92c6") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
-const { BlobByteSink, ChunkedTextSink } = _m2;
+const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
 const { ExportBudget, boundedSink } = _m4;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, rowValues } = _m6;
+const { copyColumns, createRowProjector } = _m6;
 
 
 
@@ -384,7 +422,10 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
-async function writeCsvTo(rows, sink, options) {
+async function writeCsvTo(rows, destination, options) {
+    return withDestination(destination, sink => write(rows, sink, options));
+}
+async function write(rows, sink, options) {
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
@@ -400,7 +441,10 @@ async function writeCsvTo(rows, sink, options) {
         if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
             throw new TypeError("CSV value formatters must be functions.");
     const budget = new ExportBudget(options.limits);
-    sink = boundedSink(sink, budget);
+    let bytes = 0;
+    const accepted = sink;
+    sink = boundedSink({ async write(chunk) { await accepted.write(chunk); bytes += chunk.byteLength; } }, budget);
+    const project = createRowProjector(columns, undefined, options.signal);
     const hasFormatters = columns.some(column => column.valueFormatter);
     const signal = options.signal, protect = options.formulaInjectionProtection !== false, buffer = new ChunkedTextSink(sink, signal);
     checkAbort(signal);
@@ -413,7 +457,7 @@ async function writeCsvTo(rows, sink, options) {
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
-            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
@@ -429,18 +473,19 @@ async function writeCsvTo(rows, sink, options) {
         await record(columns.map(c => c.header), true);
     for await (const row of inputRows(rows, signal)) {
         budget.row(count + 1);
-        await record(rowValues(row, columns));
+        await record(project(row, count));
         count++;
     }
     await buffer.close();
-    options.onProgress?.({ phase: "complete", rows: count });
+    options.onProgress?.({ phase: "complete", rows: count, bytes });
     checkAbort(signal);
+    return { rows: count, columns: columns.length, bytes };
 }
 async function writeCsv(rows, options) {
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
-        await writeCsvTo(rows, sink, { ...options, onProgress: p => {
+        await write(rows, sink, { ...options, onProgress: p => {
                 if (p.phase === "complete")
                     completedRows = p.rows;
                 else
@@ -457,7 +502,7 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("42e9d6251f811464010f1e9f20f625e8b3d6e7539680748177e7fc4604749c90", _exports);
+_modules.set("04f974811a38d24bbae0f6ae3eca1e1eaa87b756ecda51ceb6de6d7c854c92c6", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

@@ -132,7 +132,9 @@ export class Workbook {
     this.overflow?.clear();
   }
   get worksheets(): readonly Worksheet[] { return Object.freeze([...this.sheets]); }
-  addWorksheet(name: string, options: SheetOptions = {}): Worksheet {
+  /** Total report data rows; excludes title/header/footer and preservation records. */
+  get rowCount(): number { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
+  addWorksheet<T = never>(name: string, options: SheetOptions<T> = {}): Worksheet<T> {
     this.assertOpen();
     this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
     const conditional = Worksheet.validate(this, options);
@@ -151,8 +153,6 @@ export class Workbook {
     if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
     this.sheets.push(sheet); return sheet;
   }
-  /** Existing tabular entry point; returns the same Worksheet model as addWorksheet. */
-  addSheet(name: string, options: SheetOptions = {}): Worksheet { return this.addWorksheet(name, options); }
   addPart(part: ExtraPart): void {
     this.assertOpen();
     // Reserve now so collisions and invalid names fail at the call site.
@@ -227,5 +227,3 @@ export class Workbook {
     return this.result;
   }
 }
-
-export function createWorkbook(options: WorkbookOptions = {}): Workbook { return new Workbook(options); }

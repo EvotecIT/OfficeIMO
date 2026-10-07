@@ -30,7 +30,7 @@ async function runQualificationCase(args) {
       if (used === buffer.length) await flush();
     }
   } };
-  const { ExportCell, createWorkbook, writeCsvTo } = OfficeIMO;
+  const { ExportCell, Workbook, writeCsvTo } = OfficeIMO;
   const columns = Array.from({ length: args.columns }, (_, c) => ({ header: "Column " + c, key: "c" + c,
     type: ["number", "string", "boolean", "date"][c % 4], ...(c % 4 === 0 ? { format: "0.00" } : {}), ...(c % 4 === 3 ? { format: "yyyy-mm-dd" } : {}),
     ...(args.styled ? { groups: [c < args.columns / 2 ? "Identity" : "Metrics"] } : {}) }));
@@ -65,14 +65,14 @@ async function runQualificationCase(args) {
     const options = { signal: controller.signal, ...(args.resourceLimit ? { limits: { maxRows: 5 } } : {}) };
     if (args.format === "csv") await writeCsvTo(source(), sink, { ...options, columns });
     else {
-      const book = createWorkbook({ ...options, sink, dateMode: "utc", oversizedText: "preserve" });
+      const book = new Workbook({ ...options, sink, dateMode: "utc", oversizedText: "preserve" });
       const conditionalFormats = args.conditional ? [
         { type: "cellIs", range: { column: "c0" }, operator: "greaterThan", value: 1000, style: { fill: { color: "C6EFCE" } } },
         { type: "expression", range: { column: 1, through: args.columns }, formula: "$A" + (args.styled ? 3 : 2) + ">1000", style: { font: { bold: true } }, stopIfTrue: true },
         { type: "colorScale", range: { column: "c0" }, stops: [{ threshold: { type: "min" }, color: "F8696B" }, { threshold: { type: "max" }, color: "63BE7B" }] },
         { type: "dataBar", range: { column: "c0" }, color: "638EC6" }
       ] : [];
-      const sheet = book.addSheet("Qualified", { columns, conditionalFormats, ...(args.styled ? { table: { name: "QualifiedData" }, freezeHeader: true,
+      const sheet = book.addWorksheet("Qualified", { columns, conditionalFormats, ...(args.styled ? { table: { name: "QualifiedData" }, freezeHeader: true,
         autoSize: { sampleRows: 100, minWidth: 8, maxWidth: 40 }, alternatingRowStyle: { fill: { color: "E2F0D9" } },
         footer: { values: ["Totals"], totals: Object.fromEntries(columns.flatMap((_, c) => c % 4 === 0 ? [["c" + c, "sum"]] : [])), style: { font: { bold: true } } },
         print: { repeatHeaders: true, paper: "A4", orientation: "landscape" } } : {}) });

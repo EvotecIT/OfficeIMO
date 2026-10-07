@@ -87,6 +87,21 @@ const { checkAbort, withAbort, inputRows, pause } = _m1;
 
 const { OfficeIMOError } = _m3;
 
+/** @internal Borrow a stream writer without closing or aborting the caller's destination. */
+async function withDestination(destination, operation) {
+    if (typeof WritableStream === "function" && destination instanceof WritableStream) {
+        const writer = destination.getWriter();
+        try {
+            return await operation({ write: bytes => writer.write(bytes) });
+        }
+        finally {
+            writer.releaseLock();
+        }
+    }
+    if (!destination || typeof destination.write !== "function")
+        throw new TypeError("Destination must be a ByteSink or WritableStream.");
+    return operation(destination);
+}
 /** Collects output only; it does not retain source rows or XML strings. */
 class BlobByteSink {
     parts = [];
@@ -170,7 +185,7 @@ async function writeBytes(source, sink, signal) {
         await withAbort(Promise.resolve(sink.write(bytes)), signal);
     }
 }
-const _exports = Object.freeze({ BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
+const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
 return _exports;
 })();
 
@@ -258,18 +273,39 @@ return _exports;
 })();
 
 const _m6 = (() => {
-function rowValues(row, columns) {
-    if (Array.isArray(row)) {
-        if (row.length > columns.length)
-            throw new RangeError("Row has more values than declared columns.");
-        return row;
-    }
-    if (!row || typeof row !== "object" || row instanceof Date)
-        throw new TypeError("A row must be an array or object.");
-    return columns.map(c => {
-        const key = c.key ?? c.header;
-        return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
-    });
+const { ExportCell, assertScalar } = _m5;
+
+const { checkAbort } = _m1;
+
+function createRowProjector(columns, worksheet, signal) {
+    const getters = columns.some(column => column.value);
+    return (row, rowIndex = 0) => {
+        if (Array.isArray(row) && !getters) {
+            if (row.length > columns.length)
+                throw new RangeError("Row has more values than declared columns.");
+            return row;
+        }
+        if (!row || typeof row !== "object" || row instanceof Date)
+            throw new TypeError("A row must be an array or object.");
+        if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
+            throw new RangeError("Project every column explicitly when selecting from a wider array row.");
+        return columns.map((c, columnIndex) => {
+            if (c.value) {
+                checkAbort(signal);
+                const context = { rowIndex, columnIndex, column: c,
+                    ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
+                const result = c.value(row, context);
+                if (!(result instanceof ExportCell))
+                    assertScalar(result);
+                checkAbort(signal);
+                return result;
+            }
+            if (Array.isArray(row))
+                return row[columnIndex];
+            const key = c.key ?? c.header;
+            return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+        });
+    };
 }
 function copyColumns(columns) {
     if (!Array.isArray(columns))
@@ -277,12 +313,14 @@ function copyColumns(columns) {
     return columns.map(c => {
         if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
             throw new TypeError("Each column needs a string header and an optional string key.");
+        if (c.value !== undefined && typeof c.value !== "function")
+            throw new TypeError("Column value getters must be functions.");
         if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
             throw new TypeError("Column groups must be an array of strings.");
         return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
     });
 }
-const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns });
+const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
 return _exports;
 })();
 
@@ -335,13 +373,13 @@ return _exports;
 const _m0 = (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
-const { BlobByteSink, ChunkedTextSink } = _m2;
+const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
 const { ExportBudget, boundedSink } = _m4;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, rowValues } = _m6;
+const { copyColumns, createRowProjector } = _m6;
 
 
 
@@ -371,7 +409,10 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
-async function writeCsvTo(rows, sink, options) {
+async function writeCsvTo(rows, destination, options) {
+    return withDestination(destination, sink => write(rows, sink, options));
+}
+async function write(rows, sink, options) {
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
@@ -387,7 +428,10 @@ async function writeCsvTo(rows, sink, options) {
         if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
             throw new TypeError("CSV value formatters must be functions.");
     const budget = new ExportBudget(options.limits);
-    sink = boundedSink(sink, budget);
+    let bytes = 0;
+    const accepted = sink;
+    sink = boundedSink({ async write(chunk) { await accepted.write(chunk); bytes += chunk.byteLength; } }, budget);
+    const project = createRowProjector(columns, undefined, options.signal);
     const hasFormatters = columns.some(column => column.valueFormatter);
     const signal = options.signal, protect = options.formulaInjectionProtection !== false, buffer = new ChunkedTextSink(sink, signal);
     checkAbort(signal);
@@ -400,7 +444,7 @@ async function writeCsvTo(rows, sink, options) {
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
-            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
@@ -416,18 +460,19 @@ async function writeCsvTo(rows, sink, options) {
         await record(columns.map(c => c.header), true);
     for await (const row of inputRows(rows, signal)) {
         budget.row(count + 1);
-        await record(rowValues(row, columns));
+        await record(project(row, count));
         count++;
     }
     await buffer.close();
-    options.onProgress?.({ phase: "complete", rows: count });
+    options.onProgress?.({ phase: "complete", rows: count, bytes });
     checkAbort(signal);
+    return { rows: count, columns: columns.length, bytes };
 }
 async function writeCsv(rows, options) {
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
-        await writeCsvTo(rows, sink, { ...options, onProgress: p => {
+        await write(rows, sink, { ...options, onProgress: p => {
                 if (p.phase === "complete")
                     completedRows = p.rows;
                 else

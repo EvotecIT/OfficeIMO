@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { createWorkbook } from "../dist/xlsx/index.js";
+import { Workbook } from "../dist/xlsx/index.js";
 import { readZip } from "./zip-reader.mjs";
 
 test("typed workbook stores literal text, date serials and styles with valid ZIP payloads", async () => {
-  const events = [], book = createWorkbook({ creator: "A<&\"", title: "T<>&", dateMode: "utc", onProgress: p => events.push(p) });
-  const sheet = book.addSheet("'Bad[]:*?/\\'", { columns: [
+  const events = [], book = new Workbook({ creator: "A<&\"", title: "T<>&", dateMode: "utc", onProgress: p => events.push(p) });
+  const sheet = book.addWorksheet("'Bad[]:*?/\\'", { columns: [
     { header: "Text", width: 28, wrapText: true, alignment: "left" },
     { header: "Number", type: "number", format: "0.00" },
     { header: "Date", type: "date", format: "yyyy-mm-dd hh:mm" },
@@ -28,29 +28,29 @@ test("typed workbook stores literal text, date serials and styles with valid ZIP
   assert.match(zip.get("xl/styles.xml").content, /formatCode="yyyy-mm-dd hh:mm"/);
   assert.match(zip.get("xl/styles.xml").content, /rgb="FFD9E1F2"/);
   assert.equal(events.at(-1).rows, 3);
-  assert.throws(() => book.addSheet("late"), /finalized/);
+  assert.throws(() => book.addWorksheet("late"), /finalized/);
 });
 
 test("empty workbook, one cell, unique names and stored fallback", async () => {
   const original = globalThis.CompressionStream;
   try {
     globalThis.CompressionStream = undefined;
-    const book = createWorkbook();
-    const names = [book.addSheet("  ").name, book.addSheet("sheet").name, book.addSheet("'  '").name,
-      book.addSheet("History").name, book.addSheet("a".repeat(30) + "🧪").name];
+    const book = new Workbook();
+    const names = [book.addWorksheet("  ").name, book.addWorksheet("sheet").name, book.addWorksheet("'  '").name,
+      book.addWorksheet("History").name, book.addWorksheet("a".repeat(30) + "🧪").name];
     assert.deepEqual(names, ["Sheet", "sheet (2)", "Sheet (3)", "History_", "a".repeat(30)]);
-    const one = book.addSheet("One", { columns: [{ header: "V" }], includeHeader: false });
+    const one = book.addWorksheet("One", { columns: [{ header: "V" }], includeHeader: false });
     await one.addRows([["🧪"]]);
     const zip = await readZip(await book.toBlob());
     assert.ok([...zip.values()].every(e => e.method === 0));
     assert.match(zip.get("xl/worksheets/sheet6.xml").content, /r="A1"/);
-    const empty = await readZip(await createWorkbook().toBlob());
+    const empty = await readZip(await new Workbook().toBlob());
     assert.match(empty.get("xl/worksheets/sheet1.xml").content, /<sheetData><\/sheetData>/);
   } finally { globalThis.CompressionStream = original; }
 });
 
 test("OOXML attributes preserve literal escapes and validate the decoded worksheet names", async () => {
-  const book = createWorkbook({ compression: "store" });
+  const book = new Workbook({ compression: "store" });
   const requests = ["_x0041_", "A", "_x003A_", "_x003a_", "Bad:Name", "Bad_Name", "_x005F_x0041_"];
   const expected = ["_x0041_", "A", "_x003A_", "_x003a_ (2)", "Bad_Name", "Bad_Name (2)", "_x005F_x0041_"];
   for (const name of requests) book.addWorksheet(name);
@@ -68,33 +68,33 @@ test("OOXML attributes preserve literal escapes and validate the decoded workshe
 });
 
 test("XLSX enforces string, width, column, date and declared-type boundaries", async () => {
-  const book = createWorkbook();
-  assert.throws(() => book.addSheet("Too wide", { columns: Array.from({ length: 16385 }, () => ({ header: "V" })) }), RangeError);
-  assert.throws(() => book.addSheet("Width", { columns: [{ header: "V", width: 256 }] }), RangeError);
-  assert.throws(() => book.addSheet("Bad header", { columns: [{ header: "x".repeat(32768) }] }), RangeError);
-  assert.throws(() => book.addSheet("Bad filter", { includeHeader: false, autoFilter: true }), TypeError);
-  const long = book.addSheet("Long", { columns: [{ header: "V" }] });
+  const book = new Workbook();
+  assert.throws(() => book.addWorksheet("Too wide", { columns: Array.from({ length: 16385 }, () => ({ header: "V" })) }), RangeError);
+  assert.throws(() => book.addWorksheet("Width", { columns: [{ header: "V", width: 256 }] }), RangeError);
+  assert.throws(() => book.addWorksheet("Bad header", { columns: [{ header: "x".repeat(32768) }] }), RangeError);
+  assert.throws(() => book.addWorksheet("Bad filter", { includeHeader: false, autoFilter: true }), TypeError);
+  const long = book.addWorksheet("Long", { columns: [{ header: "V" }] });
   await long.addRows([["x".repeat(32767)]]);
   await assert.rejects(long.addRows([["x".repeat(32768)]]), RangeError);
   await assert.rejects(book.toBlob(), RangeError);
-  const typed = createWorkbook().addSheet("Typed", { columns: [{ header: "V", type: "number" }] });
+  const typed = new Workbook().addWorksheet("Typed", { columns: [{ header: "V", type: "number" }] });
   await assert.rejects(typed.addRows([["2"]]), TypeError);
-  const dates = createWorkbook().addSheet("Dates", { columns: [{ header: "V" }] });
+  const dates = new Workbook().addWorksheet("Dates", { columns: [{ header: "V" }] });
   await assert.rejects(dates.addRows([[new Date("1800-01-01T00:00:00Z")]]), RangeError);
 });
 
 test("maximum column projects the last cell to XFD", async () => {
-  const book = createWorkbook({ compression: "store" });
+  const book = new Workbook({ compression: "store" });
   const cols = Array.from({ length: 16384 }, () => ({ header: "V" }));
-  const sheet = book.addSheet("Wide", { columns: cols, includeHeader: false });
+  const sheet = book.addWorksheet("Wide", { columns: cols, includeHeader: false });
   const row = Array(16384).fill(null); row[16383] = "last";
   await sheet.addRows([row]);
   assert.match((await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content, /r="XFD1"[^>]*t="inlineStr"/);
 });
 
 test("XLSX rejects overlapping appends/finalization and snapshots object projection", async () => {
-  const columns = [{ header: "V", key: "value" }], book = createWorkbook();
-  const sheet = book.addSheet("Data", { columns }); columns[0].key = "other";
+  const columns = [{ header: "V", key: "value" }], book = new Workbook();
+  const sheet = book.addWorksheet("Data", { columns }); columns[0].key = "other";
   let release;
   async function* rows() { await new Promise(r => { release = r; }); yield { value: "kept" }; }
   const writing = sheet.addRows(rows());
@@ -106,8 +106,8 @@ test("XLSX rejects overlapping appends/finalization and snapshots object project
 });
 
 test("XLSX cancels mid-stream and never finalizes a partial workbook", async () => {
-  const controller = new AbortController(), book = createWorkbook({ signal: controller.signal });
-  const sheet = book.addSheet("Rows", { columns: [{ header: "V" }] });
+  const controller = new AbortController(), book = new Workbook({ signal: controller.signal });
+  const sheet = book.addWorksheet("Rows", { columns: [{ header: "V" }] });
   let closed = false;
   function* rows() { try { for (let i = 0; i < 100000; i++) yield ["text" + i]; } finally { closed = true; } }
   const writing = sheet.addRows(rows());
@@ -126,11 +126,11 @@ test("classic scripts compose in either order without a module loader", async ()
       if (core) assert.equal(context.OfficeIMO.core, core);
       core = context.OfficeIMO.core;
     }
-    assert.equal(typeof context.OfficeIMO.createWorkbook, "function");
+    assert.equal(typeof context.OfficeIMO.Workbook, "function");
     assert.equal(typeof context.OfficeIMO.writeCsv, "function");
     assert.equal(typeof context.OfficeIMO.saveBlob, "function");
     assert.equal(typeof context.OfficeIMO.registerDataTablesButtons, "function");
-    assert.throws(() => context.OfficeIMO.createWorkbook().addWorksheet("Pending", { dataValidation: [] }), error =>
+    assert.throws(() => new context.OfficeIMO.Workbook().addWorksheet("Pending", { dataValidation: [] }), error =>
       error instanceof context.OfficeIMO.core.NotSupportedError && error instanceof context.OfficeIMO.core.OfficeIMOError);
     vm.runInContext(await readFile(new URL("../bundles/officeimo.js", import.meta.url), "utf8"), context);
     assert.equal(context.OfficeIMO.core, core);
@@ -141,8 +141,8 @@ test("classic scripts compose in either order without a module loader", async ()
 test("standalone ES module assets execute the same writer contracts", async () => {
   for (const name of ["officeimo", "officeimo-xlsx", "officeimo-csv"]) {
     const module = await import("../bundles/" + name + ".mjs");
-    if (module.createWorkbook) {
-      const book = module.createWorkbook({ compression: "store" });
+    if (module.Workbook) {
+      const book = new module.Workbook({ compression: "store" });
       await book.addWorksheet("Module", { columns: [{ header: "V" }] }).addRows([["Łódź 🧪"]]);
       assert.match((await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content, /Łódź 🧪/);
     }
@@ -154,8 +154,8 @@ test("an installed CompressionStream without deflate-raw support falls back to s
   const original = globalThis.CompressionStream;
   try {
     globalThis.CompressionStream = class { constructor() { throw new TypeError("No raw deflate support"); } };
-    const book = createWorkbook();
-    await book.addSheet("Stored", { columns: [{ header: "V" }] }).addRows([["fallback"]]);
+    const book = new Workbook();
+    await book.addWorksheet("Stored", { columns: [{ header: "V" }] }).addRows([["fallback"]]);
     assert.ok([...(await readZip(await book.toBlob())).values()].every(e => e.method === 0));
   } finally { globalThis.CompressionStream = original; }
 });

@@ -15,8 +15,8 @@ globalThis.runDataTablesWorker = async function (source, script, compression, ca
           for (const row of batch.rows) yield row.map(cell => cell.resolved ? new OfficeIMO.ExportCell(cell.value, cell.options) : cell.value);
           if (batch.done) return;
         } }
-        const book = new OfficeIMO.Workbook({sink,signal:controller.signal,compression:data.compression});
-        await book.addSheet('Worker',{columns:data.columns}).addRows(rows()); await book.finish(); postMessage({done:true});
+        await OfficeIMO.writeXlsxTo(rows(),sink,{signal:controller.signal,compression:data.compression,
+          columns:data.columns,sheet:{name:'Worker'}}); postMessage({done:true});
       } catch (error) { postMessage({failure:String(error)}); }
     };`;
   const url = URL.createObjectURL(new Blob([script, '\n', bootstrap], { type: 'text/javascript' }));

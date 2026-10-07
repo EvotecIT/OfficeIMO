@@ -87,6 +87,21 @@ const { checkAbort, withAbort, inputRows, pause } = _m4;
 
 const { OfficeIMOError } = _m2;
 
+/** @internal Borrow a stream writer without closing or aborting the caller's destination. */
+async function withDestination(destination, operation) {
+    if (typeof WritableStream === "function" && destination instanceof WritableStream) {
+        const writer = destination.getWriter();
+        try {
+            return await operation({ write: bytes => writer.write(bytes) });
+        }
+        finally {
+            writer.releaseLock();
+        }
+    }
+    if (!destination || typeof destination.write !== "function")
+        throw new TypeError("Destination must be a ByteSink or WritableStream.");
+    return operation(destination);
+}
 /** Collects output only; it does not retain source rows or XML strings. */
 class BlobByteSink {
     parts = [];
@@ -170,7 +185,7 @@ async function writeBytes(source, sink, signal) {
         await withAbort(Promise.resolve(sink.write(bytes)), signal);
     }
 }
-const _exports = Object.freeze({ BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
+const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
 return _exports;
 })();
 
@@ -1471,18 +1486,39 @@ return _exports;
 })();
 
 const _m20 = (() => {
-function rowValues(row, columns) {
-    if (Array.isArray(row)) {
-        if (row.length > columns.length)
-            throw new RangeError("Row has more values than declared columns.");
-        return row;
-    }
-    if (!row || typeof row !== "object" || row instanceof Date)
-        throw new TypeError("A row must be an array or object.");
-    return columns.map(c => {
-        const key = c.key ?? c.header;
-        return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
-    });
+const { ExportCell, assertScalar } = _m5;
+
+const { checkAbort } = _m4;
+
+function createRowProjector(columns, worksheet, signal) {
+    const getters = columns.some(column => column.value);
+    return (row, rowIndex = 0) => {
+        if (Array.isArray(row) && !getters) {
+            if (row.length > columns.length)
+                throw new RangeError("Row has more values than declared columns.");
+            return row;
+        }
+        if (!row || typeof row !== "object" || row instanceof Date)
+            throw new TypeError("A row must be an array or object.");
+        if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
+            throw new RangeError("Project every column explicitly when selecting from a wider array row.");
+        return columns.map((c, columnIndex) => {
+            if (c.value) {
+                checkAbort(signal);
+                const context = { rowIndex, columnIndex, column: c,
+                    ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
+                const result = c.value(row, context);
+                if (!(result instanceof ExportCell))
+                    assertScalar(result);
+                checkAbort(signal);
+                return result;
+            }
+            if (Array.isArray(row))
+                return row[columnIndex];
+            const key = c.key ?? c.header;
+            return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+        });
+    };
 }
 function copyColumns(columns) {
     if (!Array.isArray(columns))
@@ -1490,12 +1526,14 @@ function copyColumns(columns) {
     return columns.map(c => {
         if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
             throw new TypeError("Each column needs a string header and an optional string key.");
+        if (c.value !== undefined && typeof c.value !== "function")
+            throw new TypeError("Column value getters must be functions.");
         if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
             throw new TypeError("Column groups must be an array of strings.");
         return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
     });
 }
-const _exports = Object.freeze({ rowValues: rowValues, copyColumns: copyColumns });
+const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
 return _exports;
 })();
 
@@ -2029,7 +2067,7 @@ const { ChunkedTextSink, BlobByteSink } = _m3;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { copyColumns, rowValues } = _m20;
+const { copyColumns, createRowProjector } = _m20;
 
 const { EntryWriter } = _m7;
 
@@ -2058,6 +2096,7 @@ class Worksheet {
     table;
     preserved;
     columns;
+    project;
     declared;
     options;
     entry;
@@ -2096,6 +2135,7 @@ class Worksheet {
         this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
+        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
         for (const link of options.hyperlinks ?? [])
             this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
         book.checkLinks(this.links.length);
@@ -2192,7 +2232,7 @@ class Worksheet {
         if (!header && !footer && col.column.type && !emptyCovered) {
             const writer = this.book.writerFor(col.column.type);
             if (writer)
-                value = writer(value instanceof Cell ? value.value : value, { column: col.column, row, columnIndex: i + 1, sheetName: this.name });
+                value = writer(value instanceof Cell ? value.value : value, { column: col.column, rowIndex: row - this.headerRows - 1, worksheetRow: row, columnIndex: i, sheetName: this.name });
         }
         if (value instanceof ExportCell) {
             presentation = value.presentation;
@@ -2226,7 +2266,7 @@ class Worksheet {
                     rowStyles?.set(base, style);
                 }
             }
-            const patch = context && this.options.cellStyle?.({ ...context, value: value, column: col.column, columnIndex: i + 1 });
+            const patch = context && this.options.cellStyle?.({ ...context, value: value, column: col.column, columnIndex: i });
             if (patch !== undefined)
                 style = this.book.styles.compose(style, patch);
         }
@@ -2279,7 +2319,7 @@ class Worksheet {
     }
     *rowXml(values, number, header, footer = false, title = false) {
         const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
-        const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
+        const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
             values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? values[i].value : values[i])) }) : undefined;
         const rowStyle = context && this.options.rowStyle?.(context);
         if (rowStyle !== undefined)
@@ -2378,7 +2418,7 @@ class Worksheet {
                 this.book.budget.row(this.count + 1);
                 if (!this.columns.length)
                     throw new RangeError("Declare columns before adding rows.");
-                const values = rowValues(row, this.columns);
+                const values = this.project(row, this.count);
                 if (!this.started) {
                     if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
                         throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
@@ -2419,8 +2459,11 @@ class Worksheet {
             this.busy = false;
         }
     }
-    progress() { this.book.settings.onProgress?.({ phase: "rows", rows: this.count, sheetName: this.name }); }
+    progress() { if (!this.preserved)
+        this.book.settings.onProgress?.({ phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
+    /** @internal Preservation records are metadata, not report data rows. */
+    get reportRowCount() { return this.preserved ? 0 : this.count; }
     /** Register a PNG such as a chart; bytes are copied so the caller can reuse its buffer. */
     addImage(image) {
         this.book.assertOpen();
@@ -2503,7 +2546,7 @@ class Worksheet {
                 if (preservedRows)
                     for await (const row of inputRows(preservedRows, this.book.settings.signal)) {
                         this.book.budget.row(this.count + 1);
-                        await this.writeRow(rowValues(row, this.columns), this.headerRows + this.count + 1, false);
+                        await this.writeRow(this.project(row, this.count), this.headerRows + this.count + 1, false);
                         this.count++;
                     }
                 if (this.options.footer)
@@ -2823,6 +2866,8 @@ class Workbook {
         this.overflow?.clear();
     }
     get worksheets() { return Object.freeze([...this.sheets]); }
+    /** Total report data rows; excludes title/header/footer and preservation records. */
+    get rowCount() { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
     addWorksheet(name, options = {}) {
         this.assertOpen();
         this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
@@ -2848,8 +2893,6 @@ class Workbook {
         this.sheets.push(sheet);
         return sheet;
     }
-    /** Existing tabular entry point; returns the same Worksheet model as addWorksheet. */
-    addSheet(name, options = {}) { return this.addWorksheet(name, options); }
     addPart(part) {
         this.assertOpen();
         // Reserve now so collisions and invalid names fail at the call site.
@@ -2949,27 +2992,69 @@ class Workbook {
         return this.result;
     }
 }
-function createWorkbook(options = {}) { return new Workbook(options); }
-const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
+const _exports = Object.freeze({ Workbook: Workbook });
+return _exports;
+})();
+
+const _m27 = (() => {
+const { withDestination } = _m3;
+
+const { Workbook } = _m13;
+
+function worksheet(book, options) {
+    const { name = "Data", ...sheet } = options.sheet ?? {};
+    return book.addWorksheet(name, { boldHeader: true, autoFilter: sheet.includeHeader !== false,
+        autoSize: { sampleRows: 100, minWidth: 6, maxWidth: 54 }, ...sheet, columns: options.columns });
+}
+async function writeXlsx(rows, options) {
+    const { columns: _columns, sheet: _sheet, ...settings } = options;
+    const book = new Workbook(settings);
+    try {
+        await worksheet(book, options).addRows(rows);
+        return await book.toBlob();
+    }
+    catch (error) {
+        await book.discard(error);
+        throw error;
+    }
+}
+async function writeXlsxTo(rows, destination, options) {
+    return withDestination(destination, async (sink) => {
+        const { columns: _columns, sheet: _sheet, ...settings } = options;
+        const book = new Workbook({ ...settings, sink });
+        try {
+            const sheet = worksheet(book, options);
+            const columns = options.columns.length;
+            await sheet.addRows(rows);
+            const result = await book.finish();
+            return { rows: result.rows, columns, bytes: result.bytes };
+        }
+        catch (error) {
+            await book.discard(error);
+            throw error;
+        }
+    });
+}
+const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
 return _exports;
 })();
 
 const _m12 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m13.Workbook, createWorkbook: _m13.createWorkbook, Worksheet: _m19.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+const _exports = Object.freeze({ Workbook: _m13.Workbook, writeXlsx: _m27.writeXlsx, writeXlsxTo: _m27.writeXlsxTo, Worksheet: _m19.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m28 = (() => {
 const { checkAbort, inputRows, withAbort } = _m4;
 
-const { BlobByteSink, ChunkedTextSink } = _m3;
+const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
 const { ExportBudget, boundedSink } = _m14;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, rowValues } = _m20;
+const { copyColumns, createRowProjector } = _m20;
 
 
 
@@ -2999,7 +3084,10 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
-async function writeCsvTo(rows, sink, options) {
+async function writeCsvTo(rows, destination, options) {
+    return withDestination(destination, sink => write(rows, sink, options));
+}
+async function write(rows, sink, options) {
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
@@ -3015,7 +3103,10 @@ async function writeCsvTo(rows, sink, options) {
         if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
             throw new TypeError("CSV value formatters must be functions.");
     const budget = new ExportBudget(options.limits);
-    sink = boundedSink(sink, budget);
+    let bytes = 0;
+    const accepted = sink;
+    sink = boundedSink({ async write(chunk) { await accepted.write(chunk); bytes += chunk.byteLength; } }, budget);
+    const project = createRowProjector(columns, undefined, options.signal);
     const hasFormatters = columns.some(column => column.valueFormatter);
     const signal = options.signal, protect = options.formulaInjectionProtection !== false, buffer = new ChunkedTextSink(sink, signal);
     checkAbort(signal);
@@ -3028,7 +3119,7 @@ async function writeCsvTo(rows, sink, options) {
         for (let i = 0; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
-            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { row: count + 1, columnIndex: i + 1, column, values: snapshot }) : raw;
+            let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
@@ -3044,18 +3135,19 @@ async function writeCsvTo(rows, sink, options) {
         await record(columns.map(c => c.header), true);
     for await (const row of inputRows(rows, signal)) {
         budget.row(count + 1);
-        await record(rowValues(row, columns));
+        await record(project(row, count));
         count++;
     }
     await buffer.close();
-    options.onProgress?.({ phase: "complete", rows: count });
+    options.onProgress?.({ phase: "complete", rows: count, bytes });
     checkAbort(signal);
+    return { rows: count, columns: columns.length, bytes };
 }
 async function writeCsv(rows, options) {
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
-        await writeCsvTo(rows, sink, { ...options, onProgress: p => {
+        await write(rows, sink, { ...options, onProgress: p => {
                 if (p.phase === "complete")
                     completedRows = p.rows;
                 else
@@ -3077,8 +3169,8 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m27, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, createWorkbook: _m12.createWorkbook, writeCsv: _m27.writeCsv, writeCsvTo: _m27.writeCsvTo, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
+const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m28, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, writeXlsx: _m12.writeXlsx, writeXlsxTo: _m12.writeXlsxTo, writeCsv: _m28.writeCsv, writeCsvTo: _m28.writeCsvTo, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
-const { core, zip, xml, opc, xlsx, csv, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, createWorkbook, writeCsv, writeCsvTo, saveBlob, ExportCell } = _m0;
-export { core, zip, xml, opc, xlsx, csv, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, createWorkbook, writeCsv, writeCsvTo, saveBlob, ExportCell };
+const { core, zip, xml, opc, xlsx, csv, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, saveBlob, ExportCell } = _m0;
+export { core, zip, xml, opc, xlsx, csv, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, saveBlob, ExportCell };

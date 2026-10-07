@@ -18,7 +18,7 @@ globalThis.runDataTablesContracts = async function (workerScript) {
     select: true, colReorder: true, order: [[1, 'asc']], layout: { topStart: null } });
   table.search('visible').draw(); table.rows([0, 2]).select();
   const options = { exportOptions: { columns: ':visible' }, columnOptions: { 1: { type: 'number', format: '0.00' } },
-    project: (v, c) => c.columnIndex === 1 ? new O.ExportCell(v, { presentation: { background: 'E2F0D9' } }) : v };
+    project: (v, c) => c.sourceColumnIndex === 1 ? new O.ExportCell(v, { presentation: { background: 'E2F0D9' } }) : v };
   const produced = [], reports = [];
   for (const mode of ['batched', 'compatibility']) {
     const source = O.createDataTablesExport(D, table, { ...options, mode });
@@ -86,7 +86,7 @@ globalThis.runDataTablesContracts = async function (workerScript) {
         else missingNodes++;
         return value;
       }}},
-      project:(v,c) => c.columnIndex === 0 ? new O.ExportCell(v,{presentation:{background:'E2F0D9'}}) : v });
+      project:(v,c) => c.sourceColumnIndex === 0 ? new O.ExportCell(v,{presentation:{background:'E2F0D9'}}) : v });
     const result = await runDataTablesWorker(source,workerScript,compression);
     check(!result.failure && result.produced === 130 && result.maxBatch === 64 && result.maxChunk <= 65536,'bounded multi-batch worker rows/output');
     check(predicateCalls-predicatesBefore<=source.rowCount,'projection rescanned table: '+(predicateCalls-predicatesBefore)+' predicates for '+source.rowCount+' rows');

@@ -36,12 +36,14 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
 
 test("batched export preserves scope, reordered cell indexes, typed presentation, grouped headings and footer", async () => {
   const { host, table, calls } = fixture();
-  const options = { batchRows: 1, maxBatchCells: 2, columnOptions: { 1: { type: "number", format: "0.00" } },
-    project: (v, c) => c.columnIndex === 1 ? new ExportCell(v, { text: "=display", presentation: { background: "C6EFCE" } }) : v };
+  const contexts = [], options = { batchRows: 1, maxBatchCells: 2, columnOptions: { 1: { type: "number", format: "0.00" } },
+    project: (v, c) => { contexts.push(c); return c.sourceColumnIndex === 1 ? new ExportCell(v, { text: "=display", presentation: { background: "C6EFCE" } }) : v; } };
   const source = createDataTablesExport(host, table, options), rows = await collect(source.rows);
   assert.equal(source.rowCount, 2); assert.deepEqual(source.headers, [["Metrics", ""], ["Name", "Amount"]]);
   assert.equal(rows[0][0], "first"); assert.equal(rows[0][1].value, 7.5); assert.deepEqual(calls, [[1], [0]]);
+  assert.deepEqual(contexts.map(c => [c.sourceRowIndex, c.sourceColumnIndex, c.rowIndex, c.columnIndex]), [[1, 1, 0, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 0]]);
   assert.throws(() => source.rows[Symbol.asyncIterator](), /only once/);
+  assert.throws(() => createDataTablesExport(host, table, { columnOptions: { 1: { value: () => "unexpected" } } }), /resolve values with project/);
   const zip = await readZip(await exportDataTable(host, table, "xlsx", options));
   assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<mergeCell ref="A1:B1"/);
   assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<c r="B3" s="\d+"><v>7.5<\/v>/);

@@ -48,7 +48,9 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   const leaf = array(member(data, "header"));
   if (leaf.length !== columnIndexes.length) throw new TypeError("Export header must match the selected columns.");
   const heading = headings(member(data, "headerStructure"), leaf, headingMode);
-  const columns: readonly Column[] = Object.freeze(leaf.map((label, index) => Object.freeze({
+  for (const index of columnIndexes) if (member(options.columnOptions?.[index], "value") !== undefined)
+    throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
+  const columns: readonly Column<readonly ExportValue[]>[] = Object.freeze(leaf.map((label, index) => Object.freeze({
     header: text(label), key: "dt:" + columnIndexes[index]!, ...options.columnOptions?.[columnIndexes[index]!],
     ...(heading.groups[index]!.length ? { groups: Object.freeze(heading.groups[index]!) } : {})
   })));
@@ -132,7 +134,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   function project(input: unknown, rowIndex: number, column: number, rowOrdinal: number): ExportValue {
     checkAbort(signal);
     const scalar = value(input);
-    return projectValue ? value(projectValue(scalar, { rowIndex, columnIndex: columnIndexes[column]!, rowOrdinal })) : scalar;
+    return projectValue ? value(projectValue(scalar, { sourceRowIndex: rowIndex, sourceColumnIndex: columnIndexes[column]!, rowIndex: rowOrdinal, columnIndex: column })) : scalar;
   }
   return Object.freeze({ columns, headers: Object.freeze(heading.rows.map(row => Object.freeze(row))),
     footer: footer ? Object.freeze(footer) : undefined, rowCount: count, rows });

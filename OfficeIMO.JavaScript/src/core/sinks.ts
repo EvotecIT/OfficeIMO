@@ -3,8 +3,21 @@ import { OfficeIMOError } from "./errors.js";
 
 /** Writes must resolve only after the sink accepts bytes. Ownership stays with the caller. */
 export interface ByteSink { write(bytes: Uint8Array): void | Promise<void>; }
+/** A caller-owned byte destination. WritableStream locks are borrowed only for the operation. */
+export type OutputDestination = ByteSink | WritableStream<Uint8Array>;
 export type ByteWriter = (bytes: Uint8Array) => void | Promise<void>;
 export type ByteSource = Uint8Array | Iterable<Uint8Array> | AsyncIterable<Uint8Array>;
+
+/** @internal Borrow a stream writer without closing or aborting the caller's destination. */
+export async function withDestination<T>(destination: OutputDestination, operation: (sink: ByteSink) => Promise<T>): Promise<T> {
+  if (typeof WritableStream === "function" && destination instanceof WritableStream) {
+    const writer = destination.getWriter();
+    try { return await operation({ write: bytes => writer.write(bytes) }); }
+    finally { writer.releaseLock(); }
+  }
+  if (!destination || typeof (destination as ByteSink).write !== "function") throw new TypeError("Destination must be a ByteSink or WritableStream.");
+  return operation(destination as ByteSink);
+}
 
 /** Collects output only; it does not retain source rows or XML strings. */
 export class BlobByteSink implements ByteSink {

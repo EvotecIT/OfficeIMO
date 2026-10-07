@@ -20,6 +20,58 @@ npm pack --pack-destination /path/to/local-packages
 
 `tsc` produces ES modules and declarations in `dist/`. The archive contains those files, portable bundles, this README and the MIT license. TypeScript is a development dependency; installing the archive as an application dependency installs no compiler or runtime packages.
 
+## Export a table
+
+Use the same columns for XLSX and CSV. Object columns select a typed key or compute a synchronous value; array rows use positional columns. A getter can return `ExportCell` to keep a typed value together with display text and presentation.
+
+```ts
+import { writeXlsx, writeCsv, ExportCell, saveBlob } from "@evotecit/officeimo";
+import type { Column } from "@evotecit/officeimo";
+
+interface Sale { customer: { name: string }; amount: number; seen: Date; }
+const columns = [
+  { header: "Customer", key: "customerName", value: (row: Sale) => row.customer.name },
+  { header: "Amount", key: "amount", type: "number", format: "0.00",
+    value: (row: Sale) => new ExportCell(row.amount, {
+      text: row.amount.toFixed(2) + " USD",
+      presentation: row.amount < 0 ? { background: "FFC7CE" } : {}
+    }) },
+  { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }
+] satisfies readonly Column<Sale>[];
+const rows: Sale[] = [{ customer: { name: "Łódź 🧪" }, amount: 12.5, seen: new Date() }];
+
+saveBlob(await writeXlsx(rows, {
+  columns, dateMode: "utc",
+  sheet: { name: "Sales", table: {}, freezeHeader: true }
+}), "sales.xlsx");
+saveBlob(await writeCsv(rows, { columns }), "sales.csv");
+```
+
+`Column<Sale>` checks literal keys against `Sale`. Getters support nested fields and calculated values; their optional `key` is a stable report identifier for totals and conditional ranges. Unselected domain fields can be arbitrary objects. Arrays are positional unless every column has a getter; that explicit projection can select from a wider array. Dots in literal keys do not traverse objects. TypeScript 5.4 or newer is required for the typed writer signatures.
+
+| Task | Entry point | Completion |
+| --- | --- | --- |
+| One Excel table | `writeXlsx(rows, options)` | `Blob` |
+| One CSV table | `writeCsv(rows, options)` | `Blob` |
+| Write a table to a destination | `writeXlsxTo(rows, destination, options)` / `writeCsvTo(...)` | `{ rows, columns, bytes }` |
+| Multiple worksheets, registered styles, images or extra parts | `new Workbook(options)`, `addWorksheet`, `addRows` | `toBlob()` or streamed `finish()` |
+| Export an installed DataTables grid | Optional integration below | Same writers and destination ownership |
+
+The table writers accept synchronous iterables and async iterables. XLSX defaults to the sheet name `Data`, a bold header, filtering when a header is present, and width sampling of up to 100 rows clamped to 6–54 characters. `sheet` supplies the existing worksheet layout options. Workbook-local style indexes belong to the advanced `Workbook` API; portable `ExportCell` presentation and row/cell style patches work with the table helper.
+
+An async generator is consumed once. Use a source factory for separate exports rather than passing the same generator twice:
+
+```ts
+async function* loadSales(): AsyncGenerator<Sale> {
+  // Fetch pages here and yield typed Sale records, including Date values.
+  yield* rows;
+}
+const excel = await writeXlsx(loadSales(), { columns });
+const csv = await writeCsv(loadSales(), { columns, valueMode: "display" });
+```
+
+Data callbacks use zero-based `rowIndex` and `columnIndex`, excluding titles, headings and totals. XLSX additionally supplies one-based `worksheetRow` and `sheetName`. A getter runs once per selected cell per export, before formatting, preservation and resource checks on the resolved value. Getters are synchronous; perform asynchronous loading in the row source. Missing object values produce empty cells. Invalid nested objects, asynchronous getter results and extra unprojected array values fail visibly.
+
 ## DataTables Excel and CSV exports
 
 The optional `@evotecit/officeimo/integrations/datatables` entry connects an installed DataTables/Buttons instance to the XLSX and CSV writers. It imports neither DataTables nor jQuery and does not use JSZip. Importing the main OfficeIMO package does not load the integration.
@@ -45,9 +97,9 @@ const table = new DataTable("#report", {
 
 Register once, after installing Buttons. Processing clears when saving completes or before calling `onError`. The default destination downloads a Blob; `save(blob, filename)` replaces delivery. Each button can override registration options through its `officeimo` property. Familiar `filename`, `exportOptions` and `footer: false` properties are supported. Filename patterns use Buttons' `exportInfo()` title substitution and sanitization: `"*"` uses the document title, and a synchronous `filename(configuration, table)` callback can return a pattern. Native XML `customize`, `header: false`, `title`, `messageTop` and `messageBottom` are rejected: express report layout through `officeimo.sheet` instead.
 
-For application-owned buttons, `exportDataTable(DataTable, table, "xlsx" | "csv", options)` returns a Blob. `writeDataTableTo(DataTable, table, format, destination, options)` awaits a caller-owned `ByteSink` and returns data-row, column and byte counts. Both accept `signal`, `onProgress`, shared resource `limits`, and `sheet`, `workbook` or `csv` options. XLSX defaults to a bold header, filtering and bounded width sampling of 100 rows, clamped to 6–54 characters. Explicit column widths avoid sampling that column.
+For application-owned buttons, `exportDataTable(DataTable, table, "xlsx" | "csv", options)` returns a Blob. `writeDataTableTo(DataTable, table, format, destination, options)` accepts a caller-owned `ByteSink` or `WritableStream<Uint8Array>` and returns `{ rows, columns, bytes }`. Both accept `signal`, `onProgress`, shared resource `limits`, and `sheet`, `workbook` or `csv` options. XLSX defaults to a bold header, filtering and bounded width sampling of 100 rows, clamped to 6–54 characters. Explicit column widths avoid sampling that column.
 
-`project(value, { rowIndex, columnIndex, rowOrdinal })` resolves each rendered/normalized value into a scalar or an `ExportCell`. The indexes belong to DataTables; the ordinal is its zero-based export position. `columnOptions` is keyed by DataTables column index. Use an orthogonal renderer for raw numbers/dates when display text contains currency, markup or localized dates. The adapter does not infer types from formatted strings. For example:
+`project(value, { rowIndex, columnIndex, sourceRowIndex, sourceColumnIndex })` resolves each rendered/normalized value into a scalar or an `ExportCell`. Data indexes are zero-based positions in the selected export; source indexes identify DataTables rows/columns. `columnOptions` is keyed by DataTables column index. Use an orthogonal renderer for raw numbers/dates when display text contains currency, markup or localized dates. The adapter does not infer types from formatted strings. For example:
 
 ```js
 import { exportDataTable, ExportCell } from "@evotecit/officeimo/integrations/datatables";
@@ -56,7 +108,7 @@ const blob = await exportDataTable(DataTable, table, "xlsx", {
   signal: controller.signal,
   exportOptions: { columns: ":visible", orthogonal: "export", modifier: { selected: null } },
   columnOptions: { 2: { type: "number", format: "0.00" } },
-  project: (value, cell) => cell.columnIndex === 2
+  project: (value, cell) => cell.sourceColumnIndex === 2
     ? new ExportCell(value, { presentation: { background: "E2F0D9" } }) : value,
   limits: { maxRows: 100000, maxCells: 2000000, maxOutputBytes: 100000000 }
 });
@@ -110,7 +162,7 @@ await worksheet.addRows([["DC02", new Date(), new Cell(8, highlighted)]]);
 saveBlob(await workbook.toBlob(), "controllers.xlsx");
 ```
 
-`createWorkbook(options)` constructs the same `Workbook`; `addSheet` is the retained tabular entry point for `addWorksheet`. `workbook.worksheets` is a readonly snapshot. Each worksheet exposes its final sanitized `name` and data `rowCount`.
+Use `new Workbook(options)` and `addWorksheet(name, options)` for the advanced workbook API. `addWorksheet<RowType>` also accepts shared typed columns/getters and returns a `Worksheet<RowType>` whose `addRows` accepts that domain type. `workbook.worksheets` is a readonly snapshot. Each worksheet exposes its final sanitized `name` and data `rowCount`.
 
 Rows can be synchronous or asynchronous iterables. Arrays are positional. Object rows use each column's literal `key`, or its `header` when no key is supplied; dots never traverse an object. Missing values produce empty cells and extra array values throw. Await each `addRows` call before appending to that worksheet or calling `toBlob`. A failed append prevents finalization. Repeated `toBlob` calls return the same output.
 
@@ -126,20 +178,38 @@ Excel limits are enforced: 1,048,576 rows including headings and the footer, 16,
 
 ## Streamed output and resource limits
 
+For one table, pass a native stream or `ByteSink` directly. The helper borrows the stream lock until it resolves or rejects; the caller closes or aborts the file and owns any partial bytes:
+
+```ts
+import { writeXlsxTo } from "@evotecit/officeimo";
+
+async function exportSales(destination: WritableStream<Uint8Array>, signal: AbortSignal) {
+  const result = await writeXlsxTo(loadSales(), destination, {
+    columns, signal, dateMode: "utc",
+    limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 },
+    onProgress: progress => console.log(progress.rows, progress.bytes)
+  });
+  // Close a file destination only after successful completion, using its host API.
+  return result;
+}
+```
+
+`writeCsvTo` has the same destination and completion contract. Pass the signal into paged fetching and destination I/O too; rejecting an export does not cancel application-owned I/O automatically. Node streams need a small `ByteSink` adapter that resolves each write after backpressure is satisfied. Native Web Streams need no adapter.
+
 Select a caller-owned sink when constructing the workbook to deliver ZIP bytes during row production. Complete streamed worksheets in order: `close()` completes a worksheet explicitly, and starting the next worksheet closes its predecessor. Await each append before switching worksheets. A closed worksheet cannot receive more rows. `finish()` completes the ZIP directory and returns data-row, sheet and byte counts; repeated calls reuse the same result. The row count excludes headings, footers and preservation-sheet records. The sheet count includes the preservation sheet when present.
 
 ```ts
-import { createWorkbook } from "@evotecit/officeimo/xlsx";
+import { Workbook } from "@evotecit/officeimo/xlsx";
 import type { Rows } from "@evotecit/officeimo/core";
 
 async function exportRows(rows: Rows, destination: WritableStream<Uint8Array>) {
   const writer = destination.getWriter();
   try {
-    const book = createWorkbook({
+    const book = new Workbook({
       sink: { write: bytes => writer.write(bytes) }, dateMode: "utc",
       limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 }
     });
-    const sheet = book.addSheet("Data", {
+    const sheet = book.addWorksheet("Data", {
       columns: [{ header: "Name", key: "name" }, { header: "Amount", key: "amount", type: "number", format: "0.00" }]
     });
     await sheet.addRows(rows);
@@ -161,12 +231,59 @@ XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write
 
 ZIP entries cannot interleave, so preservation retains a bounded text spool until the report worksheets finish. `maxOverflowCharacters` defaults to 4,000,000 UTF-16 units. Width sampling has separate defaults of 100,000 retained cells and 1,000,000 UTF-16 units of encoded row XML, including markup, configurable through `maxBufferedCells` and `maxBufferedCharacters`. Exceeding either budget fails visibly; the writer does not silently truncate full values. CSV retains long text directly and is an alternative when Excel's cell/storage constraints do not suit the data.
 
+## Workers and paged sources
+
+Run the same writers inside an application-owned worker when export CPU work should leave the page. Fetch and yield pages inside the worker, or use a bounded request/acknowledgement bridge to a main-thread grid. Define getter functions in the worker; functions cannot be structured-cloned. Reconstruct `ExportCell` after cloning portable value/text/presentation records.
+
+This worker example expects an application endpoint returning `{ rows: Sale[], next: string | null }`; convert JSON dates before yielding them:
+
+```ts
+// report.worker.ts; compile this module with the application's worker configuration.
+import { writeXlsx, writeCsv } from "@evotecit/officeimo";
+import type { Column } from "@evotecit/officeimo";
+
+interface Sale { customer: { name: string }; amount: number; seen: Date; }
+const columns: readonly Column<Sale>[] = [
+  { header: "Customer", value: row => row.customer.name },
+  { header: "Amount", key: "amount", type: "number", format: "0.00" },
+  { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }
+];
+async function* pages(url: string, signal: AbortSignal): AsyncGenerator<Sale> {
+  let next: string | null = url;
+  while (next) {
+    const response: Response = await fetch(next, { signal });
+    if (!response.ok) throw new Error("Export source failed: " + response.status);
+    const page: { rows: Sale[]; next: string | null } = await response.json();
+    for (const row of page.rows) yield { ...row, seen: new Date(row.seen) };
+    next = page.next;
+  }
+}
+let active: AbortController | undefined;
+self.onmessage = async ({ data }) => {
+  if (data.cancel) { active?.abort(); return; }
+  if (active) return; // One export at a time in this worker.
+  const controller = active = new AbortController();
+  try {
+    const write = data.format === "csv" ? writeCsv : writeXlsx;
+    const blob = await write(pages(data.url, controller.signal), {
+      columns, signal: controller.signal,
+      limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 },
+      onProgress: progress => self.postMessage({ progress })
+    });
+    self.postMessage({ blob });
+  } catch (error) { self.postMessage({ error: String(error) }); }
+  finally { active = undefined; }
+};
+```
+
+The page creates `new Worker(new URL("./report.worker.js", import.meta.url), { type: "module" })`, sends `{ url, format }`, receives progress and a completed Blob, and sends `{ cancel: true }` to cancel. Terminate the worker when its host no longer needs it. Blob mode still retains the finished file; a bounded output bridge to `writeXlsxTo` or `writeCsvTo` avoids that retention. The executable [DataTables worker qualification](../Build/BrowserExports/datatables-worker.js) demonstrates 64-row requests, 64 KiB output acknowledgements, stored-compression fallback and cancellation without moving the DOM into the worker.
+
 ## Resolved values, grouped headings, totals and print layout
 
 `ExportCell` captures a typed value, optional display text and portable presentation before an export begins. A report producer can resolve highlighting once and reuse the same cells for XLSX and CSV. XLSX uses the typed value; CSV uses it by default and uses supplied display text with `valueMode: "display"`. Formula protection and quoting still run after display-text selection and CSV formatting.
 
 ```ts
-import { createWorkbook, ExportCell } from "@evotecit/officeimo/xlsx";
+import { Workbook, ExportCell } from "@evotecit/officeimo/xlsx";
 import { writeCsv } from "@evotecit/officeimo/csv";
 
 const columns = [
@@ -176,8 +293,8 @@ const columns = [
 const rows = [{ name: "Łódź", latency: new ExportCell(125.75, {
   text: "125.750 ms", presentation: { background: "FCE4D6", bold: true }
 }) }];
-const book = createWorkbook();
-const sheet = book.addSheet("Report", {
+const book = new Workbook();
+const sheet = book.addWorksheet("Report", {
   title: { text: "Controller health", style: { font: { size: 20 }, fill: { color: "D9E1F2" } }, height: 32 },
   columns, table: { name: "ReportData" }, freezeHeader: true,
   autoSize: { sampleRows: 100, minWidth: 8, maxWidth: 40 },
@@ -196,7 +313,7 @@ Portable presentation supports background/text color, bold, italic, wrapping, al
 `mergedCells: ["A1:B2", "A3:B3"]` merges explicit uppercase A1 ranges. Each range must contain at least two cells, stay within the declared columns and rows actually exported, and avoid other merges, including generated title/group merges. A native table cannot contain merged cells. The top-left cell retains its value and presentation; covered cells must contain null/undefined or an empty string, and cannot carry hyperlinks or computed totals. A nonempty covered value throws instead of being silently lost. Use `includeHeader: false` for a free-form region without leaf headings:
 
 ```ts
-const regions = book.addSheet("Summary", {
+const regions = book.addWorksheet("Summary", {
   columns: [{ header: "A" }, { header: "B" }], includeHeader: false,
   mergedCells: ["A1:B2", "A3:B3"]
 });
@@ -234,7 +351,7 @@ const sheet = book.addWorksheet("Controllers", {
   alternatingRowStyle: { fill: { color: "EAF1F8" } },
   rowStyle: ({ values }) => values[3] === false
     ? { fill: { color: "FCE4D6" }, font: { bold: true } } : undefined,
-  cellStyle: ({ value, columnIndex }) => columnIndex === 2 && typeof value === "number" && value > 100
+  cellStyle: ({ value, columnIndex }) => columnIndex === 1 && typeof value === "number" && value > 100
     ? { font: { color: "C00000" } } : undefined
 });
 await sheet.addRows([
@@ -264,7 +381,7 @@ Hyperlinks can also be supplied through `SheetOptions.hyperlinks`. Each link add
 import { Workbook } from "@evotecit/officeimo/xlsx";
 
 const book = new Workbook({ limits: { maxConditionalFormats: 100, maxDifferentialStyles: 50 } });
-const sheet = book.addSheet("Latency", {
+const sheet = book.addWorksheet("Latency", {
   columns: [
     { header: "Name", key: "name", width: 24 },
     { header: "Latency", key: "latency", type: "number", format: "0.000", width: 18 }
@@ -345,7 +462,7 @@ console.log(detectFeatures().deflateRaw, blob.size);
 
 A `ByteSink` implements `write(Uint8Array): void | Promise<void>`. It must accept the bytes before resolving. `BlobByteSink` copies input buffers, so callers can reuse them. `ChunkedTextSink` emits bounded UTF-8 batches and preserves surrogate pairs at append/chunk boundaries. It yields after roughly 8 ms of encoding work; a caller can still supply one large source string. `writeBytes` connects a byte iterable to a sink.
 
-Pass an `AbortSignal` and synchronous `onProgress` to the writers. CSV/XLSX progress counts exclude headers; XLSX row events identify the sheet and completion reports the total output bytes. Throwing from a callback fails the export. Cancellation returns producer iterators and rejects pending input or sink operations. A cancelled `finish()` or `toBlob()` releases owned output and rejects its returned promise with the original signal reason, including cancellation between calls. Give I/O producers and destinations the same signal so they can release their own resources.
+Pass an `AbortSignal` and synchronous `onProgress` to the writers. CSV/XLSX progress counts exclude headings and footers. XLSX `rows` is the workbook-wide data total; row events additionally identify `sheetName` and `sheetRows`. DataTables adds its captured `totalRows`. Completion reports the accepted output bytes. Throwing from a callback fails the export. Cancellation returns producer iterators and rejects pending input or sink operations. A cancelled `finish()` or `toBlob()` releases owned output and rejects its returned promise with the original signal reason, including cancellation between calls. Give I/O producers and destinations the same signal so they can release their own resources.
 
 `OfficeIMOError.code` identifies package/state/platform failures; `NotSupportedError` adds a `feature`. Input type and range errors use native `TypeError` and `RangeError`; cancellation preserves the signal's original reason. `saveBlob` requires a browser document. Node and workers should deliver their Blob through their own host mechanisms.
 
@@ -414,7 +531,7 @@ workbook.addPart({
 const blob = await workbook.toBlob();
 ```
 
-Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive column, row, column index and sheet-name context. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
+Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive the column, zero-based `rowIndex`/`columnIndex`, one-based `worksheetRow` and `sheetName`. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
 
 `dataValidation` is a reserved worksheet option. Supplying it, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader or formula engine in this package's current writer contract. Grid-specific selection and rendering belong to optional integrations such as the DataTables entry. Row/cell callbacks resolve highlighting during export; `conditionalFormats` separately writes the supported native rules for Excel to evaluate. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
 

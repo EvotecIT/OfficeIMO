@@ -22,10 +22,12 @@ for (const file of manifest[0].files) {
 }
 await writeFile(join(output, "archive.json"), JSON.stringify(manifest, null, 2) + "\n");
 await writeFile(join(consumer, "package.json"), '{"private":true,"type":"module"}\n');
-for (const file of ["consumer.mts", "runtime.mjs"]) await copyFile(join(root, "test/consumer", file), join(consumer, file));
+for (const file of ["consumer.mts", "worker.mts", "runtime.mjs"]) await copyFile(join(root, "test/consumer", file), join(consumer, file));
 run([npmCli, "install", "--ignore-scripts", "--no-audit", "--no-fund", "--save-exact", join(output, manifest[0].filename)], consumer);
 run([join(root, "node_modules/typescript/bin/tsc"), "--strict", "--exactOptionalPropertyTypes", "--noUncheckedIndexedAccess", "--noEmit", "--target", "ES2022",
   "--module", "NodeNext", "--moduleResolution", "NodeNext", "--lib", "ES2022,DOM", "consumer.mts"], consumer);
+run([join(root, "node_modules/typescript/bin/tsc"), "--strict", "--exactOptionalPropertyTypes", "--noUncheckedIndexedAccess", "--noEmit", "--target", "ES2022",
+  "--module", "NodeNext", "--moduleResolution", "NodeNext", "--lib", "ES2022,WebWorker", "worker.mts"], consumer);
 console.log(run(["runtime.mjs"], consumer).trim());
 const installed = JSON.parse(await readFile(join(consumer, "package-lock.json"), "utf8"));
 if (Object.keys(installed.packages).length !== 2) throw new Error("Packed consumer acquired an unexpected runtime dependency.");

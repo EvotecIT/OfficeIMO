@@ -1,4 +1,4 @@
-import { core, zip, xml, opc, xlsx, csv, createWorkbook, ExportCell } from "@evotecit/officeimo";
+import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo } from "@evotecit/officeimo";
 import { BlobByteSink, ChunkedTextSink, detectFeatures, NotSupportedError } from "@evotecit/officeimo/core";
 import { ZipWriter, Crc32 } from "@evotecit/officeimo/zip";
 import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
@@ -22,11 +22,11 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
 }
 void exportGrid;
 
-const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column[];
 interface RecordRow { readonly name: string; readonly seen: Date; }
+const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column<RecordRow>[];
 const records: readonly RecordRow[] = [{ name: "Łódź", seen: new Date() }];
 const rows: Rows = [{ name: "Łódź", seen: new Date() }];
-const book: Workbook = createWorkbook({ signal: new AbortController().signal, onProgress: p => console.log(p.rows) });
+const book: Workbook = new Workbook({ signal: new AbortController().signal, onProgress: p => console.log(p.rows) });
 const style = book.styles.add({ font: { bold: true }, fill: { color: "ABCDEF" }, border: { bottom: { style: "thin" } }, numberFormat: NumberFormats.Date });
 const conditional: readonly ConditionalFormat[] = [
   { type: "expression", range: { column: "name", through: "seen" }, formula: '$A3="Łódź"', style: { fill: { color: "C6EFCE" } }, stopIfTrue: true },
@@ -41,7 +41,7 @@ const report = book.addWorksheet("Report", { columns, table: { name: "SeenReport
   headerStyle: style, freezeColumns: 1, rowHeight: 24,
   alternatingRowStyle: { fill: { color: "EAF1F8" } },
   rowStyle: context => context.values[0] === "Łódź" ? { font: { bold: true } } : undefined,
-  cellStyle: context => context.columnIndex === 1 ? { verticalAlignment: "center" } : undefined });
+  cellStyle: context => context.columnIndex === 0 ? { verticalAlignment: "center" } : undefined });
 await report.addRows(records);
 report.addHyperlink({ cell: "A3", target: "https://example.com/report", tooltip: "Open report" });
 await sheet.addRows(records); await sheet.addRows(rows); await sheet.addRows([[new Cell("name", style), new Date()]]);
@@ -50,18 +50,18 @@ await sheet.addRows(asyncRows());
 const blob: Blob = await book.toBlob();
 const csvBlob: Blob = await writeCsv(records, { columns, delimiter: ";", bom: true });
 const sink = new BlobByteSink(); await writeCsvTo(records, sink, { columns });
-await writeCsv(records, { columns: [{ header: "Name", key: "name", valueFormatter: (value, context) => context.row + ": " + value }], quote: "strings", nullValue: "missing" });
+await writeCsv(records, { columns: [{ header: "Name", key: "name", valueFormatter: (value, context) => context.rowIndex + ": " + value }], quote: "strings", nullValue: "missing" });
 const text = new ChunkedTextSink(new BlobByteSink()); await text.write("🧪"); await text.close();
 const archive = new ZipWriter(); await archive.add("data.csv", new TextEncoder().encode(await csvBlob.text()));
 const writer = new XmlWriter(new BlobByteSink()); await writer.startElement("root"); await writer.text("<&"); await writer.endElement(); await writer.close();
 const packageFile = new OpcPackage(); packageFile.addPart({ uri: partUri("/data.xml"), contentType: "application/xml", data: "<data/>" });
 packageFile.addRelationship("/", { id: "data", type: relationshipTypes.officeDocument, target: "/data.xml" });
 const custom = new Workbook({ cellValueWriters: { milliseconds: value => Number(value) / 1000 } });
-await custom.addSheet("Custom", { columns: [{ header: "Seconds", type: "milliseconds" }] }).addRows([["1250"]]);
+await custom.addWorksheet("Custom", { columns: [{ header: "Seconds", type: "milliseconds" }] }).addRows([["1250"]]);
 void [core, zip, xml, opc, xlsx, csv, new Crc32(), escapeXml("data"), new ContentTypes(), detectFeatures(), new NotSupportedError("feature"), new StyleRegistry()];
-const streamed = createWorkbook({ sink: { write(bytes) { void bytes; } }, oversizedText: "preserve", limits: { maxRows: 1000, maxBufferedCharacters: 100000, maxOverflowCharacters: 100000 } });
+const streamed = new Workbook({ sink: { write(bytes) { void bytes; } }, oversizedText: "preserve", limits: { maxRows: 1000, maxBufferedCharacters: 100000, maxOverflowCharacters: 100000 } });
 const resolved = [{ name: new ExportCell(12.5, { text: "12.50 USD", presentation: { background: "E2F0D9", bold: true } }) }];
-const streamedSheet = streamed.addSheet("Resolved", { columns: [{ header: "Amount", key: "name", groups: ["Metrics"], type: "number" }], autoSize: {},
+const streamedSheet = streamed.addWorksheet("Resolved", { columns: [{ header: "Amount", key: "name", groups: ["Metrics"], type: "number" }], autoSize: {},
   footer: { totals: { name: "sum" } }, print: { repeatHeaders: true, orientation: "landscape", margins: { left: 0.25 } } });
 await streamedSheet.addRows(resolved); await streamedSheet.close();
 const completion = await streamed.finish(); void completion.bytes;
@@ -74,14 +74,38 @@ function download() { saveBlob(blob, "data.xlsx"); } void download;
 
 // Public input and option guarantees, including domain interfaces without index signatures.
 // @ts-expect-error unknown date clock
-createWorkbook({ dateMode: "browser" });
+new Workbook({ dateMode: "browser" });
 // @ts-expect-error unknown delimiter
 writeCsv(records, { columns, delimiter: "|" });
 // @ts-expect-error CSV requires a projection
 writeCsv(records, {});
 // @ts-expect-error plain nested objects are not cell values
 sheet.addRows([[{ nested: "value" }]]);
-// @ts-expect-error unsupported property in a typed object row
-writeCsv([{ name: "DC01", nested: { value: 1 } }], { columns });
+// Unselected nested domain fields are allowed.
+await writeCsv([{ name: "DC01", seen: new Date(), nested: { value: 1 } }], { columns });
+// @ts-expect-error misspelled object keys cannot widen the inferred row type
+writeCsv(records, { columns: [{ header: "Name", key: "naem" }] });
+// @ts-expect-error object columns require a key or a value getter
+writeXlsx(records, { columns: [{ header: "Name" }] });
+// @ts-expect-error XLSX checks literal keys against the actual source type
+writeXlsx(records, { columns: [{ header: "Name", key: "naem" }] });
+interface DomainRow { readonly person: { readonly name: string }; readonly amount: number; }
+const domainRows: readonly DomainRow[] = [{ person: { name: "Łódź" }, amount: 12.5 }];
+const domainColumns = [{ header: "Name", value: (row: DomainRow) => row.person.name },
+  { header: "Amount", key: "amount", format: "0.00" }] as const satisfies readonly Column<DomainRow>[];
+await writeXlsx(domainRows, { columns: domainColumns, sheet: { title: { text: "Report" }, table: {} } });
+await writeCsv(domainRows, { columns: domainColumns });
+const destination = new WritableStream<Uint8Array>({ write(bytes) { void bytes; } });
+const tableResult = await writeXlsxTo(domainRows, destination, { columns: domainColumns });
+void [tableResult.rows, tableResult.columns, tableResult.bytes];
+await writeCsvTo(domainRows, destination, { columns: domainColumns });
+const typedSheet: Worksheet<DomainRow> = new Workbook().addWorksheet<DomainRow>("Domain", { columns: domainColumns });
+await typedSheet.addRows(domainRows);
+// @ts-expect-error a typed worksheet accepts its declared domain rows
+typedSheet.addRows(records);
+// @ts-expect-error nested getter results must resolve a scalar or ExportCell
+writeCsv(domainRows, { columns: [{ header: "Person", value: row => row.person }] });
+// @ts-expect-error getters are synchronous
+writeXlsx(domainRows, { columns: [{ header: "Name", value: async row => row.person.name }] });
 // @ts-expect-error final names are readonly
 sheet.name = "new name";

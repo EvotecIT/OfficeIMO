@@ -2,7 +2,7 @@ import { checkAbort, inputRows } from "../core/iteration.js";
 import { ChunkedTextSink, BlobByteSink } from "../core/sinks.js";
 import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import type { CellValue, Column } from "../core/index.js";
-import { copyColumns, rowValues } from "../internal/rows.js";
+import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { EntryWriter } from "../zip/entry.js";
 import type { ZipEntry } from "../zip/index.js";
 import type { PreparedEntry } from "../zip/entry.js";
@@ -25,8 +25,9 @@ import { ConditionalFormats, prepareConditionalFormats } from "./conditional-for
 import type { PreparedRule } from "./conditional-formatting.js";
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
-export class Worksheet {
+export class Worksheet<T = never> {
   private readonly columns: readonly Column[];
+  private readonly project: ReturnType<typeof createRowProjector>;
   private readonly declared: { column: Column; letter: string; style: number; dateStyle: number; headerStyle: number }[];
   private readonly options: SheetOptions;
   private entry: EntryWriter | ZipEntry | undefined;
@@ -61,6 +62,7 @@ export class Worksheet {
     this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
     this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
+    this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
     for (const link of options.hyperlinks ?? []) this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
     book.checkLinks(this.links.length);
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
@@ -131,7 +133,7 @@ export class Worksheet {
     if (!header && !footer && col.column.type && !emptyCovered) {
       const writer = this.book.writerFor(col.column.type);
       if (writer) value = writer(value instanceof Cell ? value.value : value as CellValue,
-        { column: col.column, row, columnIndex: i + 1, sheetName: this.name });
+        { column: col.column, rowIndex: row - this.headerRows - 1, worksheetRow: row, columnIndex: i, sheetName: this.name });
     }
     if (value instanceof ExportCell) { presentation = value.presentation; value = value.value; }
     const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
@@ -156,7 +158,7 @@ export class Worksheet {
           rowStyles?.set(base, style);
         }
       }
-      const patch = context && this.options.cellStyle?.({ ...context, value: value as CellValue, column: col.column, columnIndex: i + 1 });
+      const patch = context && this.options.cellStyle?.({ ...context, value: value as CellValue, column: col.column, columnIndex: i });
       if (patch !== undefined) style = this.book.styles.compose(style, patch);
     }
     if (footer && this.options.footer?.style && explicitStyle === undefined) style = this.book.styles.compose(style, this.options.footer.style);
@@ -191,7 +193,7 @@ export class Worksheet {
   }
   private *rowXml(values: readonly unknown[], number: number, header: boolean, footer = false, title = false): Generator<string> {
     const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
-    const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ row: number, sheetName: this.name,
+    const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
       values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
     if (rowStyle !== undefined) validateStylePatch(rowStyle);
@@ -250,8 +252,8 @@ export class Worksheet {
     for (const row of this.pending) for (const chunk of row) if (buffer.append(chunk)) await buffer.flush();
     this.pending = []; this.pendingCharacters = 0;
   }
-  addRows(rows: XlsxRows): Promise<void>;
-  addRows<T extends { readonly [K in keyof T]: ExportValue | Cell }>(rows: Iterable<T> | AsyncIterable<T>): Promise<void>;
+  addRows(rows: [T] extends [never] ? XlsxRows : Iterable<T> | AsyncIterable<T>): Promise<void>;
+  addRows<U extends { readonly [K in keyof U]: ExportValue | Cell }>(rows: [T] extends [never] ? Iterable<U> | AsyncIterable<U> : never): Promise<void>;
   async addRows(rows: Iterable<unknown> | AsyncIterable<unknown>): Promise<void> {
     this.book.assertOpen();
     if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
@@ -266,7 +268,7 @@ export class Worksheet {
         if (this.count + this.headerRows + (this.options.footer ? 1 : 0) >= 1048576) throw new RangeError("Excel supports at most 1,048,576 rows including headers and footers; split the sheet.");
         this.book.budget.row(this.count + 1);
         if (!this.columns.length) throw new RangeError("Declare columns before adding rows.");
-        const values = rowValues(row, this.columns);
+        const values = this.project(row, this.count);
         if (!this.started) {
           if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
           const encoded: string[] = [];
@@ -284,8 +286,10 @@ export class Worksheet {
     } catch (error) { this.failed = true; this.error = error; await this.book.discard(error); throw error; }
     finally { this.busy = false; }
   }
-  private progress(): void { this.book.settings.onProgress?.({ phase: "rows", rows: this.count, sheetName: this.name }); }
+  private progress(): void { if (!this.preserved) this.book.settings.onProgress?.({ phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
   get rowCount(): number { return this.count; }
+  /** @internal Preservation records are metadata, not report data rows. */
+  get reportRowCount(): number { return this.preserved ? 0 : this.count; }
   /** Register a PNG such as a chart; bytes are copied so the caller can reuse its buffer. */
   addImage(image: WorksheetImage): void {
     this.book.assertOpen();
@@ -348,7 +352,7 @@ export class Worksheet {
       }
       await this.start();
       if (preservedRows) for await (const row of inputRows(preservedRows, this.book.settings.signal)) {
-        this.book.budget.row(this.count + 1); await this.writeRow(rowValues(row, this.columns), this.headerRows + this.count + 1, false); this.count++;
+        this.book.budget.row(this.count + 1); await this.writeRow(this.project(row, this.count), this.headerRows + this.count + 1, false); this.count++;
       }
       if (this.options.footer) await this.writeRow(this.layout.footer(this.count), this.headerRows + this.count + 1, false, true);
       await this.buffer!.write('</sheetData>');

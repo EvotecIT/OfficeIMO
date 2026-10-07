@@ -12,11 +12,11 @@ import type { ConditionalFormat } from "./conditional-types.js";
 
 export type XlsxRow = readonly (ExportValue | Cell)[] | Readonly<Record<string, ExportValue | Cell>>;
 export type XlsxRows = Iterable<XlsxRow> | AsyncIterable<XlsxRow>;
-export interface CellWriterContext { readonly column: Column; readonly row: number; readonly columnIndex: number; readonly sheetName: string; }
+export interface CellWriterContext { readonly column: Column; readonly rowIndex: number; readonly worksheetRow: number; readonly columnIndex: number; readonly sheetName: string; }
 /** Convert domain column values to plain values or styled Cells; raw XML is never accepted. */
 export type CellValueWriter = (value: CellValue, context: CellWriterContext) => ExportValue | Cell;
-/** One-based worksheet row number, including titles/headings; values follow the declared column order. */
-export interface RowStyleContext { readonly row: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
+/** Data indexes are zero-based. worksheetRow is the explicit one-based Excel coordinate. */
+export interface RowStyleContext { readonly rowIndex: number; readonly worksheetRow: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
 export interface CellStyleContext extends RowStyleContext { readonly value: CellValue; readonly column: Column; readonly columnIndex: number; }
 /** A real Excel table over this worksheet's header and data rows. Empty exports retain headers without a table part. */
 export interface TableOptions {
@@ -58,8 +58,8 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxDifferentialStyles?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }
-export interface SheetOptions {
-  readonly columns?: readonly Column[];
+export interface SheetOptions<T = never> {
+  readonly columns?: readonly Column<T>[];
   readonly includeHeader?: boolean;
   readonly freezeHeader?: boolean;
   readonly autoFilter?: boolean;

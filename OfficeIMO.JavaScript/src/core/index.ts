@@ -1,7 +1,7 @@
 export { OfficeIMOError, NotSupportedError } from "./errors.js";
 export type { ErrorCode } from "./errors.js";
 export { BlobByteSink, ChunkedTextSink, writeBytes } from "./sinks.js";
-export type { ByteSink, ByteSource, ByteWriter } from "./sinks.js";
+export type { ByteSink, ByteSource, ByteWriter, OutputDestination } from "./sinks.js";
 export type { ExportLimits } from "./limits.js";
 export { ExportCell } from "./presentation.js";
 export type { CellPresentation, ExportCellOptions, ExportValue } from "./presentation.js";
@@ -14,11 +14,9 @@ export type Row = readonly import("./presentation.js").ExportValue[] | Readonly<
 export type Rows = Iterable<Row> | AsyncIterable<Row>;
 export type Alignment = "left" | "center" | "right" | "fill" | "justify" | "distributed";
 
-/** Shared ordered projection. Format modules interpret their own style options. */
-export interface Column {
+/** Metadata shared by tabular writers. Format modules interpret their own presentation options. */
+export interface ColumnSettings {
   readonly header: string;
-  /** Dots are literal, never property traversal. */
-  readonly key?: string;
   readonly width?: number;
   readonly type?: "string" | "number" | "boolean" | "date" | (string & {});
   readonly format?: string;
@@ -30,10 +28,39 @@ export interface Column {
   readonly groups?: readonly string[];
 }
 
+/** Zero-based position in the exported data, independent of titles and headings. */
+export interface ColumnValueContext {
+  readonly rowIndex: number;
+  readonly columnIndex: number;
+  readonly column: Column;
+  readonly sheetName?: string;
+  /** One-based Excel coordinate, when the destination is a worksheet. */
+  readonly worksheetRow?: number;
+}
+
+type ColumnSelector<T> = [T] extends [never] ? { readonly key?: string; readonly value?: never }
+  : T extends readonly unknown[] ? { readonly key?: string; readonly value?: never }
+  : { readonly key: Extract<keyof T, string>; readonly value?: never };
+/** Select a literal object key, or explicitly compute a value. Array rows remain positional unless every column has a getter. */
+export type Column<T = never> = ColumnSettings & (
+  | ColumnSelector<T>
+  | { readonly key?: string; readonly value: (row: T, context: ColumnValueContext) => import("./presentation.js").ExportValue }
+);
+
+/** Counts for one completed table export. Rows exclude generated headings and footers. */
+export interface ExportResult {
+  readonly rows: number;
+  readonly columns: number;
+  readonly bytes: number;
+}
+
 export interface ExportProgress {
   readonly phase: "rows" | "complete";
   readonly rows: number;
   readonly sheetName?: string;
+  /** Completed rows in the named worksheet; rows remains the workbook-wide total. */
+  readonly sheetRows?: number;
+  readonly totalRows?: number;
   readonly bytes?: number;
 }
 

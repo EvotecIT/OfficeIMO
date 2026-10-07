@@ -18,10 +18,11 @@ export interface DataTablesHost {
 }
 export interface DataTablesCellContext {
   /** DataTables indexes, after any column reordering. */
+  readonly sourceRowIndex: number;
+  readonly sourceColumnIndex: number;
+  /** Zero-based position in the selected export. */
   readonly rowIndex: number;
   readonly columnIndex: number;
-  /** Zero-based position in the selected export. */
-  readonly rowOrdinal: number;
 }
 export interface DataTablesFormat {
   readonly header?: (value: unknown, column: number, node: unknown) => unknown;
@@ -57,13 +58,13 @@ export interface DataTablesOptions extends StreamOptions {
   /** Server-side tables require explicit acknowledgement that only loaded rows are available. */
   readonly serverSide?: "reject" | "loaded";
   /** Overrides keyed by DataTables column index, independent of the selected export position. */
-  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups">>>>;
+  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups" | "value">>>>;
   /** Resolve portable values/presentation once. Results must be synchronous scalar values or ExportCells. */
   readonly project?: (value: ExportValue, context: DataTablesCellContext) => ExportValue;
 }
 /** Selection and heading metadata are captured immediately; batched body values are read during iteration. */
 export interface DataTablesExport {
-  readonly columns: readonly Column[];
+  readonly columns: readonly Column<readonly ExportValue[]>[];
   readonly headers: readonly (readonly ExportValue[])[];
   readonly footer: readonly ExportValue[] | undefined;
   readonly rowCount: number;
