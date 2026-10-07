@@ -4,13 +4,14 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingRasterRenderer {
-    private static void RenderImage(
+    internal static void RenderImage(
         OfficeRasterCanvas canvas,
         OfficeDrawingImage drawingImage,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
         long maximumRasterPixels,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        string? diagnosticSource = null) {
         if (TryDecodeImage(
                 drawingImage.EncodedBytes,
                 drawingImage.ContentType,
@@ -20,7 +21,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
-                canvas.DiagnosticSource,
+                diagnosticSource ?? canvas.DiagnosticSource,
                 canvas.TransformedTextBudget,
                 maximumRasterPixels,
                 cancellationToken,
