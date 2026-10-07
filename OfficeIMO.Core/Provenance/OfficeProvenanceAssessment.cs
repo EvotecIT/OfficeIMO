@@ -223,6 +223,19 @@ public static class OfficeProvenanceAssessment {
 
     internal enum Check { TextIntegrity, Verification, ProviderSignals }
 
+    // Published workflow assemblies do not pass the newer progress and document-text callbacks.
+    internal static OfficeProvenanceAssessmentReport AssessSnapshotFile(
+        string snapshotFilePath,
+        string logicalFilePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options,
+        IOfficeProvenanceVerifier? verifier,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors,
+        CancellationToken cancellationToken,
+        Encoding? textEncoding) => AssessSnapshotFile(
+            snapshotFilePath, logicalFilePath, structural, options, verifier, signalDetectors,
+            cancellationToken, textEncoding, checkStatus: null, inspectDocumentText: null);
+
     internal static OfficeProvenanceAssessmentReport AssessSnapshotFile(
         string snapshotFilePath,
         string logicalFilePath,
