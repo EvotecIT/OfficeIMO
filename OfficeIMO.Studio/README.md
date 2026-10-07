@@ -141,7 +141,7 @@ Use **Settings → Text recognition setup** to check the installed engine and it
 
 ## Language, accessibility, and local data
 
-Studio stores versioned user preferences under the operating system's local application-data directory. English is the fallback interface language. The language catalog already reserves Polish, German, French, Italian, and more than fifteen additional culture packs; only reviewed translations appear in the settings picker. The `en-XA` expansion locale is available now to expose clipped controls, hard-coded strings, and layouts that cannot accommodate longer translations.
+Studio stores versioned user preferences under the operating system's local application-data directory. English, Polish, German and French are available in the language settings picker. English is the fallback interface language. Additional culture names are reserved for future reviewed packs. The `en-XA` expansion locale exposes clipped controls, hard-coded strings and layouts that cannot accommodate longer translations.
 
 User-facing XAML, dialogs, file pickers, and capability notices resolve stable, feature-scoped resource keys through `IStudioLocalizer`. Document engines remain culture-neutral. A new translation adds satellite resources and a reviewed catalog entry rather than branching view models or document operations by language.
 
