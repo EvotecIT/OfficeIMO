@@ -29,9 +29,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<(WordParagraph Run, string Text, bool IsField)> GetNativeHeaderFooterVisibleTextRuns(WordParagraph paragraph) {
-            var serializedRuns = new List<(W.Run Run, string Text, bool IsField)>();
+            var serializedRuns = new List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild)>();
             return TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out _, serializedRuns)
-                ? serializedRuns.Select(item => (new WordParagraph(paragraph._document, paragraph._paragraph!, item.Run), item.Text, item.IsField))
+                ? serializedRuns.Select(item => {
+                    var run = new WordParagraph(paragraph._document, paragraph._paragraph!, item.Run);
+                    return (item.SourceChild == null ? run : CreateNativeRunContentView(run, new[] { item.SourceChild }), item.Text, item.IsField);
+                })
                 : GetNativeRuns(paragraph).Select(run => (run, run.Text, false));
         }
 

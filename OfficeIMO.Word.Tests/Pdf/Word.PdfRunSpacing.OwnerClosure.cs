@@ -100,12 +100,45 @@ public partial class Word {
         WordParagraph suffix = outer.AddText("MMMMX");
         WordParagraph secondBox = suffix.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
         secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = -10;
+        // Imported boxes commonly end with the paragraph rather than a hard break.
+        // Identical surrounding text must still keep its own run formatting.
+        firstBox._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
+        secondBox._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
         using var pdf = OpenJoinedParagraphPdf(document);
         Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
         Assert.Equal(string.Concat(Enumerable.Repeat("MMMMX", 4)), string.Concat(text.Select(letter => letter.Value)));
         double[] expected = { 39.984D, 83.968D, 39.984D, 17.992D };
         for (int index = 0; index < 4; index++)
             Assert.InRange(Math.Abs(text[index * 5 + 4].StartBaseLine.X - text[index * 5].StartBaseLine.X - expected[index]), 0D, 0.03D);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void HeaderFooterPeerTextBoxListsKeepMarkersAtTheirSourcePosition(bool footer, bool pageField) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        var list = document.AddList(WordListStyle.Numbered);
+        list.Numbering.Levels[0].LevelSuffix = WordListLevelSuffix.Nothing;
+        WordParagraph template = list.AddItem("Template");
+        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordParagraph outer = story.AddParagraph("MMMMX");
+        WordParagraph first = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+        WordParagraph suffix = outer.AddText("MMMMX");
+        if (pageField)
+            outer._paragraph.InsertBefore(new W.SimpleField(new W.Run(new W.Text("999"))) { Instruction = " PAGE " }, suffix._run);
+        WordParagraph second = suffix.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+        foreach (WordParagraph item in new[] { first, second }) {
+            item._paragraph.ParagraphProperties = (W.ParagraphProperties)template._paragraph.ParagraphProperties!.CloneNode(true);
+            item._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
+        }
+        template._paragraph.Remove();
+        document.AddParagraph("Body");
+        using var pdf = OpenJoinedParagraphPdf(document);
+        string visible = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("MMMMX1.MMMMX" + (pageField ? "1" : "") + "MMMMX2.MMMMX", visible, StringComparison.Ordinal);
         Assert.Empty(document.ValidateDocument());
     }
 

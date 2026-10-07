@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
             string? text = GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride);
             IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = textBox == null
                 ? CreateNativeHeaderFooterSpacingReplacements(paragraph, nativeFontMap)
-                : CreateNativeHeaderFooterTextBoxReplacements(paragraph, listMarkers, nativeFontMap);
+                : CreateNativeHeaderFooterTextBoxReplacements(paragraph, listMarkers, nativeFontMap, out _);
             AddNativeHeaderFooterResolvedParagraphText(parts, paragraph, text, pageNumberStyle, forcedZone ?? zoneOverride, listMarkers, nativeFontMap, replacements);
         }
 
@@ -222,6 +222,14 @@ namespace OfficeIMO.Word.Pdf {
             if (numberedTextBox != null && GetNativeTextBoxParagraphs(numberedTextBox).Any(inner => inner.IsListItem)) {
                 zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
             }
+            if (numberedTextBox != null) {
+                // Serialize text and its styled replacements from the same source
+                // walk. Text equality cannot identify a box among repeated text.
+                CreateNativeHeaderFooterTextBoxReplacements(paragraph, listMarkers, null, out string textBoxContent, textBoxDepth);
+                TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out pageNumberStyle);
+                return PrependNativeHeaderFooterListMarker(paragraph,
+                    AppendNativeHeaderFooterSupplementalText(textBoxContent, paragraph), listMarkers, textBoxDepth);
+            }
             if (TryBuildNativeHeaderFooterParagraphText(paragraph, out string? mixedText, out pageNumberStyle)) {
                 return PrependNativeHeaderFooterListMarker(paragraph, AppendNativeHeaderFooterSupplementalText(mixedText, paragraph), listMarkers, textBoxDepth);
             }
@@ -246,27 +254,7 @@ namespace OfficeIMO.Word.Pdf {
                     !WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible
                     ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
-            if (!string.IsNullOrWhiteSpace(text)) {
-                return PrependNativeHeaderFooterListMarker(paragraph, text, listMarkers, textBoxDepth);
-            }
-
-            string? textBoxText = GetNativeParagraphTextBoxPlainText(paragraph);
-            if (string.IsNullOrWhiteSpace(textBoxText)) {
-                return text;
-            }
-
-            WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
-            zoneOverride = MapNativeTextBoxHeaderFooterZone(textBox?.HorizontalAlignment ?? WordTextBoxHorizontalAlignment.Center);
-            if (textBox != null) {
-                EnsureNativeHeaderFooterTextBoxDepth(textBoxDepth);
-                string innerText = string.Join("\n", GetNativeTextBoxParagraphs(textBox)
-                    .Select(inner => GetNativeHeaderFooterParagraphText(inner, listMarkers, out _, textBoxDepth + 1))
-                    .Where(inner => !string.IsNullOrWhiteSpace(inner)));
-                if (!string.IsNullOrWhiteSpace(innerText)) {
-                    return PrependNativeHeaderFooterListMarker(paragraph, innerText, listMarkers, textBoxDepth);
-                }
-            }
-            return PrependNativeHeaderFooterListMarker(paragraph, textBoxText, listMarkers, textBoxDepth);
+            return PrependNativeHeaderFooterListMarker(paragraph, text, listMarkers, textBoxDepth);
         }
 
         private static string? PrependNativeHeaderFooterListMarker(
@@ -276,23 +264,6 @@ namespace OfficeIMO.Word.Pdf {
             int textBoxDepth) {
             if (string.IsNullOrWhiteSpace(text)) return text;
             string resolvedText = text!;
-            WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
-            if (textBox != null) {
-                IReadOnlyList<WordParagraph> innerParagraphs = GetNativeTextBoxParagraphs(textBox);
-                if (innerParagraphs.Any(inner => inner.IsListItem)) {
-                    EnsureNativeHeaderFooterTextBoxDepth(textBoxDepth);
-                    string? flattenedText = GetNativeParagraphTextBoxPlainText(paragraph);
-                    int textBoxStart = string.IsNullOrEmpty(flattenedText)
-                        ? -1
-                        : resolvedText.IndexOf(flattenedText, StringComparison.Ordinal);
-                    if (textBoxStart >= 0) {
-                        string innerText = string.Join("\n", innerParagraphs
-                            .Select(inner => GetNativeHeaderFooterParagraphText(inner, listMarkers, out _, textBoxDepth + 1))
-                            .Where(inner => !string.IsNullOrWhiteSpace(inner)));
-                        resolvedText = resolvedText.Remove(textBoxStart, flattenedText!.Length).Insert(textBoxStart, innerText);
-                    }
-                }
-            }
             if (!paragraph.IsListItem) return resolvedText;
             return listMarkers.TryGetValue(paragraph, out var marker) && !string.IsNullOrEmpty(marker.Marker)
                 ? marker.Marker + ResolveNativeInlineListMarkerSuffix(WordDocumentTraversal.GetListInfo(paragraph)?.LevelSuffix) + resolvedText

@@ -7,14 +7,19 @@ public static partial class WordPdfConverterExtensions {
     private static IReadOnlyList<NativeHeaderFooterStyledReplacement> CreateNativeHeaderFooterTextBoxReplacements(
         WordParagraph root,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
-        NativeFontMap? fontMap) {
+        NativeFontMap? fontMap,
+        out string serializedText,
+        int initialDepth = 0) {
         var replacements = new List<NativeHeaderFooterStyledReplacement>();
-        AppendParagraph(root, 0);
+        AppendParagraph(root, initialDepth, false);
+        serializedText = string.Concat(replacements.Select(replacement => replacement.SerializedText));
         return replacements;
 
-        void AppendParagraph(WordParagraph paragraph, int depth) {
+        void AppendParagraph(WordParagraph paragraph, int depth, bool includeMarker) {
             if (depth > 0) {
                 EnsureNativeHeaderFooterTextBoxDepth(depth);
+            }
+            if (includeMarker) {
                 WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
                 if (info.HasValue && listMarkers.TryGetValue(paragraph, out var marker) && !string.IsNullOrEmpty(marker.Marker)) {
                     string prefix = NormalizeNativeDirectText(marker.Marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix));
@@ -38,7 +43,13 @@ public static partial class WordPdfConverterExtensions {
                 foreach (var child in item.Run.EnumerateEffectiveRunContent()) {
                     WordParagraph view = CreateNativeRunContentView(item.Run, new[] { child });
                     if (view.TextBox is { } box) {
-                        foreach (WordParagraph inner in GetNativeTextBoxParagraphs(box)) AppendParagraph(inner, depth + 1);
+                        IReadOnlyList<WordParagraph> innerParagraphs = GetNativeTextBoxParagraphs(box);
+                        bool separatesListParagraphs = innerParagraphs.Any(inner => inner.IsListItem);
+                        for (int index = 0; index < innerParagraphs.Count; index++) {
+                            if (index > 0 && separatesListParagraphs)
+                                AppendRun(innerParagraphs[index], innerParagraphs[index], "\n", false);
+                            AppendParagraph(innerParagraphs[index], depth + 1, true);
+                        }
                     } else {
                         AppendRun(paragraph, view, view.Text, false);
                     }
