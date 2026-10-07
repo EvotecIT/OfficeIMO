@@ -703,6 +703,139 @@
         "retained": "Original failure logs, final TRX, package artifact ZIPs/origin/hash receipts, captured PDFs/raster/geometry and source recovery.",
         "noNetFreeSpaceClaim": true
       }
+    },
+    "platformCiClosure": {
+      "observedHead": "759eeac35e7556c626bdc25a276024641ffcc940",
+      "correctiveSourceCommit": "03a5016f02553b46f313bb9f78ce06ee923364de",
+      "scope": "Only two generic enum invocations in CLI; no Html/Core/Pdf renderer behavior or new API/dependency",
+      "failedRun": 37564364890,
+      "underlyingCauses": [
+        {
+          "owner": "OfficeIMO.Tool",
+          "trigger": "Capabilities JSON used reflection-only Enum.GetValues(Type)",
+          "consequence": "IL3050 blocks Tool NativeAOT on Windows/Linux",
+          "fix": "Existing generic Enum.GetValues<TEnum>; JSON contract preserved; no other reflection GetValues(Type) siblings in Tool"
+        },
+        {
+          "owner": ".gitattributes",
+          "trigger": "Windows core.autocrlf=true checkout",
+          "consequence": "54 of 139 frozen inputs/manifests changed bytes; integrity checks correctly reject",
+          "fix": "Preserve authored exact bytes for Qualification tree; all 139 verified after checkout; no fixture/hash normalization"
+        },
+        {
+          "owner": "Ubuntu word-rtf-html CI setup",
+          "trigger": "Typography fixture contains U+7E26 and no installed CJK fallback",
+          "consequence": "PDF font coverage rejects missing glyph",
+          "fix": "Reuse existing comparison-workflow fonts-noto-cjk/fonts-noto-core/fonts-ipafont-gothic setup; actual Linux next-head execution required"
+        },
+        {
+          "owner": "PowerPoint shadow test fixture",
+          "trigger": "Opaque-black assertion samples blurred corner with old 8pt offset",
+          "consequence": "Public PNG is #202020 at (83,53); no runtime shadow defect established",
+          "fix": "16pt distance separates covered opaque sample from foreground/blur edge; retain separate halo check; public before/final PNG/SVG inspected"
+        },
+        {
+          "owner": "HTML content-safety tests",
+          "trigger": "CSS all:initial resets display:none",
+          "consequence": "Old test expects concealment after text becomes visible",
+          "fix": "Visible reset text has no concealment finding; reset-then-hidden text remains report-only and cannot be destructively removed; production safety policy unchanged"
+        }
+      ],
+      "current759Comparison": {
+        "run": 37564364802,
+        "passed": true,
+        "originalTolerancesPreserved": true
+      },
+      "current759Packages": {
+        "run": 37564394597,
+        "platforms": [
+          {
+            "platform": "linux",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ]
+          },
+          {
+            "platform": "macos",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ]
+          },
+          {
+            "platform": "windows",
+            "packages": 19,
+            "loadedDlls": 63,
+            "consumerFrameworks": [
+              "net10.0",
+              "net472",
+              "net8.0"
+            ]
+          }
+        ],
+        "allArtifactZipSizesSha256CrcAndInstalledOriginsVerified": true,
+        "CoreExternalRuntimeDependencies": 0,
+        "windowsNet472ConsumersExecuteOnFramework": "4.8",
+        "excludesFullCorrectnessProfilesTimings": true
+      },
+      "frozenCheckout": {
+        "before": {
+          "files": 139,
+          "changed": 54
+        },
+        "after": {
+          "files": 139,
+          "allByteIdentical": true
+        },
+        "sourceAndIntegrityPinsUnchanged": true
+      },
+      "localFrameworkProof": {
+        "net8": {
+          "shadow": 174,
+          "safety": 224,
+          "h4": 9,
+          "frozenBaselineAndCatalog": 5,
+          "tool": 287
+        },
+        "net10": {
+          "shadow": 174,
+          "safety": 224,
+          "h4": 9,
+          "frozenBaselineAndCatalog": 5,
+          "tool": 287
+        }
+      },
+      "macosArm64NativeAot": {
+        "publishExitCode": 0,
+        "runExitCode": 0,
+        "diagnostics": [],
+        "executableSha256": "F385561783D4206A7AB26FFC7E0788B46C143DFD6698FF0D5F1AF478AD1BB56D"
+      },
+      "net472CrossCompile": {
+        "SharedTestsNet472": {
+          "errors": 0,
+          "warnings": 0
+        },
+        "PowerPointTestsNet472": {
+          "errors": 0,
+          "warnings": 0
+        },
+        "nativeWindowsExecution": false
+      },
+      "stableValidationBytesEqualCommittedSource": true,
+      "localReviewDisposition": "Directly proven narrow CLI and test/setup corrections; current shipping owner independent review coverage retained; no fresh full review solely for SHA",
+      "originalFailuresRetained": true,
+      "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007",
+      "remaining": [
+        "Consolidated publication and immediate/delayed current-head hosted gates",
+        "Actual next-head Linux font/native Windows execution",
+        "Actual merge/base overlap inspection then qualified engine sync and two temporary worktree removals"
+      ]
     }
   }
 }
