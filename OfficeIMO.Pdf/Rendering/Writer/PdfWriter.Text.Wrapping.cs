@@ -516,7 +516,7 @@ internal static partial class PdfWriter {
                     }
                 }
                 if (token.Length > 0) {
-                    bool needsLeadingSpace = pendingLeadingSeparator && (lastLine.Count > 0 || pendingLeadingIsTab || preserveWhitespace);
+                    bool needsLeadingSpace = pendingLeadingSeparator && (lineWidth != 0D || pendingLeadingIsTab || preserveWhitespace);
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;

@@ -9,6 +9,39 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfRunSpacingReviewTests {
+    [Fact]
+    public void SpacedLiteralTokenTextKeepsItsIdentityBesideAGenuinePageField() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Main");
+        foreach (string literal in new[] { "{page}", "{pages}", "{documentpages}" }) {
+            WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph(literal);
+            paragraph.Spacing = 20;
+        }
+        WordParagraph mixed = document.HeaderDefaultOrCreate.AddParagraph("{page}");
+        mixed.Spacing = 20;
+        mixed._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " PAGE " });
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("{page}", text, StringComparison.Ordinal);
+        Assert.Contains("{pages}", text, StringComparison.Ordinal);
+        Assert.Contains("{documentpages}", text, StringComparison.Ordinal);
+        Assert.Equal(1, pdf.GetPage(1).Letters.Count(letter => letter.Value == "1"));
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Fact]
+    public void NaturalDocumentPageFieldKeepsItsValueInAStyledHeaderZone() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Main");
+        document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = 20;
+        WordParagraph count = document.HeaderDefaultOrCreate.AddParagraph();
+        count._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " NUMPAGES " });
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        Assert.DoesNotContain("{documentpages}", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.Equal(1, pdf.GetPage(1).Letters.Count(letter => letter.Value == "1"));
+        Assert.Empty(document.ValidateDocument());
+    }
+
     [Theory]
     [InlineData("body", 50)]
     [InlineData("body", 200)]
@@ -75,6 +108,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         });
         paragraph._paragraph.ParagraphProperties!.ParagraphStyleId = new ParagraphStyleId { Val = "MarkerSpacing" };
         if (route == "inline") paragraph.PageBreakBefore = true;
+        Assert.Empty(document.ValidateDocument());
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
         return pdf.GetPages().SelectMany(page => page.Letters).ToArray();
     }
