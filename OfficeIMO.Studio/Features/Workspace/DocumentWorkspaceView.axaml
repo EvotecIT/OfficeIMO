@@ -976,6 +976,17 @@
                 <TextBlock Text="{loc:Loc DocumentWorkspace.SelectedObject}" Classes="paneTitle" />
                 <TextBlock Text="{Binding SelectedObjectSummary}" Classes="muted" TextWrapping="Wrap" />
 
+                <StackPanel IsVisible="{Binding HasSelectedAnnotations}" Spacing="7">
+                  <TextBlock Text="{loc:Loc AnnotationSelection.Help}" Classes="muted" TextWrapping="Wrap" />
+                  <WrapPanel ItemSpacing="6" LineSpacing="6">
+                    <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Group}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Group}" Command="{Binding GroupAnnotationsCommand}" IsEnabled="{Binding CanGroupAnnotations}" />
+                    <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Ungroup}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Ungroup}" Command="{Binding UngroupAnnotationsCommand}" IsEnabled="{Binding CanUngroupAnnotations}" />
+                    <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Duplicate}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Duplicate}" Command="{Binding CopyAnnotationsCommand}" IsEnabled="{Binding CanEditSelectedAnnotations}" />
+                    <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Raise}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Raise}" Command="{Binding RaiseAnnotationsCommand}" IsEnabled="{Binding CanEditSelectedAnnotations}" />
+                    <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Lower}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Lower}" Command="{Binding LowerAnnotationsCommand}" IsEnabled="{Binding CanEditSelectedAnnotations}" />
+                  </WrapPanel>
+                </StackPanel>
+
                 <StackPanel IsVisible="{Binding HasSelectedText}" Spacing="7">
                   <editor:TextEditInspectorView />
                 </StackPanel>

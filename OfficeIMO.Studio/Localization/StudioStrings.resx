@@ -2566,4 +2566,18 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="PrintPreview.Alignment.Bottom" xml:space="preserve"><value>Bottom center</value></data>
   <data name="PrintPreview.Alignment.BottomRight" xml:space="preserve"><value>Bottom right</value></data>
   <data name="Conversion.Package.Picker" xml:space="preserve"><value>Choose an Apple document package</value></data>
+  <data name="AnnotationSelection.Count" xml:space="preserve"><value>{0} annotations selected on page {1}</value></data>
+  <data name="AnnotationSelection.Help" xml:space="preserve"><value>Shift-click to add or remove annotations. Drag an empty area to select several. Groups are saved in the PDF. Use arrows to browse, Space to select, Shift+Space to add, and Ctrl+arrows to move. Resize individual annotations.</value></data>
+  <data name="AnnotationSelection.Group" xml:space="preserve"><value>Group</value></data>
+  <data name="AnnotationSelection.Ungroup" xml:space="preserve"><value>Ungroup</value></data>
+  <data name="AnnotationSelection.Duplicate" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="AnnotationSelection.Raise" xml:space="preserve"><value>Raise</value></data>
+  <data name="AnnotationSelection.Lower" xml:space="preserve"><value>Lower</value></data>
+  <data name="AnnotationSelection.Grouped" xml:space="preserve"><value>Grouped annotations</value></data>
+  <data name="AnnotationSelection.Ungrouped" xml:space="preserve"><value>Ungrouped annotations</value></data>
+  <data name="AnnotationSelection.Copied" xml:space="preserve"><value>Duplicated annotations</value></data>
+  <data name="AnnotationSelection.Raised" xml:space="preserve"><value>Raised annotations</value></data>
+  <data name="AnnotationSelection.Lowered" xml:space="preserve"><value>Lowered annotations</value></data>
+  <data name="AnnotationSelection.Moved" xml:space="preserve"><value>Moved annotations</value></data>
+  <data name="AnnotationSelection.Deleted" xml:space="preserve"><value>Deleted annotations</value></data>
 </root>

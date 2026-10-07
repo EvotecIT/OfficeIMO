@@ -1436,6 +1436,32 @@ repair workflow.
 
 ### Annotation review threads
 
+Batch annotation edits use `document.Annotations.MoveMany`, `CopyMany`, `RemoveMany`,
+and `Arrange`. Pass the indirect object numbers from the current inspection snapshot.
+Each operation expands standard group members and returns one mutation result, with
+the same encryption, signature, and object-number mapping rules as individual edits.
+`Arrange` accepts `Raise`, `Lower`, `BringToFront`, or `SendToBack` from
+`PdfAnnotationOrderChange` and preserves the selected annotations' relative order.
+
+`document.Annotations.Group(objectNumbers)` groups at least two editable markup
+annotations on one page using standard `/IRT` and `/RT /Group` relationships.
+Grouping requires PDF 1.6; older ordinary documents receive a catalog version
+upgrade. Certified and usage-rights documents that would require that upgrade are
+rejected because it changes the catalog beyond an annotation edit.
+`Ungroup(objectNumbers)` removes those relationships from the complete selected
+groups. `PdfAnnotationGrouping.GetMembers(info.Annotations, objectNumber)` resolves
+a saved group without including conversational replies. Links, redaction marks,
+and reply annotations cannot become group members. Locked and read-only annotations
+are rejected by batch edits. Multi-selection geometry edits move annotations;
+resize each annotation separately. Free-text callout transforms remain unsupported.
+
+Copies stay on the source pages, retain supported appearances and styles, and receive
+unique `/NM` names. They preserve the copied groups and linked popups, without copying
+conversational replies or prior review decisions. Removal retains replies to a removed
+parent as standalone comments. Append-only removal needs explicit
+`allowResidualDataInAppendOnly: true` because older revisions retain removed data;
+it is not a sanitization operation.
+
 Read reply relationships as threads, add a reply, and record a standard review
 state through the same annotation mutation policy used by lower-level edits:
 

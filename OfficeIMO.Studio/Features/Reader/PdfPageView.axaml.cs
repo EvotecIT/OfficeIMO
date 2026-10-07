@@ -23,6 +23,8 @@ public sealed partial class PdfPageView : UserControl {
         PageCanvas.LinkActivated += OnLinkActivated;
         PageCanvas.EditorGestureCompleted += OnEditorGestureCompleted;
         PageCanvas.ObjectSelected += OnObjectSelected;
+        PageCanvas.AnnotationSelectionRequested += request => _viewModel?.SelectAnnotations(request);
+        PageCanvas.AnnotationKeyRequested += (key, modifiers) => _viewModel?.RequestAnnotationKey(key, modifiers);
         PageCanvas.TextSelectionCompleted += OnTextSelectionCompleted;
         PageCanvas.ObjectTransformCompleted += gesture => _viewModel?.TransformObject(gesture);
         PageCanvas.SizeChanged += (_, args) => _viewModel?.UpdateCanvasSize(args.NewSize);

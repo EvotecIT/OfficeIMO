@@ -63,6 +63,7 @@
                               ActiveSearchHighlights="{Binding ActiveSearchHighlights}"
                               EditorTool="{Binding EditorTool}"
                               SelectedObject="{Binding SelectedObject}"
+                              SelectedAnnotations="{Binding SelectedAnnotations}"
                               CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"
                               FormAnchorFieldName="{Binding FormAnchorFieldName}"
                               FormAnchorObjectNumber="{Binding FormAnchorObjectNumber}"

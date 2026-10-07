@@ -51,6 +51,11 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null || SelectedObject is not PdfEditorSelection selection) return;
         double deltaX = ObjectMoveX;
         double deltaY = ObjectMoveY;
+        if (SelectedAnnotations.Count > 0) {
+            await RunSelectedAnnotationEditAsync((editor, numbers) => editor.MoveMany(numbers, deltaX, deltaY),
+                UiText("AnnotationSelection.Moved"), cancellationToken).ConfigureAwait(true);
+            return;
+        }
         var imageOptions = new PdfImageEditOptions { Layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent };
         ClearObjectSelection();
         await RunMutationAsync(
@@ -96,6 +101,11 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task DeleteSelectedObjectAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedObject is not PdfEditorSelection selection) return;
+        if (SelectedAnnotations.Count > 0) {
+            await RunSelectedAnnotationEditAsync((editor, numbers) => editor.RemoveMany(numbers),
+                UiText("AnnotationSelection.Deleted"), cancellationToken).ConfigureAwait(true);
+            return;
+        }
         ClearObjectSelection();
         await RunMutationAsync(
             token => selection.Kind switch {

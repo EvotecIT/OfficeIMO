@@ -446,6 +446,9 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));
+        OnPropertyChanged(nameof(CanEditSelectedAnnotations));
+        OnPropertyChanged(nameof(CanGroupAnnotations));
+        OnPropertyChanged(nameof(CanUngroupAnnotations));
         OnPropertyChanged(nameof(CanEditPageContent));
         OnPropertyChanged(nameof(CanReplaceSelectedText));
         OnPropertyChanged(nameof(CanReplaceSelectedImage));

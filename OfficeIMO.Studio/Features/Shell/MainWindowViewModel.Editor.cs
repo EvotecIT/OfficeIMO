@@ -154,7 +154,7 @@ public sealed partial class MainWindowViewModel {
 
     public bool HasSelectedObject => SelectedObject is not null;
 
-    public bool HasSelectedAnnotation => SelectedObject?.Kind == PdfEditorSelectionKind.Annotation;
+    public bool HasSelectedAnnotation => SelectedObject?.Kind == PdfEditorSelectionKind.Annotation && SelectedAnnotations.Count <= 1;
 
     public bool HasSelectedImage => SelectedObject?.Kind == PdfEditorSelectionKind.Image;
 
@@ -382,6 +382,15 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void OnPageObjectSelected(PdfEditorSelection? selection) {
+        if (selection is { Kind: PdfEditorSelectionKind.Annotation, ObjectNumber: not null }) {
+            OnPageAnnotationsSelected(new([selection], false));
+            return;
+        }
+        SelectedAnnotations = Array.Empty<PdfEditorSelection>();
+        ApplyObjectSelection(selection);
+    }
+
+    private void ApplyObjectSelection(PdfEditorSelection? selection) {
         if (_workspace is null || selection is null) {
             ClearObjectSelection();
             return;
@@ -712,6 +721,7 @@ public sealed partial class MainWindowViewModel {
 
     private void ClearObjectSelection() {
         ClearTextReview();
+        SelectedAnnotations = Array.Empty<PdfEditorSelection>();
         SelectedObject = null;
         SelectedObjectSummary = null;
         SelectedAnnotationSummary = null;

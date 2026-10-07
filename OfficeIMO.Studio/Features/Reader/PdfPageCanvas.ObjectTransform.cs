@@ -17,13 +17,14 @@ public sealed partial class PdfPageCanvas {
     internal event Action<PdfObjectTransformGesture>? ObjectTransformCompleted;
 
     private bool BeginObjectTransform(PointerPressedEventArgs e) {
+        if (IsAdditive(e.KeyModifiers)) return false;
         if (SelectedObject is not { Kind: PdfEditorSelectionKind.Image or PdfEditorSelectionKind.Annotation } selected ||
             SelectionMode is not (PdfEditorSelectionMode.PageContent or PdfEditorSelectionMode.Annotations)) return false;
         Point point = ToPagePoint(e.GetPosition(this));
         var bounds = new Rect(selected.Bounds.Left, selected.Bounds.Top, selected.Bounds.Width, selected.Bounds.Height);
         Point[] handles = HandlePoints(bounds);
         double tolerance = 7 * Math.Max(1, (Scene?.Drawing.Width ?? Bounds.Width) / Math.Max(1, Bounds.Width));
-        int handle = Array.FindIndex(handles, candidate => Distance(point, candidate) <= tolerance);
+        int handle = SelectedAnnotations.Count > 1 ? -1 : Array.FindIndex(handles, candidate => Distance(point, candidate) <= tolerance);
         if (handle < 0 && !bounds.Contains(point)) return false;
         _transformSelection = selected;
         _transformStart = point;
@@ -51,10 +52,12 @@ public sealed partial class PdfPageCanvas {
         if (_transformHandle < 0) {
             // Align against the page and nearby object edges, in rendered page coordinates.
             double[] xGuides = new[] { 0D, scene.Drawing.Width / 2D, scene.Drawing.Width }
-                .Concat(scene.Interactions?.Regions.Where(region => Math.Abs(region.Quad.Left - original.Left) > 0.01 || Math.Abs(region.Quad.Top - original.Top) > 0.01)
+                .Concat(scene.Interactions?.Regions.Where(region => !SelectedAnnotations.Any(item => item.ObjectNumber == region.ObjectNumber && region.ObjectNumber.HasValue) &&
+                    (Math.Abs(region.Quad.Left - original.Left) > 0.01 || Math.Abs(region.Quad.Top - original.Top) > 0.01))
                     .SelectMany(region => new[] { region.Quad.Left, region.Quad.Right }) ?? []).Take(1000).ToArray();
             double[] yGuides = new[] { 0D, scene.Drawing.Height / 2D, scene.Drawing.Height }
-                .Concat(scene.Interactions?.Regions.Where(region => Math.Abs(region.Quad.Left - original.Left) > 0.01 || Math.Abs(region.Quad.Top - original.Top) > 0.01)
+                .Concat(scene.Interactions?.Regions.Where(region => !SelectedAnnotations.Any(item => item.ObjectNumber == region.ObjectNumber && region.ObjectNumber.HasValue) &&
+                    (Math.Abs(region.Quad.Left - original.Left) > 0.01 || Math.Abs(region.Quad.Top - original.Top) > 0.01))
                     .SelectMany(region => new[] { region.Quad.Top, region.Quad.Bottom }) ?? []).Take(1000).ToArray();
             (double xOffset, _alignmentX) = SnapOffset([target.Left, target.Center.X, target.Right], xGuides);
             (double yOffset, _alignmentY) = SnapOffset([target.Top, target.Center.Y, target.Bottom], yGuides);
@@ -76,7 +79,7 @@ public sealed partial class PdfPageCanvas {
         e.Handled = true;
         if (dragged && Math.Abs(target.Left - selection.Bounds.Left) + Math.Abs(target.Top - selection.Bounds.Top) +
             Math.Abs(target.Width - selection.Bounds.Width) + Math.Abs(target.Height - selection.Bounds.Height) > 0.1) {
-            ObjectTransformCompleted?.Invoke(new(selection, new(target.Left, target.Top, target.Right, target.Bottom)));
+            ObjectTransformCompleted?.Invoke(new(selection, new(target.Left, target.Top, target.Right, target.Bottom), SelectedAnnotations.ToArray()));
         }
         InvalidateVisual();
         return true;
@@ -94,7 +97,7 @@ public sealed partial class PdfPageCanvas {
         if (!_transformDragging || _transformSelection is null || Scene is not { } scene) return;
         var pen = new Pen(new SolidColorBrush(PageAccent), 1.5);
         context.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, PageAccent.R, PageAccent.G, PageAccent.B)), pen, _transformTarget);
-        DrawSelectionHandles(context, _transformTarget, PageAccent);
+        if (SelectedAnnotations.Count <= 1) DrawSelectionHandles(context, _transformTarget, PageAccent);
         if (_alignmentX is double x) context.DrawLine(pen, new Point(x, 0), new Point(x, scene.Drawing.Height));
         if (_alignmentY is double y) context.DrawLine(pen, new Point(0, y), new Point(scene.Drawing.Width, y));
     }

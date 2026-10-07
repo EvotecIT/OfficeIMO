@@ -702,6 +702,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.MarkupRequested += OnPageMarkupRequested;
             page.InlineFormNavigationRequested += OnInlineFormNavigationRequested;
             page.ObjectSelected += OnPageObjectSelected;
+            page.AnnotationSelectionRequested += OnPageAnnotationsSelected;
+            page.AnnotationKeyRequested += OnAnnotationKeyRequested;
             page.ObjectTransformCompleted += OnPageObjectTransform;
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();

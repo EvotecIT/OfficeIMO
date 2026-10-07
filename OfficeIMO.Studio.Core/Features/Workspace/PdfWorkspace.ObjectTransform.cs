@@ -13,6 +13,17 @@ internal sealed partial class PdfWorkspace {
             return LoadDocument(bytes);
         }
         if (selection.Kind == PdfEditorSelectionKind.Annotation && selection.ObjectNumber is int number) {
+            if (gesture.Annotations is { Count: > 1 } annotations) {
+                return EditAnnotationsAsync(annotations, revision, (editor, numbers) => {
+                    PdfDocument document = CreateDocumentSnapshot();
+                    PdfLogicalPage page = document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages[selection.PageNumber - 1];
+                    PdfPagePoint sourcePoint = page.MapVisualPointToUserSpace(selection.Bounds.Left, selection.Bounds.Top);
+                    PdfPagePoint targetPoint = page.MapVisualPointToUserSpace(gesture.Target.Left, gesture.Target.Top);
+                    if (Math.Abs(gesture.Target.Width - selection.Bounds.Width) > 0.01 || Math.Abs(gesture.Target.Height - selection.Bounds.Height) > 0.01)
+                        throw new NotSupportedException("Resize annotations individually. A multi-selection can be moved as one unit.");
+                    return editor.MoveMany(numbers, targetPoint.X - sourcePoint.X, targetPoint.Y - sourcePoint.Y);
+                }, "Moved selected annotations", token, progress);
+            }
             return MutateAnnotationBytesAsync(PdfWorkspaceOperationKind.Annotation, "Changed annotation geometry",
                 [selection.PageNumber], bytes => {
                     PdfDocument document = Current(bytes);
