@@ -229,10 +229,6 @@ namespace OfficeIMO.Word.Pdf {
             return ResolveNativeWordSingleLineHeight(
                 nativeFontMap,
                 ResolveNativeRunFontsFamily(paragraph._document, markFonts),
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
-                paragraph.FontFamilyEastAsia,
-                paragraph.FontFamilyComplexScript,
                 styleDefaults.FontFamily,
                 tableRunStyleDefaults.FontFamily,
                 nativeDefaults.FontFamily);

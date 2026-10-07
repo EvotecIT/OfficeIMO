@@ -37,16 +37,16 @@ namespace OfficeIMO.Word {
         public WordNumberFormat? NumberingFormat { get; }
     }
 
-    /// <summary>Read-only view of a section's endnote configuration.</summary>
+    /// <summary>Read-only view of section numbering and document-wide endnote placement.</summary>
     public sealed class WordEndnoteSettings {
-        internal WordEndnoteSettings(W.EndnoteProperties? value) {
-            Position = value?.EndnotePosition?.Val?.Value.ToOfficeEnum();
+        internal WordEndnoteSettings(W.EndnoteProperties? value, W.EndnotePositionValues position) {
+            Position = position.ToOfficeEnum();
             NumberingRestart = value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
             StartNumber = value?.NumberingStart?.Val?.Value;
             NumberingFormat = value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
         }
 
-        /// <summary>Gets the endnote placement.</summary>
+        /// <summary>Gets the effective document-wide placement, defaulting to document-end when omitted.</summary>
         public WordEndnotePosition? Position { get; }
 
         /// <summary>Gets when numbering restarts.</summary>
@@ -68,9 +68,9 @@ namespace OfficeIMO.Word {
         public WordFootnoteSettings FootnoteSettings =>
             new WordFootnoteSettings(_sectionProperties.GetFirstChild<W.FootnoteProperties>());
 
-        /// <summary>Gets an SDK-independent view of the section's endnote configuration.</summary>
+        /// <summary>Gets an SDK-independent view of section numbering and document-wide endnote placement.</summary>
         public WordEndnoteSettings EndnoteSettings =>
-            new WordEndnoteSettings(_sectionProperties.GetFirstChild<W.EndnoteProperties>());
+            new WordEndnoteSettings(_sectionProperties.GetFirstChild<W.EndnoteProperties>(), _document.DocumentEndnotePosition);
     }
 
     public partial class WordDocument {
