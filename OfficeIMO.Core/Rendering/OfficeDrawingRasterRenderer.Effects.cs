@@ -11,15 +11,22 @@ public static partial class OfficeDrawingRasterRenderer {
         if (effectGroup.Opacity <= 0D) return;
         canvas = canvas.WithDrawingTextProfile(effectGroup.InnerDrawing);
         cancellationToken.ThrowIfCancellationRequested();
-        double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * scale);
-        double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * scale);
+        OfficeTransform transform = effectGroup.Transform;
+        double transformScale = GetEffectTransformScale(transform);
+        if (transformScale <= 0D) return;
+        // Render vector content at its destination resolution before compositing.
+        // Enlarging a low-resolution intermediate blurs narrow bars and other details.
+        double layerScale = scale * transformScale;
+        if (layerScale <= 0D) return;
+        double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * layerScale);
+        double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * layerScale);
         if (width > long.MaxValue || height > long.MaxValue || width * height > long.MaxValue) {
-            throw new OfficeImageExportLimitException(scale, long.MaxValue, maximumRasterPixels,
+            throw new OfficeImageExportLimitException(layerScale, long.MaxValue, maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
         canvas.ChargeIntermediateSurfacePixels((long)width * (long)height, maximumRasterPixels);
         OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions {
-            Scale = scale,
+            Scale = layerScale,
             ImageCodec = imageCodec,
             TextShapingProvider = canvas.TextShapingProvider,
             TextShapingLanguage = canvas.TextShapingLanguage,
@@ -33,7 +40,7 @@ public static partial class OfficeDrawingRasterRenderer {
             layer = ApplySoftMask(
                 layer,
                 effectGroup.SoftMask,
-                scale,
+                layerScale,
                 imageCodec,
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
@@ -43,14 +50,31 @@ public static partial class OfficeDrawingRasterRenderer {
                 maximumRasterPixels,
                 cancellationToken);
         }
-        OfficeTransform transform = effectGroup.Transform;
-        var pixelTransform = new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX * scale, transform.OffsetY * scale);
+        double placementScale = scale / layerScale;
+        var pixelTransform = new OfficeTransform(
+            transform.M11 * placementScale, transform.M12 * placementScale,
+            transform.M21 * placementScale, transform.M22 * placementScale,
+            transform.OffsetX * scale, transform.OffsetY * scale);
         var surfaceBounds = (Left: 0D, Top: 0D, Right: effectGroup.InnerDrawing.Width, Bottom: effectGroup.InnerDrawing.Height);
         var samplingInspection = new SamplingInspectionContext(cancellationToken);
         bool interpolate =
             !ContainsNonInterpolatedImage(effectGroup.InnerDrawing, surfaceBounds, samplingInspection) &&
             (effectGroup.SoftMask == null || !ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, surfaceBounds, samplingInspection));
         canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, interpolate);
+    }
+
+    private static double GetEffectTransformScale(OfficeTransform transform) {
+        double maximum = System.Math.Max(System.Math.Max(System.Math.Abs(transform.M11), System.Math.Abs(transform.M12)),
+            System.Math.Max(System.Math.Abs(transform.M21), System.Math.Abs(transform.M22)));
+        if (maximum == 0D) return 0D;
+        // Largest singular value: rotations retain their resolution; shear and
+        // nonuniform scaling receive enough samples along their most stretched axis.
+        double a = transform.M11 / maximum, b = transform.M12 / maximum;
+        double c = transform.M21 / maximum, d = transform.M22 / maximum;
+        double sum = a * a + b * b + c * c + d * d;
+        double determinant = a * d - b * c;
+        return maximum * System.Math.Sqrt((sum + System.Math.Sqrt(System.Math.Max(0D,
+            sum * sum - 4D * determinant * determinant))) / 2D);
     }
 
     private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {

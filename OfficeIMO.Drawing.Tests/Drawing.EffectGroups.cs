@@ -172,8 +172,12 @@ public partial class DrawingTests {
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
 
-        Assert.Equal(OfficeColor.Black, raster.GetPixel(1, 0));
-        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
+        // The inspection budget bounds hidden pattern traversal; it must not
+        // disable the visible image's explicit interpolation during rendering.
+        OfficeColor boundary = raster.GetPixel(1, 0);
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
     }
 
     [Theory]
