@@ -228,6 +228,32 @@ test("DataTables PDF uses the shared projection, grouped headings, footer and bu
   assert.match(buttonPdf.pages[0].body, /MediaBox \[0 0 792 612\]/);
 });
 
+test("PDF button metadata inherits omitted values and clears explicit native null overrides", async () => {
+  const { host, table } = fixture(); let delivered, failure;
+  const defaults = { title: "Default title", messageTop: "Default above", messageBottom: "Default below", compression: false };
+  registerDataTablesButtons(host, { pdf: defaults, save: file => { delivered = file; }, onError: error => { failure = error; } });
+  async function action(configuration) {
+    delivered = undefined; failure = undefined;
+    await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, configuration, resolve));
+    assert.equal(failure, undefined); assert.ok(delivered);
+    return (await inspectPdf(delivered)).text;
+  }
+  const keys = ["title", "messageTop", "messageBottom"];
+  const inherited = await action({});
+  for (const key of keys) assert.ok(inherited.includes(defaults[key]), key);
+  for (const cleared of keys) {
+    const text = await action({ [cleared]: null });
+    for (const key of keys) assert.equal(text.includes(defaults[key]), key !== cleared, cleared + " / " + key);
+    assert.ok(text.includes("first")); assert.ok(text.includes("second"));
+  }
+  const omitted = await action({ title: null, messageTop: null, messageBottom: null });
+  for (const key of keys) assert.ok(!omitted.includes(defaults[key]), key);
+  const replaced = await action({ title: "*", messageTop: "", messageBottom: "New below" });
+  assert.ok(replaced.includes("Fixture title")); assert.ok(replaced.includes("New below"));
+  for (const key of keys) assert.ok(!replaced.includes(defaults[key]), key);
+  assert.deepEqual(defaults, { title: "Default title", messageTop: "Default above", messageBottom: "Default below", compression: false });
+});
+
 test("PDF preserves DataTables vertical headers, blank spans and multiple footer rows", async () => {
   const { host, table } = fixture(); const native = table.buttons.exportData;
   table.buttons.exportData = options => {
