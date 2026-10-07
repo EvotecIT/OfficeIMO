@@ -968,6 +968,14 @@ work-budget context. `PdfUnderstandingPipelineOptions.MaxWorkUnitsPerPage` and
 document-wide evidence; over-complex input fails with
 `PdfReadLimitKind.UnderstandingWork` instead of continuing unbounded work.
 
+Structured reads associate tagged list bodies with their nearest `LI`, including
+text inside paragraph and link descendants. A `Lbl` supplies the marker; item
+text excludes it. Nested items keep separate bodies and nesting levels, and an
+item spanning pages has one fragment per page. Paragraph, heading, and table
+classifications remain available. Text exports preserve headings, tables, and
+unrelated content on shared lines instead of repeating them inside a flattened
+list item.
+
 Each page result exposes `ImagePlacements` and one `ImageRegion` per placement
 invocation. Regions retain placement geometry and paint order, associate nearby
 caption elements through vertical proximity and horizontal alignment only when

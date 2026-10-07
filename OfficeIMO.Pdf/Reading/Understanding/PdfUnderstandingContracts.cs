@@ -336,7 +336,8 @@ public sealed class PdfUnderstandingPageResult {
         IReadOnlyList<PdfUnderstandingTableCandidate>? tableCandidates = null,
         IReadOnlyList<PdfImagePlacement>? imagePlacements = null,
         IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null,
-        long maxWorkUnitsPerPage = 10_000_000) {
+        long maxWorkUnitsPerPage = 10_000_000,
+        IReadOnlyList<PdfTaggedListItemSource>? taggedListItems = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -350,6 +351,7 @@ public sealed class PdfUnderstandingPageResult {
         ImagePlacements = imagePlacements ?? Array.Empty<PdfImagePlacement>();
         ImageRegions = imageRegions ?? Array.Empty<PdfUnderstandingImageRegion>();
         MaxWorkUnitsPerPage = maxWorkUnitsPerPage;
+        TaggedListItems = taggedListItems ?? Array.Empty<PdfTaggedListItemSource>();
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
         ConsumeWork = consumeWork;
@@ -383,6 +385,8 @@ public sealed class PdfUnderstandingPageResult {
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }
     internal long MaxWorkUnitsPerPage { get; }
+    /// <summary>Tagged list membership over canonical source runs, independent of paragraph and heading classification.</summary>
+    internal IReadOnlyList<PdfTaggedListItemSource> TaggedListItems { get; }
     /// <summary>Pre-enrichment line sequence retained by caller-supplied structural stages for logical projection.</summary>
     internal IReadOnlyList<PdfUnderstandingLine> LogicalProjectionLines { get; }
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
@@ -410,7 +414,8 @@ public sealed class PdfUnderstandingPageResult {
             TableCandidates.Concat(candidates).ToArray(),
             ImagePlacements,
             ImageRegions,
-            MaxWorkUnitsPerPage);
+            MaxWorkUnitsPerPage,
+            TaggedListItems);
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(
