@@ -128,6 +128,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     instanceStream.WriteByte(0); WriteUInt16(instanceStream, 0);
                     if (level != null) {
                         var effectiveLevel = (Level)level.CloneNode(true);
+                        if (level.NumberingSymbolRunProperties?.RunFonts is RunFonts levelFonts) {
+                            RunFonts resolvedFonts = ResolveNativeThemeRunFonts(levelFonts);
+                            if (!ReferenceEquals(levelFonts, resolvedFonts))
+                                effectiveLevel.NumberingSymbolRunProperties!.RunFonts = resolvedFonts;
+                        }
                         // Word uses the abstract start unless w:startOverride explicitly
                         // requests a restart; a formatting-only w:lvl can carry another start.
                         effectiveLevel.StartNumberingValue = new StartNumberingValue {
