@@ -14,6 +14,7 @@ internal static partial class PdfWriter {
             var line = layout.Lines[lineIndex];
             double indents = layout.LineWidths != null
                 ? Math.Max(0D, TableCellNoWrapWidth - layout.LineWidths[lineIndex]) : 0D;
+            double firstLineIndents = indents;
             if (wholeLine || cell.NoWrap) {
                 minimum = Math.Max(minimum, MeasureRichLineWidth(line, options) + indents);
                 continue;
@@ -28,28 +29,35 @@ internal static partial class PdfWriter {
             }
             var word = new System.Collections.Generic.List<RichSeg>();
             foreach (RichSeg segment in line) {
-                if (segment.InlineElement != null) {
+                if (segment.InlineElement != null && segment.InlineElement is not PdfInlineBox { IsTextSpacer: true }) {
                     // Inline pictures can wrap independently of adjacent words;
                     // their own frame is the indivisible minimum, not the full
                     // text-and-picture sequence without spaces.
-                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimum(word, options) + indents);
+                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimumWithIndents(word, options, indents, firstLineIndents));
                     minimum = Math.Max(minimum, GetRichSegmentWidth(segment) + indents);
                     word.Clear();
                     continue;
                 }
                 if (segment.LeadingSpace || segment.LeadingIsTab) {
-                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimum(word, options) + indents);
+                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimumWithIndents(word, options, indents, firstLineIndents));
                     word.Clear();
                 }
                 word.Add(segment);
                 if (segment.EndsWithHardBreak || segment.EndsWithTextSeparator) {
-                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimum(word, options) + indents);
+                    minimum = Math.Max(minimum, MeasureImportedTableWordMinimumWithIndents(word, options, indents, firstLineIndents));
                     word.Clear();
                 }
             }
-            minimum = Math.Max(minimum, MeasureImportedTableWordMinimum(word, options) + indents);
+            minimum = Math.Max(minimum, MeasureImportedTableWordMinimumWithIndents(word, options, indents, firstLineIndents));
         }
         return minimum;
+    }
+
+    private static double MeasureImportedTableWordMinimumWithIndents(
+        System.Collections.Generic.IReadOnlyList<RichSeg> word, PdfOptions? options,
+        double continuationIndents, double firstLineIndents) {
+        bool hasTextSpacer = word.Any(segment => segment.InlineElement is PdfInlineBox { IsTextSpacer: true });
+        return MeasureImportedTableWordMinimum(word, options) + (hasTextSpacer ? firstLineIndents : continuationIndents);
     }
 
     private static double MeasureImportedTableWordMinimum(System.Collections.Generic.IReadOnlyList<RichSeg> segments, PdfOptions? options) {

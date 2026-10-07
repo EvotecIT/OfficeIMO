@@ -288,7 +288,7 @@ namespace OfficeIMO.Word.Pdf {
                 (int Level, string Marker)? listMarker = getMarker?.Invoke(paragraph);
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults, listMarker.HasValue);
                 if (listMarker is { Marker.Length: > 0 } marker) {
-                    var markerLayout = CreateNativeCellListMarkerRuns(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, indentation.FirstLine, nativeFontMap);
+                    var markerLayout = CreateNativeCellListMarkerRuns(marker.Marker, paragraph, tableStyleDefaults, nativeDefaults, indentation.Left, indentation.FirstLine, nativeFontMap);
                     paragraphRuns.InsertRange(0, markerLayout.Runs);
                     indentation.FirstLine -= markerLayout.AnchorShift;
                 }

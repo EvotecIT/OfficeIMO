@@ -135,6 +135,14 @@ namespace OfficeIMO.Word.Pdf {
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             color = textStyle.Color;
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle, nativeFontMap);
+            PdfCore.PdfTextRun measuredMarker = CreateNativeListMarkerTextRun(displayMarker, paragraph,
+                textStyle, nativeFontMap, includeSuffix: false);
+            double markerWidth = nativeFontMap.MeasureText(measuredMarker)
+                ?? EstimateNativeListMarkerWidth(displayMarker, measuredMarker.FontSize ?? nativeDefaults.FontSize);
+            // An overrun advances only the first line to the next Word tab stop.
+            // The paragraph path keeps continuation lines at the authored indent.
+            if (markerWidth - GetNativeMarkerAnchorShift(info.Value, markerWidth) > style.MarkerWidth + 0.01D)
+                return false;
             return true;
         }
 

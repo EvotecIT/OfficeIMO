@@ -8,6 +8,56 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfListMarkerAnchorTests {
     [Theory]
+    [InlineData(WordListLevelAlignment.Left, false, false, 720, 0, 108)]
+    [InlineData(WordListLevelAlignment.Center, false, false, 720, 0, 108)]
+    [InlineData(WordListLevelAlignment.Right, false, false, 720, 0, 72)]
+    [InlineData(WordListLevelAlignment.Left, false, true, 720, 0, 108)]
+    [InlineData(WordListLevelAlignment.Center, false, true, 720, 0, 108)]
+    [InlineData(WordListLevelAlignment.Right, false, true, 720, 0, 72)]
+    [InlineData(WordListLevelAlignment.Left, true, false, 720, 0, 108)]
+    [InlineData(WordListLevelAlignment.Center, true, false, 720, 0, 108)]
+    [InlineData(WordListLevelAlignment.Right, true, false, 720, 0, 72)]
+    [InlineData(WordListLevelAlignment.Left, false, false, 400, 0, 100)]
+    [InlineData(WordListLevelAlignment.Left, true, false, 400, 0, 100)]
+    [InlineData(WordListLevelAlignment.Left, false, true, 720, 2000, 100)]
+    [InlineData(WordListLevelAlignment.Left, true, false, 720, 2000, 100)]
+    public void TabSuffixUsesTheNextStopWhenTheMarkerOverrunsTheBodyIndent(
+        WordListLevelAlignment alignment, bool table, bool inline, int defaultTabTwips, int explicitTabTwips, double expectedBodyOffset) {
+        using WordDocument document = WordDocument.Create();
+        document.Settings.DefaultTabStop = defaultTabTwips;
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 0;
+        level.LevelJustification = alignment;
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+        WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
+        paragraph.Text = "BODY\nNEXT";
+        paragraph.FontFamily = "Courier New";
+        paragraph.FontSize = 12;
+        if (inline) paragraph.CharacterScale = 95;
+        paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        if (table) paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });
+        if (explicitTabTwips > 0) paragraph._paragraph.ParagraphProperties.Tabs = new Tabs(
+            new TabStop { Val = TabStopValues.Left, Position = explicitTabTwips });
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, FontFamily = "Courier"
+        }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("12.BODYNEXT", string.Concat(letters.Select(letter => letter.Value)));
+        double markerAnchor = alignment switch {
+            WordListLevelAlignment.Right => letters[2].EndBaseLine.X,
+            WordListLevelAlignment.Center => (letters[0].StartBaseLine.X + letters[2].EndBaseLine.X) / 2D,
+            _ => letters[0].StartBaseLine.X
+        };
+        Assert.InRange(Math.Abs(letters[3].StartBaseLine.X - markerAnchor - (expectedBodyOffset - 72D)), 0D, 0.03D);
+        Assert.InRange(Math.Abs(letters[7].StartBaseLine.X - markerAnchor), 0D, 0.03D);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]

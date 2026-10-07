@@ -5,7 +5,7 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static (IReadOnlyList<PdfCore.PdfTextRun> Runs, double AnchorShift) CreateNativeCellListMarkerRuns(
             string marker, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults,
-            NativeDocumentDefaults nativeDefaults, double firstLineIndent, NativeFontMap? nativeFontMap) {
+            NativeDocumentDefaults nativeDefaults, double leftIndent, double firstLineIndent, NativeFontMap? nativeFontMap) {
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph,
                 tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
@@ -25,7 +25,9 @@ namespace OfficeIMO.Word.Pdf {
             double trailingOffset = info.Value.LevelSuffix switch {
                 WordListLevelSuffix.Nothing => 0D,
                 WordListLevelSuffix.Space => suffixWidth,
-                _ => Math.Max(0D, -firstLineIndent + anchorShift - markerWidth)
+                _ => Math.Max(0D, ResolveNativeListTabBodyPosition(paragraph,
+                    leftIndent + firstLineIndent - anchorShift + markerWidth, leftIndent, nativeDefaults)
+                    - (leftIndent + firstLineIndent - anchorShift + markerWidth))
             };
 
             var result = new List<PdfCore.PdfTextRun>(2) { markerRun };
@@ -35,7 +37,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeCellListSpacer(List<PdfCore.PdfTextRun> runs, double width) {
             if (width > 0.01D) {
-                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(width, 0.01D, borderWidth: 0D)));
+                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(width, 0.01D, borderWidth: 0D) { IsTextSpacer = true }));
             }
         }
     }
