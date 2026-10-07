@@ -25,6 +25,25 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
     require(await (await csv.writeCsv([["=cmd"]], { columns: [{ header: "V" }] })).text() === "V\r\n'=cmd\r\n", "CSV layer failed");
     require(await (await csv.writeCsv([["Łódź", false]], { columns: [{ header: "Name", valueFormatter: value => "=" + value },
       { header: "Healthy", valueFormatter: value => value ? "Yes" : "No" }], quote: "all" })).text() === '"Name","Healthy"\r\n"\'=Łódź","No"\r\n', "Formatted CSV protection/quoting differs");
+    const frame = document.createElement("iframe"), loaded = new Promise(resolve => { frame.onload = resolve; });
+    frame.srcdoc = "<!doctype html><title>Stream destination realm</title>"; document.body.append(frame); await loaded;
+    try {
+      const ForeignStream = frame.contentWindow.WritableStream;
+      for (const [format, write] of [["csv", csv.writeCsvTo], ["xlsx", xlsx.writeXlsxTo]]) {
+        const chunks = []; let closes = 0, aborts = 0;
+        const destination = new ForeignStream({ write: bytes => { chunks.push(new Uint8Array(bytes)); },
+          close: () => { closes++; }, abort: () => { aborts++; } });
+        require(!(destination instanceof WritableStream), "Destination must exercise another realm");
+        const result = await write([["Łódź 🧪", 12.5]], destination, { columns: [{ header: "Name" }, { header: "Amount", type: "number" }] });
+        const blob = new Blob(chunks);
+        require(!destination.locked && closes === 0 && aborts === 0 && result.rows === 1 && result.columns === 2 && result.bytes === blob.size, "Foreign " + format + " stream ownership/result differs");
+        if (format === "csv") require(await blob.text() === "Name,Amount\r\nŁódź 🧪,12.5\r\n", "Foreign CSV bytes differ");
+        else await emitFixture("realm-" + kind + ".xlsx", blob);
+        const failure = new Error("Foreign destination failed"), failing = new ForeignStream({ write() { throw failure; } });
+        let rejected; try { await write([[1]], failing, { columns: [{ header: "Value" }] }); } catch (error) { rejected = error; }
+        require(rejected === failure && !failing.locked, "Foreign " + format + " rejection/lock release differs");
+      }
+    } finally { frame.remove(); }
     for (const spec of fixtures.cases) for (const compression of ["auto", "store"]) {
       if (spec.producer === "table-helper") {
         const sheet = spec.sheets[0], chunks = [];

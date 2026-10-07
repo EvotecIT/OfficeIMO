@@ -64,7 +64,7 @@ An async generator is consumed once. Use a source factory for separate exports r
 ```ts
 async function* loadSales(): AsyncGenerator<Sale> {
   // Fetch pages here and yield typed Sale records, including Date values.
-  yield* rows;
+  for (const row of rows) yield row;
 }
 const excel = await writeXlsx(loadSales(), { columns });
 const csv = await writeCsv(loadSales(), { columns, valueMode: "display" });

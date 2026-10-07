@@ -10,8 +10,9 @@ export type ByteSource = Uint8Array | Iterable<Uint8Array> | AsyncIterable<Uint8
 
 /** @internal Borrow a stream writer without closing or aborting the caller's destination. */
 export async function withDestination<T>(destination: OutputDestination, operation: (sink: ByteSink) => Promise<T>): Promise<T> {
-  if (typeof WritableStream === "function" && destination instanceof WritableStream) {
-    const writer = destination.getWriter();
+  // Native streams can belong to another browser realm; constructor identity is not portable.
+  if (destination && typeof (destination as WritableStream<Uint8Array>).getWriter === "function") {
+    const writer = (destination as WritableStream<Uint8Array>).getWriter();
     try { return await operation({ write: bytes => writer.write(bytes) }); }
     finally { writer.releaseLock(); }
   }

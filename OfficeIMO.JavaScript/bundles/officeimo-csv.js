@@ -90,14 +90,15 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("60cf0981a38cb266035d2230b7e8b540d43f02453ed61d060506b02a2200c0d6") ?? (() => {
+const _m2 = _modules.get("872d4c037a7c22db7c3509145c0beabed9640b5648115b0b59b3510d06811786") ?? (() => {
 const { checkAbort, withAbort, inputRows, pause } = _m1;
 
 const { OfficeIMOError } = _m3;
 
 /** @internal Borrow a stream writer without closing or aborting the caller's destination. */
 async function withDestination(destination, operation) {
-    if (typeof WritableStream === "function" && destination instanceof WritableStream) {
+    // Native streams can belong to another browser realm; constructor identity is not portable.
+    if (destination && typeof destination.getWriter === "function") {
         const writer = destination.getWriter();
         try {
             return await operation({ write: bytes => writer.write(bytes) });
@@ -194,7 +195,7 @@ async function writeBytes(source, sink, signal) {
     }
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("60cf0981a38cb266035d2230b7e8b540d43f02453ed61d060506b02a2200c0d6", _exports);
+_modules.set("872d4c037a7c22db7c3509145c0beabed9640b5648115b0b59b3510d06811786", _exports);
 return _exports;
 })();
 
@@ -336,7 +337,7 @@ _modules.set("0b20a64c251ecb1e8408c5d6a7b3075e818fd52ac2aea3e428d32c8e5a28aabd",
 return _exports;
 })();
 
-const _m7 = _modules.get("1009cc29d41caf7892ec8e7fe5d9f10980b19917a1af97565995919a7291d6dd") ?? (() => {
+const _m7 = _modules.get("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e") ?? (() => {
 
 
 
@@ -379,11 +380,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("1009cc29d41caf7892ec8e7fe5d9f10980b19917a1af97565995919a7291d6dd", _exports);
+_modules.set("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("04f974811a38d24bbae0f6ae3eca1e1eaa87b756ecda51ceb6de6d7c854c92c6") ?? (() => {
+const _m0 = _modules.get("904a55cb35888200f45ae01d9b1d2043d13afadf26270a311d5f161da2c667b7") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -502,7 +503,7 @@ async function writeCsv(rows, options) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("04f974811a38d24bbae0f6ae3eca1e1eaa87b756ecda51ceb6de6d7c854c92c6", _exports);
+_modules.set("904a55cb35888200f45ae01d9b1d2043d13afadf26270a311d5f161da2c667b7", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

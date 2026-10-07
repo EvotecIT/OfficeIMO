@@ -89,7 +89,8 @@ const { OfficeIMOError } = _m2;
 
 /** @internal Borrow a stream writer without closing or aborting the caller's destination. */
 async function withDestination(destination, operation) {
-    if (typeof WritableStream === "function" && destination instanceof WritableStream) {
+    // Native streams can belong to another browser realm; constructor identity is not portable.
+    if (destination && typeof destination.getWriter === "function") {
         const writer = destination.getWriter();
         try {
             return await operation({ write: bytes => writer.write(bytes) });

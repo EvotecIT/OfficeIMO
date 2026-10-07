@@ -20,6 +20,20 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const options = { exportOptions: { columns: ':visible' }, columnOptions: { 1: { type: 'number', format: '0.00' } },
     project: (v, c) => c.sourceColumnIndex === 1 ? new O.ExportCell(v, { presentation: { background: 'E2F0D9' } }) : v };
   const produced = [], reports = [];
+  const frame = document.createElement('iframe'), loaded = new Promise(resolve => { frame.onload = resolve; });
+  frame.srcdoc = '<!doctype html><title>Grid stream destination realm</title>'; document.body.append(frame); await loaded;
+  try {
+    for (const format of ['csv', 'xlsx']) {
+      const chunks = []; let closes = 0, aborts = 0;
+      const destination = new frame.contentWindow.WritableStream({ write: bytes => { chunks.push(new Uint8Array(bytes)); },
+        close: () => { closes++; }, abort: () => { aborts++; } });
+      check(!(destination instanceof WritableStream), 'grid destination belongs to another realm');
+      const result = await O.writeDataTableTo(D, table, format, destination, options), blob = new Blob(chunks);
+      check(!destination.locked && closes === 0 && aborts === 0 && result.rows === 2 && result.columns === 3 && result.bytes === blob.size, 'grid foreign stream ownership/counts');
+      if (format === 'csv') check(await blob.text() === "Identity and amount,,State\r\nName,Amount,Status\r\nvisible-c,7.5,Łódź 🧪\r\nvisible-a,12.5,'=status\r\nTotals,20,Checked\r\n", 'grid foreign stream CSV values');
+      await deliver('realm.' + format, blob);
+    }
+  } finally { frame.remove(); }
   for (const mode of ['batched', 'compatibility']) {
     const source = O.createDataTablesExport(D, table, { ...options, mode });
     const rows = []; for await (const row of source.rows) rows.push(row.map(v => v instanceof O.ExportCell ? v.value : v));
@@ -96,7 +110,7 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const cancelledWorker = await runDataTablesWorker(O.createDataTablesExport(D,workerTable,{headings:'leaf',includeFooter:false}),workerScript,'store',65);
   check(cancelledWorker.failure?.includes('worker cancelled'),'worker cancellation');
   workerTable.destroy(); workerElement.remove();
-  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 23 };
+  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 25 };
   async function deliver(name, blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer()); let binary = '';
     for (let first = 0; first < bytes.length; first += 8192) binary += String.fromCharCode(...bytes.subarray(first, first + 8192));
