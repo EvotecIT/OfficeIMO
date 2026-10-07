@@ -85,11 +85,8 @@ namespace OfficeIMO.Word {
         public List<WordTextBox> TextBoxes {
             get {
                 var list = new List<WordTextBox>();
-                foreach (var paragraph in Paragraphs.Where(p => p.IsTextBox)) {
-                    if (paragraph.TextBox != null) {
-                        list.Add(paragraph.TextBox);
-                    }
-                }
+                foreach (var paragraph in Paragraphs)
+                    list.AddRange(paragraph.GetTextBoxes());
 
                 return list;
             }
