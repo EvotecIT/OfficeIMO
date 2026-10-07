@@ -41,11 +41,82 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## XPS radial focal points
+
+For radial gradients with a focal point on or outside the end ellipse,
+`XpsPage.ToDrawing()`, raster `ExportImage()`, `XpsDocument.ToPdf()` and `ToSvg()`
+retain native Pad fields, including stop alpha and endpoint paint outside the
+cone. Boundary/exterior Repeat and Reflect fields use bounded vector expansion
+or explicit periodic fields; PDF retains vector shading when expansion is not
+finite or exceeds its stop budget. Check the [XPS support matrix](OfficeIMO.Xps/SUPPORT.md)
+for the native-consumer and sampling limits.
+
+## XPS gradient mapping
+
+Native `LinearGradientBrush` and `RadialGradientBrush` markup must contain
+`MappingMode="Absolute"`, as required by the XPS/OpenXPS format. Add that attribute
+to custom page or resource-dictionary markup before converting it. Strict SVG,
+Drawing and PDF conversion reject missing or relative mapping modes;
+`ToSvg(allowPartial: true)` reports the missing paint explicitly. Native package
+load/save still preserves the original markup.
+
+## XPS integer image defaults
+
+JPEG/TIFF gray and RGB resources without a usable ICC profile use native sRGB
+sample defaults, including resources with non-ICC calibration metadata. TIFF
+display orientation is ignored by XPS conversion; document geometry controls
+placement. An unspecified TIFF extra sample is ignored rather than used as alpha.
+The shared managed TIFF decoder rejects signed and undefined sample encodings
+instead of interpreting them as unsigned eight-bit components. Qualified floating-point
+TIFF images retain their declared sample encoding.
+
+## XPS/OpenXPS Reader identity and native order
+
+Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
+`.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
+schema version 10. Exhaustive kind switches and transport bindings must accept
+this value and version. Versions 5 through 9 remain readable; they cannot carry
+XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
+artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
+page citations remain separate. Null order values retain existing container order.
+
+`XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
+`XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
+for bounded chunks, tables, page citations and diagnostics.
+
+## XPS PDF reading order
+
+`XpsDocument.ToPdf()` maps authored native logical structure by default. Its search
+layer and structure tree follow story-reference order while the physical pages and
+paint keep their original order. Unsupported structure extensions, unresolved names
+and overlapping semantic references reject export. Use
+`ToPdf(preserveLogicalStructure: false)` to retain the previous fixed-canvas and
+markup-order search-text contract. Unstructured input retains that behavior by
+default. PDF/UA conformance and figure descriptions are not inferred.
+
+## XPS image color profiles
+
+Unusable associated image profiles fall back to usable embedded profiles. If no
+usable profile remains, strict conversion reports an error. Unprofiled CMYK
+JPEG/TIFF images now require an associated or embedded ICC profile; conversion
+rejects the previous unqualified device-color approximation. Add the intended
+profile to the source rather than treating a partial render as color preservation.
+
+## XPS structural metadata edits
+
+Use `XpsPage.ReplaceStoryFragmentsMarkup()` and
+`XpsFixedDocument.ReplaceDocumentStructureMarkup()` for the native structure parts.
+`ReplaceResource()` rejects these structural content types. When renaming page
+content referenced by StoryFragments, update both detached trees and call
+`page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
+commit together. Page-only edits that leave dangling native names are rejected.
+
 ## Static HTML rendering and capability profiles
 
 Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
+
 ## Native HTML disclosure rendering
 
 Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.

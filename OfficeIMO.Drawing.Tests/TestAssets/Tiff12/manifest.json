@@ -1,0 +1,1598 @@
+[
+  {
+    "file": "k0-c1-be0-p1-t0.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be0-p1-t1.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be0-p2-t0.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be0-p2-t1.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be1-p1-t0.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be1-p1-t1.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be1-p2-t0.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c1-be1-p2-t1.tif",
+    "kind": 0,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be0-p1-t0.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be0-p1-t1.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be0-p2-t0.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be0-p2-t1.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be1-p1-t0.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be1-p1-t1.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be1-p2-t0.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c5-be1-p2-t1.tif",
+    "kind": 0,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be0-p1-t0.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be0-p1-t1.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be0-p2-t0.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be0-p2-t1.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be1-p1-t0.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be1-p1-t1.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be1-p2-t0.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c8-be1-p2-t1.tif",
+    "kind": 0,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be0-p1-t0.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be0-p1-t1.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be0-p2-t0.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be0-p2-t1.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be1-p1-t0.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be1-p1-t1.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be1-p2-t0.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c32773-be1-p2-t1.tif",
+    "kind": 0,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be0-p1-t0.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be0-p1-t1.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be0-p2-t0.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be0-p2-t1.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be1-p1-t0.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be1-p1-t1.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be1-p2-t0.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k0-c7-be1-p2-t1.tif",
+    "kind": 0,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be0-p1-t0.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be0-p1-t1.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be0-p2-t0.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be0-p2-t1.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be1-p1-t0.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be1-p1-t1.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be1-p2-t0.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c1-be1-p2-t1.tif",
+    "kind": 1,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be0-p1-t0.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be0-p1-t1.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be0-p2-t0.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be0-p2-t1.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be1-p1-t0.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be1-p1-t1.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be1-p2-t0.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c5-be1-p2-t1.tif",
+    "kind": 1,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be0-p1-t0.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be0-p1-t1.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be0-p2-t0.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be0-p2-t1.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be1-p1-t0.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be1-p1-t1.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be1-p2-t0.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c8-be1-p2-t1.tif",
+    "kind": 1,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be0-p1-t0.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be0-p1-t1.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be0-p2-t0.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be0-p2-t1.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be1-p1-t0.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be1-p1-t1.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be1-p2-t0.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c32773-be1-p2-t1.tif",
+    "kind": 1,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be0-p1-t0.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be0-p1-t1.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be0-p2-t0.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be0-p2-t1.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be1-p1-t0.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be1-p1-t1.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be1-p2-t0.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k1-c7-be1-p2-t1.tif",
+    "kind": 1,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be0-p1-t0.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be0-p1-t1.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be0-p2-t0.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be0-p2-t1.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be1-p1-t0.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be1-p1-t1.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be1-p2-t0.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c1-be1-p2-t1.tif",
+    "kind": 2,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be0-p1-t0.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be0-p1-t1.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be0-p2-t0.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be0-p2-t1.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be1-p1-t0.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be1-p1-t1.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be1-p2-t0.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c5-be1-p2-t1.tif",
+    "kind": 2,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be0-p1-t0.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be0-p1-t1.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be0-p2-t0.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be0-p2-t1.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be1-p1-t0.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be1-p1-t1.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be1-p2-t0.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c8-be1-p2-t1.tif",
+    "kind": 2,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be0-p1-t0.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be0-p1-t1.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be0-p2-t0.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be0-p2-t1.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be1-p1-t0.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be1-p1-t1.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be1-p2-t0.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c32773-be1-p2-t1.tif",
+    "kind": 2,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be0-p1-t0.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be0-p1-t1.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be0-p2-t0.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be0-p2-t1.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be1-p1-t0.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be1-p1-t1.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be1-p2-t0.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k2-c7-be1-p2-t1.tif",
+    "kind": 2,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be0-p1-t0.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be0-p1-t1.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be0-p2-t0.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be0-p2-t1.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be1-p1-t0.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be1-p1-t1.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be1-p2-t0.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c1-be1-p2-t1.tif",
+    "kind": 3,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be0-p1-t0.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be0-p1-t1.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be0-p2-t0.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be0-p2-t1.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be1-p1-t0.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be1-p1-t1.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be1-p2-t0.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c5-be1-p2-t1.tif",
+    "kind": 3,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be0-p1-t0.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be0-p1-t1.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be0-p2-t0.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be0-p2-t1.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be1-p1-t0.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be1-p1-t1.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be1-p2-t0.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c8-be1-p2-t1.tif",
+    "kind": 3,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be0-p1-t0.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be0-p1-t1.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be0-p2-t0.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be0-p2-t1.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be1-p1-t0.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be1-p1-t1.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be1-p2-t0.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k3-c32773-be1-p2-t1.tif",
+    "kind": 3,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be0-p1-t0.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be0-p1-t1.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be0-p2-t0.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be0-p2-t1.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be1-p1-t0.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be1-p1-t1.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be1-p2-t0.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c1-be1-p2-t1.tif",
+    "kind": 4,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be0-p1-t0.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be0-p1-t1.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be0-p2-t0.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be0-p2-t1.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be1-p1-t0.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be1-p1-t1.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be1-p2-t0.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c5-be1-p2-t1.tif",
+    "kind": 4,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be0-p1-t0.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be0-p1-t1.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be0-p2-t0.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be0-p2-t1.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be1-p1-t0.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be1-p1-t1.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be1-p2-t0.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c8-be1-p2-t1.tif",
+    "kind": 4,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be0-p1-t0.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be0-p1-t1.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be0-p2-t0.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be0-p2-t1.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be1-p1-t0.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be1-p1-t1.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be1-p2-t0.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k4-c32773-be1-p2-t1.tif",
+    "kind": 4,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k5-c7-be0-p1-t0.tif",
+    "kind": 5,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k5-c7-be0-p1-t1.tif",
+    "kind": 5,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k5-c7-be1-p1-t0.tif",
+    "kind": 5,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k5-c7-be1-p1-t1.tif",
+    "kind": 5,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be0-p1-t0.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be0-p1-t1.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be0-p2-t0.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be0-p2-t1.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be1-p1-t0.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be1-p1-t1.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be1-p2-t0.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c1-be1-p2-t1.tif",
+    "kind": 6,
+    "compression": 1,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be0-p1-t0.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be0-p1-t1.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be0-p2-t0.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be0-p2-t1.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be1-p1-t0.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be1-p1-t1.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be1-p2-t0.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c5-be1-p2-t1.tif",
+    "kind": 6,
+    "compression": 5,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be0-p1-t0.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be0-p1-t1.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be0-p2-t0.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be0-p2-t1.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be1-p1-t0.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be1-p1-t1.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be1-p2-t0.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c8-be1-p2-t1.tif",
+    "kind": 6,
+    "compression": 8,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be0-p1-t0.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be0-p1-t1.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be0-p2-t0.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be0-p2-t1.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be1-p1-t0.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be1-p1-t1.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be1-p2-t0.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c32773-be1-p2-t1.tif",
+    "kind": 6,
+    "compression": 32773,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be0-p1-t0.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be0-p1-t1.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be0-p2-t0.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be0-p2-t1.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be1-p1-t0.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be1-p1-t1.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be1-p2-t0.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  },
+  {
+    "file": "k6-c7-be1-p2-t1.tif",
+    "kind": 6,
+    "compression": 7,
+    "width": 35,
+    "height": 19
+  }
+]

@@ -19,12 +19,12 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
-    internal PdfPageCanvas SearchableText(string text, PdfSelectionQuad geometry) {
-        Guard.NotNullOrWhiteSpace(text, nameof(text));
+    internal PdfPageCanvas SearchableText(string text, PdfSelectionQuad geometry, long? logicalOrder = null) {
+        if (string.IsNullOrEmpty(text)) throw new ArgumentException("Searchable text cannot be empty.", nameof(text));
         Guard.NotNull(geometry, nameof(geometry));
         Guard.Positive(geometry.Width, nameof(geometry));
         Guard.Positive(geometry.Height, nameof(geometry));
-        _items.Add(new PdfCanvasSearchableTextItem(text, geometry));
+        _items.Add(new PdfCanvasSearchableTextItem(text, geometry) { LogicalOrder = logicalOrder });
         return this;
     }
 
@@ -199,6 +199,7 @@ public sealed partial class PdfPageCanvas {
 }
 
 internal sealed class PdfCanvasSearchableTextItem : PdfCanvasItem {
+    internal long? LogicalOrder { get; set; }
     internal PdfCanvasSearchableTextItem(string text, PdfSelectionQuad geometry)
         : this(text, geometry.Left, geometry.Top, geometry.Width, geometry.Height, usesBounds: true) {
         Geometry = geometry;

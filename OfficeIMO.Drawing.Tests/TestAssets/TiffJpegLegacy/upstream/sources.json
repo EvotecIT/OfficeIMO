@@ -1,0 +1,20 @@
+[
+  {
+    "file": "ojpeg_zackthecat_subsamp22_single_strip.tiff",
+    "url": "https://gitlab.com/libtiff/libtiff/-/raw/v4.7.2/test/images/ojpeg_zackthecat_subsamp22_single_strip.tiff",
+    "bytes": 8258,
+    "sha256": "0d31f2acb25bfbde4d79975572369c3e4bea8e978fc1935075a545e3f8321b6e"
+  },
+  {
+    "file": "ojpeg_chewey_subsamp21_multi_strip.tiff",
+    "url": "https://gitlab.com/libtiff/libtiff/-/raw/v4.7.2/test/images/ojpeg_chewey_subsamp21_multi_strip.tiff",
+    "bytes": 39752,
+    "sha256": "fa829625035ed42a71d3baf0c4148903808b7c16c5e3a5a97a86909a969a57cb"
+  },
+  {
+    "file": "ojpeg_single_strip_no_rowsperstrip.tiff",
+    "url": "https://gitlab.com/libtiff/libtiff/-/raw/v4.7.2/test/images/ojpeg_single_strip_no_rowsperstrip.tiff",
+    "bytes": 8258,
+    "sha256": "bb4e0c9436da88030de5bb4f1042326fb15593d81650cfb6c51be800059ca032"
+  }
+]

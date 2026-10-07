@@ -1105,6 +1105,7 @@ public sealed partial class PdfReadPage {
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
+                if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) continue;
                 bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
 
                 CollectTextAndForms(
@@ -1328,6 +1329,7 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
+            if (pageContentBudget.HasProjectedTransparencyGroup(invocationOrder)) continue;
             if (skipTransparencyGroupForms &&
                 (!TryClassifyType3TransparencyGroup(formStream.Dictionary, out bool isTransparencyGroup) || isTransparencyGroup)) {
                 continue;
@@ -2362,7 +2364,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    internal sealed class PageContentBudget {
+    internal sealed partial class PageContentBudget {
         private readonly PdfReadPage _page;
         private Dictionary<PdfStream, byte[]>? _decodedStreams;
         private long _decodedBytes;

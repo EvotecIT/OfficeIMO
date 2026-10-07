@@ -10,7 +10,7 @@ public sealed class PdfCanvasStructureOptions {
 
     internal string? StructureElementKey { get; set; }
     /// <summary>Explicit sibling order supplied by an owning source adapter; null retains arrival order.</summary>
-    internal int? LogicalOrder { get; set; }
+    internal long? LogicalOrder { get; set; }
 
     /// <summary>Alternative text associated with the structure container.</summary>
     public string? AlternativeText {

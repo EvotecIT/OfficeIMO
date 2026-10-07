@@ -74,6 +74,8 @@ internal static partial class OfficeDocumentModelTraversal {
         ordered.Sort((left, right) => {
             int comparison = PathIndex(left.Location).CompareTo(PathIndex(right.Location));
             if (comparison != 0) return comparison;
+            comparison = (left.Location?.LogicalOrder ?? long.MaxValue).CompareTo(right.Location?.LogicalOrder ?? long.MaxValue);
+            if (comparison != 0) return comparison;
             comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location, sheetOrder), BuildContainerOrderKey(right.Location, sheetOrder));
             if (comparison != 0) return comparison;
             comparison = BuildBlockPosition(left.Location).CompareTo(BuildBlockPosition(right.Location));

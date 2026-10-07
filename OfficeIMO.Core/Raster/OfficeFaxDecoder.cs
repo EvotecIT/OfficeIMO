@@ -49,6 +49,10 @@ internal static partial class OfficeFaxDecoder {
         bool black = false;
         while (x < columns) {
             token.ThrowIfCancellationRequested();
+            if (bits.TryReadCode(15, 12)) { // T.4 Table 5: 000000001111.
+                DecodeUncompressed(bits, output, offset, columns, ref x, out black, token);
+                continue;
+            }
             int run = ReadRun(bits, black, columns - x);
             Paint(output, offset, x, x + run, black);
             x += run;
@@ -63,7 +67,13 @@ internal static partial class OfficeFaxDecoder {
         while (x < columns) {
             token.ThrowIfCancellationRequested();
             int mode = ReadMode(bits);
-            if (mode == 10) {
+            if (mode == 12) {
+                DecodeUncompressed(bits, output, offset, columns, ref x, out black, token);
+                // The exit tag describes a zero-width pixel just left of this edge.
+                // A reference transition at the edge is eligible for the resumed mode.
+                first = true;
+                continue;
+            } else if (mode == 10) {
                 int middle = x + ReadRun(bits, black, columns - x);
                 int end = middle + ReadRun(bits, !black, columns - middle);
                 Paint(output, offset, x, middle, black);
@@ -86,6 +96,30 @@ internal static partial class OfficeFaxDecoder {
                 }
             }
             first = false;
+        }
+    }
+
+    // T.4 Table 5 / TIFF 6 section 11. Zero runs are stuffed after five pixels;
+    // six through ten zeros introduce an exit with zero through four white pixels.
+    private static void DecodeUncompressed(FaxBits bits, byte[] output, int offset, int columns,
+        ref int x, out bool black, CancellationToken token) {
+        while (true) {
+            token.ThrowIfCancellationRequested();
+            int zeros = 0;
+            while (bits.Read() == 0) {
+                if (++zeros > 10) throw new InvalidDataException("Invalid uncompressed fax code.");
+            }
+            bool exit = zeros >= 6;
+            int white = exit ? zeros - 6 : zeros;
+            int count = white + (!exit && zeros < 5 ? 1 : 0);
+            if (count > columns - x) throw new InvalidDataException("Uncompressed fax data exceeds its row.");
+            x += white;
+            if (exit) {
+                black = bits.Read() != 0;
+                return;
+            }
+            if (zeros < 5) { Paint(output, offset, x, x + 1, true); x++; }
+            // Even at the row boundary, the exit and its color tag must be consumed.
         }
     }
 
@@ -139,6 +173,9 @@ internal static partial class OfficeFaxDecoder {
                 case 17: return 11; // 0001: pass
                 case 66: return -2; // 000010
                 case 67: return 2; // 000011
+                case 129: // 0000001 followed by the uncompressed extension selector.
+                    if (bits.Read() == 1 && bits.Read() == 1 && bits.Read() == 1) return 12;
+                    throw new InvalidDataException("Unsupported fax extension selector.");
                 case 130: return -3; // 0000010
                 case 131: return 3; // 0000011
             }
@@ -164,6 +201,15 @@ internal static partial class OfficeFaxDecoder {
             int value = (_bytes[(int)(_position / 8)] >> (7 - (int)(_position & 7))) & 1;
             _position++;
             return value;
+        }
+        internal bool TryReadCode(int expected, int length) {
+            long saved = _position;
+            if (length > (long)_bytes.Length * 8 - saved) return false;
+            int value = 0;
+            for (int i = 0; i < length; i++) value = (value << 1) | Read();
+            if (value == expected) return true;
+            _position = saved;
+            return false;
         }
         internal bool TryReadEndOfLine() {
             long saved = _position;

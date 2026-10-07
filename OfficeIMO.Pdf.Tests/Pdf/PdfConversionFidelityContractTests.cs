@@ -105,14 +105,6 @@ public sealed class PdfConversionFidelityContractTests {
         return value!;
     }
 
-    private static string GetManifestPath() {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            string candidate = Path.Combine(directory.FullName, "Docs", "pdf-conversion-scenarios.json");
-            if (File.Exists(candidate)) return candidate;
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate Docs/pdf-conversion-scenarios.json from test runtime base directory.");
-    }
+    private static string GetManifestPath() =>
+        Path.Combine(RepositoryTestPaths.Find(), "Docs", "pdf-conversion-scenarios.json");
 }

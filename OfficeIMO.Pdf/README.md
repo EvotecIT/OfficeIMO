@@ -214,11 +214,40 @@ Drawing text preserves numeric font descriptors when the matching faces are regi
 `PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
 font program. Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
+Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
+field without adding sampled color stops. Explicit print-condition conversion
+uses the existing bounded CMYK sampling path with the gradient's interpolation
+mode. Alpha masks remain scalar opacity fields.
+Radial gradients with an explicit Repeat or Reflect mode use vector function-based
+shading, including fields with no finite cycle bound. Color and alpha retain the
+same periodic field, within the existing 1,024-stop PDF gradient bound. Explicit
+print-condition conversion uses the shared bounded ICC gradient sampler, with up
+to 4,096 CMYK samples and independent scalar alpha. Component functions retain
+the periodic geometry without rasterizing the PDF field.
+
+The reader renders directly invoked function-based shadings at the requested
+image-export resolution. `ToDrawing()` samples these fields at one pixel per PDF
+point; use image-export or page-render options for a higher resolution.
+`PdfReadLimits.MaxFunctionShadingPixels` bounds aggregate intermediate pixels,
+and `MaxFunctionShadingEvaluationWork` bounds calculator work per page.
+Function-based shading patterns remain unsupported and produce a render diagnostic.
+
 Gradient fills and strokes preserve color-stop alpha through native transparency masks,
 including header and footer shapes. Gradient direction follows the same local coordinates
 before and after an affine transform.
 Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
 gradient clipping, affine transforms, and header and footer shapes.
+
+Drawing export retains bounded vector tiling patterns, isolated group opacity and
+blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and
+nontransparent mask backdrops reject export. Embedded drawing images preserve their
+interpolation setting. When reopening PDFs, the managed reader retains ordinary
+isolated Form groups with implicit or DeviceRGB blending space and no knockout.
+Invocation opacity applies once after overlapping paths, images, text, and nested
+forms are composed. Logical text extraction remains separate from that grouped
+paint. Other group blending spaces, non-isolated groups, and knockout semantics
+remain outside this reader contract. The [Cairo group fixtures](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Transparency/SOURCE.md)
+provide independent-producer coverage for overlapping child alpha and nested groups.
 
 HTML and SVG adapters preserve positioned text without turning its line or
 advance measurements into an extra paint clip. Glyphs can extend beyond those
@@ -305,12 +334,12 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 
 ## What it does
 
-- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
+- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding. Eight/sixteen-bit Huffman lossless JPEG inputs normalize to PNG before embedding; supported one/three-component eight-bit DCT JPEGs retain their compressed payload. Lossless JPEGs with embedded ICC profiles are rejected when normalization cannot retain their color contract.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
 - Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven Arabic-script/TrueType subset (core and extended Persian/Urdu letters). The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
-- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple device-color JPEGs without required color management remain lossless pass-through payloads.
+- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple DeviceGray/DeviceRGB JPEGs without required color management remain lossless pass-through payloads. DeviceCMYK JPEGs normalize through the PDF image pipeline so that Adobe markers cannot override authored or implicit identity `/Decode` polarity.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.

@@ -141,7 +141,9 @@ public static partial class OfficeImageReader {
         byte[]? data,
         string? fileName,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) =>
+        out OfficeImageInfo info,
+        bool ignoreTiffOrientation = false) =>
+        data != null && ignoreTiffOrientation && TryReadTiff(data, cancellationToken, out info, ignoreOrientation: true) ||
         TryIdentifyCore(data, fileName, allowExtensionFallback: false, cancellationToken, out info);
 
     internal static bool TryIdentifyByContent(
@@ -197,6 +199,8 @@ public static partial class OfficeImageReader {
                        TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage, cancellationToken: cancellationToken);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data, cancellationToken);
+            case OfficeImageFormat.JpegXr:
+                return OfficeJpegXrDecoder.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Avif:
                 return OfficeAvifCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Jpeg2000:
@@ -242,6 +246,7 @@ public static partial class OfficeImageReader {
             TryReadBmp(data, out info) ||
             TryReadWebp(data, out info, cancellationToken: cancellationToken) ||
             TryReadAvif(data, cancellationToken, out info) ||
+            OfficeJpegXrDecoder.TryIdentify(data, cancellationToken, out info) ||
             TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, cancellationToken, out info) ||
             TryReadPcx(data, out info) ||
@@ -293,6 +298,7 @@ public static partial class OfficeImageReader {
             ".pcx" => OfficeImageFormat.Pcx,
             ".webp" => OfficeImageFormat.Webp,
             ".avif" => OfficeImageFormat.Avif,
+            ".jxr" or ".wdp" or ".hdp" => OfficeImageFormat.JpegXr,
             ".jp2" => OfficeImageFormat.Jpeg2000,
             ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,
             _ => OfficeImageFormat.Unknown

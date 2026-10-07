@@ -268,6 +268,20 @@
           "OfficeIMO.Pdf": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )"
         }
+      },
+      "officeimo.xps": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps": "[3.4.4, )"
+        }
       }
     },
     "net10.0/linux-arm64": {},
@@ -548,6 +562,20 @@
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Pdf": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps": "[3.4.4, )"
         }
       }
     },

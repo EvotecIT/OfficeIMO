@@ -16,8 +16,16 @@ public static partial class OfficeDrawingRasterRenderer {
         if (points.Count == 0) return;
         GetPointBounds(points, out double x, out double y, out double width, out double height);
         IReadOnlyList<double>? pattern = shape.StrokeDashArray.Count > 0 ? shape.StrokeDashArray : shape.StrokeDashStyle.GetDashPattern(shape.StrokeWidth);
+        bool localPaint = transform.TryInvert(out var inverse);
         canvas.StrokeTransformedContours(contours, shape.StrokeWidth, shape.StrokeLineCap ?? OfficeStrokeLineCap.Round,
             shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Round, shape.StrokeMiterLimit, pattern, shape.StrokeDashOffset, transform,
-            (px, py) => SampleStrokeGradient(linear, radial, x, y, width, height, px, py) ?? color ?? OfficeColor.Transparent);
+            (px, py) => {
+                if (localPaint) {
+                    var point = inverse.TransformPoint(new OfficePoint(px, py));
+                    return SampleStrokeGradient(linear, radial, 0D, 0D, shape.Width, shape.Height, point.X, point.Y)
+                        ?? color ?? OfficeColor.Transparent;
+                }
+                return SampleStrokeGradient(linear, radial, x, y, width, height, px, py) ?? color ?? OfficeColor.Transparent;
+            });
     }
 }

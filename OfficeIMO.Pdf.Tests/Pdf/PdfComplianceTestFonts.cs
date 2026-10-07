@@ -64,6 +64,7 @@ internal static class PdfComplianceTestFonts {
     }
 
     private static System.Collections.Generic.IEnumerable<string> EnumerateSearchRoots() {
+        yield return RepositoryTestPaths.Find();
         string? current = AppContext.BaseDirectory;
         while (current is not null && !string.IsNullOrWhiteSpace(current)) {
             yield return current;

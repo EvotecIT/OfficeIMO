@@ -315,16 +315,11 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_UsesOptionalSharedCodecForCompleteJpegOutsideManagedSubset() {
-        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
-        int frameMarker = -1;
-        for (int index = 0; index < jpeg.Length - 1; index++) {
-            if (jpeg[index] != 0xFF || jpeg[index + 1] != 0xC0) continue;
-            frameMarker = index + 1;
-            break;
-        }
-        Assert.True(frameMarker > 0);
-        jpeg[frameMarker] = 0xC1; // Complete JPEG outside the managed SOF0/SOF2 subset.
+    public void RenderPages_DecodesProgressiveArithmeticJpegWithoutCallingOptionalCodec() {
+        // libjpeg-turbo 3.2.0 cjpeg -arithmetic -progressive -quality 100, one red RGB pixel.
+        // djpeg independently decodes this complete SOF10 fixture to RGB 254,0,0.
+        byte[] jpeg = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/ygARCAABAAEDASIAAhEBAxEB/8wABgAQARD/2gAMAwEAAhADEAAAAf8A6AFkoOm0UP/MAAQQBf/aAAgBAQABBQLA/8wABBEF/9oACAEDAQE/AcD/zAAEEQX/2gAIAQIBAT8BwP/MAAQQBf/aAAgBAQAGPwLA/8wABBAF/9oACAEBAAE/IcD/2gAMAwEAAgADAAAAEFD/zAAEEQX/2gAIAQMBAT8QwP/MAAQRBf/aAAgBAgEBPxDA/8wABBAF/9oACAEBAAE/EMD/2Q==");
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             jpeg,
             colorSpace: "/DeviceRGB",
@@ -338,7 +333,7 @@ public partial class PdfPageImageRendererTests {
         }));
 
         Assert.True(result.Succeeded);
-        Assert.True(codec.WasCalled);
+        Assert.False(codec.WasCalled);
         Assert.NotEmpty(result.Bytes!);
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }

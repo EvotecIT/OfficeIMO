@@ -24,9 +24,9 @@ internal static partial class PdfPageImageRenderer {
     public static OfficeDrawing RenderPage(Stream stream, int pageNumber = 1) =>
         RenderPage(stream, pageNumber, readOptions: null);
 
-    internal static OfficeDrawing RenderPage(Stream stream, int pageNumber, PdfLoadOptions? readOptions) {
+    internal static OfficeDrawing RenderPage(Stream stream, int pageNumber, PdfLoadOptions? readOptions, double functionShadingScale = 1D) {
         PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, readOptions);
-        return RenderPage(PdfReadDocument.Open(source.Bytes, source.Options), pageNumber);
+        return RenderPage(PdfReadDocument.Open(source.Bytes, source.Options), pageNumber, CancellationToken.None, functionShadingScale);
     }
 
     /// <summary>
@@ -35,9 +35,9 @@ internal static partial class PdfPageImageRenderer {
     public static OfficeDrawing RenderPage(string path, int pageNumber = 1) =>
         RenderPage(path, pageNumber, readOptions: null);
 
-    internal static OfficeDrawing RenderPage(string path, int pageNumber, PdfLoadOptions? readOptions) {
+    internal static OfficeDrawing RenderPage(string path, int pageNumber, PdfLoadOptions? readOptions, double functionShadingScale = 1D) {
         PdfDocumentSource source = PdfDocumentSource.FromPath(path, readOptions);
-        return RenderPage(PdfReadDocument.Open(source.Bytes, source.Options), pageNumber);
+        return RenderPage(PdfReadDocument.Open(source.Bytes, source.Options), pageNumber, CancellationToken.None, functionShadingScale);
     }
 
     /// <summary>
@@ -50,48 +50,48 @@ internal static partial class PdfPageImageRenderer {
     internal static OfficeDrawing RenderPage(
         PdfReadDocument document,
         int pageNumber,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, double functionShadingScale = 1D) {
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         ValidatePageNumber(document, pageNumber);
-        return document.Pages[pageNumber - 1].ToDrawing(cancellationToken);
+        return document.Pages[pageNumber - 1].ToDrawing(cancellationToken, functionShadingScale: functionShadingScale);
     }
 
     /// <summary>
     /// Renders a one-based PDF page to dependency-free PNG bytes through the shared OfficeIMO drawing rasterizer.
     /// </summary>
     public static byte[] RenderPageAsPng(byte[] pdf, int pageNumber = 1, double scale = 1D, OfficeColor? background = null) =>
-        RenderDrawingAsPng(RenderPage(pdf, pageNumber), scale, background);
+        RenderDrawingAsPng(RenderPage(PdfReadDocument.Open(pdf), pageNumber, CancellationToken.None, scale), scale, background);
 
     /// <summary>
     /// Renders a one-based PDF page to dependency-free PNG bytes from the current stream position.
     /// </summary>
     public static byte[] RenderPageAsPng(Stream stream, int pageNumber = 1, double scale = 1D, OfficeColor? background = null) =>
-        RenderDrawingAsPng(RenderPage(stream, pageNumber), scale, background);
+        RenderDrawingAsPng(RenderPage(stream, pageNumber, readOptions: null, functionShadingScale: scale), scale, background);
 
     /// <summary>
     /// Renders a one-based PDF page to dependency-free PNG bytes from a file path.
     /// </summary>
     public static byte[] RenderPageAsPng(string path, int pageNumber = 1, double scale = 1D, OfficeColor? background = null) =>
-        RenderDrawingAsPng(RenderPage(path, pageNumber), scale, background);
+        RenderDrawingAsPng(RenderPage(path, pageNumber, readOptions: null, functionShadingScale: scale), scale, background);
 
     /// <summary>
     /// Renders a one-based PDF page to UTF-8 SVG bytes through the shared OfficeIMO drawing SVG exporter.
     /// </summary>
     public static byte[] RenderPageAsSvg(byte[] pdf, int pageNumber = 1, double scale = 1D) =>
-        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(pdf, pageNumber), scale);
+        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(PdfReadDocument.Open(pdf), pageNumber, CancellationToken.None, scale), scale);
 
     /// <summary>
     /// Renders a one-based PDF page to UTF-8 SVG bytes from the current stream position.
     /// </summary>
     public static byte[] RenderPageAsSvg(Stream stream, int pageNumber = 1, double scale = 1D) =>
-        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(stream, pageNumber), scale);
+        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(stream, pageNumber, readOptions: null, functionShadingScale: scale), scale);
 
     /// <summary>
     /// Renders a one-based PDF page to UTF-8 SVG bytes from a file path.
     /// </summary>
     public static byte[] RenderPageAsSvg(string path, int pageNumber = 1, double scale = 1D) =>
-        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(path, pageNumber), scale);
+        OfficeDrawingSvgExporter.ToSvgBytes(RenderPage(path, pageNumber, readOptions: null, functionShadingScale: scale), scale);
 
     private static void ValidatePageNumber(PdfReadDocument document, int pageNumber) {
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {

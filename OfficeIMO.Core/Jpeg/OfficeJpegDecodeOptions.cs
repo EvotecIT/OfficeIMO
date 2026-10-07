@@ -16,7 +16,7 @@ public readonly struct OfficeJpegDecodeOptions {
     public bool HighQualityChroma { get; }
 
     /// <summary>
-    /// Allows truncated scan data (best-effort decode).
+    /// Allows truncated DCT-based scan data (best-effort decode). Lossless scans require complete entropy data.
     /// </summary>
     public bool AllowTruncated { get; }
 

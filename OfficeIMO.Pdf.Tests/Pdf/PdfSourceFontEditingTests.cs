@@ -155,11 +155,6 @@ public class PdfSourceFontEditingTests {
         return PdfDocument.Load(source, new PdfLoadOptions { Password = encrypted ? "owner" : null });
     }
 
-    private static string FindRepositoryRoot() {
-        string root = AppContext.BaseDirectory;
-        while (!File.Exists(Path.Combine(root, "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"))) {
-            root = Directory.GetParent(root)?.FullName ?? throw new FileNotFoundException("The checked-in baseline font was not found.");
-        }
-        return root;
-    }
+    private static string FindRepositoryRoot() =>
+        RepositoryTestPaths.Find();
 }

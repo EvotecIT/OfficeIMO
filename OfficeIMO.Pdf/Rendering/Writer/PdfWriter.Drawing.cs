@@ -477,8 +477,8 @@ internal static partial class PdfWriter {
         }
 
         if (HasGradientAlpha(shape)) content.GraphicsState(GradientAlphaStateName(shadingName));
-        content.Shading(shadingName)
-            .RestoreState();
+        PaintGradient(content, shape, shadingName);
+        content.RestoreState();
     }
 
     private static void DrawTransformedShape(StringBuilder sb, OfficeIMO.Drawing.OfficeShape shape, PdfColor? fillColor, PdfColor? strokeColor, string? shadingName, double x, double y) {
@@ -505,8 +505,8 @@ internal static partial class PdfWriter {
             }
 
             if (HasGradientAlpha(shape)) gradientContent.GraphicsState(GradientAlphaStateName(shadingName!));
-            gradientContent.Shading(shadingName!)
-                .RestoreState();
+            PaintGradient(gradientContent, shape, shadingName!);
+            gradientContent.RestoreState();
         }
 
         var content = new ContentStreamBuilder(sb);

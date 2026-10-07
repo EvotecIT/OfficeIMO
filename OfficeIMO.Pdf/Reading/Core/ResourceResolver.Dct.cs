@@ -47,14 +47,16 @@ internal static partial class ResourceResolver {
         if (!TryReadDctColorTransform(imageDictionary, objects, out _, out bool hasAuthoredColorTransform) ||
             hasAuthoredColorTransform) return true;
 
-        return colorSpace is not ("DeviceGray" or "G" or "DeviceRGB" or "RGB" or "DeviceCMYK" or "CMYK");
+        // Standalone JPEG decoding normalizes Adobe CMYK polarity. PDF image
+        // samples instead obey Decode, including its implicit identity default.
+        return colorSpace is not ("DeviceGray" or "G" or "DeviceRGB" or "RGB");
     }
 
     private static bool CanPassThroughDctPayload(
         PdfDictionary imageDictionary,
         string colorSpace,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (colorSpace is not ("DeviceGray" or "G" or "DeviceRGB" or "RGB" or "DeviceCMYK" or "CMYK")) {
+        if (colorSpace is not ("DeviceGray" or "G" or "DeviceRGB" or "RGB")) {
             return false;
         }
 

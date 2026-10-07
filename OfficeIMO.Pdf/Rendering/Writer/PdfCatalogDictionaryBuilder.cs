@@ -326,7 +326,7 @@ internal static class PdfCatalogDictionaryBuilder {
 
     private static void AppendCatalogUriEntry(StringBuilder sb, string uriBase) {
         sb.Append(" /URI << /Base ")
-            .Append(PdfSyntaxEscaper.LiteralString(uriBase))
+            .Append(PdfSyntaxEscaper.UriString(uriBase))
             .Append(" >>");
     }
 

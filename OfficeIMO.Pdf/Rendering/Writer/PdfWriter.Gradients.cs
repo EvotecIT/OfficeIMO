@@ -36,13 +36,14 @@ internal static partial class PdfWriter {
         double y1) {
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.MatchesAxial(x0, y0, x1, y1, gradient.Stops)) return existing.Name;
+            if (existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesAxial(x0, y0, x1, y1, gradient.Stops)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
         shadings.Add(new PageShading {
             Name = name,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
+            ColorInterpolation = gradient.ColorInterpolation,
             X0 = x0,
             Y0 = y0,
             X1 = x1,
@@ -55,22 +56,28 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IList<PageShading> shadings,
         OfficeRadialGradient gradient) {
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
-        double x0 = elliptical ? (gradient.StartX - gradient.EndX) / gradient.EndRadiusX : gradient.StartX;
-        double y0 = elliptical ? (gradient.EndY - gradient.StartY) / gradient.EndRadiusY : 1D - gradient.StartY;
+        // Put the end focus at the coordinate origin. Large native brush maps
+        // otherwise subtract nearly equal numbers in a consumer's float matrix,
+        // erasing a small painted region even when the PDF numbers are precise.
+        double x0 = elliptical ? (gradient.StartX - gradient.EndX) / gradient.EndRadiusX : gradient.StartX - gradient.EndX;
+        double y0 = elliptical ? (gradient.EndY - gradient.StartY) / gradient.EndRadiusY : gradient.EndY - gradient.StartY;
         double r0 = elliptical ? gradient.StartRadiusX / gradient.EndRadiusX : gradient.StartRadius;
-        double x1 = elliptical ? 0D : gradient.EndX;
-        double y1 = elliptical ? 0D : 1D - gradient.EndY;
+        double x1 = 0D;
+        double y1 = 0D;
         double r1 = elliptical ? 1D : gradient.EndRadius;
         for (int index = 0; index < shadings.Count; index++) {
             PageShading existing = shadings[index];
-            if (existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops)) return existing.Name;
+            if (existing.SpreadMode == gradient.SpreadMode && existing.ColorInterpolation == gradient.ColorInterpolation && existing.MatchesRadial(x0, y0, r0, x1, y1, r1, gradient.Stops, gradient.OutsideColor)) return existing.Name;
         }
 
         string name = "SH" + (shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
         shadings.Add(new PageShading {
             Name = name,
             IsRadial = true,
+            SpreadMode = gradient.SpreadMode,
+            OutsideColor = gradient.OutsideColor,
             Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
+            ColorInterpolation = gradient.ColorInterpolation,
             X0 = x0,
             Y0 = y0,
             R0 = r0,
@@ -87,19 +94,17 @@ internal static partial class PdfWriter {
         double x,
         double y,
         bool localCoordinates = false) {
-        OfficeRadialGradient gradient = shape.FillRadialGradient!;
-        if (gradient.EndRadiusX.Equals(gradient.EndRadiusY)) {
-            content.TransformMatrix(shape.Width, 0D, 0D, localCoordinates ? -shape.Height : shape.Height,
-                x, localCoordinates ? shape.Height : y);
-            return;
-        }
+        var transform = RadialShadingTransform(shape, x, y, localCoordinates);
+        content.TransformMatrix(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX, transform.OffsetY, preciseCoordinates: true);
+    }
 
-        content.TransformMatrix(
-            shape.Width * gradient.EndRadiusX,
-            0D,
-            0D,
-            (localCoordinates ? -shape.Height : shape.Height) * gradient.EndRadiusY,
-            x + (shape.Width * gradient.EndX),
-            localCoordinates ? shape.Height * gradient.EndY : y + (shape.Height * (1D - gradient.EndY)));
+    private static OfficeTransform RadialShadingTransform(OfficeShape shape, double x, double y, bool localCoordinates) {
+        OfficeRadialGradient gradient = shape.FillRadialGradient!;
+        var coordinates = gradient.EndRadiusX.Equals(gradient.EndRadiusY)
+            ? new OfficeTransform(1D, 0D, 0D, -1D, gradient.EndX, gradient.EndY)
+            : new OfficeTransform(gradient.EndRadiusX, 0D, 0D, -gradient.EndRadiusY, gradient.EndX, gradient.EndY);
+        return coordinates.Then(gradient.CoordinateTransform).Then(new OfficeTransform(
+            shape.Width, 0D, 0D, localCoordinates ? shape.Height : -shape.Height,
+            x, localCoordinates ? 0D : y + shape.Height));
     }
 }
