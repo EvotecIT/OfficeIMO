@@ -10,7 +10,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         ref int sourceIndex,
         ICollection<FlexItem> items,
-        ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments) {
+        ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments,
+        bool registerOutOfFlowElements) {
+        if (IsClosedDisclosureChild(node)) return true;
         if (node is IText text) {
             if (string.IsNullOrWhiteSpace(text.Data)) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
@@ -44,7 +46,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var flattenedItems = new List<FlexItem>();
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, flattenedItems);
             foreach (INode child in element.ChildNodes) {
-                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, flattenedItems, runningElementAssignments)) return false;
+                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, flattenedItems,
+                    runningElementAssignments, registerOutOfFlowElements)) return false;
             }
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, flattenedItems);
             for (int index = 0; index < flattenedItems.Count; index++) {
@@ -56,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (style.Position == "absolute" || style.Position == "fixed") {
-            RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, parentStyle, depth);
+            if (registerOutOfFlowElements) RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, parentStyle, depth);
             return true;
         }
         if (style.Position != "static" && style.Position != "relative" && style.Position != "sticky") return false;

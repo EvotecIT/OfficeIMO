@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Native HTML disclosure rendering
+
+Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.
+
 ## PNG scan sample layout
 
 `OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
@@ -647,6 +651,14 @@ Image stamp streams continue to read from their current position.
 ## PDF embedded-font input limit
 
 PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
+
+## Imported SVG text scenes
+
+SVG drawings containing positioned text retain an explicit root viewport clip.
+Applications that inspect `OfficeDrawing.Elements` should traverse
+`OfficeDrawingGroup.Drawing` and `OfficeDrawingEffectGroup.Drawing` instead of
+assuming imported text and shapes are always top-level elements. Pass the complete
+drawing to renderers so the viewport clip stays effective.
 
 ## PDF drawing font family names
 

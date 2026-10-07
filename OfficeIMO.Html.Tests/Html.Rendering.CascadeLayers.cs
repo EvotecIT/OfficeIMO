@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlDocumentParser.ParseDocument(html);
         HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("#target")!];
 
-        Assert.Equal("rgba(0, 0, 255, 1)", style.GetValue("border-color"));
+        Assert.Equal(OfficeColor.Blue, OfficeColor.ParseCss(style.GetValue("border-color")));
         Assert.Equal("rgba(255, 165, 0, 1)", style.GetValue("outline-color"));
     }
 

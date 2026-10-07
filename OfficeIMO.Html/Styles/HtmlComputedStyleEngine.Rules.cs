@@ -42,7 +42,7 @@ public static partial class HtmlComputedStyleEngine {
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectManagedPseudoElements(parseCss);
-            parseCss = PreserveFontShorthandDeclarations(parseCss);
+            parseCss = PreserveManagedDeclarations(parseCss);
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
                 AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
@@ -158,7 +158,7 @@ public static partial class HtmlComputedStyleEngine {
         var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
         for (int i = 0; i < styleRule.Style.Length; i++) {
             string parsedPropertyName = styleRule.Style[i];
-            string propertyName = RestoreFontShorthandName(parsedPropertyName);
+            string propertyName = RestoreManagedDeclarationName(parsedPropertyName);
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 bool important = string.Equals(styleRule.Style.GetPropertyPriority(parsedPropertyName), "important", StringComparison.OrdinalIgnoreCase);

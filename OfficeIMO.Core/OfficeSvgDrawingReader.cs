@@ -135,7 +135,8 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (visited > maximumElements) return false;
             if (fitsRootViewport) {
-                if (HasNewlyRetainedSvgGeometry(scene)) {
+                if (HasNewlyRetainedSvgGeometry(scene) ||
+                    HasOverflowingLocalGeometry(scene, OfficeTransform.Identity, scene.Width, scene.Height, includeShapes: false)) {
                     var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
                     clipped.Fonts.AddRange(scene.Fonts);
                     drawing = clipped.AddClippedDrawing(scene, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
@@ -151,8 +152,8 @@ public static partial class OfficeSvgDrawingReader {
                 OfficeDrawing viewport = FitSvgViewport(scene, viewportWidth, viewportHeight,
                     ResolveViewportTransform(viewWidth, viewHeight, viewportWidth, viewportHeight, alignment, slice),
                     maximumViewportDimension, maximumViewportPixels, ref unsupportedFeatureCount,
-                    out double retainedScenePixels);
-                if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - viewWidth * viewHeight)) return false;
+                    out double additionalSurfacePixels);
+                if (!references.TryChargeNestedViewportExpansion(additionalSurfacePixels)) return false;
                 var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
                 clipped.Fonts.AddRange(viewport.Fonts);
                 drawing = clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));

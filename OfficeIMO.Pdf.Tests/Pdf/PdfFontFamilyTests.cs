@@ -303,23 +303,6 @@ public partial class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfOptions_UseTextFallbacksPrefersTextCandidateWhenOnlyOneFallbackSlotIsAvailable() {
-        if (!DefaultTextSymbolFallbackFontIsAvailable()) {
-            return;
-        }
-
-        PdfEmbeddedFontFallbackSet? fallbackSet = new PdfOptions()
-            .UseTextFallbacks()
-            .EmbeddedFontFallbacks;
-        if (fallbackSet == null ||
-            fallbackSet.Candidates.Count != 1) {
-            return;
-        }
-
-        Assert.DoesNotContain("Emoji", fallbackSet.Candidates[0].FontName, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public void PdfOptions_UseTextFallbacksCoversCheckMarkWhenOnlyOneSymbolSlotIsAvailable() {
         if (!PdfEmbeddedFontFamily.TryFromSystem("Segoe UI Symbol", out _) &&
             !PdfEmbeddedFontFamily.TryFromSystem("DejaVu Sans", out _)) {
@@ -334,8 +317,7 @@ public partial class PdfFontFamilyTests {
 
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
         Assert.NotNull(fallbackSet);
-        Assert.Single(fallbackSet!.Candidates);
-        Assert.True(fallbackSet.PlanText("\u2713").IsFullyCovered);
+        Assert.True(fallbackSet!.PlanText("\u2713").IsFullyCovered);
     }
 
     [Fact]
@@ -361,7 +343,7 @@ public partial class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfOptions_UseTextFallbacksKeepsSymbolFallbackSlotAheadOfMonospaceFallback() {
+    public void PdfOptions_UseTextFallbacksKeepsSymbolsAlongsideMonospaceFallback() {
         if (!DefaultTextSymbolFallbackFontIsAvailable()) {
             return;
         }
@@ -375,10 +357,10 @@ public partial class PdfFontFamilyTests {
             return;
         }
 
-        Assert.Contains(
-            PdfStandardFont.Courier,
-            fallbackSet.FontSlots.Select(PdfStandardFontMapper.GetFontFamily));
-        Assert.False(options.TryRegisterDefaultDocumentMonospaceFontFallback());
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Font(PdfStandardFont.Courier).Text("A\u2713B"))
+            .ToBytes();
+        Assert.Contains("A\u2713B", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

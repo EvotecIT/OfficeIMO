@@ -63,7 +63,6 @@ internal sealed class HtmlRenderBoxStyle {
     internal string GridColumnEnd = "auto";
     internal string GridRowStart = "auto";
     internal string GridRowEnd = "auto";
-    internal string GridArea = "auto";
     internal string ContainerType = "normal";
     internal double? ContainerUnitWidth;
     internal double? ContainerUnitHeight;

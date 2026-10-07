@@ -150,6 +150,13 @@ _Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages
 
 _Dependency footprint:_ ChartForgeX and the OfficeIMO Word, Excel, PowerPoint, PDF, Visio, and Core packages. Existing format packages remain independently usable and do not depend on ChartForgeX.
 
+#### [OfficeIMO.ChartForgeX.Markdown](OfficeIMO.ChartForgeX.Markdown/README.md)
+
+- [x] Optional static Mermaid fence rendering for Markdown-to-Word, PDF, HTML, and PowerPoint pipelines
+- [x] Embedded PNG images for documents and isolated SVG images for HTML, with captions, accessibility text, diagnostics, and source fallback
+
+_Dependency footprint:_ ChartForgeX.Markup.Mermaid and OfficeIMO.MarkdownRenderer. The document and Markdown cores remain independently usable.
+
 #### [OfficeIMO.Word](OfficeIMO.Word/README.md)
 
 - [x] Create, load, edit, append, inspect, and save `.docx` documents
