@@ -22,7 +22,7 @@ public partial class Word {
         preferred.Width = 2880;
         PdfCore.PdfTableStyle preferredStyle = CreateNativeTableStyleForTest(preferred);
 
-        Assert.Equal(144D, preferredStyle.MaxWidth);
+        Assert.Equal(144D, preferredStyle.PreferredWidth);
         Assert.Equal(11D, preferredStyle.FontSize);
         Assert.True(preferredStyle.AutoFitColumns);
         Assert.True(preferredStyle.PreserveWidth);
@@ -61,7 +61,7 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, null, 468D);
 
         Assert.True(style.AutoFitColumns);
-        Assert.Equal(468D, style.MaxWidth);
+        Assert.Equal(468D, style.PreferredWidth);
         Assert.Null(style.ColumnWidthWeights);
     }
 
@@ -174,9 +174,9 @@ public partial class Word {
         PdfCore.PdfTableStyle percentStringStyle = CreateNativeTableStyleForTest(percentString, null, 400D);
         PdfCore.PdfTableStyle fiftiethsPercentStyle = CreateNativeTableStyleForTest(fiftiethsPercent, null, 400D);
 
-        Assert.Equal(300D, percentStringStyle.MaxWidth);
+        Assert.Equal(300D, percentStringStyle.PreferredWidth);
         Assert.True(percentStringStyle.PreserveWidth);
-        Assert.Equal(fiftiethsPercentStyle.MaxWidth, percentStringStyle.MaxWidth);
+        Assert.Equal(fiftiethsPercentStyle.PreferredWidth, percentStringStyle.PreferredWidth);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, null, 468D);
 
         Assert.True(style.AutoFitColumns);
-        Assert.Equal(468D, style.MaxWidth);
+        Assert.Equal(468D, style.PreferredWidth);
         Assert.True(style.PreserveWidth);
         Assert.Null(style.ColumnWidthWeights);
     }
@@ -688,7 +688,7 @@ public partial class Word {
             }
         });
 
-        Assert.Equal(72D, style.MaxWidth);
+        Assert.Equal(72D, style.PreferredWidth);
         Assert.Equal(6D, style.CellSpacing);
         Assert.Null(style.FontSize);
         Assert.Null(style.LineHeight);
@@ -796,7 +796,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
 
-        Assert.Equal(108D, styled.MaxWidth);
+        Assert.Equal(108D, styled.PreferredWidth);
         Assert.True(styled.PreserveWidth);
 
         WordTable directTable = document.AddTable(1, 1);
@@ -806,7 +806,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directTable);
 
-        Assert.Equal(144D, direct.MaxWidth);
+        Assert.Equal(144D, direct.PreferredWidth);
         Assert.True(direct.PreserveWidth);
     }
 
