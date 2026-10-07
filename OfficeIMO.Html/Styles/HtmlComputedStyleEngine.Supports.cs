@@ -461,6 +461,10 @@ public static partial class HtmlComputedStyleEngine {
                     .All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"));
             case "text-decoration-color":
                 return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(value.Trim(), out _);
+            case "text-decoration-style":
+                return IsKnownKeyword(normalized, "solid", "double", "dotted", "dashed", "wavy");
+            case "text-decoration-thickness":
+                return IsTextDecorationThicknessSyntax(value);
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
             case "font-stretch":

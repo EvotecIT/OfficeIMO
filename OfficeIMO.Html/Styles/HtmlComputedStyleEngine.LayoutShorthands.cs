@@ -5,7 +5,8 @@ public static partial class HtmlComputedStyleEngine {
     private static readonly HashSet<string> LayoutDeclarationNames = new(StringComparer.Ordinal) {
         "grid-column", "grid-row", "grid-area", "grid-column-start", "grid-column-end", "grid-row-start", "grid-row-end",
         "grid-template-columns", "grid-template-rows", "grid-template-areas", "gap", "row-gap", "column-gap",
-        "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content"
+        "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content",
+        "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "text-decoration-thickness"
     };
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 
@@ -17,6 +18,7 @@ public static partial class HtmlComputedStyleEngine {
         "place-items" => PlaceItemsLonghands,
         "place-self" => PlaceSelfLonghands,
         "place-content" => PlaceContentLonghands,
+        "text-decoration" => TextDecorationLonghands,
         _ => null
     };
 

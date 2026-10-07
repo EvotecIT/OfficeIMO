@@ -179,6 +179,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             fontStyle |= OfficeFontStyle.Underline;
         }
         bool ownsUnderline = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline;
+        ReportTextDecorationThickness(element, computed, fontStyle);
         if (propagatedUnderline) fontStyle |= OfficeFontStyle.Underline;
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
