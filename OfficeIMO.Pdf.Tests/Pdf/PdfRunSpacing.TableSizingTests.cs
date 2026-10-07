@@ -6,12 +6,15 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunSpacingTableSizingTests {
     [Theory]
-    [InlineData(200D, 1D, 9.583333D)]
-    [InlineData(50D, 1D, 30D)]
-    [InlineData(200D, -1D, 11.25D)]
-    public void ExplicitTableRunShrinkingUsesScaledGlyphsAndFixedTracking(double scale, double tracking, double expectedSize) {
+    [InlineData(200D, 1D, 9.583333D, true)]
+    [InlineData(50D, 1D, 30D, true)]
+    [InlineData(200D, -1D, 11.25D, true)]
+    [InlineData(200D, 1D, 9.583333D, false)]
+    [InlineData(50D, 1D, 30D, false)]
+    [InlineData(200D, -1D, 11.25D, false)]
+    public void TableRunShrinkingUsesScaledGlyphsAndFixedTracking(double scale, double tracking, double expectedSize, bool explicitSize) {
         var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, MarginLeft = 36D, MarginRight = 36D };
-        PdfTextRun run = new PdfTextRun("MMMMMMMM", font: PdfStandardFont.Courier, fontSize: 30D)
+        PdfTextRun run = new PdfTextRun("MMMMMMMM", font: PdfStandardFont.Courier, fontSize: explicitSize ? 30D : null)
             .WithHorizontalTextScaling(scale).WithCharacterSpacing(tracking);
         byte[] bytes = PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { run }) }
