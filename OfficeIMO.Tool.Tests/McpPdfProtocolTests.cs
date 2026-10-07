@@ -57,9 +57,16 @@ public sealed class McpPdfProtocolTests {
             }, cancellationToken: timeout.Token);
             Assert.False(assembled.IsError, Text(assembled)); Assert.Equal(5, PdfDocument.Load(Path.Combine(allowed, "assembled.pdf")).Inspect().PageCount);
             var plan = await client.CallToolAsync("officeimo_pdf_print_plan", new Dictionary<string, object?> {
-                ["path"] = source, ["pages"] = "last,1", ["pagesPerSheet"] = 2
+                ["path"] = source, ["pages"] = "last,2,1", ["pagesPerSheet"] = 9, ["pageSubset"] = "odd",
+                ["scale"] = "custom", ["customScalePercent"] = 1000, ["alignment"] = "bottom-right",
+                ["colorMode"] = "grayscale", ["marginLeft"] = 0, ["marginTop"] = 0, ["marginRight"] = 0,
+                ["marginBottom"] = 0, ["maxOutputCharacters"] = 512
             }, cancellationToken: timeout.Token);
             Assert.False(plan.IsError, Text(plan)); Assert.Equal(1, plan.StructuredContent!.Value.GetProperty("sheetCount").GetInt32());
+            Assert.Equal([3, 1], plan.StructuredContent.Value.GetProperty("selectedPages").EnumerateArray().Select(page => page.GetInt32()));
+            Assert.Equal(2, plan.StructuredContent.Value.GetProperty("clippedPlacementCount").GetInt32());
+            Assert.Equal("grayscale", plan.StructuredContent.Value.GetProperty("colorMode").GetString());
+            Assert.True(plan.StructuredContent.Value.GetRawText().Length <= 512);
             var providers = await client.CallToolAsync("officeimo_pdf_ocr_providers", cancellationToken: timeout.Token);
             Assert.False(providers.IsError, Text(providers)); Assert.Equal(0, providers.StructuredContent!.Value.GetProperty("providerCount").GetInt32());
         } finally { Directory.Delete(root, recursive: true); }

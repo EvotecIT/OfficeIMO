@@ -6,6 +6,8 @@ public sealed class AgentPdfPrintPlanResult {
     public int SelectedPageCount { get; set; }
     public int SheetCount { get; set; }
     public int ClippedPlacementCount { get; set; }
+    /// <summary>Requested prepared-sheet color treatment; this tool does not render or deliver sheets.</summary>
+    public string ColorMode { get; set; } = "color";
     public IReadOnlyList<int> SelectedPages { get; set; } = Array.Empty<int>();
     public bool Truncated { get; set; }
 }
