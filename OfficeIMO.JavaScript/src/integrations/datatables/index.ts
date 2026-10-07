@@ -2,6 +2,7 @@ import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportValue } from "../../core/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
+import { portableSheet, portableWorkbook } from "../../xlsx/portable.js";
 import { call, member } from "./api.js";
 import { value } from "./headings.js";
 import { createDataTablesExport } from "./snapshot.js";
@@ -15,6 +16,7 @@ export type { DataTablesApi, DataTablesHost, DataTablesOptions, DataTablesExport
 export async function writeDataTableTo(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv", destination: OutputDestination,
   options: DataTablesWriteOptions = {}): Promise<ExportResult> {
   if (format !== "xlsx" && format !== "csv") throw new TypeError("DataTables export format must be xlsx or csv.");
+  portableSheet(options.sheet); portableWorkbook(options.workbook);
   const source = createDataTablesExport(host, table, options), signal = options.signal;
   let result: ExportResult;
   const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };

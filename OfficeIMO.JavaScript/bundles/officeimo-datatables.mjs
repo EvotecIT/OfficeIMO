@@ -1865,7 +1865,7 @@ class ReportLayout {
     widths;
     sampleRows;
     aggregates;
-    constructor(columns, options, policy, maximumMerges = 10000) {
+    constructor(columns, options, policy, maximumMerges = 10000, maximumSampleCells = 100000) {
         this.columns = columns;
         this.options = options;
         const titleRows = options.title === undefined ? 0 : 1;
@@ -1918,7 +1918,7 @@ class ReportLayout {
         this.headings = headings;
         this.merges = this.regions.references;
         const sizing = options.autoSize;
-        this.sampleRows = sizing ? sizing.sampleRows ?? 100 : 0;
+        this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
         if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000)
             throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
         const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
@@ -2259,7 +2259,7 @@ class Worksheet {
             ...(options.print ? { print: { ...options.print, ...(options.print.margins ? { margins: { ...options.print.margins } } : {}) } } : {}),
             ...(options.footer ? { footer: { ...options.footer, ...(options.footer.values ? { values: options.footer.values.map(copyValue) } : {}), ...(options.footer.totals ? { totals: { ...options.footer.totals } } : {}), ...(options.footer.style ? { style: copyStylePatch(options.footer.style) } : {}) } } : {}),
             ...(alternate ? { alternatingRowStyle: copyStylePatch(alternate) } : {}) };
-        this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+        this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
         this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
@@ -2286,7 +2286,7 @@ class Worksheet {
         book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
         book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
-        const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+        const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         book.checkMerges(layout.merges.length);
         if (options.title?.style)
             validateStylePatch(options.title.style);
@@ -2551,15 +2551,33 @@ class Worksheet {
                         throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
                     const encoded = [];
                     for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
-                        if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
-                            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
-                        this.pendingCharacters += chunk.length;
-                        encoded.push(chunk);
+                        if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
+                            if (this.options.autoSize?.sampleRows !== undefined)
+                                throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                            // Automatic sizing can finish early. Continue this same serialized row so
+                            // custom writers, presentation callbacks, totals and links run only once.
+                            this.layout.sample(values);
+                            await this.start();
+                            for (const retained of encoded)
+                                if (this.buffer.append(retained))
+                                    await this.buffer.flush();
+                            encoded.length = 0;
+                        }
+                        if (this.started) {
+                            if (this.buffer.append(chunk))
+                                await this.buffer.flush();
+                        }
+                        else {
+                            this.pendingCharacters += chunk.length;
+                            encoded.push(chunk);
+                        }
                     }
-                    this.layout.sample(values);
-                    this.pending.push(encoded);
+                    if (!this.started) {
+                        this.layout.sample(values);
+                        this.pending.push(encoded);
+                    }
                     this.count++;
-                    if (this.pending.length >= this.layout.sampleRows)
+                    if (!this.started && this.pending.length >= this.layout.sampleRows)
                         await this.start();
                 }
                 else {
@@ -3125,6 +3143,52 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
+const _m29 = (() => {
+const { ExportCell, assertScalar } = _m5;
+
+function style(patch) {
+    for (const component of ["font", "fill", "border", "numberFormat"])
+        if (typeof patch?.[component] === "number")
+            throw new TypeError("Workbook-local style indexes require the advanced Workbook API; use style definitions.");
+    return patch;
+}
+function value(result) {
+    if (!(result instanceof ExportCell))
+        assertScalar(result);
+    return result;
+}
+/** @internal Qualify the portable boundary before source/destination activity. */
+function portableSheet(options = {}) {
+    if (options.headerStyle !== undefined)
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    style(options.alternatingRowStyle);
+    style(options.title?.style);
+    style(options.footer?.style);
+    options.footer?.values?.forEach(value);
+    const rowStyle = options.rowStyle, cellStyle = options.cellStyle;
+    for (const callback of [rowStyle, cellStyle])
+        if (callback !== undefined && typeof callback !== "function")
+            throw new TypeError("Style callbacks must be functions.");
+    return { ...options, ...(rowStyle ? { rowStyle: (context) => style(rowStyle(context)) } : {}),
+        ...(cellStyle ? { cellStyle: (context) => style(cellStyle(context)) } : {}) };
+}
+/** @internal Keep custom writers inside the same portable value contract. */
+function portableWorkbook(options = {}) {
+    const writers = options.cellValueWriters;
+    if (!writers)
+        return options;
+    const wrapped = Object.create(null);
+    for (const [type, writer] of Object.entries(writers)) {
+        if (typeof writer !== "function")
+            throw new TypeError("Cell value writers must be functions.");
+        wrapped[type] = (input, context) => value(writer(input, context));
+    }
+    return { ...options, cellValueWriters: wrapped };
+}
+const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
+return _exports;
+})();
+
 const _m28 = (() => {
 const { withDestination } = _m3;
 
@@ -3132,11 +3196,11 @@ const { copyColumns } = _m8;
 
 const { Workbook } = _m10;
 
+const { portableSheet, portableWorkbook } = _m29;
+
 function prepare(options) {
     const columns = copyColumns(options?.columns);
-    if (options.sheet?.headerStyle !== undefined)
-        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
-    return { ...options, columns };
+    return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
 }
 function worksheet(book, options) {
     const { name = "Data", ...sheet } = options.sheet ?? {};
@@ -3184,7 +3248,7 @@ const _exports = Object.freeze({ Workbook: _m10.Workbook, writeXlsx: _m28.writeX
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m30 = (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
 function call(owner, name, ...args) {
     const fn = member(owner, name);
@@ -3216,10 +3280,10 @@ const _exports = Object.freeze({ call: call, member: member, array: array, index
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m31 = (() => {
 const { ExportCell, assertScalar } = _m5;
 
-const { member } = _m29;
+const { member } = _m30;
 
 /** @internal */
 function value(input) {
@@ -3279,14 +3343,14 @@ const _exports = Object.freeze({ value: value, text: text, headings: headings })
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m32 = (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
 
-const { array, call, indexes, member } = _m29;
+const { array, call, indexes, member } = _m30;
 
-const { headings, text, value } = _m30;
+const { headings, text, value } = _m31;
 
 function safeOptions(options) {
     const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
@@ -3303,6 +3367,9 @@ function safeOptions(options) {
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
+    for (const column of Object.values(options.columnOptions ?? {}))
+        if (column.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
     const mode = options.mode ?? "batched", headingMode = options.headings ?? "grouped";
     if (!["batched", "compatibility"].includes(mode))
         throw new TypeError("Unknown DataTables export mode.");
@@ -3459,11 +3526,13 @@ const { writeCsvTo } = _m6;
 
 const { writeXlsxTo } = _m9;
 
-const { call, member } = _m29;
+const { portableSheet, portableWorkbook } = _m29;
 
-const { value } = _m30;
+const { call, member } = _m30;
 
-const { createDataTablesExport } = _m31;
+const { value } = _m31;
+
+const { createDataTablesExport } = _m32;
 
 
 
@@ -3473,6 +3542,8 @@ const { createDataTablesExport } = _m31;
 async function writeDataTableTo(host, table, format, destination, options = {}) {
     if (format !== "xlsx" && format !== "csv")
         throw new TypeError("DataTables export format must be xlsx or csv.");
+    portableSheet(options.sheet);
+    portableWorkbook(options.workbook);
     const source = createDataTablesExport(host, table, options), signal = options.signal;
     let result;
     const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
@@ -3562,7 +3633,7 @@ function registerDataTablesButtons(host, options = {}) {
         };
     }
 }
-const _exports = Object.freeze({ createDataTablesExport: _m31.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
+const _exports = Object.freeze({ createDataTablesExport: _m32.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
 return _exports;
 })();
 const { createDataTablesExport, ExportCell, writeDataTableTo, exportDataTable, registerDataTablesButtons } = _m0;

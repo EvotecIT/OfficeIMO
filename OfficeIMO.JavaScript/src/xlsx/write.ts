@@ -2,19 +2,19 @@ import { withDestination } from "../core/sinks.js";
 import { copyColumns } from "../internal/rows.js";
 import type { Column, ExportResult, OutputDestination } from "../core/index.js";
 import { Workbook } from "./workbook.js";
-import type { WorkbookOptions, SheetOptions, XlsxRows } from "./types.js";
+import type { XlsxRows } from "./types.js";
+import { portableSheet, portableWorkbook } from "./portable.js";
+import type { PortableWorkbookOptions, PortableSheetOptions } from "./portable.js";
 
 /** One table, using the same workbook engine as the advanced multi-worksheet API. */
-export interface XlsxOptions<T = never> extends Omit<WorkbookOptions, "sink"> {
-  readonly columns: readonly Column<T>[];
-  readonly sheet?: Omit<SheetOptions, "columns" | "headerStyle"> & { readonly name?: string };
+export interface XlsxOptions<T = never> extends PortableWorkbookOptions {
+  readonly columns: readonly (Column<T> & { readonly style?: never })[];
+  readonly sheet?: PortableSheetOptions & { readonly name?: string };
 }
 
 function prepare(options: XlsxOptions): XlsxOptions {
   const columns = copyColumns(options?.columns);
-  if ((options.sheet as { headerStyle?: unknown } | undefined)?.headerStyle !== undefined)
-    throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
-  return { ...options, columns };
+  return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
 }
 
 function worksheet<T>(book: Workbook, options: XlsxOptions<T>) {

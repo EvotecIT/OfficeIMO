@@ -16,6 +16,10 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
     project: value => new ExportCell(value instanceof ExportCell ? value.value : value, { presentation: { bold: true } }) });
   void source.rowCount;
   await exportDataTable(host, table, 'xlsx', { sheet: { table: {} }, columnOptions: { 1: { type: 'number', format: '0.00' } } });
+  // @ts-expect-error adapter columns use portable presentation, not private workbook IDs
+  await exportDataTable(host, table, 'xlsx', { columnOptions: { 0: { style: 1 } } });
+  // @ts-expect-error header style IDs belong to the advanced Workbook API
+  await exportDataTable(host, table, 'xlsx', { sheet: { headerStyle: 1 } });
   await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
   registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
   // @ts-expect-error PDF is a separate format milestone
@@ -94,6 +98,14 @@ interface DomainRow { readonly person: { readonly name: string }; readonly amoun
 const domainRows: readonly DomainRow[] = [{ person: { name: "Łódź" }, amount: 12.5 }];
 const advancedColumns: readonly XlsxColumn<DomainRow>[] = [{ header: "Amount", key: "amount", style }];
 await book.addWorksheet<DomainRow>("Registered", { columns: advancedColumns, headerStyle: style }).addRows(domainRows);
+// @ts-expect-error registered columns are workbook-local, including through a declared variable
+writeXlsx(domainRows, { columns: advancedColumns });
+// @ts-expect-error CSV uses the portable projection
+writeCsv(domainRows, { columns: advancedColumns });
+// @ts-expect-error helper patches contain definitions rather than workbook component IDs
+writeXlsx(domainRows, { columns: [], sheet: { alternatingRowStyle: { font: 0 } } });
+// @ts-expect-error helper writers return portable values
+writeXlsx(domainRows, { columns: [], cellValueWriters: { custom: v => new Cell(v, 0) } });
 // @ts-expect-error common columns use portable presentation
 const privateStyle: Column<DomainRow> = { header: "Amount", key: "amount", style: 1 };
 void privateStyle;

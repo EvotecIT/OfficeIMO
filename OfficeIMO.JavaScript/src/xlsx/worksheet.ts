@@ -59,7 +59,7 @@ export class Worksheet<T = never> {
       ...(options.print ? { print: { ...options.print, ...(options.print.margins ? { margins: { ...options.print.margins } } : {}) } } : {}),
       ...(options.footer ? { footer: { ...options.footer, ...(options.footer.values ? { values: options.footer.values.map(copyValue) as NonNullable<SheetOptions["footer"]>["values"] & {} } : {}), ...(options.footer.totals ? { totals: { ...options.footer.totals } } : {}), ...(options.footer.style ? { style: copyStylePatch(options.footer.style) } : {}) } } : {}),
       ...(alternate ? { alternatingRowStyle: copyStylePatch(alternate) } : {}) };
-    this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+    this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
     this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
     this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
@@ -84,7 +84,7 @@ export class Worksheet<T = never> {
     book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
     const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
     book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
-    const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+    const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
     book.checkMerges(layout.merges.length);
     if (options.title?.style) validateStylePatch(options.title.style);
     if (options.title) book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), options.title.style ?? {});
@@ -273,12 +273,24 @@ export class Worksheet<T = never> {
           if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
           const encoded: string[] = [];
           for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
-            if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
-            this.pendingCharacters += chunk.length; encoded.push(chunk);
+            if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
+              if (this.options.autoSize?.sampleRows !== undefined) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+              // Automatic sizing can finish early. Continue this same serialized row so
+              // custom writers, presentation callbacks, totals and links run only once.
+              this.layout.sample(values);
+              await this.start();
+              for (const retained of encoded) if (this.buffer!.append(retained)) await this.buffer!.flush();
+              encoded.length = 0;
+            }
+            if (this.started) { if (this.buffer!.append(chunk)) await this.buffer!.flush(); }
+            else { this.pendingCharacters += chunk.length; encoded.push(chunk); }
           }
-          this.layout.sample(values);
-          this.pending.push(encoded); this.count++;
-          if (this.pending.length >= this.layout.sampleRows) await this.start();
+          if (!this.started) {
+            this.layout.sample(values);
+            this.pending.push(encoded);
+          }
+          this.count++;
+          if (!this.started && this.pending.length >= this.layout.sampleRows) await this.start();
         } else { await this.writeRow(values, this.count + this.headerRows + 1, false); this.count++; }
         if (performance.now() - checkpoint >= 50) { this.progress(); checkpoint = performance.now(); }
       }

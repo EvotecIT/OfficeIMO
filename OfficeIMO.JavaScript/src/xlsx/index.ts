@@ -3,6 +3,7 @@ export { writeXlsx, writeXlsxTo } from "./write.js";
 export type { XlsxOptions } from "./write.js";
 export type { XlsxColumn } from "./types.js";
 export { Worksheet } from "./worksheet.js";
+export type { PortableCellStyle, PortableSheetOptions, PortableWorkbookOptions } from "./portable.js";
 export { Cell } from "./values.js";
 export { StyleRegistry, NumberFormats } from "./styles.js";
 export type { Font, Fill, Border, BorderEdge, BorderLineStyle, CellStyle } from "./styles.js";

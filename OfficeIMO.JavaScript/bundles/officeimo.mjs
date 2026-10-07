@@ -1741,7 +1741,7 @@ class ReportLayout {
     widths;
     sampleRows;
     aggregates;
-    constructor(columns, options, policy, maximumMerges = 10000) {
+    constructor(columns, options, policy, maximumMerges = 10000, maximumSampleCells = 100000) {
         this.columns = columns;
         this.options = options;
         const titleRows = options.title === undefined ? 0 : 1;
@@ -1794,7 +1794,7 @@ class ReportLayout {
         this.headings = headings;
         this.merges = this.regions.references;
         const sizing = options.autoSize;
-        this.sampleRows = sizing ? sizing.sampleRows ?? 100 : 0;
+        this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
         if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000)
             throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
         const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
@@ -2135,7 +2135,7 @@ class Worksheet {
             ...(options.print ? { print: { ...options.print, ...(options.print.margins ? { margins: { ...options.print.margins } } : {}) } } : {}),
             ...(options.footer ? { footer: { ...options.footer, ...(options.footer.values ? { values: options.footer.values.map(copyValue) } : {}), ...(options.footer.totals ? { totals: { ...options.footer.totals } } : {}), ...(options.footer.style ? { style: copyStylePatch(options.footer.style) } : {}) } } : {}),
             ...(alternate ? { alternatingRowStyle: copyStylePatch(alternate) } : {}) };
-        this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+        this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
         this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
@@ -2162,7 +2162,7 @@ class Worksheet {
         book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
         book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
-        const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+        const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         book.checkMerges(layout.merges.length);
         if (options.title?.style)
             validateStylePatch(options.title.style);
@@ -2427,15 +2427,33 @@ class Worksheet {
                         throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
                     const encoded = [];
                     for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
-                        if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
-                            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
-                        this.pendingCharacters += chunk.length;
-                        encoded.push(chunk);
+                        if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
+                            if (this.options.autoSize?.sampleRows !== undefined)
+                                throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                            // Automatic sizing can finish early. Continue this same serialized row so
+                            // custom writers, presentation callbacks, totals and links run only once.
+                            this.layout.sample(values);
+                            await this.start();
+                            for (const retained of encoded)
+                                if (this.buffer.append(retained))
+                                    await this.buffer.flush();
+                            encoded.length = 0;
+                        }
+                        if (this.started) {
+                            if (this.buffer.append(chunk))
+                                await this.buffer.flush();
+                        }
+                        else {
+                            this.pendingCharacters += chunk.length;
+                            encoded.push(chunk);
+                        }
                     }
-                    this.layout.sample(values);
-                    this.pending.push(encoded);
+                    if (!this.started) {
+                        this.layout.sample(values);
+                        this.pending.push(encoded);
+                    }
                     this.count++;
-                    if (this.pending.length >= this.layout.sampleRows)
+                    if (!this.started && this.pending.length >= this.layout.sampleRows)
                         await this.start();
                 }
                 else {
@@ -3001,6 +3019,52 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
+const _m28 = (() => {
+const { ExportCell, assertScalar } = _m5;
+
+function style(patch) {
+    for (const component of ["font", "fill", "border", "numberFormat"])
+        if (typeof patch?.[component] === "number")
+            throw new TypeError("Workbook-local style indexes require the advanced Workbook API; use style definitions.");
+    return patch;
+}
+function value(result) {
+    if (!(result instanceof ExportCell))
+        assertScalar(result);
+    return result;
+}
+/** @internal Qualify the portable boundary before source/destination activity. */
+function portableSheet(options = {}) {
+    if (options.headerStyle !== undefined)
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    style(options.alternatingRowStyle);
+    style(options.title?.style);
+    style(options.footer?.style);
+    options.footer?.values?.forEach(value);
+    const rowStyle = options.rowStyle, cellStyle = options.cellStyle;
+    for (const callback of [rowStyle, cellStyle])
+        if (callback !== undefined && typeof callback !== "function")
+            throw new TypeError("Style callbacks must be functions.");
+    return { ...options, ...(rowStyle ? { rowStyle: (context) => style(rowStyle(context)) } : {}),
+        ...(cellStyle ? { cellStyle: (context) => style(cellStyle(context)) } : {}) };
+}
+/** @internal Keep custom writers inside the same portable value contract. */
+function portableWorkbook(options = {}) {
+    const writers = options.cellValueWriters;
+    if (!writers)
+        return options;
+    const wrapped = Object.create(null);
+    for (const [type, writer] of Object.entries(writers)) {
+        if (typeof writer !== "function")
+            throw new TypeError("Cell value writers must be functions.");
+        wrapped[type] = (input, context) => value(writer(input, context));
+    }
+    return { ...options, cellValueWriters: wrapped };
+}
+const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
+return _exports;
+})();
+
 const _m27 = (() => {
 const { withDestination } = _m3;
 
@@ -3008,11 +3072,11 @@ const { copyColumns } = _m20;
 
 const { Workbook } = _m13;
 
+const { portableSheet, portableWorkbook } = _m28;
+
 function prepare(options) {
     const columns = copyColumns(options?.columns);
-    if (options.sheet?.headerStyle !== undefined)
-        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
-    return { ...options, columns };
+    return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
 }
 function worksheet(book, options) {
     const { name = "Data", ...sheet } = options.sheet ?? {};
@@ -3060,7 +3124,7 @@ const _exports = Object.freeze({ Workbook: _m13.Workbook, writeXlsx: _m27.writeX
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m29 = (() => {
 const { checkAbort, inputRows, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
@@ -3186,7 +3250,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m28, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, writeXlsx: _m12.writeXlsx, writeXlsxTo: _m12.writeXlsxTo, writeCsv: _m28.writeCsv, writeCsvTo: _m28.writeCsvTo, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
+const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m29, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, writeXlsx: _m12.writeXlsx, writeXlsxTo: _m12.writeXlsxTo, writeCsv: _m29.writeCsv, writeCsvTo: _m29.writeCsvTo, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
 const { core, zip, xml, opc, xlsx, csv, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, saveBlob, ExportCell } = _m0;

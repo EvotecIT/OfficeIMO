@@ -20,6 +20,8 @@ function safeOptions(options: DataTablesExportOptions): DataTablesExportOptions 
 
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 export function createDataTablesExport(host: DataTablesHost, table: DataTablesApi, options: DataTablesOptions = {}): DataTablesExport {
+  for (const column of Object.values(options.columnOptions ?? {}))
+    if ((column as { style?: unknown }).style !== undefined) throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
   const mode = options.mode ?? "batched", headingMode = options.headings ?? "grouped";
   if (!["batched", "compatibility"].includes(mode)) throw new TypeError("Unknown DataTables export mode.");
   if (!["grouped", "leaf"].includes(headingMode)) throw new TypeError("Unknown DataTables heading mode.");

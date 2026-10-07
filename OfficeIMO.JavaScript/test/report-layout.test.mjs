@@ -68,7 +68,7 @@ test("layout bounds and preservation ceilings fail visibly without a partial Blo
     await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
   }
   const book = new Workbook({ limits: { maxBufferedCells: 1 } });
-  await assert.rejects(book.addWorksheet("Sample", { columns: [{ header: "A" }, { header: "B" }], autoSize: {} }).addRows([[1, 2]]), { code: "RESOURCE_LIMIT" });
+  await assert.rejects(book.addWorksheet("Sample", { columns: [{ header: "A" }, { header: "B" }], autoSize: { sampleRows: 1 } }).addRows([[1, 2]]), { code: "RESOURCE_LIMIT" });
 });
 test("empty averages stay blank and footer keys do not traverse object prototypes", async () => {
   const book = new Workbook(), sheet = book.addWorksheet("Empty", { columns: [{ header: "Average", key: "average" }, { header: "toString" }], footer: { totals: { average: "average" } } });

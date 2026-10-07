@@ -22,6 +22,15 @@ test("one-table XLSX preflights required portable columns without reading rows o
   const empty = await writeXlsx([], { columns: [] }); assert.ok(empty.size > 0);
 });
 
+test("table helper presentation stays portable across static and callback style paths", async () => {
+  for (const sheet of [{ alternatingRowStyle: { font: 0 } }, { title: { text: "Title", style: { fill: 0 } } },
+    { footer: { style: { border: 0 } } }, { rowStyle: () => ({ numberFormat: 0 }) }, { cellStyle: () => ({ font: 0 }) }])
+    await assert.rejects(writeXlsx(rows, { columns, sheet }), /Workbook-local/);
+  const { Cell } = await import("../dist/xlsx/index.js");
+  await assert.rejects(writeXlsx(rows, { columns, sheet: { footer: { values: [new Cell(1, 0)] } } }), TypeError);
+  await assert.rejects(writeXlsx(rows, { columns: [{ header: "Amount", key: "amount", type: "custom" }], cellValueWriters: { custom: v => new Cell(v, 0) } }), TypeError);
+});
+
 for (const compression of ["auto", "store"]) test("one-table XLSX shares the advanced report engine: " + compression, async () => {
   const options = { columns, compression, dateMode: "utc", sheet: { name: "Report", title: { text: "Results" },
     table: { name: "Results" }, footer: { values: ["Total"], totals: { amount: "sum" } },

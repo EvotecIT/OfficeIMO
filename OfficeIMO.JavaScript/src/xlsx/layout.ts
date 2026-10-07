@@ -19,7 +19,7 @@ export class ReportLayout {
   readonly widths: (number | undefined)[];
   readonly sampleRows: number;
   private readonly aggregates: { operation: TotalOperation | undefined; count: number; sum: number; mean: number; min: number; max: number }[];
-  constructor(readonly columns: readonly Column[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000) {
+  constructor(readonly columns: readonly Column[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000, maximumSampleCells = 100000) {
     const titleRows = options.title === undefined ? 0 : 1;
     if (options.title !== undefined) {
       if (!columns.length) throw new TypeError("Report titles require declared columns.");
@@ -52,7 +52,7 @@ export class ReportLayout {
     if (options.table) for (const ref of options.mergedCells ?? []) if (Number(ref.split(":")[1]!.match(/\d+$/)![0]) >= this.headerRows) throw new TypeError("Merged ranges cannot intersect a native table.");
     this.headings = headings; this.merges = this.regions.references;
     const sizing = options.autoSize;
-    this.sampleRows = sizing ? sizing.sampleRows ?? 100 : 0;
+    this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
     if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000) throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
     const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
     if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || min > max || max > 255) throw new RangeError("Width bounds must satisfy 0 <= minWidth <= maxWidth <= 255.");

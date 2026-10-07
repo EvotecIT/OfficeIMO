@@ -17,6 +17,7 @@ export interface CsvValueContext {
   readonly values: readonly CellValue[];
 }
 export type CsvColumn<T = never> = Column<T> & {
+  readonly style?: never;
   /** Formatting happens before formula protection and RFC quoting. Return a scalar, never pre-escaped CSV. */
   readonly valueFormatter?: (value: CellValue, context: CsvValueContext) => CellValue;
 };
