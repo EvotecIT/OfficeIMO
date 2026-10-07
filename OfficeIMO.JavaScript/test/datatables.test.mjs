@@ -67,6 +67,23 @@ test("ordered and reordered cell results preserve projected values, callback coo
   }
 });
 
+test("a reordered suffix preserves its ordered prefix and rejects a repeated prefix coordinate", async () => {
+  for (const duplicate of [false, true]) {
+    const { host, table } = fixture({ ordered: true, grouped: false });
+    const cells = table.cells;
+    table.cells = (...args) => {
+      const result = cells(...args), indexes = result.indexes, render = result.render;
+      const reorder = values => [values[0], values[1], values[3], values[duplicate ? 0 : 2]];
+      result.indexes = () => ({ toArray: () => reorder(indexes().toArray()) });
+      result.render = () => ({ toArray: () => reorder(render().toArray()) });
+      return result;
+    };
+    const exporting = exportDataTable(host, table, "csv", { includeFooter: false });
+    if (duplicate) await assert.rejects(exporting, /Invalid DataTables cell indexes/);
+    else assert.equal(await (await exporting).text(), "Name,Amount\r\nfirst,7.5\r\nsecond,12.5\r\n");
+  }
+});
+
 test("batched export preserves scope, reordered cell indexes, typed presentation, grouped headings and footer", async () => {
   const { host, table, calls } = fixture();
   const contexts = [], options = { batchRows: 1, maxBatchCells: 2, columnOptions: { 1: { type: "number", format: "0.00" } },

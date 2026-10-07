@@ -5318,17 +5318,22 @@ function createDataTablesExport(host, table, options = {}) {
                 if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length > rendered.length)
                     throw new TypeError("The table changed or returned an incomplete export batch.");
                 batch = selectedRows.map(() => new Array(columns.length));
-                // The ordinary public result set preserves the requested order. Verify it before
-                // using ordinals; adapters returning another order retain coordinate-based mapping.
-                const ordered = positions.every((position, i) => member(position, "row") === requested[i].row
-                    && member(position, "column") === requested[i].column);
-                const rowPositions = ordered ? undefined : new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
-                const seen = ordered ? undefined : new Set();
+                // Validate coordinates while formatting instead of scanning every cell twice.
+                // The usual ordered result needs no mapping or duplicate set. On the first
+                // reordered cell, include the already accepted ordered prefix in that set.
+                let rowPositions, seen;
+                let ordinalRow = 0, ordinalColumn = 0;
                 for (let cell = 0; cell < rendered.length; cell++) {
                     checkAbort(signal);
-                    const rowIndex = ordered ? requested[cell].row : member(positions[cell], "row"), columnIndex = ordered ? requested[cell].column : member(positions[cell], "column");
-                    const row = ordered ? Math.floor(cell / columns.length) : rowPositions.get(rowIndex);
-                    const column = ordered ? cell % columns.length : columnPositions.get(columnIndex);
+                    const rowIndex = member(positions[cell], "row"), columnIndex = member(positions[cell], "column");
+                    if (!seen && (rowIndex !== requested[cell].row || columnIndex !== requested[cell].column)) {
+                        rowPositions = new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
+                        seen = new Set();
+                        for (let accepted = 0; accepted < cell; accepted++)
+                            seen.add(accepted);
+                    }
+                    const row = seen ? rowPositions.get(rowIndex) : ordinalRow;
+                    const column = seen ? columnPositions.get(columnIndex) : ordinalColumn;
                     if (row === undefined || column === undefined || seen?.has(row * columns.length + column))
                         throw new TypeError("Invalid DataTables cell indexes.");
                     seen?.add(row * columns.length + column);
@@ -5346,6 +5351,10 @@ function createDataTablesExport(host, table, options = {}) {
                     const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, node)
                         : stripData(rendered[cell], stripOptions);
                     batch[row][column] = project(formatted, rowIndex, column, first + row);
+                    if (++ordinalColumn === columns.length) {
+                        ordinalColumn = 0;
+                        ordinalRow++;
+                    }
                     if ((cell & 127) === 127 && taskYieldDue()) {
                         await pause();
                         checkAbort(signal);
