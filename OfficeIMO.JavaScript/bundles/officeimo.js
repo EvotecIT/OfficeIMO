@@ -4331,7 +4331,7 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m36 = _modules.get("61cdf653aae284537db51d6937172ca877691a5ee2ce549db9d51b2cae2c9380") ?? (() => {
+const _m36 = _modules.get("e0e1ec99e3d45b3c3e73c2af5c96f4e5fe5b96cf0b6a60ebb959cc15eaa4cacf") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { PdfFont, fontProgram } = _m37;
@@ -4404,6 +4404,9 @@ class PdfFontResource {
         const mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph] };
         this.mappings.set(scalar, mapping);
         return mapping.width;
+    }
+    lineHeight(size) {
+        return Math.max(1.3, this.program ? (this.program.ascent - this.program.descent) / 1000 + .1 : 1.3) * size;
     }
     encode(text) {
         if (this.shared)
@@ -4490,7 +4493,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ validateScalar: validateScalar, PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("61cdf653aae284537db51d6937172ca877691a5ee2ce549db9d51b2cae2c9380", _exports);
+_modules.set("e0e1ec99e3d45b3c3e73c2af5c96f4e5fe5b96cf0b6a60ebb959cc15eaa4cacf", _exports);
 return _exports;
 })();
 
@@ -4568,7 +4571,7 @@ _modules.set("89e85a7a65c65d6f58aacf656ca7668cfac0a7a01076dfe764979d4bdd0b205c",
 return _exports;
 })();
 
-const _m42 = _modules.get("6a486b9288c392a3e65fd4feddb188d9e0a19516fffc6bd2850cd96072b919fc") ?? (() => {
+const _m42 = _modules.get("bc46062e3ddb9b421eec917feac8c339c6d4913f02318d573170ace4085abc11") ?? (() => {
 const { ExportCell } = _m5;
 
 const { tableSpans } = _m34;
@@ -4591,10 +4594,11 @@ class PdfTableLayout {
         this.settings = settings;
         this.fonts = fonts;
         const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
-        const digit = fonts.select().width(48) * fontSize / 1000;
+        let digit;
         if (options.columnWidths && options.columnWidths.length !== columns.length)
             throw new RangeError("columnWidths must declare one point width per column.");
-        const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? (column.width === undefined ? available / columns.length : positive(column.width, "Column width", 255) * digit + padding * 2), "PDF column width"));
+        const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? (column.width === undefined ? available / columns.length :
+            positive(column.width, "Column width", 255) * (digit ??= fonts.select().width(48) * fontSize / 1000) + padding * 2), "PDF column width"));
         const sum = widths.reduce((n, w) => n + w, 0);
         if (sum > available + .001 && options.wideTable === "reject")
             throw new RangeError("Table widths exceed the printable page width.");
@@ -4603,8 +4607,7 @@ class PdfTableLayout {
         this.lefts = this.widths.map(width => { const position = left; left += width; return position; });
         if (this.widths.some(w => w <= padding * 2))
             throw new RangeError("Page is too narrow for this many columns and the requested padding.");
-        const regular = fonts.select().program;
-        this.lineHeight = Math.max(1.3, regular ? (regular.ascent - regular.descent) / 1000 + .1 : 1.3) * fontSize;
+        this.lineHeight = fonts.select().lineHeight(fontSize);
         const depth = columns.reduce((n, c) => Math.max(n, c.groups?.length ?? 0), 0);
         if (depth > 16)
             throw new RangeError("Grouped headings support at most 16 levels.");
@@ -4637,11 +4640,13 @@ class PdfTableLayout {
         const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
         const text = displayText(value, options, { rowIndex: row, columnIndex: first, column });
         budget.cell(text);
-        return { first, span, width, font, style: combined, lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
+        return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
+            lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
     }
     row(cells) {
         const lines = Math.max(1, ...cells.map(c => c.lines.length));
-        return { cells, lines, height: lines * this.lineHeight + this.settings.padding * 2 };
+        const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
+        return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
     }
     headers() {
         if (this.settings.options.headerRows)
@@ -4659,15 +4664,15 @@ class PdfTableLayout {
                 ...(value.presentation ? { presentation: value.presentation } : {}) });
             return { ...this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan };
         }));
-        const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * this.lineHeight + this.settings.padding * 2)));
+        const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * c.lineHeight + this.settings.padding * 2)));
         cells.forEach((row, r) => row.forEach(c => {
-            const existing = heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0), needed = c.lines.length * this.lineHeight + this.settings.padding * 2;
+            const existing = heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0), needed = c.lines.length * c.lineHeight + this.settings.padding * 2;
             if (needed > existing)
                 for (let i = r; i < r + c.rowSpan; i++)
                     heights[i] += (needed - existing) / c.rowSpan;
         }));
         return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
-            lines: Math.max(1, Math.ceil((heights[r] - this.settings.padding * 2) / this.lineHeight)), height: heights[r], structured: true }));
+            lines: Math.max(1, Math.ceil((heights[r] - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r], structured: true }));
     }
     data(values, index, footer = false) {
         const { options } = this.settings;
@@ -4689,11 +4694,11 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("6a486b9288c392a3e65fd4feddb188d9e0a19516fffc6bd2850cd96072b919fc", _exports);
+_modules.set("bc46062e3ddb9b421eec917feac8c339c6d4913f02318d573170ace4085abc11", _exports);
 return _exports;
 })();
 
-const _m44 = _modules.get("02232967c8deae5966d9eb55953eabf064dddfe91c6120fb0deca9c7ed313c03") ?? (() => {
+const _m44 = _modules.get("db557ab7ae9808b57a24ab1e5366261a1466fd02727887a21be2049bbf3771ef") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -4718,6 +4723,7 @@ class PdfPages {
     y = 0;
     dataTop = 0;
     totalPages;
+    pageNumberWidth;
     colors = new Map();
     constructor(objects, settings, layout, parent, resources) {
         this.objects = objects;
@@ -4726,6 +4732,16 @@ class PdfPages {
         this.parent = parent;
         this.resources = resources;
         this.totalPages = settings.options.pageNumbers === false ? undefined : objects.reserve();
+        this.pageNumberWidth = 0;
+        if (this.totalPages && settings.limits.maxPages > 0) {
+            const font = layout.fonts.select(), max = settings.limits.maxPages;
+            const digitWidth = Math.max(...Array.from({ length: Math.min(10, max) }, (_, i) => font.width(max < 10 ? 49 + i : 48 + i)));
+            const countWidth = digitWidth * String(max).length * settings.fontSize / 1000;
+            const literals = wrapText("Page  of ", font, settings.fontSize, settings.page.width, 128, 1, false)[0].width;
+            this.pageNumberWidth = literals + countWidth * 2 + 2;
+            if (this.pageNumberWidth > settings.page.width - settings.margins.left - settings.margins.right)
+                throw new RangeError("Page is too narrow for page numbers at the declared maxPages and font size.");
+        }
     }
     add(command) {
         this.commandBytes += command.length;
@@ -4756,7 +4772,7 @@ class PdfPages {
         const font = this.layout.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
         this.text(lines[0].text, font, this.settings.fontSize, x, y);
     }
-    async start() {
+    async start(tableHeadings = true) {
         if (this.references.length >= this.settings.limits.maxPages)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxPages exceeded.");
         const { page, margins, options, fontSize } = this.settings;
@@ -4769,14 +4785,15 @@ class PdfPages {
             throw new RangeError("Top margin is too small for a page header.");
         if ((options.pageFooter !== undefined || this.totalPages) && margins.bottom < this.layout.lineHeight + 4)
             throw new RangeError("Bottom margin is too small for page decorations.");
-        this.decoration(options.pageHeader, margins.left, page.height - margins.top / 2 - fontSize / 3, page.width - margins.left - margins.right);
-        const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? 112 : 0);
+        const font = this.layout.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
+        this.decoration(options.pageHeader, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
+        const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? this.pageNumberWidth + this.settings.padding * 2 : 0);
         if (footerWidth <= 0 && options.pageFooter !== undefined)
             throw new RangeError("Page is too narrow for both footer text and page numbers.");
-        this.decoration(options.pageFooter, margins.left, margins.bottom / 2 - fontSize / 3, footerWidth);
+        this.decoration(options.pageFooter, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
         if (this.totalPages) {
-            const x = page.width - margins.right - 110, y = margins.bottom / 2 - fontSize / 3, label = "Page " + this.references.length + " of ", font = this.layout.fonts.select();
-            const line = wrapText(label, font, fontSize, 95, 128, 1, false)[0];
+            const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset, label = "Page " + this.references.length + " of ";
+            const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0];
             this.settings.budget.cell(label);
             this.text(label, font, fontSize, x, y);
             this.add("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n");
@@ -4787,7 +4804,7 @@ class PdfPages {
             if (options.messageTop !== undefined)
                 await this.paragraph(options.messageTop, {}, fontSize, false);
         }
-        const headers = this.layout.headers(), headerHeight = headers.reduce((n, h) => n + h.height, 0);
+        const headers = tableHeadings ? this.layout.headers() : [], headerHeight = headers.reduce((n, h) => n + h.height, 0);
         if (this.y - headerHeight - this.layout.lineHeight - this.settings.padding * 2 < margins.bottom)
             throw new RangeError("PDF title and repeated headings leave no room for a data line.");
         for (const header of headers)
@@ -4795,7 +4812,7 @@ class PdfPages {
         this.dataTop = this.y;
     }
     draw(row, firstLine, lineCount) {
-        const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * this.layout.lineHeight + padding * 2;
+        const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
         for (const cell of row.cells) {
             const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
             if (cell.style.background)
@@ -4804,7 +4821,7 @@ class PdfPages {
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
                 const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
-                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * this.layout.lineHeight, cell.style.color);
+                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color);
             }
         }
         this.y -= row.structured ? row.height : height;
@@ -4828,11 +4845,11 @@ class PdfPages {
         }
         let first = 0;
         while (first < row.lines) {
-            let lines = Math.min(row.lines - first, Math.floor((this.y - margins.bottom - padding * 2 + .001) / this.layout.lineHeight));
+            let lines = Math.min(row.lines - first, Math.floor((this.y - margins.bottom - padding * 2 + .001) / row.lineHeight));
             if (lines <= 0) {
                 await this.finishPage();
                 await this.start();
-                lines = Math.min(row.lines - first, Math.floor((this.y - margins.bottom - padding * 2 + .001) / this.layout.lineHeight));
+                lines = Math.min(row.lines - first, Math.floor((this.y - margins.bottom - padding * 2 + .001) / row.lineHeight));
             }
             if (lines <= 0)
                 throw new RangeError("PDF page cannot fit a table line.");
@@ -4845,15 +4862,17 @@ class PdfPages {
         }
     }
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true) {
-        const { margins, page, limits } = this.settings, font = this.layout.fonts.select(style.bold, style.italic), lineHeight = this.layout.lineHeight * size / this.settings.fontSize;
+        const { margins, page, limits } = this.settings, font = this.layout.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
         this.settings.budget.cell(text);
         const lines = wrapText(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines);
+        if (lineHeight > page.height - margins.top - margins.bottom)
+            throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
         if (!paginate && this.y - lines.length * lineHeight - 8 < margins.bottom)
             throw new RangeError("PDF title/message exceeds the first page's content area.");
         for (const line of lines) {
             if (this.y - lineHeight < margins.bottom) {
                 await this.finishPage();
-                await this.start();
+                await this.start(false);
             }
             this.text(line.text, font, size, margins.left, this.y - (font.program?.ascent ?? 800) * size / 1000, style.color);
             this.y -= lineHeight;
@@ -4883,11 +4902,11 @@ class PdfPages {
     xobjects() { return this.totalPages ? " /XObject << /TotalPages " + this.totalPages + " 0 R >>" : ""; }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("02232967c8deae5966d9eb55953eabf064dddfe91c6120fb0deca9c7ed313c03", _exports);
+_modules.set("db557ab7ae9808b57a24ab1e5366261a1466fd02727887a21be2049bbf3771ef", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("d2cd04570e05ffabda41bf5b811b9bbcff1c5dbe22e61e23b3a0f30f077d91ec") ?? (() => {
+const _m32 = _modules.get("094107def38e059db5be9eda8621797cf7fc7c68c14db1ee34d275329e55d026") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m4;
@@ -4961,21 +4980,21 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("d2cd04570e05ffabda41bf5b811b9bbcff1c5dbe22e61e23b3a0f30f077d91ec", _exports);
+_modules.set("094107def38e059db5be9eda8621797cf7fc7c68c14db1ee34d275329e55d026", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("a734c87162ea49770fcc011b6c6b17abf37021dcf6a0d563e0df0c9d159160e4") ?? (() => {
+const _m31 = _modules.get("2a3e9282c2bc16055364d1b38561b5d95b8b6c21f34a752096519e251b555b29") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m32.writePdf, writePdfTo: _m32.writePdfTo, PdfFont: _m37.PdfFont, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("a734c87162ea49770fcc011b6c6b17abf37021dcf6a0d563e0df0c9d159160e4", _exports);
+_modules.set("2a3e9282c2bc16055364d1b38561b5d95b8b6c21f34a752096519e251b555b29", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("06d5b12b0c36a3bbf4a3f00a99cd1a97a84f0bb63c1a064bfa6eb819ab52c179") ?? (() => {
+const _m0 = _modules.get("b72c430a33c079753610f5b0a38ba38eedf6db58066257b9b0f48e17300ada79") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m30, pdf: _m31, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, writeXlsx: _m12.writeXlsx, writeXlsxTo: _m12.writeXlsxTo, writeCsv: _m30.writeCsv, writeCsvTo: _m30.writeCsvTo, writePdf: _m31.writePdf, writePdfTo: _m31.writePdfTo, PdfFont: _m31.PdfFont, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("06d5b12b0c36a3bbf4a3f00a99cd1a97a84f0bb63c1a064bfa6eb819ab52c179", _exports);
+_modules.set("b72c430a33c079753610f5b0a38ba38eedf6db58066257b9b0f48e17300ada79", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

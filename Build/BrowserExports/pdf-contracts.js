@@ -13,6 +13,19 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
     await writePdfFixture(name + '.pdf', btoa(encoded), JSON.stringify({required, ...extra}));
   }
   await save('empty',await writePdf([],{columns:columns.map(({groups,...column})=>column),fonts,includeHeader:false,pageNumbers:false}),[]);
+  const modified = bytes(regular), metricView = new DataView(modified.buffer);
+  for (let i=0;i<metricView.getUint16(4);i++) {
+    const p=12+i*16;
+    if(String.fromCharCode(...modified.subarray(p,p+4))==='hhea') {
+      const at=metricView.getUint32(p+8);metricView.setInt16(at+4,4096);metricView.setInt16(at+6,-1024);
+    }
+  }
+  await save('mixed-metrics',await writePdf([[new ExportCell('Tall',{presentation:{bold:true}})],['Next']],{
+    columns:[{header:'Heading'}],fonts:{regular:fonts.regular,bold:new PdfFont(modified)},title:'Title'}),['Title','Heading','Tall','Next']);
+  await save('page-number-size',await writePdf([['Value']],{columns:[{header:'Heading'}],fontSize:36,pageSize:{width:700,height:900},
+    margins:{left:36,right:36,top:36,bottom:80},pageFooter:'End'}),['Heading','Value','Page 1 of','End']);
+  await save('afterword',await writePdf([['Data']],{columns:[{header:'Table heading'}],pageSize:'A5',pageHeader:'Report',pageFooter:'Footer',
+    messageBottom:'Afterword '.repeat(1000)}),['Data','Afterword'],{firstPageOnly:['Table heading'],repeated:['Report','Footer']});
   await save('symbols',await writePdf([['🂡♟']],{columns:[{header:''}],fonts:{regular:new PdfFont(bytes(symbols))},pageNumbers:false}),['🂡♟']);
   await save('japanese',await writePdf([['東京 大阪 日本語']],{columns:[{header:''}],fonts:{regular:new PdfFont(bytes(japanese))},pageNumbers:false}),['東京 大阪 日本語']);
   for (const compression of [true, false]) {
