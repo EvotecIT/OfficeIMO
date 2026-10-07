@@ -15,9 +15,10 @@ internal static partial class PdfWriter {
             double markerSize = prepared.MarkerSize;
             PdfColor? color = prepared.Block.Color ?? prepared.Style?.Color;
             PdfColor? markerColor = prepared.Style?.MarkerColor ?? color;
-            double markerX = currentOpts.MarginLeft + prepared.ListLeftIndent + preparedItem.FirstLineOffset;
-            double markerWidth = prepared.MarkerWidth;
-            PdfAlign markerAlign = prepared.Block.GetMarkerAlign(prepared.Style);
+            var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
+            double markerX = currentOpts.MarginLeft + markerPlacement.X;
+            double markerWidth = markerPlacement.Width;
+            PdfAlign markerAlign = markerPlacement.Align;
             double textX = currentOpts.MarginLeft + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap;
             double textWidth = prepared.AlignmentWidth;
             PdfAlign textAlign = prepared.Block.Align;

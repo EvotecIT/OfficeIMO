@@ -171,14 +171,14 @@ namespace OfficeIMO.Word.Pdf {
             double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double markerFontSize = info.MarkerFontSize ?? fontSize;
-            double markerTextWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
-            (double markerWidth, double markerGap) = ResolveNativeListMarkerSpacing(info.LevelSuffix, markerTextWidth, markerFontSize, textIndent, markerIndent);
             bool itemSpacingDeclared = false;
 
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
-                MarkerGap = markerGap,
-                MarkerWidth = markerWidth,
+                MarkerAlignsAtIndent = true,
+                MarkerGap = info.LevelSuffix == WordListLevelSuffix.Space ? null : 0D,
+                MarkerWidth = info.LevelSuffix == WordListLevelSuffix.Nothing || info.LevelSuffix == WordListLevelSuffix.Space
+                    ? 0D : Math.Max(0D, textIndent - markerIndent),
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle),
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
@@ -277,6 +277,25 @@ namespace OfficeIMO.Word.Pdf {
         private static string ResolveNativeInlineListMarkerSuffix(WordListLevelSuffix? suffix) =>
             WordDocumentTraversal.ResolveTextListMarkerSuffix(suffix);
 
+        private static double GetNativeMarkerAnchorShift(WordDocumentTraversal.ListInfo info, double width) =>
+            info.LevelJustification switch {
+                WordListLevelAlignment.Right => width,
+                WordListLevelAlignment.Center => width / 2D,
+                _ => 0D
+            };
+
+        private static void ApplyNativeInlineListMarkerAlignment(WordParagraph paragraph, string marker,
+            PdfCore.PdfParagraphStyle style, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null || marker.Length == 0) return;
+            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph,
+                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle,
+                nativeFontMap, includeSuffix: false);
+            if (nativeFontMap.MeasureText(markerRun) is { } width)
+                style.FirstLineIndent -= GetNativeMarkerAnchorShift(info.Value, width);
+        }
+
         private static PdfCore.PdfTextRun CreateNativeListMarkerTextRun(
             string marker,
             WordParagraph paragraph,
@@ -359,6 +378,7 @@ namespace OfficeIMO.Word.Pdf {
                    DoubleEquals(left.LeftIndent, right.LeftIndent) &&
                    NullableDoubleEquals(left.MarkerGap, right.MarkerGap) &&
                    NullableDoubleEquals(left.MarkerWidth, right.MarkerWidth) &&
+                   left.MarkerAlignsAtIndent == right.MarkerAlignsAtIndent &&
                    DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
                    NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
                    NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&
