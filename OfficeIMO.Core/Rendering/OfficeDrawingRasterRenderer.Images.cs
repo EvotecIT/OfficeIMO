@@ -11,6 +11,9 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
+        if (drawingImage.Opacity <= 0D) return;
+        OfficeImageProjection projection = drawingImage.Projection.Scale(scale);
+        if (!canvas.IntersectsVisibleSurface(projection.CreateUnitSquareTransform(), 1D, 1D)) return;
         (double targetWidth, double targetHeight) = GetImageTargetSize(canvas, drawingImage.Projection, scale);
         if (TryDecodeImage(
                 drawingImage.EncodedBytes,
@@ -32,7 +35,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
 
-            canvas.DrawImage(image, drawingImage.Projection.Scale(scale), drawingImage.Interpolate);
+            canvas.DrawImage(image, projection, drawingImage.Interpolate);
         }
     }
 

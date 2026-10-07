@@ -40,6 +40,11 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         double pixelWidth = Math.Max(1D, Math.Ceiling((right - left) * axisX));
         double pixelHeight = Math.Max(1D, Math.Ceiling((bottom - top) * axisY));
+        OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
+            .Then(OfficeTransform.Translate(text.X * scale + left, text.Y * scale + top)).Then(frame.CreateDestinationTransform());
+        // Use the measured ink, padding and rounded layer, not just the text frame.
+        if (!double.IsInfinity(pixelWidth) && !double.IsInfinity(pixelHeight) &&
+            !canvas.IntersectsVisibleSurface(transform, pixelWidth, pixelHeight)) return;
         _ = OfficeRasterExportPlanner.Resolve(pixelWidth, pixelHeight, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
         canvas.ChargeTransformedTextIntermediatePixels(
@@ -55,8 +60,6 @@ public static partial class OfficeDrawingRasterRenderer {
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
         local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
-        OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
-            .Then(OfficeTransform.Translate(text.X * scale + left, text.Y * scale + top)).Then(frame.CreateDestinationTransform());
         canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
     }
 
@@ -96,6 +99,10 @@ public static partial class OfficeDrawingRasterRenderer {
         (double axisX, double axisY) = GetTextLayerAxisScales(frame, canvas);
         double pixelWidth = Math.Max(1D, Math.Ceiling(contentWidth * axisX));
         double pixelHeight = Math.Max(1D, Math.Ceiling(contentHeight * axisY));
+        OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
+            .Then(CreateVerticalTextPlacement(text, scale, contentX, contentY));
+        if (!double.IsInfinity(pixelWidth) && !double.IsInfinity(pixelHeight) &&
+            !canvas.IntersectsVisibleSurface(transform, pixelWidth, pixelHeight)) return true;
         _ = OfficeRasterExportPlanner.Resolve(pixelWidth, pixelHeight, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
                 MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels),
@@ -135,8 +142,6 @@ public static partial class OfficeDrawingRasterRenderer {
             }
         }
 
-        OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
-            .Then(CreateVerticalTextPlacement(text, scale, contentX, contentY));
         canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
         return true;
     }
