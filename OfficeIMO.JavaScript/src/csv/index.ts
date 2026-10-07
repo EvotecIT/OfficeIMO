@@ -1,4 +1,4 @@
-import { checkAbort, inputRows, withAbort } from "../core/iteration.js";
+import { checkAbort, consumeRows, withAbort } from "../core/iteration.js";
 import { BlobByteSink, ChunkedTextSink, withDestination } from "../core/sinks.js";
 import { ExportBudget, boundedSink } from "../core/limits.js";
 import { ExportCell } from "../core/presentation.js";
@@ -74,22 +74,28 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
   checkAbort(signal);
   if (options.bom) await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
   let count = 0;
-  async function record(values: readonly unknown[], header = false): Promise<void> {
-    const resolved = (value: unknown) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
-    const snapshot = hasFormatters ? Object.freeze(columns.map((_, i) => resolved(values[i]))) as readonly CellValue[] : undefined;
-    for (let i = 0; i < columns.length; i++) {
+  const resolved = (value: unknown) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+  function record(values: readonly unknown[], header = false, first = 0, snapshot?: readonly CellValue[]): void | Promise<void> {
+    if (!header && hasFormatters && first === 0) snapshot = Object.freeze(columns.map((_, i) => resolved(values[i]))) as readonly CellValue[];
+    for (let i = first; i < columns.length; i++) {
       const column = columns[i]!;
       const raw = resolved(values[i]);
       let value = !header && column.valueFormatter ? column.valueFormatter(raw as CellValue,
         { rowIndex: count, columnIndex: i, column, values: snapshot! }) : raw;
       if (value == null && options.nullValue !== undefined) value = options.nullValue;
       budget.cell(value);
-      if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue))) await buffer.flush();
+      if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
+        return buffer.flush().then(() => record(values, header, i + 1, snapshot));
     }
-    if (buffer.append(lineEnding)) { await buffer.flush(); options.onProgress?.({ phase: "rows", rows: count }); }
+    if (buffer.append(lineEnding)) return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
   }
   if (options.includeHeader !== false && columns.length) await record(columns.map(c => c.header), true);
-  for await (const row of inputRows(rows, signal)) { budget.row(count + 1); await record(project(row, count)); count++; }
+  await consumeRows(rows, signal, row => {
+    budget.row(count + 1);
+    const pending = record(project(row, count));
+    if (pending) return pending.then(() => { count++; });
+    count++;
+  });
   await buffer.close(); options.onProgress?.({ phase: "complete", rows: count, bytes }); checkAbort(signal);
   return { rows: count, columns: columns.length, bytes };
 }

@@ -56,6 +56,47 @@ async function* inputRows(input, signal) {
         }
     }
 }
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+async function consumeRows(input, signal, accept) {
+    checkAbort(signal);
+    const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
+    if (!iterator)
+        throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+    let done = false;
+    try {
+        while (true) {
+            checkAbort(signal);
+            let item = iterator.next();
+            const next = item;
+            if (typeof next?.then === "function")
+                item = await withAbort(next, signal);
+            checkAbort(signal);
+            const result = item;
+            if (result.done) {
+                done = true;
+                return;
+            }
+            let value = result.value;
+            if (typeof value?.then === "function")
+                value = await withAbort(value, signal);
+            checkAbort(signal);
+            const pending = accept(value);
+            if (pending !== undefined)
+                await withAbort(pending, signal);
+        }
+    }
+    finally {
+        if (!done && iterator.return) {
+            // Any exit before exhaustion is a producer/consumer failure or cancellation.
+            // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+            try {
+                void Promise.resolve(iterator.return()).catch(() => { });
+            }
+            catch { /* Preserve the original failure. */ }
+        }
+    }
+}
 let taskDeadline;
 const taskBudgetMs = 16;
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
@@ -86,7 +127,7 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -237,7 +278,8 @@ class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
-    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+    const kind = typeof value;
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -675,7 +717,7 @@ const _m15 = (() => {
 const { align4, checksum } = _m14;
 
 /** Preserve glyph IDs and complete composite dependencies, as in OfficeIMO.Pdf's native subsetter. */
-function subsetTrueType(font, requested) {
+function subsetTrueType(font, requested, characters) {
     const glyphs = new Set([0, ...requested]), glyfTable = font.table("glyf"), queue = [...glyphs];
     const dependencies = new Map();
     for (let i = 0; i < queue.length; i++) {
@@ -746,8 +788,9 @@ function subsetTrueType(font, requested) {
     for (let i = 0; i < offsets.length; i++)
         locaView.setUint32(i * 4, offsets[i]);
     const retained = new Set(["OS/2", "cmap", "cvt ", "fpgm", "gasp", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post", "prep"]);
+    const cmap = subsetCmap(characters), hmtx = subsetMetrics(font, glyphs);
     const tables = [...font.tables].filter(([tag]) => retained.has(tag)).sort(([a], [b]) => a < b ? -1 : 1).map(([tag, table]) => {
-        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : font.bytes.slice(table.offset, table.offset + table.length);
+        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : tag === "cmap" ? cmap : tag === "hmtx" ? hmtx : font.bytes.slice(table.offset, table.offset + table.length);
         if (tag === "head") {
             const view = new DataView(bytes.buffer);
             view.setUint32(8, 0);
@@ -777,6 +820,48 @@ function subsetTrueType(font, requested) {
     });
     view.setUint32(head + 8, (0xb1b0afba - checksum(output)) >>> 0);
     return output;
+}
+/** Keep original glyph IDs, advance widths and bearings for every selected/composite glyph.
+ * Empty glyph slots have no outline; their unused metrics need not inflate the compressed subset. */
+function subsetMetrics(font, glyphs) {
+    const metrics = font.u16(font.table("hhea").offset + 34), table = font.table("hmtx");
+    const result = new Uint8Array(metrics * 4 + (font.glyphCount - metrics) * 2);
+    for (const glyph of glyphs) {
+        const first = glyph < metrics ? glyph * 4 : metrics * 4 + (glyph - metrics) * 2, length = glyph < metrics ? 4 : 2;
+        result.set(font.bytes.subarray(table.offset + first, table.offset + first + length), first);
+        if (glyph >= metrics) {
+            // Trailing short records share the final full record's advance width.
+            const advance = (metrics - 1) * 4;
+            result.set(font.bytes.subarray(table.offset + advance, table.offset + advance + 2), advance);
+        }
+    }
+    return result;
+}
+/** One Unicode format-12 map covers BMP and supplementary scalars without retaining unused coverage. */
+function subsetCmap(characters) {
+    const entries = [...characters].sort(([a], [b]) => a - b), groups = [];
+    for (const [scalar, glyph] of entries) {
+        const previous = groups.at(-1);
+        if (previous && scalar === previous.last + 1 && glyph === previous.glyph + scalar - previous.first)
+            previous.last = scalar;
+        else
+            groups.push({ first: scalar, last: scalar, glyph });
+    }
+    const result = new Uint8Array(12 + 16 + groups.length * 12), view = new DataView(result.buffer);
+    view.setUint16(2, 1);
+    view.setUint16(4, 3);
+    view.setUint16(6, 10);
+    view.setUint32(8, 12);
+    view.setUint16(12, 12);
+    view.setUint32(16, result.length - 12);
+    view.setUint32(24, groups.length);
+    groups.forEach((group, i) => {
+        const p = 28 + i * 12;
+        view.setUint32(p, group.first);
+        view.setUint32(p + 4, group.last);
+        view.setUint32(p + 8, group.glyph);
+    });
+    return result;
 }
 const _exports = Object.freeze({ subsetTrueType: subsetTrueType });
 return _exports;
@@ -951,7 +1036,7 @@ class TrueTypeFont extends FontReader {
         }
         return 0;
     }
-    subset(glyphs) { return this.canSubset ? subsetTrueType(this, glyphs) : this.bytes; }
+    subset(glyphs, characters) { return this.canSubset ? subsetTrueType(this, glyphs, characters) : this.bytes; }
 }
 const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
@@ -1416,7 +1501,7 @@ class PdfFontResource {
         const program = this.program, entries = [...this.mappings], glyphs = new Set(entries.map(([, m]) => m.glyph));
         const fontName = (program.canSubset ? "OIMOAA+" : "") + "OfficeIMOFont" + this.index;
         const file = objects.reserve(), descriptor = objects.reserve(), cidFont = objects.reserve(), map = objects.reserve(), unicode = objects.reserve();
-        const subset = program.subset(glyphs);
+        const subset = program.subset(glyphs, new Map(entries.map(([scalar, mapping]) => [scalar, mapping.glyph])));
         await objects.stream(file, subset, "/Length1 " + subset.length, compression);
         await objects.object(descriptor, "<< /Type /FontDescriptor /FontName /" + fontName + " /Flags 32 /FontBBox [" + program.bbox.map(pdfNumber).join(" ") +
             "] /ItalicAngle 0 /Ascent " + pdfNumber(program.ascent) + " /Descent " + pdfNumber(program.descent) + " /CapHeight " + pdfNumber(program.ascent) + " /StemV 80 /FontFile2 " + file + " 0 R >>");

@@ -56,6 +56,47 @@ async function* inputRows(input, signal) {
         }
     }
 }
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+async function consumeRows(input, signal, accept) {
+    checkAbort(signal);
+    const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
+    if (!iterator)
+        throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+    let done = false;
+    try {
+        while (true) {
+            checkAbort(signal);
+            let item = iterator.next();
+            const next = item;
+            if (typeof next?.then === "function")
+                item = await withAbort(next, signal);
+            checkAbort(signal);
+            const result = item;
+            if (result.done) {
+                done = true;
+                return;
+            }
+            let value = result.value;
+            if (typeof value?.then === "function")
+                value = await withAbort(value, signal);
+            checkAbort(signal);
+            const pending = accept(value);
+            if (pending !== undefined)
+                await withAbort(pending, signal);
+        }
+    }
+    finally {
+        if (!done && iterator.return) {
+            // Any exit before exhaustion is a producer/consumer failure or cancellation.
+            // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+            try {
+                void Promise.resolve(iterator.return()).catch(() => { });
+            }
+            catch { /* Preserve the original failure. */ }
+        }
+    }
+}
 let taskDeadline;
 const taskBudgetMs = 16;
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
@@ -86,7 +127,7 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -289,7 +330,8 @@ class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
-    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+    const kind = typeof value;
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -411,7 +453,7 @@ return _exports;
 })();
 
 const _m0 = (() => {
-const { checkAbort, inputRows, withAbort } = _m1;
+const { checkAbort, consumeRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
@@ -479,10 +521,11 @@ async function write(rows, sink, options) {
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
-    async function record(values, header = false) {
-        const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
-        const snapshot = hasFormatters ? Object.freeze(columns.map((_, i) => resolved(values[i]))) : undefined;
-        for (let i = 0; i < columns.length; i++) {
+    const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+    function record(values, header = false, first = 0, snapshot) {
+        if (!header && hasFormatters && first === 0)
+            snapshot = Object.freeze(columns.map((_, i) => resolved(values[i])));
+        for (let i = first; i < columns.length; i++) {
             const column = columns[i];
             const raw = resolved(values[i]);
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
@@ -490,20 +533,20 @@ async function write(rows, sink, options) {
                 value = options.nullValue;
             budget.cell(value);
             if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
-                await buffer.flush();
+                return buffer.flush().then(() => record(values, header, i + 1, snapshot));
         }
-        if (buffer.append(lineEnding)) {
-            await buffer.flush();
-            options.onProgress?.({ phase: "rows", rows: count });
-        }
+        if (buffer.append(lineEnding))
+            return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
     }
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
-    for await (const row of inputRows(rows, signal)) {
+    await consumeRows(rows, signal, row => {
         budget.row(count + 1);
-        await record(project(row, count));
+        const pending = record(project(row, count));
+        if (pending)
+            return pending.then(() => { count++; });
         count++;
-    }
+    });
     await buffer.close();
     options.onProgress?.({ phase: "complete", rows: count, bytes });
     checkAbort(signal);

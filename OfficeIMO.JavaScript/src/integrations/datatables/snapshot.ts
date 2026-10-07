@@ -26,7 +26,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   if (!["batched", "compatibility"].includes(mode)) throw new TypeError("Unknown DataTables export mode.");
   if (!["grouped", "leaf", "structured"].includes(headingMode)) throw new TypeError("Unknown DataTables heading mode.");
   if (options.serverSide !== undefined && !["reject", "loaded"].includes(options.serverSide)) throw new TypeError("Unknown server-side export policy.");
-  const batchRows = options.batchRows ?? 256, maxBatchCells = options.maxBatchCells ?? 65536;
+  const batchRows = options.batchRows ?? 1024, maxBatchCells = options.maxBatchCells ?? 65536;
   if (!Number.isInteger(batchRows) || batchRows < 1 || batchRows > 4096) throw new RangeError("batchRows must be between 1 and 4,096.");
   if (!Number.isSafeInteger(maxBatchCells) || maxBatchCells < 1) throw new RangeError("maxBatchCells must be a positive safe integer.");
   const signal = options.signal, projectValue = options.project, budget = new ExportBudget(options.limits);
@@ -125,7 +125,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
         const seen = ordered ? undefined : new Set<number>();
         for (let cell = 0; cell < rendered.length; cell++) {
           checkAbort(signal);
-          const rowIndex = member(positions[cell], "row"), columnIndex = member(positions[cell], "column");
+          const rowIndex = ordered ? requested[cell]!.row : member(positions[cell], "row"), columnIndex = ordered ? requested[cell]!.column : member(positions[cell], "column");
           const row = ordered ? Math.floor(cell / columns.length) : rowPositions!.get(rowIndex as number);
           const column = ordered ? cell % columns.length : columnPositions.get(columnIndex as number);
           if (row === undefined || column === undefined || seen?.has(row * columns.length + column)) throw new TypeError("Invalid DataTables cell indexes.");
@@ -143,6 +143,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
           const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex as number, columnIndex as number, node)
             : Reflect.apply(strip as (...args: unknown[]) => unknown, stripOwner, [rendered[cell], stripOptions]);
           batch[row]![column] = project(formatted, rowIndex as number, column, first + row);
+          if ((cell & 127) === 127 && taskYieldDue()) { await pause(); checkAbort(signal); }
         }
       }
       for (const row of batch) { checkAbort(signal); yield row; }

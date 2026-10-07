@@ -45,7 +45,7 @@ globalThis.runDataTablesMeasurement = async function (lane, format) {
       const definition = DataTable.ext.buttons[format === 'xlsx' ? 'excelHtml5' : format === 'pdf' ? 'pdfHtml5' : 'csvHtml5'];
       const config = { ...definition, title: null, messageTop: null, messageBottom: null, filename: 'Comparison', sheetName: 'Data',
         footer: false, header: true, bom: false, newline: '\r\n', exportOptions: { modifier: { order: 'index', search: 'none', selected: null }, escapeExcelFormula: true } };
-      if (format === 'xlsx') config.customize = workbook => {
+      if (format === 'xlsx' && !comparisonSpec.fullWidthScan) config.customize = workbook => {
         for (const column of workbook.xl.worksheets['sheet1.xml'].getElementsByTagName('col')) column.setAttribute('width', '20');
       };
       if (format === 'pdf') {
@@ -59,11 +59,13 @@ globalThis.runDataTablesMeasurement = async function (lane, format) {
       await completedBlob;
       if (!(comparisonBlob instanceof Blob)) throw new Error('Native export did not produce a captured Blob.');
     } else {
+      const fullSizing = format === 'xlsx' && comparisonSpec.fullWidthScan, cells = comparisonSpec.rows * comparisonSpec.columns;
       comparisonBlob = await OfficeIMO.exportDataTable(DataTable, comparisonTable, format, {
         mode: lane, headings: 'leaf', includeFooter: false,
         exportOptions: { modifier: { order: 'index', search: 'none', selected: null }, escapeExcelFormula: true },
-        columnOptions: Object.fromEntries(Array.from({ length: comparisonSpec.columns }, (_, column) => [column, { width: 20 }])),
-        sheet: { autoFilter: false, autoSize: { sampleRows: 0 } }, csv: { quote: 'all' },
+        columnOptions: fullSizing ? undefined : Object.fromEntries(Array.from({ length: comparisonSpec.columns }, (_, column) => [column, { width: 20 }])),
+        sheet: { autoFilter: false, autoSize: fullSizing ? { sampleRows: comparisonSpec.rows, minWidth: 6, maxWidth: 54 } : { sampleRows: 0 } }, csv: { quote: 'all' },
+        ...(fullSizing ? { limits: { maxBufferedCells: cells, maxBufferedCharacters: cells * 192 + comparisonSpec.rows * 96 } } : {}),
         ...(format === 'pdf' ? { pdf: pdfMeasurementOptions(comparisonSpec) } : {})
       });
     }

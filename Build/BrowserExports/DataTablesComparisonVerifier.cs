@@ -2,11 +2,12 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
+using System.Text;
 using OfficeIMO.CSV;
 
 /// <summary>Every-value streaming validation of the common plain export contract.</summary>
 internal static class DataTablesComparisonVerifier {
-    internal static object Verify(string path, string format, int rows, int columns, bool unique) {
+    internal static object Verify(string path, string format, int rows, int columns, bool unique, bool fullWidthScan = false) {
         long cells = 0;
         if (format == "csv") {
             using var reader = CsvDocument.OpenDataReader(path, new CsvLoadOptions { MaxInputBytes = 2L * 1024 * 1024 * 1024, MaxDecompressedBytes = 2L * 1024 * 1024 * 1024 });
@@ -27,11 +28,15 @@ internal static class DataTablesComparisonVerifier {
             using var stream = (archive.GetEntry("xl/worksheets/sheet1.xml") ?? throw new InvalidDataException("Missing worksheet.")).Open();
             using var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
             int row = 0, column = 0, widthColumns = 0;
+            double[] widths = new double[columns]; int[] longest = new int[columns];
             while (reader.Read()) {
                 if (reader.NodeType != XmlNodeType.Element) continue;
                 if (reader.LocalName == "col") {
                     int first = int.Parse(reader.GetAttribute("min")!, CultureInfo.InvariantCulture), last = int.Parse(reader.GetAttribute("max")!, CultureInfo.InvariantCulture);
-                    Require(first == widthColumns + 1 && last >= first && last <= columns && reader.GetAttribute("width") == "20", "XLSX fixed column widths differ.");
+                    Require(first == widthColumns + 1 && last >= first && last <= columns, "XLSX column width ranges differ.");
+                    double width = double.Parse(reader.GetAttribute("width")!, CultureInfo.InvariantCulture);
+                    Require(fullWidthScan ? width >= 6 && width <= 54 : width == 20, "XLSX column widths violate the requested sizing contract.");
+                    for (int i = first - 1; i < last; i++) widths[i] = width;
                     widthColumns = last;
                 } else if (reader.LocalName == "row") {
                     Require(row == 0 || column == columns, "XLSX row width differs."); row++; column = 0;
@@ -42,6 +47,7 @@ internal static class DataTablesComparisonVerifier {
                     Require(cell.Attribute("r")?.Value == ColumnName(column + 1) + row, "XLSX cell coordinate differs.");
                     string actual = string.Concat(cell.Descendants().Where(e => e.Name.LocalName is "t" or "v").Select(e => e.Value));
                     string expected = row == 1 ? "Column " + (column + 1) : Expected(row - 2, column, unique);
+                    longest[column] = Math.Max(longest[column], expected.EnumerateRunes().Count());
                     bool numeric = row > 1 && column % 3 != 1;
                     Require(numeric ? double.TryParse(actual, CultureInfo.InvariantCulture, out double number) && number == double.Parse(expected, CultureInfo.InvariantCulture) : actual == expected,
                         $"XLSX value differs at {row}/{column}.");
@@ -50,8 +56,10 @@ internal static class DataTablesComparisonVerifier {
                 }
             }
             Require(row == rows + 1 && column == columns && widthColumns == columns, "XLSX final dimensions differ.");
+            if (fullWidthScan) for (int i = 0; i < columns; i++)
+                Require(widths[i] >= Math.Min(54, Math.Max(6, longest[i])), "XLSX width misses a value in the complete table.");
         }
-        return new { rows, columns, cells, allValues = true, contract = "ordered typed numbers and literal Unicode strings; headers; fixed width 20" };
+        return new { rows, columns, cells, allValues = true, contract = "ordered typed numbers and literal Unicode strings; headers; " + (fullWidthScan ? "whole-table approximate width sizing" : "fixed width 20") };
     }
 
     private static string Expected(int row, int column, bool unique) => column % 3 == 0 ? ((long)row * 10 + column).ToString(CultureInfo.InvariantCulture)

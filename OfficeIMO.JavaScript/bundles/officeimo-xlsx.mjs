@@ -56,6 +56,47 @@ async function* inputRows(input, signal) {
         }
     }
 }
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+async function consumeRows(input, signal, accept) {
+    checkAbort(signal);
+    const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
+    if (!iterator)
+        throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+    let done = false;
+    try {
+        while (true) {
+            checkAbort(signal);
+            let item = iterator.next();
+            const next = item;
+            if (typeof next?.then === "function")
+                item = await withAbort(next, signal);
+            checkAbort(signal);
+            const result = item;
+            if (result.done) {
+                done = true;
+                return;
+            }
+            let value = result.value;
+            if (typeof value?.then === "function")
+                value = await withAbort(value, signal);
+            checkAbort(signal);
+            const pending = accept(value);
+            if (pending !== undefined)
+                await withAbort(pending, signal);
+        }
+    }
+    finally {
+        if (!done && iterator.return) {
+            // Any exit before exhaustion is a producer/consumer failure or cancellation.
+            // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+            try {
+                void Promise.resolve(iterator.return()).catch(() => { });
+            }
+            catch { /* Preserve the original failure. */ }
+        }
+    }
+}
 let taskDeadline;
 const taskBudgetMs = 16;
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
@@ -86,7 +127,7 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -1376,7 +1417,8 @@ class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
-    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+    const kind = typeof value;
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -1846,8 +1888,8 @@ class ReportLayout {
         this.merges = this.regions.references;
         const sizing = options.autoSize;
         this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
-        if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000)
-            throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
+        if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 1048576)
+            throw new RangeError("Width sampling must use from 0 through 1,048,576 rows within its buffer budgets.");
         const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
         if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || min > max || max > 255)
             throw new RangeError("Width bounds must satisfy 0 <= minWidth <= maxWidth <= 255.");

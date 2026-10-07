@@ -40,6 +40,38 @@ export async function* inputRows<T>(input: Iterable<T> | AsyncIterable<T>, signa
   }
 }
 
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+export async function consumeRows<T>(input: Iterable<T> | AsyncIterable<T>, signal: AbortSignal | undefined,
+  accept: (value: T) => void | Promise<void>): Promise<void> {
+  checkAbort(signal);
+  const iterator = (input as AsyncIterable<T>)?.[Symbol.asyncIterator]?.() ?? (input as Iterable<T>)?.[Symbol.iterator]?.();
+  if (!iterator) throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+  let done = false;
+  try {
+    while (true) {
+      checkAbort(signal);
+      let item: IteratorResult<T> | PromiseLike<IteratorResult<T>> = iterator.next();
+      const next = item as PromiseLike<IteratorResult<T>>;
+      if (typeof next?.then === "function") item = await withAbort(next, signal);
+      checkAbort(signal);
+      const result = item as IteratorResult<T>;
+      if (result.done) { done = true; return; }
+      let value = result.value;
+      if (typeof (value as PromiseLike<T> | undefined)?.then === "function") value = await withAbort(value as PromiseLike<T>, signal);
+      checkAbort(signal);
+      const pending = accept(value);
+      if (pending !== undefined) await withAbort(pending, signal);
+    }
+  } finally {
+    if (!done && iterator.return) {
+      // Any exit before exhaustion is a producer/consumer failure or cancellation.
+      // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+      try { void Promise.resolve(iterator.return()).catch(() => {}); } catch { /* Preserve the original failure. */ }
+    }
+  }
+}
+
 let taskDeadline: number | undefined;
 const taskBudgetMs = 16;
 

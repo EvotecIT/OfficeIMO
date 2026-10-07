@@ -150,6 +150,53 @@ function fontTable(bytes, tag) {
   throw Error("Missing fixture font table " + tag);
 }
 
+test("PDF subsets retain Unicode glyph IDs and composite metrics, including trailing short records", async () => {
+  for (const short of [false, true]) {
+    const source = fontBytes.slice(), view = new DataView(source.buffer), hhea = fontTable(source, "hhea"), hmtx = fontTable(source, "hmtx");
+    const glyphCount = view.getUint16(fontTable(source, "maxp") + 4);
+    if (short) {
+      view.setUint16(hhea + 34, 2);
+      source.fill(0, hmtx, hmtx + 8 + (glyphCount - 2) * 2);
+      view.setUint16(hmtx, 600); view.setUint16(hmtx + 4, 800);
+      for (let glyph = 2; glyph < glyphCount; glyph++) view.setInt16(hmtx + 8 + (glyph - 2) * 2, 12);
+    }
+    const text = "Łódź Δ Москва", pdf = await inspectPdf(await writePdf([[text]], { columns: [{ header: "" }],
+      includeHeader: false, pageNumbers: false, compression: false, fonts: { regular: new PdfFont(source) } }));
+    assert.ok(pdf.text.includes(text));
+    const embedded = [...pdf.objects.values()].find(object => /\/Length1 /.test(object.body)).stream;
+    const subset = new DataView(embedded.buffer, embedded.byteOffset, embedded.byteLength);
+    const metricCount = view.getUint16(hhea + 34), subsetMetrics = fontTable(embedded, "hmtx"), subsetLoca = fontTable(embedded, "loca");
+    const cmap = fontTable(embedded, "cmap"), mapping = cmap + subset.getUint32(cmap + 8);
+    assert.equal(subset.getUint16(mapping), 12);
+    const mapped = new Map();
+    for (let i = 0; i < subset.getUint32(mapping + 12); i++) {
+      const p = mapping + 16 + i * 12, first = subset.getUint32(p), last = subset.getUint32(p + 4), glyph = subset.getUint32(p + 8);
+      for (let scalar = first; scalar <= last; scalar++) mapped.set(scalar, glyph + scalar - first);
+    }
+    assert.deepEqual([...mapped.keys()].sort((a,b) => a-b), [...new Set([...text].map(char => char.codePointAt(0)))].sort((a,b) => a-b));
+    let outlines = 0;
+    for (let glyph = 0; glyph < glyphCount; glyph++) {
+      if (glyph && subset.getUint32(subsetLoca + glyph * 4) === subset.getUint32(subsetLoca + (glyph + 1) * 4)) continue;
+      outlines++;
+      const advance = Math.min(glyph, metricCount - 1) * 4;
+      const bearing = glyph < metricCount ? glyph * 4 + 2 : metricCount * 4 + (glyph - metricCount) * 2;
+      assert.equal(subset.getUint16(subsetMetrics + advance), view.getUint16(hmtx + advance));
+      assert.equal(subset.getInt16(subsetMetrics + bearing), view.getInt16(hmtx + bearing));
+    }
+    assert.ok(outlines > mapped.size, "Composite dependencies retain outlines and their original metrics");
+    for (const scalar of [...text]) assert.ok(mapped.get(scalar.codePointAt(0)) > 0);
+  }
+});
+
+test("PDF honors the caller font's no-subsetting embedding permission", async () => {
+  const source = fontBytes.slice(), view = new DataView(source.buffer);
+  view.setUint16(fontTable(source, "OS/2") + 8, 0x100);
+  const pdf = await inspectPdf(await writePdf([["Łódź"]], { columns: [{ header: "" }], includeHeader: false,
+    pageNumbers: false, compression: false, fonts: { regular: new PdfFont(source) } }));
+  const embedded = [...pdf.objects.values()].find(object => /\/Length1 /.test(object.body)).stream;
+  assert.deepEqual(new Uint8Array(embedded), source);
+});
+
 test("PDF point and equal widths do not require a zero glyph from a sparse Unicode font", async () => {
   const bytes = fontBytes.slice(), view = new DataView(bytes.buffer), cmap = fontTable(bytes, "cmap");
   for (let i = 0; i < view.getUint16(cmap + 2); i++) {
