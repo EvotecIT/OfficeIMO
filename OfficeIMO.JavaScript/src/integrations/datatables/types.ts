@@ -49,7 +49,7 @@ export interface DataTablesOptions extends StreamOptions {
   /** Batched avoids Buttons' complete body matrix; compatibility delegates gathering to Buttons. */
   readonly mode?: "batched" | "compatibility";
   readonly exportOptions?: DataTablesExportOptions;
-  /** Maximum rows per projection batch, default 1,024, at most 4,096. */
+  /** Maximum rows per projection batch, default 4,096, also bounded by maxBatchCells. */
   readonly batchRows?: number;
   /** Maximum cells per projection batch, default 65,536. One row must fit. */
   readonly maxBatchCells?: number;

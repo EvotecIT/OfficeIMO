@@ -46,8 +46,9 @@ test("CSV cancels pending producer input promptly and returns its iterator", asy
 test("CSV cancellation during encoding returns no partial Blob", async () => {
   const controller = new AbortController();
   function* rows() { for (let i = 0; i < 100000; i++) yield ["=unsafe " + i]; }
-  const writing = writeCsv(rows(), { columns: [{ header: "V" }], signal: controller.signal });
-  setTimeout(() => controller.abort(), 10);
+  // Abort at an actual encoding boundary; a faster export can finish before a timer fires.
+  const writing = writeCsv(rows(), { columns: [{ header: "V" }], signal: controller.signal,
+    onProgress: event => { if (event.phase === "rows") controller.abort(); } });
   await assert.rejects(writing, { name: "AbortError" });
 });
 test("CSV preserves promised rows and the original consumer failure when producer return fails", async () => {

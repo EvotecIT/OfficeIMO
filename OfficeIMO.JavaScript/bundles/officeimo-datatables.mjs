@@ -157,10 +157,12 @@ function taskYieldDue() {
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
     const scheduler = globalThis.scheduler;
-    if (typeof scheduler?.yield === "function")
-        return scheduler.yield().then(() => {
+    // Boosted yield continuations can starve cancellation timers. A background task
+    // lets due timers and input run before the next bounded section of export work.
+    if (typeof scheduler?.postTask === "function")
+        return scheduler.postTask(() => {
             taskDeadline = performance.now() + taskBudgetMs;
-        });
+        }, { priority: "background" });
     return new Promise(resolve => {
         let done = false, channel;
         const finish = () => {
@@ -5208,7 +5210,7 @@ function createDataTablesExport(host, table, options = {}) {
         throw new TypeError("Unknown DataTables heading mode.");
     if (options.serverSide !== undefined && !["reject", "loaded"].includes(options.serverSide))
         throw new TypeError("Unknown server-side export policy.");
-    const batchRows = options.batchRows ?? 1024, maxBatchCells = options.maxBatchCells ?? 65536;
+    const batchRows = options.batchRows ?? 4096, maxBatchCells = options.maxBatchCells ?? 65536;
     if (!Number.isInteger(batchRows) || batchRows < 1 || batchRows > 4096)
         throw new RangeError("batchRows must be between 1 and 4,096.");
     if (!Number.isSafeInteger(maxBatchCells) || maxBatchCells < 1)

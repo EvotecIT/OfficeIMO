@@ -26,7 +26,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   if (!["batched", "compatibility"].includes(mode)) throw new TypeError("Unknown DataTables export mode.");
   if (!["grouped", "leaf", "structured"].includes(headingMode)) throw new TypeError("Unknown DataTables heading mode.");
   if (options.serverSide !== undefined && !["reject", "loaded"].includes(options.serverSide)) throw new TypeError("Unknown server-side export policy.");
-  const batchRows = options.batchRows ?? 1024, maxBatchCells = options.maxBatchCells ?? 65536;
+  const batchRows = options.batchRows ?? 4096, maxBatchCells = options.maxBatchCells ?? 65536;
   if (!Number.isInteger(batchRows) || batchRows < 1 || batchRows > 4096) throw new RangeError("batchRows must be between 1 and 4,096.");
   if (!Number.isSafeInteger(maxBatchCells) || maxBatchCells < 1) throw new RangeError("maxBatchCells must be a positive safe integer.");
   const signal = options.signal, projectValue = options.project, budget = new ExportBudget(options.limits);
