@@ -27,16 +27,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             var stream = new byte[Math.Max(FibLength, streamLength)];
             WriteUInt16(stream, 0x00, WordDocumentMagic);
-            bool hasNestedTables = body.HasNestedTables;
-            // Word 97 interprets nested cell marks as ordinary paragraph marks.
+            bool requiresWord2000 = body.RequiresWord2000Format;
+            // Word 97 ignores cell text-layout flags and misreads nested cell marks.
             // Declare the Word 2000 format and its matching FIB extension when needed.
-            ushort fibVersion = hasNestedTables ? (ushort)0x00D9 : Word97FibVersion;
-            ushort fibPairCount = hasNestedTables ? (ushort)0x006C : (ushort)0x005D;
+            ushort fibVersion = requiresWord2000 ? (ushort)0x00D9 : Word97FibVersion;
+            ushort fibPairCount = requiresWord2000 ? (ushort)0x006C : (ushort)0x005D;
             WriteUInt16(stream, 0x02, fibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
             ushort fibFlags = DefaultFibFlags;
             // Since Word 2000, these four bits are a required sentinel, not a save count.
-            if (hasNestedTables) fibFlags = unchecked((ushort)(fibFlags | 0x00F0));
+            if (requiresWord2000) fibFlags = unchecked((ushort)(fibFlags | 0x00F0));
             if (body.HasPictures) fibFlags = unchecked((ushort)(fibFlags | HasPicturesFibFlag));
             if (isTemplate) fibFlags = unchecked((ushort)(fibFlags | TemplateFibFlag));
             WriteUInt16(stream, 0x0A, fibFlags);
@@ -53,8 +53,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0x60, body.EndnoteText.Length);
             WriteUInt16(stream, 0x98, fibPairCount);
             int fibExtensionOffset = 0x9A + fibPairCount * 8;
-            WriteUInt16(stream, fibExtensionOffset, hasNestedTables ? (ushort)2 : (ushort)0);
-            if (hasNestedTables) {
+            WriteUInt16(stream, fibExtensionOffset, requiresWord2000 ? (ushort)2 : (ushort)0);
+            if (requiresWord2000) {
                 WriteUInt16(stream, fibExtensionOffset + 2, fibVersion);
                 WriteUInt16(stream, fibExtensionOffset + 4, 0);
                 WriteInt32(stream, FcRmdThreadingOffset, body.RmdThreadingOffsetInTableStream);
@@ -214,7 +214,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Buffer.BlockCopy(body.SttbfRMark, 0, table, body.SttbfRMarkOffsetInTableStream, body.SttbfRMark.Length);
             }
 
-            if (body.HasNestedTables) {
+            if (body.RequiresWord2000Format) {
                 Buffer.BlockCopy(body.RmdThreading, 0, table, body.RmdThreadingOffsetInTableStream, body.RmdThreading.Length);
             }
 
