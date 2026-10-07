@@ -29,7 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && ReferenceEquals(inlineRect.FormattingContainer, inlinePosition.FormattingContainer)) {
                 return new PositionedPoint(inlinePosition.X - inlineRect.X, inlinePosition.Y - inlineRect.Y);
             }
-            if (TryResolveContentOrigin(inlinePosition.FormattingContainer, request.ContainingBlock, out PositionedPoint inlineContainerOrigin)) {
+            if (TryResolveContentOrigin(inlinePosition.FormattingContainer, request.ContainingBlock, out PositionedPoint inlineContainerOrigin, request.Style.Position == "fixed")) {
                 double inlineX = inlineContainerOrigin.X + inlinePosition.X;
                 double inlineY = inlineContainerOrigin.Y + inlinePosition.Y;
                 if (request.Style.Position == "fixed" && _options.Mode != HtmlRenderMode.Paged) {
@@ -40,7 +40,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (request.StaticAnchor != null
-            && TryResolveContentOrigin(request.StaticAnchor.Parent, request.ContainingBlock, out PositionedPoint parentContentOrigin)) {
+            && TryResolveContentOrigin(request.StaticAnchor.Parent, request.ContainingBlock, out PositionedPoint parentContentOrigin, request.Style.Position == "fixed")) {
             double x = parentContentOrigin.X + request.StaticAnchor.X;
             double y = parentContentOrigin.Y + request.StaticAnchor.Y;
             if (request.Style.Position == "fixed" && _options.Mode != HtmlRenderMode.Paged) {
@@ -141,10 +141,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return 0D;
     }
 
-    private bool TryResolveContentOrigin(IElement element, IElement containingBlock, out PositionedPoint origin) {
+    private bool TryResolveContentOrigin(IElement element, IElement containingBlock, out PositionedPoint origin, bool fixedToViewport = false) {
         if (ReferenceEquals(element, containingBlock)) {
-            if (IsRootLayoutContainer(element)) {
-                origin = PositionedPoint.Zero;
+            if (IsRootLayoutContainer(element)
+                && (!_layoutStyles.TryGetValue(element, out HtmlRenderBoxStyle? rootStyle) || rootStyle.Position == "static" || fixedToViewport)) {
+                origin = rootStyle != null && RequiresRootBox(element, rootStyle)
+                    ? new PositionedPoint(rootStyle.MarginLeft + rootStyle.BorderLeftWidth + rootStyle.PaddingLeft,
+                        rootStyle.MarginTop + rootStyle.BorderTopWidth + rootStyle.PaddingTop)
+                    : PositionedPoint.Zero;
                 return true;
             }
             if (_layoutStyles.TryGetValue(element, out HtmlRenderBoxStyle? containingStyle)) {
@@ -156,7 +160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (!_normalFlowPlacements.TryGetValue(element, out NormalFlowPlacement? placement)
-            || !TryResolveContentOrigin(placement.Parent, containingBlock, out PositionedPoint parentOrigin)) {
+            || !TryResolveContentOrigin(placement.Parent, containingBlock, out PositionedPoint parentOrigin, fixedToViewport)) {
             origin = PositionedPoint.Zero;
             return false;
         }

@@ -4,7 +4,7 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Epub.Image;
 
 /// <summary>EPUB image-export entry points backed by OfficeIMO.Html.</summary>
-public static class EpubImageExportExtensions {
+public static partial class EpubImageExportExtensions {
     private static readonly HashSet<string> PackageOmissionDiagnosticCodes =
         new HashSet<string>(StringComparer.Ordinal) {
             "epub.archive.duplicate-path",
@@ -68,7 +68,7 @@ public static class EpubImageExportExtensions {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapter chapter = chapters[index];
                     EpubChapterRenderPreparation preparation =
-                        PrepareChapter(chapter, effective, resourcesByPath);
+                        PrepareChapter(chapter, effective, resourcesByPath, operationCancellationToken);
                     preparation.Document.ExportImages(
                         format,
                         result => accept(CompleteResult(
@@ -123,7 +123,7 @@ public static class EpubImageExportExtensions {
                 foreach (EpubChapter chapter in chapters) {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapterRenderPreparation preparation =
-                        PrepareChapter(chapter, effective, resourcesByPath);
+                        PrepareChapter(chapter, effective, resourcesByPath, operationCancellationToken);
                     await preparation.Document.ExportImagesAsync(
                         format,
                         async (result, token) => await accept(
@@ -182,7 +182,8 @@ public static class EpubImageExportExtensions {
     private static EpubChapterRenderPreparation PrepareChapter(
         EpubChapter chapter,
         EpubImageExportOptions options,
-        IReadOnlyDictionary<string, EpubResource> resourcesByPath) {
+        IReadOnlyDictionary<string, EpubResource> resourcesByPath,
+        CancellationToken cancellationToken) {
         EpubImageExportOptions effective = options.CloneEpub();
         effective.Policy = new OfficeImageExportPolicy();
         Uri baseUri = CreateChapterUri(chapter);
@@ -209,14 +210,16 @@ public static class EpubImageExportExtensions {
                 chapter.Path,
                 OfficeConversionLossKind.Omission));
         }
-        HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            html,
-            new HtmlConversionDocumentOptions {
-                BaseUri = baseUri,
-                UrlPolicy = effective.UrlPolicy.Clone(),
-                ResourceUrlPolicy = (effective.ResourceUrlPolicy ?? effective.UrlPolicy).Clone(),
-                UseBodyContentsOnly = false
-            });
+        var conversionOptions = new HtmlConversionDocumentOptions {
+            BaseUri = baseUri,
+            UrlPolicy = effective.UrlPolicy.Clone(),
+            ResourceUrlPolicy = (effective.ResourceUrlPolicy ?? effective.UrlPolicy).Clone(),
+            UseBodyContentsOnly = false
+        };
+        HtmlConversionDocument document = !string.IsNullOrWhiteSpace(chapter.Html) &&
+            string.Equals(chapter.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
+                ? HtmlConversionDocument.ParseXhtml(html, conversionOptions, cancellationToken)
+                : HtmlConversionDocument.Parse(html, conversionOptions, cancellationToken);
         return new EpubChapterRenderPreparation(
             document,
             effective,

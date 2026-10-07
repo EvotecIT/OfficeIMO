@@ -27,9 +27,13 @@ internal static class HtmlCssRuleBlockScanner {
                 continue;
             }
             if (current == '\'' || current == '"') {
+                // A quoted url() is a function containing a string, not an unquoted URL token.
+                insideUrl = false;
                 quote = current;
                 ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
-            } else if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+            } else if (!insideUrl && current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                // Comments are token boundaries, but slash/star within a URL token is path data.
+                ResetIdentifier(ref identifierLength, ref identifierMatchesUrl);
                 index = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
                 if (index < 0) break;
                 index++;

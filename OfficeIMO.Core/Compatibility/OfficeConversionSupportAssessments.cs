@@ -26,6 +26,9 @@ internal static class OfficeConversionSupportAssessments {
                 "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
         }
         return routeId switch {
+        "book-project-epub" => Targeted(
+            "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
+            "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),
         "html-epub" or "markdown-epub" or "docx-epub" => Targeted(
             "Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
             "Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."),

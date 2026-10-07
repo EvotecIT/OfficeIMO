@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>OfficeIMO.Epub.FixtureGenerator</AssemblyName>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf" LogicalName="OfficeIMO.Epub.Fixtures.Carlito-Regular.ttf" />
+    <EmbeddedResource Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf" LogicalName="OfficeIMO.Epub.Fixtures.NotoSansArabic-Regular.ttf" />
+    <EmbeddedResource Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansJP-OfficeIMO-Common.ttf" LogicalName="OfficeIMO.Epub.Fixtures.NotoSansJP-OfficeIMO-Common.ttf" />
+    <EmbeddedResource Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-*.txt" LogicalName="OfficeIMO.Epub.Fixtures.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/font-pack.json" LogicalName="OfficeIMO.Epub.Fixtures.font-pack.json" />
+    <EmbeddedResource Include="Assets/narration.mp3" LogicalName="OfficeIMO.Epub.Fixtures.narration.mp3" />
+    <ProjectReference Include="../../../OfficeIMO.Epub/OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="../../../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj" />
+  </ItemGroup>
+</Project>

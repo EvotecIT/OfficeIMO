@@ -72,7 +72,7 @@ public sealed partial class EpubPublication {
             while (!IsSupportedContentDocument(item.MediaType) && item.FallbackId != null) item = byId[item.FallbackId];
             if (!IsSupportedContentDocument(item.MediaType)) throw new NotSupportedException("Spine item has no supported EPUB " + PackageVersion + " content-document fallback: " + id);
         }
-        string navPath = NavigationPath();
+        string navPath = NavigationPath(root, entries);
         XDocument navigation = ParseXml(entries[navPath], _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
         ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
@@ -98,8 +98,10 @@ public sealed partial class EpubPublication {
             string path = group.Key;
             if (_encryption.Any(encryption => encryption.Path == path && encryption.RequiresDecryption)) continue;
             XDocument content = path == navPath ? navigation : ParseXml(entries[path], _maximumEntryBytes);
-            anchors[path] = new HashSet<string>(content.Descendants().Attributes().Where(attribute => attribute.Name == "id" ||
-                attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
+            bool rewritten = group.Any(item => HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml")) &&
+                (!_originalEntries.TryGetValue(path, out byte[]? retained) || !retained.SequenceEqual(entries[path]));
+            anchors[path] = EpubContentIdentifiers.Collect(content.Root!, path, rewritten, token);
+            if (rewritten) EpubContentIdentifiers.ValidateReferences(content.Root!, anchors[path], path, token);
         }
         foreach (var group in contentGroups) {
             token.ThrowIfCancellationRequested();
@@ -121,7 +123,8 @@ public sealed partial class EpubPublication {
                     var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
                     // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
                     limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
-                    var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
+                    var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(
+                        OfficeIMO.Html.HtmlXmlDocumentParser.CreateDocument(content, limits, token, skipProcessingInstructions: true),
                         new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                     if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
                     hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token, CheckStylesheet);

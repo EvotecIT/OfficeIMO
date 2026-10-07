@@ -83,9 +83,12 @@ public sealed partial class BookProject {
         ImportLossAcknowledged = true;
     }
     /// <summary>Exports a complete EPUB after import review and canonical writer validation.</summary>
-    public EpubWriteResult Export(CancellationToken cancellationToken = default) {
+    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubWriteOptions(), cancellationToken);
+    /// <summary>Exports a reviewed publication with explicit EPUB writer limits and signature policy.</summary>
+    public EpubWriteResult Export(EpubWriteOptions options, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(options);
         if (!CanExport) throw new InvalidOperationException("Review the import report before exporting this book.");
-        return _publication.Write(cancellationToken: cancellationToken);
+        return _publication.Write(options, cancellationToken);
     }
     /// <summary>Moves a chapter and its top-level navigation entry atomically, retaining nested navigation.</summary>
     public void MoveChapter(int fromIndex, int toIndex, CancellationToken cancellationToken = default) {

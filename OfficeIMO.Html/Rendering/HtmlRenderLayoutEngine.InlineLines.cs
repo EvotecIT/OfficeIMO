@@ -5,6 +5,9 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class InlineLine {
         private int _flowContentCount;
+        private double _availableWidth;
+        private double _indent;
+        internal double IndentOffset { get; private set; }
 
         internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
         internal double Width { get; private set; }
@@ -12,14 +15,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool HasExplicitPlacement { get; private set; }
         internal double X { get; private set; }
         internal double Y { get; private set; }
-        internal double AvailableWidth { get; private set; }
+        internal double AvailableWidth => Math.Max(0.01D, _availableWidth - _indent);
         internal bool EndsWithHyphenation { get; set; }
 
         internal void Place(double x, double y, double availableWidth) {
             HasExplicitPlacement = true;
             X = Math.Max(0D, x);
             Y = Math.Max(0D, y);
-            AvailableWidth = Math.Max(0.01D, availableWidth);
+            _availableWidth = Math.Max(0.01D, availableWidth);
+        }
+
+        internal void Indent(double indent, bool rightToLeft) {
+            _indent = indent;
+            IndentOffset = rightToLeft ? 0D : indent;
+        }
+
+        internal double ResolveAvailableWidth(double width) => HasExplicitPlacement
+            ? AvailableWidth : Math.Max(0.01D, width - _indent);
+
+        internal double ResolveAlignmentOffset(OfficeTextAlignment alignment, double width) {
+            if (_indent == 0D) return ResolveLineOffset(alignment, ResolveAvailableWidth(width), Width);
+            // An indent can exceed the line width. Preserve the signed space for
+            // alignment so RTL text overflows towards inline-end, not the right.
+            double remaining = (HasExplicitPlacement ? _availableWidth : width) - _indent - Width;
+            if (alignment == OfficeTextAlignment.Right) return remaining;
+            if (alignment == OfficeTextAlignment.Center) return remaining / 2D;
+            return 0D;
         }
 
         internal void Add(InlineSegment segment) {

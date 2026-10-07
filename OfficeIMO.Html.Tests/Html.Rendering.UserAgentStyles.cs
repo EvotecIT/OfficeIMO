@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        HtmlRenderBoxStyle body = new HtmlRenderStyleResolver(styles, BrowserOptions(), new HtmlDiagnosticReport())
+        HtmlRenderBoxStyle body = new HtmlRenderStyleResolver(styles, BrowserOptions(), new HtmlDiagnosticReport(), style => style.Font.Size * 0.5D)
             .Resolve(document.Body!, 40D);
 
         Assert.Equal(expectedTop, body.MarginTop, 3);

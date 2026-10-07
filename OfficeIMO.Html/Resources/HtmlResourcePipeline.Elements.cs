@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlResourcePipeline {
     private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri,
         HtmlResourcePipelineOptions options, int srcDocDepth, Dictionary<IDocument, string?> preferredSets) {
-        string name = element.TagName.ToLowerInvariant();
+        string name = element.LocalName.ToLowerInvariant();
         if (SupportsLegacyBackground(name)) AddLegacyBackground(manifest, element, baseUri, options);
 
         AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "cite", baseUri, options);
@@ -36,7 +36,9 @@ public static partial class HtmlResourcePipeline {
                 break;
             case "a":
             case "area":
-                AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "href", baseUri, options);
+                if (element.NamespaceUri == "http://www.w3.org/2000/svg")
+                    AddPreferredSvgHref(manifest, HtmlResourceKind.Hyperlink, element, baseUri, options);
+                else AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "href", baseUri, options);
                 break;
             case "form":
                 AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "action", baseUri, options);

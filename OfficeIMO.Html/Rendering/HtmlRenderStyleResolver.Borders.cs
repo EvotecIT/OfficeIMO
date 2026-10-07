@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 style.Color,
                 out HtmlRenderBorderEdges borders,
                 out string borderDetail,
-                _activeUprightVerticalText)) {
+                _activeCharacterAdvance, _activeUprightVerticalText)) {
             style.Borders = borders;
         } else {
             style.Borders = HtmlRenderBorderEdges.Uniform(0D, "none", style.Color);
@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 out bool outlineColorInvert,
                 out double outlineOffset,
                 out string outlineDetail,
-                _activeUprightVerticalText)) {
+                _activeCharacterAdvance, _activeUprightVerticalText)) {
             style.OutlineWidth = outlineWidth;
             style.OutlineStyle = outlineStyle;
             style.OutlineColor = outlineColor;
