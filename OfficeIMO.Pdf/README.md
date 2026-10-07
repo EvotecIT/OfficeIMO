@@ -227,6 +227,12 @@ paint. Other group blending spaces, non-isolated groups, and knockout semantics
 remain outside this reader contract. The [Cairo group fixtures](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Transparency/SOURCE.md)
 provide independent-producer coverage for overlapping child alpha and nested groups.
 
+HTML and SVG adapters preserve positioned text without turning its line or
+advance measurements into an extra paint clip. Glyphs can extend beyond those
+layout boxes; authored CSS overflow and SVG clipping still constrain them.
+Explicit drawing text frames and public canvas text boxes retain their clipping
+behavior, including clipping link annotations to the visible frame.
+
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
 the selected shaping provider supplies vertical advances and complete logical
 text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns

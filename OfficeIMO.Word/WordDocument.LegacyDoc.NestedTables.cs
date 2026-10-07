@@ -64,26 +64,30 @@ namespace OfficeIMO.Word {
                 return startIndex;
             }
 
-            int columnCount = rows.Max(row => row.Count);
-            WordTable nestedTable = hostCell.AddTable(rows.Count, columnCount, WordTableStyle.TableNormal);
-            ApplyLegacyDocTableBorderDefaults(nestedTable, rowFormats.Select(format =>
-                format.TableBorders.WithDefaults(styleSheet.ResolveTableBorders(format.TableStyleIndex))));
-            AddPendingBookmarksAroundNestedTable(nestedTable, pendingBookmarks);
+            // Use the ordinary table projection so nested widths, row constraints,
+            // cell settings and borders follow the same native DOC contract.
+            var sourceRows = new List<LegacyDocTableRow>();
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                List<List<LegacyDocTableCellParagraph>> row = rows[rowIndex];
-                IReadOnlyList<LegacyDocTableCellBorders> cellBorders = rowFormats[rowIndex].GetTableCellBordersForCellCount(row.Count);
-                for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
-                    AddLegacyDocTableCell(
-                        nestedTable.Rows[rowIndex].Cells[columnIndex],
-                        new LegacyDocTableCell(row[columnIndex]),
-                        styleSheet,
-                        notes,
-                        projectNestedTables: false);
-                    if (columnIndex < cellBorders.Count) {
-                        ApplyLegacyDocTableCellBorders(nestedTable.Rows[rowIndex].Cells[columnIndex], cellBorders[columnIndex]);
-                    }
-                }
+                LegacyDocParagraphFormat format = rowFormats[rowIndex];
+                LegacyDocTableCell[] cells = rows[rowIndex].Select(cell => new LegacyDocTableCell(cell)).ToArray();
+                sourceRows.Add(new LegacyDocTableRow(
+                    cells, format.TableCellWidthsTwips, format.TableLeftIndentTwips,
+                    format.TableRowHeightTwips, format.TableRowHeightIsExact,
+                    format.TableRowCantSplit, format.TableRowIsHeader, format.TableAlignment,
+                    format.TableCellHorizontalMerges, format.TableCellVerticalMerges,
+                    format.TableCellVerticalAlignments, format.TableCellTextDirections,
+                    format.TableCellFitTexts, format.TableCellNoWraps, format.TableCellHideMarks,
+                    format.GetTableCellMarginsForCellCount(cells.Length),
+                    format.GetTableCellShadingsForCellCount(cells.Length),
+                    format.GetTableCellBordersForCellCount(cells.Length),
+                    format.DefaultTableCellSpacingTwips, format.TablePreferredWidth, format.TableAutofit,
+                    tableStyleIndex: format.TableStyleIndex, tableBorders: format.TableBorders));
             }
+            WordTable? nestedTable = null;
+            AddLegacyDocTableCore(
+                (rowCount, columnCount) => nestedTable = hostCell.AddTable(rowCount, columnCount, WordTableStyle.TableNormal),
+                new LegacyDocTableBlock(sourceRows, 0, 0), styleSheet, notes, projectNestedTables: false);
+            if (nestedTable != null) AddPendingBookmarksAroundNestedTable(nestedTable, pendingBookmarks);
 
             return index - 1;
 

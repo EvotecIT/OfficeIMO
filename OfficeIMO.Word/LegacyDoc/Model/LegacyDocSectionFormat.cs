@@ -176,6 +176,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         internal LegacyDocSectionFormat WithEndnotePosition(EndnotePositionValues? endnotePosition) {
+            return WithNoteSettings(endnotePosition: endnotePosition);
+        }
+
+        internal LegacyDocSectionFormat WithNoteSettings(
+            FootnotePositionValues? footnotePosition = null,
+            RestartNumberValues? footnoteRestart = null,
+            int? footnoteStart = null,
+            NumberFormatValues? footnoteNumberFormat = null,
+            EndnotePositionValues? endnotePosition = null,
+            RestartNumberValues? endnoteRestart = null,
+            int? endnoteStart = null,
+            NumberFormatValues? endnoteNumberFormat = null) {
             return new LegacyDocSectionFormat(
                 SectionBreakType,
                 PageWidthTwips,
@@ -200,14 +212,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 LineNumberDistanceTwips,
                 LineNumberStart,
                 LineNumberRestart,
-                FootnotePosition,
-                FootnoteRestart,
-                FootnoteStart,
-                FootnoteNumberFormat,
-                endnotePosition,
-                EndnoteRestart,
-                EndnoteStart,
-                EndnoteNumberFormat,
+                footnotePosition ?? FootnotePosition,
+                footnoteRestart ?? FootnoteRestart,
+                footnoteStart ?? FootnoteStart,
+                footnoteNumberFormat ?? FootnoteNumberFormat,
+                endnotePosition ?? EndnotePosition,
+                endnoteRestart ?? EndnoteRestart,
+                endnoteStart ?? EndnoteStart,
+                endnoteNumberFormat ?? EndnoteNumberFormat,
                 PageBorders,
                 ColumnDefinitions);
         }

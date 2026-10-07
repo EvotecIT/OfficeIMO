@@ -149,6 +149,9 @@ public static partial class HtmlComputedStyleEngine {
             || IsCssWideKeyword(value.Trim().ToLowerInvariant())) {
             return true;
         }
+        if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
+            return IsSupportedBorderDeclarationSyntax(propertyName, value);
+        }
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
@@ -302,47 +305,11 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "slice" || normalized == "clone";
         }
-        if (string.Equals(propertyName, "border", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-width", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-style", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-color", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-width", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedWidthSyntax(normalized);
-        }
         if (string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
         }
-        if (string.Equals(propertyName, "border-style", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedStyleSyntax(normalized);
-        }
         if (string.Equals(propertyName, "outline-style", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-color", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedColorSyntax(normalized);
         }
         if (string.Equals(propertyName, "outline-color", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
@@ -397,8 +364,35 @@ public static partial class HtmlComputedStyleEngine {
         if (IsCssWideKeyword(rawNormalized)) {
             return true;
         }
+        if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
+            // Authored border declarations bypass external parser expansion so
+            // invalid later values must be rejected before replacing an earlier one.
+            return IsSupportedBorderDeclarationSyntax(propertyName, value);
+        }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "place-items":
+            case "place-self":
+            case "place-content":
+                return TryExpandAlignmentShorthand(propertyName.ToLowerInvariant(), value, out _);
+            case "gap":
+                return TryExpandGapShorthand(value, out _);
+            case "row-gap":
+            case "column-gap":
+                return IsGapComponentSyntax(value);
+            case "grid-template-columns":
+            case "grid-template-rows":
+            case "grid-template-areas":
+                return IsGridTemplateSyntax(propertyName.ToLowerInvariant(), value);
+            case "grid-column":
+            case "grid-row":
+            case "grid-area":
+                return TryExpandGridShorthand(propertyName.ToLowerInvariant(), value, out _);
+            case "grid-column-start":
+            case "grid-column-end":
+            case "grid-row-start":
+            case "grid-row-end":
+                return IsGridLineSyntax(value);
             case "font":
                 return TryExpandFontShorthand(value, out _);
             case "font-size":
@@ -557,6 +551,7 @@ public static partial class HtmlComputedStyleEngine {
         bool enforceResolutionLimits = true) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var deferredLayout = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
@@ -576,6 +571,7 @@ public static partial class HtmlComputedStyleEngine {
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
                 if (effective.IsDeferredFontShorthand) deferredFonts.Add(pair.Key);
+                if (effective.DeferredLayoutShorthand != null) deferredLayout[pair.Key] = effective.DeferredLayoutShorthand;
                 priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
@@ -606,6 +602,7 @@ public static partial class HtmlComputedStyleEngine {
         }
         ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations, enforceResolutionLimits);
         ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, enforceResolutionLimits);
+        ResolveDeferredLayoutLonghands(raw, deferredLayout, parentProperties, inherited, reset, enforceResolutionLimits);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
@@ -614,6 +611,7 @@ public static partial class HtmlComputedStyleEngine {
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
+        ResolveRelativeComputedFontWeight(resolved, parentProperties);
 
         inherited.IntersectWith(resolved.Keys);
         inheritedProperties = inherited;

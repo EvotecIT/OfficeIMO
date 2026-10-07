@@ -304,49 +304,15 @@ internal static partial class PdfWriter {
             throw new ArgumentOutOfRangeException(nameof(number), "PDF page number must be positive.");
         }
 
-        switch (style) {
-            case PdfPageNumberStyle.Arabic:
-                return number.ToString(CultureInfo.InvariantCulture);
-            case PdfPageNumberStyle.LowerRoman:
-                return ToRoman(number).ToLowerInvariant();
-            case PdfPageNumberStyle.UpperRoman:
-                return ToRoman(number);
-            case PdfPageNumberStyle.LowerLetter:
-                return ToLetters(number, upper: false);
-            case PdfPageNumberStyle.UpperLetter:
-                return ToLetters(number, upper: true);
-            default:
-                throw new ArgumentException("PDF page number style must be Arabic, LowerRoman, UpperRoman, LowerLetter, or UpperLetter.", nameof(style));
-        }
-    }
-
-    private static string ToRoman(int number) {
-        var values = new[] { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
-        var numerals = new[] { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
-        var sb = new StringBuilder();
-        int remaining = number;
-        for (int i = 0; i < values.Length; i++) {
-            while (remaining >= values[i]) {
-                sb.Append(numerals[i]);
-                remaining -= values[i];
-            }
-        }
-
-        return sb.ToString();
-    }
-
-    private static string ToLetters(int number, bool upper) {
-        var chars = new System.Collections.Generic.List<char>();
-        int remaining = number;
-        char baseChar = upper ? 'A' : 'a';
-        while (remaining > 0) {
-            remaining--;
-            chars.Add((char)(baseChar + (remaining % 26)));
-            remaining /= 26;
-        }
-
-        chars.Reverse();
-        return new string(chars.ToArray());
+        OfficeIMO.Core.OfficeNumberStyle commonStyle = style switch {
+            PdfPageNumberStyle.Arabic => OfficeIMO.Core.OfficeNumberStyle.Decimal,
+            PdfPageNumberStyle.LowerRoman => OfficeIMO.Core.OfficeNumberStyle.LowerRoman,
+            PdfPageNumberStyle.UpperRoman => OfficeIMO.Core.OfficeNumberStyle.UpperRoman,
+            PdfPageNumberStyle.LowerLetter => OfficeIMO.Core.OfficeNumberStyle.LowerLetter,
+            PdfPageNumberStyle.UpperLetter => OfficeIMO.Core.OfficeNumberStyle.UpperLetter,
+            _ => throw new ArgumentException("PDF page number style must be Arabic, LowerRoman, UpperRoman, LowerLetter, or UpperLetter.", nameof(style))
+        };
+        return OfficeIMO.Core.OfficeNumberFormatter.Format(number, commonStyle);
     }
 
 }

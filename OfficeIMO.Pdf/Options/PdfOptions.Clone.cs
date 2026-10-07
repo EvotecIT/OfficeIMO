@@ -86,6 +86,8 @@ public sealed partial class PdfOptions {
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
             _fallbackOwnedFontFamilies = _fallbackOwnedFontFamilies == null
                 ? null : new HashSet<PdfStandardFont>(_fallbackOwnedFontFamilies),
+            _automaticFallbackOwnedNamedFamilyKeys = _automaticFallbackOwnedNamedFamilyKeys == null
+                ? null : new HashSet<string>(_automaticFallbackOwnedNamedFamilyKeys, StringComparer.Ordinal),
             _usedEmbeddedFallbackFontSlots = _usedEmbeddedFallbackFontSlots == null
                 ? null : new HashSet<PdfStandardFont>(_usedEmbeddedFallbackFontSlots),
             _namedFontFamilies = CloneNamedFontFamilies(_namedFontFamilies),

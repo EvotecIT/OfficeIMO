@@ -2,6 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
     private HashSet<PdfStandardFont>? _fallbackOwnedFontFamilies;
+    private HashSet<string>? _automaticFallbackOwnedNamedFamilyKeys;
 
     internal bool HasCallerOwnedEmbeddedFontFamily(PdfStandardFont family) {
         PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
@@ -36,6 +37,14 @@ public sealed partial class PdfOptions {
     }
 
     private void ReleasePreviousFallbackFontSlots(PdfEmbeddedFontFallbackSet? previous) {
+        if (_automaticFallbackOwnedNamedFamilyKeys != null) {
+            foreach (string key in _automaticFallbackOwnedNamedFamilyKeys) {
+                if (_namedFontFamilies?.Remove(key) == true) {
+                    RemoveNamedFontProgramCache(key);
+                }
+            }
+            _automaticFallbackOwnedNamedFamilyKeys.Clear();
+        }
         if (previous == null || previous.UsesNamedFontFamilies || _fallbackOwnedFontFamilies == null) return;
         // Requested slots may change. Reclaim every mapping still owned by the old
         // set, including the writer's resolved slots, while retaining caller faces.

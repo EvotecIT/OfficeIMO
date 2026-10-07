@@ -11,7 +11,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryRenderNativeJoinedParagraphs(
         INativePdfFlow pdf, IReadOnlyList<WordElement> elements, ref int index,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
-        Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options,
+        NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
         if (elements[index] is not WordParagraph first || ShouldRenderNativeEmptyParagraphLineBox(first) ||
             index + 1 >= elements.Count || elements[index + 1] is not WordParagraph) return false;
@@ -82,7 +82,7 @@ public static partial class WordPdfConverterExtensions {
 
     private static bool CanJoinNativeTextParagraph(WordParagraph paragraph,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
-        NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
         W.Paragraph source = paragraph._paragraph;
         if (WordParagraph.IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null ||
             getMarker(paragraph) != null || GetHeadingLevel(paragraph) > 0 ||

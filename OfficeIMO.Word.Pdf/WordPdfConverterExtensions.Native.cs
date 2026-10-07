@@ -213,7 +213,7 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
-            var footnoteNumbersById = new Dictionary<long, int>();
+            var footnoteNumbersById = new NativeNoteNumbering(document, options);
             IReadOnlyList<WordSection> sections = document.Sections;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -235,6 +235,7 @@ namespace OfficeIMO.Word.Pdf {
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
+                        footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
 

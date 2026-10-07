@@ -28,10 +28,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
             string? styleId = GetNativeTableStyleId(table);
-            if (ignoreFallbackTableStyle && IsNativeFallbackTableStyleId(styleId)) {
-                return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = true };
-            }
-
+            // An unnamed table may inherit an authored custom default. Resolve
+            // that chain before applying the configured PDF fallback; built-in
+            // Normal Table definitions already produce an empty chain.
             IReadOnlyList<W.Style> styleChain = GetNativeTableStyleChain(table.Document, styleId);
             if (styleChain.Count == 0) {
                 return NativeTableStyleDefaults.Empty with { UseConfiguredTypography = ignoreFallbackTableStyle };
@@ -426,6 +425,11 @@ namespace OfficeIMO.Word.Pdf {
             var visited = new HashSet<string>(StringComparer.Ordinal);
             string? currentStyleId = resolvedStyleId;
             while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && cache.TableStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+                // Word ignores the built-in Normal Table definition's child
+                // properties, including when it is a named style's base.
+                if (IsNativeNormalTableStyleId(currentStyleId)) {
+                    break;
+                }
                 cache.RecordStyleChainReference(chain.Count + 1);
                 chain.Add(style);
                 currentStyleId = style.BasedOn?.Val?.Value;
@@ -442,6 +446,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeFallbackTableStyleId(string? styleId) =>
             string.IsNullOrWhiteSpace(styleId) ||
-            string.Equals(styleId, "TableNormal", StringComparison.Ordinal);
+            IsNativeNormalTableStyleId(styleId);
+
+        private static bool IsNativeNormalTableStyleId(string? styleId) =>
+            string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
     }
 }

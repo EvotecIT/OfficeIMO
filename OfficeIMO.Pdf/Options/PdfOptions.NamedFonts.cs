@@ -50,6 +50,7 @@ public sealed partial class PdfOptions {
             return false;
         }
         (_namedFontFamilies ??= new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal))[key] = fontFamily.Clone();
+        _automaticFallbackOwnedNamedFamilyKeys?.Remove(key);
         RemoveNamedFontProgramCache(key);
         return true;
     }
@@ -99,6 +100,7 @@ public sealed partial class PdfOptions {
         _namedFontPrograms?.Clear();
         _namedOpenTypeCffFontPrograms?.Clear();
         _namedFontProgramFailures?.Clear();
+        _automaticFallbackOwnedNamedFamilyKeys?.Clear();
         if (_embeddedFontFallbacks?.UsesNamedFontFamilies == true) {
             _embeddedFontFallbacks = null;
         }

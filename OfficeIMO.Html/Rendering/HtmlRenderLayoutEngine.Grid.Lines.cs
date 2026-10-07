@@ -3,6 +3,25 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private static IReadOnlyDictionary<string, int> OffsetGridLineNames(IReadOnlyDictionary<string, int> names, int leadingTracks) =>
+        leadingTracks == 0 ? names : names.ToDictionary(pair => pair.Key, pair => pair.Value + leadingTracks, StringComparer.Ordinal);
+
+    private static IReadOnlyDictionary<string, int> AddGridAreaLineNames(
+        IReadOnlyDictionary<string, int> names, IReadOnlyDictionary<string, GridAreaDefinition> areas, bool rows) {
+        if (areas.Count == 0) return names;
+        var combined = names.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        foreach (KeyValuePair<string, GridAreaDefinition> pair in areas) {
+            int start = rows ? pair.Value.Row : pair.Value.Column;
+            int span = rows ? pair.Value.RowSpan : pair.Value.ColumnSpan;
+            string startName = pair.Key + "-start";
+            string endName = pair.Key + "-end";
+            // Repeated line names resolve to the first matching line.
+            combined[startName] = combined.TryGetValue(startName, out int existingStart) ? Math.Min(start, existingStart) : start;
+            combined[endName] = combined.TryGetValue(endName, out int existingEnd) ? Math.Min(start + span, existingEnd) : start + span;
+        }
+        return combined;
+    }
+
     private IReadOnlyDictionary<string, int> ParseGridLineNames(
         string value,
         int? subgridLineCount = null,
