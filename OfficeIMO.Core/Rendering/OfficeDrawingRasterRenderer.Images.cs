@@ -11,11 +11,12 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
+        (double targetWidth, double targetHeight) = GetImageTargetSize(canvas, drawingImage.Projection, scale);
         if (TryDecodeImage(
                 drawingImage.EncodedBytes,
                 drawingImage.ContentType,
-                drawingImage.Projection.Width * scale,
-                drawingImage.Projection.Height * scale,
+                targetWidth,
+                targetHeight,
                 imageCodec,
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
@@ -33,6 +34,15 @@ public static partial class OfficeDrawingRasterRenderer {
 
             canvas.DrawImage(image, drawingImage.Projection.Scale(scale), drawingImage.Interpolate);
         }
+    }
+
+    private static (double Width, double Height) GetImageTargetSize(
+        OfficeRasterCanvas canvas, OfficeImageProjection projection, double scale) {
+        (double axisX, double axisY) = GetEffectAxisScales(
+            projection.CreateFrameTransform().CreateDestinationTransform(),
+            canvas.CoordinateScaleX, canvas.CoordinateScaleY);
+        return (projection.Width * scale * axisX / projection.SourceWidth,
+            projection.Height * scale * axisY / projection.SourceHeight);
     }
 
     private static bool TryDecodeImage(
@@ -141,14 +151,18 @@ public static partial class OfficeDrawingRasterRenderer {
             vector != null &&
             unsupportedFeatureCount == 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            double scale = ResolveNestedVectorScale(vector, targetWidth, targetHeight);
-            double vectorPixels = Math.Ceiling(vector.Width * scale) * Math.Ceiling(vector.Height * scale);
+            double scaleX = Math.Max(1D, targetWidth) / vector.Width;
+            double scaleY = Math.Max(1D, targetHeight) / vector.Height;
+            double scale = Math.Max(scaleX, scaleY);
+            double vectorPixels = Math.Ceiling(vector.Width * scaleX) * Math.Ceiling(vector.Height * scaleY);
             if (vectorPixels > long.MaxValue) {
                 throw new OfficeImageExportLimitException(scale, long.MaxValue, maximumRasterPixels,
                     OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
             }
             transformedTextBudget.ChargeIntermediateSurfacePixels((long)vectorPixels, maximumRasterPixels);
-            image = Render(vector, new OfficeDrawingRasterRenderOptions {
+            // Plan and charge the actual projected axes. A uniform nested-vector
+            // cap can both allocate an unrelated large surface and blur fine codes.
+            image = RenderCore(vector, new OfficeDrawingRasterRenderOptions {
                 Scale = scale,
                 Background = OfficeColor.Transparent,
                 ImageCodec = imageCodec,
@@ -159,7 +173,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 TransformedTextBudget = transformedTextBudget,
                 MaximumRasterPixels = maximumRasterPixels,
                 CancellationToken = cancellationToken
-            });
+            }, scaleX, scaleY);
             return true;
         }
         var jpegFallback = callerDecodedJpeg ? imageCodec as OfficeRasterImageFallbackCodec : null;
@@ -201,20 +215,6 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg ||
         (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) &&
          info.Format == OfficeImageFormat.Svg);
-
-    private static double ResolveNestedVectorScale(
-        OfficeDrawing drawing,
-        double targetWidth,
-        double targetHeight) {
-        const long maximumNestedVectorPixels = 16_000_000L;
-        double desired = Math.Max(
-            Math.Max(1D, targetWidth) / drawing.Width,
-            Math.Max(1D, targetHeight) / drawing.Height);
-        double safe = Math.Sqrt(
-            maximumNestedVectorPixels /
-            Math.Max(1D, drawing.Width * drawing.Height));
-        return Math.Max(0.000001D, Math.Min(desired, safe));
-    }
 
     private static OfficeRasterImage ApplyImageOpacity(OfficeRasterImage image, double opacity) {
         var result = new OfficeRasterImage(image.Width, image.Height);

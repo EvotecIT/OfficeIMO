@@ -86,7 +86,15 @@ public static partial class OfficeDrawingRasterRenderer {
         double correlation = System.Math.Min(1D, System.Math.Abs((a / x) * (c / y) + (b / x) * (d / y)));
         if (correlation < 1E-12D) correlation = 0D;
         double shear = System.Math.Sqrt(1D + correlation);
-        return (maximumX * x * shear, maximumY * y * shear);
+        return (NormalizeAxisDensity(maximumX * x * shear), NormalizeAxisDensity(maximumY * y * shear));
+    }
+
+    private static double NormalizeAxisDensity(double value) {
+        // Rotating an exact unit (or integer) density can introduce a few ulps
+        // of norm error. Do not let that error add a whole row and column.
+        const double roundingTolerance = 4D * 2.2204460492503131E-16D;
+        double nearest = System.Math.Round(value);
+        return nearest > 0D && System.Math.Abs(value - nearest) <= value * roundingTolerance ? nearest : value;
     }
     private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {
         return ContainsNonInterpolatedImage(

@@ -127,6 +127,71 @@ namespace OfficeIMO.Tests {
             for (int index = 0; index < 1000; index++) Assert.Equal(OfficeColor.Black, image.GetPixel(index, 0));
         }
 
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void EmbeddedSvgImageAndPatternUseProjectedAxesAndSharedBudget(bool pattern, bool vertical) {
+            double width = vertical ? 1000D : 1D, height = vertical ? 1D : 1000D;
+            byte[] svg = Encoding.UTF8.GetBytes(
+                $"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}'><rect width='{width}' height='{height}' fill='black'/></svg>");
+            OfficeDrawing inner = new OfficeDrawing(width, height);
+            OfficeImagePlacement placement = new OfficeImagePlacement(0D, 0D, width, height);
+            if (pattern) inner.AddImagePattern(svg, "image/svg+xml", new OfficeImagePatternLayout(placement, placement));
+            else inner.AddImage(svg, "image/svg+xml", new OfficeImageProjection(placement));
+            OfficeDrawing drawing = new OfficeDrawing(height, width);
+            drawing.AddEffectDrawing(inner, OfficeTransform.Scale(height / width, width / height));
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 2_000L });
+
+            for (int index = 0; index < 1000; index++)
+                Assert.Equal(OfficeColor.Black, image.GetPixel(vertical ? 0 : index, vertical ? index : 0));
+            Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1_999L }));
+        }
+
+        [Fact]
+        public void EmbeddedSvgProjectionRetainsRotatedCroppedSourceDensity() {
+            byte[] svg = Encoding.UTF8.GetBytes(
+                "<svg xmlns='http://www.w3.org/2000/svg' width='2' height='1000'><rect width='1' height='1000' fill='black'/><rect x='1' width='1' height='1000' fill='red'/></svg>");
+            OfficeDrawing inner = new OfficeDrawing(1000D, 1D);
+            inner.AddImage(svg, "image/svg+xml", new OfficeImageProjection(
+                new OfficeImagePlacement(0D, -1000D, 1D, 1000D),
+                new OfficeImageSourceCrop(0D, 0D, .5D, 0D),
+                rotationDegrees: 90D, rotationCenterX: 0D, rotationCenterY: 0D));
+            OfficeDrawing drawing = new OfficeDrawing(1D, 1000D);
+            drawing.AddEffectDrawing(inner, OfficeTransform.Scale(.001D, 1000D));
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 3_000L });
+
+            for (int index = 0; index < 1000; index++) Assert.Equal(OfficeColor.Black, image.GetPixel(0, index));
+            Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 2_999L }));
+        }
+
+        [Theory]
+        [InlineData(45D)]
+        [InlineData(135D)]
+        [InlineData(225D)]
+        [InlineData(315D)]
+        public void OrthogonalUnitEffectRetainsExactPixelCeiling(double rotation) {
+            OfficeDrawing drawing = new OfficeDrawing(100D, 100D);
+            drawing.AddEffectDrawing(Solid(100D, 100D), OfficeTransform.RotateDegrees(rotation, 50D, 50D));
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10_000L });
+
+            Assert.Equal(OfficeColor.Black, image.GetPixel(50, 50));
+            OfficeDrawing magnified = new OfficeDrawing(100D, 100D);
+            magnified.AddEffectDrawing(Solid(100D, 100D), OfficeTransform.Scale(1.000001D, 1D)
+                .Then(OfficeTransform.RotateDegrees(rotation, 50D, 50D)));
+            Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(magnified,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10_000L }));
+        }
+
         [Fact]
         public void AnisotropicTransformedTextAllocatesItsPhysicalFrameAndKeepsShaping() {
             RecordingShaper shaper = new RecordingShaper();

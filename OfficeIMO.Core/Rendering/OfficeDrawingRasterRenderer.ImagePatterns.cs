@@ -9,11 +9,12 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         OfficeImagePatternLayout layout = pattern.Layout.Scale(scale);
+        (double targetWidth, double targetHeight) = GetImageTargetSize(canvas, new OfficeImageProjection(layout.Tile), 1D);
         if (!TryDecodeImage(
                 pattern.EncodedBytes,
                 pattern.ContentType,
-                layout.Tile.Width,
-                layout.Tile.Height,
+                targetWidth,
+                targetHeight,
                 imageCodec,
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
