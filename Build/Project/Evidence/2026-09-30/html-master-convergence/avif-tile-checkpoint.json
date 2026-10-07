@@ -1,0 +1,218 @@
+{
+  "sourceCommit": "1b02c56ef10a20af2a67a57517fc1371f7058986",
+  "recordDate": "2026-10-01",
+  "previousCheckpoint": "1f9528ac97009bcad482564a152c42aba22b0093",
+  "scope": "Internal Main-8 reduced-still tile coordinator and restoration syntax; no reconstructed pixels or public AVIF support.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1RestorationReader.cs": "9acfbba7600ff66401f9ae6bfa029f37d19a380637532503b9a3c8e2686584bf",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1RestorationUnit.cs": "b04e333f4c63cb2857472a7d763f544024da63e30743bbdd8aeda177766e85aa",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1SymbolReader.cs": "59da7474c5343945c6c7a9871519436211ba3c1acb19c0e7b272738e25ddf889",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TileConsumer.cs": "cd517bc11c0769bc5e689407925ca7431644e88ee75e0fa4826ba0f7f680e107",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TileReader.cs": "706ee3ca0fcbcfaed70f742193f0958cf58fbc00efa476fe3fc8095566a7f2a3",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Restoration.cs": "b20b0c5fa16d9ea65903304709bd58d5e6d936761984ecb9522d2921b3c25b6f",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Tiles.cs": "0cdc2bf28f535ab8b00a1e25d398f627c215a67fe23f6da362c922a7f18daf27",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "5d3e95a65ae5c94713669c05dc275338ef1a9e6d4a0e7a21fc66f3c398da93e3",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateRestorationFixtures.c": "726daa2aa781fbe316dd9c0ccca93ebb49abfa78b8d83c8ab3147c782dc18e8f",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateTileFixtures.py": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadTileTrace.c": "4e5917df22104ff5d16311d5f61f42ae81f4265cd4c47c7f96d881579e2c7304",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TraceTileDecoder.patch": "22993c2bd76d604b9deea00004e96b345f6edacdae1f71e1e98e668d48576847",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/restoration-reference.json.gz": "f3b88fe1e76cda0216fbb8a102d0cacc1ec059b31409c77414d0ac8434cb21aa",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/tile-reference.json.gz": "a843da5b39fa072a3c3e7879e148e60b7cd8224f6e5890534fcd99924d629e0e"
+  },
+  "independentOracle": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "sourceSha256": {
+      "PATENTS": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61",
+      "LICENSE": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2",
+      "aom_dsp/binary_codes_writer.c": "0dd2d7d157be8df162c64ca91b609a11b1717540b75966a44892d0fd951e2304",
+      "av1/common/entropymode.c": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "av1/common/restoration.c": "5a547e46f94b52e8117cc9e9f47e60c9677e6ea3e82f3f1a49047fd57611c92d",
+      "av1/decoder/decodeframe.c": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+      "av1/decoder/decodetxb.c": "cd87de06a3f215926b58453c3efda90b43c0f9ac3242ad87309b1703863c8243"
+    },
+    "patchSha256": "22993c2bd76d604b9deea00004e96b345f6edacdae1f71e1e98e668d48576847",
+    "driverSha256": "4e5917df22104ff5d16311d5f61f42ae81f4265cd4c47c7f96d881579e2c7304",
+    "generatorSha256": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+    "fixtureSha256": "a843da5b39fa072a3c3e7879e148e60b7cd8224f6e5890534fcd99924d629e0e",
+    "canonicalJsonSha256": "11a52cbe96ddb613890bf0cb28eda7e85d176bcdc61c4e76939824397250a7a5",
+    "restorationHarnessSha256": "726daa2aa781fbe316dd9c0ccca93ebb49abfa78b8d83c8ab3147c782dc18e8f",
+    "restorationFixtureSha256": "f3b88fe1e76cda0216fbb8a102d0cacc1ec059b31409c77414d0ac8434cb21aa",
+    "restorationCases": 192,
+    "restorationUnits": 1938,
+    "restorationNativeSelfCheck": true,
+    "cases": 4,
+    "tiles": 7,
+    "leaves": 367,
+    "residuals": 1530,
+    "freshDownloadReplay": true,
+    "bothFixturesByteIdentical": true
+  },
+  "validation": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-tile-work-1f9528ac9/tile-final-focused-net10.trx",
+      "sha256": "20f459154e5be273a739f44af108629f13246541d63d285d5b31371530ec2b5f",
+      "counters": {
+        "total": "13",
+        "executed": "13",
+        "passed": "13",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "role": "Final candidate validation"
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-tile-work-1f9528ac9/tile-final-drawing-net8.trx",
+      "sha256": "ec824d7d69c23bb62c3037ed7b422352f9b75f96a1b59d644ce41650c80967f4",
+      "counters": {
+        "total": "2952",
+        "executed": "2952",
+        "passed": "2952",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "role": "Final candidate validation"
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-tile-work-1f9528ac9/tile-final-drawing-net10.trx",
+      "sha256": "bab602daa1cfa40ac40cfbe8545a4b721e92e7406ddc5c1e615c2905d8b4ec7e",
+      "counters": {
+        "total": "2952",
+        "executed": "2952",
+        "passed": "2952",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "role": "Final candidate validation"
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-tile-work-1f9528ac9/tile-memory-before.trx",
+      "sha256": "498acc0bbc077f1041eda01e58d382a95715f82e888a560ef19b2c36d18edddd",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "0",
+        "failed": "1",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "role": "Pre-fix reproduction: expected failure"
+    }
+  ],
+  "corePackage": {
+    "package": "Ignore/HtmlUnknownPageQualification/static-gap-av1-tile-work-1f9528ac9/package-final/OfficeIMO.Core.3.4.4.nupkg",
+    "sha256": "211ccebb9f2f58485b99af81529927abab0916df6f62d6b72937d5c9d23a2c46",
+    "runtimeDependencies": 0,
+    "libraries": {
+      "lib/net10.0/OfficeIMO.Core.dll": "18fb23c95eaa01a6d4a51608e1951639a8d7502b330eccfc91e0ec499674ee06",
+      "lib/net8.0/OfficeIMO.Core.dll": "3fa26c16d086a617b4af29b157eb5426c3c194e0462c1057361991c2e2700c7f",
+      "lib/netstandard2.0/OfficeIMO.Core.dll": "4260841207a09aba2e0e4fc58dd4996aabb346b11e8f821e891f563f90df5562"
+    },
+    "noNativeOracleAssets": true,
+    "disposition": "Package deleted after inspection; package/DLL hashes and dependency result retained."
+  },
+  "coreNetstandard2Build": {
+    "configuration": "Release",
+    "sdk": "10.0.303",
+    "warnings": 0,
+    "errors": 0
+  },
+  "localReview": {
+    "task": "av1_tile_review",
+    "reason": "Coordinated arithmetic grammar, context lifetimes and memory/cancellation/termination boundaries",
+    "base": "1f9528ac97009bcad482564a152c42aba22b0093",
+    "reviewedIndexTree": "67476414d4a0ca6316d7aa8120ebfd76556ae8ed",
+    "finalSourceIndexTree": "d736f2e20f52d8177cac3c150b8b20d18e9118de",
+    "finding": {
+      "priority": "P2",
+      "classification": "Introduced in new coordinator",
+      "defect": "Encoded backing array omitted from aggregate retained-memory accounting",
+      "reproduction": "Original valid tile parses near retained limit; padding its backing array to 1 MiB exceeds the aggregate limit and was accepted before the fix.",
+      "fix": "Snapshot retained bytes plus all context reservations; reject whole input array before symbols or consumer callbacks.",
+      "siblingSweep": "Only the coordinator accepts the encoded array; subordinate contexts consume the shared symbol reader. Existing raster owners count encoded bytes separately.",
+      "disposition": "Fixed and regression proven pre-fix failing, final passing"
+    },
+    "targetedConfirmationUsed": true,
+    "confirmationFindings": [],
+    "boundary": "candidate-reviewed-and-targeted-confirmed",
+    "reviewerRanTests": false
+  },
+  "corpusCoverageLimits": {
+    "fullTileSkippedLeaves": 0,
+    "fullTileCopyLeaves": 0,
+    "fullTileRestorationUnits": 0,
+    "limits": "Skipped/copy leaves and active restoration have component reference evidence, not positive completed-tile integration evidence in the frozen seven-tile corpus."
+  },
+  "limits": {
+    "aggregateManagedBytes": 268435456,
+    "encodedBackingArrayCounted": true,
+    "oneShotRetirement": true,
+    "terminalPublicationAfterEntropyFinish": true,
+    "symbolBudget": "128 symbols per padded tile pixel plus 4096",
+    "consumerRetainedResults": "Consumer reserves retained reconstruction results separately and discards frame on any failure."
+  },
+  "defaultAvifDecodeQualified": false,
+  "supportCatalogChanged": false,
+  "externalRuntimeDependenciesAdded": false,
+  "fullMilestoneComplete": false,
+  "unchangedRendererEvidence": "No public/default decode/render caller changes. Prior H4/NASA/performance proof retains its earlier boundary and is not evidence for public AVIF decoding.",
+  "remainingAvif": [
+    "Positive complete-tile skip/copy/restoration integration beyond component evidence",
+    "Intra prediction, dequantization, inverse transforms and reconstructed samples",
+    "In-loop filters, color/alpha composition and independent full-image pixels",
+    "Direct frozen HTML/PDF acceptance, unchanged applicable ceilings and platform qualification"
+  ],
+  "unavailableProof": [
+    "Windows/net472 execution",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "cleanup": {
+    "removedBytes": 138260171,
+    "removed": "Duplicate native source/build copies, raw reference traces, intermediate tests and old inspected package; pinned license/patent facts and fresh replay retained.",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-tile-work-1f9528ac9",
+    "retainedBytes": 9096930,
+    "purpose": "Final full/focused tests, expected pre-fix failure, compact reference/package receipts, license/patent notices and tight native YUV/OBU pixels for reconstruction."
+  }
+}

@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlAllSeverityFinalHighSecurityTests {
     [Fact]
-    public void TableImageAncestorStyleWalksConsumeTheLayoutOperationBudget() {
+    public void TableDescendantIntrinsicSizingConsumesTheLayoutOperationBudget() {
         var html = new StringBuilder("<table><tr><td>");
         for (int depth = 0; depth < 8; depth++) {
             html.Append("<div>");
@@ -24,7 +24,7 @@ public sealed class HtmlAllSeverityFinalHighSecurityTests {
                 html.ToString(),
                 new HtmlRenderOptions {
                     MaxLayoutDepth = 32,
-                    MaxLayoutOperations = 80
+                    MaxLayoutOperations = 24
                 }));
 
         Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);

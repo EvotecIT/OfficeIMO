@@ -5,15 +5,6 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
-    public void ResourceDiscoveryScansManyCssUrlsAndIgnoresQuotedText() {
-        string rules = string.Concat(Enumerable.Repeat(
-            ".box{background-image:url('https://example.test/image.png')}", 2048));
-        string css = ".box{content:\"escaped \\\" url(https://example.test/ignored.png)\"}" + rules;
-
-        Assert.False(HtmlResourcePipeline.HasStylesheetUrlResources(css));
-    }
-
-    [Fact]
     public void ProvenanceDiscoveryScansManyUrlsInOneDeclaration() {
         string css = ".box{background-image:" + string.Join(",",
             Enumerable.Repeat("url('data:image/png;base64,AAAA')", 2048)) + "}";

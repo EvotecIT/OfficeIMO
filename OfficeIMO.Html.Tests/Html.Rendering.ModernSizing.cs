@@ -254,6 +254,56 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_RemPaddingUsesComputedVariableRootFontSize() {
+        const string html = "<style>:root{--root-size:18px;font-size:var(--root-size)}"
+            + "#probe{width:1px;height:1px;padding:1rem;background:red}</style>"
+            + "<div id='probe'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape probe = FindShape(rendered, "div#probe");
+        Assert.Equal(37D, probe.Width, 3);
+        Assert.Equal(37D, probe.Height, 3);
+    }
+
+    [Fact]
+    public void HtmlRendering_RootRemFontSizeUsesInitialSizeBeforeSizingDescendants() {
+        const string html = "<style>:root{font-size:2rem}"
+            + "#probe{width:1px;height:1px;padding:1rem;background:red}</style>"
+            + "<div id='probe'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape probe = FindShape(rendered, "div#probe");
+        Assert.Equal(65D, probe.Width, 3);
+        Assert.Equal(65D, probe.Height, 3);
+    }
+
+    [Fact]
+    public void HtmlRendering_FlexBasisUsesComputedRootFontSize() {
+        const string html = "<style>:root{font-size:32px}"
+            + "#container{display:flex;width:100px}"
+            + "#item{flex-grow:0;flex-shrink:0;flex-basis:1rem;height:1px;background:red}</style>"
+            + "<div id='container'><div id='item'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(32D, FindShape(rendered, "div#item").Width, 3);
+    }
+
+    [Fact]
     public void HtmlRendering_ContainerStyleQueriesCompareResolvedCustomPropertyValues() {
         const string html = """
             <style>@container theme style(--tone:red) { #item { background:red; } }</style>

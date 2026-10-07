@@ -11,27 +11,44 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderDrawing visual,
         OfficeDrawing source,
         double rasterScale,
+        PdfImageResourceCache imageResources,
         PdfCore.PdfConversionReport conversionReport,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool suppressLink) {
         if (!TryGetRasterizedDrawingEffectReason(source, out string effectReason)) return false;
 
+        var imageDiagnostics = new List<OfficeImageExportDiagnostic>();
         byte[] png = OfficeDrawingRasterRenderer.ToPng(source, new OfficeDrawingRasterRenderOptions {
             Scale = rasterScale,
+            ImageCodec = imageResources.ImageCodec,
+            MaximumRasterPixels = imageResources.MaximumPixels,
             Background = OfficeColor.Transparent,
+            DiagnosticSink = imageDiagnostics,
+            DiagnosticSource = visual.Source,
             CancellationToken = cancellationToken
         });
-        PdfCore.PdfCanvasImageResource? effectImage = GetSharedPdfImageResource(png, "image/png");
+        foreach (var diagnostic in imageDiagnostics) {
+            conversionReport.Add(new PdfCore.PdfConversionWarning(
+                "OfficeIMO.Html.Pdf",
+                diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected
+                    ? HtmlPdfDiagnosticCodes.ImageStaticFrameSelected
+                    : diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted
+                        ? HtmlPdfDiagnosticCodes.ImagePayloadOmitted : diagnostic.Code,
+                diagnostic.Source ?? "html-drawing-image", diagnostic.Message,
+                PdfCore.PdfConversionWarningSeverity.Warning, diagnostic.LossKind));
+        }
+        PdfCore.PdfCanvasImageResource? effectImage = imageResources.GetOrCreate(png, "image/png");
         if (effectImage != null) {
-            bool fragmentLink = IsFragmentLink(visual.LinkUri);
+            bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
             canvas.ImageShared(
                 effectImage,
                 visual.X * PointsPerCssPixel,
                 visual.Y * PointsPerCssPixel,
                 visual.Width * PointsPerCssPixel,
                 visual.Height * PointsPerCssPixel,
-                linkUri: fragmentLink ? null : visual.LinkUri,
-                linkContents: visual.LinkUri == null || fragmentLink ? null : visual.Source,
-                alternativeText: visual.AlternativeText);
+                linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
+                linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source,
+                alternativeText: string.IsNullOrWhiteSpace(visual.AlternativeText) ? null : visual.AlternativeText);
             if (fragmentLink) {
                 canvas.LinkToNamedDestination(
                     MapNamedDestination(visual.LinkUri!.Substring(1)),

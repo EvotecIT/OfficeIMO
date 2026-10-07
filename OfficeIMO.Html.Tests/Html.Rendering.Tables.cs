@@ -10,6 +10,182 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTables_WithoutAuthoredBordersDoNotPaintCellGrid() {
+        const string html = "<body style='margin:0'>"
+            + "<table><tr><td id='plain'>Plain</td></tr></table>"
+            + "<table border='0'><tr><td id='zero'>Zero</td></tr></table>"
+            + "<table><tr><td id='authored' style='border:1px solid red'>Authored</td></tr></table>"
+            + "<table id='outer' style='border:2px solid red'><tr><td id='outer-cell'>Outer only</td></tr></table>"
+            + "<table id='legacy' border='1'><tr><td id='legacy-cell'>Legacy grid</td></tr></table>"
+            + "</body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>().ToArray();
+
+        Assert.DoesNotContain(shapes, shape => shape.Source is "td#plain" or "td#zero" or "td#outer-cell");
+        Assert.Contains(shapes, shape => shape.Source == "td#authored");
+        Assert.Contains(shapes, shape => shape.Source == "table#outer");
+        Assert.Contains(shapes, shape => shape.Source == "table#legacy");
+        Assert.Contains(shapes, shape => shape.Source == "td#legacy-cell");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void HtmlTable_AutoLayoutKeepsAuthoredCellWidthWhenAnotherColumnCanGrow(bool nestedBreak, bool tabBeforeBreak) {
+        string labels = (tabBeforeBreak ? "Home\t<br>" : "Home<br>") + "Reports<br>Document Queue<br>Administration";
+        if (nestedBreak) labels = "<span>" + labels + "</span>";
+        string html = "<body style='margin:0'><table style='width:320px;margin:0;border-spacing:2px'>"
+            + "<tr><td id='nav' style='width:170px;padding:8px;background:blue'>" + labels + "</td>"
+            + "<td id='content' style='background:white'>Content</td></tr></table></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape nav = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "td#nav" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.Equal(186D, nav.Width, 3);
+    }
+
+    [Fact]
+    public void HtmlMarquee_UsesBlockWidthBeforeFollowingHeading() {
+        const string html = "<body style='margin:0'><marquee id='notice' style='background:yellow'>Notice</marquee>"
+            + "<h1 style='margin:0'>Heading</h1></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape notice = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "marquee#notice" && shape.Shape.FillColor == OfficeColor.Yellow);
+        HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Heading");
+        Assert.Equal(320D, notice.Width, 3);
+        Assert.True(heading.Y >= notice.Y + notice.Height);
+    }
+
+    [Fact]
+    public void HtmlTable_PreservedTabBeforeNestedBreakContributesItsTabStopWidth() {
+        const string html = "<body style='margin:0'><table style='margin:0;border-spacing:0'>"
+            + "<tr><td id='tabbed' style='padding:0;background:blue;white-space:pre;tab-size:32px'><span>A\tB<br>C</span></td></tr>"
+            + "</table></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape tabbed = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "td#tabbed" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.True(tabbed.Width >= 38D);
+    }
+
+    [Fact]
+    public void HtmlTables_ApplyBrowserCaptionAndHeaderDefaultsWithoutOverridingAuthoredStyles() {
+        const string prefix = "<body style='margin:0'><table style='width:240px;margin:0'>";
+        const string suffix = "</table></body>";
+        HtmlRenderDocument defaults = HtmlRenderTestDriver.Render(prefix
+            + "<caption>Report caption</caption><tr><th>Region heading</th></tr>" + suffix,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderDocument authored = HtmlRenderTestDriver.Render(prefix
+            + "<caption style='text-align:left'>Report caption</caption><tr><th style='font-weight:normal'>Region heading</th></tr>" + suffix,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderText defaultCaption = Assert.Single(defaults.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report caption");
+        HtmlRenderText authoredCaption = Assert.Single(authored.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report caption");
+        HtmlRenderText defaultHeader = Assert.Single(defaults.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Region heading");
+        HtmlRenderText authoredHeader = Assert.Single(authored.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Region heading");
+
+        Assert.True(defaultCaption.X > authoredCaption.X + 20D);
+        Assert.True((defaultHeader.Font.Style & OfficeFontStyle.Bold) != 0);
+        Assert.True((authoredHeader.Font.Style & OfficeFontStyle.Bold) == 0);
+    }
+
+    [Fact]
+    public void HtmlTableCentersDeclaredBorderBoxAndUsesHeaderDefaultUnderInheritedNormalWeight() {
+        const string html = "<body style='margin:0;font-weight:normal'>"
+            + "<table id='report' style='width:240px;padding:10px;margin:0 auto;background:red'>"
+            + "<tr><th>Header</th></tr></table></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape table = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "table#report" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderText header = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Header");
+        Assert.Equal(30D, table.X, 3);
+        Assert.True((header.Font.Style & OfficeFontStyle.Bold) != 0);
+    }
+
+    [Fact]
+    public void HtmlTables_LegacyCenterAlignUsesAutoMarginsUnlessCssOverridesThem() {
+        const string prefix = "<style>body{margin:0}main{width:500px}</style><main>";
+        const string suffix = "<tr><td>Cell</td></tr></table></main>";
+        var options = new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument auto = HtmlRenderTestDriver.Render(prefix + "<table align='center'>" + suffix, options);
+        HtmlRenderDocument fixedWidth = HtmlRenderTestDriver.Render(prefix + "<table align='center' style='width:160px'>" + suffix, options);
+        HtmlRenderDocument cssOverride = HtmlRenderTestDriver.Render(prefix + "<table align='center' style='width:160px;margin:0'>" + suffix, options);
+
+        HtmlRenderSemanticGroup autoTable = Assert.Single(EnumerateTablePaginationScene(auto.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+        HtmlRenderSemanticGroup fixedTable = Assert.Single(EnumerateTablePaginationScene(fixedWidth.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+        HtmlRenderSemanticGroup overriddenTable = Assert.Single(EnumerateTablePaginationScene(cssOverride.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.Equal((500D - autoTable.Width) / 2D, autoTable.X, 1);
+        Assert.Equal(170D, fixedTable.X, 1);
+        Assert.Equal(0D, overriddenTable.X, 1);
+    }
+
+    [Theory]
+    [InlineData("width='200'")]
+    [InlineData("style='width:200px;border-spacing:0'")]
+    public void HtmlTables_ExplicitNestedTableDoesNotFlattenItsRowsIntoOuterPreferredWidth(string widthAttribute) {
+        string html = "<body style='margin:0'><main style='width:500px'>"
+            + "<table align='center' style='border-spacing:1px'><tr><td style='padding:0'>"
+            + "<table " + widthAttribute + "><tr><td>Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa</td></tr>"
+            + "<tr><td>Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon</td></tr></table>"
+            + "</td></tr></table></main></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderSemanticGroup[] tables = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table).ToArray();
+
+        Assert.Equal(2, tables.Length);
+        HtmlRenderSemanticGroup outer = tables.OrderByDescending(table => table.Width).First();
+        Assert.InRange(outer.Width, 200D, 230D);
+        Assert.Equal((500D - outer.Width) / 2D, outer.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_SizedNestedTableSeparatesSurroundingTextDuringOuterSizing() {
+        const string html = "<body style='margin:0'><main style='width:500px'>"
+            + "<table align='center' style='border-spacing:1px'><tr><td style='padding:0'>"
+            + "Before alpha beta gamma<table width='200'><tr><td>Inner</td></tr></table>After delta epsilon zeta"
+            + "</td></tr></table></main></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderSemanticGroup outer = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table)
+            .OrderByDescending(table => table.Width).First();
+
+        Assert.InRange(outer.Width, 200D, 230D);
+        Assert.Equal((500D - outer.Width) / 2D, outer.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_InlineDisplayedNestedTableStaysInOuterTextSizing() {
+        const string html = "<body style='margin:0'><main style='width:500px'>"
+            + "<table style='border-spacing:1px'><tr><td style='padding:0'>"
+            + "Before alpha beta gamma<table style='display:inline;width:200px'><tr><td>Inner</td></tr></table>After delta epsilon zeta"
+            + "</td></tr></table></main></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderSemanticGroup outer = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table)
+            .OrderByDescending(table => table.Width).First();
+
+        Assert.True(outer.Width > 250D);
+    }
+
+    [Fact]
     public void HtmlTables_RejectRowsAndColumnsBeforeAllocatingLayoutTracks() {
         var rowOptions = new HtmlRenderOptions { MaxTableRows = 1 };
         HtmlDomLimitException rowException = Assert.Throws<HtmlDomLimitException>(() =>
@@ -190,6 +366,120 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_WidthAutoShrinksToPreferredColumnsWithinContainingBlock() {
+        const string html = "<style>body{margin:0}main{width:596px}table{margin:0;border-collapse:collapse;font-size:16px;line-height:24px}"
+            + "th,td{border:1px solid black;padding:8px 16px}</style>"
+            + "<main><table id='grid'><tr><th>Contaminant</th><th>Secondary Standard</th></tr>"
+            + "<tr><td>Total Dissolved Solids</td><td>500 mg/L</td></tr>"
+            + "<tr><td>Odor</td><td>3 threshold odor number</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 350D, 450D);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoRespectsCaptionMinimumAndCentersAutoMargins() {
+        const string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto;border-collapse:collapse;font-size:20px}"
+            + "td{border:1px solid black;padding:4px}</style><main><table>"
+            + "<caption>UnbreakableCaptionMinimumWidth</caption><tr><td>A</td><td>B</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        // Chromium's default-serif control uses a 294.7px caption minimum in 596px.
+        Assert.InRange(table.Width, 275D, 330D);
+        Assert.InRange(table.X, 133D, 161D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoRespectsNoWrapCaptionLine() {
+        const string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto;font-size:20px}"
+            + "caption{white-space:nowrap}</style><main><table>"
+            + "<caption>Alpha beta gamma delta</caption><tr><td>A</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 190D, 350D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoMeasuresCaptionChildImageAndGeneratedCellImage() {
+        string captionImage = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(120, 10));
+        string cellImage = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(200, 10));
+        string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto}"
+            + "caption span{font-size:40px}td::before{content:url('data:image/png;base64," + cellImage + "')}"
+            + "</style><main><table><caption><span>Wide</span><img src='data:image/png;base64,"
+            + captionImage + "'></caption><tr><td></td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 200D, 350D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), image => image.Width == 200D);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoMeasuresGeneratedCaptionImage() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(220, 10));
+        string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto}"
+            + "caption::before{content:url('data:image/png;base64," + image + "')}"
+            + "</style><main><table><caption></caption><tr><td>A</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 220D, 260D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), visual => visual.Width == 220D);
+    }
+
+    [Fact]
+    public void HtmlTables_AutoLayoutMeasuresQuotedTabTextWithEmbeddedFont() {
+        string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        string html = "<table style=\"font-family:'" + installedFamily + "'\"><tr><td>\"A\tB\"</td><td>Next</td></tr></table>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+
+        Assert.Contains("A B", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlTables_AutoLayoutIncludesIntrinsicReplacedImageWidth() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(80, 10));
         string html = "<table style='width:100px;margin:0;table-layout:auto;font-size:8px;line-height:10px'><tr>"
@@ -244,7 +534,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal((4D, 3D, 44D), (first.X, first.Y, first.Width));
         Assert.Equal((52D, 3D, 44D), (second.X, second.Y, second.Width));
-        Assert.Equal(22D, third.Y, 3);
+        Assert.Equal(20D, third.Y, 3);
     }
 
     [Fact]

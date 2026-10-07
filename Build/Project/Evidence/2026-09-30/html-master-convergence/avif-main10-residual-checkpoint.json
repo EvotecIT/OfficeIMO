@@ -1,0 +1,405 @@
+{
+  "sourceCommit": "6503c32e7bf959e02ebc12b31f970276fe115713",
+  "baseCommit": "a66bccd11ec2d824e3db52b134348b9412e9c594",
+  "recordedAt": "2026-10-01T10:25:39.926885+00:00",
+  "scope": "Internal Main8/Main10 quantization, dequantization and inverse-transform arithmetic. Public Main10 decode remains disabled.",
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "normativeContracts": [
+    "AV1 1.0.0 Errata1 sections7.12.2,7.13.2.1,7.13.2.6 and7.13.3"
+  ],
+  "nativeOracles": [
+    {
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "nativeBuild": {
+        "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+        "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+        "reused": true
+      },
+      "sourceSha256": {
+        "av1/common/av1_inv_txfm2d.c": "4e27a497fe384185826a6de08d1b63a6754c7dd2106844a77fdc1e0640fe99c5",
+        "av1/common/av1_inv_txfm1d.c": "d16765d227aebed749398bd649e17bbdf7df4f818a2761eabc92e0e74ca13ae1",
+        "av1/common/quant_common.c": "dd419b0adfd6178da6b9df1af1b1592feb65ac22811bc7954624fb6caa624a66",
+        "av1/decoder/decodetxb.c": "cd87de06a3f215926b58453c3efda90b43c0f9ac3242ad87309b1703863c8243"
+      },
+      "assetsSha256": {
+        "ReadResidualReference.c": "d4af7b2e1eff386a7fd69efc844ac709a1b23683b6656b8db580183dc5d863fd",
+        "OfficeInverseProbe.h": "21c8729d0adbe681ba160624b9b342e2fba1d1bf55962d37b6c411633f70fa06",
+        "OfficeRangeProbe.h": "1dbea72da7b449acce3b065e1ec7847bc0adc73b0403fd472f3bd9acc83971d5",
+        "OfficeInverseProbe.inc": "04129dfcf4653ed6fdddac132eda9aebc43c9d396bfe36c52c6486b47eb55343",
+        "OfficeDequantProbe.inc": "24e2bc0408a56c4a568366e9bc53038e22bf155033baf1d5f1be0b66ab855af7",
+        "TraceInverseTransform.patch": "43ebd8262b282517d91ca4dfe293289fe4d43570b95be84d11d5729d63178667",
+        "GenerateResidualFixtures.py": "4833cc6f674db4dfffd531795e9157018a237f7a7b977af2575d5d58bb3068e8",
+        "GenerateResidualTables.py": "8165ec48711136101b93e3ded5d7f4b8d69203d6aef424b2309b17ca77091c42"
+      },
+      "numericFacts": {
+        "specTextSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+        "matrixSha256": "faa3960fa4f18495e3b627a7b75bfe22959979894fab1aa37aa8a52faba1c323",
+        "matrixBytes": 100320
+      },
+      "fixtureSha256": "0c28b6c4033d8c41a8a0fac5427f28494178a7b5cef73064cae9fb2819d0af7b",
+      "canonicalJsonSha256": "60d5149d4265b2a2fa7d4e4b1047846302086905d4294a3b527a882b500e380b",
+      "bitDepth": 8,
+      "nonconformingCases": 1,
+      "cases": 750,
+      "residualSamples": 156832,
+      "transformSizes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "transformTypes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "losslessCases": 9
+    },
+    {
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "nativeBuild": {
+        "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+        "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+        "reused": true
+      },
+      "sourceSha256": {
+        "av1/common/av1_inv_txfm2d.c": "4e27a497fe384185826a6de08d1b63a6754c7dd2106844a77fdc1e0640fe99c5",
+        "av1/common/av1_inv_txfm1d.c": "d16765d227aebed749398bd649e17bbdf7df4f818a2761eabc92e0e74ca13ae1",
+        "av1/common/quant_common.c": "dd419b0adfd6178da6b9df1af1b1592feb65ac22811bc7954624fb6caa624a66",
+        "av1/decoder/decodetxb.c": "cd87de06a3f215926b58453c3efda90b43c0f9ac3242ad87309b1703863c8243"
+      },
+      "assetsSha256": {
+        "ReadResidualReference.c": "d4af7b2e1eff386a7fd69efc844ac709a1b23683b6656b8db580183dc5d863fd",
+        "OfficeInverseProbe.h": "21c8729d0adbe681ba160624b9b342e2fba1d1bf55962d37b6c411633f70fa06",
+        "OfficeRangeProbe.h": "1dbea72da7b449acce3b065e1ec7847bc0adc73b0403fd472f3bd9acc83971d5",
+        "OfficeInverseProbe.inc": "04129dfcf4653ed6fdddac132eda9aebc43c9d396bfe36c52c6486b47eb55343",
+        "OfficeDequantProbe.inc": "24e2bc0408a56c4a568366e9bc53038e22bf155033baf1d5f1be0b66ab855af7",
+        "TraceInverseTransform.patch": "43ebd8262b282517d91ca4dfe293289fe4d43570b95be84d11d5729d63178667",
+        "GenerateResidualFixtures.py": "4833cc6f674db4dfffd531795e9157018a237f7a7b977af2575d5d58bb3068e8",
+        "GenerateResidualTables.py": "8165ec48711136101b93e3ded5d7f4b8d69203d6aef424b2309b17ca77091c42"
+      },
+      "numericFacts": {
+        "specTextSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+        "matrixSha256": "faa3960fa4f18495e3b627a7b75bfe22959979894fab1aa37aa8a52faba1c323",
+        "matrixBytes": 100320
+      },
+      "fixtureSha256": "13d69dd22f0a882ad134e4cae92cec9d40456f111594fc820196f72b76abc9cd",
+      "canonicalJsonSha256": "64fd30d5cf72e94d9d6faa0ac163f8543c318419c5a62b664c7f16158fac372b",
+      "bitDepth": 10,
+      "nonconformingCases": 4,
+      "cases": 750,
+      "residualSamples": 156832,
+      "transformSizes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "transformTypes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "losslessCases": 9
+    }
+  ],
+  "repeatInvocations": [
+    {
+      "bitDepth": 8,
+      "cases": 750,
+      "byteIdenticalNativeResults": true,
+      "nativeResultsSha256": "14f1245ed834af5cc0a5bc5fbda5ee745adb2fc92c2b394dcff9808186707c43",
+      "nativeValidCases": 749,
+      "nonconformingCaseIndices": [
+        749
+      ],
+      "validResidualSamples": 156816
+    },
+    {
+      "bitDepth": 10,
+      "cases": 750,
+      "byteIdenticalNativeResults": true,
+      "nativeResultsSha256": "5525e22100d53bd540669d3246af7dc843c94d1174018db823c5ff4b23280c09",
+      "nativeValidCases": 746,
+      "nonconformingCaseIndices": [
+        283,
+        619,
+        631,
+        749
+      ],
+      "validResidualSamples": 156656
+    }
+  ],
+  "original8bitPreservation": {
+    "originalFixtureSha256": "e708c9b3186b3a1205460112347aaf6eecbddac125d95e60ab2d38ee581f4a7f",
+    "originalCases": 749,
+    "allOriginalParametersCoefficientsResidualsPixelsAndFactsUnchanged": true,
+    "newCaseIndex": 749,
+    "newCaseConforming": false
+  },
+  "validation": {
+    "sdk": "10.0.303",
+    "frameworks": [
+      "net8.0",
+      "net10.0",
+      "netstandard2.0"
+    ],
+    "boundary": "Suites ran on unchanged source contents subsequently committed as sourceCommit, before the informational version changed.",
+    "reports": [
+      {
+        "scope": "before-arithmetic-change",
+        "commandArtifact": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-final/main10-residual-before.trx",
+        "sha256": "c5bc6eafb1179e63bac316c30f12489c7fd06de9146d82ba5ef739d09ea30046",
+        "counters": {
+          "total": "8",
+          "executed": "8",
+          "passed": "6",
+          "failed": "2",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "failures": [
+          {
+            "name": "OfficeIMO.Tests.DrawingAv1ResidualTests.QuantizationSnapshotAndReturnedResidualsSurviveLaterCallsAndFrameChanges(bitDepth: 10)",
+            "message": "Assert.Equal() Failure: Collections differ\n                                         \u2193 (pos 0)\nExpected: int[]                         [784, 784, 784, 784, -1892, \u00b7\u00b7\u00b7]\nActual:   RangeSelectIterator<int, int> [554, 554, 554, 554, -1338, \u00b7\u00b7\u00b7]\n                                         \u2191 (pos 0)"
+          },
+          {
+            "name": "OfficeIMO.Tests.DrawingAv1ResidualTests.EveryNativeResidualAndClippedSampleMatchesAcrossSizesTypesAndQuantization(bitDepth: 10)",
+            "message": "Native residual mismatch in case 1 size/type 0/0"
+          }
+        ]
+      },
+      {
+        "scope": "before-adst4-fix",
+        "commandArtifact": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10/adst4-before-fix.trx",
+        "sha256": "f6fdc0bb3408d4a1de74569b07a94e6cd9dd5c37a61b2eee338ecf3089dec385",
+        "counters": {
+          "total": "8",
+          "executed": "8",
+          "passed": "6",
+          "failed": "2",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "failures": [
+          {
+            "name": "OfficeIMO.Tests.DrawingAv1ResidualTests.EveryNativeResidualAndClippedSampleMatchesAcrossSizesTypesAndQuantization(bitDepth: 8)",
+            "message": "Assert.Throws() Failure: No exception was thrown\nExpected: typeof(System.FormatException)"
+          },
+          {
+            "name": "OfficeIMO.Tests.DrawingAv1ResidualTests.EveryNativeResidualAndClippedSampleMatchesAcrossSizesTypesAndQuantization(bitDepth: 10)",
+            "message": "Assert.Throws() Failure: No exception was thrown\nExpected: typeof(System.FormatException)"
+          }
+        ]
+      },
+      {
+        "scope": "focused-final-net10",
+        "commandArtifact": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10/adst4-after-fix.trx",
+        "sha256": "bcd385c7c05d16bca53902592333a650252b64ba0dcf5ddee6e3274c1a7cd0e7",
+        "counters": {
+          "total": "8",
+          "executed": "8",
+          "passed": "8",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "scope": "drawing-final-net8",
+        "commandArtifact": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10/drawing-final-net8.trx",
+        "sha256": "eebe29b77de770e6324eaa9eb501faa1dcf73beb2547a740423e19925f680dfd",
+        "counters": {
+          "total": "3055",
+          "executed": "3055",
+          "passed": "3055",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "scope": "drawing-final-net10",
+        "commandArtifact": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10/drawing-final-net10.trx",
+        "sha256": "732663b1684549c957f0bcae72a2207540696608cfd70f432632a91e5b124f59",
+        "counters": {
+          "total": "3055",
+          "executed": "3055",
+          "passed": "3055",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "scope": "html-avif-final-net10",
+        "commandArtifact": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10/html-avif-final-net10.trx",
+        "sha256": "3eb08da0eeee4b6397e69eef1a8a1d18aca1df5e9d1ed06200784e63624fad25",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "netstandard2BuildWarnings": 0,
+    "netstandard2BuildErrors": 0
+  },
+  "localReview": {
+    "independentAgent": "avif_main10_residual_review",
+    "firstStagedFingerprint": "2386801257672ab75d1ef1147291c259102f3e03",
+    "finalStagedFingerprint": "85076a94f29d86907357e6b14629a9efd938c3d4",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "finding": {
+      "priority": "P2",
+      "class": "Pre-existing ADST4 missing s/x precision checks, exposed by wider samples.",
+      "reproduced": "Dense 4x4 first row with q255, coefficients64, row ADST4. Both8/10 native probes mark it out of range; managed residual owner accepted it before fix.",
+      "resolution": "Validate each normative s/x intermediate at range+12, a7 at range+1, b7 at range before rounding and clipping."
+    },
+    "remainingFindings": 0
+  },
+  "testContracts": [
+    "All native-valid residuals and independently clipped samples across19sizes/16types, lossy and lossless, deltas/segments/matrices.",
+    "Native out-of-range patterns reject before downstream clipping.",
+    "Quantization and bit depth snapshot survive later frame changes.",
+    "Pixel, retained-memory, coefficient and cancellation limits remain observed."
+  ],
+  "notQualifiedByThisCheckpoint": [
+    "Ten-bit prediction, padded sample planes, in-loop filters, final RGBA, public byte/stream decoding, packed consumers and HTML/PDF pixels.",
+    "Non-reduced header and full formal AVIF Baseline support.",
+    "New H4, NASA, static/H10 budget or Windows/Linux/platform execution proof. Prior records retain their own source boundaries."
+  ],
+  "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10",
+  "cleanup": {
+    "removedTargets": 20,
+    "removedBytes": 49308545,
+    "retainedBytes": 1937509,
+    "allTargetsAbsent": true,
+    "retainedPath": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10",
+    "purpose": "Compact oracle receipts, native repeat/preservation records, before/after failures, focused proof and one compiled residual probe; original high-bit producer source/build remains separate."
+  },
+  "retainedNativeProbe": {
+    "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-residual-work-a66bccd11-closure10/read-residual-reference",
+    "sha256": "89dc302cb4fe2362bd43898b7f4cc74268e26b83e4c65afbbb6149ecca8a34b1"
+  }
+}

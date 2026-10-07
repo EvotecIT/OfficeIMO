@@ -1,5 +1,8 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
+using System.IO;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Html;
 
@@ -13,10 +16,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out HtmlRenderFlowBlock block,
         out double baseline) {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
+        HtmlMathMlSource? mathMlSource = null;
+        XElement? mathLayoutRoot = null;
+        try {
+            mathMlSource = HtmlMathMlSource.Create(element, Math.Min(_options.MaxLayoutDepth, OfficeMathMarkup.DefaultMaximumParseDepth),
+                _options.MaxHtmlNodes, _cancellationToken, out mathLayoutRoot);
+        } catch (Exception exception) when (exception is XmlException || exception is ArgumentException || exception is InvalidDataException) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MathMlSourceUnavailable,
+                "The formula was painted, but its DOM could not be retained as bounded MathML XML.",
+                HtmlDiagnosticSeverity.Warning, source, exception.GetType().Name, OfficeConversionLossKind.Approximation);
+        }
         OfficeMathExpression expression;
+        var tokenPaint = new Dictionary<OfficeMathExpression, string>(MathTokenIdentityComparer.Instance);
         try {
             int maximumDepth = Math.Min(_options.MaxLayoutDepth, OfficeMathMarkup.DefaultMaximumParseDepth);
-            expression = OfficeMathMarkup.FromMathMl(element.OuterHtml, maximumDepth);
+            expression = mathMlSource == null
+                ? OfficeMathMarkup.FromMathMl(element.OuterHtml, maximumDepth)
+                : OfficeMathMarkup.FromMathMl(mathLayoutRoot!, (token, parsed) => {
+                    IElement? owner = token.Annotation<IElement>();
+                    if (owner == null) return;
+                    string painted = ResolveMathTokenPaint(owner, element, style, containingWidth);
+                    if (!string.Equals(painted, parsed.Text, StringComparison.Ordinal)) tokenPaint[parsed] = painted;
+                });
         } catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is OfficeMathParseException) {
             _diagnostics.Add(
                 ComponentName,
@@ -45,14 +66,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var mathOptions = new OfficeMathRenderOptions {
             Font = style.Font,
             Color = style.Color,
-            Padding = 1D,
-            RuleGap = Math.Max(1D, style.Font.Size * 0.125D),
+            Padding = 0D,
+            RuleGap = Math.Max(0.75D, style.Font.Size / 16D),
             RuleThickness = Math.Max(0.75D, style.Font.Size / 16D),
             MatrixGap = Math.Max(4D, style.Font.Size * 0.5D),
-            Dpi = HtmlRenderOptions.CssPixelsPerInch
+            // CSS sizes are already drawing units, so no point-to-pixel conversion is applied here.
+            Dpi = 72D,
+            DisplayStyle = !shrinkToFit,
+            Fonts = _fonts,
+            TokenPaintText = token => tokenPaint.TryGetValue(token, out string? painted) ? painted : null
         };
-        OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(expression, mathOptions);
-        OfficeDrawing drawing = OfficeMathRenderer.Render(expression, mathOptions);
+        if (bool.TryParse(element.GetAttribute("displaystyle"), out bool authoredDisplayStyle)) {
+            mathOptions.DisplayStyle = authoredDisplayStyle;
+        }
+        OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(expression, mathOptions, _cancellationToken);
+        OfficeDrawing drawing = OfficeMathRenderer.Render(expression, mathOptions, _cancellationToken);
         double intrinsicWidth = drawing.Width;
         double intrinsicHeight = drawing.Height;
         ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize: true);
@@ -62,9 +90,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         var visuals = new List<HtmlRenderVisual>();
         var mathVisuals = new List<HtmlRenderVisual>();
-        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
-        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double alignmentSpace = !shrinkToFit && !style.ExplicitWidth.HasValue
+            ? Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth) : 0D;
+        double alignmentOffset = style.Alignment == OfficeTextAlignment.Center ? alignmentSpace / 2D
+            : style.Alignment == OfficeTextAlignment.Right ? alignmentSpace : 0D;
+        double boxX = style.MarginLeft + alignmentOffset;
+        AddBoxPaint(visuals, style, boxX, style.MarginTop, boxWidth, boxHeight, element);
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft + alignmentOffset;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        if (mathMlSource != null && !mathMlSource.IsOriginalMarkup) _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MathMlSourceNormalized,
+                "The formula source uses current namespace-aware MathML because exact original markup is unavailable or differs from the current DOM.",
+                HtmlDiagnosticSeverity.Warning, source, lossKind: OfficeConversionLossKind.Approximation);
         string logicalText = expression.ToPlainText();
         string alternativeText = ResolveMathAlternativeText(element, logicalText);
         string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
@@ -80,7 +116,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             alternativeText,
             link,
             source);
-        mathVisuals.Add(new HtmlRenderLogicalTextGroup(
+        var logicalVisual = new HtmlRenderLogicalTextGroup(
             logicalText,
             contentX,
             contentY,
@@ -88,7 +124,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentSize.Height,
             new[] { drawingVisual },
             0,
-            source));
+            source);
+        mathVisuals.Add(new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.Formula, contentX, contentY, contentSize.Width, contentSize.Height,
+            new[] { logicalVisual }, 0, source, alternativeText: alternativeText, mathMlSource: mathMlSource));
 
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, source);
         HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(
@@ -108,10 +147,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentRadii,
             source + ":content-clip");
         ReportReplacedElementFallbacks(style, element);
-        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AddBoxOutlinePaint(visuals, style, boxX, style.MarginTop, boxWidth, boxHeight, element);
         if (!style.PaintVisible) visuals.Clear();
 
-        double scaleY = contentSize.Height / intrinsicHeight;
+        double scaleY = contentSize.Height / drawing.Height;
         baseline = style.MarginTop
             + style.BorderTopWidth
             + style.PaddingTop

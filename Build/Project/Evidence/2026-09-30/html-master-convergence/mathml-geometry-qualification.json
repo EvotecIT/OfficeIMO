@@ -1,0 +1,1146 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-10-02T00:48:45.031337+00:00",
+  "qualificationSource": "345893cd87a8d9158b54675d3d568bd8400d3933",
+  "runtimeSource": "3b3c3e3624cca6db4eb901df4c8d0b650fb50ae1",
+  "sourceCleanAtExecution": true,
+  "retainedRoot": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8",
+  "priorFrameworkProof": "mathml-geometry-checkpoint.json",
+  "totalFrameworkPasses": 31928,
+  "toolBuilds": [
+    {
+      "name": "comparison",
+      "command": [
+        "/Users/przemyslawklys/.local/bin/dotnet",
+        "build",
+        "OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0"
+      ],
+      "exit": 0
+    },
+    {
+      "name": "editable",
+      "command": [
+        "/Users/przemyslawklys/.local/bin/dotnet",
+        "build",
+        "Build/HtmlEditableEvidence/OfficeIMO.Html.EditableEvidence.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0"
+      ],
+      "exit": 0
+    },
+    {
+      "name": "static-budget",
+      "command": [
+        "/Users/przemyslawklys/.local/bin/dotnet",
+        "build",
+        "Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0"
+      ],
+      "exit": 0
+    },
+    {
+      "name": "h10-budget",
+      "command": [
+        "/Users/przemyslawklys/.local/bin/dotnet",
+        "build",
+        "Build/HtmlH10Budget/OfficeIMO.Html.H10Budget.csproj",
+        "-c",
+        "Release",
+        "-f",
+        "net10.0"
+      ],
+      "exit": 0
+    }
+  ],
+  "predeclaredRequirements": {
+    "recordedUtc": "2026-10-02T00:32:02.963635+00:00",
+    "source": "345893cd87a8d9158b54675d3d568bd8400d3933",
+    "runtimeSource": "3b3c3e3624cca6db4eb901df4c8d0b650fb50ae1",
+    "archive": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-nasa-22157e58d/source.mhtml",
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "reference": {
+      "peachVersion": "0.9.20",
+      "latestPublishedVerified": "https://www.nuget.org/packages/PeachPDF",
+      "license": "BSD-3-Clause",
+      "nuspecSha256": "199df36c96840eff5f660383cfdf4314f11f5239765ab1f5873d0b86792baad6",
+      "packageSha256": "00dd54b019a6441bacad3ac0bbc7cb27dde604f77c4508b20001eb23441b6393"
+    },
+    "requirements": [
+      "Frozen mathml-semantics and pdf-conformance observation lanes.",
+      "H4 all eight acceptance cases, no relaxed criteria.",
+      "NASA all eleven native PDF variants; accepted page counts, image occurrences and full extracted-token multisets preserved; zero-margin16pages/24image objects.",
+      "Inspect changed complete-page rasters; do not equate preservation with browser fidelity.",
+      "Unchanged macOS H4 static and ten-operation H10 budget ceilings."
+    ],
+    "ceilings": "Build/Project/Evidence/2026-09-28/html-h10-nist-noaa-nasa/macos-budget-nasa-solar-system-terrestrial-planets.json",
+    "remainingPlatform": "Windows/Linux operation budgets remain required unfinished proof."
+  },
+  "heldOut": {
+    "passed": true,
+    "cases": 8,
+    "acceptanceConfigurationSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+    "allCriteriaUnchanged": true,
+    "byteComparison": [
+      {
+        "id": "subgrid-operations",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "nested-fragmentation-report",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "columns-footnotes-brief",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "named-pages-brochure",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "stacking-clipping-board",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "typography-specimen",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "professional-print-catalog",
+        "printPdf": true,
+        "screenPng": true,
+        "screenToPdf": true
+      },
+      {
+        "id": "legacy-portal",
+        "printPdf": false,
+        "screenPng": false,
+        "screenToPdf": false
+      }
+    ],
+    "visualInspection": "Only legacy-portal Queue label beside a widget changes; inspected paired screen/print output. Same acceptance criteria pass."
+  },
+  "planetaryPreservation": {
+    "baselineSource": "6594a706c33330e64a3e8590e318f70b493c76f0",
+    "currentSource": "345893cd87a8d9158b54675d3d568bd8400d3933",
+    "allElevenPreservePagesImageOccurrencesAndFullTokenMultisets": true,
+    "imageMetric": "Poppler pdfimages -list appearances, including repeated soft masks;24 equals18color-image appearances+6soft-mask appearances, not24 unique streams.",
+    "byteIdenticalVariants": 0,
+    "operations": [
+      {
+        "intent": "officeimo-print-browser-ua",
+        "baseline": {
+          "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3171
+        },
+        "current": {
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3171
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "baseline": {
+          "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+          "pages": 11,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3165
+        },
+        "current": {
+          "sha256": "f24cef3837c8df021069cd3f989a02095839d76267d97557825b9cefb006d61f",
+          "pages": 11,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3165
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "baseline": {
+          "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+          "pages": 11,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3165
+        },
+        "current": {
+          "sha256": "f24cef3837c8df021069cd3f989a02095839d76267d97557825b9cefb006d61f",
+          "pages": 11,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3165
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "baseline": {
+          "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3168
+        },
+        "current": {
+          "sha256": "7ee3b30f84c3135f9880049e578f9f5249ef1e4ec40eb611fab7b439eaf5ec32",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3168
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "baseline": {
+          "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3171
+        },
+        "current": {
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3171
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "baseline": {
+          "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3171
+        },
+        "current": {
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3171
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-print",
+        "baseline": {
+          "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+          "pages": 19,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3170
+        },
+        "current": {
+          "sha256": "0d1a0cca5553fb46da078299da2f4075770034fe97bdf589b8f9cfc475493d4d",
+          "pages": 19,
+          "imageOccurrencesIncludingMasks": 24,
+          "colorImageOccurrences": 18,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3170
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "baseline": {
+          "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+          "pages": 21,
+          "imageOccurrencesIncludingMasks": 26,
+          "colorImageOccurrences": 20,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3166
+        },
+        "current": {
+          "sha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+          "pages": 21,
+          "imageOccurrencesIncludingMasks": 26,
+          "colorImageOccurrences": 20,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3166
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "baseline": {
+          "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+          "pages": 21,
+          "imageOccurrencesIncludingMasks": 26,
+          "colorImageOccurrences": 20,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3166
+        },
+        "current": {
+          "sha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+          "pages": 21,
+          "imageOccurrencesIncludingMasks": 26,
+          "colorImageOccurrences": 20,
+          "softMaskOccurrences": 6,
+          "tokenCount": 3166
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "baseline": {
+          "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 34,
+          "colorImageOccurrences": 26,
+          "softMaskOccurrences": 8,
+          "tokenCount": 3166
+        },
+        "current": {
+          "sha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 34,
+          "colorImageOccurrences": 26,
+          "softMaskOccurrences": 8,
+          "tokenCount": 3166
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "baseline": {
+          "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 34,
+          "colorImageOccurrences": 26,
+          "softMaskOccurrences": 8,
+          "tokenCount": 3166
+        },
+        "current": {
+          "sha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+          "pages": 16,
+          "imageOccurrencesIncludingMasks": 34,
+          "colorImageOccurrences": 26,
+          "softMaskOccurrences": 8,
+          "tokenCount": 3166
+        },
+        "matches": {
+          "sha256": false,
+          "pages": true,
+          "imageOccurrencesIncludingMasks": true,
+          "colorImageOccurrences": true,
+          "softMaskOccurrences": true,
+          "tokenCount": true,
+          "tokens": true
+        }
+      }
+    ]
+  },
+  "planetaryRasterComparison": [
+    {
+      "page": 1,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "c1bf28ce55e5d290678c04d599db094d0c92839a3d2409823ac29ef5b8a8e97a",
+      "currentSha256": "c1bf28ce55e5d290678c04d599db094d0c92839a3d2409823ac29ef5b8a8e97a"
+    },
+    {
+      "page": 2,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "b617920c715c660330d5db589bead12d02a8680e28d8f9285d266ca5d6d762d5",
+      "currentSha256": "b617920c715c660330d5db589bead12d02a8680e28d8f9285d266ca5d6d762d5"
+    },
+    {
+      "page": 3,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "01d312a2affe68dab79d1d25e5e5fc10f58c31edd1796e726119293c9a0bb65d",
+      "currentSha256": "01d312a2affe68dab79d1d25e5e5fc10f58c31edd1796e726119293c9a0bb65d"
+    },
+    {
+      "page": 4,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "46ceae21823ccf50439f7137fa9aa59d6052790af717e0ed4d2a706dab3dd14e",
+      "currentSha256": "46ceae21823ccf50439f7137fa9aa59d6052790af717e0ed4d2a706dab3dd14e"
+    },
+    {
+      "page": 5,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "96e99190489d17b837eda74e6a24214b879b441ac52667060c4bdd5bd6324ccd",
+      "currentSha256": "96e99190489d17b837eda74e6a24214b879b441ac52667060c4bdd5bd6324ccd"
+    },
+    {
+      "page": 6,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "ee6c65ba8ae84b33a3cd5907782695266466ac5e10487dd6a92c08691a1b5e26",
+      "currentSha256": "ee6c65ba8ae84b33a3cd5907782695266466ac5e10487dd6a92c08691a1b5e26"
+    },
+    {
+      "page": 7,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "8b23092a22df1e7c66af5bf188f808cec6bd939ea06e6e00cdba4471de64c7c4",
+      "currentSha256": "8b23092a22df1e7c66af5bf188f808cec6bd939ea06e6e00cdba4471de64c7c4"
+    },
+    {
+      "page": 8,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "f5b0110d82a70d108800248ac0c804b02c424f2087a51e59b00889eab8d582a3",
+      "currentSha256": "f5b0110d82a70d108800248ac0c804b02c424f2087a51e59b00889eab8d582a3"
+    },
+    {
+      "page": 9,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "ef4f4418a36941de59ceeef6fc2e61c3a457aaa6c20b37fc0e86bc77cbd9b270",
+      "currentSha256": "ef4f4418a36941de59ceeef6fc2e61c3a457aaa6c20b37fc0e86bc77cbd9b270"
+    },
+    {
+      "page": 10,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "8cf9e55dcf79c508f6025e081e96afebed9e40976d09ad069d75ce34cf3da65a",
+      "currentSha256": "8cf9e55dcf79c508f6025e081e96afebed9e40976d09ad069d75ce34cf3da65a"
+    },
+    {
+      "page": 11,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "7ed1cca8fd0def328b858d77ab8c527e82c3553a876bf4cadcfa725707363f96",
+      "currentSha256": "7ed1cca8fd0def328b858d77ab8c527e82c3553a876bf4cadcfa725707363f96"
+    },
+    {
+      "page": 12,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "7dc739649ee15b03cd602e7052652cb080c12d01e8519be2d9041f0c5b5807fc",
+      "currentSha256": "7dc739649ee15b03cd602e7052652cb080c12d01e8519be2d9041f0c5b5807fc"
+    },
+    {
+      "page": 13,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "5ad6f8065a3d3cfb0a7fcc897ed27868ff059ad4d7ed625bf4ece82d0d95b8f3",
+      "currentSha256": "5ad6f8065a3d3cfb0a7fcc897ed27868ff059ad4d7ed625bf4ece82d0d95b8f3"
+    },
+    {
+      "page": 14,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "0a482c2f7cedb09076da0ebec51bacc790294d0aa004260927ff376f4e55c5e3",
+      "currentSha256": "0a482c2f7cedb09076da0ebec51bacc790294d0aa004260927ff376f4e55c5e3"
+    },
+    {
+      "page": 15,
+      "pixelIdentical": true,
+      "changedBounds": null,
+      "meanAbsoluteChannelDifference": 0.0,
+      "baselineSha256": "a8f725b8a64dd1bb2c6cf106b42d2cdf85ba19c14a97898d90216e54e73ab5c6",
+      "currentSha256": "a8f725b8a64dd1bb2c6cf106b42d2cdf85ba19c14a97898d90216e54e73ab5c6"
+    },
+    {
+      "page": 16,
+      "pixelIdentical": false,
+      "changedBounds": [
+        17,
+        147,
+        61,
+        159
+      ],
+      "meanAbsoluteChannelDifference": 0.04951856398157153,
+      "baselineSha256": "b75a6bca65506501d48f36b71849162b49df6d64b21a0c02b06a6f240bf7bd73",
+      "currentSha256": "9945078df081081fdc2029e597d166fbf355274f052b0c35c640ee68d6f08510"
+    }
+  ],
+  "planetaryVisualInspection": "At72dpi pages1-15 are pixel-identical; only JoinUs text baseline next to an image changes on page16. Paired changed-region output inspected, no loss. This is preservation evidence, not browser parity.",
+  "formulaInspection": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/mathml-semantics/mathml-semantics/chromium-print.pdf",
+      "sha256": "fe9dda02530171ce2cf84a05a91daf8b6699965c47beb756c32c5a5cf935dc74",
+      "header": "%PDF-1.4",
+      "pages": 1,
+      "formulas": [],
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "topLevelImages": 0,
+      "text": "mathml-semantics\nFORMULA-PREFIX \ud835\udc652 +\ud835\udc662  FORMULA-SUFFIX\nMATH-LINK\nEND-mathml-semantics",
+      "popplerText": "mathml-semantics\nFORMULA-PREFIX \ud835\udc65 2+ \ud835\udc66 FORMULA-SUFFIX\n2\n\nMATH-LINK\nEND-mathml-semantics\n\n\f",
+      "popplerWarnings": ""
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/mathml-semantics/mathml-semantics/officeimo-print.pdf",
+      "sha256": "e88e4dc50356d97eef5e27c9ddbdc9373f7dd55cc1cd6121ad6358627dca0f35",
+      "header": "%PDF-1.4",
+      "pages": 1,
+      "formulas": [
+        {
+          "alternativeText": "x squared plus y over two",
+          "associatedFiles": 0,
+          "children": [
+            {
+              "objectNumber": 14
+            }
+          ]
+        }
+      ],
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "topLevelImages": 0,
+      "text": "mathml-semantics\nFORMULA-PREFIX x2 + y\n2\n \n FORMULA-SUFFIX\nMATH-LINK\nEND-mathml-semantics",
+      "popplerText": "FORMULA-PREFIX\n\n(x^(2)+y)/(2)\n\nmathml-semantics\nFORMULA-SUFFIX\n\nMATH-LINK\nEND-mathml-semantics\n\n\f",
+      "popplerWarnings": ""
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/mathml-semantics/mathml-semantics/officeimo-screen-to-pdf.pdf",
+      "sha256": "f8e5060093cc863e5c415fb4499408872c267401d94a3183c4f67c8d1c2051f9",
+      "header": "%PDF-1.4",
+      "pages": 1,
+      "formulas": [
+        {
+          "alternativeText": "x squared plus y over two",
+          "associatedFiles": 0,
+          "children": [
+            {
+              "objectNumber": 14
+            }
+          ]
+        }
+      ],
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "topLevelImages": 0,
+      "text": "mathml-semantics\nFORMULA-PREFIX x2 + y\n2\n \n FORMULA-SUFFIX\nMATH-LINK\nEND-mathml-semantics",
+      "popplerText": "FORMULA-PREFIX\n\n(x^(2)+y)/(2)\n\nmathml-semantics\nFORMULA-SUFFIX\n\nMATH-LINK\nEND-mathml-semantics\n\n\f",
+      "popplerWarnings": ""
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/mathml-semantics/mathml-semantics/peachpdf-print.pdf",
+      "sha256": "f942cfd4a00f0e6ead0056779997c892d8f0bcfa04ac51ab4b8d750e61d3a879",
+      "header": "%PDF-1.4",
+      "pages": 1,
+      "formulas": [
+        {
+          "alternativeText": "",
+          "associatedFiles": 1,
+          "children": [
+            {
+              "markedContentId": 2
+            }
+          ]
+        }
+      ],
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "topLevelImages": 0,
+      "text": "mathml-semantics\nFORMULA-PREFIX\n\ud835\udc652 + \ud835\udc66\n2 FORMULA-SUFFIX\nMATH-LINK\nEND-mathml-semantics",
+      "popplerText": "mathml-semantics\n\ud835\udc652 + \ud835\udc66\n\nFORMULA-PREFIX\n\n2\n\nFORMULA-SUFFIX\n\nMATH-LINK\nEND-mathml-semantics\n\n\f",
+      "popplerWarnings": "Syntax Warning: Mismatch between font type and embedded font file\n"
+    }
+  ],
+  "staticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-10-02T00:41:25.504882+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "345893cd87a8d9158b54675d3d568bd8400d3933",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4793.9995,
+      "peakWorkingSetBytes": 366198784,
+      "memorySampleCount": 151,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4717.899,
+          "managedAllocatedBytes": 1083803024,
+          "outputBytes": 2144817,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "6581a8347bd4442f2dd25007ac7372a0a14a2e6174faa68bca4d5a028626dbf2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11618.1416,
+      "peakWorkingSetBytes": 554401792,
+      "memorySampleCount": 371,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2270.7497,
+          "managedAllocatedBytes": 894614008,
+          "outputBytes": 2144817,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "6581a8347bd4442f2dd25007ac7372a0a14a2e6174faa68bca4d5a028626dbf2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1920.6459,
+          "managedAllocatedBytes": 896179944,
+          "outputBytes": 2144817,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "6581a8347bd4442f2dd25007ac7372a0a14a2e6174faa68bca4d5a028626dbf2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1909.8811,
+          "managedAllocatedBytes": 896139176,
+          "outputBytes": 2144817,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "6581a8347bd4442f2dd25007ac7372a0a14a2e6174faa68bca4d5a028626dbf2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 2.008,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "operationBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-10-02T00:41:56.972488+00:00",
+    "caseId": "nasa-solar-system-terrestrial-planets",
+    "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
+    "sourceCommit": "345893cd87a8d9158b54675d3d568bd8400d3933",
+    "sourceClean": true,
+    "runnerVersion": "1.0.0+345893cd87a8d9158b54675d3d568bd8400d3933",
+    "manifestSha256": "ad84429c1bbccec1e2add012ba578d8a85ed140989c2c1ca01a5f87daf5b3928",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "archivePath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-nasa-22157e58d/source.mhtml",
+    "archiveBytes": 2641258,
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "osDescription": "macOS 27.0.1",
+    "framework": ".NET 10.0.12",
+    "processorCount": 10,
+    "machineName": "evomini",
+    "memoryScope": "fresh child process tree per declared operation, including startup and conversion",
+    "conversionScope": "layout and PDF conversion of preloaded MHTML for PDF; MHTML load, visible-content preparation, save and reopen for editable",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4388.4002,
+        "managedAllocatedBytes": 2110381560,
+        "processMilliseconds": 4758.1334,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 496074752,
+          "sampleCount": 123,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813356,
+        "outputSha256": "0d1a0cca5553fb46da078299da2f4075770034fe97bdf589b8f9cfc475493d4d",
+        "pageCount": 19,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/pdf-print/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4439.7014,
+        "managedAllocatedBytes": 2114542576,
+        "processMilliseconds": 4814.4701,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 516833280,
+          "sampleCount": 126,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756637,
+        "outputSha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+        "pageCount": 16,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/pdf-print-zero-margin/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3637.6341,
+        "managedAllocatedBytes": 1652799712,
+        "processMilliseconds": 4030.1035,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 442875904,
+          "sampleCount": 104,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+        "pageCount": 21,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/pdf-screen-media/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3499.5217,
+        "managedAllocatedBytes": 1772420944,
+        "processMilliseconds": 3864.5942,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 543539200,
+          "sampleCount": 101,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740829,
+        "outputSha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+        "pageCount": 16,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/pdf-screen-snapshot/html-mhtml-evidence.json"
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2570.3488,
+        "managedAllocatedBytes": 962225800,
+        "processMilliseconds": 2759.8188,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 318947328,
+          "sampleCount": 71,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491302,
+        "outputSha256": "8d608329e755c2ecd36e3f5d7b01aa7385c37eb0d2ca479c57d3f2ffa7633a80",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/editable-word/word/report.json"
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2031.8785,
+        "managedAllocatedBytes": 941952904,
+        "processMilliseconds": 2186.3365,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 343736320,
+          "sampleCount": 57,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528708,
+        "outputSha256": "779ec4c20e0b3dd4883597c06fc9ec73a5df379b2c86214f9fc3398798d34169",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/editable-excel/excel/report.json"
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2629.9034,
+        "managedAllocatedBytes": 1026706904,
+        "processMilliseconds": 2778.3457,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 305299456,
+          "sampleCount": 73,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499732,
+        "outputSha256": "153e0df85923d1d02fb9bf921b7358d661d5bb0f7539875fa76bb64b2a3777e1",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/editable-powerpoint/powerpoint/report.json"
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1503.4357,
+        "managedAllocatedBytes": 644821120,
+        "processMilliseconds": 1673.9812,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 268107776,
+          "sampleCount": 44,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "f69530a0483209f6720f8319b4b74390d3d4ee25deffb2d72ca5d544335e5d57",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/editable-onenote/onenote/report.json"
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2003.3492,
+        "managedAllocatedBytes": 892069480,
+        "processMilliseconds": 2161.9147,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 275922944,
+          "sampleCount": 56,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945336,
+        "outputSha256": "7d6b4474a77947ce1403fbda115fc3cfc52b3307372acb26fb6f275f4fdcabe7",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/editable-rtf/rtf/report.json"
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1503.5294,
+        "managedAllocatedBytes": 647174208,
+        "processMilliseconds": 1719.2477,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 267845632,
+          "sampleCount": 43,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-mathml-geometry/Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/editable-markdown/markdown/report.json"
+      }
+    ],
+    "failures": []
+  },
+  "remaining": [
+    "Default math-font selection/math-auto and full MATH-table layout.",
+    "Exact original MathML associated-file mapping to Formula structure.",
+    "Explicit requested PDF/A-3b and PDF/UA-1 independently validated output.",
+    "Windows/Linux platform and operation-budget qualification.",
+    "Known pre-existing synchronous/asynchronous concurrent unique-file save race."
+  ],
+  "authorization": "Branch checkpoint/integration only; no HTML PR, master merge, package release or deployment.",
+  "artifacts": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/predeclared-qualification.json",
+      "sha256": "3818a0c524abf0d9971f032f07642a8ddf5bb3734cc8a80dd03de0035262cea3"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/build-commands.json",
+      "sha256": "36efeb68573a961ba750f28cda660c3239c64e67b54f1af39d8b0c5bee0d805f"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/qualification-commands.json",
+      "sha256": "8944572723f4dc9e18be9f5a057f186dbbe5e78e214447666327bfea99e18521"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/budget-commands.json",
+      "sha256": "0347ccd6d4baeb38da154bde0fc8d18b37616eb8efe16e72cb79f89b90311d7f"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h4/html-corpus-evidence.json",
+      "sha256": "1808c987c487ada864d5291050a70c6a2b2720799827634f586fe6c0b609f9f6"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h4-output-sha-comparison.json",
+      "sha256": "2b05e15be964c4c7ce79dfaf0afc67de6d96c76decb94f024b7c5fc2f7b14e09"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/nasa/html-mhtml-evidence.json",
+      "sha256": "e2da41eb8e87426a076a323f2c8e14118cacab6eb3f03a69aaa8b537ca66271c"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/nasa-preservation.json",
+      "sha256": "d0873dd9fcf764352ff15227223ef40a60583b86dd17621015eddf04113480b8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/nasa-page-raster-comparison.json",
+      "sha256": "54ebfebdcb4ff97873cd6ae22275b7a0ad0583d863147afaee42e45b6d127f74"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/mathml-semantics-inspection.json",
+      "sha256": "6533ef2f0963e8dab11bb3add4e8fad4b9463f10fb01cc089a13f57885c36a96"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/static-budget/html-static-budget.json",
+      "sha256": "8064cb8bb0efee7a3ab487f7e6964eda7142719cb089735fdb78c9f52b65b7c7"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/h10-budget/h10-budget.json",
+      "sha256": "7d04cbed8f0a2cafc6fa50149c8b07513c6adc9b48ecbb0b2ef1f120600dfe0a"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/legacy-portal-contact.png",
+      "sha256": "7391f7847450354156cb3376c53616e8dfc48fb8f837f113716e8ef30d0b6766"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/nasa-page16-neighbor-contact.png",
+      "sha256": "5d9731fb6bc71105efc2ca1c1306bba6476da47385ef3a56d2aefb9b5f26c266"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/mathml-semantics-print-contact.png",
+      "sha256": "ea359bd766815cd57d5477aa72e84d78bcbee20d107f5eac5d3b0ce968cdc7b3"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8/pdf-conformance-print-contact.png",
+      "sha256": "7a580fe2ee7f38031cb0029235eb047e5641eeee9933757ae8a6fbbcf1552cbf"
+    }
+  ],
+  "cleanup": {
+    "bytesRemoved": 1226466068,
+    "targetsRemoved": 112,
+    "retainedEvidenceRoot": "Ignore/HtmlUnknownPageQualification/mathml-geometry-qualification-345893cd8",
+    "duplicateBudgetOutputsCompacted": true
+  }
+}

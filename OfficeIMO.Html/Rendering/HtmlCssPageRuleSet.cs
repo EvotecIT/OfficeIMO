@@ -21,6 +21,8 @@ internal sealed class HtmlCssPageRuleSet {
         _rules.Add(rule);
     }
 
+    internal bool HasPageSpecificRules => _rules.Any(rule => rule.PageName != null || rule.Selector != HtmlCssPageSelector.Generic);
+
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
         return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
     }
@@ -29,6 +31,20 @@ internal sealed class HtmlCssPageRuleSet {
         HtmlCssPageGeometry geometry = ResolveGeometry(
             _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic),
             options);
+        if (options.PrintFitContentWidth is double layoutWidth) {
+            options.CssMediaHeightOverride ??= geometry.Height;
+            double physicalContentWidth = geometry.ContentWidth;
+            double scale = physicalContentWidth / layoutWidth;
+            if (scale >= 1D || layoutWidth > options.MaxSurfaceWidth)
+                throw new ArgumentOutOfRangeException(nameof(options.PrintFitContentWidth),
+                    "Print layout width must exceed the authored page content width and stay within the surface limit.");
+            HtmlCssPageGeometry layoutGeometry = geometry.Scale(1D / scale);
+            if (layoutGeometry.Width > options.MaxSurfaceWidth || layoutGeometry.Height > options.MaxSurfaceHeight)
+                throw new ArgumentOutOfRangeException(nameof(options.PrintFitContentWidth),
+                    "The scaled page exceeds the configured surface limit.");
+            options.PrintFitScale = scale;
+            geometry = layoutGeometry;
+        }
         options.PageSize = new OfficePageSize(
             geometry.Width / HtmlRenderOptions.CssPixelsPerInch,
             geometry.Height / HtmlRenderOptions.CssPixelsPerInch);
@@ -42,6 +58,7 @@ internal sealed class HtmlCssPageRuleSet {
         var right = new HtmlCssPageCascadeValue();
         var bottom = new HtmlCssPageCascadeValue();
         var left = new HtmlCssPageCascadeValue();
+        var backgroundColor = new HtmlCssPageCascadeValue();
         foreach (HtmlCssPageRule rule in matching) {
             HtmlCssPageGeometryDeclaration geometry = rule.Geometry;
             Consider(ref size, geometry.Size, rule);
@@ -55,6 +72,7 @@ internal sealed class HtmlCssPageRuleSet {
             Consider(ref right, geometry.MarginRight, rule);
             Consider(ref bottom, geometry.MarginBottom, rule);
             Consider(ref left, geometry.MarginLeft, rule);
+            Consider(ref backgroundColor, geometry.BackgroundColor, rule);
         }
 
         double width = _baseWidth ?? options.PageWidth;
@@ -75,10 +93,12 @@ internal sealed class HtmlCssPageRuleSet {
         ApplySide(left, width, height, options.DefaultFontSize, ref resolvedLeft);
         HtmlRenderPrintProductionSettings? printProduction = ResolvePrintProduction(matching, width, height, options);
         HtmlRenderMargins margins = HtmlRenderMargins.FromCssPageRule(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom);
-        if (printProduction == null) return new HtmlCssPageGeometry(width, height, margins);
+        OfficeColor? resolvedBackgroundColor = ResolveBackgroundColor(backgroundColor);
+        if (printProduction == null) return ScaleForPrintFit(
+            new HtmlCssPageGeometry(width, height, margins, backgroundColor: resolvedBackgroundColor), options);
 
         double sheetInset = printProduction.TrimInset;
-        return new HtmlCssPageGeometry(
+        return ScaleForPrintFit(new HtmlCssPageGeometry(
             width + (sheetInset * 2D),
             height + (sheetInset * 2D),
             HtmlRenderMargins.FromCssPageRule(
@@ -86,7 +106,26 @@ internal sealed class HtmlCssPageRuleSet {
                 margins.Top + sheetInset,
                 margins.Right + sheetInset,
                 margins.Bottom + sheetInset),
-            printProduction);
+            printProduction,
+            resolvedBackgroundColor), options);
+    }
+
+    private static HtmlCssPageGeometry ScaleForPrintFit(HtmlCssPageGeometry geometry, HtmlRenderOptions options) {
+        if (options.PrintFitScale is not double scale) return geometry;
+        HtmlCssPageGeometry fitted = geometry.Scale(1D / scale);
+        if (fitted.Width > options.MaxSurfaceWidth || fitted.Height > options.MaxSurfaceHeight)
+            throw new ArgumentOutOfRangeException(nameof(options.PrintFitContentWidth),
+                "A fitted CSS page exceeds the configured surface limit.");
+        return fitted;
+    }
+
+    private static OfficeColor? ResolveBackgroundColor(HtmlCssPageCascadeValue value) {
+        value = ResolveLayerRevert(value);
+        if (!value.HasValue
+            || string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "unset", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "transparent", StringComparison.OrdinalIgnoreCase)) return null;
+        return HtmlRenderCssValues.TryColor(value.Value, out OfficeColor color) ? color : null;
     }
 
     private static HtmlRenderPrintProductionSettings? ResolvePrintProduction(
@@ -415,19 +454,36 @@ internal readonly struct HtmlCssPageGeometry {
         double width,
         double height,
         HtmlRenderMargins margins,
-        HtmlRenderPrintProductionSettings? printProduction = null) {
+        HtmlRenderPrintProductionSettings? printProduction = null,
+        OfficeColor? backgroundColor = null) {
         Width = width;
         Height = height;
         Margins = margins;
         PrintProduction = printProduction;
+        BackgroundColor = backgroundColor;
     }
 
     internal double Width { get; }
     internal double Height { get; }
     internal HtmlRenderMargins Margins { get; }
     internal HtmlRenderPrintProductionSettings? PrintProduction { get; }
+    internal OfficeColor? BackgroundColor { get; }
     internal double ContentWidth => Math.Max(1D, Width - Margins.Left - Margins.Right);
     internal double ContentHeight => Math.Max(1D, Height - Margins.Top - Margins.Bottom);
+
+    internal HtmlCssPageGeometry Scale(double factor) => new HtmlCssPageGeometry(
+        Width * factor,
+        Height * factor,
+        HtmlRenderMargins.FromCssPageRule(
+            Margins.Left * factor,
+            Margins.Top * factor,
+            Margins.Right * factor,
+            Margins.Bottom * factor),
+        PrintProduction == null ? null : new HtmlRenderPrintProductionSettings(
+            PrintProduction.Bleed * factor,
+            PrintProduction.MarkArea * factor,
+            PrintProduction.Marks),
+        BackgroundColor);
 }
 
 internal readonly struct HtmlCssPageProductionDeclaration {
@@ -510,13 +566,15 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
         HtmlCssPageDeclaration marginTop,
         HtmlCssPageDeclaration marginRight,
         HtmlCssPageDeclaration marginBottom,
-        HtmlCssPageDeclaration marginLeft) {
+        HtmlCssPageDeclaration marginLeft,
+        HtmlCssPageDeclaration backgroundColor) {
         Size = size;
         Margin = margin;
         MarginTop = marginTop;
         MarginRight = marginRight;
         MarginBottom = marginBottom;
         MarginLeft = marginLeft;
+        BackgroundColor = backgroundColor;
     }
 
     internal HtmlCssPageDeclaration Size { get; }
@@ -525,12 +583,14 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
     internal HtmlCssPageDeclaration MarginRight { get; }
     internal HtmlCssPageDeclaration MarginBottom { get; }
     internal HtmlCssPageDeclaration MarginLeft { get; }
+    internal HtmlCssPageDeclaration BackgroundColor { get; }
     internal bool IsEmpty => Size.Value.Length == 0
         && Margin.Value.Length == 0
         && MarginTop.Value.Length == 0
         && MarginRight.Value.Length == 0
         && MarginBottom.Value.Length == 0
-        && MarginLeft.Value.Length == 0;
+        && MarginLeft.Value.Length == 0
+        && BackgroundColor.Value.Length == 0;
 }
 
 internal sealed class HtmlCssPageMarginTemplate {

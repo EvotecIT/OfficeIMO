@@ -32,7 +32,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (TryResolveContentOrigin(inlinePosition.FormattingContainer, request.ContainingBlock, out PositionedPoint inlineContainerOrigin)) {
                 double inlineX = inlineContainerOrigin.X + inlinePosition.X;
                 double inlineY = inlineContainerOrigin.Y + inlinePosition.Y;
-                if (request.Style.Position == "fixed") {
+                if (request.Style.Position == "fixed" && _options.Mode != HtmlRenderMode.Paged) {
                     inlineX += ActiveMargins.Left;
                     inlineY += ActiveMargins.Top;
                 }
@@ -43,7 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && TryResolveContentOrigin(request.StaticAnchor.Parent, request.ContainingBlock, out PositionedPoint parentContentOrigin)) {
             double x = parentContentOrigin.X + request.StaticAnchor.X;
             double y = parentContentOrigin.Y + request.StaticAnchor.Y;
-            if (request.Style.Position == "fixed") {
+            if (request.Style.Position == "fixed" && _options.Mode != HtmlRenderMode.Paged) {
                 x += ActiveMargins.Left;
                 y += ActiveMargins.Top;
             }

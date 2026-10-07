@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Stacking and clipping board</title><style>
+*{box-sizing:border-box}body{margin:0;background:#101827;font:14px/1.4 Arial,sans-serif;color:white}.stage{position:relative;width:720px;height:560px;margin:24px auto;overflow:hidden;background:linear-gradient(145deg,#173a63,#0f172a)}
+.halo{position:absolute;left:330px;top:-90px;width:430px;height:430px;border-radius:50%;background:radial-gradient(circle,#5cc8ff 0,#2355a5 45%,transparent 70%);opacity:.65;z-index:1}
+.panel{position:absolute;left:54px;top:72px;width:520px;padding:30px;background:rgba(255,255,255,.92);color:#172033;box-shadow:0 20px 50px rgba(0,0,0,.35);z-index:3;clip-path:polygon(0 0,100% 0,94% 100%,0 92%)}
+.ribbon{position:absolute;right:-46px;top:42px;width:220px;padding:10px;text-align:center;background:#f6c344;color:#172033;transform:rotate(32deg);z-index:5}.underlay{position:absolute;left:24px;bottom:20px;color:#9fc8ef;z-index:2}
+</style></head><body><main class="stage"><div class="halo"></div><div class="underlay">Layer SC-0 remains behind the clipped panel.</div><section class="panel"><span class="ribbon">QUALIFIED INPUT</span><h1>Release control board</h1><p>The clipping path keeps the white panel inside its authored polygon.</p><h2>Current decision</h2><p>Static artifacts preserve the stacking order, shadow and overlay geometry.</p><p>Final marker: SC-512.</p></section></main></body></html>

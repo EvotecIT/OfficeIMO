@@ -5,6 +5,13 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlAccessibleNameTests {
     [Fact]
+    public void LogicalDocument_FormLabelsDoNotExhaustNamesForFollowingContent() {
+        string inputs = string.Concat(Enumerable.Repeat("<input>", 3000));
+        var logical = HtmlLogicalDocumentBuilder.FromHtml(inputs + "<h1 aria-label='Accessible heading'>Visible heading</h1>");
+        Assert.Equal("Accessible heading", Find(logical.Root, HtmlLogicalNodeKind.Heading).AccessibleName);
+    }
+
+    [Fact]
     public void LogicalNodeKind_AppendsSemanticKindsWithoutRenumberingExistingValues() {
         Assert.Equal(19, (int)HtmlLogicalNodeKind.TableCaption);
         Assert.Equal(20, (int)HtmlLogicalNodeKind.Code);
