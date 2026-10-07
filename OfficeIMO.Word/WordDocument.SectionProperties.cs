@@ -189,10 +189,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds or updates endnote configuration for the first section.
+        /// Adds or updates endnote numbering for the first section and placement for the whole document.
         /// </summary>
         /// <param name="numberingFormat">Numbering format to apply.</param>
-        /// <param name="position">Location of endnotes.</param>
+        /// <param name="position">Document-wide endnote location. A position-only update preserves section numbering.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
         public void AddEndnoteProperties(WordNumberFormat? numberingFormat = null,

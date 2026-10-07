@@ -20,10 +20,12 @@ public static partial class WordPdfConverterExtensions {
         private bool footnotePageRestart;
         private bool endnotePageRestart;
         private bool pageRestartReported;
+        internal bool EndnotesAtDocumentEnd { get; }
 
         internal NativeNoteNumbering(WordDocument document, WordToPdfOptions? options) {
             settings = document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings;
             this.options = options;
+            EndnotesAtDocumentEnd = document.EndnoteSettings.Position == WordEndnotePosition.DocumentEnd;
         }
 
         internal void BeginSection(WordSection section) {

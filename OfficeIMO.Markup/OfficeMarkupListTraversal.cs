@@ -22,6 +22,15 @@ internal readonly struct OfficeMarkupListEntry {
 }
 
 internal static class OfficeMarkupListTraversal {
+    // The projection retains the item's lead paragraph as well as its plain text.
+    // Dispatch later child blocks without repeating that lead paragraph.
+    internal static IEnumerable<OfficeMarkupBlock> ContentBlocks(OfficeMarkupListItem item) =>
+        item.Blocks.Skip(item.Blocks.FirstOrDefault() is OfficeMarkupParagraphBlock paragraph
+            && paragraph.Text == item.Text ? 1 : 0);
+
+    internal static bool IsTextOnly(OfficeMarkupListBlock list) =>
+        list.Items.All(item => !ContentBlocks(item).Any());
+
     internal static IEnumerable<OfficeMarkupListEntry> Enumerate(OfficeMarkupListBlock list, int depth = 0) {
         for (int index = 0; index < list.Items.Count; index++) {
             var item = list.Items[index];

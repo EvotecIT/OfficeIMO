@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 266,
-    "productionComponentCount": 136,
-    "testProjectCount": 52,
+    "projectCount": 268,
+    "productionComponentCount": 137,
+    "testProjectCount": 53,
     "benchmarkProjectCount": 35,
     "validationProjectCount": 44,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 53928
+    "conceptualWordCount": 53993
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 30,
       "componentIndexes": [
-        83,
         84,
         85,
         86,
@@ -45,21 +44,21 @@
         109,
         110,
         111,
-        112
+        112,
+        113
       ]
     },
     {
       "name": "Formats and interoperability",
       "componentCount": 17,
       "componentIndexes": [
-        12,
-        18,
+        13,
         19,
         20,
         21,
         22,
-        45,
-        64,
+        23,
+        46,
         65,
         66,
         67,
@@ -67,8 +66,9 @@
         69,
         70,
         71,
-        121,
-        122
+        72,
+        122,
+        123
       ]
     },
     {
@@ -76,56 +76,56 @@
       "componentCount": 14,
       "componentIndexes": [
         0,
-        10,
-        16,
+        11,
         17,
-        55,
+        18,
         56,
         57,
         58,
-        61,
+        59,
         62,
         63,
-        82,
-        116,
-        135
+        64,
+        83,
+        117,
+        136
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        30,
         31,
         32,
-        33
+        33,
+        34
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
-        23,
         24,
         25,
         26,
         27,
         28,
         29,
-        75,
+        30,
         76,
         77,
         78,
         79,
         80,
-        123,
+        81,
         124,
         125,
         126,
         127,
         128,
         129,
-        130
+        130,
+        131
       ]
     },
     {
@@ -135,7 +135,6 @@
         4,
         5,
         6,
-        34,
         35,
         36,
         37,
@@ -146,31 +145,32 @@
         42,
         43,
         44,
-        46,
+        45,
         47,
         48,
         49,
         50,
         51,
-        73,
+        52,
         74,
-        113,
+        75,
         114,
-        115
+        115,
+        116
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        52,
         53,
-        54
+        54,
+        55
       ]
     },
     {
       "name": "Specialized components",
-      "componentCount": 22,
+      "componentCount": 23,
       "componentIndexes": [
         1,
         2,
@@ -178,22 +178,23 @@
         7,
         8,
         9,
-        11,
-        13,
+        10,
+        12,
         14,
         15,
-        59,
+        16,
         60,
-        72,
-        81,
-        117,
+        61,
+        73,
+        82,
         118,
         119,
         120,
-        131,
+        121,
         132,
         133,
-        134
+        134,
+        135
       ]
     }
   ],
@@ -329,6 +330,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
     },
     {
+      "name": "OfficeIMO.ChartForgeX.Markdown",
+      "packageId": "OfficeIMO.ChartForgeX.Markdown",
+      "category": "Specialized components",
+      "description": "Optional static Mermaid rendering for OfficeIMO Markdown document and HTML pipelines.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.ChartForgeX.Markdown/OfficeIMO.ChartForgeX.Markdown.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX.Markdown"
+    },
+    {
       "name": "OfficeIMO.Confluence",
       "packageId": "OfficeIMO.Confluence",
       "category": "Foundations and integrations",
@@ -348,7 +362,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 887,
+      "sourceFileCount": 888,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -869,7 +883,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj",
       "sourceFileCount": 23,
-      "referencingTestProjectCount": 6,
+      "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Pdf"
@@ -946,8 +960,8 @@
       "description": "PowerPoint renderer for OfficeIMO Markup semantic AST.",
       "kind": "library",
       "projectPath": "OfficeIMO.Markup.PowerPoint/OfficeIMO.Markup.PowerPoint.csproj",
-      "sourceFileCount": 13,
-      "referencingTestProjectCount": 2,
+      "sourceFileCount": 14,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -960,7 +974,7 @@
       "kind": "library",
       "projectPath": "OfficeIMO.Markup.Word/OfficeIMO.Markup.Word.csproj",
       "sourceFileCount": 3,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -1154,7 +1168,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1328,
+      "sourceFileCount": 1331,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1804,7 +1818,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 743,
+      "sourceFileCount": 744,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1857,7 +1871,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
       "sourceFileCount": 29,
-      "referencingTestProjectCount": 6,
+      "referencingTestProjectCount": 7,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown"

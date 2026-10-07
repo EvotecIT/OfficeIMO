@@ -10,18 +10,40 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         LayoutCursor cursor,
         MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics) {
-        if (TryResolveFilePath(options, image.Source, out var path) && File.Exists(path)) {
-            var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, cursor.RemainingHeight), metrics);
+        bool embedded = TryReadEmbeddedImage(image.Source, options, out var bytes, out var info);
+        string path = string.Empty;
+        bool fileImage = !embedded && TryResolveFilePath(options, image.Source, out path) && File.Exists(path);
+        if (embedded || fileImage) {
+            bool explicitlyPlaced = HasExplicitPlacement(image.Placement, image.Attributes);
+            bool hasCaption = !string.IsNullOrWhiteSpace(image.Caption);
+            double availableHeight = cursor.RemainingHeight - (hasCaption && !explicitlyPlaced ? 0.52 : 0);
+            var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, Math.Max(0.28, availableHeight)), metrics);
             if (ShouldAddVisualPanel(image.Attributes, defaultValue: false)) {
                 AddVisualPanel(slide, box, metrics, "OfficeIMO Markup Image Panel");
             }
 
-            AddPicture(slide, path, box, GetAttribute(image.Attributes, "fit"));
-            if (!HasExplicitPlacement(image.Placement, image.Attributes)) {
+            PowerPointPicture picture;
+            if (embedded) {
+                using var stream = new MemoryStream(bytes, writable: false);
+                var placement = IsStretchFit(GetAttribute(image.Attributes, "fit"))
+                    ? box : ContainPicture(box, info.Width, info.Height);
+                picture = slide.AddPictureInches(stream, info.Format, placement.Left, placement.Top, placement.Width, placement.Height);
+            } else {
+                picture = AddPicture(slide, path, box, GetAttribute(image.Attributes, "fit"));
+            }
+            picture.AltText = image.Alt;
+            if (!string.IsNullOrWhiteSpace(image.Title)) picture.Name = image.Title;
+            if (!explicitlyPlaced) {
                 cursor.Advance(box.Height);
             }
+            if (hasCaption) {
+                var captionCursor = explicitlyPlaced
+                    ? new LayoutCursor(box.Left, box.Top + box.Height + 0.12, box.Width, 0.4) : cursor;
+                AddText(slide, image.Caption!, captionCursor, height: 0.4);
+            }
         } else if (options.IncludeUnsupportedBlocksAsText) {
-            AddText(slide, $"Image: {image.Source}", cursor, height: 0.4);
+            AddText(slide, "Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                ? image.Alt ?? image.Title ?? "Unsupported embedded image" : image.Source), cursor, height: 0.4);
         }
     }
 
@@ -30,7 +52,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         string source,
         out string path) {
         path = source;
-        if (string.IsNullOrWhiteSpace(source)) {
+        if (string.IsNullOrWhiteSpace(source) || source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
@@ -121,26 +143,30 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         panel.OutlineWidthPoints = 0.75;
     }
 
-    private static void AddPicture(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
+    private static PowerPointPicture AddPicture(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
         switch (Normalize(fit ?? string.Empty)) {
             case "fill":
             case "stretch":
-                slide.AddPictureInches(path, box.Left, box.Top, box.Width, box.Height);
-                return;
+                return slide.AddPictureInches(path, box.Left, box.Top, box.Width, box.Height);
             case "contain":
             default:
-                AddPictureContained(slide, path, box);
-                return;
+                return AddPictureContained(slide, path, box);
         }
     }
 
-    private static void AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
+    private static PowerPointPicture AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
+        var placement = TryReadImageSize(path, out var pixelWidth, out var pixelHeight)
+            ? ContainPicture(box, pixelWidth, pixelHeight) : box;
+        return slide.AddPictureInches(path, placement.Left, placement.Top, placement.Width, placement.Height);
+    }
+
+    private static LayoutCursor ContainPicture(LayoutCursor box, int pixelWidth, int pixelHeight) {
         var left = box.Left;
         var top = box.Top;
         var width = box.Width;
         var height = box.Height;
 
-        if (TryReadImageSize(path, out var pixelWidth, out var pixelHeight) && pixelWidth > 0 && pixelHeight > 0) {
+        if (pixelWidth > 0 && pixelHeight > 0) {
             var imageAspect = pixelWidth / (double)pixelHeight;
             var boxAspect = box.Width / box.Height;
             if (imageAspect > boxAspect) {
@@ -152,7 +178,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             }
         }
 
-        slide.AddPictureInches(path, left, top, width, height);
+        return new LayoutCursor(left, top, width, height);
     }
 
     private static bool TryReadImageSize(string path, out int width, out int height) {

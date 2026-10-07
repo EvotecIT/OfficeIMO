@@ -43,7 +43,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 // Dop95's Copts80 repeats Copts60; both copies must agree (MS-DOC).
                 WriteUInt16(dop, DopBaseCompatibilityFlagsOffset, NoColumnBalanceDopFlag);
                 WriteUInt16(dop, Dop95CompatibilityFlagsOffset, NoColumnBalanceDopFlag);
-                if (body.HasNestedTables) WriteUInt16(dop, Dop2000CompatibilityFlagsOffset, NoColumnBalanceDopFlag);
+                if (body.RequiresWord2000Format) WriteUInt16(dop, Dop2000CompatibilityFlagsOffset, NoColumnBalanceDopFlag);
             }
 
             uint placement = body.EndnotePosition == null ? 3u : (uint)GetEndnotePositionOperand(body.EndnotePosition.Value)!.Value;
