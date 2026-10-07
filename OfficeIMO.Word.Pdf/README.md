@@ -88,6 +88,14 @@ Ordinary underlining includes spaces between words. Word's explicit *underline w
 
 Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
 
+Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
+table, paragraph and character styles, with direct formatting and explicit resets
+taking precedence. Body text, table cells, hyperlinks and ordinary header/footer
+paragraphs retain the effective values. Width scaling preserves font height;
+tracking remains an advance in page points. These saved run settings do not
+implement the separate dynamic table-cell Fit Text policy. Font substitution can
+still change exact line endings and glyph appearance.
+
 ### Preserve fonts from a trusted template
 
 Balanced conversion substitutes standard PDF fonts for document-selected fonts. This can change line breaks, table text width, and baselines. For a trusted template whose fonts are installed on the host, enable document-font embedding:

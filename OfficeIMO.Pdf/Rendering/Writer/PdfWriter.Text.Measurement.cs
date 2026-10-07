@@ -118,7 +118,7 @@ internal static partial class PdfWriter {
         double anchorWidth = alignment switch {
             PdfTabAlignment.Center => followingTextWidth / 2D,
             PdfTabAlignment.Right => followingTextWidth,
-            PdfTabAlignment.DecimalSeparator => MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline, options, followingNamedFont, featureSettings),
+            PdfTabAlignment.DecimalSeparator => MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline, options, followingNamedFont, featureSettings, horizontalTextScaling, characterSpacing),
             _ => 0D
         };
         double nextStop = explicitTabStop?.Position - lineOriginOffset ?? (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;

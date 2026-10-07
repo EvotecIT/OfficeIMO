@@ -35,7 +35,13 @@ internal static partial class PdfWriter {
         PdfTextBaseline baseline,
         PdfOptions options,
         OfficeIMO.Drawing.OfficeTextFeatureSettings featureSettings,
-        OfficeIMO.Drawing.OfficeTextDirection direction) {
+        OfficeIMO.Drawing.OfficeTextDirection direction,
+        double horizontalTextScaling = 100D,
+        double characterSpacing = 0D) {
+        if (HasRichTextSpacing(horizontalTextScaling, characterSpacing)) {
+            return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings,
+                horizontalTextScaling, characterSpacing, direction);
+        }
         if (direction == OfficeIMO.Drawing.OfficeTextDirection.Auto) {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
         }

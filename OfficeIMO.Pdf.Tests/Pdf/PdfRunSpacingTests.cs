@@ -37,7 +37,7 @@ public sealed class PdfRunSpacingTests {
         double naturalAdvance = before.Single(letter => letter.Value == "X").StartBaseLine.X - before[0].StartBaseLine.X;
         double actualAdvance = after.Single(letter => letter.Value == "X").StartBaseLine.X - after[0].StartBaseLine.X;
         Assert.InRange(Math.Abs(actualAdvance - (naturalAdvance / 2D + glyphCount)), 0D, 0.02D);
-        Assert.InRange(Math.Abs(before[0].GlyphRectangle.Height - after[0].GlyphRectangle.Height), 0D, 0.02D);
+        Assert.InRange(Math.Abs(before[0].BoundingBox.Height - after[0].BoundingBox.Height), 0D, 0.02D);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class PdfRunSpacingTests {
             double expected = (baseline[index].StartBaseLine.X - baseline[0].StartBaseLine.X) * scaling / 100D + index * spacing;
             double observed = actual[index].StartBaseLine.X - actual[0].StartBaseLine.X;
             Assert.InRange(Math.Abs(expected - observed), 0D, 0.02D);
-            Assert.InRange(Math.Abs(actual[index].GlyphRectangle.Height - baseline[index].GlyphRectangle.Height), 0D, 0.02D);
+            Assert.InRange(Math.Abs(actual[index].BoundingBox.Height - baseline[index].BoundingBox.Height), 0D, 0.02D);
         }
     }
 

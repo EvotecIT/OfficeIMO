@@ -296,7 +296,8 @@ internal static partial class PdfWriter {
                                 adjusted = segment.WithLeadingAdvance(CalculateTabAdvance(lineWidth, segment.MeasuredWidth, spaceWidth,
                                     segment.LeadingTabStop.Alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
                                     segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, segment.LeadingTabStop,
-                                    followingNamedFont: segment.NamedFont, featureSettings: segment.FeatureSettings));
+                                    followingNamedFont: segment.NamedFont, featureSettings: segment.FeatureSettings,
+                                    horizontalTextScaling: segment.HorizontalTextScaling, characterSpacing: segment.CharacterSpacing));
                                 lines[index][segmentIndex] = adjusted;
                             }
                             lineWidth += adjusted.MeasuredWidth + adjusted.LeadingAdvance;

@@ -321,9 +321,11 @@ internal static partial class PdfWriter {
                     } else {
                         content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
-                        // Composite fonts encode spaces as two-byte CIDs, to which Tw
-                        // does not apply. Position the next word at the expanded gap.
-                        if (Math.Abs(wordSpacing) > 0.0001) content.TextMatrix(lineXOrigin + xCursor, lineY);
+                        // A separator can inherit metrics from the previous run. Its
+                        // measured advance also handles CID spaces to which Tw does not apply.
+                        double paintedGap = MeasureRichText(" ", s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings);
+                        if (Math.Abs(wordSpacing) > 0.0001 || Math.Abs(gap - paintedGap) > 0.0001)
+                            content.TextMatrix(lineXOrigin + xCursor, lineY);
                     }
                 }
                 if (s.InlineElement != null) {
@@ -428,14 +430,14 @@ internal static partial class PdfWriter {
                                 } else if (!wordStart.HasValue) {
                                     wordStart = advance;
                                 }
-                                advance += glyph.AdvanceWidth1000 * runFontSize / 1000D;
+                                advance += glyph.AdvanceWidth1000 * runFontSize / 1000D * s.HorizontalTextScaling / 100D + s.CharacterSpacing;
                             }
                             if (wordStart.HasValue) {
                                 underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
                             }
                         } else {
                             VisitWordDecorationAdvances(s.Text,
-                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection),
+                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.HorizontalTextScaling, s.CharacterSpacing),
                                 (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
                                     lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
                         }

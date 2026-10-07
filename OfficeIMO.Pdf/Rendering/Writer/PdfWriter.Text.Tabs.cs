@@ -66,17 +66,17 @@ internal static partial class PdfWriter {
     private static PdfTabLeaderStyle ResolveTabLeader(PdfTabLeaderStyle runLeader, PdfTabStop? tabStop) =>
         tabStop != null && runLeader == PdfTabLeaderStyle.None ? tabStop.Leader : runLeader;
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
         int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
         if (decimalIndex < 0) {
-            return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
+            return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
         }
 
-        return MeasureRichText(text.Substring(0, decimalIndex), font, namedFont, fontSize, baseline, options, featureSettings);
+        return MeasureRichText(text.Substring(0, decimalIndex), font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
     }
 
     private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null) =>

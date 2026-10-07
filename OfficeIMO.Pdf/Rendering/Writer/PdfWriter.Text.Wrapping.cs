@@ -28,7 +28,8 @@ internal static partial class PdfWriter {
 
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null) {
         bool preserveWhitespace = options?.PreserveTextWhitespace == true;
-        System.Collections.Generic.IEnumerable<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
+        var wordContinuations = MeasureRichWordContinuations(effectiveRuns, baseFont, fontSize, options);
         PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops);
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new RichLine() };
         var heights = new System.Collections.Generic.List<double>();
@@ -236,7 +237,8 @@ internal static partial class PdfWriter {
         void MarkCurrentLineHardBreak(RichSeg breakSegment) =>
             lines[lines.Count - 1].Add(breakSegment);
 
-        foreach (var run in effectiveRuns) {
+        for (int runIndex = 0; runIndex < effectiveRuns.Count; runIndex++) {
+            PdfTextRun run = effectiveRuns[runIndex];
             string text = (run.Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
             bool bold = run.Bold;
             bool underline = run.Underline;
@@ -270,7 +272,9 @@ internal static partial class PdfWriter {
             currentRunIsInline = run.InlineElement != null;
             GetRichRunLineMetrics(fontForRun, currentRunNamedFont, runFontSize, baseline, options, lineSpacing,
                 out currentRunAscent, out currentRunDescent);
-            double spaceW = MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+            double spaceW = text.IndexOfAny(SoftLineSplitChars) >= 0
+                ? MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
+                : 0D;
             if (run.InlineElement != null) {
                 PdfInlineElement inlineElement = run.InlineElement;
                 currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
@@ -357,7 +361,11 @@ internal static partial class PdfWriter {
                     idx = nextWs + 1;
                 }
                 double tokenW = MeasureRichText(token, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                if (token.Length > 0) PrepareLineFrame(RunLineHeight(runFontSize));
+                var continuation = nextWs < 0 && runIndex + 1 < effectiveRuns.Count ? wordContinuations[runIndex + 1] : default;
+                double wordWidth = tokenW + continuation.Width;
+                double wordFontSize = Math.Max(runFontSize, continuation.FontSize);
+                if (token.Length > 0) PrepareLineFrame(RunLineHeight(wordFontSize),
+                    continuation.Width > 0D && wordWidth <= maxWidthPts ? wordWidth : 0D);
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingLeadingAdvance > 0 && (token.Length > 0 || hadNewline)) {
                     // Literal spacing consumes line capacity just like visible text. Keep
                     // its advance on the line it occupies, including completely blank lines.
@@ -484,9 +492,12 @@ internal static partial class PdfWriter {
                     RevalidateLeadingTabFrame(RunLineHeight(runFontSize), tokenW, spaceW, token, fontForRun, runFontSize, baseline);
                     currentMaxWidth = CurrentMaxWidth();
                 }
+                // Formatting boundaries do not introduce a word-break opportunity.
+                // Reserve the rest of a word spanning runs when it fits a fresh line.
+                double wrappingWidth = wordWidth <= currentMaxWidth ? wordWidth : tokenW;
                 needed = lastLine.Count == 0
-                    ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + tokenW : tokenW)
-                    : pendingLeadingAdvance + tokenW;
+                    ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + wrappingWidth : wrappingWidth)
+                    : pendingLeadingAdvance + wrappingWidth;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(lastLine);
@@ -495,7 +506,7 @@ internal static partial class PdfWriter {
                     StartNewLine();
                     // The next line can enter a narrower floating frame. A pending word
                     // that fit the previous frame must obtain enough space again.
-                    PrepareLineFrame(RunLineHeight(runFontSize), tokenW);
+                    PrepareLineFrame(RunLineHeight(wordFontSize), wrappingWidth);
                     if (token.Length > 0 && pendingLeadingIsTab) {
                         ResolvePendingLeadingTabForCurrentLine(tokenW, spaceW, token, fontForRun, runFontSize, baseline);
                         RevalidateLeadingTabFrame(RunLineHeight(runFontSize), tokenW, spaceW, token, fontForRun, runFontSize, baseline);

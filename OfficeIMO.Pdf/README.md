@@ -98,6 +98,28 @@ including inside columns, table cells and canvas text boxes.
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
 
+## Glyph width and character spacing
+
+Run width and tracking adjust horizontal advances without changing font height:
+
+```csharp
+var condensed = PdfTextRun.Normal("Condensed text", fontSize: 12)
+    .WithHorizontalTextScaling(75)
+    .WithCharacterSpacing(0.5);
+
+PdfDocument.Create()
+    .Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }))
+    .Save("run-spacing.pdf");
+```
+
+`HorizontalTextScaling` is a positive percentage; 100 retains the font's normal
+width. `CharacterSpacing` adds page points after each rendered glyph, independently
+of that percentage. Negative spacing condenses advances. The copy methods retain
+the source run's other formatting. Paragraph builders expose matching
+`HorizontalTextScaling(...)` and `CharacterSpacing(...)` controls; use 100 and zero
+to restore natural text for following runs. Measurement, wrapping and painting use
+these metrics in rich paragraphs, table cells, page text and positioned text.
+
 ## Authoring model
 
 `PdfDocumentBuilder` owns document settings and page boundaries.
