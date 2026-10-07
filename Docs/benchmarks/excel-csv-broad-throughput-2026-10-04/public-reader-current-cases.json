@@ -1,0 +1,122 @@
+{
+  "Public-1000-OfficeIMO": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 1000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000-Sylvan": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupSylvan",
+    "Method": "Sylvan",
+    "Properties": {
+      "RowCount": 1000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000-ExcelReaderNet": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupExcelReaderNet",
+    "Method": "ExcelReaderNet",
+    "Properties": {
+      "RowCount": 1000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-25000-OfficeIMO": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-25000-Sylvan": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupSylvan",
+    "Method": "Sylvan",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-25000-ExcelReaderNet": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupExcelReaderNet",
+    "Method": "ExcelReaderNet",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-250000-OfficeIMO": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-250000-Sylvan": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupSylvan",
+    "Method": "Sylvan",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-250000-ExcelReaderNet": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupExcelReaderNet",
+    "Method": "ExcelReaderNet",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000000-OfficeIMO": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000000-Sylvan": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupSylvan",
+    "Method": "Sylvan",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000000-ExcelReaderNet": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupExcelReaderNet",
+    "Method": "ExcelReaderNet",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "AllRows"
+    }
+  }
+}

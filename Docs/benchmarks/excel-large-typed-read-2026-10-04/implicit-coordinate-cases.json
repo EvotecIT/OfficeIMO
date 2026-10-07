@@ -1,0 +1,74 @@
+{
+  "Explicit-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader",
+      "Coordinates": "Explicit"
+    }
+  },
+  "Explicit-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "Range",
+      "Coordinates": "Explicit"
+    }
+  },
+  "ImplicitRows-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRows"
+    }
+  },
+  "ImplicitRows-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "Range",
+      "Coordinates": "ImplicitRows"
+    }
+  },
+  "ImplicitRowsAndCells-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRowsAndCells"
+    }
+  },
+  "ImplicitRowsAndCells-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "Range",
+      "Coordinates": "ImplicitRowsAndCells"
+    }
+  }
+}

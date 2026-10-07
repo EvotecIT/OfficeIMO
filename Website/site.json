@@ -868,6 +868,10 @@
           "Url": "/licensing/"
         },
         {
+          "Title": "Privacy",
+          "Url": "/privacy/"
+        },
+        {
           "Title": "FAQ",
           "Url": "/faq/"
         }

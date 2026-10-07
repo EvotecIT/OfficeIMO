@@ -6,7 +6,7 @@ using System.Xml;
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
-            private void ValidateBufferedWorksheetXml(CancellationToken ct) {
+            private bool ValidateBufferedWorksheetXml(CancellationToken ct) {
                 using var stream = new MemoryStream(
                     _buffer!,
                     0,
@@ -29,6 +29,18 @@ namespace OfficeIMO.Excel {
 
                     if (reader.NodeType == XmlNodeType.Element) {
                         bool spreadsheetElement = IsSpreadsheetNamespace(reader.NamespaceURI);
+                        if (_worksheetPrefixLength != 0) {
+                            if (reader.Depth == 0
+                                && (reader.LocalName != "worksheet" || !spreadsheetElement)) {
+                                return false;
+                            }
+                            // The byte index takes the first dimension and sheetData by
+                            // local name. An extension containing either requires the SDK.
+                            if ((reader.LocalName == "dimension" || reader.LocalName == "sheetData")
+                                && (reader.Depth != 1 || !spreadsheetElement)) {
+                                return false;
+                            }
+                        }
                         if (reader.LocalName == "sheetData") {
                             if (indexedSheetDataCompleted) {
                                 continue;
@@ -105,6 +117,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 ct.ThrowIfCancellationRequested();
+                return true;
             }
 
             private static bool IsSpreadsheetNamespace(string namespaceUri) =>
@@ -129,15 +142,15 @@ namespace OfficeIMO.Excel {
                 valueStart = -1;
                 valueLength = -1;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
-                    if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "c")) {
+                    if (tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "c")) {
                         return true;
                     }
 
-                    if (!tag.IsEnd && IsUnprefixedTag(tag) && kind == Utf8CellKind.InlineString && LocalNameEquals(tag, "is")) {
+                    if (!tag.IsEnd && IsIndexedTag(tag) && kind == Utf8CellKind.InlineString && LocalNameEquals(tag, "is")) {
                         return TryIndexSimpleInlineStringCell(ref position, tag, cellIndex);
                     }
 
-                    if (tag.IsEnd || !IsUnprefixedTag(tag) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
+                    if (tag.IsEnd || !IsIndexedTag(tag) || (!LocalNameEquals(tag, "v") && !LocalNameEquals(tag, "f"))) {
                         return false;
                     }
 
@@ -164,7 +177,7 @@ namespace OfficeIMO.Excel {
 
                     if (!TryReadNextTag(ref position, _length, out Utf8Tag endTag)
                         || !endTag.IsEnd
-                        || !IsUnprefixedTag(endTag)
+                        || !IsIndexedTag(endTag)
                         || !LocalNamesEqual(tag, endTag)
                         || ContainsByte(tag.End + 1, endTag.Start, (byte)'<')) {
                         return false;

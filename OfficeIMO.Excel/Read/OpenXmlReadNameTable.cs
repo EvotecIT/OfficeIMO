@@ -62,7 +62,10 @@ namespace OfficeIMO.Excel {
                 "alignment", "horizontal", "vertical", "wrapText", "textRotation", "indent", "shrinkToFit", "readingOrder",
                 "protection", "locked", "cellStyles", "cellStyle", "builtinId", "customBuiltin", "dxfs",
                 "tableStyles", "defaultTableStyle", "defaultPivotStyle", "colors", "indexedColors", "rgbColor",
-                "sst", "si", "t", "uniqueCount", "space", "rPr", "rFont", "rPh", "phoneticPr", "sb", "eb", "type"
+                "sst", "si", "t", "uniqueCount", "space", "rPr", "rFont", "rPh", "phoneticPr", "sb", "eb", "type",
+                "worksheet", "dimension", "sheetData", "row", "c", "v", "f", "is", "s", "ref", "spans",
+                "sheetViews", "sheetView", "workbookViewId", "tabSelected", "sheetFormatPr", "defaultRowHeight",
+                "ht", "customHeight", "customFormat", "outlineLevel", "collapsed"
             }) names.Add(name);
             return names;
         }

@@ -110,8 +110,11 @@ public partial class Excel {
         }
     }
 
-    [Fact]
-    public void OpenDataReader_PreservesSmallSharedStringsAndXmlFallback() {
+    [Theory]
+    [InlineData("A&amp;B", "A&B")]
+    [InlineData("Łódź 東京 😀", "Łódź 東京 😀")]
+    [InlineData("A&#xD;B", "A\rB")]
+    public void OpenDataReader_PreservesSmallSharedStringsAndXmlFallback(string encoded, string expected) {
         string path = Path.Combine(
             Path.GetTempPath(),
             $"OfficeIMO.Excel.SmallSharedStrings.{Guid.NewGuid():N}.xlsx");
@@ -142,10 +145,10 @@ public partial class Excel {
                 path, new ExcelReadOptions { MaxSharedStringItems = 2 }));
 
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(
-                root + "<si><t>Value</t></si><si><t>A&amp;B</t></si>" + suffix));
+                root + "<si><t>Value</t></si><si><t>" + encoded + "</t></si>" + suffix));
             using DbDataReader fallbackReader = ExcelDocument.OpenDataReader(path);
             Assert.True(fallbackReader.Read());
-            Assert.Equal("A&B", fallbackReader.GetString(0));
+            Assert.Equal(expected, fallbackReader.GetString(0));
             Assert.True(fallbackReader.Read());
             Assert.Equal("Trailing ", fallbackReader.GetString(0));
             Assert.False(fallbackReader.Read());

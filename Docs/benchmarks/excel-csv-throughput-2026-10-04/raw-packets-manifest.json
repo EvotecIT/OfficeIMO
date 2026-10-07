@@ -1,0 +1,19 @@
+{
+  "Archive": "raw-packets.zip",
+  "Sha256": "0D86AAFE625D09313E0EB619D6C53189021B47DE44D5A85F3CBF2FD542C5DAD5",
+  "CompressedBytes": 38502,
+  "OriginalBytes": 498813.0,
+  "Policy": "Each member retains the original filename and exact captured bytes; every member verified by SHA-256 before replacing loose tracked packets.",
+  "Files": [
+    {
+      "Name": "native.json",
+      "Bytes": 110120,
+      "Sha256": "0B8BC84560A5149E7DBC76A4DACD0C825A39DB064CADBDC8DFE1262038B99BC2"
+    },
+    {
+      "Name": "rotated.json",
+      "Bytes": 388693,
+      "Sha256": "A9B32CA1A3E0D85733C8C2C5F90BA63018895401B51AD5C67CA79C478C53B193"
+    }
+  ]
+}

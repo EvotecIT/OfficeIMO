@@ -1,0 +1,56 @@
+{
+  "Excel-PackageCopy-100": {
+    "Method": "PackageCopy",
+    "Properties": {
+      "RowCount": 100
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "Excel-ValuesCopy-100": {
+    "Method": "ValuesCopy",
+    "Properties": {
+      "RowCount": 100
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "Excel-PackageCopy-2500": {
+    "Method": "PackageCopy",
+    "Properties": {
+      "RowCount": 2500
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "Excel-ValuesCopy-2500": {
+    "Method": "ValuesCopy",
+    "Properties": {
+      "RowCount": 2500
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "Excel-PackageCopy-25000": {
+    "Method": "PackageCopy",
+    "Properties": {
+      "RowCount": 25000
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "Excel-ValuesCopy-25000": {
+    "Method": "ValuesCopy",
+    "Properties": {
+      "RowCount": 25000
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  }
+}

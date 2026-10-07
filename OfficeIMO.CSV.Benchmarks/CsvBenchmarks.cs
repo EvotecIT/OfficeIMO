@@ -4,7 +4,6 @@ using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
-using ExcelReader.Core.Parser;
 using nietras.SeparatedValues;
 using OfficeIMO.Data;
 using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
@@ -20,15 +19,12 @@ using SepWriterOptions = nietras.SeparatedValues.SepWriterOptions;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
 using SylvanCsvDataWriter = Sylvan.Data.Csv.CsvDataWriter;
 using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
-using ExcelReaderNetCsvRowWriter = ExcelReader.Core.Writer.CsvRowWriter;
-using ExcelReaderNetCsvWriter = ExcelReader.Core.Writer.CsvWriter;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
-using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
 [MemoryDiagnoser]
-public class CsvBenchmarks
+public partial class CsvBenchmarks
 {
     private static readonly string[] Headers =
     [
@@ -49,8 +45,7 @@ public class CsvBenchmarks
     private string?[][] _projectedTextRows = [];
     private string _csvText = string.Empty;
     private byte[] _csvUtf8 = [];
-    private int _expectedTypedReadChecksum;
-    private readonly ExcelParser<CsvBenchmarkRow> _excelReaderParser = new();
+
     private bool _captureWriteOutput;
     private string? _capturedWriteOutput;
     private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
@@ -81,24 +76,7 @@ public class CsvBenchmarks
 
         ValidateWriteBenchmarkOutputs();
         ValidateTypedReadBenchmarkOutputs();
-    }
-
-    private void ValidateTypedReadBenchmarkOutputs()
-    {
-        ValidateTypedReadOutput(nameof(OfficeIMO_ReadTypedRowsForwardOnly), OfficeIMO_ReadTypedRowsForwardOnly);
-        ValidateTypedReadOutput(nameof(OfficeIMO_ReadTypedRowsMaterialized), OfficeIMO_ReadTypedRowsMaterialized);
-        ValidateTypedReadOutput(nameof(CsvHelper_ReadTypedRecords), CsvHelper_ReadTypedRecords);
-        ValidateTypedReadOutput(nameof(ExcelReaderNet_ReadTypedRecords), ExcelReaderNet_ReadTypedRecords);
-    }
-
-    private void ValidateTypedReadOutput(string method, Func<int> read)
-    {
-        var actual = read();
-        if (actual != _expectedTypedReadChecksum)
-        {
-            throw new InvalidOperationException(
-                $"{method} returned typed-row checksum {actual} instead of {_expectedTypedReadChecksum}.");
-        }
+        ValidateRawReadBenchmarkOutputs();
     }
 
     private void ValidateWriteBenchmarkOutputs()
@@ -304,7 +282,12 @@ public class CsvBenchmarks
     public int ExcelReaderNet_WriteProjectedRows()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
@@ -353,7 +336,12 @@ public class CsvBenchmarks
     public int ExcelReaderNet_WriteTypedRecords()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
@@ -436,7 +424,12 @@ public class CsvBenchmarks
     public int ExcelReaderNet_WriteTextRows()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
@@ -704,15 +697,17 @@ public class CsvBenchmarks
     [Benchmark]
     public int OfficeIMO_ReadDataReaderGetStrings()
     {
-        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        using var csv = document.CreateDataReader();
+        using var csv = CsvDocument.OpenTextDataReader(_csvText);
         var fieldCount = 0;
         while (csv.Read())
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetString(i).Length;
+                string value = csv.GetString(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -744,7 +739,9 @@ public class CsvBenchmarks
             {
                 string? value = csv.GetField(i);
                 fieldCount += 1 + (value?.Length ?? 0);
+                if (_validateRawRead) ValidateRawField(i, value.AsSpan());
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -760,8 +757,11 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetString(i).Length;
+                string value = csv.GetString(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -787,8 +787,11 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetFieldSpan(i).Length;
+                ReadOnlySpan<char> value = csv.GetFieldSpan(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -804,8 +807,11 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                fieldCount += 1 + csv.GetString(i).Length;
+                string value = csv.GetString(i);
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -831,8 +837,11 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < row.ColCount; i++)
             {
-                fieldCount += 1 + row[i].ToString().Length;
+                string value = row[i].ToString();
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
@@ -848,93 +857,14 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < row.ColCount; i++)
             {
-                fieldCount += 1 + row[i].Span.Length;
+                ReadOnlySpan<char> value = row[i].Span;
+                fieldCount += 1 + value.Length;
+                if (_validateRawRead) ValidateRawField(i, value);
             }
+            if (_validateRawRead) CompleteRawRow();
         }
 
         return fieldCount;
-    }
-
-    [Benchmark]
-    public int OfficeIMO_ReadTypedRowsForwardOnly()
-    {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(_csvText);
-        var checksum = 17;
-        foreach (CsvBenchmarkRow row in reader.RowsAs<CsvBenchmarkRow>())
-        {
-            checksum = AddTypedRowChecksum(checksum, row);
-        }
-
-        return checksum;
-    }
-
-    [Benchmark]
-    public int OfficeIMO_ReadTypedRowsMaterialized()
-    {
-        CsvDocument document = CsvDocument.Parse(_csvText);
-        var checksum = 17;
-        foreach (CsvBenchmarkRow row in document.RowsAs<CsvBenchmarkRow>())
-        {
-            checksum = AddTypedRowChecksum(checksum, row);
-        }
-
-        return checksum;
-    }
-
-    [Benchmark]
-    public int CsvHelper_ReadTypedRecords()
-    {
-        using var reader = new StringReader(_csvText);
-        using var csv = new CsvHelperReader(reader, CultureInfo.InvariantCulture);
-        var checksum = 17;
-        foreach (CsvBenchmarkRow row in csv.GetRecords<CsvBenchmarkRow>())
-        {
-            checksum = AddTypedRowChecksum(checksum, row);
-        }
-
-        return checksum;
-    }
-
-    [Benchmark]
-    public int ExcelReaderNet_ReadTypedRecords()
-    {
-        using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
-        var checksum = 17;
-        foreach (CsvBenchmarkRow row in _excelReaderParser.Parse(reader))
-        {
-            checksum = AddTypedRowChecksum(checksum, row);
-        }
-
-        return checksum;
-    }
-
-    private static int MeasureTypedRows(IEnumerable<CsvBenchmarkRow> rows)
-    {
-        var checksum = 17;
-        foreach (CsvBenchmarkRow row in rows)
-        {
-            checksum = AddTypedRowChecksum(checksum, row);
-        }
-
-        return checksum;
-    }
-
-    private static int AddTypedRowChecksum(int checksum, CsvBenchmarkRow row)
-    {
-        unchecked
-        {
-            checksum = (checksum * 31) + row.Id;
-            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Name);
-            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Department);
-            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Region);
-            checksum = (checksum * 31) + (row.IsEnabled ? 1 : 0);
-            checksum = (checksum * 31) + row.Created.GetHashCode();
-            checksum = (checksum * 31) + row.Score.GetHashCode();
-            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Owner);
-            checksum = (checksum * 31) + row.TicketCount;
-            checksum = (checksum * 31) + StringComparer.Ordinal.GetHashCode(row.Notes);
-            return checksum;
-        }
     }
 
     private static object?[] ProjectRow(CsvBenchmarkRow row)

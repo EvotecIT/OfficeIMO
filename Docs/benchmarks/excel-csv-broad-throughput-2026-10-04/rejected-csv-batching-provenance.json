@@ -1,0 +1,343 @@
+{
+  "Disposition": "Rejected production experiment; retain broader benchmark and completed-row error/cancellation coverage.",
+  "BaselineSource": "1cbc3dfe188b8a4aeb7d354b26cc825d321a688c",
+  "CoverageSource": "d3c5f5e9a224786c6aa1b675d66ea5e03aea19b4",
+  "BaselineHash": "7E9035200B7A5EB5D2C7EE690C9F734A3C02C7C1197EF97C5B15F75E06CC7203",
+  "RejectedCandidateHash": "718BE18A0FDC9271AEC35AF6746B4AD532A3D417F86D2149F4709E486495A21F",
+  "HarnessHash": "8222EB39097674D06B260B4409FA68066CDDF2DB9A74769D85BA61966333A47B",
+  "PatchSha256": "76370816E46751A57EA7DF83FD2C89356E102D1BDF5B6642218C6DF00A4B8042",
+  "PatchText": "diff --git a/OfficeIMO.CSV/CsvRowWriter.DataReader.cs b/OfficeIMO.CSV/CsvRowWriter.DataReader.cs\nindex 21e2dc50ff3be7e6ff085455ddef9f567d7a0614..88ead9573b4d8d6a61d516b0c23a8ba2b99f1b9b 100644\n--- a/OfficeIMO.CSV/CsvRowWriter.DataReader.cs\n+++ b/OfficeIMO.CSV/CsvRowWriter.DataReader.cs\n@@ -50,7 +50,7 @@ public sealed partial class CsvRowWriter\n \n         EnsureColumns(columns);\n \n-        var usesBatchedRecords = _batchFormattedTextDataReader || _useDefaultWritePath;\n+        var usesBatchedRecords = _batchTextDataReader || _useDefaultWritePath;\n         int flushThreshold = _useDefaultWritePath\n             ? CsvWriter.DataReaderFlushThreshold\n             : TextDelimiterDataReaderFlushThreshold;\ndiff --git a/OfficeIMO.CSV/CsvRowWriter.cs b/OfficeIMO.CSV/CsvRowWriter.cs\nindex bdb82243f96e32a61dc584221d57ab2e36e3cf28..417a4eccbcfab57f8eba72c140570a996eddd401 100644\n--- a/OfficeIMO.CSV/CsvRowWriter.cs\n+++ b/OfficeIMO.CSV/CsvRowWriter.cs\n@@ -48,7 +48,7 @@ public sealed partial class CsvRowWriter : IDisposable\n     private readonly bool _useDefaultWritePath;\n     private readonly bool _useAlwaysQuotedWritePath;\n     private readonly bool _useFormattedValueOptions;\n-    private readonly bool _batchFormattedTextDataReader;\n+    private readonly bool _batchTextDataReader;\n     private readonly bool _leaveOpen;\n     private readonly StringBuilder? _stringWriterBuffer;\n     private readonly StringBuilder _rowBuffer = new(1024);\n@@ -76,7 +76,7 @@ public sealed partial class CsvRowWriter : IDisposable\n         _delimiterText = CsvWriter.GetDelimiterText(_options);\n         _useTextDelimiter = CsvWriter.UsesTextDelimiter(_options);\n         _useFormattedValueOptions = _options.NullValue is not null || _options.DateTimeFormat is not null || _options.UseUtc;\n-        _batchFormattedTextDataReader = _useTextDelimiter && _useFormattedValueOptions;\n+        _batchTextDataReader = _useTextDelimiter;\n         _useDefaultWritePath = !_useTextDelimiter\n             && !_useFormattedValueOptions\n             && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve\n",
+  "Review": {
+    "Base": "1cbc3dfe188b8a4aeb7d354b26cc825d321a688c",
+    "Fingerprint": "FD5DC9A510DF797827CE442D351E624BFDAAB8A5EC5B95702432FDA3E3103963",
+    "Reviewer": "/root/csv_batching_review",
+    "Scope": "Multi-character delimiter IDataReader batching, completed-row failure and cancellation behavior, equivalent memory/file writer benchmark contracts",
+    "Boundary": "current",
+    "Outcome": "No actionable P0-P3 findings; accept as shaped subject to runtime and performance qualification",
+    "ConfirmationUsed": false,
+    "BaselineHash": "7E9035200B7A5EB5D2C7EE690C9F734A3C02C7C1197EF97C5B15F75E06CC7203"
+  },
+  "Cases": {
+    "File-ShortUnicode-AsNeeded": {
+      "Properties": {
+        "QuoteMode": "AsNeeded",
+        "Shape": "ShortUnicode"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-ShortUnicode-Always": {
+      "Properties": {
+        "QuoteMode": "Always",
+        "Shape": "ShortUnicode"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-MixedJson25K-AsNeeded": {
+      "Properties": {
+        "QuoteMode": "AsNeeded",
+        "Shape": "MixedJson25K"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-MixedJson25K-Always": {
+      "Properties": {
+        "QuoteMode": "Always",
+        "Shape": "MixedJson25K"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-DenseJson-AsNeeded": {
+      "Properties": {
+        "QuoteMode": "AsNeeded",
+        "Shape": "DenseJson"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-DenseJson-Always": {
+      "Properties": {
+        "QuoteMode": "Always",
+        "Shape": "DenseJson"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-ShortAscii-AsNeeded": {
+      "Properties": {
+        "QuoteMode": "AsNeeded",
+        "Shape": "ShortAscii"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "File-ShortAscii-Always": {
+      "Properties": {
+        "QuoteMode": "Always",
+        "Shape": "ShortAscii"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvFileWriteBenchmarks"
+    },
+    "Text-Notes-64-AsNeeded": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Notes",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Notes-64-Always": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Notes",
+        "QuoteMode": "Always",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Notes-4096-AsNeeded": {
+      "Properties": {
+        "TextLength": 4096,
+        "TextShape": "Notes",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Notes-4096-Always": {
+      "Properties": {
+        "TextLength": 4096,
+        "TextShape": "Notes",
+        "QuoteMode": "Always",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Json-64-AsNeeded": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Json",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Json-64-Always": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Json",
+        "QuoteMode": "Always",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Json-4096-AsNeeded": {
+      "Properties": {
+        "TextLength": 4096,
+        "TextShape": "Json",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Json-4096-Always": {
+      "Properties": {
+        "TextLength": 4096,
+        "TextShape": "Json",
+        "QuoteMode": "Always",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Quotes-64-AsNeeded": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Quotes",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Quotes-64-Always": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Quotes",
+        "QuoteMode": "Always",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Quotes-4096-AsNeeded": {
+      "Properties": {
+        "TextLength": 4096,
+        "TextShape": "Quotes",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Text-Quotes-4096-Always": {
+      "Properties": {
+        "TextLength": 4096,
+        "TextShape": "Quotes",
+        "QuoteMode": "Always",
+        "Delimiter": "||"
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Comma-Notes-64-AsNeeded": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Notes",
+        "QuoteMode": "AsNeeded",
+        "Delimiter": ","
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    },
+    "Comma-Notes-64-Always": {
+      "Properties": {
+        "TextLength": 64,
+        "TextShape": "Notes",
+        "QuoteMode": "Always",
+        "Delimiter": ","
+      },
+      "Setup": "Setup",
+      "Method": "OfficeIMO",
+      "Library": "CSV",
+      "Class": "CsvTextWriteBenchmarks"
+    }
+  },
+  "Native": {
+    "Cases": 44,
+    "Warmups": 12,
+    "Iterations": 12,
+    "Operations": 8,
+    "Priority": "Normal",
+    "Mask": "0xFFFF",
+    "Outliers": "Retained"
+  },
+  "Rotated": {
+    "Samples": 2112,
+    "Warmups": 12,
+    "Iterations": 24,
+    "Operations": 4,
+    "Priority": "Normal",
+    "Masks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "Owner": "PowerForge Invoke-BenchmarkSuite",
+    "Outliers": "Retained"
+  },
+  "Validation": "Setup validates every field, row count, and byte-identical output from the two CSV implementations. Every snapshot sample checks its validated observation.",
+  "Tests": [
+    {
+      "File": "csv-batching-final-baseline-net10.trx",
+      "Total": 634,
+      "Passed": 634,
+      "Failed": 0,
+      "Sha256": "190020CFDAA0C36CA6420FC1E14E1D9227BE99CAA49BDC7AA75261375678937F"
+    },
+    {
+      "File": "csv-batching-net10.trx",
+      "Total": 634,
+      "Passed": 634,
+      "Failed": 0,
+      "Sha256": "FBB3DE81A45A3CEE1F4D6547C6D7F264A13A415DFDAA29ED2769DC6DC35ACC08"
+    },
+    {
+      "File": "csv-batching-net472.trx",
+      "Total": 444,
+      "Passed": 444,
+      "Failed": 0,
+      "Sha256": "84D92C43AD7FDCAA79F56CBF5699D0EA068D708C9E774EEAB0A1E62A1D45004D"
+    },
+    {
+      "File": "csv-batching-net8.0.trx",
+      "Total": 634,
+      "Passed": 634,
+      "Failed": 0,
+      "Sha256": "B9570CF8250A4E801D2CBC5AF6AE77E4C2E6798661EF9E9777DB54E347735821"
+    },
+    {
+      "File": "csv-batching-linux-net10.trx",
+      "Total": 634,
+      "Passed": 634,
+      "Failed": 0,
+      "Sha256": "DA16CFD6DFF200763BD5ED81420C88F6C1131C5A16F1809F70FA71647EDB5082"
+    }
+  ],
+  "Builds": [
+    "CSV product netstandard2.0; benchmark net8.0 and net10.0"
+  ],
+  "FailedAttempts": [
+    "WSL path conversion failed before execution; corrected to forward-slash input.",
+    "Initial native launch could not locate the external runner project: zero cases ran. The successful native-qualified run executes from the runner project directory."
+  ],
+  "Decision": "No general throughput gain. Short Unicode file medians improve about 6 percent in Always mode but regress 4-6 percent in AsNeeded mode; short JSON text output adds 6-8 KiB allocation. Unchanged comma controls also vary, limiting fine timing conclusions. Revert production batching and retain complete results.",
+  "Limits": [
+    "Windows NET10 timing only; Linux/other frameworks provide correctness evidence.",
+    "No portable ranking or peak/retained-memory claim.",
+    "Only the rejected candidate received the full runtime matrix; reverted production plus new tests passed the final NET10 suite."
+  ]
+}

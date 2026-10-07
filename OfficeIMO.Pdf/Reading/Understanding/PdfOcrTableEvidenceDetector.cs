@@ -11,6 +11,9 @@ internal static class PdfOcrTableEvidenceDetector {
     private const double MaximumCellWidthInTextHeights = 24D;
     private const double MaximumAverageCellWidthInTextHeights = 10D;
     private const double MaximumAlignedRowPitchPoints = 36D;
+    private const double MaximumAlignedRowPitchInTextHeights = 4D;
+    // Integer image-density metadata and searchable stamping introduce small scale and coordinate rounding.
+    private const double RowPitchRelativeTolerance = 0.001D;
 
     internal static IReadOnlyList<PdfUnderstandingTableCandidate> Detect(
         PdfUnderstandingPageContext context,
@@ -192,14 +195,14 @@ internal static class PdfOcrTableEvidenceDetector {
         double medianStep = Median(steps);
         double medianHeight = Median(group.Select(row => rows[row.RowIndex].Height));
         return medianHeight > 0D &&
-               medianStep <= Math.Max(MaximumAlignedRowPitchPoints, medianHeight * 3D) + 0.001D &&
+               medianStep <= Math.Max(MaximumAlignedRowPitchPoints, medianHeight * MaximumAlignedRowPitchInTextHeights) * (1D + RowPitchRelativeTolerance) &&
                steps.Max() <= steps.Min() * 1.75D;
     }
 
     private static bool HasCompactGap(VisualRow previous, VisualRow current) {
         double step = current.CenterY - previous.CenterY;
-        // Searchable stamping and readback can introduce sub-point rounding at the pitch boundary.
-        return step > 0D && step <= Math.Max(MaximumAlignedRowPitchPoints, Math.Max(previous.Height, current.Height) * 3D) + 0.001D;
+        return step > 0D && step <= Math.Max(MaximumAlignedRowPitchPoints,
+            Math.Max(previous.Height, current.Height) * MaximumAlignedRowPitchInTextHeights) * (1D + RowPitchRelativeTolerance);
     }
 
     private static bool ColumnsAlign(IReadOnlyList<VisualCell> expected, IReadOnlyList<VisualCell> actual) {

@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private sealed class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
+        private sealed partial class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
             private readonly ExcelSheetReader _owner;
             private readonly Stream _stream = Stream.Null;
             private readonly XmlReader _reader = null!;
@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel {
             private readonly int _lastColumn;
             private readonly int _fieldCount;
             private readonly long _maximumBufferedCells;
+            private readonly bool _trackCellPresence;
             private readonly CancellationToken _ct;
             private CancellationToken _activeReadCancellationToken;
             private readonly CultureInfo _culture;
@@ -36,11 +37,14 @@ namespace OfficeIMO.Excel {
             private readonly bool[] _currentValueLoaded;
             private readonly XmlDataReaderPrimitiveKind[] _currentPrimitiveKinds;
             private readonly double[] _currentDoubleValues;
+            private readonly decimal[] _currentDecimalValues;
             private readonly DateTime[] _currentDateTimeValues;
             private readonly bool[] _currentBooleanValues;
             private readonly object?[] _blankRow;
             private readonly bool _hasRows;
             private Dictionary<int, object?[]>? _bufferedRows;
+            private Dictionary<int, bool[]>? _bufferedCellPresence;
+            private bool[]? _currentCellPresence;
             private Dictionary<string, int>? _ordinals;
             private object?[]? _currentRow;
             private int _nextLogicalRow;
@@ -52,7 +56,6 @@ namespace OfficeIMO.Excel {
             private bool _currentRowActive;
             private bool _currentRowFinished;
             private bool _currentRowIsBlank;
-            private bool? _rowsAreSorted;
             private bool _closed;
             private bool _disposed;
 
@@ -70,7 +73,9 @@ namespace OfficeIMO.Excel {
                 ExcelReadOptions options,
                 CancellationToken ct,
                 ExcelUtf8RangeRowSource? preindexedUtf8Source = null,
-                int utf8SourceFirstColumn = 0) {
+                int utf8SourceFirstColumn = 0,
+                bool trackCellPresence = false,
+                bool rowsAlreadyQualified = false) {
                 _owner = owner;
                 _firstRow = firstRow;
                 _lastRow = lastRow;
@@ -78,6 +83,7 @@ namespace OfficeIMO.Excel {
                 _lastColumn = lastColumn;
                 _fieldCount = fieldCount;
                 _maximumBufferedCells = options.MaxDataReaderBufferedCells;
+                _trackCellPresence = trackCellPresence;
                 _ct = ct;
                 _activeReadCancellationToken = ct;
                 _culture = options.Culture;
@@ -86,6 +92,7 @@ namespace OfficeIMO.Excel {
                 _currentValueLoaded = new bool[fieldCount];
                 _currentPrimitiveKinds = new XmlDataReaderPrimitiveKind[fieldCount];
                 _currentDoubleValues = new double[fieldCount];
+                _currentDecimalValues = new decimal[fieldCount];
                 _currentDateTimeValues = new DateTime[fieldCount];
                 _currentBooleanValues = new bool[fieldCount];
                 _blankRow = new object?[fieldCount];
@@ -95,29 +102,46 @@ namespace OfficeIMO.Excel {
                     _utf8SourceOrdinalOffset = firstColumn - utf8SourceFirstColumn;
                 } else if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
                     _utf8Source = utf8Source;
-                } else if (!owner._hasSdkWorksheetPart) {
+                } else if (!owner._hasSdkWorksheetPart && !rowsAlreadyQualified) {
                     throw new XlsxTabularFastPathNotSupportedException(
                         $"Worksheet '{owner._sheetName}' requires the Open XML SDK fallback path.");
                 } else {
-                    _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    _stream = owner.OpenDataReaderWorksheetStream(ct);
                     RewindWorksheetStream(_stream);
                     _reader = OpenWorksheetXmlReader(_stream);
                 }
 
-                object?[]? headerValues = null;
-                if (headersInFirstRow) {
-                    if (TryReadLogicalRow(out headerValues)) {
-                        MaterializeAllCurrentRowValues();
-                        headerValues = _currentRow;
+                try {
+                    if (_trackCellPresence && _utf8Source == null) {
+                        _currentCellPresence = new bool[fieldCount];
                     }
-                }
+                    // XML rows may recur after a dense prefix. Establish ordering before
+                    // publishing any values; unsorted input uses the existing cell budget.
+                    if (_utf8Source == null && !rowsAlreadyQualified
+                        && !owner.RowsAreSortedWithinRangeXmlFast(firstRow, lastRow, ct)) {
+                        BufferRemainingRows();
+                    }
 
-                _columnNames = headersInFirstRow
-                    ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
-                    : CreateGeneratedColumnNames(fieldCount);
-                _columnTypes = CreateObjectColumnTypes(fieldCount);
-                _hasRows = _nextLogicalRow <= _lastRow;
-                _currentRow = null;
+                    object?[]? headerValues = null;
+                    if (headersInFirstRow) {
+                        if (TryReadLogicalRow(out headerValues)) {
+                            MaterializeAllCurrentRowValues();
+                            headerValues = _currentRow;
+                        }
+                    }
+
+                    _columnNames = headersInFirstRow
+                        ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
+                        : CreateGeneratedColumnNames(fieldCount);
+                    _columnTypes = CreateObjectColumnTypes(fieldCount);
+                    _hasRows = _nextLogicalRow <= _lastRow;
+                    _currentRow = null;
+                } catch {
+                    _reader?.Dispose();
+                    _stream.Dispose();
+                    _utf8Source?.Dispose();
+                    throw;
+                }
             }
 
             /// <inheritdoc />
@@ -140,168 +164,6 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override int RecordsAffected => -1;
-
-            /// <inheritdoc />
-            public override bool GetBoolean(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Boolean);
-                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Boolean) {
-                    return _currentBooleanValues[ordinal];
-                }
-
-                object value = GetNonDbNullValue(ordinal);
-                return value is bool boolean ? boolean : Convert.ToBoolean(value, _culture);
-            }
-
-            /// <inheritdoc />
-            public override byte GetByte(int ordinal) => TryGetPrimitiveDouble(ordinal, out double value)
-                ? Convert.ToByte(value)
-                : Convert.ToByte(GetNonDbNullValue(ordinal), _culture);
-
-            /// <inheritdoc />
-            public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
-                throw new NotSupportedException("Excel range fields are exposed as scalar values.");
-
-            /// <inheritdoc />
-            public override char GetChar(int ordinal) => Convert.ToChar(GetNonDbNullValue(ordinal), _culture);
-
-            /// <inheritdoc />
-            public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
-                string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
-                if (buffer == null) {
-                    return value.Length;
-                }
-
-                if (dataOffset >= value.Length || length == 0) {
-                    return 0;
-                }
-
-                int offset = (int)dataOffset;
-                int count = Math.Min(length, value.Length - offset);
-                if (count <= 0) {
-                    return 0;
-                }
-
-                value.CopyTo(offset, buffer, bufferOffset, count);
-                return count;
-            }
-
-            /// <inheritdoc />
-            public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
-
-            /// <inheritdoc />
-            public override DateTime GetDateTime(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.DateTime);
-                if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.DateTime) {
-                    return _currentDateTimeValues[ordinal];
-                }
-
-                object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
-            }
-
-            /// <inheritdoc />
-            public override decimal GetDecimal(int ordinal) => TryGetPrimitiveDouble(ordinal, out double value)
-                ? Convert.ToDecimal(value)
-                : Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture);
-
-            /// <inheritdoc />
-            public override double GetDouble(int ordinal) {
-                return TryGetPrimitiveDouble(ordinal, out double value)
-                    ? value
-                    : Convert.ToDouble(GetNonDbNullValue(ordinal), _culture);
-            }
-
-            /// <inheritdoc />
-            [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "Excel reader column types are closed scalar conversion tokens; OfficeIMO never activates or reflects over their public members.")]
-            [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
-            public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
-
-            /// <inheritdoc />
-            public override float GetFloat(int ordinal) => TryGetPrimitiveDouble(ordinal, out double value)
-                ? (float)value
-                : Convert.ToSingle(GetNonDbNullValue(ordinal), _culture);
-
-            /// <inheritdoc />
-            public override Guid GetGuid(int ordinal) {
-                object value = GetNonDbNullValue(ordinal);
-                return value is Guid guid ? guid : Guid.Parse(Convert.ToString(value, _culture)!);
-            }
-
-            /// <inheritdoc />
-            public override short GetInt16(int ordinal) => TryGetPrimitiveDouble(ordinal, out double value)
-                ? Convert.ToInt16(value)
-                : Convert.ToInt16(GetNonDbNullValue(ordinal), _culture);
-
-            /// <inheritdoc />
-            public override int GetInt32(int ordinal) {
-                return TryGetPrimitiveDouble(ordinal, out double value)
-                    ? ConvertDataReaderInt32(value)
-                    : ConvertDataReaderInt32(GetNonDbNullValue(ordinal), _culture);
-            }
-
-            /// <inheritdoc />
-            public override long GetInt64(int ordinal) => TryGetPrimitiveDouble(ordinal, out double value)
-                ? Convert.ToInt64(value)
-                : Convert.ToInt64(GetNonDbNullValue(ordinal), _culture);
-
-            /// <inheritdoc />
-            public override string GetName(int ordinal) => _columnNames[ordinal];
-
-            /// <inheritdoc />
-            public override int GetOrdinal(string name) {
-                _ordinals ??= CreateOrdinalMap(_columnNames);
-                if (_ordinals.TryGetValue(name, out int ordinal)) {
-                    return ordinal;
-                }
-
-                throw new IndexOutOfRangeException(name);
-            }
-
-            /// <inheritdoc />
-            public override string GetString(int ordinal) {
-                object value = GetNonDbNullValue(ordinal);
-                return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
-            }
-
-            /// <inheritdoc />
-            public override object GetValue(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal);
-                object? value = MaterializeCurrentValue(ordinal);
-                return ToDataReaderValue(value);
-            }
-
-            /// <inheritdoc />
-            public override int GetValues(object[] values) {
-                EnsureOpenRow();
-                MaterializeAllCurrentRowValues();
-                MaterializeAllPrimitiveCurrentValues();
-                return CopyDataReaderValues(_currentRow!, _fieldCount, values);
-            }
-
-            /// <inheritdoc />
-            public override bool IsDBNull(int ordinal) {
-                EnsureOpenRow();
-                if ((uint)ordinal >= (uint)_fieldCount) {
-                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
-                }
-                if (_currentRowIsBlank || _currentRow == null) {
-                    return true;
-                }
-                if (_currentValueLoaded[ordinal]) {
-                    return _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None
-                        && (_currentRow[ordinal] == null || _currentRow[ordinal] == DBNull.Value);
-                }
-                if (_utf8Source != null) {
-                    return _utf8Source.IsNull(ordinal + _utf8SourceOrdinalOffset);
-                }
-
-                EnsureCurrentValue(ordinal);
-                return _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None
-                    && (_currentRow[ordinal] == null || _currentRow[ordinal] == DBNull.Value);
-            }
 
             bool IDataReaderFastValueSource.TryGetUtf8Value(int ordinal, out ArraySegment<byte> value) {
                 EnsureOpenRow();
@@ -328,7 +190,7 @@ namespace OfficeIMO.Excel {
                     value = default;
                     return false;
                 }
-                if (!_currentValueLoaded[ordinal] && _utf8Source != null) {
+                if (!_currentValueLoaded[ordinal] && _utf8Source != null && !_owner._opt.NumericAsDecimal) {
                     _utf8Source.ReadValue(
                         ordinal + _utf8SourceOrdinalOffset,
                         XmlDataReaderTargetKind.Numeric,
@@ -369,7 +231,7 @@ namespace OfficeIMO.Excel {
                     value = default;
                     return false;
                 }
-                if (!_currentValueLoaded[ordinal] && _utf8Source != null) {
+                if (!_currentValueLoaded[ordinal] && _utf8Source != null && !_owner._opt.NumericAsDecimal) {
                     _utf8Source.ReadValue(
                         ordinal + _utf8SourceOrdinalOffset,
                         XmlDataReaderTargetKind.Numeric,
@@ -490,6 +352,8 @@ namespace OfficeIMO.Excel {
 
                 _closed = true;
                 _currentRow = null;
+                _currentCellPresence = null;
+                _bufferedCellPresence?.Clear();
                 _utf8Source?.Dispose();
                 _reader?.Dispose();
                 if (!ReferenceEquals(_stream, Stream.Null)) {
@@ -519,6 +383,13 @@ namespace OfficeIMO.Excel {
                 base.Dispose(disposing);
             }
 
+            internal bool IsCellPresent(int ordinal) {
+                if (_currentRowIsBlank) return false;
+                if (_utf8Source != null) return _utf8Source.IsCellPresent(ordinal + _utf8SourceOrdinalOffset);
+                EnsureCurrentValue(ordinal);
+                return _currentCellPresence == null || _currentCellPresence[ordinal];
+            }
+
             private bool TryReadLogicalRow(out object?[] row) {
                 row = Array.Empty<object?>();
                 if (_closed || _nextLogicalRow > _lastRow) {
@@ -538,6 +409,10 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
+                if (_bufferedRows != null) {
+                    return TryReadBufferedLogicalRow(out row);
+                }
+
                 FinishCurrentRow();
                 EnsurePendingRow();
                 if (_hasPendingRow && _pendingRowIndex == _nextLogicalRow) {
@@ -549,24 +424,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_hasPendingRow && _pendingRowIndex > _nextLogicalRow) {
-                    _rowsAreSorted ??= _owner.RowsAreSortedWithinRangeXmlFast(
-                        _firstRow,
-                        _lastRow,
-                        _activeReadCancellationToken);
-                    if (_rowsAreSorted.Value) {
-                        row = _blankRow;
-                        _currentRow = row;
-                        _currentRowIsBlank = true;
-                        _nextLogicalRow++;
-                        return true;
-                    }
-
-                    BufferRemainingRows();
-                    return TryReadBufferedLogicalRow(out row);
-                }
-
-                if (_bufferedRows != null) {
-                    return TryReadBufferedLogicalRow(out row);
+                    row = _blankRow;
+                    _currentRow = row;
+                    _currentRowIsBlank = true;
+                    _nextLogicalRow++;
+                    return true;
                 }
 
                 row = _blankRow;
@@ -588,9 +450,9 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(_reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(_reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = _nextWorksheetRowIndex;
+                        rowIndex = _owner.ResolveImplicitXmlRowIndex(_reader, _nextWorksheetRowIndex, _activeReadCancellationToken);
                     }
 
                     _nextWorksheetRowIndex = rowIndex + 1;
@@ -619,6 +481,10 @@ namespace OfficeIMO.Excel {
                 if (_bufferedRows != null && _bufferedRows.TryGetValue(_nextLogicalRow, out var bufferedRow)) {
                     row = bufferedRow;
                     _bufferedRows.Remove(_nextLogicalRow);
+                    if (_bufferedCellPresence != null) {
+                        _currentCellPresence = _bufferedCellPresence[_nextLogicalRow];
+                        _bufferedCellPresence.Remove(_nextLogicalRow);
+                    }
                     _currentRowIsBlank = false;
                 } else {
                     row = _blankRow;
@@ -634,6 +500,7 @@ namespace OfficeIMO.Excel {
 
             private void BeginPendingRow() {
                 Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
+                if (_currentCellPresence != null) Array.Clear(_currentCellPresence, 0, _currentCellPresence.Length);
                 _currentRow = _currentValues;
                 _currentRowDepth = _reader.Depth;
                 _currentNextCellColumnIndex = 1;
@@ -686,6 +553,11 @@ namespace OfficeIMO.Excel {
                         out bool deferObjectMaterialization,
                         out _currentValues[ordinal]);
                     _currentValueLoaded[ordinal] = !deferObjectMaterialization;
+                    if (!deferObjectMaterialization && _owner._opt.NumericAsDecimal
+                        && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double
+                        && TryConvertExcelNumberToDecimal(_currentDoubleValues[ordinal], out _currentDecimalValues[ordinal])) {
+                        _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.Decimal;
+                    }
                     return;
                 }
 
@@ -725,7 +597,8 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    string? cellType = _reader.GetAttribute("t");
+                    string? cellType = ReadXmlCellTypeAttribute(_reader);
+                    if (_currentCellPresence != null) _currentCellPresence[columnOffset] = true;
                     if (columnIndex == targetColumn
                         && targetKind != XmlDataReaderTargetKind.None
                         && _owner.TryReadXmlCellPrimitiveForDataReader(
@@ -734,13 +607,13 @@ namespace OfficeIMO.Excel {
                             targetKind,
                             out XmlDataReaderPrimitiveKind primitiveKind,
                             out double doubleValue,
-                            out DateTime dateTimeValue,
+                            out decimal decimalValue,
                             out bool booleanValue,
                             out object? objectValue)) {
                         _currentValues[columnOffset] = objectValue;
                         _currentPrimitiveKinds[columnOffset] = primitiveKind;
                         _currentDoubleValues[columnOffset] = doubleValue;
-                        _currentDateTimeValues[columnOffset] = dateTimeValue;
+                        _currentDecimalValues[columnOffset] = decimalValue;
                         _currentBooleanValues[columnOffset] = booleanValue;
                     } else {
                         _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, cellType, preserveDateSerial: true);
@@ -802,7 +675,8 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, _reader.GetAttribute("t"), preserveDateSerial: true);
+                        if (_currentCellPresence != null) _currentCellPresence[columnOffset] = true;
+                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, ReadXmlCellTypeAttribute(_reader), preserveDateSerial: true);
                         _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
                         _currentValueLoaded[columnOffset] = true;
                     }
@@ -823,8 +697,9 @@ namespace OfficeIMO.Excel {
 
             private void BufferRemainingRows() {
                 _bufferedRows ??= new Dictionary<int, object?[]>();
+                if (_trackCellPresence) _bufferedCellPresence ??= new Dictionary<int, bool[]>();
                 if (_hasPendingRow) {
-                    StoreBufferedRow(_pendingRowIndex, ReadPendingRowValues());
+                    ReadBufferedRowValues(_pendingRowIndex);
                     _hasPendingRow = false;
                 }
 
@@ -835,9 +710,9 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(_reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(_reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = _nextWorksheetRowIndex;
+                        rowIndex = _owner.ResolveImplicitXmlRowIndex(_reader, _nextWorksheetRowIndex, _activeReadCancellationToken);
                     }
 
                     _nextWorksheetRowIndex = rowIndex + 1;
@@ -851,110 +726,37 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var values = new object?[_fieldCount];
-                    var rowSlot = new[] { values };
-                    _owner.ReadXmlRowIntoChunk(
-                        _reader,
-                        rowSlot,
-                        rowIndex,
-                        rowIndex,
-                        _firstColumn,
-                        _lastColumn,
-                        _activeReadCancellationToken,
-                        preserveDateSerial: true);
-                    StoreBufferedRow(rowIndex, values);
+                    ReadBufferedRowValues(rowIndex);
                 }
             }
 
-            private object?[] ReadPendingRowValues() {
-                var values = new object?[_fieldCount];
-                var rowSlot = new[] { values };
+            private void ReadBufferedRowValues(int rowIndex) {
+                if (rowIndex < _nextLogicalRow || rowIndex > _lastRow) {
+                    SkipXmlElement(_reader, "row");
+                    return;
+                }
+
+                if (!_bufferedRows!.TryGetValue(rowIndex, out object?[]? values)) {
+                    if ((long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
+                        throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                    }
+                    values = new object?[_fieldCount];
+                    _bufferedRows.Add(rowIndex, values);
+                    _bufferedCellPresence?.Add(rowIndex, new bool[_fieldCount]);
+                }
+
+                // Apply only the present cells to the logical row. A new empty
+                // array for every fragment would discard earlier omitted cells.
                 _owner.ReadXmlRowIntoChunk(
                     _reader,
-                    rowSlot,
-                    _pendingRowIndex,
-                    _pendingRowIndex,
+                    new[] { values },
+                    rowIndex,
+                    rowIndex,
                     _firstColumn,
                     _lastColumn,
                     _activeReadCancellationToken,
-                    preserveDateSerial: true);
-                return values;
-            }
-
-            private void StoreBufferedRow(int rowIndex, object?[] values) {
-                if (rowIndex < _nextLogicalRow || rowIndex > _lastRow) {
-                    return;
-                }
-
-                if (!_bufferedRows!.ContainsKey(rowIndex) &&
-                    (long)_bufferedRows.Count + 1L > _maximumBufferedCells / _fieldCount) {
-                    throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
-                }
-
-                var copy = new object?[_fieldCount];
-                Array.Copy(values, copy, Math.Min(values.Length, copy.Length));
-                _bufferedRows![rowIndex] = copy;
-            }
-
-            private object GetNonDbNullValue(int ordinal) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal);
-                object? value = MaterializeCurrentValue(ordinal);
-                if (value == null || value == DBNull.Value) {
-                    throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
-                }
-
-                return value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
-            }
-
-            private bool TryGetPrimitiveDouble(int ordinal, out double value) {
-                EnsureOpenRow();
-                EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Numeric);
-                if (IsCurrentStreamingRow
-                    && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
-                    value = _currentDoubleValues[ordinal];
-                    return true;
-                }
-                if (_currentRow![ordinal] is ExcelDataReaderDateSerial dateSerial) {
-                    value = dateSerial.Serial;
-                    return true;
-                }
-                if (_utf8Source != null && (_currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.DateTime || _currentRow[ordinal] is DateTime)) {
-                    _utf8Source.ReadValue(ordinal + _utf8SourceOrdinalOffset, XmlDataReaderTargetKind.Numeric,
-                        out XmlDataReaderPrimitiveKind kind, out value, out _, out _, out _, out _, out _);
-                    if (kind == XmlDataReaderPrimitiveKind.Double) return true;
-                }
-
-                value = 0;
-                return false;
-            }
-
-            private object? MaterializeCurrentValue(int ordinal) {
-                if (!IsCurrentStreamingRow || _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None) {
-                    return _currentRow![ordinal];
-                }
-
-                object value = _currentValues[ordinal] ?? (_currentPrimitiveKinds[ordinal] switch {
-                    XmlDataReaderPrimitiveKind.Double => _currentDoubleValues[ordinal],
-                    XmlDataReaderPrimitiveKind.DateTime => _currentDateTimeValues[ordinal],
-                    XmlDataReaderPrimitiveKind.Boolean => BoxBoolean(_currentBooleanValues[ordinal]),
-                    _ => _currentRow![ordinal]!
-                });
-                _currentValues[ordinal] = value;
-                _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.None;
-                return value;
-            }
-
-            private void MaterializeAllPrimitiveCurrentValues() {
-                if (!IsCurrentStreamingRow) {
-                    return;
-                }
-
-                for (int i = 0; i < _currentPrimitiveKinds.Length; i++) {
-                    if (_currentPrimitiveKinds[i] != XmlDataReaderPrimitiveKind.None) {
-                        _ = MaterializeCurrentValue(i);
-                    }
-                }
+                    preserveDateSerial: true,
+                    cellPresence: _bufferedCellPresence?[rowIndex]);
             }
 
             private bool IsCurrentStreamingRow => ReferenceEquals(_currentRow, _currentValues);

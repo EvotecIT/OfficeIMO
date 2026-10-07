@@ -25,6 +25,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            // Reject common full-XML cases before allocating any item strings.
+            // A late Unicode value or entity otherwise discards the ASCII prefix
+            // and allocates it again when the XML reader reparses the whole part.
+#if NET8_0_OR_GREATER
+            ReadOnlySpan<byte> content = bytes.AsSpan(position, length - position);
+            if (!Ascii.IsValid(content) || content.IndexOf((byte)'&') >= 0) return false;
+#else
+            for (int index = position; index < length; index++) {
+                if (bytes[index] >= 0x80 || bytes[index] == (byte)'&') return false;
+            }
+#endif
+
             var parsed = new List<string>(Math.Min(declaredUniqueCount,
                 Math.Min(_maxSharedStringItems, length / 7)));
             long totalCharacters = 0;

@@ -76,6 +76,28 @@ internal static class PdfStructuredExportEngine {
                     .Append('}');
             }
 
+            builder.Append("],\"text\":\"").Append(Json(PdfDocumentReadResult.GetCanonicalPageText(page)))
+                .Append("\",\"tables\":[");
+            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
+                if (tableIndex > 0) builder.Append(',');
+                PdfLogicalTable table = page.Tables[tableIndex];
+                builder.Append("{\"detectionKind\":\"").Append(Json(table.DetectionKind))
+                    .Append("\",\"sourceKind\":\"").Append(table.SourceKind)
+                    .Append("\",\"coordinateSpace\":\"").Append(table.CoordinateSpace)
+                    .Append("\",\"yTop\":").Append(Number(table.YTop))
+                    .Append(",\"yBottom\":").Append(Number(table.YBottom))
+                    .Append(",\"rows\":[");
+                for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                    if (rowIndex > 0) builder.Append(',');
+                    builder.Append('[');
+                    for (int columnIndex = 0; columnIndex < table.Rows[rowIndex].Count; columnIndex++) {
+                        if (columnIndex > 0) builder.Append(',');
+                        builder.Append('"').Append(Json(table.Rows[rowIndex][columnIndex])).Append('"');
+                    }
+                    builder.Append(']');
+                }
+                builder.Append("]}");
+            }
             builder.Append("]}");
         }
 

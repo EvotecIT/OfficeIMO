@@ -126,13 +126,13 @@ namespace OfficeIMO.Tests {
             using var reader = ExcelDocumentReader.Open(reordered.ToArray(), new ExcelReadOptions {
                 MaxDataReaderBufferedCells = 4
             });
-            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(
-                "A1:B4098",
-                headersInFirstRow: false,
-                schemaSampleRows: 0);
-
-            Assert.True(dataReader.Read());
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => dataReader.Read());
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
+                using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(
+                    "A1:B4098",
+                    headersInFirstRow: false,
+                    schemaSampleRows: 0);
+                while (dataReader.Read()) { }
+            });
             Assert.Contains(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), exception.Message, StringComparison.Ordinal);
         }
 

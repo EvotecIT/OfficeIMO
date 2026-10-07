@@ -77,7 +77,7 @@ internal static partial class PdfPageEditor {
             overrides[readPage.ObjectNumber] = pageOverrides;
         }
 
-        PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
+        PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document);
         var visitedReferences = new HashSet<int>();
         var transformedArrays = new HashSet<PdfArray>();
         TransformCatalogDestinationsForResize(objects, catalogState, transforms, visitedReferences, transformedArrays);

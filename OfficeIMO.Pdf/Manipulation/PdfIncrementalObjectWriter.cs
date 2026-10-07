@@ -20,7 +20,8 @@ internal static class PdfIncrementalObjectWriter {
         int? infoObjectNumberOverride = null,
         PdfIncrementalXrefFormat format = PdfIncrementalXrefFormat.Automatic,
         PdfStandardSecurityHandler? encryptionHandler = null,
-        long? maximumOutputBytes = null) {
+        long? maximumOutputBytes = null,
+        PdfIncrementalUpdater.SignaturePlaceholder? signaturePlaceholder = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(security, nameof(security));
@@ -41,6 +42,19 @@ internal static class PdfIncrementalObjectWriter {
         IReadOnlyList<(int ObjectNumber, byte[] Bytes)> effectiveRawObjects = rawObjects ?? Array.Empty<(int ObjectNumber, byte[] Bytes)>();
         if (security.HasEncryption && effectiveRawObjects.Count > 0) {
             throw new NotSupportedException("Raw incremental objects cannot be appended to an encrypted PDF. Supply typed PDF objects so strings and streams are encrypted with their object keys.");
+        }
+
+        // Only the signature builder can produce this exception to typed-object serialization.
+        // Its Contents bytes are exempt from encryption; every other string uses the object key.
+        if (signaturePlaceholder is not null) {
+            if (!ReferenceEquals(signaturePlaceholder.EncryptionHandler, encryptionHandler) ||
+                objects.ContainsKey(signaturePlaceholder.ObjectNumber) ||
+                effectiveRawObjects.Any(item => item.ObjectNumber == signaturePlaceholder.ObjectNumber)) {
+                throw new InvalidOperationException("The signature placeholder must be a new object using the authenticated encryption context.");
+            }
+            effectiveRawObjects = effectiveRawObjects.Concat(new[] {
+                (signaturePlaceholder.ObjectNumber, signaturePlaceholder.Bytes)
+            }).ToArray();
         }
 
         List<SerializedObject> serialized = SerializeObjects(objects, changedObjectNumbers, effectiveRawObjects, encryptionHandler);

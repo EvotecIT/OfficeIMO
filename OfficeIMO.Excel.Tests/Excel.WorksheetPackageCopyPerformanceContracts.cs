@@ -24,6 +24,18 @@ namespace OfficeIMO.Tests {
                 sourceDocument.Save();
             }
 
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourcePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                Cell textCell = workbookPart.WorksheetParts.Single().Worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "A2");
+                int sharedIndex = int.Parse(textCell.CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture);
+                SharedStringItem item = workbookPart.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>()
+                    .ElementAt(sharedIndex);
+                item.RemoveAllChildren();
+                item.Append(new Run(new RunProperties(new Bold()), new Text("N")), new Run(new Text("A")));
+                workbookPart.SharedStringTablePart.SharedStringTable.Save();
+            }
+
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
                 ExcelSheet copied = targetDocument.CopyWorksheetFrom(
@@ -52,6 +64,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Region", header.InnerText);
                 Assert.NotNull(header.StyleIndex);
                 Assert.NotEqual(0U, header.StyleIndex!.Value);
+                Cell body = importedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+                Assert.Equal(CellValues.InlineString, body.DataType?.Value);
+                Assert.Equal("NA", body.InnerText);
+                Run[] runs = body.InlineString!.Elements<Run>().ToArray();
+                Assert.Equal(2, runs.Length);
+                Assert.NotNull(runs[0].RunProperties?.GetFirstChild<Bold>());
             }
 
             using (var targetDocument = ExcelDocument.Load(targetPath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {

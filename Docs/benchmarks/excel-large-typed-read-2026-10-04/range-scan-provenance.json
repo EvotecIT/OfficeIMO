@@ -1,0 +1,83 @@
+{
+  "BaselineSource": "ee2930812",
+  "CandidateSource": "8dc37d02abeec357d2d949c0efe1092cac3e9975",
+  "BaselineExcelSha256": "DDC74536B7FD95DA8171FEE0AC210455CAFF2F9686110D288627B3B7A99B6BEC",
+  "CandidateExcelSha256": "B2A78CE55AFD5BE7D70171F67C608BF2E98D955959EBF9577A3229E9443F6898",
+  "MeasuredBenchmarkSha256": "3B5783FD1657C5944261C03568E01187D8DD4BE949F365D36619B11EC7024398",
+  "Harness": "Identical benchmark assemblies and comparison dependencies in both snapshots; only the Excel product assembly differs.",
+  "Runtime": "10.0.12",
+  "SDK": "10.0.112",
+  "BenchmarkDotNet": "0.15.8",
+  "Affinity": "0xFFFF",
+  "Priority": "Normal",
+  "Warmups": 5,
+  "Iterations": 5,
+  "Operations": 1,
+  "Outliers": "Retained",
+  "AllCasesComplete": true,
+  "HostContention": "Other applications and builds active; CPU load observed at 100 percent before the comparison. Timing is diagnostic, not a portable speed qualification.",
+  "Tests": [
+    {
+      "File": "excel-full-range-net10.trx",
+      "Total": 5238,
+      "Passed": 5233,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "EC99D4A40BC3965F67344E3587A50C559A07BE94E8DDCA29FFFFE5C0337DF7A5"
+    },
+    {
+      "File": "excel-range-net8.trx",
+      "Total": 323,
+      "Passed": 323,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "BCD1AD3198EC53895D70D16B86B934917BC750FD39EBC676DA8E75D58A311C52"
+    },
+    {
+      "File": "excel-range-net472.trx",
+      "Total": 318,
+      "Passed": 318,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "60CD68D02EDB3BA3589C124EE0CAD3CE9D0820E4D7A07FF9E0BA32C1B8826D84"
+    }
+  ],
+  "FocusedFilter": "(FullyQualifiedName~DataReader|FullyQualifiedName~UsedRange|FullyQualifiedName~ReadRange)&Category!=Performance",
+  "FullFilter": "Category!=Performance",
+  "Build": "OfficeIMO.Excel netstandard2.0: zero warnings and errors; benchmark net10.0 build passed.",
+  "Review": {
+    "Scope": "Worksheet validation, used-range discovery, coordinate accumulator, and dimensionless worksheet fixtures",
+    "IndependentReadOnlyPass": true,
+    "ActionableFindings": 0,
+    "PatchSha256": "080844218D8055BA7E6D659334233A65A0B7DF2BBE1E5C2845004004173CE6F1"
+  },
+  "QualificationLimits": [
+    "Allocation is not retained or peak memory.",
+    "The 65K control allocates equally before and after but exceeds the earlier warmed observation.",
+    "A missing row index combined with an explicit gap in cell references has a pre-existing row-position disagreement; reproduced on the saved baseline."
+  ],
+  "SkippedCountSource": "TRX UnitTestResult outcomes; VSTest summary counters report zero notExecuted although five result entries are NotExecuted.",
+  "FollowUp": {
+    "Cases": 6,
+    "Warmups": 24,
+    "Iterations": 12,
+    "Operations": 4,
+    "Affinity": "0xFFFF",
+    "Priority": "Normal",
+    "AllCasesComplete": true,
+    "Observation": "65K allocation is 91,486 bytes/op in both versions; both 25K operations are approximately 9.28 to 5.73 MiB. All initial observations remain retained; timing is contended and no speedup is claimed."
+  },
+  "Linux": {
+    "Environment": "Ubuntu 24.04 under WSL",
+    "Framework": "net10.0",
+    "SDK": "10.0.112",
+    "FreshSourceBuild": true,
+    "Passed": 323,
+    "Failed": 0,
+    "Skipped": 0,
+    "TrxSha256": "1A4246AE39F4939C6E3DC75AB0A8B94987AD7745B2EECF90CB70940EA5694004",
+    "LogSha256": "9C1DD1B55A8FB9018A33CC6691BB9CDB9ECCE9535AAD6DF2BC41669CC078EFE3",
+    "Filter": "(FullyQualifiedName~DataReader|FullyQualifiedName~UsedRange|FullyQualifiedName~ReadRange)&Category!=Performance",
+    "Qualification": "Correctness evidence, not native-Linux timing qualification."
+  }
+}

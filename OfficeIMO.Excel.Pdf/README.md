@@ -129,6 +129,8 @@ report.RequireNoLoss(); // rejects row truncation and non-table page content
 
 `ReadOptions` also exposes the canonical Fast/Structured profile and semantic work limits for large or deliberately bounded imports. It is ignored when the source is already a `PdfDocumentReadResult`.
 
+Tables without explicit header evidence retain all source rows, with generated Excel column names. If you have reviewed the source and confirmed its first row as headers, set `UseFirstRowAsHeader = true`. This applies to each logical table with unknown schema; tables with an established header keep their existing body boundary. The import excludes the confirmed header from type detection and `MaxRows`, and records the decision in `PdfExcelTableImportEntry.FirstRowUsedAsHeader`. Recognition results from [standalone images and scanned PDFs](../OfficeIMO.Pdf.Ocr/README.md) use this same importer.
+
 Compatible table segments continue across adjacent pages by default. The shared PDF table analysis classifies Boolean, percentage, date-time, time-only, currency, numeric, and text columns with confidence; the import options decide which detected families become typed Excel cells. Consistent currency columns become decimal cells and retain their detected symbol or ISO 4217 code, prefix or suffix placement, source spacing, and each cell's visible fractional precision in the Excel number format. Mixed currency tokens or affix conventions remain text so the import does not silently normalize their meaning.
 
 ## What it maps

@@ -11,7 +11,7 @@
 .imo-download-choice a { color: var(--imo-accent); font-weight: 600; }
 .imo-download-choice .imo-application-terminal { margin-top: 1rem; box-shadow: none; padding: 1rem; }
 .imo-download-choice .imo-application-terminal pre { padding: 0 0 1rem; font-size: .85rem; }
-.imo-channel-list > div { display: grid; grid-template-columns: 5rem 1fr; gap: 1rem; border-bottom: 1px solid var(--imo-border); padding: .8rem 0; font-size: .9rem; }
+.imo-channel-list > div { display: grid; grid-template-columns: 7.5rem 1fr; align-items: center; gap: 1rem; border-bottom: 1px solid var(--imo-border); padding: .8rem 0; font-size: .9rem; }
 .imo-channel-list dt { font-weight: 650; }
 .imo-channel-list dd { color: var(--imo-text-secondary); }
 .imo-package-disclosure > summary { cursor: pointer; font-weight: 650; color: var(--imo-text); padding: 1.5rem 0; font-size: 1.15rem; }
@@ -21,7 +21,7 @@
 .imo-application-gallery img { width: 100%; border-radius: 10px; border: 1px solid var(--imo-glass-border); box-shadow: 0 18px 55px #0002; }
 .imo-application-gallery figcaption { margin-top: .85rem; color: var(--imo-text-secondary); font-size: .88rem; line-height: 1.5; }
 .imo-application-channels { padding-top: 3.5rem; }
-.imo-application-channel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+.imo-application-channel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.4rem; }
 .imo-application-channel-grid article { border: 1px solid var(--imo-glass-border); border-radius: 12px; padding: 1.5rem; background: var(--imo-surface); }
 .imo-application-channel-grid h3 { font-size: 1.1rem; margin-bottom: .7rem; }
 .imo-application-channel-grid article > p:not(.imo-application-eyebrow) { color: var(--imo-text-secondary); font-size: .94rem; }
@@ -81,4 +81,36 @@
 @media (max-width: 700px) {
   .imo-library-catalog__intro, .imo-library-catalog__grid, .imo-next-step { grid-template-columns: minmax(0, 1fr); }
   .imo-library { padding-right: 0; }
+}
+
+/* Store badges and coming-soon tiles (official badges only for released listings). */
+.imo-stores { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin: 1.1rem 0 1.4rem; }
+.imo-workbench__actions .imo-stores { display: contents; }
+.imo-store-badge { display: inline-flex; border-radius: 9px; line-height: 0; transition: transform .15s ease, box-shadow .15s ease; }
+.imo-store-badge img { height: 48px; width: auto; }
+.imo-store-badge:hover { transform: translateY(-1px); box-shadow: 0 10px 24px #0003; }
+.imo-store-badge:focus-visible { outline: 3px solid var(--imo-accent); outline-offset: 3px; }
+.imo-store-badge .imo-theme-dark-only { display: none; }
+[data-theme="dark"] .imo-store-badge .imo-theme-dark-only { display: inline; }
+.imo-store-icon { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; color: var(--imo-text-secondary); background: color-mix(in srgb, var(--imo-text-secondary) 12%, transparent); }
+.imo-store-icon svg { width: 18px; height: 18px; }
+.imo-store-soon { display: inline-flex; align-items: center; gap: .65rem; height: 48px; padding: 0 .65rem 0 .5rem; border: 1px dashed color-mix(in srgb, var(--imo-text-secondary) 45%, transparent); border-radius: 9px; background: color-mix(in srgb, var(--imo-surface) 55%, transparent); }
+.imo-store-soon__text { display: flex; flex-direction: column; line-height: 1.15; }
+.imo-store-soon__text strong { font-size: .88rem; font-weight: 650; color: var(--imo-text); }
+.imo-store-soon__text small { font-size: .72rem; color: var(--imo-text-secondary); }
+.imo-store-soon__status { margin-left: .35rem; padding: .2rem .5rem; border-radius: 999px; font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--imo-accent); background: color-mix(in srgb, var(--imo-accent) 13%, transparent); white-space: nowrap; }
+.imo-store-command { display: inline-flex; align-items: center; gap: .6rem; height: 48px; padding: 0 .5rem; border: 1px solid var(--imo-border); border-radius: 9px; background: #101c2c; color: #e4edf9; }
+.imo-store-command code { font-size: .8rem; background: transparent; color: inherit; border: 0; padding: 0; }
+.imo-store-command button { border: 1px solid #637a99; padding: .35rem .7rem; border-radius: 6px; background: #1c304c; color: #fff; cursor: pointer; font-size: .78rem; }
+.imo-application-stores .imo-stores { margin: 1.2rem 0 0; }
+.imo-download-choice--featured h3 + p { margin-bottom: 0; }
+.imo-download-subhead { margin-top: 2rem; padding-top: 1.6rem; border-top: 1px solid var(--imo-border); }
+.imo-channel-list dd { display: flex; flex-wrap: wrap; gap: .5rem; }
+.imo-download-choice .imo-download-link { display: inline-flex; align-items: center; gap: .45rem; padding: .5rem .85rem; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-surface); color: var(--imo-text); font-size: .86rem; text-decoration: none; transition: border-color .15s ease, color .15s ease; }
+.imo-download-choice .imo-download-link svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: var(--imo-accent); }
+.imo-download-choice .imo-download-link:hover { border-color: var(--imo-accent); color: var(--imo-accent); }
+.imo-download-meta { margin-top: 1rem; font-size: .9rem; }
+@media (max-width: 700px) {
+  .imo-channel-list > div { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+  .imo-store-soon { flex: 1 1 100%; }
 }

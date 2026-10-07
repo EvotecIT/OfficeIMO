@@ -79,9 +79,9 @@ public sealed partial class PdfReadDocument {
     }
 
     /// <summary>
-    /// Opens bytes produced by the canonical clear-text rewrite writer without repeating the
-    /// arbitrary-input security marker scan. The complete object parse and semantic repair pass
-    /// still run, and the resulting document remains the canonical cached readback.
+    /// Opens bytes produced by the canonical rewrite writer. Clear-text outputs avoid the
+    /// arbitrary-input security marker scan; protected outputs receive complete authenticated
+    /// security inspection. Both paths retain the object parse and semantic repair pass.
     /// </summary>
     internal static PdfReadDocument OpenRewrittenOutput(
         byte[] pdf,
@@ -99,11 +99,13 @@ public sealed partial class PdfReadDocument {
             decodedText,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadRewrittenOutputSecurityInfo(
-            decodedText,
-            trailer,
-            effectiveOptions,
-            cancellationToken);
+        PdfDocumentSecurityInfo security;
+        if (PdfSyntax.ReadTrailerReference(trailer, "Encrypt", effectiveOptions.Limits, cancellationToken) is not null) {
+            security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveOptions, includeParsedDetails: false, cancellationToken);
+            security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security, repairReport, effectiveOptions, cancellationToken);
+        } else {
+            security = PdfSyntax.ReadRewrittenOutputSecurityInfo(decodedText, trailer, effectiveOptions, cancellationToken);
+        }
 
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
     }
