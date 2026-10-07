@@ -3879,7 +3879,7 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Rot</value>
   </data>
   <data name="Color.Ink" xml:space="preserve">
-    <value>Freihandzeichnung</value>
+    <value>Dunkelgrau</value>
   </data>
   <data name="Session.Summary" xml:space="preserve">
     <value>Dokumente aus Ihrer letzten Sitzung: {0:N0}</value>
@@ -4230,13 +4230,13 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Geben Sie Seiten wie 1-3, 5 ein oder lassen Sie das Feld für alle Seiten leer.</value>
   </data>
   <data name="FillSign.Sign" xml:space="preserve">
-    <value>Signieren</value>
+    <value>Unterschreiben</value>
   </data>
   <data name="FillSign.SignTip" xml:space="preserve">
     <value>Ihre Unterschrift oder Initialen auf der Seite hinzufügen</value>
   </data>
   <data name="FillSign.Signatures" xml:space="preserve">
-    <value>Signaturen</value>
+    <value>Unterschriften</value>
   </data>
   <data name="FillSign.Initials" xml:space="preserve">
     <value>Initialen</value>
