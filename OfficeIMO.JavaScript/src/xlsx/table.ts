@@ -1,4 +1,4 @@
-import type { Column } from "../core/index.js";
+import type { ProjectionColumn } from "../internal/columns.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { escapeOoxmlAttribute, escapeXml, xmlDeclaration } from "../xml/index.js";
 import { cellText, columnName } from "./values.js";
@@ -10,7 +10,7 @@ import { totalFormula } from "./layout.js";
 
 export interface TableDefinition { readonly id: number; readonly name: string; readonly headers: readonly string[]; readonly keys: readonly string[]; readonly options: Readonly<TableOptions>; }
 
-export function defineTable(id: number, options: TableOptions, columns: readonly Column[], policy: InvalidCharacterPolicy): TableDefinition {
+export function defineTable(id: number, options: TableOptions, columns: readonly ProjectionColumn[], policy: InvalidCharacterPolicy): TableDefinition {
   const name = options.name ?? "Table" + id;
   if (typeof name !== "string" || name.length > 255 || !/^[A-Za-z_][A-Za-z0-9_.]*$/.test(name) ||
       /^(?:[A-Za-z]{1,3}[1-9][0-9]*|R[1-9][0-9]*C[1-9][0-9]*|R|C)$/i.test(name))

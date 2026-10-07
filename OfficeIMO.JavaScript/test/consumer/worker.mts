@@ -26,7 +26,7 @@ self.onmessage = async ({ data }) => {
   try {
     const write = data.format === "csv" ? writeCsv : writeXlsx;
     const blob = await write(pages(data.url, controller.signal), {
-      columns, signal: controller.signal,
+      columns, signal: controller.signal, dateMode: "utc",
       limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 },
       onProgress: progress => self.postMessage({ progress })
     });

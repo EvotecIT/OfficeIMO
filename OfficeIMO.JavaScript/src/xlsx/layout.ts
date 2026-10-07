@@ -1,4 +1,5 @@
-import type { Column, CellValue } from "../core/index.js";
+import type { CellValue } from "../core/index.js";
+import type { ProjectionColumn } from "../internal/columns.js";
 import { ExportCell } from "../core/presentation.js";
 import { Cell, cellText, columnName } from "./values.js";
 import { escapeOoxmlAttribute } from "../xml/index.js";
@@ -19,7 +20,7 @@ export class ReportLayout {
   readonly widths: (number | undefined)[];
   readonly sampleRows: number;
   private readonly aggregates: { operation: TotalOperation | undefined; count: number; sum: number; mean: number; min: number; max: number }[];
-  constructor(readonly columns: readonly Column[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000, maximumSampleCells = 100000) {
+  constructor(readonly columns: readonly ProjectionColumn[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000, maximumSampleCells = 100000) {
     const titleRows = options.title === undefined ? 0 : 1;
     if (options.title !== undefined) {
       if (!columns.length) throw new TypeError("Report titles require declared columns.");

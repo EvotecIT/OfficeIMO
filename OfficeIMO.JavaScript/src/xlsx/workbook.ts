@@ -6,7 +6,8 @@ import type { ZipEntry } from "../zip/index.js";
 import { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } from "../opc/index.js";
 import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
 import { StyleRegistry, spreadsheetNamespace } from "./styles.js";
-import { sheetName } from "./values.js";
+import { sheetName, assertXlsxValue } from "./values.js";
+import { assertExportValue } from "../core/presentation.js";
 import { Worksheet } from "./worksheet.js";
 import { defineTable, tableXml } from "./table.js";
 import { drawingXml, drawingContentType } from "./attachments.js";
@@ -18,6 +19,13 @@ const formatType = (name: string) => "application/vnd.openxmlformats-officedocum
 
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
 export class Workbook {
+  private portableValues = false;
+  /** @internal One-table helpers share the writer while admitting only portable values. */
+  static forTable(options: WorkbookOptions): Workbook {
+    const book = new Workbook(options); book.portableValues = true; return book;
+  }
+  /** @internal Captured once by the worksheet projector. */
+  get valueValidator(): (value: unknown) => void { return this.portableValues ? assertExportValue : assertXlsxValue; }
   readonly styles: StyleRegistry;
   private readonly names = new Set<string>();
   private readonly sheets: Worksheet[] = [];

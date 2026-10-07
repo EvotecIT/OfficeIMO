@@ -269,21 +269,28 @@ function assertScalar(value) {
         void Promise.resolve(value).catch(() => { });
     throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar });
+/** @internal Validate selected values before a destination interprets presentation. */
+function assertExportValue(value) {
+    if (!(value instanceof ExportCell))
+        assertScalar(value);
+}
+const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
 })();
 
 const _m6 = (() => {
-const { ExportCell, assertScalar } = _m5;
+const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
 
-function createRowProjector(columns, worksheet, signal) {
+function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
     return (row, rowIndex = 0) => {
         if (Array.isArray(row) && !getters) {
             if (row.length > columns.length)
                 throw new RangeError("Row has more values than declared columns.");
+            for (const value of row)
+                validate(value);
             return row;
         }
         if (!row || typeof row !== "object" || row instanceof Date)
@@ -296,15 +303,19 @@ function createRowProjector(columns, worksheet, signal) {
                 const context = { rowIndex, columnIndex, column: c,
                     ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
                 const result = c.value(row, context);
-                if (!(result instanceof ExportCell))
-                    assertScalar(result);
+                validate(result);
                 checkAbort(signal);
                 return result;
             }
-            if (Array.isArray(row))
-                return row[columnIndex];
+            if (Array.isArray(row)) {
+                const result = row[columnIndex];
+                validate(result);
+                return result;
+            }
             const key = c.key ?? c.header;
-            return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+            const result = Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+            validate(result);
+            return result;
         });
     };
 }

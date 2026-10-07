@@ -1344,7 +1344,7 @@ _modules.set("e5ab8f73f0df05d7b01051ffcf250932a320cc5a0e02feb6055c5bdbb577d383",
 return _exports;
 })();
 
-const _m16 = _modules.get("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323") ?? (() => {
+const _m16 = _modules.get("46ea847816fe0c13f71c4194a1184679947bcccf98ed37428ad9718ee060578a") ?? (() => {
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -1371,15 +1371,20 @@ function assertScalar(value) {
         void Promise.resolve(value).catch(() => { });
     throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar });
-_modules.set("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323", _exports);
+/** @internal Validate selected values before a destination interprets presentation. */
+function assertExportValue(value) {
+    if (!(value instanceof ExportCell))
+        assertScalar(value);
+}
+const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+_modules.set("46ea847816fe0c13f71c4194a1184679947bcccf98ed37428ad9718ee060578a", _exports);
 return _exports;
 })();
 
-const _m15 = _modules.get("c6382ed513ee3d551ab183f2b5e8da0b502aa0c2522a3d72de083a89b7d95f29") ?? (() => {
+const _m15 = _modules.get("c4c65fa2a2265f328bde22db37ec1ad8f3556a9da06ce052012966420f5dfd29") ?? (() => {
 const { cleanXml, escapeXml } = _m9;
 
-const { ExportCell } = _m16;
+const { ExportCell, assertExportValue, assertScalar } = _m16;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1389,6 +1394,13 @@ class Cell {
         this.value = value;
         this.style = style;
     }
+}
+/** @internal Advanced worksheets admit cells registered on their owning workbook. */
+function assertXlsxValue(value) {
+    if (value instanceof Cell)
+        assertScalar(value.value);
+    else
+        assertExportValue(value);
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 function copyValue(value) {
@@ -1456,22 +1468,24 @@ function excelDate(date, mode) {
     const time = wall.getTime();
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
-const _exports = Object.freeze({ Cell: Cell, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("c6382ed513ee3d551ab183f2b5e8da0b502aa0c2522a3d72de083a89b7d95f29", _exports);
+const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
+_modules.set("c4c65fa2a2265f328bde22db37ec1ad8f3556a9da06ce052012966420f5dfd29", _exports);
 return _exports;
 })();
 
-const _m18 = _modules.get("1dc50182f6cfbbb7234812d619c00c0578e903bebbae6ec8d7de355d5a451f03") ?? (() => {
-const { ExportCell, assertScalar } = _m16;
+const _m18 = _modules.get("97453f7527c53183f53ffa26dcf71b25d8407f1bf0d9d3cc184d98332a3debee") ?? (() => {
+const { assertExportValue } = _m16;
 
 const { checkAbort } = _m2;
 
-function createRowProjector(columns, worksheet, signal) {
+function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
     return (row, rowIndex = 0) => {
         if (Array.isArray(row) && !getters) {
             if (row.length > columns.length)
                 throw new RangeError("Row has more values than declared columns.");
+            for (const value of row)
+                validate(value);
             return row;
         }
         if (!row || typeof row !== "object" || row instanceof Date)
@@ -1484,15 +1498,19 @@ function createRowProjector(columns, worksheet, signal) {
                 const context = { rowIndex, columnIndex, column: c,
                     ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
                 const result = c.value(row, context);
-                if (!(result instanceof ExportCell))
-                    assertScalar(result);
+                validate(result);
                 checkAbort(signal);
                 return result;
             }
-            if (Array.isArray(row))
-                return row[columnIndex];
+            if (Array.isArray(row)) {
+                const result = row[columnIndex];
+                validate(result);
+                return result;
+            }
             const key = c.key ?? c.header;
-            return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+            const result = Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+            validate(result);
+            return result;
         });
     };
 }
@@ -1512,7 +1530,7 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("1dc50182f6cfbbb7234812d619c00c0578e903bebbae6ec8d7de355d5a451f03", _exports);
+_modules.set("97453f7527c53183f53ffa26dcf71b25d8407f1bf0d9d3cc184d98332a3debee", _exports);
 return _exports;
 })();
 
@@ -1685,7 +1703,7 @@ _modules.set("231c8756921333d02f57b2f5fb697634aa977bea82209ddeff9dbff0a6ff5846",
 return _exports;
 })();
 
-const _m20 = _modules.get("54347c6e66fde25abcbf836b1575050171aac988635afa70e64bea3af94b3614") ?? (() => {
+const _m20 = _modules.get("e3546d29c8e10d74a28f605875ba0955a23e37f4688f46179a844d26db3675a0") ?? (() => {
 const { ExportCell } = _m16;
 
 const { Cell, cellText, columnName } = _m15;
@@ -1873,11 +1891,11 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("54347c6e66fde25abcbf836b1575050171aac988635afa70e64bea3af94b3614", _exports);
+_modules.set("e3546d29c8e10d74a28f605875ba0955a23e37f4688f46179a844d26db3675a0", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("3f28d6d0997b05dabb60e2cb6c379f934f41331b7e73c1674f0f9f6dbbe6d29f") ?? (() => {
+const _m22 = _modules.get("c52138d2118efa42aacb953f6cd5ca1eda8b3ae7b2a4b301dcd35581a3010ed7") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
 
 const { cellPosition } = _m19;
@@ -2039,11 +2057,11 @@ class ConditionalFormats {
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("3f28d6d0997b05dabb60e2cb6c379f934f41331b7e73c1674f0f9f6dbbe6d29f", _exports);
+_modules.set("c52138d2118efa42aacb953f6cd5ca1eda8b3ae7b2a4b301dcd35581a3010ed7", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("4d86cba86794cce330c0615c3b13a88d0b08a93311470ea28d4b4d82432b0680") ?? (() => {
+const _m17 = _modules.get("e870f3b6488dbe95dc05dbe5b07a34f4a1c44692c6693e496c4840078fe1d3db") ?? (() => {
 const { checkAbort, inputRows } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
@@ -2118,7 +2136,7 @@ class Worksheet {
         this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
-        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
+        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
         for (const link of options.hyperlinks ?? [])
             this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
         book.checkLinks(this.links.length);
@@ -2584,11 +2602,11 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("4d86cba86794cce330c0615c3b13a88d0b08a93311470ea28d4b4d82432b0680", _exports);
+_modules.set("e870f3b6488dbe95dc05dbe5b07a34f4a1c44692c6693e496c4840078fe1d3db", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("aaff56897b30d80d1f24481b4c4d77750a4983313b6a698821eca18a88a7be3d") ?? (() => {
+const _m23 = _modules.get("19f1428bed98e3169586d17d4a09a168b10e54a56043a6cec5e62a8bee5eba2b") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
 
 const { cellText, columnName } = _m15;
@@ -2631,7 +2649,7 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("aaff56897b30d80d1f24481b4c4d77750a4983313b6a698821eca18a88a7be3d", _exports);
+_modules.set("19f1428bed98e3169586d17d4a09a168b10e54a56043a6cec5e62a8bee5eba2b", _exports);
 return _exports;
 })();
 
@@ -2703,7 +2721,7 @@ _modules.set("260b4b4c4e91be082f7beb4c74fafd1c656b6ead15a0b38be0e971d76cd8ace0",
 return _exports;
 })();
 
-const _m1 = _modules.get("11703e008145db63fbc24ddcaa3c202c359ea1bef2340c2ddf9aa2fc71762867") ?? (() => {
+const _m1 = _modules.get("d32b53ee5489b28c0e11be9adf3cc268ce911f8aa711801ec2bfa104b23baaca") ?? (() => {
 const { checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -2718,7 +2736,9 @@ const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
 
 const { StyleRegistry, spreadsheetNamespace } = _m12;
 
-const { sheetName } = _m15;
+const { sheetName, assertXlsxValue } = _m15;
+
+const { assertExportValue } = _m16;
 
 const { Worksheet } = _m17;
 
@@ -2732,6 +2752,15 @@ const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sh
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
 class Workbook {
+    portableValues = false;
+    /** @internal One-table helpers share the writer while admitting only portable values. */
+    static forTable(options) {
+        const book = new Workbook(options);
+        book.portableValues = true;
+        return book;
+    }
+    /** @internal Captured once by the worksheet projector. */
+    get valueValidator() { return this.portableValues ? assertExportValue : assertXlsxValue; }
     styles;
     names = new Set();
     sheets = [];
@@ -2999,11 +3028,11 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("11703e008145db63fbc24ddcaa3c202c359ea1bef2340c2ddf9aa2fc71762867", _exports);
+_modules.set("d32b53ee5489b28c0e11be9adf3cc268ce911f8aa711801ec2bfa104b23baaca", _exports);
 return _exports;
 })();
 
-const _m26 = _modules.get("434dca91757c21aa6541228b9c69f367844c0cffd60dfa5699d8d803d5efaa2c") ?? (() => {
+const _m26 = _modules.get("15edf6c5da6273cb97456c231840fb6f30c5fd859a8838a47a63c4e87652b434") ?? (() => {
 const { ExportCell, assertScalar } = _m16;
 
 function style(patch) {
@@ -3046,11 +3075,11 @@ function portableWorkbook(options = {}) {
     return { ...options, cellValueWriters: wrapped };
 }
 const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
-_modules.set("434dca91757c21aa6541228b9c69f367844c0cffd60dfa5699d8d803d5efaa2c", _exports);
+_modules.set("15edf6c5da6273cb97456c231840fb6f30c5fd859a8838a47a63c4e87652b434", _exports);
 return _exports;
 })();
 
-const _m25 = _modules.get("40424139faaf73a982c14ec29462eaf55eeead63d63ecf15b35fd2b56dfe5359") ?? (() => {
+const _m25 = _modules.get("7ee76fb685f9bb7a2f42dd1c6a004125de917daabe222e4129e2dba281071d63") ?? (() => {
 const { withDestination } = _m4;
 
 const { copyColumns } = _m18;
@@ -3071,7 +3100,7 @@ function worksheet(book, options) {
 async function writeXlsx(rows, configuration) {
     const options = prepare(configuration);
     const { columns: _columns, sheet: _sheet, ...settings } = options;
-    const book = new Workbook(settings);
+    const book = Workbook.forTable(settings);
     try {
         await worksheet(book, options).addRows(rows);
         return await book.toBlob();
@@ -3085,7 +3114,7 @@ async function writeXlsxTo(rows, destination, configuration) {
     const options = prepare(configuration);
     return withDestination(destination, async (sink) => {
         const { columns: _columns, sheet: _sheet, ...settings } = options;
-        const book = new Workbook({ ...settings, sink });
+        const book = Workbook.forTable({ ...settings, sink });
         try {
             const sheet = worksheet(book, options);
             const columns = options.columns.length;
@@ -3100,11 +3129,11 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("40424139faaf73a982c14ec29462eaf55eeead63d63ecf15b35fd2b56dfe5359", _exports);
+_modules.set("7ee76fb685f9bb7a2f42dd1c6a004125de917daabe222e4129e2dba281071d63", _exports);
 return _exports;
 })();
 
-const _m27 = _modules.get("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e") ?? (() => {
+const _m27 = _modules.get("11faaf2039e235547cfbffe445dc98cdcf37be0196b3a170f82cf4982abb839e") ?? (() => {
 
 
 
@@ -3147,14 +3176,14 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m4.BlobByteSink, ChunkedTextSink: _m4.ChunkedTextSink, writeBytes: _m4.writeBytes, ExportCell: _m16.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e", _exports);
+_modules.set("11faaf2039e235547cfbffe445dc98cdcf37be0196b3a170f82cf4982abb839e", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("0931fd53e1570745ef424220d6ca75921ea2ca4d29b356cbfa71dad28a674452") ?? (() => {
+const _m0 = _modules.get("d6b3582c3e77049f430528018fe5547058fec552e779f904bdafd30b0a86bfb8") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m25.writeXlsx, writeXlsxTo: _m25.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m27.saveBlob, ExportCell: _m16.ExportCell });
-_modules.set("0931fd53e1570745ef424220d6ca75921ea2ca4d29b356cbfa71dad28a674452", _exports);
+_modules.set("d6b3582c3e77049f430528018fe5547058fec552e779f904bdafd30b0a86bfb8", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m27, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });

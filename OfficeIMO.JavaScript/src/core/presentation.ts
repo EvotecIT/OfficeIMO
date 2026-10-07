@@ -37,3 +37,7 @@ export function assertScalar(value: unknown): asserts value is CellValue {
   throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }
 export type ExportValue = CellValue | ExportCell;
+/** @internal Validate selected values before a destination interprets presentation. */
+export function assertExportValue(value: unknown): asserts value is ExportValue {
+  if (!(value instanceof ExportCell)) assertScalar(value);
+}

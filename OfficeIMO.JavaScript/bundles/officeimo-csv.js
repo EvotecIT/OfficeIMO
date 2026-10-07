@@ -252,7 +252,7 @@ _modules.set("d40a14da52705d788234b8083d6d8edccdbd8df1df785aeec268b4ca946b4230",
 return _exports;
 })();
 
-const _m5 = _modules.get("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323") ?? (() => {
+const _m5 = _modules.get("46ea847816fe0c13f71c4194a1184679947bcccf98ed37428ad9718ee060578a") ?? (() => {
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -279,22 +279,29 @@ function assertScalar(value) {
         void Promise.resolve(value).catch(() => { });
     throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar });
-_modules.set("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323", _exports);
+/** @internal Validate selected values before a destination interprets presentation. */
+function assertExportValue(value) {
+    if (!(value instanceof ExportCell))
+        assertScalar(value);
+}
+const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+_modules.set("46ea847816fe0c13f71c4194a1184679947bcccf98ed37428ad9718ee060578a", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("1dc50182f6cfbbb7234812d619c00c0578e903bebbae6ec8d7de355d5a451f03") ?? (() => {
-const { ExportCell, assertScalar } = _m5;
+const _m6 = _modules.get("97453f7527c53183f53ffa26dcf71b25d8407f1bf0d9d3cc184d98332a3debee") ?? (() => {
+const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
 
-function createRowProjector(columns, worksheet, signal) {
+function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
     return (row, rowIndex = 0) => {
         if (Array.isArray(row) && !getters) {
             if (row.length > columns.length)
                 throw new RangeError("Row has more values than declared columns.");
+            for (const value of row)
+                validate(value);
             return row;
         }
         if (!row || typeof row !== "object" || row instanceof Date)
@@ -307,15 +314,19 @@ function createRowProjector(columns, worksheet, signal) {
                 const context = { rowIndex, columnIndex, column: c,
                     ...(worksheet ? { sheetName: worksheet.sheetName, worksheetRow: worksheet.firstDataRow + rowIndex } : {}) };
                 const result = c.value(row, context);
-                if (!(result instanceof ExportCell))
-                    assertScalar(result);
+                validate(result);
                 checkAbort(signal);
                 return result;
             }
-            if (Array.isArray(row))
-                return row[columnIndex];
+            if (Array.isArray(row)) {
+                const result = row[columnIndex];
+                validate(result);
+                return result;
+            }
             const key = c.key ?? c.header;
-            return Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+            const result = Object.prototype.hasOwnProperty.call(row, key) ? row[key] : undefined;
+            validate(result);
+            return result;
         });
     };
 }
@@ -335,11 +346,11 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("1dc50182f6cfbbb7234812d619c00c0578e903bebbae6ec8d7de355d5a451f03", _exports);
+_modules.set("97453f7527c53183f53ffa26dcf71b25d8407f1bf0d9d3cc184d98332a3debee", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e") ?? (() => {
+const _m7 = _modules.get("11faaf2039e235547cfbffe445dc98cdcf37be0196b3a170f82cf4982abb839e") ?? (() => {
 
 
 
@@ -382,11 +393,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("ded63c3f706d3952ae33c6a29c971a9186f0591b475dfa8d621dc1b487ae898e", _exports);
+_modules.set("11faaf2039e235547cfbffe445dc98cdcf37be0196b3a170f82cf4982abb839e", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("a332b64ceed0b0daafae3948166eb141025bdb6ebbd5f2f9867b34c3ebb15da4") ?? (() => {
+const _m0 = _modules.get("5b9f27e79e46ede007ac78bbe4c3376b7eaadf9eda8ab5643c7677765e0e0af4") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -507,7 +518,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("a332b64ceed0b0daafae3948166eb141025bdb6ebbd5f2f9867b34c3ebb15da4", _exports);
+_modules.set("5b9f27e79e46ede007ac78bbe4c3376b7eaadf9eda8ab5643c7677765e0e0af4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

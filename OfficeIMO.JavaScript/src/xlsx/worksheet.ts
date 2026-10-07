@@ -62,7 +62,7 @@ export class Worksheet<T = never> {
     this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
     this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
-    this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal);
+    this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
     for (const link of options.hyperlinks ?? []) this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
     book.checkLinks(this.links.length);
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),

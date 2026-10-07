@@ -1,4 +1,5 @@
-import type { Column, ColumnSettings, CellValue, StreamOptions } from "../core/index.js";
+import type { ColumnSettings, CellValue, StreamOptions } from "../core/index.js";
+import type { ProjectedColumn } from "../internal/columns.js";
 import type { ExportLimits } from "../core/limits.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { Compression } from "../zip/index.js";
@@ -14,7 +15,7 @@ export type XlsxRow = readonly (ExportValue | Cell)[] | Readonly<Record<string, 
 export type XlsxRows = Iterable<XlsxRow> | AsyncIterable<XlsxRow>;
 /** Advanced worksheet column with an optional style registered on its owning workbook. */
 interface XlsxColumnSettings extends ColumnSettings { readonly style?: number; }
-export type XlsxColumn<T = never> = Column<T> & XlsxColumnSettings;
+export type XlsxColumn<T = never> = ProjectedColumn<T, ExportValue | Cell> & XlsxColumnSettings;
 export interface CellWriterContext { readonly column: XlsxColumn; readonly rowIndex: number; readonly worksheetRow: number; readonly columnIndex: number; readonly sheetName: string; }
 /** Convert domain column values to plain values or styled Cells; raw XML is never accepted. */
 export type CellValueWriter = (value: CellValue, context: CellWriterContext) => ExportValue | Cell;

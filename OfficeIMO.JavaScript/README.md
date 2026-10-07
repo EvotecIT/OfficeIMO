@@ -266,7 +266,7 @@ self.onmessage = async ({ data }) => {
   try {
     const write = data.format === "csv" ? writeCsv : writeXlsx;
     const blob = await write(pages(data.url, controller.signal), {
-      columns, signal: controller.signal,
+      columns, signal: controller.signal, dateMode: "utc",
       limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 },
       onProgress: progress => self.postMessage({ progress })
     });
@@ -278,7 +278,7 @@ self.onmessage = async ({ data }) => {
 
 The page creates `new Worker(new URL("./report.worker.js", import.meta.url), { type: "module" })`, sends `{ url, format }`, receives progress and a completed Blob, and sends `{ cancel: true }` to cancel. Terminate the worker when its host no longer needs it. Blob mode still retains the finished file; a bounded output bridge to `writeXlsxTo` or `writeCsvTo` avoids that retention. The executable [DataTables worker qualification](../Build/BrowserExports/datatables-worker.js) demonstrates 64-row requests, 64 KiB output acknowledgements, stored-compression fallback and cancellation without moving the DOM into the worker.
 
-The table helpers and DataTables adapter own their workbook. Use portable `ExportCell` values and style definitions in report patches. Workbook-local column/header style IDs, numeric font/fill/border/format references and advanced `Cell` values require the `Workbook` API, where the caller can register those definitions. The convenience writers reject them instead of interpreting indexes from another workbook. Use `XlsxColumn<T>` for advanced columns with a registered style; `Column<T>` is the portable projection shared with CSV. Literal keys select scalar, nullable, date or `ExportCell` fields; use a getter to resolve nested objects or arrays.
+The table helpers and DataTables adapter own their workbook. Use portable `ExportCell` values and style definitions in report patches. Workbook-local column/header style IDs, numeric font/fill/border/format references and advanced `Cell` values require the `Workbook` API, where the caller can register those definitions. The convenience writers reject them instead of interpreting indexes from another workbook. Use `XlsxColumn<T>` for advanced columns with a registered style or `Cell` keys/getter results; `Column<T>` is the portable projection shared with CSV. Literal keys select scalar, nullable, date or `ExportCell` fields. Nested objects or arrays need explicit scalar getters for each selected column.
 
 ## Resolved values, grouped headings, totals and print layout
 

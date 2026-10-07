@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, Workbook, ExportCell } from "../dist/index.js";
+import { writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, Workbook, ExportCell, Cell } from "../dist/index.js";
 import { BlobByteSink } from "../dist/core/index.js";
 import { readZip } from "./zip-reader.mjs";
 
@@ -29,6 +29,42 @@ test("table helper presentation stays portable across static and callback style 
   const { Cell } = await import("../dist/xlsx/index.js");
   await assert.rejects(writeXlsx(rows, { columns, sheet: { footer: { values: [new Cell(1, 0)] } } }), TypeError);
   await assert.rejects(writeXlsx(rows, { columns: [{ header: "Amount", key: "amount", type: "custom" }], cellValueWriters: { custom: v => new Cell(v, 0) } }), TypeError);
+});
+
+for (const [format, write, writeTo] of [["csv", writeCsv, writeCsvTo], ["xlsx", writeXlsx, writeXlsxTo]])
+  test(format + " rejects advanced Cells in every selected row path and releases the source/destination", async () => {
+    const cell = new Cell(123, 1);
+    for (const [row, selected] of [[[cell], [{ header: "Amount" }]],
+      [{ amount: cell }, [{ header: "Amount", key: "amount" }]],
+      [{ amount: cell }, [{ header: "Amount", value: row => row.amount }]]]) {
+      let returned = 0, produced = 0, closed = 0, aborted = 0;
+      function* source() { try { produced++; yield row; produced++; yield row; } finally { returned++; } }
+      await assert.rejects(write(source(), { columns: selected }), TypeError);
+      const destination = new WritableStream({ write() {}, close() { closed++; }, abort() { aborted++; } });
+      await assert.rejects(writeTo(source(), destination, { columns: selected }), TypeError);
+      assert.equal(returned, 2); assert.equal(produced, 2); assert.equal(destination.locked, false);
+      assert.equal(closed, 0); assert.equal(aborted, 0);
+    }
+    const selected = [{ header: "Amount", value: row => row[0].amount }];
+    const blob = await write([[{ amount: 123 }]], { columns: selected });
+    if (format === "csv") assert.equal(await blob.text(), "Amount\r\n123\r\n");
+    else assert.match((await readZip(blob)).get("xl/worksheets/sheet1.xml").content, /<v>123<\/v>/);
+  });
+
+test("advanced Cell keys and getters preserve registered styles through the shared projector", async () => {
+  const book = new Workbook(), style = book.styles.add({ numberFormat: "0.000", fill: { color: "C6EFCE" } });
+  let calls = 0;
+  const sheet = book.addWorksheet("Styled", { columns: [{ header: "Key", key: "amount" },
+    { header: "Getter", value: row => { calls++; return new Cell(row.amount.value + 1, style); } }],
+    autoSize: {}, table: {}, footer: { totals: { amount: "sum" } },
+    conditionalFormats: [{ type: "cellIs", range: { column: "amount" }, operator: "greaterThan", value: 0, style: { font: { bold: true } } }] });
+  await sheet.addRows([{ amount: new Cell(123, style) }]);
+  const archive = await readZip(await book.toBlob()), xml = archive.get("xl/worksheets/sheet1.xml").content;
+  assert.equal(calls, 1);
+  assert.match(xml, new RegExp('r="A2" s="' + style + '"><v>123</v>'));
+  assert.match(xml, new RegExp('r="B2" s="' + style + '"><v>124</v>'));
+  assert.match(xml, /<f>SUBTOTAL\(109,A2:A2\)<\/f><v>123<\/v>/);
+  assert.match(xml, /sqref="A2:A2"/);
 });
 
 for (const compression of ["auto", "store"]) test("one-table XLSX shares the advanced report engine: " + compression, async () => {

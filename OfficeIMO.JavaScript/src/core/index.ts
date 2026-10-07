@@ -30,21 +30,14 @@ export interface ColumnSettings {
 export interface ColumnValueContext {
   readonly rowIndex: number;
   readonly columnIndex: number;
-  readonly column: Column;
+  readonly column: ColumnSettings & { readonly key?: string };
   readonly sheetName?: string;
   /** One-based Excel coordinate, when the destination is a worksheet. */
   readonly worksheetRow?: number;
 }
 
-type ExportKey<T> = { [K in Extract<keyof T, string>]-?: T[K] extends import("./presentation.js").ExportValue ? K : never }[Extract<keyof T, string>];
-type ColumnSelector<T> = [T] extends [never] ? { readonly key?: string; readonly value?: never }
-  : T extends readonly unknown[] ? { readonly key?: string; readonly value?: never }
-  : { readonly key: ExportKey<T>; readonly value?: never };
 /** Select a literal object key, or explicitly compute a value. Array rows remain positional unless every column has a getter. */
-export type Column<T = never> = ColumnSettings & { readonly key?: string } & (
-  | ColumnSelector<T>
-  | { readonly key?: string; readonly value: (row: T, context: ColumnValueContext) => import("./presentation.js").ExportValue }
-);
+export type Column<T = never> = import("../internal/columns.js").ProjectedColumn<T, import("./presentation.js").ExportValue>;
 
 /** Counts for one completed table export. Rows exclude generated headings and footers. */
 export interface ExportResult {

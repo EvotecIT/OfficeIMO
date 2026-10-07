@@ -25,6 +25,25 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
     require(await (await csv.writeCsv([["=cmd"]], { columns: [{ header: "V" }] })).text() === "V\r\n'=cmd\r\n", "CSV layer failed");
     require(await (await csv.writeCsv([["Łódź", false]], { columns: [{ header: "Name", valueFormatter: value => "=" + value },
       { header: "Healthy", valueFormatter: value => value ? "Yes" : "No" }], quote: "all" })).text() === '"Name","Healthy"\r\n"\'=Łódź","No"\r\n', "Formatted CSV protection/quoting differs");
+    const advanced = new xlsx.Workbook(), style = advanced.styles.add({ numberFormat: "0.000", fill: { color: "C6EFCE" } });
+    let getterCalls = 0;
+    await advanced.addWorksheet("Styled", { columns: [{ header: "Key", key: "amount" },
+      { header: "Getter", value: row => { getterCalls++; return new xlsx.Cell(row.amount.value + 1, style); } }], autoSize: {} })
+      .addRows([{ amount: new xlsx.Cell(123, style) }]);
+    await emitFixture("advanced-projection-" + kind + ".xlsx", await advanced.toBlob());
+    require(getterCalls === 1, "Advanced Cell getter repeated during sizing");
+    for (const [format, write] of [["csv", csv.writeCsvTo], ["xlsx", xlsx.writeXlsxTo]]) {
+      const cell = new xlsx.Cell(123, 1);
+      for (const [row, columns] of [[[cell], [{ header: "Amount" }]],
+        [{ amount: cell }, [{ header: "Amount", key: "amount" }]],
+        [{ amount: cell }, [{ header: "Amount", value: row => row.amount }]]]) {
+        let returned = false, failure;
+        function* source() { try { yield row; throw new Error("Source read after rejected value"); } finally { returned = true; } }
+        const destination = new WritableStream({ write() {} });
+        try { await write(source(), destination, { columns }); } catch (error) { failure = error; }
+        require(failure instanceof TypeError && returned && !destination.locked, "Portable " + format + " Cell rejection/cleanup differs");
+      }
+    }
     const frame = document.createElement("iframe"), loaded = new Promise(resolve => { frame.onload = resolve; });
     frame.srcdoc = "<!doctype html><title>Stream destination realm</title>"; document.body.append(frame); await loaded;
     try {

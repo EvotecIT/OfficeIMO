@@ -17,7 +17,7 @@ function prepare(options: XlsxOptions): XlsxOptions {
   return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
 }
 
-function worksheet<T>(book: Workbook, options: XlsxOptions<T>) {
+function worksheet(book: Workbook, options: XlsxOptions) {
   const { name = "Data", ...sheet } = options.sheet ?? {};
   return book.addWorksheet(name, { boldHeader: true, autoFilter: sheet.includeHeader !== false,
     autoSize: { minWidth: 6, maxWidth: 54 }, ...sheet, columns: options.columns });
@@ -28,7 +28,7 @@ export function writeXlsx<T extends object>(rows: Iterable<T> | AsyncIterable<T>
 export async function writeXlsx(rows: Iterable<unknown> | AsyncIterable<unknown>, configuration: unknown): Promise<Blob> {
   const options = prepare(configuration as XlsxOptions);
   const { columns: _columns, sheet: _sheet, ...settings } = options;
-  const book = new Workbook(settings);
+  const book = Workbook.forTable(settings);
   try { await worksheet(book, options).addRows(rows as XlsxRows); return await book.toBlob(); }
   catch (error) { await book.discard(error); throw error; }
 }
@@ -39,7 +39,7 @@ export async function writeXlsxTo(rows: Iterable<unknown> | AsyncIterable<unknow
   const options = prepare(configuration as XlsxOptions);
   return withDestination(destination, async sink => {
     const { columns: _columns, sheet: _sheet, ...settings } = options;
-    const book = new Workbook({ ...settings, sink });
+    const book = Workbook.forTable({ ...settings, sink });
     try {
       const sheet = worksheet(book, options);
       const columns = options.columns.length;

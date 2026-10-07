@@ -131,6 +131,25 @@ const domainColumns = [{ header: "Name", value: (row: DomainRow) => row.person.n
   { header: "Amount", key: "amount", format: "0.00" }] as const satisfies readonly Column<DomainRow>[];
 await writeXlsx(domainRows, { columns: domainColumns, sheet: { title: { text: "Report" }, table: {} } });
 await writeCsv(domainRows, { columns: domainColumns });
+interface StyledRow { readonly amount: Cell; }
+const styledRows: readonly StyledRow[] = [{ amount: new Cell(123, style) }];
+const styledColumns: readonly XlsxColumn<StyledRow>[] = [{ header: "Key", key: "amount" },
+  { header: "Getter", value: row => row.amount }];
+await book.addWorksheet<StyledRow>("Styled domain", { columns: styledColumns, table: {} }).addRows(styledRows);
+// @ts-expect-error portable literal keys cannot select advanced Cells
+writeXlsx(styledRows, { columns: [{ header: "Amount", key: "amount" }] });
+// @ts-expect-error portable positional columns cannot admit advanced Cells
+writeXlsx([[new Cell(123, style)]], { columns: [{ header: "Amount" }] });
+// @ts-expect-error CSV positional columns cannot admit advanced Cells
+writeCsv([[new Cell(123, style)]], { columns: [{ header: "Amount" }] });
+// @ts-expect-error portable getters cannot return advanced Cells
+writeXlsx(styledRows, { columns: [{ header: "Amount", value: row => row.amount }] });
+const nestedArrays = [[{ amount: 123 }]] as const;
+await writeXlsx(nestedArrays, { columns: [{ header: "Amount", value: row => row[0].amount }] });
+await writeCsv(nestedArrays, { columns: [{ header: "Amount", value: row => row[0].amount }] });
+// @ts-expect-error nested positional values require explicit scalar getters
+writeXlsx(nestedArrays, { columns: [{ header: "Amount" }] });
+await new Workbook().addWorksheet<readonly [Cell]>("Styled array", { columns: [{ header: "Amount" }] }).addRows([[new Cell(123)]]);
 const destination = new WritableStream<Uint8Array>({ write(bytes) { void bytes; } });
 const tableResult = await writeXlsxTo(domainRows, destination, { columns: domainColumns });
 void [tableResult.rows, tableResult.columns, tableResult.bytes];
