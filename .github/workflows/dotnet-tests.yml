@@ -71,7 +71,7 @@ jobs:
           $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
           ./Build/BrowserExports/Test-NpmConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'npm')
           npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:datatables-types -- (Join-Path $evidence 'npm')
-          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate (Join-Path $evidence 'npm/packed-consumer.xlsx')
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate-directory (Join-Path $evidence 'npm')
           ./Build/BrowserExports/Test-NugetConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'nuget')
       - name: Verify optional DataTables interoperability
         shell: pwsh

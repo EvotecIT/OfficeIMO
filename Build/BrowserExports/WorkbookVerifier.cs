@@ -47,7 +47,13 @@ internal static class WorkbookVerifier {
             Require(Equals(row[0, 0], "Łódź") && Equals(row[0, 1], new DateTime(2026, 10, 5, 12, 34, 56)) &&
                 Convert.ToDouble(row[0, 2], CultureInfo.InvariantCulture) == -2 && Equals(row[0, 3], true), "Worker values/types differ.");
         }
-        else if (file == "packed-consumer") Require(Equals(Read(path, "Packed", "A2:A2")[0, 0], "Łódź"), "Packed npm writer output differs.");
+        else if (file == "packed-consumer") Require(Equals(Read(path, "Packed", "A2:A2")[0, 0], "Łódź 🧪"), "Packed npm writer output differs.");
+        else if (file == "packed-worker") {
+            object?[,] rows = Read(path, "Data", "A2:C3");
+            Require(rows.GetLength(0) == 2 && Equals(rows[0, 0], "Łódź 🧪") && Equals(rows[1, 0], "second"), "Packed worker pages differ.");
+            Require(Convert.ToDouble(rows[0, 1], CultureInfo.InvariantCulture) == 12.5 && Convert.ToDouble(rows[1, 1], CultureInfo.InvariantCulture) == 7.5, "Packed worker numbers differ.");
+            Require(Equals(rows[0, 2], new DateTime(2026, 10, 7)) && Equals(rows[1, 2], new DateTime(2026, 10, 7)), "Packed worker dates differ.");
+        }
         else if (file == "long") Require(Equals(Read(path, "Long", "A2:A2")[0, 0], new string('a', 32765) + "🧪"), "Long string differs.");
         else if (file == "wide") Require(Equals(Read(path, "Wide", "XFD1:XFD1")[0, 0], "last"), "Maximum column differs.");
         else if (file.StartsWith("date-", StringComparison.Ordinal)) {
