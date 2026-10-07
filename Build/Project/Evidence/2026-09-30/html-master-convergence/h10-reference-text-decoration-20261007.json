@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "observedUtc": "2026-10-07T18:33:05.793786+00:00",
+  "milestone": "H10 Reference Systems decoration and card-heading appearance",
+  "status": "local candidate qualification complete; publication and hosted merge gates remain",
+  "source": "2d930f0beabfcbe77d666967ec028939826f50cf",
+  "base": "4467d2f09dd1cab22797adb8d89f9d7e50b78f91",
+  "baseline": "b597c463a4ab27456c791d045702ed8cc0b71dd0",
+  "baselineSourceAgreement": [
+    {
+      "path": "Docs/officeimo.html-support-matrix.md",
+      "beforeBlob": "629f1a9bbf361c381ad7f831356197dd3b2ef92d"
+    },
+    {
+      "path": "OfficeIMO.Html.Tests/Html.Rendering.TextDecorationShorthand.cs",
+      "beforeBlob": null
+    },
+    {
+      "path": "OfficeIMO.Html/Diagnostics/HtmlDiagnosticCatalog.cs",
+      "beforeBlob": "bffa0c94181fd42b940404d5e02f451ae77467a1"
+    },
+    {
+      "path": "OfficeIMO.Html/README.md",
+      "beforeBlob": "f25894fdf65caca34adaa8632965175e75faf8ef"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderDiagnosticCodes.cs",
+      "beforeBlob": "c685b389716f8d58d0639591cbfb0f72eda0a127"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.TextDecoration.cs",
+      "beforeBlob": null
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+      "beforeBlob": "9ab73fe30dcb1211b20f94b31d46587f2cf839cd"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.BoxShorthands.cs",
+      "beforeBlob": "75d3ab24dd1d23866fb656a8689e13718c5ced7b"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.DeclarationPreservation.cs",
+      "beforeBlob": "b4f1b9f3bd476c6bc36ed6c5ef8b5a87442851dc"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.FontShorthands.cs",
+      "beforeBlob": "be7000250c024e3cf811fb079d5e95b85a65e257"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.LayoutShorthands.cs",
+      "beforeBlob": "7312aaee28b32dee24a6e9462ea1c8c1a995e78e"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.Supports.cs",
+      "beforeBlob": "8a9447f31d8bebbc1bfefa727f6876fa43d453b1"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.TextDecoration.cs",
+      "beforeBlob": "eac8f5209f108520b27485267179dda9f4c2235b"
+    },
+    {
+      "path": "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.cs",
+      "beforeBlob": "8ea1bdc48c336f2bf11c00003c4ba5aecc669046"
+    }
+  ],
+  "frozenSource": {
+    "sha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+    "role": "development regression",
+    "archive": "Ignore/HtmlProgramEvidence/wrap-up-20261006/active-inputs/h10-nasa-reference-heldout-ab73207e6/source.mhtml"
+  },
+  "contract": {
+    "thicknessShorthand": "preserves supported underline/strike style and color, computed thickness and cascade position",
+    "variableValueKeywords": "inherit/initial/unset use canonical values and inherited/reset/specified state, including deferred font and box longhands",
+    "paintLimits": [
+      "Explicit thickness uses automatic paint thickness with loss-bearing approximation",
+      "Overline omitted with explicit loss warning",
+      "Underline offset does not control paint placement"
+    ]
+  },
+  "review": {
+    "decorationReview": {
+      "full": "text_decoration_cascade_review",
+      "targeted": "four original findings closed; remaining variable keyword finding reproduced and moved to shared-owner boundary"
+    },
+    "variableKeywordReview": {
+      "full": "decoration_variable_keyword_review",
+      "targeted": "complete, no remaining actionable P0-P2",
+      "candidateSource": "2d930f0be",
+      "dirtyDiffAgainst00bSha256": "c0ba59db4373fce45e010ed2371333676fca54de5ba054350257c595bffc391c"
+    },
+    "boundaries": "no new full review solely for SHA; no manual hosted review request"
+  },
+  "tests": {
+    "fullHtmlNet8": {
+      "passed": 4890,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fullHtmlNet10": {
+      "passed": 4890,
+      "failed": 0,
+      "skipped": 0
+    },
+    "H4": {
+      "passedPerFramework": 8
+    },
+    "focusedDecorationAndMetadata": 42,
+    "existingSiblingCases": 301,
+    "normalNetstandardBuild": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "performance": "not measured; historical failed ceilings remain open"
+  },
+  "packages": {
+    "normalFoundationPackages": 4,
+    "targets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "freshPublicConsumers": [
+      "net8.0",
+      "net10.0"
+    ],
+    "originAndLoadedDllHashes": "verified",
+    "source": "2d930f0beabfcbe77d666967ec028939826f50cf",
+    "nativeNet472": "local cross-compile only; hosted Windows CI required"
+  },
+  "profiles": [
+    {
+      "profile": "print-zero-margin",
+      "pages": 9,
+      "decodedImageCount": 17,
+      "checks": {
+        "pagesEqual": true,
+        "linksExact": true,
+        "readerTextExact": true,
+        "rawPopplerPerPageExact": true,
+        "decodedImagesExact": true
+      },
+      "pixelIdenticalPages": 8
+    },
+    {
+      "profile": "print-paged",
+      "pages": 10,
+      "decodedImageCount": 17,
+      "checks": {
+        "pagesEqual": true,
+        "linksExact": true,
+        "readerTextExact": true,
+        "rawPopplerPerPageExact": true,
+        "decodedImagesExact": true
+      },
+      "pixelIdenticalPages": 9
+    },
+    {
+      "profile": "screen-media-paged",
+      "pages": 12,
+      "decodedImageCount": 17,
+      "checks": {
+        "pagesEqual": true,
+        "linksExact": true,
+        "readerTextExact": true,
+        "rawPopplerPerPageExact": true,
+        "decodedImagesExact": true
+      },
+      "pixelIdenticalPages": 11
+    },
+    {
+      "profile": "screen-snapshot-paged",
+      "pages": 8,
+      "decodedImageCount": 30,
+      "checks": {
+        "pagesEqual": true,
+        "linksExact": true,
+        "readerTextExact": true,
+        "rawPopplerPerPageExact": true,
+        "decodedImagesExact": true
+      },
+      "pixelIdenticalPages": 7
+    }
+  ],
+  "visual": {
+    "all39Pages": "35 pixel-identical; four page-1 breadcrumb paint differences, paired whole pages and zoom crops inspected",
+    "differenceBounds": [
+      {
+        "profile": "print-zero-margin",
+        "page": 1,
+        "changedPixelBounds": [
+          18,
+          670,
+          212,
+          671
+        ]
+      },
+      {
+        "profile": "print-paged",
+        "page": 1,
+        "changedPixelBounds": [
+          54,
+          706,
+          248,
+          707
+        ]
+      },
+      {
+        "profile": "screen-media-paged",
+        "page": 1,
+        "changedPixelBounds": [
+          72,
+          706,
+          266,
+          707
+        ]
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "page": 1,
+        "changedPixelBounds": [
+          72,
+          706,
+          266,
+          707
+        ]
+      }
+    ],
+    "cards": "all four headings visible; ScreenSnapshotPaged lower-heading split has complete continuation under its declared fixed-slicing contract; joined crop inspected",
+    "fixture": "independent Chromium153 via isolated test-only HtmlTinkerX3.0.3; final scene preserves dashed gray/red/double/dotted states and explicit overline/thickness losses"
+  },
+  "reportPreservation": [
+    {
+      "profile": "print-zero-margin",
+      "sourceHashEqual": true,
+      "readerTextExact": true,
+      "linksExact": true,
+      "originalWarningsExact": true,
+      "HasLossPreserved": true
+    },
+    {
+      "profile": "print-paged",
+      "sourceHashEqual": true,
+      "readerTextExact": true,
+      "linksExact": true,
+      "originalWarningsExact": true,
+      "HasLossPreserved": true
+    },
+    {
+      "profile": "screen-media-paged",
+      "sourceHashEqual": true,
+      "readerTextExact": true,
+      "linksExact": true,
+      "originalWarningsExact": true,
+      "HasLossPreserved": true
+    },
+    {
+      "profile": "screen-snapshot-paged",
+      "sourceHashEqual": true,
+      "readerTextExact": true,
+      "linksExact": true,
+      "originalWarningsExact": true,
+      "HasLossPreserved": true
+    }
+  ],
+  "remaining": [
+    "Hosted PR correctness/native net472/delayed feedback gates",
+    "Footer typography under equivalent captured fonts and profile geometry",
+    "Exact decoration thickness and offset; overline paint",
+    "Wider H10 profiles/resources/native/manual accessibility and unchanged supported-platform timing"
+  ],
+  "evidence": {
+    "engineRoot": "Ignore/H10ReferenceAppearanceQualification-20261007",
+    "focusedRoot": "Ignore/TextDecorationQualification",
+    "finalProfiles": "final-four-profiles-2d930f0be",
+    "comparisons": "final-comparison-2d930f0be",
+    "visuals": "final-visuals-2d930f0be",
+    "originalFailures": "retained; public consumer setup initially referenced internal metadata helpers, corrected to public API without product changes; contact observer corrected variable Poppler filename padding"
+  },
+  "publication": {
+    "pr": 2930,
+    "url": "https://github.com/EvotecIT/OfficeIMO/pull/2930",
+    "head": "2d930f0beabfcbe77d666967ec028939826f50cf",
+    "initialFeedback": "complete paginated threads/reviews/raw/issue comments/reactions, zero findings",
+    "state": "current-head CI and delayed feedback pending; no manual hosted review request"
+  },
+  "integrationPreflight": {
+    "uncommittedMergeTree": "3a64dd219631864e28da19abdb43b66b7a42df6f",
+    "agreement": {
+      "OfficeIMO.Html": "e016c2019788c7f4670c46bc00b1a108deccc72d",
+      "OfficeIMO.Html.Tests": "2d982bc65cdbd0761604b5df2e46286a451f6b84"
+    },
+    "engineBranchUnchanged": true,
+    "heldOn": "actual accepted PR head and hosted/delayed merge gates; optional runtime acceptance remains separate"
+  },
+  "storage": {
+    "targetsAbsent": 98,
+    "logicalBytesRemoved": 1802860288,
+    "retainedApproximateBytes": {
+      "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-provider-forks/Ignore/H10ReferenceAppearanceQualification-20261007": 74860580,
+      "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-text-decoration-shorthand/Ignore/TextDecorationQualification": 27242722
+    },
+    "originalFailuresAndFinalProofPreserved": true,
+    "sharedCachesTouched": false
+  }
+}
