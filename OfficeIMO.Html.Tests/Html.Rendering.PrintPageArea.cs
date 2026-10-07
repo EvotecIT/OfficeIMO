@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Paged, AutoFitWidePrintRoot = false
         });
         var first = Assert.Single(render.Pages[0].Visuals.OfType<HtmlRenderShape>(), v => v.Source == "div#fixed");
-        var later = Assert.Single(render.Pages[^1].Visuals.OfType<HtmlRenderShape>(), v => v.Source == "div#fixed");
+        var later = Assert.Single(render.Pages[render.Pages.Count - 1].Visuals.OfType<HtmlRenderShape>(), v => v.Source == "div#fixed");
         Assert.Equal(50D, first.X, 3);
         Assert.Equal(45D, first.Y, 3);
         Assert.Equal(150D, first.Width, 3);

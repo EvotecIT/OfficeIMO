@@ -1924,7 +1924,7 @@ public sealed partial class HtmlRenderingTests {
               <table id="table" style="flex:1;min-width:0;padding:0 10px;background:#eeeeee;WIDTH_CONSTRAINT"><tr><td>Data</td></tr></table>
               <div id="next" style="flex:0 0 100px;width:100px;height:20px;background:#0000ff"></div>
             </div>
-            """.Replace("WIDTH_CONSTRAINT", widthConstraint, StringComparison.Ordinal);
+            """.Replace("WIDTH_CONSTRAINT", widthConstraint);
         HtmlRenderDocument rendered = RenderFlex(html, 300D);
 
         HtmlRenderShape table = FindFlexShape(rendered, "table#table");

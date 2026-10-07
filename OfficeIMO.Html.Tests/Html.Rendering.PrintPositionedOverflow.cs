@@ -59,8 +59,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task PrintFitFindsAbsoluteCardBoxInsidePaintEffects(string effect) {
         string html = CreatePositionedPrintOverflowFixture("absolute", 9)
             .Replace(".head{position:absolute;width:100%;height:180px;background:#acf}",
-                ".head{position:absolute;width:100%;height:180px;background:#acf;" + effect + "}",
-                StringComparison.Ordinal);
+                ".head{position:absolute;width:100%;height:180px;background:#acf;" + effect + "}");
         var options = new HtmlToPdfOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),

@@ -112,7 +112,7 @@ public sealed partial class HtmlRenderingTests {
               p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 7; overflow: hidden; margin: 0; }
             </style>
             <div class='card'><p>Jupiter's magnetosphere - a basic view. || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_print.jpg (1024x576) [245.3 KB] || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_searchweb.png (320x180) [132.5 KB] || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_thm.png</p></div>
-            """.Replace("OVERFLOW_WRAP", overflowWrap, StringComparison.Ordinal);
+            """.Replace("OVERFLOW_WRAP", overflowWrap);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         string[] lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)

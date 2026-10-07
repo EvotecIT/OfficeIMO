@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains(expected, text);
         Assert.DoesNotContain("\uF42B", text);
-        Assert.Equal(1, text.Split("BETA").Length - 1);
+        Assert.Equal(1, text.Split(new[] { "BETA" }, StringSplitOptions.None).Length - 1);
         if (firstStyle.Length > 0) Assert.DoesNotContain("ALPHA", text);
     }
 
@@ -38,8 +38,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/ActualText", System.Text.Encoding.ASCII.GetString(pdf));
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("ALPHA BETA", text);
-        Assert.Equal(1, text.Split("ALPHA").Length - 1);
-        Assert.Equal(1, text.Split("BETA").Length - 1);
+        Assert.Equal(1, text.Split(new[] { "ALPHA" }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, text.Split(new[] { "BETA" }, StringSplitOptions.None).Length - 1);
         Assert.Contains("ALPHA BETA", rendered.Text);
         var info = OfficeIMO.Pdf.PdfInspector.Inspect(pdf);
         Assert.Contains("https://example.test/alpha", info.LinkUris);

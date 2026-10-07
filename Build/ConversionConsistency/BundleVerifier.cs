@@ -8,12 +8,17 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 namespace OfficeIMO.ConversionConsistency;
 
 internal static class BundleVerifier {
+    // Keep grid fitting explicit when comparing supplied glyph outlines across
+    // Chromium's platform-specific font backends.
+    private const string SvgFontHinting = "none";
+
     internal static async Task<GateReport> VerifyAsync(string output, string rasterizer, CancellationToken cancellationToken) {
         EvidenceBundle bundle = GateJson.Read<EvidenceBundle>(Path.Combine(output, "bundle.json"));
         if (bundle.SchemaVersion != 2 || bundle.Cases.Count == 0) throw new InvalidDataException("Unsupported or empty bundle.");
         string version = await ArtifactPaths.RunAsync(rasterizer, new[] { "-v" }, cancellationToken: cancellationToken);
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1, maximumQueuedCaptures: 4, networkPolicy: HtmlBrowserNetworkPolicy.Offline,
+            browserArguments: new[] { "--font-render-hinting=" + SvgFontHinting },
             setupTimeout: TimeSpan.FromSeconds(45)));
         string referenceBrowserVersion = "";
         string svgRendererBrowserVersion = "";
@@ -160,7 +165,9 @@ internal static class BundleVerifier {
             }
         }
         return new GateReport(2, bundle.Commit, bundle.FontSha256, version,
-            referenceBrowserVersion, svgRendererBrowserVersion, reports.All(item => item.Passed), reports);
+            referenceBrowserVersion, svgRendererBrowserVersion, reports.All(item => item.Passed), reports) {
+            SvgFontHinting = SvgFontHinting
+        };
     }
 
     private static string CheckedArtifact(string output, string relative, string hash) {

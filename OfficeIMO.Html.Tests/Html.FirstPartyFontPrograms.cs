@@ -89,7 +89,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
     public void HtmlPdfOutlinedTextAppliesForegroundAlphaOnce() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string html = FontHtml("Roboto Flex", "font/ttf", fontData, "Pale", link: false)
-            .Replace("<p", "<p style='color:rgba(175,47,47,.2)'", StringComparison.Ordinal);
+            .Replace("<p", "<p style='color:rgba(175,47,47,.2)'");
         var options = new HtmlToPdfOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
@@ -379,7 +379,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
 
         var exact = options.ClonePdf();
         exact.MaxOutlinedTextPathCommands = firstCommands;
-        string twoRuns = firstHtml.Replace("</html>", "<p>B</p></html>", StringComparison.Ordinal);
+        string twoRuns = firstHtml.Replace("</html>", "<p>B</p></html>");
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(twoRuns).ToPdfDocumentResult(exact);
         string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
 
@@ -396,7 +396,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
     public void HtmlPdfOutlineFallbackKeepsCharacterLimitAndOmitsOutlineOnlyPrivateUseGlyph() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string html = FontHtml("Limited Variable", "font/ttf", fontData, "A", link: false)
-            .Replace("</html>", "<p>\uF50E Visible</p></html>", StringComparison.Ordinal);
+            .Replace("</html>", "<p>\uF50E Visible</p></html>");
         var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
 
@@ -419,7 +419,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
     public void HtmlPdfOutlineFallbackKeepsPrivateUseGlyphInRegisteredPdfFont() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string html = FontHtml("Limited Variable", "font/ttf", fontData, "A", link: false)
-            .Replace("</html>", "<p style='font-family:CallerIcon'>\uF50E Retained</p></html>", StringComparison.Ordinal);
+            .Replace("</html>", "<p style='font-family:CallerIcon'>\uF50E Retained</p></html>");
         var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("CallerIcon", fontData));
