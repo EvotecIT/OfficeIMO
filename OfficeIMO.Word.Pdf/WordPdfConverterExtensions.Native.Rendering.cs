@@ -105,8 +105,8 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.Bookmark(paragraph.Bookmark!.Name!);
             }
 
-            WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out string? textBoxFallbackText);
-            if (textBox != null) {
+            List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
+            if (textBoxes.Count > 0) {
                 if (marker is { Marker.Length: > 0 }) {
                     PdfCore.PdfParagraphStyle markerStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
                     ApplyNativeInlineListIndent(paragraph, markerStyle);
@@ -116,7 +116,10 @@ namespace OfficeIMO.Word.Pdf {
                         inlineMarkerColumnWidth: Math.Max(0D, -markerStyle.FirstLineIndent)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
                 }
-                RenderNativeTextBox(pdf, textBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap, textBoxFallbackText);
+                foreach (WordTextBox ownedTextBox in textBoxes) {
+                    RenderNativeTextBox(pdf, ownedTextBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
+                        GetNativeTextBoxPlainText(paragraph, ownedTextBox));
+                }
                 return;
             }
 
