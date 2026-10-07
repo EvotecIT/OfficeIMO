@@ -309,12 +309,12 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Cell_NoWrap_Text() {
+    public void SaveAsPdf_OfficeIMOEngine_Wraps_Fixed_Table_Cells_Regardless_Of_NoWrap() {
         double wrappedGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellWrapText", wrapText: true);
         double noWrapGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapText", wrapText: false);
         double explicitOffGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapOff", wrapText: true, explicitNoWrapOff: true);
 
-        Assert.True(wrappedGap > noWrapGap + 16D, $"Expected Word no-wrap table cell text to avoid vertical wrapping in native PDF output. Wrapped gap: {wrappedGap:0.##}; no-wrap gap: {noWrapGap:0.##}.");
+        Assert.Equal(wrappedGap, noWrapGap, precision: 3);
         Assert.Equal(wrappedGap, explicitOffGap, precision: 3);
     }
 
