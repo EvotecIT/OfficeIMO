@@ -259,9 +259,6 @@ namespace OfficeIMO.Word.Pdf {
                    value.Equals("hidden", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool IsNativeVmlTextBoxShape(OpenXmlElement element) =>
-            string.Equals(GetNativeOpenXmlAttribute(element, "type"), "#_x0000_t202", StringComparison.OrdinalIgnoreCase);
-
         private static double? ParseNativeVmlStrokeWeight(string? value) =>
             ResolveNativeVmlLength(value, 1D, 1D);
 

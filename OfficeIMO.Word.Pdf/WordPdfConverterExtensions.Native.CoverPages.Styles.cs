@@ -50,7 +50,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             shape.StrokeColor = (ParseNativeColor(strokeColor) ?? PdfCore.PdfColor.Black).ToOfficeColor();
-            shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeOpenXmlAttribute(element, "strokeweight")) ?? 1D;
+            string? childStrokeWeight = strokeElement is not null ? GetNativeOpenXmlAttribute(strokeElement, "weight") : null;
+            // VML defaults to a one-pixel stroke, which is 0.75 PDF points.
+            shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeOpenXmlAttribute(element, "strokeweight") ?? childStrokeWeight) ?? 0.75D;
             shape.StrokeDashStyle = MapNativeVmlStrokeDashStyle(GetNativeOpenXmlAttribute(strokeElement ?? element, "dashstyle"));
             shape.StrokeLineCap = MapNativeVmlStrokeLineCap(GetNativeOpenXmlAttribute(strokeElement ?? element, "endcap"));
             shape.StrokeLineJoin = MapNativeVmlStrokeLineJoin(GetNativeOpenXmlAttribute(strokeElement ?? element, "joinstyle"));
