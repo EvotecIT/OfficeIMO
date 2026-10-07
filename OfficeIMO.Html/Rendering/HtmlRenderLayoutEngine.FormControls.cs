@@ -124,15 +124,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? ControlDisabledFillColor
                 : OfficeColor.White;
         }
-        if (!compact && !range && style.PaddingLeft == 0D && style.PaddingRight == 0D
-            && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
-            style.PaddingLeft = 6D;
-            style.PaddingRight = 6D;
+        if (!compact && !range && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
+            if (style.PaddingLeft == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-left"))
+                style.PaddingLeft = 6D;
+            if (style.PaddingRight == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-right"))
+                style.PaddingRight = 6D;
         }
-        if (!compact && !range && style.PaddingTop == 0D && style.PaddingBottom == 0D
-            && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
-            style.PaddingTop = 4D;
-            style.PaddingBottom = 4D;
+        if (!compact && !range && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
+            if (style.PaddingTop == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-top"))
+                style.PaddingTop = 4D;
+            if (style.PaddingBottom == 0D && !_styleResolver.HasPropertyCascadeState(element, "padding-bottom"))
+                style.PaddingBottom = 4D;
         }
         if (!compact && style.BorderRadius == "0") style.BorderRadius = "3px";
         style.AvoidBreakInside = true;
