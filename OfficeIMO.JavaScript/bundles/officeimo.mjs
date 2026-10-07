@@ -77,7 +77,16 @@ async function* inputRows(input, signal) {
         }
     }
 }
-function pause() { return new Promise(resolve => setTimeout(resolve, 0)); }
+/** Yield a task so input, rendering and cancellation can run without nested timer delays. */
+function pause() {
+    if (typeof MessageChannel === "function")
+        return new Promise(resolve => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+            channel.port2.postMessage(undefined);
+        });
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
 const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, pause: pause });
 return _exports;
 })();
@@ -287,8 +296,12 @@ const crcTable = new Uint32Array(256).map((_, index) => {
 /** Incremental CRC-32/ISO-HDLC, also usable by a future reader. */
 class Crc32 {
     crc = 0xffffffff;
-    update(bytes) { for (const byte of bytes)
-        this.crc = crcTable[(this.crc ^ byte) & 255] ^ (this.crc >>> 8); }
+    update(bytes) {
+        let crc = this.crc;
+        for (let index = 0; index < bytes.length; index++)
+            crc = crcTable[(crc ^ bytes[index]) & 255] ^ (crc >>> 8);
+        this.crc = crc;
+    }
     get value() { return (this.crc ^ 0xffffffff) >>> 0; }
 }
 function zipSize(value) {

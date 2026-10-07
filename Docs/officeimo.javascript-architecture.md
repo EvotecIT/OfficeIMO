@@ -29,6 +29,8 @@ The shared layers have current production callers. CSV uses core sinks and itera
 
 `Column<T>` is the common table projection: typed literal object keys or synchronous value getters resolve scalar values and portable `ExportCell` presentation. Each writer snapshots and compiles that projection once. CSV formatting follows projection; XLSX applies its existing value/style/layout engine. `writeXlsx` and `writeXlsxTo` own the one-table defaults and delegate to `Workbook`/`Worksheet`; the DataTables integration produces ordered arrays and columns for those same writers. Native streams are adapted by the shared sink owner, which borrows and releases a writer lock without closing or aborting the caller's destination. Completed table writes return rows, columns and accepted bytes; advanced workbook completion additionally reports sheet count. Data callback indexes are zero-based, with explicit one-based worksheet coordinates where applicable.
 
+Core task yielding uses a short-lived `MessageChannel`, closing both ports before resuming the export. Hosts without message channels use a timer fallback. Text buffering, batched grid projection and ZIP finalization share this mechanism. It avoids nested timer delays while allowing page events and cancellation to run; an async iterator or resolved promise alone does not yield the event loop. Formatters remain synchronous application callbacks, so one slow callback can still block its current batch.
+
 ## Object model and C# vocabulary
 
 | Concept | C# OfficeIMO | JavaScript |

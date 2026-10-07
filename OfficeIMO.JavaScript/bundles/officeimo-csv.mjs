@@ -56,7 +56,16 @@ async function* inputRows(input, signal) {
         }
     }
 }
-function pause() { return new Promise(resolve => setTimeout(resolve, 0)); }
+/** Yield a task so input, rendering and cancellation can run without nested timer delays. */
+function pause() {
+    if (typeof MessageChannel === "function")
+        return new Promise(resolve => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+            channel.port2.postMessage(undefined);
+        });
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
 const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, pause: pause });
 return _exports;
 })();

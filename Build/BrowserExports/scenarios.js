@@ -67,14 +67,22 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
   } finally { globalThis.CompressionStream = original; }
   await rejects(async () => new Workbook().addWorksheet("Wide", { columns: Array(16385).fill({ header: "V" }) }), "RangeError");
   await rejects(async () => new Workbook().addWorksheet("Long", { columns: [{ header: "V" }] }).addRows([["a".repeat(32768)]]), "RangeError");
-  for (const kind of ["xlsx", "csv"]) {
-    const controller = new AbortController(); let returned = false;
-    function* rows() { try { for (let i = 0; i < 100000; i++) yield ["row" + i]; } finally { returned = true; } }
-    const options = { columns: [{ header: "V" }], signal: controller.signal };
-    const book = new Workbook(options);
-    const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows()) : writeCsv(rows(), options);
-    setTimeout(() => controller.abort(), 15);
-    await rejects(() => writing, "AbortError"); require(returned, "Cancelled iterator was returned");
+  const nativeChannel = globalThis.MessageChannel;
+  try {
+    for (const scheduling of ["channel", "timer"]) {
+      if (scheduling === "timer") globalThis.MessageChannel = undefined;
+      for (const kind of ["xlsx", "csv"]) {
+        const controller = new AbortController(); let returned = false;
+        function* rows() { try { for (let i = 0; i < 100000; i++) yield ["row" + i]; } finally { returned = true; } }
+        const options = { columns: [{ header: "V" }], signal: controller.signal };
+        const book = new Workbook(options);
+        const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows()) : writeCsv(rows(), options);
+        setTimeout(() => controller.abort(), 15);
+        await rejects(() => writing, "AbortError"); require(returned, scheduling + " cancelled iterator was returned");
+      }
+    }
+  } finally {
+    globalThis.MessageChannel = nativeChannel;
   }
   if (limits) {
     const book = new Workbook(), sheet = book.addWorksheet("Limit", { columns: [{ header: "V" }] });

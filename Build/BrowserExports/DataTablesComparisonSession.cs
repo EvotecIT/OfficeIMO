@@ -49,8 +49,21 @@ internal static class DataTablesComparisonSession {
                         result = await session.Page.EvaluateAsync<JsonElement>("spec => prepareDataTablesMeasurement(spec)", new { rows, columns, unique = spec.GetProperty("unique").GetBoolean() }).WaitAsync(TimeSpan.FromMinutes(5));
                     } else if (operation == "run") {
                         if (session is null) throw new InvalidOperationException("Prepare the browser first.");
-                        measurement = await session.Page.EvaluateAsync<JsonElement>("args => runDataTablesMeasurement(args.lane, args.format)",
-                            new { lane = command.GetProperty("lane").GetString(), format = spec.GetProperty("format").GetString() }).WaitAsync(TimeSpan.FromMinutes(10));
+                        bool profile = command.TryGetProperty("profile", out var requestedProfile) && requestedProfile.GetBoolean();
+                        if (profile && spec.GetProperty("browser").GetString() != "Chromium") throw new ArgumentException("CPU profiling requires Chromium.");
+                        var profiler = profile ? await session.Page.Context.NewCDPSessionAsync(session.Page) : null;
+                        try {
+                            if (profiler is not null) { await profiler.SendAsync("Profiler.enable"); await profiler.SendAsync("Profiler.start"); }
+                            measurement = await session.Page.EvaluateAsync<JsonElement>("args => runDataTablesMeasurement(args.lane, args.format)",
+                                new { lane = command.GetProperty("lane").GetString(), format = spec.GetProperty("format").GetString() }).WaitAsync(TimeSpan.FromMinutes(10));
+                        } finally {
+                            if (profiler is not null) {
+                                try {
+                                    var trace = await profiler.SendAsync("Profiler.stop");
+                                    File.WriteAllText(Path.Combine(evidence, "export.cpuprofile"), trace!.Value.GetProperty("profile").GetRawText());
+                                } finally { await profiler.DetachAsync(); }
+                            }
+                        }
                         result = measurement;
                     } else if (operation == "validate") {
                         if (session is null) throw new InvalidOperationException("No browser measurement to validate.");

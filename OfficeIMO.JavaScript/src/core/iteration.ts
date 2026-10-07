@@ -40,4 +40,12 @@ export async function* inputRows<T>(input: Iterable<T> | AsyncIterable<T>, signa
   }
 }
 
-export function pause(): Promise<void> { return new Promise(resolve => setTimeout(resolve, 0)); }
+/** Yield a task so input, rendering and cancellation can run without nested timer delays. */
+export function pause(): Promise<void> {
+  if (typeof MessageChannel === "function") return new Promise(resolve => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+    channel.port2.postMessage(undefined);
+  });
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
