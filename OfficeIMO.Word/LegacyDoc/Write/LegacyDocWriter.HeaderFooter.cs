@@ -366,11 +366,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return paragraphFormatting;
         }
 
-        private static bool IsHeaderFooterParagraphStyle(string? styleId) {
-            return string.Equals(styleId, "Header", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(styleId, "Footer", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static void AppendFormattedHeaderFooterHyperlink(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableBookmarksBuilder bookmarks, Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner, string kind) {
             int before = storyText.Length;
             try {
