@@ -236,13 +236,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null) {
             if (image == null) {
-                return;
+                return false;
             }
 
             if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) {
-                return;
+                return false;
             }
 
             if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
@@ -254,7 +254,7 @@ namespace OfficeIMO.Word.Pdf {
                         "Word image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
                 }
 
-                return;
+                return false;
             }
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
@@ -278,12 +278,13 @@ namespace OfficeIMO.Word.Pdf {
                     zOrder: image.ZOrder);
                 if (anchoredCanvas == null)
                     anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(canvas.Items);
-                return;
+                return false;
             }
             if (image.WrapText == WordImageTextWrapping.InFrontOfText && options != null)
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's anchor, clipping, rotation, or page bounds are outside the fixed-placement export contract; it was placed in document flow.");
-            pdf.Image(preparedBytes, width, height, align);
+            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align));
+            return true;
         }
 
         private static bool TryGetNativeBodyImageBytes(WordImage image, WordToPdfOptions? options, string source, out byte[] bytes) {
