@@ -1,7 +1,7 @@
 // One export operation per request. PowerForge owns repetition, warmups and ordering.
 let comparisonTable, comparisonSpec, comparisonBlob;
-const comparisonValue = (row, column, unique) => column % 3 === 0 ? row * 10 + column
-  : column % 3 === 1 ? (unique ? `Łódź 🧪 row-${row}-column-${column}` : `Łódź 🧪 group-${row % 100}-column-${column}`)
+const comparisonValue = (row, column, unique, format) => column % 3 === 0 ? row * 10 + column
+  : column % 3 === 1 ? (format === 'pdf' ? `Łódź${unique ? row : row % 100}-${column}` : unique ? `Łódź 🧪 row-${row}-column-${column}` : `Łódź 🧪 group-${row % 100}-column-${column}`)
     : (row % 10000) + column / 100;
 
 globalThis.prepareDataTablesMeasurement = function (spec) {
@@ -9,9 +9,10 @@ globalThis.prepareDataTablesMeasurement = function (spec) {
   if (comparisonTable) comparisonTable.destroy();
   document.body.innerHTML = '<table id="measurement"></table>';
   comparisonSpec = spec;
-  const data = Array.from({ length: spec.rows }, (_, row) => Array.from({ length: spec.columns }, (_, column) => comparisonValue(row, column, spec.unique)));
+  if (spec.format === 'pdf') preparePdfMeasurement(spec.pdfFonts);
+  const data = Array.from({ length: spec.rows }, (_, row) => Array.from({ length: spec.columns }, (_, column) => comparisonValue(row, column, spec.unique, spec.format)));
   comparisonTable = new DataTable('#measurement', { data, order: [], deferRender: true, pageLength: 10,
-    autoWidth: false, columns: Array.from({ length: spec.columns }, (_, column) => ({ title: 'Column ' + (column + 1), type: column % 3 === 1 ? 'string' : 'num' })),
+    autoWidth: false, columns: Array.from({ length: spec.columns }, (_, column) => ({ title: (spec.format === 'pdf' ? 'Column' : 'Column ') + (column + 1), type: column % 3 === 1 ? 'string' : 'num' })),
     layout: { topStart: null, topEnd: null, bottomStart: null, bottomEnd: null } });
   DataTable.Buttons.jszip(JSZip);
   const nativeExporters = ['excelHtml5','csvHtml5'].every(name=>typeof DataTable.ext.buttons[name]?.action==='function');
@@ -30,29 +31,40 @@ globalThis.runDataTablesMeasurement = async function (lane, format) {
   comparisonTable.buttons.exportData = function (...args) {
     const start = performance.now(); try { return originalGather.apply(this, args); } finally { gatherMs += performance.now() - start; }
   };
-  URL.createObjectURL = function (blob) { comparisonBlob = blob; return originalUrl.call(this, blob); };
+  let completeBlob, failBlob;
+  const completedBlob = new Promise((resolve, reject) => { completeBlob = resolve; failBlob = reject; });
+  const failedGeneration = event => { event.preventDefault(); failBlob(event.reason); };
+  // Native PDF actions call Buttons' completion callback before asynchronous layout/encoding ends.
+  URL.createObjectURL = function (blob) { comparisonBlob = blob; completeBlob(blob); return originalUrl.call(this, blob); };
   JSZip.prototype.generateAsync = function (...args) {
     const start = performance.now(); return originalZip.apply(this, args).then(blob => { compressionMs = performance.now() - start; return blob; });
   };
   const started = performance.now();
   try {
     if (lane === 'native') {
-      const definition = DataTable.ext.buttons[format === 'xlsx' ? 'excelHtml5' : 'csvHtml5'];
+      const definition = DataTable.ext.buttons[format === 'xlsx' ? 'excelHtml5' : format === 'pdf' ? 'pdfHtml5' : 'csvHtml5'];
       const config = { ...definition, title: null, messageTop: null, messageBottom: null, filename: 'Comparison', sheetName: 'Data',
         footer: false, header: true, bom: false, newline: '\r\n', exportOptions: { modifier: { order: 'index', search: 'none', selected: null }, escapeExcelFormula: true } };
       if (format === 'xlsx') config.customize = workbook => {
         for (const column of workbook.xl.worksheets['sheet1.xml'].getElementsByTagName('col')) column.setAttribute('width', '20');
       };
+      if (format === 'pdf') {
+        config.pageSize = 'A3'; config.orientation = 'landscape'; config.download = 'download';
+        config.customize = doc => customizePdfMeasurement(doc, comparisonSpec);
+        window.addEventListener('unhandledrejection', failedGeneration);
+      }
       await new Promise((resolve, reject) => {
         try { definition.action(null, comparisonTable, null, config, resolve); } catch (error) { reject(error); }
       });
+      await completedBlob;
       if (!(comparisonBlob instanceof Blob)) throw new Error('Native export did not produce a captured Blob.');
     } else {
       comparisonBlob = await OfficeIMO.exportDataTable(DataTable, comparisonTable, format, {
         mode: lane, headings: 'leaf', includeFooter: false,
         exportOptions: { modifier: { order: 'index', search: 'none', selected: null }, escapeExcelFormula: true },
         columnOptions: Object.fromEntries(Array.from({ length: comparisonSpec.columns }, (_, column) => [column, { width: 20 }])),
-        sheet: { autoFilter: false, autoSize: { sampleRows: 0 } }, csv: { quote: 'all' }
+        sheet: { autoFilter: false, autoSize: { sampleRows: 0 } }, csv: { quote: 'all' },
+        ...(format === 'pdf' ? { pdf: pdfMeasurementOptions(comparisonSpec) } : {})
       });
     }
     const exportMs = performance.now() - started;
@@ -62,6 +74,7 @@ globalThis.runDataTablesMeasurement = async function (lane, format) {
   } finally {
     clearInterval(timer); comparisonTable.buttons.exportData = originalGather;
     URL.createObjectURL = originalUrl; JSZip.prototype.generateAsync = originalZip;
+    window.removeEventListener('unhandledrejection', failedGeneration);
   }
 };
 

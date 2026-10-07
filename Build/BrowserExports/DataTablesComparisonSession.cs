@@ -44,9 +44,19 @@ internal static class DataTablesComparisonSession {
                                 await destination.WriteAsync(bytes); return true;
                             });
                             await session.Page.AddScriptTagAsync(new() { Content = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "datatables-measure.js")) });
+                            await session.Page.AddScriptTagAsync(new() { Content = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "datatables-pdf-measure.js")) });
                             identity = stack + "/" + browser;
                         }
-                        result = await session.Page.EvaluateAsync<JsonElement>("spec => prepareDataTablesMeasurement(spec)", new { rows, columns, unique = spec.GetProperty("unique").GetBoolean() }).WaitAsync(TimeSpan.FromMinutes(5));
+                        object? pdfFonts = null;
+                        if (spec.GetProperty("format").GetString() == "pdf") {
+                            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.PdfScript.Content });
+                            if (!await session.Page.EvaluateAsync<bool>("() => typeof pdfMake !== 'undefined'"))
+                                await session.Page.AddScriptTagAsync(new() { Path = Path.Combine(assets, manifest.RootElement.GetProperty("stacks").GetProperty(stack).GetProperty("pdfScript").GetString()!) });
+                            string fontRoot = Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts");
+                            pdfFonts = new { regular = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(fontRoot, "Carlito-Regular.ttf"))), bold = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(fontRoot, "Carlito-Bold.ttf"))) };
+                        }
+                        result = await session.Page.EvaluateAsync<JsonElement>("spec => prepareDataTablesMeasurement(spec)", new { rows, columns, format = spec.GetProperty("format").GetString(), unique = spec.GetProperty("unique").GetBoolean(),
+                            styled = spec.TryGetProperty("styled", out var styled) && styled.GetBoolean(), pdfFonts }).WaitAsync(TimeSpan.FromMinutes(5));
                     } else if (operation == "run") {
                         if (session is null) throw new InvalidOperationException("Prepare the browser first.");
                         bool profile = command.TryGetProperty("profile", out var requestedProfile) && requestedProfile.GetBoolean();
@@ -72,7 +82,8 @@ internal static class DataTablesComparisonSession {
                             await session.Page.EvaluateAsync("() => deliverDataTablesMeasurement()");
                         destination = null;
                         object proof;
-                        try { proof = DataTablesComparisonVerifier.Verify(path, format, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean()); }
+                        try { proof = format == "pdf" ? DataTablesPdfComparisonVerifier.Verify(path, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean())
+                            : DataTablesComparisonVerifier.Verify(path, format, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean()); }
                         catch {
                             string failed = Path.Combine(evidence, "first-failed-output." + format);
                             if (!File.Exists(failed) && new FileInfo(path).Length <= 64L * 1024 * 1024) File.Move(path, failed);
@@ -90,7 +101,9 @@ internal static class DataTablesComparisonSession {
                             WorkbookVerifier.Verify(path, 128L * 1024 * 1024);
                         string hash; using (Stream file = File.OpenRead(path)) hash = Convert.ToHexString(SHA256.HashData(file)).ToLowerInvariant();
                         result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, browserVersion = session.Browser?.Version, asset = BrowserAssets.DataTablesScript.HashedFileName };
-                        File.Delete(path);
+                        if (format == "pdf" && command.TryGetProperty("keep", out var keep) && keep.GetBoolean())
+                            File.Move(path, Path.Combine(evidence, $"qualified-{spec.GetProperty("stack").GetString()}-{spec.GetProperty("browser").GetString()}-{measurement.GetProperty("lane").GetString()}-{spec.GetProperty("rows").GetInt32()}-{spec.GetProperty("columns").GetInt32()}.pdf"), true);
+                        else File.Delete(path);
                     } else throw new ArgumentException("Unknown comparison command.");
                     Console.WriteLine(JsonSerializer.Serialize(new { ok = true, result }));
                 } catch (Exception error) {
