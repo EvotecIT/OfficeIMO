@@ -213,6 +213,8 @@ Function-based shading patterns remain unsupported and produce a render diagnost
 Gradient fills and strokes preserve color-stop alpha through native transparency masks,
 including header and footer shapes. Gradient direction follows the same local coordinates
 before and after an affine transform.
+Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
+gradient clipping, affine transforms, and header and footer shapes.
 
 Drawing export retains bounded vector tiling patterns, isolated group opacity and
 blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and
@@ -316,6 +318,8 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
 - Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
 - Serves as the shared engine for Word, Excel, PowerPoint, OpenDocument, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters.
+
+PNG embedding keeps scanned-page images compact without changing their pixels. See the [image capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for supported sample depths and transparency behavior.
 
 ## Existing PDF workflows
 

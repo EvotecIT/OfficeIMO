@@ -23,6 +23,7 @@ internal static partial class OfficeJpegReader {
             var comp = frame.Components[componentIndex];
             states[componentIndex].Component = comp;
             states[componentIndex].PrevDc = 0;
+            state.PrepareAcLookup(ref acTables[comp.AcTable]);
         }
 
         var reader = new JpegBitReader(scanData, allowTruncated, cancellationToken);

@@ -108,6 +108,9 @@ internal static partial class OfficeJpegReader {
             };
         }
 
+        public void PrepareAcLookup(ref HuffmanTable table) =>
+            table.PrepareBaselineAcLookup(ref _reservedBytes);
+
         public void ReserveOrientationCanvas(JpegFrame frame) {
             if (!TryReserveOrientationCanvas(
                     frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {

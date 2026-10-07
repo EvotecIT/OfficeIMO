@@ -17,6 +17,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     private readonly int _end;
     private readonly int _featureList;
     private readonly int _lookupList;
+    private readonly Lazy<(int[]? Indexes, int Required)> _latinDefaultFeatures;
+    private LatinDefaultLookupCache? _latinDefaultLookups;
 
     private OfficeOpenTypeSubstitution(OfficeOpenTypeReader reader, int table, int length) {
         _reader = reader;
@@ -25,6 +27,15 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         Ensure(table, 10);
         _featureList = Relative(table, reader.ReadUInt16(table + 6), 2);
         _lookupList = Relative(table, reader.ReadUInt16(table + 8), 2);
+        _latinDefaultFeatures = new Lazy<(int[]? Indexes, int Required)>(() => {
+            int[]? indexes = ReadLatinDefaultFeatureIndexes(out int required);
+            return (indexes, required);
+        });
+    }
+
+    private sealed class LatinDefaultLookupCache {
+        internal LatinDefaultLookupCache(KeyValuePair<int, int>[]? lookups) => Lookups = lookups;
+        internal KeyValuePair<int, int>[]? Lookups { get; }
     }
 
     internal static OfficeOpenTypeSubstitution? TryCreate(byte[] data) {

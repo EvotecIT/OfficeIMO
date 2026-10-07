@@ -19,13 +19,7 @@ internal static class PdfFlateEncoder {
                 deflate.Write(data, offset, Math.Min(chunkSize, data.Length - offset));
             }
         }
-        uint a = 1, b = 0;
-        for (int index = 0; index < data.Length; index++) {
-            if (index % chunkSize == 0) cancellationToken.ThrowIfCancellationRequested();
-            a = (a + data[index]) % 65521;
-            b = (b + a) % 65521;
-        }
-        uint adler = (b << 16) | a;
+        uint adler = OfficeIMO.Core.Internal.OfficeZlibCodec.Adler32(data, cancellationToken);
         output.WriteByte((byte)(adler >> 24));
         output.WriteByte((byte)(adler >> 16));
         output.WriteByte((byte)(adler >> 8));

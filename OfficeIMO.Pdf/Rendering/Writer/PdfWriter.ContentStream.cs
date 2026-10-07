@@ -103,13 +103,13 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder FillPath() {
-        _sb.Append(" f\n");
+    public ContentStreamBuilder FillPath(OfficeFillRule fillRule = OfficeFillRule.NonZero) {
+        _sb.Append(fillRule == OfficeFillRule.EvenOdd ? " f*\n" : " f\n");
         return this;
     }
 
-    public ContentStreamBuilder FillStrokePath() {
-        _sb.Append(" B\n");
+    public ContentStreamBuilder FillStrokePath(OfficeFillRule fillRule = OfficeFillRule.NonZero) {
+        _sb.Append(fillRule == OfficeFillRule.EvenOdd ? " B*\n" : " B\n");
         return this;
     }
 

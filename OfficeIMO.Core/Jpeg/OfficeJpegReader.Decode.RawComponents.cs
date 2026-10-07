@@ -14,7 +14,7 @@ internal static partial class OfficeJpegReader {
                 if ((x & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 for (int channel = 0; channel < componentCount; channel++)
                     components[(y * frame.Width + x) * componentCount + channel] =
-                        (byte)SampleComponent(states, channel, x, y, maxH, maxV, 0, highQualityChroma);
+                        (byte)SampleComponent(states, channel, x, y, maxH, maxV, 0, highQualityChroma, imageWidth: frame.Width, imageHeight: frame.Height);
             }
         }
     }
@@ -32,7 +32,7 @@ internal static partial class OfficeJpegReader {
                 if ((x & 4095) == 0) token.ThrowIfCancellationRequested();
                 for (int channel = 0; channel < frame.ComponentCount; channel++) {
                     int sample = SampleComponent(state.Components, channel, x, y, frame.MaxH, frame.MaxV, 0,
-                        highQualityChroma, preserveRaw16: true);
+                        highQualityChroma, preserveRaw16: true, imageWidth: frame.Width, imageHeight: frame.Height);
                     output[at++] = (byte)(littleEndian ? sample : sample >> 8);
                     output[at++] = (byte)(littleEndian ? sample >> 8 : sample);
                 }

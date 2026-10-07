@@ -79,6 +79,16 @@ content referenced by StoryFragments, update both detached trees and call
 `page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
 commit together. Page-only edits that leave dangling native names are rejected.
 
+## PNG scan sample layout
+
+`OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
+one-bit grayscale PNGs. Other opaque images use eight-bit RGB samples. Decoded
+pixels, dimensions, and density remain unchanged.
+Consumers that inspect samples or add color-dependent PNG chunks must read the
+IHDR bit depth and color type instead of assuming eight-bit RGBA output.
+`EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
+encoding retains eight-bit RGBA output.
+
 ## PDF editing protection and source fonts
 
 Authenticated page, text, form, metadata and redaction rewrites preserve the

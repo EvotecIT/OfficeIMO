@@ -29,6 +29,9 @@ namespace OfficeIMO.Core.Internal {
             16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
         };
 
+        private static readonly HuffmanTable FixedLiteralLength = CreateFixedLiteralLengthTable();
+        private static readonly HuffmanTable FixedDistance = CreateFixedDistanceTable();
+
         internal static bool TryValidateExact(
             byte[] bytes,
             int offset,
@@ -63,8 +66,7 @@ namespace OfficeIMO.Core.Internal {
                                 ref outputLimitExceeded)) return false;
                         break;
                     case 1:
-                        if (!TryCreateFixedTables(out HuffmanTable literalLength, out HuffmanTable distance) ||
-                            !TryValidateCompressedBlock(reader, literalLength, distance, ref outputCount,
+                        if (!TryValidateCompressedBlock(reader, FixedLiteralLength, FixedDistance, ref outputCount,
                                 maximumOutputBytes, ref outputLimitExceeded, cancellationToken)) {
                             return false;
                         }
@@ -106,18 +108,25 @@ namespace OfficeIMO.Core.Internal {
             return true;
         }
 
-        private static bool TryCreateFixedTables(out HuffmanTable literalLength, out HuffmanTable distance) {
-            literalLength = default;
-            distance = default;
+        private static HuffmanTable CreateFixedLiteralLengthTable() {
             var literalLengths = new int[288];
             for (int symbol = 0; symbol <= 143; symbol++) literalLengths[symbol] = 8;
             for (int symbol = 144; symbol <= 255; symbol++) literalLengths[symbol] = 9;
             for (int symbol = 256; symbol <= 279; symbol++) literalLengths[symbol] = 7;
             for (int symbol = 280; symbol <= 287; symbol++) literalLengths[symbol] = 8;
+            if (!HuffmanTable.TryCreate(literalLengths, out HuffmanTable table)) {
+                throw new InvalidOperationException("Invalid fixed Deflate literal table.");
+            }
+            return table;
+        }
+
+        private static HuffmanTable CreateFixedDistanceTable() {
             var distanceLengths = new int[32];
             for (int symbol = 0; symbol < distanceLengths.Length; symbol++) distanceLengths[symbol] = 5;
-            return HuffmanTable.TryCreate(literalLengths, out literalLength) &&
-                   HuffmanTable.TryCreate(distanceLengths, out distance);
+            if (!HuffmanTable.TryCreate(distanceLengths, out HuffmanTable table)) {
+                throw new InvalidOperationException("Invalid fixed Deflate distance table.");
+            }
+            return table;
         }
 
         private static bool TryReadDynamicTables(
@@ -231,18 +240,24 @@ namespace OfficeIMO.Core.Internal {
             private readonly int[]? _firstSymbols;
             private readonly int[]? _symbols;
             private readonly int _maximumLength;
+            private readonly int[]? _lookup;
+            private readonly int _lookupBits;
 
             private HuffmanTable(
                 int[] counts,
                 int[] firstCodes,
                 int[] firstSymbols,
                 int[] symbols,
-                int maximumLength) {
+                int maximumLength,
+                int[] lookup,
+                int lookupBits) {
                 _counts = counts;
                 _firstCodes = firstCodes;
                 _firstSymbols = firstSymbols;
                 _symbols = symbols;
                 _maximumLength = maximumLength;
+                _lookup = lookup;
+                _lookupBits = lookupBits;
             }
 
             internal static bool TryCreate(int[] lengths, out HuffmanTable table, bool allowEmpty = false) {
@@ -284,12 +299,37 @@ namespace OfficeIMO.Core.Internal {
                     if (length == 0) continue;
                     symbols[nextSymbol[length]++] = symbol;
                 }
-                table = new HuffmanTable(counts, firstCodes, firstSymbols, symbols, maximumLength);
+                int lookupBits = Math.Min(9, maximumLength);
+                var lookup = new int[1 << lookupBits];
+                for (int length = 1; length <= lookupBits; length++) {
+                    for (int codeOffset = 0; codeOffset < counts[length]; codeOffset++) {
+                        int canonicalCode = firstCodes[length] + codeOffset;
+                        int reversedCode = 0;
+                        for (int bit = 0; bit < length; bit++) {
+                            reversedCode = (reversedCode << 1) | ((canonicalCode >> bit) & 1);
+                        }
+                        int entry = (symbols[firstSymbols[length] + codeOffset] << 4) | length;
+                        for (int index = reversedCode; index < lookup.Length; index += 1 << length) {
+                            lookup[index] = entry;
+                        }
+                    }
+                }
+                table = new HuffmanTable(counts, firstCodes, firstSymbols, symbols, maximumLength, lookup, lookupBits);
                 return true;
             }
 
             internal bool TryDecode(DeflateBitReader reader, out int symbol) {
                 symbol = -1;
+                // Peeking may read ahead, but only the matched code's bits are
+                // consumed. Exact payload accounting must ignore lookahead.
+                if (_lookup != null && reader.TryPeekBits(_lookupBits, out int prefix)) {
+                    int entry = _lookup[prefix];
+                    if (entry != 0) {
+                        reader.DropBits(entry & 15);
+                        symbol = entry >> 4;
+                        return true;
+                    }
+                }
                 if (_symbols == null || _counts == null || _firstCodes == null || _firstSymbols == null) return false;
                 int code = 0;
                 for (int length = 1; length <= _maximumLength; length++) {
@@ -311,40 +351,81 @@ namespace OfficeIMO.Core.Internal {
             private readonly int _end;
             private int _byteOffset;
             private int _bitOffset;
+            private int _readOffset;
+#if NET8_0_OR_GREATER
+            private ulong _buffer;
+#else
+            private uint _buffer;
+#endif
+            private int _bufferedBits;
 
             internal DeflateBitReader(byte[] bytes, int offset, int count) {
                 _bytes = bytes;
                 _start = offset;
                 _end = offset + count;
                 _byteOffset = offset;
+                _readOffset = offset;
             }
 
             internal int ConsumedBytes => _byteOffset - _start + (_bitOffset == 0 ? 0 : 1);
 
             internal bool TryReadBits(int count, out int value) {
+                if (!TryPeekBits(count, out value)) return false;
+                DropBits(count);
+                return true;
+            }
+
+            internal bool TryPeekBits(int count, out int value) {
                 value = 0;
                 if (count < 0 || count > 16) return false;
-                for (int bit = 0; bit < count; bit++) {
-                    if (_byteOffset >= _end) return false;
-                    value |= ((_bytes[_byteOffset] >> _bitOffset) & 1) << bit;
-                    _bitOffset++;
-                    if (_bitOffset == 8) {
-                        _bitOffset = 0;
-                        _byteOffset++;
+                while (_bufferedBits < count) {
+#if NET8_0_OR_GREATER
+                    // At most 15 buffered bits plus a 32-bit refill fit the
+                    // ulong reservoir. Lookahead does not advance consumption.
+                    if (_end - _readOffset >= 4) {
+                        _buffer |= (ulong)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                            _bytes.AsSpan(_readOffset, 4)) << _bufferedBits;
+                        _readOffset += 4;
+                        _bufferedBits += 32;
+                        continue;
                     }
+                    if (_end - _readOffset >= 2) {
+                        _buffer |= (ulong)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
+                            _bytes.AsSpan(_readOffset, 2)) << _bufferedBits;
+                        _readOffset += 2;
+                        _bufferedBits += 16;
+                        continue;
+                    }
+#endif
+                    if (_readOffset >= _end) return false;
+                    _buffer |= (uint)_bytes[_readOffset++] << _bufferedBits;
+                    _bufferedBits += 8;
                 }
+                value = (int)(_buffer & ((1U << count) - 1));
                 return true;
+            }
+
+            internal void DropBits(int count) {
+                _buffer >>= count;
+                _bufferedBits -= count;
+                _bitOffset += count;
+                _byteOffset += _bitOffset >> 3;
+                _bitOffset &= 7;
             }
 
             internal void AlignToByte() {
                 if (_bitOffset == 0) return;
-                _bitOffset = 0;
-                _byteOffset++;
+                DropBits(8 - _bitOffset);
             }
 
             internal bool TrySkipBytes(int count) {
                 if (_bitOffset != 0 || count < 0 || count > _end - _byteOffset) return false;
                 _byteOffset += count;
+                // A compressed block can have prefetched the next stored
+                // header. Restart at the logical position after the skip.
+                _readOffset = _byteOffset;
+                _buffer = 0;
+                _bufferedBits = 0;
                 return true;
             }
         }

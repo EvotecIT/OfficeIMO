@@ -35,10 +35,13 @@ public sealed partial class ProvenanceCoreContracts {
         OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(svg), "image.svg");
     }
 
-    [Fact]
-    public void ApngProvenanceBudgetUsesSecondaryFrameDimensions() {
-        byte[] canvas = OfficePngWriter.Encode(new OfficeRasterImage(200, 200, OfficeColor.Red));
-        byte[] small = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ApngProvenanceBudgetUsesSecondaryFrameDimensions(bool translucent) {
+        OfficeColor color = translucent ? OfficeColor.FromRgba(255, 0, 0, 128) : OfficeColor.Red;
+        byte[] canvas = OfficePngWriter.Encode(new OfficeRasterImage(200, 200, color));
+        byte[] small = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, color));
         byte[] firstControl = new byte[26], secondControl = new byte[26];
         firstControl[7] = firstControl[11] = 200;
         secondControl[3] = 1;
@@ -56,8 +59,8 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.True(OfficePngContainerValidator.TryValidate(apng, default, int.MaxValue, out _, out string? reason), reason);
         Assert.True(OfficePngAnimationValidator.TryValidateStructure(apng));
         Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(apng, default, int.MaxValue, out long decodedBytes));
-        Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(200, 200, 8, 6, 0, null, out long canvasBytes));
-        Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(1, 1, 8, 6, 0, null, out long frameBytes));
+        Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(200, 200, canvas[24], canvas[25], 0, null, out long canvasBytes));
+        Assert.True(OfficePngReader.TryGetValidationWorkingSetBytes(1, 1, canvas[24], canvas[25], 0, null, out long frameBytes));
         Assert.Equal(canvasBytes + frameBytes, decodedBytes);
     }
 

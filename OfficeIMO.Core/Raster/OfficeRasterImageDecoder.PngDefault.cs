@@ -7,9 +7,9 @@ public static partial class OfficeRasterImageDecoder {
     internal static bool TryDecodePngDefault(byte[] bytes, OfficeRasterDecodeOptions options,
         out OfficeRasterImage? image) {
         image = null;
-        if (!OfficeRasterContainerInspector.TryInspectForDecode(bytes, options, out var container, out _) ||
+        if (!OfficeRasterContainerInspector.TryInspectForDecode(bytes, options, out var container, out _, out _, out var pngValidation) ||
             container?.Format != OfficeImageFormat.Png ||
-            !OfficePngReader.TryDecode(bytes, options.CancellationToken, options.RetainedManagedBytes, out image) ||
+            !OfficePngReader.TryDecode(bytes, options.CancellationToken, options.RetainedManagedBytes, out image, pngValidation) ||
             !IsDecodedImageWithinLimit(image, options.MaximumDecodedPixels)) {
             image = null;
             return false;

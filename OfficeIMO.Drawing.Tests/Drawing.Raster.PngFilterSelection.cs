@@ -12,6 +12,13 @@ public sealed partial class DrawingRasterEncodingTests {
     [InlineData(9)]
     public void OptimalPngObservesCancellationInLaterCompressionPasses(int cancelAtRow) {
         var image = new OfficeRasterImage(32, 4, OfficeColor.CornflowerBlue);
+        if (cancelAtRow == 9) {
+            // Large candidates require a final compression pass after both probes.
+            // A small unfiltered winner can now be emitted from bounded scratch.
+            byte[] pixels = new byte[32769 * 4 * 4];
+            new Random(0x706e67).NextBytes(pixels);
+            image = OfficeRasterImage.FromRgba32(32769, 4, pixels);
+        }
         using var cancellation = new CancellationTokenSource();
         using var destination = new MemoryStream();
         int rows = 0;
@@ -24,6 +31,27 @@ public sealed partial class DrawingRasterEncodingTests {
                 }));
         Assert.Equal(cancelAtRow, rows);
         destination.WriteByte(0x7A);
+    }
+
+    [Theory]
+    [InlineData(255)]
+    [InlineData(256)]
+    [InlineData(257)]
+    public void OptimalPngPreservesPixelsAndBudgetsAroundAnIdatChunk(int width) {
+        const int height = 64;
+        byte[] pixels = new byte[width * height * 4];
+        new Random(0x706e67).NextBytes(pixels);
+        var image = OfficeRasterImage.FromRgba32(width, height, pixels);
+        var options = new OfficeRasterEncodingOptions { WriteResolutionMetadata = false };
+        byte[] expected = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options);
+        using var stream = new MemoryStream();
+        OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, stream, options, expected.Length);
+        Assert.Equal(expected, stream.ToArray());
+        Assert.Equal(expected, OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options, expected.Length));
+        Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+            OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, options, expected.Length - 1));
+        Assert.True(OfficePngReader.TryDecode(expected, out OfficeRasterImage? decoded));
+        Assert.Equal(pixels, decoded!.GetPixels());
     }
 
     [Theory]

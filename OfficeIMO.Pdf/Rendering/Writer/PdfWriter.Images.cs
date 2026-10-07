@@ -21,6 +21,7 @@ internal static partial class PdfWriter {
         public string DictionarySuffix { get; set; } = string.Empty;
         public int PixelWidth { get; set; }
         public int PixelHeight { get; set; }
+        public int BitsPerComponent { get; set; } = 8;
         public PdfImageStream? SoftMask { get; set; }
 
         /// <summary>
@@ -33,6 +34,7 @@ internal static partial class PdfWriter {
             DictionarySuffix = DictionarySuffix,
             PixelWidth = PixelWidth,
             PixelHeight = PixelHeight,
+            BitsPerComponent = BitsPerComponent,
             SoftMask = SoftMask?.CloneForWrite()
         };
     }
@@ -175,7 +177,7 @@ internal static partial class PdfWriter {
                 return TryExpand16BitPng(streamData, width, height, colorType, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
-            if (bitDepth != 8) {
+            if (bitDepth != 8 && transparency != null) {
                 return TryExpandPackedGrayscalePng(streamData, width, height, bitDepth, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
@@ -217,7 +219,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryValidatePngPassThroughData(streamData, width, height, colors, cancellationToken, out unsupportedReason)) {
+        if (!TryValidatePngPassThroughData(streamData, width, height, colors, bitDepth, cancellationToken, out unsupportedReason)) {
             return false;
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -226,12 +228,8 @@ internal static partial class PdfWriter {
             Data = streamData,
             PixelWidth = width,
             PixelHeight = height,
-            DictionarySuffix = " /ColorSpace " + colorSpace +
-                               " /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors " +
-                               colors.ToString(CultureInfo.InvariantCulture) +
-                               " /BitsPerComponent 8 /Columns " +
-                               width.ToString(CultureInfo.InvariantCulture) +
-                               " >>"
+            BitsPerComponent = bitDepth,
+            DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, colors, width, bitDepth)
         };
         return true;
     }
@@ -288,24 +286,6 @@ internal static partial class PdfWriter {
             offset += segmentLength;
         }
         return false;
-    }
-
-    private static bool TryValidatePngPassThroughData(byte[] compressedData, int width, int height, int colors, CancellationToken cancellationToken, out string? unsupportedReason) {
-        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
-            return false;
-        }
-
-        if (!TryGetPngCheckedLength(width, height, colors, includeFilterByte: true, out int expectedLength)) {
-            unsupportedReason = "PNG dimensions exceed supported limits.";
-            return false;
-        }
-
-        if (decoded.Length != expectedLength) {
-            unsupportedReason = "PNG image data length does not match the expected scanline size.";
-            return false;
-        }
-
-        return true;
     }
 
     private static bool TrySplitPngTransparency(byte[] compressedData, int width, int height, int colorType, byte[] transparency, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
@@ -388,90 +368,6 @@ internal static partial class PdfWriter {
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
             }
         };
-        return true;
-    }
-
-    private static bool TryExpandPackedGrayscalePng(byte[] compressedData, int width, int height, int bitDepth, byte[]? transparency, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
-        image = new PdfImageStream();
-        unsupportedReason = null;
-
-        int maxSample = (1 << bitDepth) - 1;
-        int transparentSample = -1;
-        if (transparency != null) {
-            if (transparency.Length < 2) {
-                unsupportedReason = "Grayscale PNG transparency chunk is invalid.";
-                return false;
-            }
-
-            transparentSample = ReadUInt16BigEndian(transparency, 0);
-            if (transparentSample > maxSample) {
-                unsupportedReason = "Grayscale PNG transparency value exceeds the image bit depth.";
-                return false;
-            }
-        }
-
-        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
-            return false;
-        }
-
-        if (!TryGetPngRowByteCount(width, bitDepth, out int packedRowBytes) ||
-            !TryGetPngScanlineLength(packedRowBytes, height, out int expectedLength)) {
-            unsupportedReason = "PNG dimensions exceed supported limits.";
-            return false;
-        }
-
-        if (decoded.Length < expectedLength) {
-            unsupportedReason = "PNG image data ended before all grayscale scanlines were decoded.";
-            return false;
-        }
-
-        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, cancellationToken, out var packedRows, out unsupportedReason)) {
-            return false;
-        }
-
-        if (!TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int grayscaleRowsLength)) {
-            unsupportedReason = "PNG dimensions exceed supported limits.";
-            return false;
-        }
-
-        byte[] baseRows = new byte[grayscaleRowsLength];
-        byte[]? alphaRows = transparency != null ? new byte[grayscaleRowsLength] : null;
-        for (int row = 0; row < height; row++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int baseRowStart = row * (1 + width);
-            int alphaRowStart = row * (1 + width);
-            baseRows[baseRowStart] = 0;
-            if (alphaRows != null) {
-                alphaRows[alphaRowStart] = 0;
-            }
-
-            int sourceRowStart = row * packedRowBytes;
-            for (int pixel = 0; pixel < width; pixel++) {
-                CheckPngLoopCancellation(PngRowLoopKind.PackedGrayscale, pixel, cancellationToken);
-                int sample = ReadPackedPngSample(packedRows, sourceRowStart, pixel, bitDepth);
-                int targetOffset = baseRowStart + 1 + pixel;
-                baseRows[targetOffset] = ScalePackedSampleToByte(sample, maxSample);
-                if (alphaRows != null) {
-                    alphaRows[alphaRowStart + 1 + pixel] = sample == transparentSample ? (byte)0 : (byte)255;
-                }
-            }
-        }
-
-        image = new PdfImageStream {
-            Data = DeflateZlib(baseRows, cancellationToken),
-            PixelWidth = width,
-            PixelHeight = height,
-            DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
-        };
-        if (alphaRows != null) {
-            image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
-                PixelWidth = width,
-                PixelHeight = height,
-                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
-            };
-        }
-
         return true;
     }
 
@@ -658,14 +554,6 @@ internal static partial class PdfWriter {
         };
         return true;
     }
-
-    private static string BuildPngPredictorDictionarySuffix(string colorSpace, int colors, int width) =>
-        " /ColorSpace " + colorSpace +
-        " /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors " +
-        colors.ToString(CultureInfo.InvariantCulture) +
-        " /BitsPerComponent 8 /Columns " +
-        width.ToString(CultureInfo.InvariantCulture) +
-        " >>";
 
     private static bool TryUnfilterPngRows(byte[] decoded, int width, int height, int bytesPerPixel, CancellationToken cancellationToken, out byte[] rawPixels, out string? unsupportedReason) {
         rawPixels = Array.Empty<byte>();
