@@ -1,12 +1,22 @@
+using System.Collections.Generic;
 using PdfCore = OfficeIMO.Pdf;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static double ResolveNativeListTabBodyPosition(WordParagraph paragraph,
             double markerEnd, double textIndent, NativeDocumentDefaults nativeDefaults) {
             if (markerEnd <= textIndent + 0.01D) return textIndent;
-            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
-                .Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
+            var stops = new Dictionary<int, WordTabStop>();
+            W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
+            if (levelTabs != null) {
+                foreach (W.TabStop tab in levelTabs.Elements<W.TabStop>().Take(MaxNativeParagraphTabStops)) {
+                    var stop = new WordTabStop(paragraph, (W.TabStop)tab.CloneNode(true));
+                    stops[stop.Position] = stop;
+                }
+            }
+            foreach (WordTabStop stop in GetNativeParagraphEffectiveTabStops(paragraph)) stops[stop.Position] = stop;
+            foreach (WordTabStop tabStop in stops.Values.Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
                 .OrderBy(tab => tab.Position)) {
                 double position = tabStop.Position / 20D;
                 if (position > markerEnd + 0.01D) return position;

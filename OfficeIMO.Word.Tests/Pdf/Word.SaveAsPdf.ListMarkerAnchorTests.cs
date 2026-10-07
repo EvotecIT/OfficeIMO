@@ -7,6 +7,94 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PdfListMarkerAnchorTests {
+    [Fact]
+    public void HyphenatedFirstListWordRetainsTheContinuationMinimumInAutomaticTables() {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 720;
+        level.LevelJustification = WordListLevelAlignment.Right;
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+        WordTable table = document.AddTable(1, 1);
+        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = 2400;
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        paragraph.Text = "a-abcdefghij";
+        paragraph.FontFamily = "Courier New";
+        paragraph.FontSize = 12;
+        paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, FontFamily = "Courier"
+        }));
+        var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2))
+            .Select(line => string.Concat(line.Select(letter => letter.Value))).ToArray();
+        Assert.Contains(lines, line => line.EndsWith("abcdefghij", StringComparison.Ordinal));
+        double cellRight = pdf.GetPage(1).Paths.Where(path => path.IsStroked)
+            .Select(path => path.GetBoundingRectangle()).Where(bounds => bounds.HasValue)
+            .Max(bounds => bounds!.Value.Right);
+        Assert.InRange(pdf.GetPage(1).Letters.Max(letter => letter.EndBaseLine.X), 0D, cellRight);
+    }
+
+    [Theory]
+    [InlineData(false, false, 0)]
+    [InlineData(false, true, 0)]
+    [InlineData(true, false, 0)]
+    [InlineData(false, false, 1)]
+    [InlineData(false, true, 1)]
+    [InlineData(true, false, 1)]
+    [InlineData(false, false, 2)]
+    [InlineData(false, true, 2)]
+    [InlineData(true, false, 2)]
+    [InlineData(false, false, 3)]
+    [InlineData(true, false, 3)]
+    [InlineData(false, false, 4)]
+    [InlineData(true, false, 4)]
+    public void NumberingLevelTabsRespectParagraphClearsAndFullOverrides(bool table, bool inline, int mode) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 0;
+        level.LevelJustification = WordListLevelAlignment.Left;
+        level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
+            new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+        WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
+        paragraph.Text = "BODY";
+        paragraph.FontFamily = "Courier New";
+        paragraph.FontSize = 12;
+        if (inline) paragraph.CharacterScale = 95;
+        paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        if (table) paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });
+        if (mode == 1) paragraph._paragraph.ParagraphProperties.Tabs = new Tabs(
+            new TabStop { Val = TabStopValues.Left, Position = 2000 });
+        if (mode == 2) paragraph._paragraph.ParagraphProperties.Tabs = new Tabs(
+            new TabStop { Val = TabStopValues.Clear, Position = 3000 });
+        if (mode >= 3) {
+            var replacement = (Level)level.OpenXmlElement.CloneNode(true);
+            replacement.PreviousParagraphProperties!.RemoveAllChildren<Tabs>();
+            if (mode == 3) replacement.PreviousParagraphProperties.InsertAt(new Tabs(
+                new TabStop { Val = TabStopValues.Number, Position = 2000 }), 0);
+            document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+                .Elements<NumberingInstance>().Single().Append(new LevelOverride(replacement) { LevelIndex = 0 });
+        }
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, FontFamily = "Courier"
+        }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("12.BODY", string.Concat(letters.Select(letter => letter.Value)));
+        double expectedOffset = mode switch { 1 or 3 => 28D, 2 or 4 => 36D, _ => 78D };
+        Assert.InRange(Math.Abs(letters[3].StartBaseLine.X - letters[0].StartBaseLine.X - expectedOffset), 0D, 0.03D);
+    }
+
     [Theory]
     [InlineData(WordListLevelAlignment.Left, false, false, 720, 0, 108)]
     [InlineData(WordListLevelAlignment.Center, false, false, 720, 0, 108)]

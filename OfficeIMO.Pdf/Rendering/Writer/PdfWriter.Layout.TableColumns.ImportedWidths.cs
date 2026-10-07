@@ -53,17 +53,12 @@ internal static partial class PdfWriter {
         return minimum;
     }
 
-    private static double MeasureImportedTableWordMinimumWithIndents(
-        System.Collections.Generic.IReadOnlyList<RichSeg> word, PdfOptions? options,
-        double continuationIndents, double firstLineIndents) {
-        bool hasTextSpacer = word.Any(segment => segment.InlineElement is PdfInlineBox { IsTextSpacer: true });
-        return MeasureImportedTableWordMinimum(word, options) + (hasTextSpacer ? firstLineIndents : continuationIndents);
-    }
-
-    private static double MeasureImportedTableWordMinimum(System.Collections.Generic.IReadOnlyList<RichSeg> segments, PdfOptions? options) {
-        if (segments.Count == 0) return 0D;
+    private static double MeasureImportedTableWordMinimumWithIndents(System.Collections.Generic.IReadOnlyList<RichSeg> segments,
+        PdfOptions? options, double continuationIndents, double firstLineIndents) {
+        if (segments.Count == 0) return continuationIndents;
         string text = string.Concat(segments.Select(segment => segment.Text));
-        if (text.Length == 0) return segments.Sum(GetRichSegmentWidth);
+        if (text.Length == 0) return segments.Sum(GetRichSegmentWidth) +
+            (segments.Any(segment => segment.InlineElement is PdfInlineBox { IsTextSpacer: true }) ? firstLineIndents : continuationIndents);
         // Word permits hyphen and multilingual breaks but keeps a slash token
         // whole when finding a table minimum. Generic technical-token wrapping
         // remains independent of this imported-grid policy.
@@ -78,6 +73,7 @@ internal static partial class PdfWriter {
         foreach (int end in points) {
             int segmentStart = 0;
             double width = 0D;
+            bool hasTextSpacer = false;
             RichSeg? lastSegment = null;
             foreach (RichSeg segment in segments) {
                 int left = Math.Max(start, segmentStart);
@@ -90,13 +86,16 @@ internal static partial class PdfWriter {
                     lastSegment = segment;
                 } else if (segment.Text.Length == 0 && segmentStart >= start && segmentStart < end) {
                     width += GetRichSegmentWidth(segment);
+                    hasTextSpacer |= segment.InlineElement is PdfInlineBox { IsTextSpacer: true };
                 }
                 segmentStart += segment.Text.Length;
             }
             if (end < text.Length && Array.IndexOf(hyphens, end) >= 0 && lastSegment != null)
                 width += MeasureRichText("-", lastSegment.Font, lastSegment.NamedFont,
                     lastSegment.FontSize, lastSegment.Baseline, options, lastSegment.FeatureSettings, lastSegment.HorizontalTextScaling, lastSegment.CharacterSpacing);
-            minimum = Math.Max(minimum, width);
+            // Only the chunk containing the marker spacer occupies the hanging
+            // first-line frame. Later hyphen/CJK chunks need the full body indent.
+            minimum = Math.Max(minimum, width + (hasTextSpacer ? firstLineIndents : continuationIndents));
             start = end;
         }
         return minimum;
