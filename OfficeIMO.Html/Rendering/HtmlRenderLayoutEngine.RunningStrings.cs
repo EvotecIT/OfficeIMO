@@ -25,6 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         while (pending.Count > 0) {
             (INode node, HtmlRenderBoxStyle parentStyle) = pending.Pop();
             chargeOperations(1L);
+            if (IsClosedDisclosureChild(node)) continue;
             if (node is IText textNode) {
                 pendingCharacterCharge += textNode.Data.Length;
                 if (pendingCharacterCharge >= 256) {

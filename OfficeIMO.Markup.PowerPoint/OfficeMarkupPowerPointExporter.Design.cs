@@ -131,10 +131,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             }
 
             var columnBlocks = new List<OfficeMarkupBlock>();
-            var body = GetColumnBody(current);
-            if (!string.IsNullOrWhiteSpace(body)) {
-                columnBlocks.AddRange(ParseLightweightMarkdown(body));
-            }
+            columnBlocks.AddRange(GetColumnBlocks(current));
 
             index++;
             while (index < blocks.Count && !IsColumn(blocks[index])) {
@@ -295,7 +292,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         blocks.All(block =>
             block is OfficeMarkupHeadingBlock
             || block is OfficeMarkupParagraphBlock
-            || block is OfficeMarkupListBlock);
+            || block is OfficeMarkupListBlock list && OfficeMarkupListTraversal.IsTextOnly(list));
 
     private static bool HasSemanticDesignerPlacementOverrides(IEnumerable<OfficeMarkupBlock> blocks) =>
         blocks.Any(block => HasSemanticDesignerPlacementOverride(block));

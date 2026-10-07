@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
-    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color" };
+    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color", "border-top", "border-right", "border-bottom", "border-left" };
     private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
     private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
     private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
@@ -16,13 +16,24 @@ public static partial class HtmlComputedStyleEngine {
         out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
         if (normalizedName == "font") return TryExpandFontShorthand(value, out longhands);
-        if (normalizedName == "border") {
+        if (normalizedName == "gap") return TryExpandGapShorthand(value, out longhands);
+        if (normalizedName is "place-items" or "place-self" or "place-content") return TryExpandAlignmentShorthand(normalizedName, value, out longhands);
+        if (normalizedName is "grid-column" or "grid-row" or "grid-area") return TryExpandGridShorthand(normalizedName, value, out longhands);
+        if (normalizedName is "border" or "border-top" or "border-right" or "border-bottom" or "border-left") {
             string width, style, color;
             if (IsCssWideKeyword(value.Trim())) {
                 width = style = color = value;
-            } else if (!TryExpandBorderComponents(value, out width, out style, out color)) {
+            } else if (!HtmlCssBoxStrokeParser.TryParseBorderComponents(value, out width, out style, out color)) {
                 longhands = Array.Empty<KeyValuePair<string, string>>();
                 return false;
+            }
+            if (normalizedName != "border") {
+                longhands = new[] {
+                    new KeyValuePair<string, string>(normalizedName + "-width", width),
+                    new KeyValuePair<string, string>(normalizedName + "-style", style),
+                    new KeyValuePair<string, string>(normalizedName + "-color", color)
+                };
+                return true;
             }
             var border = new KeyValuePair<string, string>[12];
             for (int index = 0; index < 4; index++) {
@@ -59,30 +70,19 @@ public static partial class HtmlComputedStyleEngine {
         };
         return true;
     }
-    private static bool TryExpandBorderComponents(string value, out string width, out string style, out string color) {
-        width = "medium";
-        style = "none";
-        color = "currentcolor";
-        bool widthSet = false;
-        bool styleSet = false;
-        bool colorSet = false;
-        IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
-        if (tokens.Count < 1 || tokens.Count > 3) return false;
-        foreach (string token in tokens) {
-            if (!widthSet && HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(token)) {
-                width = token;
-                widthSet = true;
-            } else if (!styleSet && HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(token)) {
-                style = token;
-                styleSet = true;
-            } else if (!colorSet && HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(token)) {
-                color = token;
-                colorSet = true;
-            } else {
-                return false;
-            }
+    private static bool IsSupportedBorderDeclarationSyntax(string propertyName, string value) {
+        string name = propertyName.ToLowerInvariant();
+        if (name is "border" or "border-top" or "border-right" or "border-bottom" or "border-left") {
+            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(value);
         }
-        return true;
+        if (name == "border-width") return HtmlCssBoxStrokeParser.IsSupportedWidthSyntax(value);
+        if (name == "border-style") return HtmlCssBoxStrokeParser.IsSupportedStyleSyntax(value);
+        if (name == "border-color") return HtmlCssBoxStrokeParser.IsSupportedColorSyntax(value);
+        IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
+        if (tokens.Count != 1) return false;
+        if (name.EndsWith("-width", StringComparison.Ordinal)) return tokens.All(HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax);
+        if (name.EndsWith("-style", StringComparison.Ordinal)) return tokens.All(HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax);
+        return tokens.All(HtmlCssBoxStrokeParser.IsSupportedBorderColorSyntax);
     }
 
     private static void ExpandResolvedCascadeShorthands(

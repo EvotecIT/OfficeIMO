@@ -295,6 +295,10 @@ the filtered container retain their original geometry. Pass
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
+Imported SVG text retains its full glyph paint inside an explicit root viewport
+clip. Text measurements determine layout, while the viewport and authored clip
+paths determine visible paint. Scene inspection should traverse drawing groups
+and effect groups to reach their text and shape content.
 Shape geometry crossing a nested SVG or symbol viewBox is retained until the viewport clip is applied.
 Local symbols without a `viewBox` retain their user coordinates and inherit paint from
 their `use` element. Symbol dimensions clip the content; they do not rescale it.

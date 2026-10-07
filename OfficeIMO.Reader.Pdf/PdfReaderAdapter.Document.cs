@@ -255,13 +255,16 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<OfficeDocumentBlock> BuildDocumentBlocks(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             PdfLogicalPage page = pages[pageIndex];
+            PdfLogicalListItem[] projectedLists = PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent)
+                .Where(static item => item.Kind == PdfLogicalReadingOrderKind.ListItem)
+                .Select(item => page.ListItems[item.SourceIndex]).ToArray();
             int tableIndex = 0;
             for (int elementIndex = 0; elementIndex < page.Elements.Count; elementIndex++) {
                 IPdfLogicalElement element = page.Elements[elementIndex];
                 if (element is PdfLogicalTextBlock textBlock) {
                     if (textBlock.IsTableContent) continue;
                     PdfLogicalHeading? heading = FindHeading(page, textBlock);
-                    PdfLogicalListItem? listItem = FindListItem(page, textBlock);
+                    PdfLogicalListItem? listItem = FindListItem(projectedLists, textBlock);
                     if (listItem is not null && !ReferenceEquals(listItem.Line, textBlock)) continue;
                     string kind = heading != null
                         ? "heading"
@@ -767,10 +770,10 @@ internal static partial class PdfReaderAdapter {
         return null;
     }
 
-    private static PdfLogicalListItem? FindListItem(PdfLogicalPage page, PdfLogicalTextBlock textBlock) {
-        for (int i = 0; i < page.ListItems.Count; i++) {
-            if (page.ListItems[i].Lines.Any(line => ReferenceEquals(line, textBlock))) {
-                return page.ListItems[i];
+    private static PdfLogicalListItem? FindListItem(IReadOnlyList<PdfLogicalListItem> projectedLists, PdfLogicalTextBlock textBlock) {
+        for (int i = 0; i < projectedLists.Count; i++) {
+            if (projectedLists[i].Lines.Any(line => ReferenceEquals(line, textBlock))) {
+                return projectedLists[i];
             }
         }
 
