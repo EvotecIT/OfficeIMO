@@ -298,5 +298,118 @@
     "api": "Explicit conversion document/render request/results with migration notes; superseded paths removed instead of compatibility bridges.",
     "dependencyImpact": "Existing approved retained providers; Core zero external runtime dependencies; no browser executable or comparison tool enters product artifacts.",
     "qualification": "Local selected profile proof complete; native platform CI/delayed feedback/merge still required; broader H10/timing/manual accessibility remain open."
+  },
+  "settlement20261007": {
+    "prerequisite": {
+      "pr": 2885,
+      "head": "9d25575e4c23ddf9b455319e371958b97bd31e30",
+      "merge": "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+      "checks": {
+        "success": 91,
+        "skipped": 3
+      },
+      "completeDelayedFeedback": true,
+      "ownedWorktreeRemoved": true
+    },
+    "combinedProductSource": "329f60ede91a2e5ab370a7990b266c886660cd51",
+    "acceptedMaster": "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+    "combinedPdfCorrectness": [
+      {
+        "framework": "net8.0",
+        "passed": 9237,
+        "failed": 0,
+        "skipped": 0,
+        "trx": "Ignore/StaticConversionExtractionQualification/master-overlap-tests/pdf-master-full-net8.0.trx",
+        "sha256": "5b70a9de45dc19004d12bce30e75a1b4bb96f65b404c4ba2004ac44b9ddd461b"
+      },
+      {
+        "framework": "net10.0",
+        "passed": 9237,
+        "failed": 0,
+        "skipped": 0,
+        "trx": "Ignore/StaticConversionExtractionQualification/master-overlap-tests/pdf-master-full-net10.0.trx",
+        "sha256": "732f6948115541d461f6225e2fcee0a8d6cd603f2e284b6a08759beed87830c5"
+      }
+    ],
+    "scopedIntegrationReview": {
+      "candidate": "329f60ede91a2e5ab370a7990b266c886660cd51",
+      "scope": "New PDF/Core accepted-master reader, logical glyph, source-font editing, encryption and generated-output interactions against static Note/Link/ActualText",
+      "agent": "static_pdf_master_overlap_review",
+      "strictReadOnly": true,
+      "findings": [],
+      "productRecommendation": "accept as shaped",
+      "fullPassUsed": true,
+      "targetedConfirmationUsed": false,
+      "doesNotEstablishMergeReadiness": true
+    },
+    "comparisonFixture": {
+      "regularSha256": "f5f41dd4cd8281cf151091cef9e9add0cda9b6ccd1db2010f72c3f056f0775fb",
+      "boldSha256": "27da758f4dcac9a65abe914c13b463b42982b9909bc65713424099f4810bd1e6",
+      "registeredBoldWeight": 700,
+      "sourceCommit": "bd7e37632246368c60fdcbd374dbf9bad11969b6",
+      "license": "OFL-1.1; existing complete notice",
+      "runtimeDependencyAdded": false,
+      "sameUnchangedGeometryAndVisualLimits": true,
+      "finalCases": 2,
+      "finalPages": 3,
+      "passed": true,
+      "fontDiagnostics": {
+        "text-geometry": [],
+        "delivery-register": []
+      },
+      "visualComparison": "consistency-bold-comparison.png; inspected header/table/footer; authored bold actual face"
+    },
+    "currentCorpus": {
+      "source": "329f60ede91a2e5ab370a7990b266c886660cd51",
+      "nineApiToolRoutes": true,
+      "allNinePdfsByteIdenticalToAccepted743": true,
+      "unchangedRasterAndResourceBytesByIdentity": true,
+      "corpusReceipts": "Ignore/StaticConversionExtractionQualification/corpus-clean-329f60ede",
+      "routes": 9,
+      "pages": 97,
+      "bytesRawPopplerPerPageAndReportsEqual": true,
+      "observations": "Ignore/StaticConversionExtractionQualification/corpus-clean-329f60ede/byte-identical-independent-observations.json",
+      "resourceConservation": "Exact full PDF byte identity preserves independently observed decoded images and link geometry. Eight repeated pypdf observations passed before redundant ninth decode was stopped; partial log/exit retained.",
+      "hasLossRetained": true
+    },
+    "hostedPreviousGraph": {
+      "run": 37546894462,
+      "source": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+      "platforms": [
+        {
+          "platform": "linux",
+          "sourceHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+          "consumerFrameworks": [
+            "net10.0",
+            "net8.0"
+          ]
+        },
+        {
+          "platform": "macos",
+          "sourceHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+          "consumerFrameworks": [
+            "net10.0",
+            "net8.0"
+          ]
+        },
+        {
+          "platform": "windows",
+          "sourceHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+          "consumerFrameworks": [
+            "net10.0",
+            "net472",
+            "net8.0"
+          ]
+        }
+      ],
+      "nineteenPackagesPerPlatform": true,
+      "feedInstalledSHA512OriginAndConsumerDLLHashesVerified": true,
+      "nativeWindowsNet472ConsumerExecutions": 2,
+      "current329Qualification": false
+    },
+    "currentGraphHostedPackagesAndDelayedFeedback": "Required after consolidated push; previous d6 artifacts do not qualify accepted-master graph.",
+    "normalStandardApiToolBuilds": "All pass, zero warnings/errors",
+    "broaderGoalsComplete": false,
+    "retainedObserverScope": "Exact full PDF byte identity preserves independently observed decoded images and link geometry. Eight repeated pypdf observations passed before redundant ninth decode was stopped; partial log/exit retained."
   }
 }
