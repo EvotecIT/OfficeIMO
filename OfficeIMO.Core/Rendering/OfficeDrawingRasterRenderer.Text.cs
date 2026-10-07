@@ -34,8 +34,11 @@ public static partial class OfficeDrawingRasterRenderer {
         right = Math.Ceiling(right); bottom = Math.Ceiling(bottom);
         // Transparent sampling support is optional; actual ink and the caller's pixel
         // ceiling are not. An exact-fit frame must not fail solely because of padding.
-        double paddedWidth = right - left + 2D, paddedHeight = bottom - top + 2D;
-        if (paddedHeight > 0D && paddedWidth * axisX <= maximumRasterPixels / (paddedHeight * axisY)) {
+        double paddedWidth = Math.Max(1D, Math.Ceiling((right - left + 2D) * axisX));
+        double paddedHeight = Math.Max(1D, Math.Ceiling((bottom - top + 2D) * axisY));
+        long remainingPixels = Math.Min(MaximumSingleTransformedTextIntermediatePixels,
+            canvas.GetRemainingTransformedTextIntermediatePixels(maximumRasterPixels));
+        if (paddedHeight > 0D && paddedWidth <= remainingPixels / paddedHeight) {
             left -= 1D; top -= 1D; right += 1D; bottom += 1D;
         }
         double pixelWidth = Math.Max(1D, Math.Ceiling((right - left) * axisX));
@@ -102,7 +105,12 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
             .Then(CreateVerticalTextPlacement(text, scale, contentX, contentY));
         if (!double.IsInfinity(pixelWidth) && !double.IsInfinity(pixelHeight) &&
-            !canvas.IntersectsVisibleSurface(transform, pixelWidth, pixelHeight)) return true;
+            !canvas.IntersectsVisibleSurface(transform, pixelWidth, pixelHeight)) {
+            // Unsupported vertical positioning still reaches the stacked fallback,
+            // whose ink may overhang the frame that was just culled.
+            return (text.Color ?? OfficeColor.Black).A == 0 || canvas.CanDrawVerticalText(text.RasterText,
+                text.Font.Size * scale, text.Font.Style, text.Font.FamilyName, text.FeatureSettings);
+        }
         _ = OfficeRasterExportPlanner.Resolve(pixelWidth, pixelHeight, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
                 MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels),

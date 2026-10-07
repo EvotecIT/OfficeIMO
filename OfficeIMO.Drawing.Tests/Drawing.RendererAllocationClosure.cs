@@ -204,10 +204,174 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1000L, budget.IntermediatePixels);
         }
 
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void UnsupportedVerticalFrameRetainsVisibleFallbackInk(bool vertical, bool horizontalProvider) {
+            OfficeDrawing drawing = VerticalFrame(vertical);
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { TextShapingProvider = horizontalProvider ? new HorizontalProvider() : null });
+
+            Assert.Equal(vertical ? (byte)255 : (byte)179, image.GetPixel(vertical ? 3 : 7, 3).A);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SupportedHiddenVerticalFrameSkipsLayerAndFallback(bool vertical) {
+            var provider = new VerticalProvider();
+            var budget = new OfficeRasterTransformedTextBudget();
+            budget.ChargeIntermediateSurfacePixels(64L, 64L);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(VerticalFrame(vertical),
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 64L, TransformedTextBudget = budget, TextShapingProvider = provider });
+
+            Assert.True(provider.Calls > 0);
+            Assert.All(image.GetPixels(), value => Assert.Equal((byte)0, value));
+            Assert.Equal(64L, budget.IntermediatePixels);
+        }
+
+        [Fact]
+        public void HiddenVerticalCapabilityCheckObservesProviderCancellation() {
+            using var cancellation = new System.Threading.CancellationTokenSource();
+            var provider = new VerticalProvider(cancellation.Cancel);
+
+            Assert.ThrowsAny<OperationCanceledException>(() => OfficeDrawingRasterRenderer.Render(VerticalFrame(false),
+                new OfficeDrawingRasterRenderOptions { TextShapingProvider = provider, CancellationToken = cancellation.Token }));
+        }
+
+        [Theory]
+        [InlineData(false, "effect")]
+        [InlineData(true, "effect")]
+        [InlineData(false, "pattern")]
+        [InlineData(true, "pattern")]
+        [InlineData(false, "nested-effect")]
+        [InlineData(true, "nested-effect")]
+        [InlineData(false, "mask")]
+        [InlineData(true, "mask")]
+        public void ReflectedNearestBoundarySurvivesSharedSamplingInspection(bool vertical, string route) {
+            var scene = new OfficeDrawing(1D, 1D);
+            scene.AddClippedImageWithInterpolation(OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Black)), "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 1D, 1D),
+                    rotationCenterX: vertical ? .5D : .25D, rotationCenterY: vertical ? .25D : .5D,
+                    flipHorizontal: !vertical, flipVertical: vertical), false, vertical ? 0D : .5D, vertical ? .5D : 0D,
+                OfficeClipPath.Rectangle(vertical ? 1D : .5D, vertical ? .5D : 1D));
+            Assert.Equal(OfficeColor.Black, OfficeDrawingRasterRenderer.Render(scene).GetPixel(0, 0));
+            OfficeTransform transform = OfficeTransform.Scale(vertical ? 1D : 2D, vertical ? 2D : 1D);
+            var drawing = new OfficeDrawing(vertical ? 1D : 2D, vertical ? 2D : 1D);
+            if (route == "pattern") drawing.AddTilingPattern(scene, new OfficeImagePlacement(0D, 0D, drawing.Width, drawing.Height),
+                1D, 1D, repeatX: false, repeatY: false, transform: transform);
+            else if (route == "nested-effect") drawing.AddEffectDrawing(new OfficeDrawing(1D, 1D).AddEffectDrawing(scene, OfficeTransform.Identity), transform);
+            else if (route == "mask") {
+                var solid = new OfficeDrawing(1D, 1D);
+                AddRectangle(solid, 0D, 0D, 1D, 1D, OfficeColor.Black);
+                drawing.AddEffectDrawing(solid, transform, OfficeBlendMode.Normal, new OfficeDrawingSoftMask(scene));
+            } else drawing.AddEffectDrawing(scene, transform);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            for (int index = 0; index < 2; index++) Assert.Equal(OfficeColor.Black, image.GetPixel(vertical ? 0 : index, vertical ? index : 0));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void DisjointAndEmptyNearestClipsKeepVisibleInterpolatedSampling(bool empty) {
+            var source = new OfficeRasterImage(2, 1, OfficeColor.Black);
+            source.SetPixel(1, 0, OfficeColor.White);
+            byte[] png = OfficePngWriter.Encode(source);
+            var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D));
+            var tile = new OfficeDrawing(2D, 1D).AddImageWithInterpolation(png, "image/png", projection, true);
+            var hidden = new OfficeDrawing(2D, 1D).AddImageWithInterpolation(png, "image/png", projection, false);
+            tile.AddClippedDrawing(hidden, 0D, 0D, empty ? OfficeClipPath.Empty() : OfficeClipPath.Rectangle(1D, 1D),
+                empty ? 0D : 10D, 0D);
+            var drawing = new OfficeDrawing(4D, 1D).AddTilingPattern(tile, new OfficeImagePlacement(0D, 0D, 4D, 1D),
+                2D, 1D, repeatX: false, repeatY: false, transform: OfficeTransform.Scale(2D, 1D));
+
+            OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+            Assert.InRange(boundary.R, (byte)1, (byte)254);
+            Assert.Equal(boundary.R, boundary.G);
+            Assert.Equal(boundary.R, boundary.B);
+        }
+
+        [Theory]
+        [InlineData(95L, false)]
+        [InlineData(96L, true)]
+        [InlineData(123L, true)]
+        [InlineData(124L, true)]
+        public void OptionalTextPaddingUsesRemainingIntermediateBudget(long maximumPixels, bool succeeds) {
+            var drawing = PositionedFrame();
+            drawing = new OfficeDrawing(8D, 8D).AddImage(OfficePngWriter.Encode(new OfficeRasterImage(8, 8, OfficeColor.White)),
+                "image/png", new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 8D, 8D))).AddDrawing(drawing, 0D, 0D);
+            var options = new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = maximumPixels };
+
+            if (succeeds) Assert.NotEqual(OfficeColor.White, OfficeDrawingRasterRenderer.Render(drawing, options).GetPixel(7, 0));
+            else Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing, options));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OptionalTextPaddingHonorsRememberedAndCumulativeTextCeilings(bool cumulativeText) {
+            var budget = new OfficeRasterTransformedTextBudget();
+            if (cumulativeText) {
+                var canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
+                canvas.ShareTransformedTextBudget(budget);
+                canvas.ChargeTransformedTextIntermediatePixels(63_999_968L, 128_000_000L);
+            } else budget.ChargeIntermediateSurfacePixels(64L, 96L);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PositionedFrame(),
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = cumulativeText ? 128_000_000L : 200L, TransformedTextBudget = budget });
+
+            Assert.True(image.GetPixel(7, 0).A > 0);
+            Assert.Equal(cumulativeText ? 64_000_000L : 96L, budget.IntermediatePixels);
+        }
+
+        [Theory]
+        [InlineData(111L, false)]
+        [InlineData(112L, true)]
+        public void OptionalTextPaddingUsesRoundedAnisotropicLayerPixels(long maximumPixels, bool succeeds) {
+            var drawing = new OfficeDrawing(8D, 8D).AddImage(OfficePngWriter.Encode(new OfficeRasterImage(8, 8, OfficeColor.White)),
+                "image/png", new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 8D, 8D)));
+            drawing.AddEffectDrawing(PositionedFrame(), OfficeTransform.Scale(.7D, 1D));
+            var options = new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = maximumPixels };
+
+            if (succeeds) Assert.NotEqual(OfficeColor.White, OfficeDrawingRasterRenderer.Render(drawing, options).GetPixel(5, 0));
+            else Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing, options));
+        }
+
+        private static OfficeDrawing VerticalFrame(bool vertical) {
+            var child = new OfficeDrawing(8D, 8D).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'));
+            child.AddVerticalText("A", 0D, 0D, vertical ? 8D : 1D, vertical ? 1D : 8D, new OfficeFontInfo("Ink", 8D));
+            return new OfficeDrawing(8D, 8D).AddDrawing(child, 0D, 0D,
+                new OfficeImageFrameTransform(0D, vertical ? 4D : 4.5D, vertical ? 4.5D : 4D,
+                    flipHorizontal: !vertical, flipVertical: vertical));
+        }
+
+        private static OfficeDrawing PositionedFrame() => new OfficeDrawing(8D, 4D).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A'))
+            .AddPositionedText("A", 0D, 0D, 8D, 4D, new OfficeImageFrameTransform(0D, 4D, 2D, flipHorizontal: true),
+                new OfficeFontInfo("Ink", 1D), textAdvanceWidth: 1D);
+
         private sealed class VerticalProvider : IOfficeTextShapingProvider {
+            private readonly Action? _onShape;
+            internal int Calls { get; private set; }
+            internal VerticalProvider(Action? onShape = null) => _onShape = onShape;
+            public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+                Calls++;
+                _onShape?.Invoke();
+                return request.Direction == OfficeTextDirection.TopToBottom ? new OfficeTextShapingResult(new[] {
+                    new OfficeShapedGlyph(1, "A", 0, advanceWidth: 0, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+                }, OfficeTextDirection.TopToBottom) : new HorizontalProvider().ShapeText(request);
+            }
+        }
+
+        private sealed class HorizontalProvider : IOfficeTextShapingProvider {
             public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) => new OfficeTextShapingResult(new[] {
-                new OfficeShapedGlyph(1, "A", 0, advanceWidth: 0, advanceHeight: -1000, offsetX: 0, offsetY: 0)
-            }, OfficeTextDirection.TopToBottom);
+                new OfficeShapedGlyph(1, "A", 0, advanceWidth: 500, advanceHeight: 0, offsetX: 0, offsetY: 0)
+            }, OfficeTextDirection.LeftToRight);
         }
 
         private sealed class RecordingCodec : IOfficeRasterImageCodec {
