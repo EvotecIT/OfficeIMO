@@ -67,6 +67,63 @@ public sealed class DrawingSvgViewportRasterFidelityTests {
             new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10_000 }));
     }
 
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal, false)]
+    [InlineData(OfficeBlendMode.Multiply, false)]
+    [InlineData(OfficeBlendMode.Normal, true)]
+    [InlineData(OfficeBlendMode.Multiply, true)]
+    public void FractionalNonuniformScalePreservesNearestImageGrid(OfficeBlendMode blend, bool coloredTexels) {
+        var source = new OfficeRasterImage(3, 3, OfficeColor.Black);
+        if (coloredTexels) {
+            for (int y = 0; y < 3; y++) for (int x = 0; x < 3; x++) {
+                source.SetPixel(x, y, OfficeColor.FromRgb((byte)(x * 100), (byte)(y * 100), (byte)((x + y) * 50)));
+            }
+        }
+        byte[] png = OfficePngWriter.Encode(source);
+        var inner = new OfficeDrawing(3D, 3D);
+        inner.AddImageWithInterpolation(png, "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 3D, 3D)), interpolate: false);
+        var grouped = new OfficeDrawing(4D, 3D);
+        grouped.AddEffectDrawing(inner, OfficeTransform.Scale(1.1D, 0.9D), blend);
+        var direct = new OfficeDrawing(4D, 3D);
+        direct.AddImageWithInterpolation(png, "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 3.3D, 2.7D)), interpolate: false);
+
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(grouped);
+        OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(direct);
+
+        Assert.Equal(expected.GetPixels(), actual.GetPixels());
+        Assert.Equal((byte)255, actual.GetPixel(1, 2).A);
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void FractionalNonuniformScalePreservesNearestSoftMaskGrid(OfficeBlendMode blend) {
+        var maskPixels = new OfficeRasterImage(3, 3, OfficeColor.Black);
+        var expectedPixels = new OfficeRasterImage(3, 3, OfficeColor.Transparent);
+        for (int y = 0; y < 3; y++) for (int x = 0; x < 3; x++) {
+            if ((x + y) % 2 == 0) {
+                maskPixels.SetPixel(x, y, OfficeColor.White);
+                expectedPixels.SetPixel(x, y, OfficeColor.Red);
+            }
+        }
+        var maskDrawing = new OfficeDrawing(3D, 3D);
+        maskDrawing.AddImageWithInterpolation(OfficePngWriter.Encode(maskPixels), "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 3D, 3D)), interpolate: false);
+        var source = new OfficeDrawing(3D, 3D);
+        AddRectangle(source, 0D, 3D, 3D, OfficeColor.Red);
+        var grouped = new OfficeDrawing(4D, 3D);
+        grouped.AddEffectDrawing(source, OfficeTransform.Scale(1.1D, 0.9D), blend,
+            new OfficeDrawingSoftMask(maskDrawing, OfficeSoftMaskMode.Luminosity));
+        var direct = new OfficeDrawing(4D, 3D);
+        direct.AddImageWithInterpolation(OfficePngWriter.Encode(expectedPixels), "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 3.3D, 2.7D)), interpolate: false);
+
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(direct).GetPixels(),
+            OfficeDrawingRasterRenderer.Render(grouped).GetPixels());
+    }
+
     private static OfficeDrawing ReadBars() {
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(Bars), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);
