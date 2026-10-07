@@ -147,3 +147,64 @@ public sealed class DrawingSvgViewportRasterFidelityTests {
         }
     }
 }
+
+public partial class DrawingTests {
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal, false)]
+    [InlineData(OfficeBlendMode.Multiply, false)]
+    [InlineData(OfficeBlendMode.Normal, true)]
+    [InlineData(OfficeBlendMode.Multiply, true)]
+    public void OfficeDrawingEffectGroup_ExhaustedInspectionPreservesLaterNearestImageAndMaskGrid(OfficeBlendMode blend, bool useMask) {
+        var pixels = new OfficeRasterImage(3, 3);
+        var expectedPixels = new OfficeRasterImage(3, 3);
+        for (int y = 0; y < 3; y++) for (int x = 0; x < 3; x++) {
+            if (useMask) {
+                bool opaque = (x + y) % 2 == 0;
+                pixels.SetPixel(x, y, opaque ? OfficeColor.White : OfficeColor.Black);
+                expectedPixels.SetPixel(x, y, opaque ? OfficeColor.Red : OfficeColor.Transparent);
+            } else {
+                OfficeColor color = OfficeColor.FromRgb((byte)(x * 100), (byte)(y * 100), (byte)((x + y) * 50));
+                pixels.SetPixel(x, y, color);
+                expectedPixels.SetPixel(x, y, color);
+            }
+        }
+        byte[] png = OfficePngWriter.Encode(pixels);
+        OfficeDrawing nearest = CreateHiddenNearestPatternScene(png, 3D, 3D);
+        nearest.AddImageWithInterpolation(png, "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 3D, 3D)), interpolate: false);
+        var grouped = new OfficeDrawing(4D, 3D);
+        if (useMask) {
+            var source = new OfficeDrawing(3D, 3D);
+            OfficeShape rectangle = OfficeShape.Rectangle(3D, 3D);
+            rectangle.FillColor = OfficeColor.Red;
+            rectangle.StrokeColor = null;
+            source.AddShape(rectangle, 0D, 0D);
+            grouped.AddEffectDrawing(source, OfficeTransform.Scale(1.1D, 0.9D), blend,
+                new OfficeDrawingSoftMask(nearest, OfficeSoftMaskMode.Luminosity));
+        } else {
+            grouped.AddEffectDrawing(nearest, OfficeTransform.Scale(1.1D, 0.9D), blend);
+        }
+        var direct = new OfficeDrawing(4D, 3D);
+        direct.AddImageWithInterpolation(OfficePngWriter.Encode(expectedPixels), "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 3.3D, 2.7D)), interpolate: false);
+
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(direct).GetPixels(),
+            OfficeDrawingRasterRenderer.Render(grouped).GetPixels());
+    }
+
+    private static OfficeDrawing CreateHiddenNearestPatternScene(byte[] png, double width, double height) {
+        var clipped = new OfficeDrawing(2D, 1D);
+        clipped.AddImageWithInterpolation(png, "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)), interpolate: false);
+        var hiddenTile = new OfficeDrawing(2D, 1D);
+        hiddenTile.AddClippedDrawing(clipped, 0D, 0D, OfficeClipPath.Rectangle(2D, 1D), 3D, 0D);
+        OfficeTransform minified = OfficeTransform.Scale(1D / 1024D, 1D);
+        var nestedTile = new OfficeDrawing(2D, 1D);
+        nestedTile.AddTilingPattern(hiddenTile, new OfficeImagePlacement(0D, 0D, 2D, 1D),
+            2D, 1D, repeatX: true, repeatY: false, transform: minified);
+        var drawing = new OfficeDrawing(width, height);
+        drawing.AddTilingPattern(nestedTile, new OfficeImagePlacement(0D, 0D, 2D, 1D),
+            2D, 1D, repeatX: true, repeatY: false, transform: minified);
+        return drawing;
+    }
+}

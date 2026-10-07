@@ -135,33 +135,7 @@ public partial class DrawingTests {
         OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Black);
         source.SetPixel(1, 0, OfficeColor.White);
         byte[] png = OfficePngWriter.Encode(source);
-        var clipped = new OfficeDrawing(2D, 1D);
-        clipped.AddImageWithInterpolation(
-            png,
-            "image/png",
-            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
-            interpolate: false);
-        var hiddenTile = new OfficeDrawing(2D, 1D);
-        hiddenTile.AddClippedDrawing(clipped, 0D, 0D, OfficeClipPath.Rectangle(2D, 1D), 3D, 0D);
-        OfficeTransform minified = OfficeTransform.Scale(1D / 1024D, 1D);
-        var nestedTile = new OfficeDrawing(2D, 1D);
-        nestedTile.AddTilingPattern(
-            hiddenTile,
-            new OfficeImagePlacement(0D, 0D, 2D, 1D),
-            2D,
-            1D,
-            repeatX: true,
-            repeatY: false,
-            transform: minified);
-        var inner = new OfficeDrawing(2D, 1D);
-        inner.AddTilingPattern(
-            nestedTile,
-            new OfficeImagePlacement(0D, 0D, 2D, 1D),
-            2D,
-            1D,
-            repeatX: true,
-            repeatY: false,
-            transform: minified);
+        var inner = CreateHiddenNearestPatternScene(png, 2D, 1D);
         inner.AddImageWithInterpolation(
             png,
             "image/png",
@@ -172,12 +146,9 @@ public partial class DrawingTests {
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
 
-        // The inspection budget bounds hidden pattern traversal; it must not
-        // disable the visible image's explicit interpolation during rendering.
-        OfficeColor boundary = raster.GetPixel(1, 0);
-        Assert.InRange(boundary.R, (byte)1, (byte)254);
-        Assert.Equal(boundary.R, boundary.G);
-        Assert.Equal(boundary.R, boundary.B);
+        // Inconclusive visibility conservatively keeps the original group grid.
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
     }
 
     [Theory]

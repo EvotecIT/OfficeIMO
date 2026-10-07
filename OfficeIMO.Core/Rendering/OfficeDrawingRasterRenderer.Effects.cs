@@ -23,7 +23,7 @@ public static partial class OfficeDrawingRasterRenderer {
         // Enlarging a low-resolution intermediate blurs narrow bars and other details.
         // Explicit nearest-neighbor content keeps its original grid: resampling
         // that grid twice can shift interior texels or sample fractional padding.
-        double layerScale = samplingInspection.FoundVisibleNearestImage ? scale : scale * transformScale;
+        double layerScale = interpolate ? scale * transformScale : scale;
         if (layerScale <= 0D) return;
         double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * layerScale);
         double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * layerScale);
@@ -96,10 +96,7 @@ public static partial class OfficeDrawingRasterRenderer {
             if (!inspection.TryConsume()) return true;
             OfficeDrawingElement element = drawing.Elements[index];
             if (element is OfficeDrawingImage { Interpolate: false, Opacity: > 0D } image &&
-                IntersectsVisibleBounds(image.Projection.GetDestinationBounds(), visibleBounds)) {
-                inspection.FoundVisibleNearestImage = true;
-                return true;
-            }
+                IntersectsVisibleBounds(image.Projection.GetDestinationBounds(), visibleBounds)) return true;
             if (element is OfficeDrawingGroup group && ContainsVisibleNonInterpolatedImage(group, visibleBounds, inspection)) return true;
             if (element is OfficeDrawingEffectGroup { Opacity: > 0D } effectGroup &&
                 ContainsVisibleNonInterpolatedImage(effectGroup, visibleBounds, inspection)) return true;
@@ -245,10 +242,6 @@ public static partial class OfficeDrawingRasterRenderer {
         private readonly System.Collections.Generic.Dictionary<OfficeDrawing, bool> _drawingResults = new System.Collections.Generic.Dictionary<OfficeDrawing, bool>();
         private readonly System.Threading.CancellationToken _cancellationToken;
         private long _work;
-
-        // Budget exhaustion conservatively selects nearest compositing, but it
-        // does not establish that a visible image requires its original grid.
-        internal bool FoundVisibleNearestImage { get; set; }
 
         internal SamplingInspectionContext(System.Threading.CancellationToken cancellationToken) {
             _cancellationToken = cancellationToken;
