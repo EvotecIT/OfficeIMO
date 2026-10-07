@@ -93,6 +93,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var placeholderOffsets = new HashSet<int>();
             int previousPosition = -1;
             for (int index = 0; index < 9 && table[cursor + 6 + index] != 0; index++) {
+                if (index > level) throw Invalid("Native list marker exceeds its level's placeholder count limit.");
                 int position = table[cursor + 6 + index] - 1;
                 if (position <= previousPosition || position >= rawText.Length || !placeholderOffsets.Add(position) || rawText[position] > level)
                     throw Invalid("Invalid native list level placeholder.");

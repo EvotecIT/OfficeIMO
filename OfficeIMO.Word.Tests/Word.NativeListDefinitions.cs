@@ -6,6 +6,61 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void NativeListDefinitions_FormattingOnlyOverrideDoesNotCreateARestart() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        NumberingInstance instance = numbering.Elements<NumberingInstance>().Single();
+        Level level = (Level)numbering.Elements<AbstractNum>().Single().Elements<Level>().First().CloneNode(true);
+        level.StartNumberingValue!.Val = 5;
+        level.LevelText!.Val = "%1)";
+        instance.Append(new LevelOverride(level) { LevelIndex = 0 });
+        string before = numbering.OuterXml;
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        NumberingInstance actual = reopened._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<NumberingInstance>().Single();
+        LevelOverride actualOverride = Assert.Single(actual.Elements<LevelOverride>());
+        Assert.Null(actualOverride.StartOverrideNumberingValue);
+        Assert.Equal(12, actualOverride.Level!.StartNumberingValue!.Val!.Value);
+        var markers = WordDocumentTraversal.BuildListMarkers(reopened);
+        Assert.Equal("12)", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
+        Assert.Equal("13)", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
+        Assert.Equal(before, numbering.OuterXml);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
+    public void NativeListDefinitions_SectionBreakRestartFailsBeforeWriting() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        source.Lists.Single().RestartNumberingAfterBreak = true;
+        source.AddSection();
+        string before = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml;
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Equal(before, source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml);
+    }
+
+    [Fact]
+    public void NativeListDefinitions_ExcessivePlaceholderCountFailsBeforeWriting() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        source.Lists.Single().Numbering.Levels[0].LevelText = "%1/%1";
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+    }
+
+    [Fact]
+    public void NativeListDefinitions_ExcessiveNativePlaceholderCountReportsLoss() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
+        byte[] word = compound!.Streams["WordDocument"], table = (byte[])compound.Streams["1Table"].Clone();
+        int level = BitConverter.ToInt32(word, 0x2E2) + BitConverter.ToInt32(word, 0x2E6);
+        int text = level + 28 + table[level + 24] + table[level + 25] + 2;
+        table[level + 7] = 2; // A second valid-position placeholder exceeds level zero's native count limit.
+        table[text + 2] = 0; table[text + 3] = 0;
+        byte[] altered = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["1Table"] = table });
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(altered));
+        Assert.Contains(reopened.LegacyDocUnsupportedFeatures, item => item.Kind == OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind.Numbering);
+    }
+
     [Theory]
     [InlineData("instance")]
     [InlineData("level")]
